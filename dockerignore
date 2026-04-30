@@ -1,0 +1,57 @@
+# ════════════════════════════════════════════════════════════════
+# Slops Saloon Fantasy Football MVP — .dockerignore
+# Keeps the Docker build context slim and secrets out of the image.
+# Place this file in the root of your project (same level as Dockerfile)
+# ════════════════════════════════════════════════════════════════
+
+# ── SECRETS — never go in the image ─────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+*.cert
+
+# ── DEPENDENCIES — reinstalled during build ──────────────────────
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# ── DATABASE — local SQLite files from ssff-bot ──────────────────
+*.db
+*.db-shm
+*.db-wal
+
+# ── GIT ──────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── OS FILES ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── LOGS ─────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── DOCKER FILES — don't nest these in the image ─────────────────
+Dockerfile
+Dockerfile.cron
+docker-compose.yml
+.dockerignore
+
+# ── TESTS & DOCS — not needed at runtime ─────────────────────────
+__tests__/
+*.test.js
+*.spec.js
+coverage/
+README.md
+docs/
+
+# ── IDE & EDITOR ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

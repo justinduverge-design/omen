@@ -1,0 +1,83 @@
+# ════════════════════════════════════════════════════════════════
+# Slops Saloon Fantasy Football MVP — docker-compose.yml
+# ════════════════════════════════════════════════════════════════
+# Two services:
+#   api  — Express server (platform_integration.js) on port 3000
+#   cron — Worker that runs tuesday_cron.js on a schedule
+#
+# Usage:
+#   docker-compose up --build          # start both services
+#   docker-compose up api              # api only
+#   docker-compose logs -f cron        # watch cron output
+#   docker-compose down                # stop everything
+# ════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+
+  # ── API SERVICE ────────────────────────────────────────────────
+  # Runs platform_integration.js — handles OAuth, standings,
+  # roster endpoints, and the agent pipeline route.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    volumes:
+      - .:/app
+      - /app/node_modules 
+    container_name: ssffmvp_api
+    command: node src/ssffmvp_api_v2.js
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env                          # maps your local .env directly
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── CRON SERVICE ───────────────────────────────────────────────
+  # Stays alive permanently using a lightweight Alpine cron daemon.
+  # The actual tuesday_cron.js runs at 6:00 AM EST every Tuesday.
+  # Logs are written to /var/log/ssffmvp_cron.log inside container.
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.cron     # separate cron Dockerfile below
+      target: production
+    container_name: ssffmvp_cron
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      TZ: America/New_York            # ensures 6 AM EST is correct
+    restart: unless-stopped
+    # No ports exposed — cron is a pure worker, no HTTP
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ── SHARED NETWORK ─────────────────────────────────────────────
+# Both services share a private network so they can communicate
+# internally if needed (e.g. cron calls api endpoints)
+networks:
+  default:
+    name: ssffmvp_network
