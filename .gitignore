@@ -1,6 +1,32 @@
+# Dependencies
 node_modules/
+
+# Secrets - NEVER COMMIT
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Local databases
 *.db
 *.db-shm
 *.db-wal
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS / editor
 .DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

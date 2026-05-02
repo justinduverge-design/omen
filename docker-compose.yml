@@ -12,7 +12,6 @@
 #   docker-compose down                # stop everything
 # ════════════════════════════════════════════════════════════════
 
-version: "3.9"
 
 services:
 
