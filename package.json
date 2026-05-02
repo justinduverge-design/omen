@@ -2,10 +2,10 @@
   "name": "ssffmvp",
   "version": "1.0.0",
   "description": "Slops Saloon Fantasy Football MVP",
-  "main": "src/ssffmvp_api_v2.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node src/ssffmvp_api_v2.js",
-    "dev": "node src/ssffmvp_api_v2.js",
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
     "cron": "node src/ssffmvp_tuesday_cron.js"
   },
   "dependencies": {
@@ -13,9 +13,15 @@
     "@supabase/supabase-js": "^2.105.0",
     "@upstash/redis": "^1.28.0",
     "axios": "^1.15.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.22.1",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
     "passport": "^0.7.0",
-    "passport-yahoo-oauth2": "^0.2.6"
+    "passport-yahoo-oauth2": "^0.2.6",
+    "stripe": "^22.1.0",
+    "winston": "^3.15.0"
   }
 }
