@@ -224,7 +224,16 @@ create policy subscriptions_self_select on public.subscriptions for select using
 
 -- =================================================================
 -- 6. VAULT WRAPPER RPCs
+-- -----------------------------------------------------------------
+-- Drop first because the existing functions in production may have
+-- different return types (CREATE OR REPLACE refuses to change a
+-- function's return type). Safe because the API immediately re-creates
+-- them below; this script is run as a single SQL editor execution.
 -- =================================================================
+
+drop function if exists public.vault_create_secret(text, text, text);
+drop function if exists public.vault_decrypt_secret(uuid);
+drop function if exists public.vault_update_secret(uuid, text);
 
 create or replace function public.vault_create_secret(
   secret      text,
