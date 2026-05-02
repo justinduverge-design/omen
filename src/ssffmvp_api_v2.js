@@ -404,14 +404,6 @@ router.get("/league/standings", async (req, res) => {
   }
 });
 
-// ════════════════════════════════════════════════════════════════
-// SERVER INITIALIZATION
-// ════════════════════════════════════════════════════════════════
-
-const app = express();
-app.use(express.json());
-app.use('/', router);
-
 router.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: `${Math.floor((Date.now() - START_TIME) / 1000)}s` });
 });

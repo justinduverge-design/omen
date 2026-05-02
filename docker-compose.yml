@@ -27,7 +27,7 @@ services:
       - .:/app
       - /app/node_modules 
     container_name: ssffmvp_api
-    command: node src/ssffmvp_api_v2.js
+    command: node src/server.js
     ports:
       - "3000:3000"
     env_file:
