@@ -14,10 +14,11 @@
 -- =================================================================
 
 create extension if not exists "uuid-ossp";
-create extension if not exists pg_sodium with schema pgsodium;
--- Supabase Vault is built on pg_sodium and is enabled by default on
--- Supabase projects. Provides the `vault` schema (vault.secrets,
--- vault.decrypted_secrets, etc.).
+
+-- Supabase Vault is provided automatically on every Supabase project
+-- as the `vault` schema (vault.secrets, vault.decrypted_secrets,
+-- vault.create_secret, etc.) and is no longer backed by pg_sodium
+-- (which Supabase deprecated). Nothing to install here.
 
 
 -- =================================================================
