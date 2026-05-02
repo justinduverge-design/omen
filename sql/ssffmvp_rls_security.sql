@@ -231,9 +231,26 @@ create policy subscriptions_self_select on public.subscriptions for select using
 -- them below; this script is run as a single SQL editor execution.
 -- =================================================================
 
-drop function if exists public.vault_create_secret(text, text, text);
-drop function if exists public.vault_decrypt_secret(uuid);
-drop function if exists public.vault_update_secret(uuid, text);
+-- Drop ALL overloads of the three vault wrappers regardless of
+-- existing signatures. The simpler `DROP FUNCTION IF EXISTS (uuid)`
+-- form only matches an exact signature; production may have these
+-- functions defined with text/uuid/etc parameters or different return
+-- types from earlier setups. This DO block is signature-agnostic.
+do $$
+declare r record;
+begin
+  for r in
+    select 'drop function ' || p.oid::regprocedure || ' cascade' as stmt
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('vault_create_secret',
+                        'vault_decrypt_secret',
+                        'vault_update_secret')
+  loop
+    execute r.stmt;
+  end loop;
+end $$;
 
 create or replace function public.vault_create_secret(
   secret      text,
