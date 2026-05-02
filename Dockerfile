@@ -51,4 +51,4 @@ USER ssffmvp
 EXPOSE 3000
 
 # Default command — overridden per service in docker-compose.yml
-CMD ["node", "src/ssffmvp_api_v2.js"]
+CMD ["node", "src/server.js"]
