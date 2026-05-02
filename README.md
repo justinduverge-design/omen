@@ -174,16 +174,24 @@ See `.env.example` for a full template with descriptions.
 ```
 ssffmvp/
 ├── src/
-│   ├── ssffmvp_api_v2.js            # Express API — OAuth, standings, roster
+│   ├── ssffmvp_api_v2.js            # Express API — OAuth, standings, roster, agent pipeline
 │   ├── ssffmvp_agents.js            # AI agent pipeline — VORP, scarcity, move engine
-│   └── ssffmvp_tuesday_cron.js      # Tuesday scoring cron — outcome tracking
+│   ├── ssffmvp_tuesday_cron.js      # Tuesday scoring cron — outcome tracking
+│   ├── ssffmvp_gdpr.js              # GDPR module — export, delete, consent
+│   └── ssffmvp_prompt_loader.js     # Loads agent prompts from prompts/
 ├── client/
-│   └── SSFFMVP_v2_full.jsx          # React frontend
+│   ├── App.jsx                      # React frontend (main)
+│   └── PrivacyPolicy.jsx            # Privacy policy page
+├── prompts/
+│   ├── manager_agent.md             # Manager Agent prompt
+│   ├── sub_agents.md                # Six sub-agent prompts
+│   └── PROMPTS_CHANGELOG.md         # Prompt revision history
 ├── sql/
 │   └── ssffmvp_rls_security.sql     # Supabase RLS + Vault setup (run once)
 ├── Dockerfile                       # API service — multi-stage build
 ├── Dockerfile.cron                  # Cron worker — Alpine crond
 ├── docker-compose.yml               # Orchestrates api + cron services
+├── probo.yaml                       # Probo compliance config
 ├── .dockerignore
 ├── .gitignore
 ├── .env.example

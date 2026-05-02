@@ -2,11 +2,11 @@
   "name": "ssffmvp",
   "version": "1.0.0",
   "description": "Slops Saloon Fantasy Football MVP",
-  "main": "src/ssffmvp_tuesday_cron.js",
+  "main": "src/ssffmvp_api_v2.js",
   "scripts": {
-    "start": "node src/ssffmvp_tuesday_cron.js",
-    "cron": "node src/ssffmvp_tuesday_cron.js",
-    "dev": "node src/ssffmvp_platform_integration.js"
+    "start": "node src/ssffmvp_api_v2.js",
+    "dev": "node src/ssffmvp_api_v2.js",
+    "cron": "node src/ssffmvp_tuesday_cron.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
