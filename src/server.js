@@ -9,11 +9,12 @@
  *   2. logger (so all subsequent errors are captured structurally)
  *   3. trust proxy (req.ip + X-Forwarded-* correct behind Nginx)
  *   4. security middleware (helmet, CORS) BEFORE body parser
- *   5. body parser
- *   6. rate limits
- *   7. routes
- *   8. 404 handler
- *   9. error handler (last - catches anything thrown above)
+ *   5. Stripe WEBHOOK router  (raw body)  -- BEFORE express.json
+ *   6. body parser (express.json)
+ *   7. rate limits
+ *   8. routes
+ *   9. 404 handler
+ *  10. error handler (last - catches anything thrown above)
  * =================================================================
  */
 
@@ -39,9 +40,20 @@ app.use(helmetMiddleware);
 app.use(corsMiddleware);
 app.use(httpLogger);
 
+// --- Stripe webhook BEFORE JSON parser ---------------------------
+// Stripe signs the raw request body. Once express.json() parses and
+// re-serializes it, the signature won't validate anymore. So we mount
+// the webhook router first (it uses express.raw() internally for /webhook).
+// Only the /webhook path inside this router does anything; other paths
+// fall through to the JSON-bodied router below.
+try {
+  const { webhookRouter } = require("./routes/stripe");
+  app.use("/api/stripe", webhookRouter);
+} catch (e) {
+  logger.error("Stripe webhook router failed to load", { err: e.message });
+}
+
 // --- Body parser --------------------------------------------------
-// Capped at 100kb. Stripe webhooks need a RAW body and will be mounted
-// on a separate router using express.raw() before this JSON parser.
 app.use(express.json({ limit: "100kb" }));
 
 // --- Rate limit (general) - skip health ---------------------------
@@ -66,7 +78,15 @@ app.get("/", (req, res) => {
 // --- Auth gets the stricter limiter -------------------------------
 app.use("/api/auth", authRateLimit);
 
-// --- Mount the v2 router (Sleeper, Yahoo, ESPN, league data) ------
+// --- Mount Stripe JSON routes (checkout, portal) -----------------
+try {
+  const { router: stripeRouter } = require("./routes/stripe");
+  app.use("/api/stripe", stripeRouter);
+} catch (e) {
+  logger.error("Stripe router failed to load", { err: e.message });
+}
+
+// --- Mount the v2 router (Sleeper, Yahoo, ESPN, league data) -----
 try {
   const apiRoutes = require("./ssffmvp_api_v2");
   app.use("/api", apiRoutes);

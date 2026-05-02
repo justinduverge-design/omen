@@ -1,25 +1,28 @@
--- ════════════════════════════════════════════════════════════════
+-- =================================================================
 -- Slops Saloon Fantasy Football MVP (SSFFMVP)
--- Supabase Setup — Schema + RLS + Vault Wrappers
--- ----------------------------------------------------------------
--- Run once in the Supabase SQL Editor on a fresh project.
--- Idempotent: safe to re-run; uses IF NOT EXISTS / OR REPLACE.
--- ════════════════════════════════════════════════════════════════
+-- Supabase setup - schema + RLS + Vault wrappers + subscriptions
+-- -----------------------------------------------------------------
+-- Run once on a fresh project; idempotent so it's safe to re-run on
+-- existing projects to apply additions (new tables / columns / policies).
+-- Built to match the production schema export verbatim, plus the
+-- subscriptions table required by the Stripe webhook.
+-- =================================================================
 
--- ─────────────────────────────────────────────────────────────
+
+-- =================================================================
 -- 1. EXTENSIONS
--- ─────────────────────────────────────────────────────────────
+-- =================================================================
 
 create extension if not exists "uuid-ossp";
-create extension if not exists pg_sodium  with schema pgsodium;
--- Supabase Vault is built on pg_sodium and is enabled by default
--- on Supabase projects. This adds the `vault` schema with
--- vault.secrets / vault.decrypted_secrets and helper functions.
+create extension if not exists pg_sodium with schema pgsodium;
+-- Supabase Vault is built on pg_sodium and is enabled by default on
+-- Supabase projects. Provides the `vault` schema (vault.secrets,
+-- vault.decrypted_secrets, etc.).
 
 
--- ─────────────────────────────────────────────────────────────
+-- =================================================================
 -- 2. CORE SCHEMA
--- ─────────────────────────────────────────────────────────────
+-- =================================================================
 
 create table if not exists public.users (
   id            uuid primary key default gen_random_uuid(),
@@ -45,8 +48,8 @@ create table if not exists public.consent_records (
 create table if not exists public.oauth_credentials (
   user_id          uuid not null references public.users(id) on delete cascade,
   platform         text not null,
-  access_token_id  uuid,   -- Vault secret_id (UUID), NOT the token itself
-  refresh_token_id uuid,   -- Vault secret_id (UUID), NOT the token itself
+  access_token_id  uuid,
+  refresh_token_id uuid,
   expires_at       timestamptz,
   primary key (user_id, platform)
 );
@@ -59,6 +62,20 @@ create table if not exists public.platform_connections (
   is_active   boolean default true,
   created_at  timestamptz default now()
 );
+
+-- platform_connections additions: the API code references these columns,
+-- but they were missing from production. ADD COLUMN IF NOT EXISTS makes
+-- this safe to apply against the live DB without breaking existing rows.
+alter table public.platform_connections
+  add column if not exists platform_user_id   text,
+  add column if not exists platform_username  text,
+  add column if not exists token_secret_id    uuid,   -- Vault secret_id
+  add column if not exists refresh_secret_id  uuid,   -- Vault secret_id
+  add column if not exists token_expires_at   timestamptz,
+  add column if not exists espn_secret_id     uuid,   -- Vault secret_id
+  add column if not exists espn_swid          text,
+  add column if not exists espn_team_id       text,
+  add column if not exists updated_at         timestamptz default now();
 
 create table if not exists public.moves (
   id            uuid primary key default gen_random_uuid(),
@@ -84,29 +101,79 @@ create table if not exists public.deletion_audit_log (
 );
 
 
--- ─────────────────────────────────────────────────────────────
--- 3. INDEXES
--- ─────────────────────────────────────────────────────────────
+-- =================================================================
+-- 3. NEW TABLES (previously missing from setup script)
+-- =================================================================
+
+-- oauth_state -- short-lived PKCE state during Yahoo OAuth handshake.
+-- API server creates a row on /authorize, validates+deletes on /callback.
+-- expires_at is set but the API also needs to enforce it (cleanup cron).
+create table if not exists public.oauth_state (
+  state       text primary key,
+  platform    text,
+  user_id     uuid,
+  verifier    text,
+  expires_at  timestamptz
+);
+
+-- local_snapshots -- emergency-fallback ingestion path for ssff-bot data.
+-- See ssffmvp_agents.js [A] LOCAL LOGIC BRIDGE.
+create table if not exists public.local_snapshots (
+  league_id    text primary key,
+  snapshot     jsonb not null,
+  source       text default 'ssff-bot-local',
+  exported_at  timestamptz,
+  ingested_at  timestamptz default now()
+);
+
+-- system_context -- internal KV config store (e.g. current_week, model_version).
+create table if not exists public.system_context (
+  key         text primary key,
+  value       jsonb,
+  updated_at  timestamptz
+);
+
+-- subscriptions -- backs the Stripe webhook. One row per user.
+create table if not exists public.subscriptions (
+  user_id            uuid primary key references public.users(id) on delete cascade,
+  stripe_customer_id text unique,
+  plan               text,
+  status             text default 'active',
+  subscribed_at      timestamptz default now(),
+  canceled_at        timestamptz,
+  expires_at         timestamptz
+);
+
+
+-- =================================================================
+-- 4. INDEXES
+-- =================================================================
 
 create index if not exists idx_consent_records_user_id      on public.consent_records      (user_id);
 create index if not exists idx_oauth_credentials_user_id    on public.oauth_credentials    (user_id);
 create index if not exists idx_platform_connections_user_id on public.platform_connections (user_id);
 create index if not exists idx_moves_user_week              on public.moves                (user_id, week_num, season);
 create index if not exists idx_moves_pending                on public.moves                (outcome) where outcome = 'pending';
+create index if not exists idx_oauth_state_expires_at       on public.oauth_state          (expires_at);
+create index if not exists idx_subscriptions_customer       on public.subscriptions        (stripe_customer_id);
 
 
--- ─────────────────────────────────────────────────────────────
--- 4. ROW LEVEL SECURITY
--- ─────────────────────────────────────────────────────────────
+-- =================================================================
+-- 5. ROW LEVEL SECURITY
+-- =================================================================
 
-alter table public.users                enable row level security;
-alter table public.consent_records      enable row level security;
-alter table public.oauth_credentials    enable row level security;
-alter table public.platform_connections enable row level security;
-alter table public.moves                enable row level security;
-alter table public.deletion_audit_log   enable row level security;
+alter table public.users                 enable row level security;
+alter table public.consent_records       enable row level security;
+alter table public.oauth_credentials     enable row level security;
+alter table public.platform_connections  enable row level security;
+alter table public.moves                 enable row level security;
+alter table public.deletion_audit_log    enable row level security;
+alter table public.oauth_state           enable row level security;
+alter table public.local_snapshots       enable row level security;
+alter table public.system_context        enable row level security;
+alter table public.subscriptions         enable row level security;
 
--- users: each authenticated user can only see/edit their own row
+-- users -- self-only
 drop policy if exists users_self_select on public.users;
 drop policy if exists users_self_update on public.users;
 drop policy if exists users_self_insert on public.users;
@@ -132,28 +199,31 @@ create policy oauth_self_insert on public.oauth_credentials for insert with chec
 create policy oauth_self_update on public.oauth_credentials for update using      (auth.uid() = user_id);
 create policy oauth_self_delete on public.oauth_credentials for delete using      (auth.uid() = user_id);
 
--- platform_connections
-drop policy if exists platforms_self_all on public.platform_connections;
-create policy platforms_self_all on public.platform_connections for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- platform_connections -- read-own; api server (service_role) manages writes
+drop policy if exists platforms_self_select on public.platform_connections;
+create policy platforms_self_select on public.platform_connections for select using (auth.uid() = user_id);
 
--- moves
+-- moves -- full self-access
 drop policy if exists moves_self_all on public.moves;
 create policy moves_self_all on public.moves for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- deletion_audit_log: never readable by users (insert-only via app);
--- service_role bypasses RLS so the cron/admin can still query.
+-- deletion_audit_log -- never readable by users; service_role still bypasses RLS
 drop policy if exists deletion_audit_no_user_read on public.deletion_audit_log;
 create policy deletion_audit_no_user_read on public.deletion_audit_log for select using (false);
 
+-- oauth_state, local_snapshots, system_context -- service_role only.
+-- RLS enabled with NO policies = no anon/auth user can read or write.
+-- service_role bypasses RLS.
 
--- ─────────────────────────────────────────────────────────────
--- 5. VAULT WRAPPER RPCs
--- The Node.js API calls these via `supabase.rpc(name, args)`.
--- They wrap Supabase Vault so app code never sees pgsodium directly.
--- Signatures match what src/ssffmvp_api_v2.js expects.
--- ─────────────────────────────────────────────────────────────
+-- subscriptions -- read-own only; only service_role (webhook) writes
+drop policy if exists subscriptions_self_select on public.subscriptions;
+create policy subscriptions_self_select on public.subscriptions for select using (auth.uid() = user_id);
+
+
+-- =================================================================
+-- 6. VAULT WRAPPER RPCs
+-- =================================================================
 
 create or replace function public.vault_create_secret(
   secret      text,
@@ -201,19 +271,18 @@ begin
 end;
 $$;
 
--- Restrict execution to authenticated users + service_role
 revoke all on function public.vault_create_secret(text, text, text)  from public;
 revoke all on function public.vault_decrypt_secret(uuid)             from public;
 revoke all on function public.vault_update_secret(uuid, text)        from public;
-
 grant execute on function public.vault_create_secret(text, text, text) to authenticated, service_role;
 grant execute on function public.vault_decrypt_secret(uuid)            to authenticated, service_role;
 grant execute on function public.vault_update_secret(uuid, text)       to authenticated, service_role;
 
 
--- ════════════════════════════════════════════════════════════════
+-- =================================================================
 -- DONE.
 -- After running, verify:
---   select tablename, rowsecurity from pg_tables where schemaname = 'public';
+--   select tablename, rowsecurity from pg_tables where schemaname='public';
 --   select proname from pg_proc where proname like 'vault_%';
--- ════════════════════════════════════════════════════════════════
+--   select count(*) from public.subscriptions;
+-- =================================================================
