@@ -82,10 +82,8 @@ if (HAS_SPA) {
   logger.info("Serving SPA from client/dist", { path: SPA_DIR });
   // Static assets (JS, CSS, images) - immutable cache OK because Vite
   // hashes filenames on every build (e.g. index-CAWhu1N_.js).
-  app.use(express.static(SPA_DIR, {
-    maxAge: "30d",
-    index:  false,                    // we'll handle / explicitly
-  }));
+  // index:true means express.static auto-serves index.html for "/".
+  app.use(express.static(SPA_DIR, { maxAge: "30d" }));
 } else {
   logger.warn("No SPA found at client/dist - falling back to JSON status");
   app.get("/", (req, res) => {
@@ -137,9 +135,18 @@ try {
 // API requests (any /api/*) and unknown verbs fall through to the
 // 404 handler below.
 if (HAS_SPA) {
-  app.get(/^(?!\/api\/).+$/, (req, res, next) => {
-    if (req.method !== "GET") return next();
-    res.sendFile(SPA_INDEX);
+  // Canonical SPA fallback. app.get("*", ...) is the standard
+  // pattern; using app.use(cb) here was racing with the JSON 404
+  // handler in some configurations.
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    if (req.path.includes("."))       return next();  // missed static asset = 404
+    res.sendFile(SPA_INDEX, (err) => {
+      if (err) {
+        logger.error("SPA sendFile failed", { err: err.message, path: req.path });
+        next(err);
+      }
+    });
   });
 }
 
