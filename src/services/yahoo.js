@@ -1,0 +1,157 @@
+"use strict";
+
+/**
+ * =================================================================
+ * Yahoo Fantasy Sports client
+ * -----------------------------------------------------------------
+ * OAuth 2.0 + PKCE handshake (authorize URL, code exchange,
+ * refresh) plus typed data fetchers (roster, current week,
+ * standings, player stats).
+ *
+ * Yahoo's response shape is famously deep + array-positional
+ * (e.g. team[0] holds metadata, team[1] holds standings stats).
+ * Parsers are intentionally defensive - any path that's missing
+ * returns a sensible default rather than throwing, so a partial
+ * Yahoo outage degrades gracefully instead of breaking the API.
+ * =================================================================
+ */
+
+const crypto = require("crypto");
+const config = require("../config");
+
+const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
+
+class YahooClient {
+  constructor(accessToken) {
+    this.accessToken = accessToken;
+  }
+
+  // ---- OAuth helpers (static) ----------------------------------
+
+  static generatePKCE() {
+    const verifier  = crypto.randomBytes(32).toString("base64url");
+    const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+    return { verifier, challenge };
+  }
+
+  static getAuthUrl(state, codeChallenge) {
+    const params = new URLSearchParams({
+      client_id:             config.yahoo.clientId,
+      redirect_uri:          config.yahoo.redirectUri,
+      response_type:         "code",
+      scope:                 "fspt-r",       // Fantasy read scope
+      code_challenge:        codeChallenge,
+      code_challenge_method: "S256",
+      state,
+    });
+    return `https://api.login.yahoo.com/oauth2/request_auth?${params}`;
+  }
+
+  static async exchangeCode(code, verifier) {
+    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + Buffer
+          .from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`)
+          .toString("base64"),
+      },
+      body: new URLSearchParams({
+        grant_type:    "authorization_code",
+        code,
+        redirect_uri:  config.yahoo.redirectUri,
+        code_verifier: verifier,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Yahoo token exchange failed: ${err}`);
+    }
+    return res.json();
+  }
+
+  static async refreshToken(refreshToken) {
+    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + Buffer
+          .from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`)
+          .toString("base64"),
+      },
+      body: new URLSearchParams({
+        grant_type:    "refresh_token",
+        refresh_token: refreshToken,
+      }),
+    });
+    if (!res.ok) throw new Error("Yahoo token refresh failed");
+    return res.json();
+  }
+
+  // ---- Low-level GET --------------------------------------------
+
+  async get(path) {
+    const res = await fetch(`${BASE}${path}?format=json`, {
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (res.status === 401) throw new Error("yahoo_token_expired");
+    if (!res.ok) throw new Error(`Yahoo API error: ${res.status}`);
+    return res.json();
+  }
+
+  // ---- High-level data fetchers ---------------------------------
+
+  /** Get the user's team_key inside a given league (league_key like 'nfl.l.12345'). */
+  async getMyTeamKey(leagueKey) {
+    const d = await this.get(`/users;use_login=1/games;game_keys=nfl/leagues;league_keys=${leagueKey}/teams`);
+    // Walk: fantasy_content.users[0].user[1].games[0].game[1].leagues[0].league[1].teams[0].team[0]
+    const u   = d?.fantasy_content?.users?.[0]?.user;
+    const lg  = u?.[1]?.games?.[0]?.game?.[1]?.leagues?.[0]?.league;
+    const tm  = lg?.[1]?.teams?.[0]?.team?.[0];
+    if (!tm) return null;
+    const keyEntry = Array.isArray(tm) ? tm.find(x => x?.team_key) : null;
+    return keyEntry?.team_key || null;
+  }
+
+  /** Get the current league week (used when /roster?week= isn't passed). */
+  async getCurrentWeek(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}`);
+    const meta = d?.fantasy_content?.league?.[0];
+    if (Array.isArray(meta)) {
+      const wEntry = meta.find(x => x?.current_week);
+      if (wEntry?.current_week) return parseInt(wEntry.current_week, 10);
+    }
+    return null;
+  }
+
+  /** Roster for a team at a given week. Returns raw Yahoo response. */
+  async getRoster(teamKey, week) {
+    const path = week
+      ? `/team/${teamKey}/roster;week=${week}`
+      : `/team/${teamKey}/roster`;
+    return this.get(path);
+  }
+
+  /** Standings (used elsewhere, kept for compat). */
+  async getLeagueStandings(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}/standings`);
+    const standings = d?.fantasy_content?.league?.[1]?.standings?.[0]?.teams;
+    if (!standings) return [];
+    return Object.values(standings)
+      .filter(t => t?.team)
+      .map((t, i) => {
+        const info  = t.team[0];
+        const stats = t.team[2]?.team_standings;
+        return {
+          rank:    parseInt(stats?.rank) || i + 1,
+          name:    info?.find?.(x => x?.name)?.name || "Unknown",
+          rec:     `${stats?.outcome_totals?.wins || 0}-${stats?.outcome_totals?.losses || 0}`,
+          pts:     stats?.points_for?.toFixed?.(2) || "0.00",
+          pts_num: parseFloat(stats?.points_for) || 0,
+          me:      false,
+        };
+      });
+  }
+}
+
+module.exports = YahooClient;

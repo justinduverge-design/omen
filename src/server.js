@@ -86,7 +86,26 @@ try {
   logger.error("Stripe router failed to load", { err: e.message });
 }
 
-// --- Mount the v2 router (Sleeper, Yahoo, ESPN, league data) -----
+// --- Mount /api/yahoo (modular roster routes) -------------------
+try {
+  const yahooRoutes = require("./routes/yahoo");
+  app.use("/api/yahoo", yahooRoutes);
+} catch (e) {
+  logger.error("Yahoo router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
+try {
+  const optimizerRoutes = require("./routes/optimizer");
+  app.use("/api/optimizer", optimizerRoutes);
+} catch (e) {
+  logger.error("Optimizer router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount the v2 router (Sleeper, Yahoo OAuth, ESPN, standings) -
+// NOTE: still hosts the original auth/* + league/* routes. As we
+// migrate them to src/routes/*.js, this will shrink and eventually
+// be removed.
 try {
   const apiRoutes = require("./ssffmvp_api_v2");
   app.use("/api", apiRoutes);
