@@ -28,22 +28,41 @@ const helmetMiddleware = helmet({
 });
 
 // ── CORS ──────────────────────────────────────────────────────────
-// Default-deny. Origins must be explicitly listed in CORS_ORIGINS
-// (comma-separated). In dev, http://localhost:* is auto-allowed so the
-// React dev server works without config.
-const corsMiddleware = cors({
-  origin: (origin, cb) => {
-    // No Origin header = same-origin request, curl, or server-to-server.
-    if (!origin) return cb(null, true);
+// Default-deny with sensible same-origin shortcut. Vite-built SPAs use
+// <script type="module" crossorigin> tags, which make even same-origin
+// asset fetches send an Origin header that triggers CORS evaluation.
+// We treat any request whose Origin's host matches the request's own
+// Host as same-origin (always allowed), then fall back to the explicit
+// CORS_ORIGINS allowlist, then localhost in dev.
+const corsMiddleware = cors((req, cb) => {
+  const origin = req.header("Origin");
 
-    if (config.corsOrigins.includes(origin)) return cb(null, true);
+  // 1. No Origin header at all = curl, server-to-server, or same-origin
+  //    that the browser didn't tag as cross-origin. Allow.
+  if (!origin) return cb(null, { origin: true, credentials: true });
 
-    if (config.isDev && origin.startsWith("http://localhost")) {
-      return cb(null, true);
+  // 2. Origin's host matches the request's own Host header = same-origin
+  //    even if the browser tagged it as crossorigin (Vite module scripts
+  //    do this). Allow without flagging.
+  try {
+    const originHost = new URL(origin).host;
+    if (originHost && originHost === req.headers.host) {
+      return cb(null, { origin: true, credentials: true });
     }
-    return cb(new Error(`CORS blocked: ${origin}`));
-  },
-  credentials: true,
+  } catch (_) { /* malformed Origin -> fall through to allowlist */ }
+
+  // 3. Explicit allowlist from CORS_ORIGINS env var.
+  if (config.corsOrigins.includes(origin)) {
+    return cb(null, { origin: true, credentials: true });
+  }
+
+  // 4. Dev convenience: localhost on any port.
+  if (config.isDev && origin.startsWith("http://localhost")) {
+    return cb(null, { origin: true, credentials: true });
+  }
+
+  // 5. Default deny.
+  return cb(new Error(`CORS blocked: ${origin}`));
 });
 
 // ── General rate limit ────────────────────────────────────────────
