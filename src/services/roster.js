@@ -155,8 +155,49 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
   return { ...normalized, source: "yahoo" };
 }
 
+/**
+ * Convert Yahoo's available-players response into the flat shape
+ * the optimizer's findWaiverMoves expects. Same normalizer logic
+ * as a roster player, just without the starter/bench slot info.
+ */
+function normalizeYahooWaivers(yahooResponse) {
+  const players = yahooResponse?.fantasy_content?.league?.[1]?.players;
+  if (!players) return [];
+
+  const out = [];
+  for (const k of Object.keys(players)) {
+    if (k === "count") continue;
+    const node = players[k]?.player;
+    // node is an array - meta is at [0]
+    const meta = Array.isArray(node) ? node[0] : null;
+    if (!meta) continue;
+
+    const name              = pickField(meta, "name") || {};
+    const eligibleArr       = pickField(meta, "eligible_positions") || [];
+    const eligible_positions = eligibleArr.map(p => p?.position).filter(Boolean);
+    const primary_position  = eligible_positions.find(p => !BENCH_SLOTS.has(p) && !IR_SLOTS.has(p))
+                            || eligible_positions[0]
+                            || "UNK";
+
+    out.push({
+      player_key:        pickField(meta, "player_key"),
+      player_id:         pickField(meta, "player_id"),
+      name:              name.full || `${name.first || ""} ${name.last || ""}`.trim() || "Unknown",
+      position:          primary_position,
+      eligible_positions,
+      team:              pickField(meta, "editorial_team_abbr") || null,
+      status:            pickField(meta, "status") || null,
+      // Yahoo doesn't include projections in the basic players;status=A response.
+      // Filled by stats sub-resource later (see TODO).
+      projected_points:  null,
+    });
+  }
+  return out;
+}
+
 module.exports = {
   normalizeYahooRoster,
+  normalizeYahooWaivers,
   fetchAndNormalizeRoster,
   BENCH_SLOTS,
   IR_SLOTS,

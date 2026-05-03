@@ -132,6 +132,20 @@ class YahooClient {
     return this.get(path);
   }
 
+  /**
+   * Fetch available (waiver/free agent) players for a league.
+   * Yahoo paginates at 25 max; we'll request `count` (capped at 50) sorted
+   * by Average Rank ('AR') so the highest-value players come first.
+   *
+   * Returns: raw Yahoo response. Use rosterSvc.normalizeYahooWaivers()
+   * to flatten into the shape the optimizer expects.
+   */
+  async getAvailablePlayers(leagueKey, opts = {}) {
+    const count = Math.min(opts.count || 50, 50);
+    const sort  = opts.sort  || "AR";    // AR = Average Rank
+    return this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=0`);
+  }
+
   /** Standings (used elsewhere, kept for compat). */
   async getLeagueStandings(leagueKey) {
     const d = await this.get(`/league/${leagueKey}/standings`);

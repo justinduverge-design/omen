@@ -75,20 +75,19 @@ router.get("/waivers", async (req, res, next) => {
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
     const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 
-    // TODO (task 2C): fetch real waiver pool via
-    //   yahoo.getAvailablePlayers(leagueKey, { count: 50, sort: 'AR' })
-    // For now return an empty pool so the route shape is stable.
-    const waiverPool = [];
+    // Fetch waiver pool via Yahoo and normalize.
+    const rawWaivers = await yahoo.getAvailablePlayers(leagueKey, { count: 50, sort: "AR" });
+    const waiverPool = rosterSvc.normalizeYahooWaivers(rawWaivers);
 
     const recommendations = optimizer.findWaiverMoves(roster, waiverPool);
 
     res.json({
-      week: roster.week,
-      league_key: roster.league_key,
-      pool_size: waiverPool.length,
+      week:        roster.week,
+      league_key:  roster.league_key,
+      pool_size:   waiverPool.length,
       recommendations,
-      note: waiverPool.length === 0
-        ? "Waiver pool fetching is wired in task 2C - returning empty for now"
+      note:        waiverPool.every(p => p.projected_points == null)
+        ? "Yahoo /players;status=A doesn't include projections - delta uses 0 for waiver players. Recommendations will fire only against OUT/IR rostered players until we wire the projections sub-resource."
         : undefined,
       generated_at: new Date().toISOString(),
     });
