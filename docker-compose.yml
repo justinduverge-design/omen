@@ -33,7 +33,10 @@ services:
     container_name: ssffmvp_api
     command: node src/server.js
     ports:
-      - "3000:3000"
+      # Bind to localhost only - nginx terminates TLS on 80/443
+      # and proxies to this. Port 3000 must NOT be reachable from
+      # the public internet directly. SY0-701 4.1: defense in depth.
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env                          # maps your local .env directly
     environment:
