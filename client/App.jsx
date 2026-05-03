@@ -1635,7 +1635,7 @@ export default function SlopsSaloonFFMVP() {
 
   const handleSubscribe = (plan) => {
     // PRODUCTION: POST /api/stripe/checkout-session → redirect to Stripe
-    showToast(`Redirecting to Stripe for ${plan} plan…`);
+    window.__startCheckout?.(plan); showToast(`Redirecting to Stripe for ${plan} plan…`);
     setTimeout(() => setShowSub(false), 1500);
   };
 
