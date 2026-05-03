@@ -30,3 +30,7 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Built SPA artifacts
+client/dist/
+client/node_modules/

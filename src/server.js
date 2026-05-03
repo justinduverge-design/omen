@@ -19,6 +19,8 @@
  */
 
 const express = require("express");
+const path    = require("path");
+const fs      = require("fs");
 const config  = require("./config");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
@@ -71,9 +73,25 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.json({ service: "Slops Saloon Fantasy Football MVP", status: "live" });
-});
+// Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
+const SPA_DIR = path.join(__dirname, "..", "client", "dist");
+const SPA_INDEX = path.join(SPA_DIR, "index.html");
+const HAS_SPA = fs.existsSync(SPA_INDEX);
+
+if (HAS_SPA) {
+  logger.info("Serving SPA from client/dist", { path: SPA_DIR });
+  // Static assets (JS, CSS, images) - immutable cache OK because Vite
+  // hashes filenames on every build (e.g. index-CAWhu1N_.js).
+  app.use(express.static(SPA_DIR, {
+    maxAge: "30d",
+    index:  false,                    // we'll handle / explicitly
+  }));
+} else {
+  logger.warn("No SPA found at client/dist - falling back to JSON status");
+  app.get("/", (req, res) => {
+    res.json({ service: "Slops Saloon Fantasy Football MVP", status: "live" });
+  });
+}
 
 // --- Auth gets the stricter limiter -------------------------------
 app.use("/api/auth", authRateLimit);
@@ -111,6 +129,18 @@ try {
   app.use("/api", apiRoutes);
 } catch (e) {
   logger.error("API routes failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- SPA fallback ------------------------------------------------
+// Any non-API GET that didn't match a static file should serve the
+// React app's index.html so client-side routing can take over.
+// API requests (any /api/*) and unknown verbs fall through to the
+// 404 handler below.
+if (HAS_SPA) {
+  app.get(/^(?!\/api\/).+$/, (req, res, next) => {
+    if (req.method !== "GET") return next();
+    res.sendFile(SPA_INDEX);
+  });
 }
 
 // --- 404 handler --------------------------------------------------
