@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "cron": "node src/ssffmvp_tuesday_cron.js"
+    "cron": "node src/ssffmvp_tuesday_cron.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
