@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import Header from '../components/layout/Header.jsx';
-import Footer from '../components/layout/Footer.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const EMPTY_PLAYER = {
@@ -223,17 +221,14 @@ export default function TradeAnalyzer() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Header />
-
       <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
         <section className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Football
+            Trade Analysis
           </p>
-          <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
             Trade Analyzer
-          </h1>
+          </h2>
           <p className="mt-4 text-sm leading-6 text-slate-400">
             Compare both sides with replacement-level value, injury adjustment,
             and missing-data confidence.
@@ -280,8 +275,5 @@ export default function TradeAnalyzer() {
 
         <ResultPanel result={result} />
       </main>
-
-      <Footer />
-    </div>
   );
 }
