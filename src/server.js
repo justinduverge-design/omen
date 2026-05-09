@@ -118,6 +118,14 @@ try {
   logger.error("Optimizer router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/trade (free, auth-gated trade comparison) --------
+try {
+  const tradeRoutes = require("./routes/trade");
+  app.use("/api/trade", tradeRoutes);
+} catch (e) {
+  logger.error("Trade router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount the v2 router (Sleeper, Yahoo OAuth, ESPN, standings) -
 // NOTE: still hosts the original auth/* + league/* routes. As we
 // migrate them to src/routes/*.js, this will shrink and eventually
