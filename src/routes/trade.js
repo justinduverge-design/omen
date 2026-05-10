@@ -2,6 +2,7 @@
 
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
+const llm = require("../services/llm");
 const { compareTrade } = require("../services/tradeValue");
 
 const router = express.Router();
@@ -45,7 +46,7 @@ function validateTradePayload(body = {}) {
   return null;
 }
 
-router.post("/compare", requireAuth, (req, res, next) => {
+router.post("/compare", requireAuth, async (req, res, next) => {
   try {
     const validationError = validateTradePayload(req.body);
     if (validationError) {
@@ -55,6 +56,13 @@ router.post("/compare", requireAuth, (req, res, next) => {
     const result = compareTrade({
       send: req.body.send,
       receive: req.body.receive,
+    });
+
+    result.explanation = await llm.explainTrade({
+      send:      req.body.send,
+      receive:   req.body.receive,
+      net_value: result.net_value,
+      verdict:   result.verdict,
     });
 
     return res.json(result);
