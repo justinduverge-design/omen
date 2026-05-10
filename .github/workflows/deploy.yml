@@ -42,8 +42,11 @@ jobs:
 
       - name: Write deploy key
         run: |
-          echo "${{ secrets.ORACLE_SSH_KEY }}" | base64 --decode > /tmp/oracle_key
+          echo "${{ secrets.ORACLE_SSH_KEY }}" | base64 --decode | tr -d '\r' > /tmp/oracle_key
           chmod 600 /tmp/oracle_key
+
+      - name: Verify deploy key fingerprint
+        run: ssh-keygen -l -f /tmp/oracle_key
 
       - name: Pull, rebuild, restart on Oracle
         run: |
