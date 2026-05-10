@@ -42,7 +42,7 @@ jobs:
 
       - name: Write deploy key
         run: |
-          echo "${{ secrets.ORACLE_SSH_KEY }}" | base64 --decode | tr -d '\r' > /tmp/oracle_key
+          printf '%s\n' "${{ secrets.ORACLE_SSH_KEY }}" > /tmp/oracle_key
           chmod 600 /tmp/oracle_key
 
       - name: Verify deploy key fingerprint
