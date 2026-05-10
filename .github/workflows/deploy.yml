@@ -42,7 +42,7 @@ jobs:
 
       - name: Write deploy key
         run: |
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > /tmp/oracle_key
+          echo "${{ secrets.ORACLE_SSH_KEY }}" | base64 --decode > /tmp/oracle_key
           chmod 600 /tmp/oracle_key
 
       - name: Pull, rebuild, restart on Oracle
