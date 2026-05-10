@@ -78,7 +78,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           for i in $(seq 1 12); do
-            if curl -fsS --max-time 4 "http://$ORACLE_HOST:3000/api/health" > /tmp/health.json 2>/dev/null; then
+            if curl -fsS --max-time 4 "https://slopssaloon.com/api/health" > /tmp/health.json 2>/dev/null; then
               echo "Health response:"
               cat /tmp/health.json
               echo ""
