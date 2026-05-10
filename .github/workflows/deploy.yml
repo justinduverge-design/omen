@@ -35,43 +35,28 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Load SSH key into agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.ORACLE_SSH_KEY }}
-
       - name: Trust the Oracle host key
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Pull, rebuild, restart on Oracle
-        env:
-          ORACLE_USER: ${{ secrets.ORACLE_USER }}
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      - name: Write deploy key
         run: |
-          ssh -o StrictHostKeyChecking=yes "$ORACLE_USER@$ORACLE_HOST" 'bash -se' <<'REMOTE'
-          set -euo pipefail
-          cd ~/SlopsSaloon-Fantasy-Football-MVP
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > /tmp/oracle_key
+          chmod 600 /tmp/oracle_key
 
-          echo ":: git pull"
-          git pull --ff-only origin main
-
-          echo ":: docker compose build (cached - manually run --no-cache via workflow_dispatch if needed)"
-          docker compose build api
-
-          echo ":: docker compose up -d"
-          docker compose up -d
-
-          echo ":: prune dangling images"
-          docker image prune -f --filter "until=72h" || true
-
-          echo ":: wait for container"
-          sleep 15
-
-          echo ":: container status"
-          docker compose ps
-          REMOTE
+      - name: Pull, rebuild, restart on Oracle
+        run: |
+          ssh -i /tmp/oracle_key \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              ubuntu@${{ secrets.ORACLE_HOST }} \
+              "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
+               git pull && \
+               docker compose build api && \
+               docker compose up -d && \
+               docker image prune -f"
 
       - name: Smoke test /api/health (retries up to 60s)
         env:
@@ -98,3 +83,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh "$ORACLE_USER@$ORACLE_HOST" 'docker logs ssffmvp_api 2>&1 | tail -25' || true
+
+      - name: Clean up deploy key
+        if: always()
+        run: rm -f /tmp/oracle_key
