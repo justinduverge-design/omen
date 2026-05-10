@@ -2,7 +2,7 @@
 # SSFFMVP - Auto-deploy to Oracle on push to main
 # -----------------------------------------------------------------
 # Required GitHub secrets (Settings -> Secrets and variables -> Actions):
-#   ORACLE_HOST     -  150.136.245.95
+#   ORACLE_HOST     -  143.47.101.241
 #   ORACLE_USER     -  ubuntu
 #   ORACLE_SSH_KEY  -  full contents of oraclepr.key (-----BEGIN ... END-----)
 #

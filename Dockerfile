@@ -32,6 +32,16 @@ COPY client/ ./
 RUN npm run build
 
 
+# ---- frontend (Vite) ----
+FROM node:22-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package.json ./
+COPY frontend/package-lock.json* ./
+RUN npm ci --prefer-offline
+COPY frontend/ ./
+RUN npm run build
+
+
 # --- STAGE 2: API builder (Express) ------------------------------
 FROM node:20-alpine AS builder
 
@@ -61,6 +71,7 @@ COPY package.json ./
 
 # Built SPA artifacts only (no node_modules, no source jsx)
 COPY --from=client-builder /app/client/dist ./client/dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 ENV NODE_ENV=production
 

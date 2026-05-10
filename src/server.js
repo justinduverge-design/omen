@@ -74,7 +74,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
-const SPA_DIR = path.join(__dirname, "..", "client", "dist");
+const SPA_DIR = path.join(__dirname, "..", "frontend", "dist");
 const SPA_INDEX = path.join(SPA_DIR, "index.html");
 const HAS_SPA = fs.existsSync(SPA_INDEX);
 

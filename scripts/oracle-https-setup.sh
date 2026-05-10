@@ -15,7 +15,7 @@
 #   7. Verifies certbot.timer is active for auto-renewal
 #
 # Pre-reqs (your job, not this script's):
-#   - DNS A records for slopssaloon.com + www -> 150.136.245.95
+#   - DNS A records for slopssaloon.com + www -> 143.47.101.241
 #   - Oracle Cloud Security List rule allowing tcp/80 + tcp/443
 #     from 0.0.0.0/0 (set in OCI console, not on the VM)
 #   - Your API container running on 127.0.0.1:3000
