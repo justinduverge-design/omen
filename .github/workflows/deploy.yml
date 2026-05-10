@@ -41,8 +41,10 @@ jobs:
           ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Write deploy key
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          printf '%s\n' "${{ secrets.ORACLE_SSH_KEY }}" > /tmp/oracle_key
+          printf '%s\n' "$SSH_KEY" > /tmp/oracle_key
           chmod 600 /tmp/oracle_key
 
       - name: Verify deploy key fingerprint
