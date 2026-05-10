@@ -139,6 +139,11 @@ function ResultPanel({ result }) {
           {result.verdict}
         </span>
       </div>
+      {result.explanation ? (
+        <p className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
+          {result.explanation}
+        </p>
+      ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {[
