@@ -5,6 +5,7 @@
 #   ORACLE_HOST     -  143.47.101.241
 #   ORACLE_USER     -  ubuntu
 #   ORACLE_SSH_KEY  -  full contents of oraclepr.key (-----BEGIN ... END-----)
+#   INFISICAL_TOKEN  -  Infisical service token (oracle-vps-deploy, production read)
 #
 # Flow:
 #   1. SSH agent loads the private key
@@ -51,6 +52,8 @@ jobs:
         run: ssh-keygen -l -f /tmp/oracle_key
 
       - name: Pull, rebuild, restart on Oracle
+        env:
+          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
         run: |
           ssh -i /tmp/oracle_key \
               -o IdentitiesOnly=yes \
@@ -59,8 +62,7 @@ jobs:
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
                git pull && \
-               docker compose build api && \
-               docker compose up -d && \
+               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --env=production -- bash -c 'docker compose build api && docker compose up -d' && \
                docker image prune -f"
 
       - name: Smoke test /api/health (retries up to 60s)

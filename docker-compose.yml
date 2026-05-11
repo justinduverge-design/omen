@@ -37,11 +37,25 @@ services:
       # and proxies to this. Port 3000 must NOT be reachable from
       # the public internet directly. SY0-701 4.1: defense in depth.
       - "127.0.0.1:3000:3000"
-    env_file:
-      - .env                          # maps your local .env directly
     environment:
       NODE_ENV: production
       PORT: 3000
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_TOKEN: ${REDIS_TOKEN}
+      YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID}
+      YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET}
+      YAHOO_REDIRECT_URI: ${YAHOO_REDIRECT_URI}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_TIMEOUT: ${LLM_TIMEOUT}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_MONTHLY_PRICE_ID: ${STRIPE_MONTHLY_PRICE_ID}
+      STRIPE_SEASON_PRICE_ID: ${STRIPE_SEASON_PRICE_ID}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -65,11 +79,25 @@ services:
       dockerfile: Dockerfile.cron     # separate cron Dockerfile below
       target: production
     container_name: ssffmvp_cron
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
       TZ: America/New_York            # ensures 6 AM EST is correct
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_TOKEN: ${REDIS_TOKEN}
+      YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID}
+      YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET}
+      YAHOO_REDIRECT_URI: ${YAHOO_REDIRECT_URI}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_TIMEOUT: ${LLM_TIMEOUT}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_MONTHLY_PRICE_ID: ${STRIPE_MONTHLY_PRICE_ID}
+      STRIPE_SEASON_PRICE_ID: ${STRIPE_SEASON_PRICE_ID}
     restart: unless-stopped
     # No ports exposed — cron is a pure worker, no HTTP
     logging:
