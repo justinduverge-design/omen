@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import StartSit from './StartSit';
 import TradeAnalyzer from './TradeAnalyzer';
 
 const TABS = [
   { id: 'trade', label: 'Trade Analyzer', disabled: false },
-  { id: 'coming-soon', label: 'Coming Soon', disabled: true },
+  { id: 'start-sit', label: 'Start/Sit', disabled: false },
 ];
 
 export default function Football() {
@@ -53,6 +54,7 @@ export default function Football() {
 
         <section>
           {activeTab === 'trade' ? <TradeAnalyzer /> : null}
+          {activeTab === 'start-sit' ? <StartSit /> : null}
         </section>
       </main>
     </div>
