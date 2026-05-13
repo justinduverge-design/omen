@@ -87,6 +87,20 @@ class YahooClient {
     return this.get(path);
   }
 
+  async getProjectedStats(teamKey, week) {
+    try {
+      const path = `/team/${teamKey}/stats;type=projected;week=${week}`;
+      const d = await this.get(path);
+      const stats = d?.fantasy_content?.team?.[1]?.team_stats?.stats?.stat;
+      if (!Array.isArray(stats)) return null;
+      const projEntry = stats.find(s => s?.stat_id === "4");
+      const val = parseFloat(projEntry?.value);
+      return Number.isFinite(val) ? val : null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Fetch available (waiver/free agent) players for a league.
    * Yahoo paginates at 25 max; we'll request `count` (capped at 50) sorted
