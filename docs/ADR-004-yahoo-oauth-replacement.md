@@ -1,7 +1,8 @@
 # ADR-004: Replace passport-yahoo-oauth2 with a request-free OAuth implementation
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-05-11
+**Implemented:** 2026-05-12
 **Deciders:** Justin (Product Owner), Claude (Architect)
 
 ## Context
@@ -74,13 +75,12 @@ This eliminates the entire `request` dependency chain from the project.
 - Nothing meaningful — Yahoo OAuth 2.0 is a well-documented, stable standard
 
 **Will need to revisit:**
-- Whether top-level `passport` package can also be removed (verify no other
-  Passport strategies are in use before uninstalling)
+- Nothing — top-level `passport` was also fully removed (2026-05-12); no other strategies were in use
 
 ## Action Items
 
-- [ ] Codex: implement `src/middleware/yahooOAuth.js` using axios
-- [ ] Codex: remove passport-yahoo-oauth2 and passport-oauth from package.json
-- [ ] Codex: run full test suite — confirm 33/33 pass
-- [ ] Codex: run npm audit — confirm 0 findings remain
+- [x] Codex: implement `src/middleware/yahooOAuth.js` using axios
+- [x] Codex: remove passport-yahoo-oauth2, passport-oauth, and passport from package.json
+- [x] Codex: run full test suite — 39/39 pass
+- [x] Codex: run npm audit — 0 findings confirmed; 48 packages removed
 - [ ] Justin: review and approve before merging to main

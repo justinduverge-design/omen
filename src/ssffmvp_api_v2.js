@@ -11,6 +11,7 @@ const express          = require("express");
 const crypto           = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis }        = require("@upstash/redis");
+const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("./middleware/yahooOAuth");
 
 const router     = express.Router();
 const START_TIME = Date.now();
@@ -120,7 +121,7 @@ class SleeperClient {
 }
 
 // ════════════════════════════════════════════════════════════════
-// CLASS: YahooClient (OAuth 2.0 with PKCE)
+// CLASS: YahooClient (OAuth 2.0)
 // ════════════════════════════════════════════════════════════════
 
 class YahooClient {
@@ -130,60 +131,19 @@ class YahooClient {
   }
 
   static generatePKCE() {
-    const verifier  = crypto.randomBytes(32).toString("base64url");
-    const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
-    return { verifier, challenge };
+    return { verifier: null, challenge: null };
   }
 
-  static getAuthUrl(state, codeChallenge) {
-    const params = new URLSearchParams({
-      client_id:             YAHOO_CLIENT_ID,
-      redirect_uri:          YAHOO_REDIRECT_URI,
-      response_type:         "code",
-      scope:                 "fsrd", // Updated to standard Read scope
-      code_challenge:        codeChallenge,
-      code_challenge_method: "S256",
-      state,
-    });
-    return `https://api.login.yahoo.com/oauth2/request_auth?${params}`;
+  static getAuthUrl(state) {
+    return getYahooAuthUrl(state);
   }
 
-  static async exchangeCode(code, verifier) {
-    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method: "POST",
-      headers: {
-        "Content-Type":  "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + Buffer.from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`).toString("base64"),
-      },
-      body: new URLSearchParams({
-        grant_type:    "authorization_code",
-        code,
-        redirect_uri:  YAHOO_REDIRECT_URI,
-        code_verifier: verifier,
-      }),
-    });
-    
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Yahoo token exchange failed: ${err}`);
-    }
-    return res.json();
+  static async exchangeCode(code) {
+    return exchangeYahooCode(code);
   }
 
   static async refreshToken(refreshToken) {
-    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method: "POST",
-      headers: {
-        "Content-Type":  "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + Buffer.from(`${YAHOO_CLIENT_ID}:${YAHOO_CLIENT_SECRET}`).toString("base64"),
-      },
-      body: new URLSearchParams({
-        grant_type:    "refresh_token",
-        refresh_token: refreshToken,
-      }),
-    });
-    if (!res.ok) throw new Error("Yahoo token refresh failed");
-    return res.json();
+    return refreshYahooToken(refreshToken);
   }
 
   async get(path) {
@@ -281,19 +241,18 @@ router.post("/auth/sleeper/connect", async (req, res) => {
 });
 
 router.get("/auth/yahoo/authorize", async (req, res) => {
-  const { userId } = req.query;
-  const { verifier, challenge } = YahooClient.generatePKCE();
+  const { userId, leagueId } = req.query;
   const state = crypto.randomBytes(16).toString("hex");
 
   await supabase.from("oauth_state").upsert({
     state,
     platform:   "yahoo",
     user_id:    userId,
-    verifier,
+    verifier:   leagueId || null,
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   });
 
-  res.redirect(YahooClient.getAuthUrl(state, challenge));
+  res.redirect(YahooClient.getAuthUrl(state));
 });
 
 router.get("/auth/yahoo/callback", async (req, res) => {
@@ -310,7 +269,7 @@ router.get("/auth/yahoo/callback", async (req, res) => {
 
     if (error || !oauthRow) return res.status(400).send("Invalid or expired OAuth state");
 
-    const tokens = await YahooClient.exchangeCode(code, oauthRow.verifier);
+    const tokens = await YahooClient.exchangeCode(code);
 
     const [accessSecretId, refreshSecretId] = await Promise.all([
       vaultCreate(tokens.access_token,  `yahoo_access_${oauthRow.user_id}`),
@@ -320,9 +279,12 @@ router.get("/auth/yahoo/callback", async (req, res) => {
     await supabase.from("platform_connections").upsert({
       user_id:           oauthRow.user_id,
       platform:          "yahoo",
+      league_id:         oauthRow.verifier || "yahoo",
+      platform_user_id:  tokens.xoauth_yahoo_guid || null,
       token_secret_id:   accessSecretId,
       refresh_secret_id: refreshSecretId,
       token_expires_at:  new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      is_active:         true,
       updated_at:        new Date().toISOString(),
     });
 
