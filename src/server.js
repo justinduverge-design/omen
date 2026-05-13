@@ -40,6 +40,17 @@ app.set("trust proxy", 1);
 // --- Security FIRST -----------------------------------------------
 app.use(helmetMiddleware);
 app.use(corsMiddleware);
+app.use((req, res, next) => {
+  const carriesEspnCredentials = (
+    (req.method === "POST" && req.path === "/api/platforms/espn/connect")
+    || (req.method === "POST" && req.path === "/api/auth/espn/connect")
+    || (req.method === "GET" && req.path === "/api/espn/roster")
+  );
+  if (carriesEspnCredentials) {
+    res.locals.__skipBodyLog = true;
+  }
+  next();
+});
 app.use(httpLogger);
 
 // --- Stripe webhook BEFORE JSON parser ---------------------------
@@ -124,6 +135,14 @@ try {
   app.use("/api/espn", espnRoutes);
 } catch (e) {
   logger.error("ESPN router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/platforms (connection status + connect/disconnect)
+try {
+  const platformsRoutes = require("./routes/platforms");
+  app.use("/api/platforms", platformsRoutes);
+} catch (e) {
+  logger.error("Platforms router failed to load", { err: e.message, stack: e.stack });
 }
 
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----

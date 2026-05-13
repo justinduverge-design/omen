@@ -302,13 +302,16 @@ router.post("/auth/espn/connect", async (req, res) => {
     const espn = new ESPNClient(espnS2, swid);
     const data = await espn.getLeague(leagueId);
     
-    const espnSecretId = await vaultCreate(espnS2, `espn_s2_${userId}`);
+    const [espnSecretId, swidSecretId] = await Promise.all([
+      vaultCreate(espnS2, `espn_s2_${userId}`),
+      vaultCreate(swid, `espn_swid_${userId}`),
+    ]);
 
     await supabase.from("platform_connections").upsert({
       user_id:        userId,
       platform:       "espn",
       espn_secret_id: espnSecretId,
-      espn_swid:      swid,
+      swid_secret_id: swidSecretId,
       league_id:      String(leagueId),
       updated_at:     new Date().toISOString(),
     });
@@ -356,7 +359,9 @@ router.get("/league/standings", async (req, res) => {
       standings = await yahoo.getLeagueStandings(leagueId);
     } else if (conn.platform === "espn") {
       const espnS2 = await vaultDecrypt(conn.espn_secret_id);
-      const espn = new ESPNClient(espnS2, conn.espn_swid);
+      const swid = await vaultDecrypt(conn.swid_secret_id);
+      if (!swid) return res.status(401).json({ error: "ESPN re-auth required" });
+      const espn = new ESPNClient(espnS2, swid);
       standings = await espn.buildStandings(leagueId, conn.espn_team_id, new Date().getFullYear());
     }
 

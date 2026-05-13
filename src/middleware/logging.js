@@ -54,7 +54,7 @@ const httpLogger = morgan(
   config.isProd ? "combined" : "dev",
   {
     stream: { write: (msg) => logger.info(msg.trim()) },
-    skip:   (req) => req.path === "/api/health",
+    skip:   (req, res) => req.path === "/api/health" || Boolean(res.locals.__skipBodyLog),
   }
 );
 
