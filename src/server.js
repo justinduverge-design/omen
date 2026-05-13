@@ -110,6 +110,22 @@ try {
   logger.error("Yahoo router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/sleeper (public API roster adapter) --------------
+try {
+  const sleeperRoutes = require("./routes/sleeper");
+  app.use("/api/sleeper", sleeperRoutes);
+} catch (e) {
+  logger.error("Sleeper router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/espn (cookie-backed roster adapter) --------------
+try {
+  const espnRoutes = require("./routes/espn");
+  app.use("/api/espn", espnRoutes);
+} catch (e) {
+  logger.error("ESPN router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
