@@ -117,7 +117,10 @@ async function getAuthenticatedYahooClient(userId) {
     logger.info("Yahoo token refreshed", { userId });
   }
 
-  return new YahooClient(accessToken);
+  return {
+    client: new YahooClient(accessToken),
+    accessToken,
+  };
 }
 
 module.exports = { getAuthenticatedYahooClient, persistYahooTokens };

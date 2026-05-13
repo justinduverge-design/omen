@@ -40,7 +40,7 @@ router.get("/lineup", async (req, res, next) => {
     }
     const wk = week ? parseInt(week, 10) : null;
 
-    const yahoo    = await getAuthenticatedYahooClient(req.user.id);
+    const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
     const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 
@@ -71,7 +71,7 @@ router.get("/waivers", async (req, res, next) => {
     }
     const wk = week ? parseInt(week, 10) : null;
 
-    const yahoo    = await getAuthenticatedYahooClient(req.user.id);
+    const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
     const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
 

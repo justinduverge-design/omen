@@ -25,7 +25,7 @@ const { logger }              = require("../middleware/logging");
 const { requireAuth }         = require("../middleware/auth");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
-const rosterSvc               = require("../services/roster");
+const yahooAdapter            = require("../adapters/yahoo");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -91,9 +91,10 @@ router.get("/roster", requireAuth, async (req, res, next) => {
     }
     const wk = week ? parseInt(week, 10) : null;
 
-    const yahoo    = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
-    const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
+    const { accessToken } = await getAuthenticatedYahooClient(req.user.id);
+    const roster = await yahooAdapter.buildNormalizedRoster(leagueKey, accessToken, wk, {
+      cacheScope: req.user.id,
+    });
 
     res.json(roster);
   } catch (e) {
