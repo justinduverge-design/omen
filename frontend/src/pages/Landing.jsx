@@ -144,7 +144,7 @@ export default function Landing() {
               </p>
               <ul className="mt-4 space-y-2 text-sm text-slate-300">
                 <li>10 trade comparisons per day</li>
-                <li>Yahoo Fantasy account required</li>
+                <li>Works with Yahoo, Sleeper, and ESPN</li>
                 <li>Full access to Slops Saloon Football</li>
               </ul>
             </div>
