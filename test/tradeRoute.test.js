@@ -144,7 +144,7 @@ test("POST /api/trade/compare returns comparison for valid one-for-one payload",
   });
 
   assert.equal(res.status, 200);
-  assert.equal(res.body.net_value, 4);
+  assert.equal(res.body.net_value, 2.5); // recalibrated 2026-05-13
   assert.equal(res.body.verdict, "accept");
 });
 
