@@ -16,8 +16,7 @@
  * =================================================================
  */
 
-const crypto = require("crypto");
-const config = require("../config");
+const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("../middleware/yahooOAuth");
 
 const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
 
@@ -29,63 +28,19 @@ class YahooClient {
   // ---- OAuth helpers (static) ----------------------------------
 
   static generatePKCE() {
-    const verifier  = crypto.randomBytes(32).toString("base64url");
-    const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
-    return { verifier, challenge };
+    return { verifier: null, challenge: null };
   }
 
-  static getAuthUrl(state, codeChallenge) {
-    const params = new URLSearchParams({
-      client_id:             config.yahoo.clientId,
-      redirect_uri:          config.yahoo.redirectUri,
-      response_type:         "code",
-      scope:                 "fspt-r",       // Fantasy read scope
-      code_challenge:        codeChallenge,
-      code_challenge_method: "S256",
-      state,
-    });
-    return `https://api.login.yahoo.com/oauth2/request_auth?${params}`;
+  static getAuthUrl(state) {
+    return getYahooAuthUrl(state);
   }
 
-  static async exchangeCode(code, verifier) {
-    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method:  "POST",
-      headers: {
-        "Content-Type":  "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + Buffer
-          .from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`)
-          .toString("base64"),
-      },
-      body: new URLSearchParams({
-        grant_type:    "authorization_code",
-        code,
-        redirect_uri:  config.yahoo.redirectUri,
-        code_verifier: verifier,
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Yahoo token exchange failed: ${err}`);
-    }
-    return res.json();
+  static async exchangeCode(code) {
+    return exchangeYahooCode(code);
   }
 
   static async refreshToken(refreshToken) {
-    const res = await fetch("https://api.login.yahoo.com/oauth2/get_token", {
-      method:  "POST",
-      headers: {
-        "Content-Type":  "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + Buffer
-          .from(`${config.yahoo.clientId}:${config.yahoo.clientSecret}`)
-          .toString("base64"),
-      },
-      body: new URLSearchParams({
-        grant_type:    "refresh_token",
-        refresh_token: refreshToken,
-      }),
-    });
-    if (!res.ok) throw new Error("Yahoo token refresh failed");
-    return res.json();
+    return refreshYahooToken(refreshToken);
   }
 
   // ---- Low-level GET --------------------------------------------

@@ -19,6 +19,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const config           = require("../config");
 const { logger }       = require("../middleware/logging");
+const { refreshYahooToken } = require("../middleware/yahooOAuth");
 const YahooClient      = require("./yahoo");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -36,6 +37,42 @@ async function vaultUpdate(secretId, newSecret) {
     new_secret: newSecret,
   });
   if (error) throw new Error(`Vault update failed: ${error.message}`);
+}
+
+async function vaultCreate(secret, name, description = "") {
+  const { data, error } = await supabase.rpc("vault_create_secret", { secret, name, description });
+  if (error) throw new Error(`Vault create failed: ${error.message}`);
+  return data?.id || data?.secret_id || data?.[0]?.id || data?.[0]?.secret_id || data;
+}
+
+async function persistYahooTokens(userId, tokens, leagueId = null) {
+  const { data: existing, error: lookupError } = await supabase
+    .from("platform_connections")
+    .select("league_id")
+    .eq("user_id", userId)
+    .eq("platform", "yahoo")
+    .maybeSingle();
+
+  if (lookupError) throw new Error(`platform_connections lookup failed: ${lookupError.message}`);
+
+  const [accessSecretId, refreshSecretId] = await Promise.all([
+    vaultCreate(tokens.access_token, `yahoo_access_${userId}`, "Yahoo OAuth access token"),
+    vaultCreate(tokens.refresh_token, `yahoo_refresh_${userId}`, "Yahoo OAuth refresh token"),
+  ]);
+
+  const { error } = await supabase.from("platform_connections").upsert({
+    user_id: userId,
+    platform: "yahoo",
+    league_id: leagueId || existing?.league_id || "yahoo",
+    platform_user_id: tokens.xoauth_yahoo_guid || null,
+    token_secret_id: accessSecretId,
+    refresh_secret_id: refreshSecretId,
+    token_expires_at: new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000).toISOString(),
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id,platform" });
+
+  if (error) throw new Error(`Yahoo token persistence failed: ${error.message}`);
 }
 
 async function getAuthenticatedYahooClient(userId) {
@@ -65,7 +102,7 @@ async function getAuthenticatedYahooClient(userId) {
       throw Object.assign(new Error("Yahoo refresh token missing - re-auth required"), { status: 401 });
     }
 
-    const refreshed = await YahooClient.refreshToken(refreshToken);
+    const refreshed = await refreshYahooToken(refreshToken);
     accessToken = refreshed.access_token;
 
     await vaultUpdate(conn.token_secret_id, accessToken);
@@ -83,4 +120,4 @@ async function getAuthenticatedYahooClient(userId) {
   return new YahooClient(accessToken);
 }
 
-module.exports = { getAuthenticatedYahooClient };
+module.exports = { getAuthenticatedYahooClient, persistYahooTokens };
