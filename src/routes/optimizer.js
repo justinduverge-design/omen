@@ -25,6 +25,7 @@ const { requireSubscription } = require("../middleware/subscription");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const rosterSvc               = require("../services/roster");
 const optimizer               = require("../services/optimizer");
+const agents                  = require("../services/agents");
 
 const router = express.Router();
 
@@ -90,6 +91,46 @@ router.get("/waivers", async (req, res, next) => {
         ? "Yahoo /players;status=A doesn't include projections - delta uses 0 for waiver players. Recommendations will fire only against OUT/IR rostered players until we wire the projections sub-resource."
         : undefined,
       generated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    if (e.message === "yahoo_token_expired") {
+      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
+    }
+    next(e);
+  }
+});
+
+// POST /api/optimizer/mvp-move
+// Returns the single highest-value weekly move for this user's team.
+// Requires Pro subscription. Uses Gemma + 6-agent pipeline.
+router.post("/mvp-move", async (req, res, next) => {
+  try {
+    const { leagueKey, week, scoringFormat, record } = req.body;
+    if (!leagueKey) {
+      return res.status(400).json({ error: "leagueKey required" });
+    }
+
+    const wk = week ? parseInt(week, 10) : null;
+
+    const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
+    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
+    const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
+
+    const players  = [
+      ...roster.slots.starters,
+      ...roster.slots.bench,
+    ].filter(Boolean);
+
+    const result = await agents.getMVPMove(players, {
+      scoringFormat: scoringFormat || "ppr",
+      record:        record || null,
+    });
+
+    res.json({
+      week:       roster.week,
+      league_key: roster.league_key,
+      team_key:   roster.team_key,
+      ...result,
     });
   } catch (e) {
     if (e.message === "yahoo_token_expired") {

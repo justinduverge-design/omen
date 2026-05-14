@@ -30,11 +30,10 @@ const yahooAdapter            = require("../adapters/yahoo");
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
-router.get("/auth", async (req, res, next) => {
+router.get("/auth", requireAuth, async (req, res, next) => {
   try {
-    const userId = req.query.userId || req.query.user_id;
+    const userId = req.user.id;
     const leagueId = req.query.leagueId || req.query.league_id || null;
-    if (!userId) return res.status(400).json({ error: "userId query param required" });
 
     const state = crypto.randomBytes(16).toString("hex");
     const { error } = await supabase.from("oauth_state").upsert({
