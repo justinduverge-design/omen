@@ -62,7 +62,7 @@ export default function Landing() {
           <div className="mt-10">
             <a
               href="/football"
-              className="inline-flex items-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300"
+              className="inline-flex items-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
             >
               Open Trade Analyzer <span aria-hidden="true">→</span>
             </a>

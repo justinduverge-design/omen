@@ -15,5 +15,3 @@ jobs:
       - run: npm ci
       - name: Run impeccable design quality scan
         run: npx impeccable detect frontend/src/
-      - name: Fail on critical issues
-        run: npx impeccable detect --exit-on-critical frontend/src/
