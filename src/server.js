@@ -153,6 +153,14 @@ try {
   logger.error("Optimizer router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/start-sit (free public manual comparison) --------
+try {
+  const startSitRoutes = require("./routes/startSit");
+  app.use("/api/start-sit", startSitRoutes);
+} catch (e) {
+  logger.error("Start/Sit router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/trade (free, auth-gated trade comparison) --------
 try {
   const tradeRoutes = require("./routes/trade");
