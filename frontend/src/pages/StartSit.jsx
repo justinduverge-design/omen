@@ -37,7 +37,7 @@ function PlayerInput({ label, player, onChange }) {
           Player name
           <input
             className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
-            placeholder="Enter player name"
+            placeholder="e.g. Tyreek Hill"
             value={player.name}
             onChange={(event) => onChange({ name: event.target.value })}
           />
@@ -57,7 +57,7 @@ function PlayerInput({ label, player, onChange }) {
         </label>
 
         <label className="text-xs font-semibold text-slate-400">
-          Projected points
+          Projected pts
           <input
             className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
             min="0"
@@ -86,7 +86,7 @@ function ResultPanel({ result, playerA, playerB }) {
       <h2 className="mt-2 text-3xl font-semibold text-white">
         Start {name || 'the higher projection'}
       </h2>
-      <p className="mt-2 text-base font-semibold text-emerald-200">
+      <p className="mt-2 text-base font-semibold text-slate-300">
         {formatAdvantage(result.pointsDelta)}
       </p>
       <p className="mt-4 rounded-md border border-slate-800 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100">
