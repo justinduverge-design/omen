@@ -193,3 +193,22 @@ All three must be true. Two out of three is a fail.
 - No sharing user data without explicit necessity
 - No compromise on system quality
 - Choose the harder right over the easier wrong
+
+Use Claude when the task starts with:
+
+- “Turn my thoughts into doctrine...”
+- “Update the OS docs...”
+- “Create an ADR...”
+- “Challenge this decision...”
+- “Define the product boundary...”
+- “Help me decide what belongs in launch...”
+- “Review this for founder drift...”
+
+Use Codex when the task starts with:
+
+- “Apply these documentation updates...”
+- “Create these files...”
+- “Run the tests...”
+- “Fix the audit issue...”
+- “Update the adapter...”
+- “Verify the build...”

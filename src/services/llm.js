@@ -97,4 +97,39 @@ async function explainStartSit({ from, to, delta, slot }) {
   return chat(messages);
 }
 
-module.exports = { chat, explainTrade, explainStartSit };
+/**
+ * Run a single agent call with a dedicated system prompt and user prompt.
+ * Used for both sub-agents (expect one-sentence string) and the Manager Agent
+ * (expects JSON string). Timeout is longer than trade explanations.
+ * Returns null on failure — caller must handle gracefully.
+ */
+async function runAgent(systemPrompt, userPrompt, { maxTokens = 400 } = {}) {
+  if (!LLM_BASE_URL) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT * 2);
+  try {
+    const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      signal:  controller.signal,
+      body: JSON.stringify({
+        model:      LLM_MODEL,
+        messages:   [
+          { role: "system", content: systemPrompt },
+          { role: "user",   content: userPrompt },
+        ],
+        stream:     false,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+module.exports = { chat, explainTrade, explainStartSit, runAgent };
