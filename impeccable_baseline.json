@@ -1,0 +1,74 @@
+[
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\components\\platforms\\PlatformConnections.jsx",
+    "line": 222,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "Account.jsx"
+    ]
+  },
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\components\\platforms\\PlatformConnections.jsx",
+    "line": 271,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "Account.jsx"
+    ]
+  },
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\components\\platforms\\PlatformConnections.jsx",
+    "line": 325,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "Account.jsx"
+    ]
+  },
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\pages\\Landing.jsx",
+    "line": 65,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "index.jsx"
+    ]
+  },
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\pages\\StartSit.jsx",
+    "line": 197,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "Football.jsx"
+    ]
+  },
+  {
+    "antipattern": "gray-on-color",
+    "name": "Gray text on colored background",
+    "description": "Gray text looks washed out on colored backgrounds. Use a darker shade of the background color instead, or white/near-white for contrast.",
+    "severity": "warning",
+    "file": "C:\\Users\\JDuve\\OneDrive\\Desktop\\SLOPS\\ssffmvp\\frontend\\src\\pages\\TradeAnalyzer.jsx",
+    "line": 269,
+    "snippet": "text-slate-950 on bg-amber-400",
+    "importedBy": [
+      "Football.jsx"
+    ]
+  }
+]
