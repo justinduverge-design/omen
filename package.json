@@ -23,5 +23,9 @@
     "morgan": "^1.10.0",
     "stripe": "^22.1.0",
     "winston": "^3.15.0"
+  },
+  "devDependencies": {
+    "impeccable": "^2.1.9",
+    "promptfoo": "0.121.9"
   }
 }

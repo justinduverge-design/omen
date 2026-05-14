@@ -194,7 +194,7 @@ export default function StartSit() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitDisabled}
             type="submit"
           >

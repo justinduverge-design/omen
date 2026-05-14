@@ -1,0 +1,36 @@
+description: Slops Saloon LLM prompt regression suite
+providers:
+  - id: ollama:gemma3:4b
+    config:
+      apiBaseUrl: http://2.24.79.103:11434
+
+prompts:
+  - prompts/trade.txt
+  - prompts/startSit.txt
+  - prompts/mvpMove_stub.txt
+
+tests:
+  - vars:
+      playerGive: "Austin Ekeler (RB, LAC)"
+      playerReceive: "Davante Adams (WR, LV)"
+      vorpDelta: "+2.3"
+      winProbDelta: "+4.1%"
+      verdict: "LEAN ACCEPT"
+    assert:
+      - type: contains
+        value: "lean accept"
+      - type: not-contains
+        value: "I cannot"
+      - type: javascript
+        value: "output.split(' ').length > 20"
+
+  - vars:
+      playerA: "Tyreek Hill (WR, MIA)"
+      playerB: "Keenan Allen (WR, CHI)"
+      projectedDelta: "+3.2"
+      recommendation: "START Hill"
+    assert:
+      - type: contains
+        value: "Hill"
+      - type: not-contains
+        value: "I cannot"

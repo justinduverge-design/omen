@@ -266,7 +266,7 @@ export default function TradeAnalyzer() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={loading || hasInvalidProjection}
               type="submit"
             >

@@ -219,7 +219,7 @@ export default function PlatformConnections() {
         ) : (
           <div className="space-y-3">
             <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300"
+              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
               type="button"
               onClick={() => {
                 window.location.href = '/api/yahoo/auth';
@@ -268,7 +268,7 @@ export default function PlatformConnections() {
               onChange={(league_id) => setSleeperForm((current) => ({ ...current, league_id }))}
             />
             <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={disabled}
               type="submit"
             >
@@ -322,7 +322,7 @@ export default function PlatformConnections() {
             />
             <EspnCookieInstructions />
             <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={disabled}
               type="submit"
             >
