@@ -59,6 +59,8 @@ jobs:
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=accept-new \
               -o BatchMode=yes \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
                git pull && \
