@@ -33,13 +33,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Trust the Oracle host key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts || true
 
       - name: Write deploy key
         env:
@@ -57,7 +57,7 @@ jobs:
         run: |
           ssh -i /tmp/oracle_key \
               -o IdentitiesOnly=yes \
-              -o StrictHostKeyChecking=yes \
+              -o StrictHostKeyChecking=accept-new \
               -o BatchMode=yes \
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
