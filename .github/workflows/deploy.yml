@@ -57,7 +57,7 @@ jobs:
         run: |
           ssh -i /tmp/oracle_key \
               -o IdentitiesOnly=yes \
-              -o StrictHostKeyChecking=no \
+              -o StrictHostKeyChecking=yes \
               -o BatchMode=yes \
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
