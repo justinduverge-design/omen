@@ -1,8 +1,10 @@
-# Slops Saloon — Fantasy Football Decision Layer
+# Corvus — Fantasy Football Decision Layer
 
-> Make the right move. Every week.
+> See the winning move.
 
-Slops Saloon is a multi-platform fantasy football decision layer. It connects to Yahoo, Sleeper, and ESPN, normalizes roster data across all three, and surfaces the highest-value action for your team each week — with math you can follow and reasoning you can trust.
+Corvus is a multi-platform fantasy football decision layer from Slops Saloon. It connects to Yahoo, Sleeper, and ESPN, normalizes roster data across all three, and surfaces the highest-value action for your team each week — with math you can follow and reasoning you can trust.
+
+Slops Saloon is the parent company, mission site, and long-term product studio. Corvus is the fantasy football product inside that ecosystem.
 
 ---
 
@@ -61,7 +63,7 @@ Each player's weekly projected points, adjusted for injury risk, minus the repla
 | TE | 4.5 pts/wk | 4 | 3.5 |
 
 **B — Positional Scarcity Bonus**
-Players who exceed the elite threshold (QB ≥25 ppg, RB/WR ≥15 ppg, TE ≥12 ppg) receive a +2.0 scarcity bonus per player, recognizing that they are genuinely hard to replace mid-season.
+Players who exceed the elite VORP threshold (QB ≥10 VORP, RB/WR ≥8 VORP, TE ≥7 VORP, DST ≥8 VORP) receive a +2.0 scarcity bonus per player, recognizing that they are genuinely hard to replace mid-season.
 
 **Combined score = A + (B × 0.6)**
 
@@ -154,7 +156,7 @@ The built `frontend/dist` is served by Nginx in production.
 ### 5. Run tests
 
 ```bash
-npm test    # 60 tests — all must pass before any deploy
+npm test    # 88 tests — all must pass before any deploy
 ```
 
 ---
@@ -299,4 +301,4 @@ MIT — see [LICENSE](LICENSE) for details.
 
 Built by [@justinduverge-design](https://github.com/justinduverge-design)
 
-*Slops Saloon — Play smarter. Win more.*
+*Corvus — See the winning move.*
