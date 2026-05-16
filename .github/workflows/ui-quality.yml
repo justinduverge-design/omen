@@ -3,7 +3,6 @@ on:
   pull_request:
     paths:
       - 'frontend/src/**'
-      - 'src/frontend/**'
 jobs:
   ui-quality:
     runs-on: ubuntu-latest

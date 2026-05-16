@@ -20,10 +20,20 @@ const config    = require("../config");
 
 // ── helmet ────────────────────────────────────────────────────────
 // Sets ~12 hardening headers (X-Frame-Options, HSTS, X-Content-Type-Options,
-// Referrer-Policy, etc.). CSP is OFF for now because the React SPA is hosted
-// separately; flip it on once same-origin hosting is wired up.
+// Referrer-Policy, etc.) plus a minimal same-origin CSP for the bundled SPA.
 const helmetMiddleware = helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "'unsafe-inline'"],
+      imgSrc:     ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc:    ["'self'"],
+      objectSrc:  ["'none'"],
+      frameSrc:   ["'none'"],
+    },
+  },
   crossOriginResourcePolicy: { policy: "cross-origin" },
 });
 
