@@ -9,6 +9,17 @@ const Module = require("node:module");
 const test = require("node:test");
 const express = require("express");
 
+let mockConnRow = {
+  espn_secret_id: "secret-espn-s2",
+  swid_secret_id: "secret-swid",
+  league_id:      "12345",
+};
+let mockVaultDecryptFn = async (secretId) => {
+  if (secretId === "secret-espn-s2") return { data: { decrypted_secret: "fake-s2" }, error: null };
+  if (secretId === "secret-swid")    return { data: { decrypted_secret: "fake-swid" }, error: null };
+  return { data: null, error: null };
+};
+
 const SAMPLE_ROSTER = {
   week: 1,
   league_key: "12345",
@@ -46,6 +57,28 @@ function loadEspnRouter() {
 
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === "@supabase/supabase-js" && parent?.filename === routePath) {
+      return {
+        createClient: () => ({
+          from: (_table) => ({
+            select: (_cols) => ({
+              eq: (_col1, _val1) => ({
+                eq: (_col2, _val2) => ({
+                  maybeSingle: async () => ({
+                    data:  mockConnRow,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+          rpc: async (_fn, args) => mockVaultDecryptFn(args.secret_id),
+        }),
+      };
+    }
+    if (request === "../config" && parent?.filename === routePath) {
+      return { supabaseUrl: "https://example.supabase.co", supabaseServiceKey: "test-key" };
+    }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
         requireAuth: (req, _res, next) => {
@@ -113,26 +146,36 @@ test("GET /api/espn/roster requires week", async () => {
   assert.equal(res.body.error, "week query param required");
 });
 
-test("GET /api/espn/roster requires espn_s2", async () => {
-  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1&swid={swid}");
-
-  assert.equal(res.status, 400);
-  assert.equal(res.body.error, "espn_s2 query param required");
-});
-
-test("GET /api/espn/roster requires swid", async () => {
-  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1&espn_s2=cookie");
-
-  assert.equal(res.status, 400);
-  assert.equal(res.body.error, "swid query param required");
-});
-
 test("GET /api/espn/roster returns normalized roster", async () => {
-  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1&espn_s2=cookie&swid={swid}");
+  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1");
 
   assert.equal(res.status, 200);
   assert.equal(res.body.source, "espn");
   assert.equal(res.body.week, 1);
   assert.equal(res.body.league_key, "12345");
   assert.equal(res.body.slots.starters[0].player_key, "espn:1001");
+});
+
+test("GET /api/espn/roster returns 401 when ESPN not connected", async () => {
+  mockConnRow = null;
+  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1");
+  mockConnRow = {
+    espn_secret_id: "secret-espn-s2",
+    swid_secret_id: "secret-swid",
+    league_id:      "12345",
+  };
+  assert.equal(res.status, 401);
+  assert.equal(res.body.error, "ESPN not connected");
+});
+
+test("GET /api/espn/roster returns 401 when Vault credentials are missing", async () => {
+  mockVaultDecryptFn = async () => ({ data: { decrypted_secret: null }, error: null });
+  const res = await request(buildApp(), "/api/espn/roster?leagueId=12345&week=1");
+  mockVaultDecryptFn = async (secretId) => {
+    if (secretId === "secret-espn-s2") return { data: { decrypted_secret: "fake-s2" }, error: null };
+    if (secretId === "secret-swid")    return { data: { decrypted_secret: "fake-swid" }, error: null };
+    return { data: null, error: null };
+  };
+  assert.equal(res.status, 401);
+  assert.equal(res.body.error, "ESPN re-auth required");
 });
