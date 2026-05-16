@@ -6,6 +6,7 @@ const EMPTY_STATUS = {
   sleeper: { connected: false, platform: 'sleeper', username: null },
   espn: { connected: false, platform: 'espn' },
 };
+const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
 
 function errorMessage(error) {
   if (error instanceof ApiError) return error.message;
@@ -20,7 +21,7 @@ function ConnectedBadge() {
   );
 }
 
-function Field({ id, label, value, onChange, autoComplete = 'off' }) {
+function Field({ id, label, value, onChange, autoComplete = 'off', type = 'text' }) {
   return (
     <label className="block text-sm text-slate-300" htmlFor={id}>
       <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -30,7 +31,7 @@ function Field({ id, label, value, onChange, autoComplete = 'off' }) {
         id={id}
         autoComplete={autoComplete}
         className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
-        type="text"
+        type={type}
         value={value}
         required
         onChange={(event) => onChange(event.target.value)}
@@ -279,59 +280,63 @@ export default function PlatformConnections() {
         )}
       </Card>
 
-      <Card
-        title="ESPN"
-        description="Connect with your ESPN browser session cookies."
-        connected={status.espn.connected}
-      >
-        {loadingStatus ? (
-          <p className="text-sm text-slate-400">Loading connection...</p>
-        ) : status.espn.connected ? (
-          <div className="space-y-3">
-            <button
-              className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={disabled}
-              type="button"
-              onClick={() => disconnect('espn')}
-            >
-              {action === 'disconnect-espn' ? 'Disconnecting...' : 'Disconnect'}
-            </button>
-            {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
-          </div>
-        ) : (
-          <form className="space-y-4" onSubmit={connectEspn}>
-            <Field
-              id="espn-s2"
-              label="espn_s2 Cookie"
-              value={espnForm.espn_s2}
-              autoComplete="off"
-              onChange={(espn_s2) => setEspnForm((current) => ({ ...current, espn_s2 }))}
-            />
-            <Field
-              id="espn-swid"
-              label="SWID Cookie"
-              value={espnForm.swid}
-              autoComplete="off"
-              onChange={(swid) => setEspnForm((current) => ({ ...current, swid }))}
-            />
-            <Field
-              id="espn-league-id"
-              label="ESPN League ID"
-              value={espnForm.league_id}
-              onChange={(league_id) => setEspnForm((current) => ({ ...current, league_id }))}
-            />
-            <EspnCookieInstructions />
-            <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={disabled}
-              type="submit"
-            >
-              {action === 'espn' ? 'Connecting...' : 'Connect ESPN'}
-            </button>
-            {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
-          </form>
-        )}
-      </Card>
+      {ESPN_ENABLED && (
+        <Card
+          title="ESPN"
+          description="Connect your ESPN Fantasy account. You'll need two values from your ESPN browser — step-by-step instructions are shown below."
+          connected={status.espn.connected}
+        >
+          {loadingStatus ? (
+            <p className="text-sm text-slate-400">Loading connection...</p>
+          ) : status.espn.connected ? (
+            <div className="space-y-3">
+              <button
+                className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={disabled}
+                type="button"
+                onClick={() => disconnect('espn')}
+              >
+                {action === 'disconnect-espn' ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+              {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
+            </div>
+          ) : (
+            <form className="space-y-4" onSubmit={connectEspn}>
+              <Field
+                id="espn-s2"
+                label="espn_s2 Cookie"
+                type="password"
+                value={espnForm.espn_s2}
+                autoComplete="off"
+                onChange={(espn_s2) => setEspnForm((current) => ({ ...current, espn_s2 }))}
+              />
+              <Field
+                id="espn-swid"
+                label="SWID Cookie"
+                type="password"
+                value={espnForm.swid}
+                autoComplete="off"
+                onChange={(swid) => setEspnForm((current) => ({ ...current, swid }))}
+              />
+              <Field
+                id="espn-league-id"
+                label="ESPN League ID"
+                value={espnForm.league_id}
+                onChange={(league_id) => setEspnForm((current) => ({ ...current, league_id }))}
+              />
+              <EspnCookieInstructions />
+              <button
+                className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={disabled}
+                type="submit"
+              >
+                {action === 'espn' ? 'Connecting...' : 'Connect ESPN'}
+              </button>
+              {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
+            </form>
+          )}
+        </Card>
+      )}
     </section>
   );
 }
