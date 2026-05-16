@@ -42,15 +42,14 @@ const REPLACEMENT_LEVELS = Object.freeze({
   }),
 });
 
-// Elite thresholds calibrated 2026-05-13.
-// With corrected (lower) replacement floors, elite must target genuinely scarce
-// players — not just "good starters." Thresholds raised to reflect true positional
-// scarcity: QB ≥25 ppg, RB/WR ≥15 ppg, TE ≥12 ppg.
+// Elite VORP thresholds (in VORP units, not projected points):
+// QB ≥10, RB/WR ≥8, TE ≥7, DST ≥8.
 const SCARCITY_THRESHOLDS = Object.freeze({
   QB: Object.freeze({ elite: 10, bubble: -5 }),
   RB: Object.freeze({ elite: 8,  bubble: -3 }),
   WR: Object.freeze({ elite: 8,  bubble: -3 }),
   TE: Object.freeze({ elite: 7,  bubble: -2 }),
+  DST: Object.freeze({ elite: 8, bubble: 2 }),
   default: Object.freeze({ elite: 3,  bubble: -2 }),
 });
 

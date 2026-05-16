@@ -48,7 +48,7 @@ async function vaultCreate(secret, name, description = "") {
 async function persistYahooTokens(userId, tokens, leagueId = null) {
   const { data: existing, error: lookupError } = await supabase
     .from("platform_connections")
-    .select("league_id")
+    .select("league_id, token_secret_id, refresh_secret_id")
     .eq("user_id", userId)
     .eq("platform", "yahoo")
     .maybeSingle();
@@ -56,8 +56,12 @@ async function persistYahooTokens(userId, tokens, leagueId = null) {
   if (lookupError) throw new Error(`platform_connections lookup failed: ${lookupError.message}`);
 
   const [accessSecretId, refreshSecretId] = await Promise.all([
-    vaultCreate(tokens.access_token, `yahoo_access_${userId}`, "Yahoo OAuth access token"),
-    vaultCreate(tokens.refresh_token, `yahoo_refresh_${userId}`, "Yahoo OAuth refresh token"),
+    existing?.token_secret_id
+      ? vaultUpdate(existing.token_secret_id, tokens.access_token).then(() => existing.token_secret_id)
+      : vaultCreate(tokens.access_token, `yahoo_access_${userId}`, "Yahoo OAuth access token"),
+    existing?.refresh_secret_id
+      ? vaultUpdate(existing.refresh_secret_id, tokens.refresh_token).then(() => existing.refresh_secret_id)
+      : vaultCreate(tokens.refresh_token, `yahoo_refresh_${userId}`, "Yahoo OAuth refresh token"),
   ]);
 
   const { error } = await supabase.from("platform_connections").upsert({

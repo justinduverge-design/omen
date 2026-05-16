@@ -28,6 +28,8 @@ const optimizer               = require("../services/optimizer");
 const agents                  = require("../services/agents");
 
 const router = express.Router();
+const VALID_SCORING_FORMATS = ["standard", "half_ppr", "ppr"];
+const VALID_RECORD_PATTERN = /^\d{1,2}-\d{1,2}(?:-\d{1,2})?$/;
 
 // All optimizer endpoints require both auth AND a Pro subscription.
 router.use(requireAuth);
@@ -109,6 +111,13 @@ router.post("/mvp-move", async (req, res, next) => {
     if (!leagueKey) {
       return res.status(400).json({ error: "leagueKey required" });
     }
+    if (scoringFormat && !VALID_SCORING_FORMATS.includes(scoringFormat)) {
+      return res.status(400).json({ error: "Invalid scoringFormat" });
+    }
+    const safeRecord = typeof record === "string" ? record.trim() : "";
+    if (safeRecord && !VALID_RECORD_PATTERN.test(safeRecord)) {
+      return res.status(400).json({ error: "Invalid record" });
+    }
 
     const wk = week ? parseInt(week, 10) : null;
 
@@ -123,7 +132,7 @@ router.post("/mvp-move", async (req, res, next) => {
 
     const result = await agents.getMVPMove(players, {
       scoringFormat: scoringFormat || "ppr",
-      record:        record || null,
+      record:        safeRecord || null,
     });
 
     res.json({

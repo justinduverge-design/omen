@@ -148,3 +148,24 @@ describe("depth discount", () => {
     assert.equal(result.net_value, 0.25);
   });
 });
+
+test("uses half_ppr replacement levels for RB and WR trade baselines", () => {
+  const result = tradeValue.compareTrade({
+    send: [{ name: "Starter RB", position: "RB", projected_points: 10 }],
+    receive: [{ name: "Starter WR", position: "WR", projected_points: 10 }],
+  }, { scoringFormat: "half_ppr" });
+
+  assert.equal(result.send.players[0].replacement_level, 5.5);
+  assert.equal(result.receive.players[0].replacement_level, 7);
+  assert.equal(result.scoring_format, "half_ppr");
+});
+
+test("uses standard replacement levels for TE trade baselines", () => {
+  const result = tradeValue.compareTrade({
+    send: [{ name: "Starter WR", position: "WR", projected_points: 12 }],
+    receive: [{ name: "TE Value", position: "TE", projected_points: 12 }],
+  }, { scoringFormat: "standard" });
+
+  assert.equal(result.receive.players[0].replacement_level, 3.5);
+  assert.equal(result.scoring_format, "standard");
+});
