@@ -131,7 +131,10 @@ function ResultPanel({ result }) {
           <h2 className="mt-2 text-3xl font-semibold text-white">
             {result.net_value > 0 ? '+' : ''}{result.net_value}
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            VORP value
+          </p>
+          <p className="mt-2 text-sm text-slate-400">
             Confidence: {result.confidence}
           </p>
         </div>
@@ -226,20 +229,7 @@ export default function TradeAnalyzer() {
   }
 
   return (
-      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
-        <section className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Trade Analysis
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-            Trade Analyzer
-          </h2>
-          <p className="mt-4 text-sm leading-6 text-slate-400">
-            Compare both sides with replacement-level value, injury adjustment,
-            and missing-data confidence.
-          </p>
-        </section>
-
+      <div className="flex flex-col gap-8">
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="grid gap-5 xl:grid-cols-2">
             <PlayerRows
@@ -266,11 +256,17 @@ export default function TradeAnalyzer() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={loading || hasInvalidProjection}
               type="submit"
             >
-              {loading ? 'Comparing' : 'Compare Trade'}
+              {loading ? (
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-amber-950/30 border-t-amber-950"
+                />
+              ) : null}
+              {loading ? 'Comparing...' : 'Compare Trade'}
             </button>
             {hasInvalidProjection ? (
               <p className="text-sm text-red-300">Projection must be a number.</p>
@@ -279,6 +275,6 @@ export default function TradeAnalyzer() {
         </form>
 
         <ResultPanel result={result} />
-      </main>
+      </div>
   );
 }
