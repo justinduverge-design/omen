@@ -1,6 +1,6 @@
-# Slops Saloon — Brand Strategy
+# Corvus — Brand Strategy
 **Status: Living Document | Phase 0 → Phase 1**
-**Last Updated: 2026-05-07**
+**Last Updated: 2026-05-15**
 
 ---
 
@@ -14,15 +14,27 @@
 ## 1. Brand Identity
 
 ### Name
-**Slops Saloon**
+**Corvus**
 
-### Tagline (working)
+Corvus is the first product inside the Slops Saloon ecosystem.
+
+**Slops Saloon** is the parent company, mission, and long-term product studio. It is not a former name — it is the umbrella. `slopssaloon.com` is the parent domain and will eventually serve the Slops Saloon company landing page.
+
+**Corvus** is the fantasy football intelligence product. It lives at `slopssaloon.com/corvus`. Future products (fantasy basketball, fantasy baseball, financial tools, mobile apps) will live under Slops Saloon alongside Corvus.
+
+### Tagline
+
+> Deus pascit corvos.
+
+Do not rename routes, repos, packages, database fields, env vars, production domains, or deployment config until Justin approves a separate migration plan.
+
+### Legacy Tagline
 *"Where the math meets the legend."*
 
 ### Tone
 - Institutional but approachable
 - Confident without being arrogant
-- Mythological undertones — the saloon as a gathering place, a court, a hall of records
+- Mythological undertones — raven, omen, oracle, high vantage point, judgment
 - Data-serious, not spreadsheet-cold
 
 ### Voice Principles
@@ -31,15 +43,15 @@
 - Be warm. The platform exists to bring people together through sports.
 - Avoid hype. The product earns attention through quality, not marketing noise.
 
-### Visual Identity (Proposed — No Final Logo Yet)
-A final logo does not exist. The following is directional for the design phase:
+### Visual Identity
+Justin prefers the stronger local `client/` / `localhost:3000` visual direction over the current canonical `frontend/` landing page and the live site. Use that prototype as the reference for mood, scale, and first impression.
 
-- **Palette direction:** Deep, rich tones — slate, amber, and off-white. Evokes a high-end venue, not a neon sports bar.
+- **Palette direction:** Raven black, charcoal, bone white, antique gold, deep crimson, and electric violet. Premium sports intelligence, not a neon sports bar.
 - **Typography direction:** Serif for brand/headlines (authority, legibility), sans-serif for UI (clarity, speed).
-- **Motif:** The saloon as a place of decision — a table, a hand of cards, a scoreboard on the wall. Data as the house rules.
-- **Feel:** Apple-level clarity meets ESPN-level authority. No clutter.
+- **Motif:** Raven/oracle/omen, constellation intelligence, war-room judgment.
+- **Feel:** Dark, strategic, observant, premium, and presentation-worthy. No clutter.
 
-> ⚠️ Do not use placeholder logos in production. Use text-based branding until a finalized mark is approved.
+> ⚠️ Do not copy prototype claims that are not production-true. The visual language can move into `frontend/`, but claims about live agents, proven results, self-improving loops, or paid outcomes must remain accurate.
 
 ---
 
@@ -60,27 +72,28 @@ These pillars govern every feature decision. If a feature does not serve at leas
 
 ### Production Routes (Current + Near-Term)
 
+**Target architecture (not yet deployed):**
+
 ```
 slopssaloon.com/
-├── /                        ← Brand landing page (new frontend — Phase 1)
-│   ├── Hero / value prop
-│   ├── Feature overview
-│   ├── Pricing tier summary
-│   └── Links: Discord*, Spotify*, Apple*, RSS* (TBD placeholders)
+├── /                        ← Slops Saloon parent landing (company/mission/ecosystem)
+│   └── Links out to Corvus and future products
 │
-├── /football                ← Legacy SSFFMVP app (preserved as-is during transition)
-│   ├── Trade Analyzer
-│   ├── Start/Sit Tool
-│   └── [existing legacy routes]
+├── /corvus                  ← Corvus product landing + app entry point
+│   ├── Hero / coming-soon (current interim state)
+│   ├── Trade Analyzer (free, no auth)
+│   ├── /corvus/account      ← Platform connection management
+│   └── /corvus/football     ← (future alias, or redirect from /football)
 │
+├── /football                ← Legacy route — preserved during transition; eventually redirects to /corvus
 ├── /login                   ← Auth entry point (The Gatehouse)
 ├── /dashboard               ← Protected user home (The Hall of Records)
 └── /api/*                   ← Backend API (Node.js, not publicly browsable)
 ```
 
-> Note: `/football` preserves the legacy app without rewriting it. The new brand site lives at `/`. These must coexist without breaking either.
+**Current interim state:** `/` currently serves the Corvus coming-soon page. This is acceptable as a short-term placeholder while the Slops Saloon parent landing page is designed. The target state is `/` = Slops Saloon, `/corvus` = Corvus product.
 
-> Discord, Spotify, Apple Podcasts, and RSS links are TBD. Use placeholder `#` links or omit entirely until accounts are confirmed.
+> Do not move `/football` to `/corvus` in production until the parent landing at `/` is ready. Both must coexist without breaking either.
 
 ---
 
@@ -102,11 +115,11 @@ Pricing is not finalized. The following is the approved conceptual structure for
 
 ## 5. Module Architecture Concept
 
-Slops Saloon is the first production module of Slops OS. The architecture must support future modules without requiring a rewrite.
+Corvus is the first production module of Slops OS. The architecture must support future modules without requiring a rewrite.
 
 ```
 Slops OS (Platform Layer)
-└── Slops Saloon (Module 1 — Fantasy Sports)
+└── Corvus (Module 1 — Fantasy Sports)
     ├── Decision Engine
     │   ├── Trade Analyzer (VORP-based)
     │   ├── Start/Sit Optimizer
