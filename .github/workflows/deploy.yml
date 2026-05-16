@@ -33,7 +33,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Trust the Oracle host key
@@ -59,6 +59,8 @@ jobs:
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
                git pull && \
@@ -89,7 +91,8 @@ jobs:
           ORACLE_USER: ${{ secrets.ORACLE_USER }}
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh "$ORACLE_USER@$ORACLE_HOST" 'docker logs ssffmvp_api 2>&1 | tail -25' || true
+          ssh -i /tmp/oracle_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
+              "$ORACLE_USER@$ORACLE_HOST" 'docker logs ssffmvp_api 2>&1 | tail -25' || true
 
       - name: Clean up deploy key
         if: always()
