@@ -159,19 +159,7 @@ export default function StartSit() {
   const isSubmitDisabled = loading || hasInvalidProjection || hasMissingName;
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
-      <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Lineup Decisions
-        </p>
-        <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-          Start/Sit
-        </h2>
-        <p className="mt-4 text-sm leading-6 text-slate-400">
-          Compare two players by projected points and get a clear start recommendation.
-        </p>
-      </section>
-
+    <div className="flex flex-col gap-8">
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-5 xl:grid-cols-2">
           <PlayerInput
@@ -216,6 +204,6 @@ export default function StartSit() {
       </form>
 
       <ResultPanel result={result} playerA={playerA} playerB={playerB} />
-    </main>
+    </div>
   );
 }

@@ -1,212 +1,193 @@
-import Header from '../components/layout/Header.jsx';
-import Footer from '../components/layout/Footer.jsx';
-
-const PILLARS = [
-  {
-    title: 'Trade Analyzer',
-    description:
-      'Compare trade offers side-by-side using VORP-based player valuation. Know what you are giving up and what you are getting — before you accept.',
-    status: 'Available',
-    statusStyle: 'bg-emerald-400/10 text-emerald-400',
-  },
-  {
-    title: 'Start / Sit',
-    description:
-      'Lineup optimization grounded in matchup data and projected output. The right call, defensibly made.',
-    status: 'In development',
-    statusStyle: 'bg-slate-700 text-slate-400',
-  },
-  {
-    title: 'Waiver Wire',
-    description:
-      'Surface high-value pickups before the rest of your league sees them. Priority built on math, not name recognition.',
-    status: 'In development',
-    statusStyle: 'bg-slate-700 text-slate-400',
-  },
+const dashboardCards = [
+  { label: 'Projected Swing', value: '+6.8 pts' },
+  { label: 'Confidence', value: '82%' },
+  { label: 'Risk', value: 'Medium' },
+  { label: 'Deadline', value: 'Sun 12:55 PM' },
 ];
 
-const FUTURE_MODULES = [
-  {
-    name: 'Slops Finance',
-    description: 'Personal finance tools built on the same data discipline.',
-  },
-  {
-    name: 'Slops Academy',
-    description: 'Sports and academic development for families.',
-  },
-];
+function Button({ children, className = '', disabled = false, href }) {
+  const sharedClassName = [
+    'inline-flex min-h-11 items-center justify-center rounded-md px-7 text-sm font-semibold transition-colors',
+    disabled ? 'cursor-default opacity-55' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  if (href) {
+    return (
+      <a className={sharedClassName} href={href}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <button className={sharedClassName} disabled={disabled} type="button">
+      {children}
+    </button>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <span aria-hidden="true" className="ml-2 text-base leading-none">
+      →
+    </span>
+  );
+}
+
+function CorvusLogo() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative h-14 w-14 overflow-hidden rounded-full border border-[#C9A44C]/45 bg-[#080604] shadow-[0_0_40px_rgba(201,164,76,0.18)]">
+        <img
+          alt="Corvus Apollo logo"
+          className="h-full w-full object-cover"
+          src="/corvus-apollo-logo.png"
+        />
+      </div>
+
+      <div className="font-serif text-xl tracking-[0.22em] text-[#F4EFE1]">
+        CORVUS
+      </div>
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#050505]/85 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <CorvusLogo />
+        <div className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80">
+          Coming Soon
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function OmenCard() {
+  return (
+    <article
+      className="relative overflow-hidden rounded-2xl border border-[#C9A44C]/25 bg-[#101010]/90 shadow-2xl shadow-black/60"
+      id="omen-preview"
+    >
+      <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-[#C9A44C]/10 blur-3xl" />
+      <div className="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-[#6E1E2B]/18 blur-3xl" />
+
+      <div className="relative p-5 md:p-7">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]">
+              Omen of the Week
+            </p>
+            <h3 className="mt-1 text-2xl font-semibold text-[#F4EFE1]">
+              Strike the waiver wire
+            </h3>
+          </div>
+          <div className="rounded-full border border-[#C9A44C]/30 px-3 py-1 text-xs text-[#C9A44C]">
+            Example
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-[#080604]/70 p-5">
+          <p className="text-sm text-[#F4EFE1]/60">Recommended move</p>
+          <p className="mt-2 text-xl font-semibold text-[#F4EFE1]">
+            Add RB Jaylen Warren and start him at FLEX.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/65">
+            Corvus detected a cleaner matchup path, increased opportunity share,
+            and a higher floor than your current FLEX option.
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {dashboardCards.map((card) => (
+            <div
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+              key={card.label}
+            >
+              <p className="text-xs text-[#F4EFE1]/45">{card.label}</p>
+              <p className="mt-1 text-lg font-semibold text-[#F4EFE1]">
+                {card.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <Button
+            className="bg-[#C9A44C] text-black hover:bg-[#F4EFE1]"
+            disabled
+          >
+            Accept Omen
+          </Button>
+          <Button
+            className="border border-white/15 bg-transparent text-[#F4EFE1] hover:bg-white/10"
+            disabled
+          >
+            Explain more
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-[#050505] text-[#F4EFE1]">
       <Header />
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-24 px-6 py-20">
+      <main className="relative overflow-hidden px-5 py-20 md:py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(201,164,76,0.16),transparent_35%),radial-gradient(circle_at_70%_25%,rgba(110,30,43,0.16),transparent_30%),radial-gradient(circle_at_50%_90%,rgba(201,164,76,0.08),transparent_40%)]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(244,239,225,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(244,239,225,0.06) 1px, transparent 1px)',
+            backgroundSize: '44px 44px',
+          }}
+        />
 
-        {/* ── Hero ────────────────────────────────────────── */}
-        <section className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Fantasy Football Decision Intelligence
-          </p>
-          <h1 className="mt-4 text-5xl font-semibold leading-tight text-white sm:text-7xl">
-            Slops Saloon
-          </h1>
-          <p className="mt-3 text-base italic text-slate-400">
-            Where the math meets the legend.
-          </p>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-            A platform for fantasy sports decisions built on defensible math
-            and privacy-first design. The principle is simple: a good tool
-            should feel obvious the first time you use it.
-          </p>
-          <div className="mt-10">
-            <a
-              href="/football"
-              className="inline-flex items-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
-            >
-              Open Trade Analyzer <span aria-hidden="true">→</span>
-            </a>
-          </div>
-        </section>
-
-        {/* ── Active Module ────────────────────────────────── */}
-        <section>
-          <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Active Module
-          </p>
-          <div className="flex flex-col gap-6 rounded-xl border border-amber-400/20 bg-slate-900 p-8 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <span className="mb-3 inline-block rounded-full bg-amber-400/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
-                Active
-              </span>
-              <h2 className="text-xl font-semibold text-white">
-                Slops Saloon Football
-              </h2>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
-                Trade analysis, lineup decisions, and waiver intelligence —
-                grounded in defensible math, not gut instinct. Connects to your
-                Yahoo Fantasy league.
-              </p>
-            </div>
-            <a
-              href="/football"
-              className="mt-2 shrink-0 self-start rounded-md border border-amber-400/40 px-4 py-2 text-sm font-semibold text-amber-400 transition-colors hover:border-amber-400 hover:bg-amber-400/5 sm:mt-0"
-            >
-              Open App →
-            </a>
-          </div>
-        </section>
-
-        {/* ── Decision Intelligence ────────────────────────── */}
-        <section>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Decision Intelligence
-          </p>
-          <h2 className="mb-8 text-2xl font-semibold text-white">
-            Built for better calls
-          </h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {PILLARS.map((pillar) => (
-              <article
-                key={pillar.title}
-                className="rounded-lg border border-slate-800 bg-slate-900 p-6"
+        <section className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="animate-[fadeIn_0.7s_ease-out]">
+            <p className="text-sm uppercase tracking-[0.35em] text-[#C9A44C]">
+              Coming Soon
+            </p>
+            <h1 className="mt-5 font-serif text-6xl leading-none tracking-[0.18em] text-[#F4EFE1] md:text-8xl">
+              CORVUS
+            </h1>
+            <p className="mt-6 text-sm uppercase tracking-[0.34em] text-[#C9A44C]">
+              Deus pascit corvos
+            </p>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-[#F4EFE1]/70">
+              A fantasy football intelligence layer built to study your roster,
+              read the matchup, and surface the move that matters.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button
+                className="bg-[#C9A44C] text-black hover:bg-[#F4EFE1]"
+                href="mailto:hello@slopssaloon.com?subject=Corvus%20notify%20me"
               >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <h3 className="text-base font-semibold text-white">
-                    {pillar.title}
-                  </h3>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${pillar.statusStyle}`}
-                  >
-                    {pillar.status}
-                  </span>
-                </div>
-                <p className="text-sm leading-6 text-slate-300">
-                  {pillar.description}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Pricing ──────────────────────────────────────── */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Pricing
-          </p>
-          <h2 className="mb-6 text-2xl font-semibold text-white">
-            Start for free
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border border-amber-400/20 bg-slate-950 p-6">
-              <p className="text-sm font-semibold text-amber-400">
-                Saddlebag — Free
-              </p>
-              <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                <li>10 trade comparisons per day</li>
-                <li>Works with Yahoo, Sleeper, and ESPN</li>
-                <li>Full access to Slops Saloon Football</li>
-              </ul>
-            </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-950 p-6">
-              <p className="text-sm font-semibold text-slate-400">More plans</p>
-              <p className="mt-4 text-sm italic text-slate-500">
-                Additional tiers are in development. Pricing has not been
-                finalized.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Community — no dead links ─────────────────────── */}
-        <section>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Community &amp; Content
-          </p>
-          <h2 className="mb-4 text-2xl font-semibold text-white">
-            Coming to the Saloon
-          </h2>
-          <p className="max-w-xl text-sm leading-6 text-slate-400">
-            A Discord community, podcast feed, and content hub are planned. No
-            links appear here until they are real and active. Check back as the
-            platform matures.
-          </p>
-        </section>
-
-        {/* ── Future modules — locked, not clickable ────────── */}
-        <section>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Coming to Slops OS
-          </p>
-          <h2 className="mb-6 text-2xl font-semibold text-slate-500">
-            Future modules
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {FUTURE_MODULES.map((mod) => (
-              <div
-                key={mod.name}
-                aria-label={`${mod.name} — not yet available`}
-                className="rounded-lg border border-slate-800 bg-slate-900/50 p-6 opacity-50"
+                Notify Me <ChevronRight />
+              </Button>
+              <Button
+                className="border border-white/15 bg-transparent text-[#F4EFE1] hover:bg-white/10"
+                href="#omen-preview"
               >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-base font-semibold text-slate-400">
-                    {mod.name}
-                  </span>
-                  <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-500">
-                    Future
-                  </span>
-                </div>
-                <p className="text-sm leading-6 text-slate-500">
-                  {mod.description}
-                </p>
-              </div>
-            ))}
+                Preview Omen
+              </Button>
+            </div>
+          </div>
+
+          <div className="animate-[fadeIn_0.7s_ease-out_0.1s_both]">
+            <OmenCard />
           </div>
         </section>
-
       </main>
-
-      <Footer />
     </div>
   );
 }

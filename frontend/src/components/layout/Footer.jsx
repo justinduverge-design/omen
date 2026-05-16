@@ -8,9 +8,6 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Slops OS. Built for careful
             decisions.
           </span>
-          <span className="text-xs text-slate-700">
-            Community links will appear when they are live.
-          </span>
         </div>
       </div>
     </footer>

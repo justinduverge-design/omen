@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Footer from '../components/layout/Footer';
+import Header from '../components/layout/Header';
 import StartSit from './StartSit';
 import TradeAnalyzer from './TradeAnalyzer';
 
@@ -12,6 +14,7 @@ export default function Football() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
+      <Header />
       <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
         <section className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
@@ -57,6 +60,7 @@ export default function Football() {
           {activeTab === 'start-sit' ? <StartSit /> : null}
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

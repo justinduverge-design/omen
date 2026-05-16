@@ -41,14 +41,8 @@ export default function Header() {
             className="text-slate-300 transition-colors hover:text-white"
             to="/football"
           >
-            Trade Analyzer
-          </Link>
-          <a
-            className="text-slate-300 transition-colors hover:text-white"
-            href="/football"
-          >
             Football
-          </a>
+          </Link>
           {isAuthenticated ? (
             <Link
               className="text-slate-300 transition-colors hover:text-white"
