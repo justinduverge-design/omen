@@ -19,6 +19,7 @@ services:
   # Runs platform_integration.js — handles OAuth, standings,
   # roster endpoints, and the agent pipeline route.
   api:
+    image: ghcr.io/justinduverge-design/ssffmvp:main
     build:
       context: .
       dockerfile: Dockerfile
@@ -74,6 +75,7 @@ services:
   # The actual tuesday_cron.js runs at 6:00 AM EST every Tuesday.
   # Logs are written to /var/log/ssffmvp_cron.log inside container.
   cron:
+    image: ghcr.io/justinduverge-design/ssffmvp-cron:main
     build:
       context: .
       dockerfile: Dockerfile.cron     # separate cron Dockerfile below
