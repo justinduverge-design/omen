@@ -10,9 +10,10 @@
 # Flow:
 #   1. SSH agent loads the private key
 #   2. ssh-keyscan adds Oracle's host key to known_hosts (no MITM blind spot)
-#   3. Run git pull + docker compose build + up on Oracle
-#   4. Wait + smoke-test /api/health
-#   5. Fail the workflow if health check fails so you get a red X on GitHub
+#   3. Run git pull + Infisical env preflight + Docker build on Oracle
+#   4. Recreate containers only after config and build succeed
+#   5. Wait + smoke-test /api/health
+#   6. Fail the workflow if health check fails so you get a red X on GitHub
 #
 # SY0-701 4.7 / 4.8: change-management with audit trail (git history +
 # Actions run logs) and rollback (revert commit -> auto-redeploy old).
@@ -51,7 +52,7 @@ jobs:
       - name: Verify deploy key fingerprint
         run: ssh-keygen -l -f /tmp/oracle_key
 
-      - name: Pull, rebuild, restart on Oracle
+      - name: Pull, preflight, rebuild, restart on Oracle
         env:
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
         run: |
@@ -64,7 +65,15 @@ jobs:
               ubuntu@${{ secrets.ORACLE_HOST }} \
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
                git pull && \
-               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --env=production -- bash -c 'docker compose build api && docker compose up -d' && \
+               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --env=production -- bash -lc '
+                 set -euo pipefail
+                 echo \"==> Checking required production environment\"
+                 docker compose config --quiet
+                 echo \"==> Building API image before replacing containers\"
+                 docker compose build api
+                 echo \"==> Recreating API and cron with verified environment\"
+                 docker compose up -d --no-build api cron
+               ' && \
                docker image prune -f"
 
       - name: Smoke test /api/health (retries up to 60s)
@@ -92,7 +101,8 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i /tmp/oracle_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
-              "$ORACLE_USER@$ORACLE_HOST" 'docker logs ssffmvp_api 2>&1 | tail -25' || true
+              "$ORACLE_USER@$ORACLE_HOST" \
+              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs ssffmvp_api 2>&1 | tail -25' || true
 
       - name: Clean up deploy key
         if: always()
