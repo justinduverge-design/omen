@@ -35,6 +35,9 @@ const config = {
   redisUrl:   process.env.REDIS_URL,
   redisToken: process.env.REDIS_TOKEN,
 
+  // --- OpenWeatherMap (optional - graceful fallback when not set)
+  openWeatherApiKey: process.env.OPENWEATHER_API_KEY || null,
+
   // --- Yahoo OAuth ----------------------------------------------
   yahoo: {
     clientId:     process.env.YAHOO_CLIENT_ID,
@@ -63,6 +66,11 @@ if (missing.length) {
   );
   process.exit(1);
 }
+
+// Optional env vars (no crash if missing - services fall back gracefully):
+// OPENWEATHER_API_KEY - weather data for MVP Move agents
+// LLM_BASE_URL        - Gemma on Hostinger
+// REDIS_URL / REDIS_TOKEN - roster caching
 
 config.isProd = config.nodeEnv === "production";
 config.isDev  = !config.isProd;

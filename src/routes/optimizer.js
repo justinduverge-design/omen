@@ -28,6 +28,15 @@ const optimizer               = require("../services/optimizer");
 const agents                  = require("../services/agents");
 
 const router = express.Router();
+const VALID_SCORING_FORMATS = ["standard", "half_ppr", "ppr"];
+const VALID_RECORD_PATTERN = /^\d{1,2}-\d{1,2}(?:-\d{1,2})?$/;
+
+function parseWeek(week) {
+  if (week == null || week === "") return null;
+  const parsed = Number(week);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 18) return undefined;
+  return parsed;
+}
 
 // All optimizer endpoints require both auth AND a Pro subscription.
 router.use(requireAuth);
@@ -39,7 +48,10 @@ router.get("/lineup", async (req, res, next) => {
     if (!leagueKey) {
       return res.status(400).json({ error: "leagueKey query param required" });
     }
-    const wk = week ? parseInt(week, 10) : null;
+    const wk = parseWeek(week);
+    if (wk === undefined) {
+      return res.status(400).json({ error: "week must be between 1 and 18" });
+    }
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
@@ -70,7 +82,10 @@ router.get("/waivers", async (req, res, next) => {
     if (!leagueKey) {
       return res.status(400).json({ error: "leagueKey query param required" });
     }
-    const wk = week ? parseInt(week, 10) : null;
+    const wk = parseWeek(week);
+    if (wk === undefined) {
+      return res.status(400).json({ error: "week must be between 1 and 18" });
+    }
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
@@ -109,8 +124,18 @@ router.post("/mvp-move", async (req, res, next) => {
     if (!leagueKey) {
       return res.status(400).json({ error: "leagueKey required" });
     }
+    if (scoringFormat && !VALID_SCORING_FORMATS.includes(scoringFormat)) {
+      return res.status(400).json({ error: "Invalid scoringFormat" });
+    }
+    const safeRecord = typeof record === "string" ? record.trim() : "";
+    if (safeRecord && !VALID_RECORD_PATTERN.test(safeRecord)) {
+      return res.status(400).json({ error: "Invalid record" });
+    }
 
-    const wk = week ? parseInt(week, 10) : null;
+    const wk = parseWeek(week);
+    if (wk === undefined) {
+      return res.status(400).json({ error: "week must be between 1 and 18" });
+    }
 
     const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
     const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
@@ -123,7 +148,7 @@ router.post("/mvp-move", async (req, res, next) => {
 
     const result = await agents.getMVPMove(players, {
       scoringFormat: scoringFormat || "ppr",
-      record:        record || null,
+      record:        safeRecord || null,
     });
 
     res.json({

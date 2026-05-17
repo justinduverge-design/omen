@@ -12,6 +12,7 @@ const crypto           = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis }        = require("@upstash/redis");
 const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("./middleware/yahooOAuth");
+const { requireAuth }  = require("./middleware/auth");
 
 const router     = express.Router();
 const START_TIME = Date.now();
@@ -217,8 +218,9 @@ class ESPNClient {
 
 const sleeper = new SleeperClient();
 
-router.post("/auth/sleeper/connect", async (req, res) => {
-  const { username, userId: appUserId } = req.body;
+router.post("/auth/sleeper/connect", requireAuth, async (req, res) => {
+  const { username } = req.body;
+  const appUserId = req.user.id;
   if (!username) return res.status(400).json({ error: "username required" });
 
   try {
@@ -240,14 +242,15 @@ router.post("/auth/sleeper/connect", async (req, res) => {
   }
 });
 
-router.get("/auth/yahoo/authorize", async (req, res) => {
-  const { userId, leagueId } = req.query;
+router.get("/auth/yahoo/authorize", requireAuth, async (req, res) => {
+  const { leagueId } = req.query;
+  const appUserId = req.user.id;
   const state = crypto.randomBytes(16).toString("hex");
 
   await supabase.from("oauth_state").upsert({
     state,
     platform:   "yahoo",
-    user_id:    userId,
+    user_id:    appUserId,
     verifier:   leagueId || null,
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   });
@@ -296,19 +299,20 @@ router.get("/auth/yahoo/callback", async (req, res) => {
   }
 });
 
-router.post("/auth/espn/connect", async (req, res) => {
-  const { espnS2, swid, leagueId, userId } = req.body;
+router.post("/auth/espn/connect", requireAuth, async (req, res) => {
+  const { espnS2, swid, leagueId } = req.body;
+  const appUserId = req.user.id;
   try {
     const espn = new ESPNClient(espnS2, swid);
     const data = await espn.getLeague(leagueId);
     
     const [espnSecretId, swidSecretId] = await Promise.all([
-      vaultCreate(espnS2, `espn_s2_${userId}`),
-      vaultCreate(swid, `espn_swid_${userId}`),
+      vaultCreate(espnS2, `espn_s2_${appUserId}`),
+      vaultCreate(swid, `espn_swid_${appUserId}`),
     ]);
 
     await supabase.from("platform_connections").upsert({
-      user_id:        userId,
+      user_id:        appUserId,
       platform:       "espn",
       espn_secret_id: espnSecretId,
       swid_secret_id: swidSecretId,
@@ -326,14 +330,15 @@ router.post("/auth/espn/connect", async (req, res) => {
 // ROUTES — LEAGUE DATA
 // ════════════════════════════════════════════════════════════════
 
-router.get("/league/standings", async (req, res) => {
-  const { userId, leagueId } = req.query;
+router.get("/league/standings", requireAuth, async (req, res) => {
+  const { leagueId } = req.query;
+  const appUserId = req.user.id;
 
   try {
     const { data: conn } = await supabase
       .from("platform_connections")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", appUserId)
       .single();
 
     if (!conn) return res.status(404).json({ error: "No platform connected" });
@@ -352,7 +357,7 @@ router.get("/league/standings", async (req, res) => {
         await vaultUpdate(conn.token_secret_id, accessToken);
         await supabase.from("platform_connections").update({
           token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
-        }).eq("user_id", userId);
+        }).eq("user_id", appUserId);
       }
 
       const yahoo = new YahooClient(accessToken);

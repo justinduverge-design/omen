@@ -12,7 +12,16 @@ Slops Saloon is the parent company, mission site, and long-term product studio. 
 
 **Trade Analyzer (free)** evaluates any trade using VORP v2 — a positional scarcity model that accounts for replacement-level value, injury risk, and roster depth. Every verdict is explainable.
 
-**MVP Move (paid — coming soon)** surfaces the single highest-value action for your team each week: lineup swap, waiver pickup, or trade. Reasoned by an on-premise LLM against live roster data.
+**MVP Move (paid — coming soon)** surfaces the single highest-value action for your team each week: lineup swap, waiver pickup, or trade. Reasoned by an on-premise LLM against live roster data, live ESPN schedule context, and optional live OpenWeatherMap venue weather.
+
+Current MVP Move data status:
+
+| Signal | Status |
+|---|---|
+| Weather | Live via OpenWeatherMap when `OPENWEATHER_API_KEY` is set in Infisical; stub fallback otherwise |
+| Travel/Home-Away | Live via ESPN scoreboard API |
+| Game time/TV slate | Live via ESPN scoreboard API |
+| Matchup DvP | Stub; Sportradar is the next MVP Move intelligence session |
 
 ---
 
@@ -133,6 +142,9 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # App
 APP_BASE_URL=https://yourdomain.com
 NODE_ENV=production
+
+# Optional MVP Move weather data
+OPENWEATHER_API_KEY=your-openweathermap-key
 ```
 
 ### 3. Start with Docker
@@ -156,7 +168,7 @@ The built `frontend/dist` is served by Nginx in production.
 ### 5. Run tests
 
 ```bash
-npm test    # 88 tests — all must pass before any deploy
+npm test    # 99 tests - all must pass before any deploy
 ```
 
 ---
@@ -283,7 +295,7 @@ ssffmvp/
 - [x] Docker deployment on Oracle VPS
 - [x] 0 npm audit vulnerabilities
 - [x] Structured logging
-- [ ] MVP Move engine — Intelligence Layer
+- [ ] MVP Move engine — Intelligence Layer (weather, travel/home-away, and game time live; Matchup DvP still stubbed)
 - [ ] Start/Sit recommendations with LLM reasoning
 - [ ] Waiver wire optimizer
 - [ ] Dashboard polish (Hall of Records)

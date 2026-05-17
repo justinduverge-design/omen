@@ -18,7 +18,7 @@ export default function Football() {
       <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
         <section className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            Slops Saloon Football
+            Corvus Football
           </p>
           <h1 className="mt-3 text-4xl font-semibold text-white sm:text-5xl">
             Football

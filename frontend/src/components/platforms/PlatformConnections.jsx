@@ -104,7 +104,7 @@ function EspnCookieInstructions() {
 
       <p className="mt-4">
         These cookies expire when you sign out of ESPN or after a long period of inactivity.
-        If Slops loses access to your ESPN data, return here and paste fresh values.
+        If Corvus loses access to your ESPN data, return here and paste fresh values.
       </p>
     </section>
   );

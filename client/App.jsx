@@ -13,23 +13,23 @@ import { useState, useEffect, useRef } from "react";
 ═══════════════════════════════════════════════════════════════ */
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-  --bg:      #07090E;
-  --surface: #0E1319;
-  --panel:   #131B24;
-  --border:  #1C2B38;
-  --border2: #243344;
-  --accent:  #00D68F;
-  --gold:    #F5C542;
-  --red:     #FF4D6A;
-  --blue:    #3D9BFF;
-  --text:    #B8CDD8;
-  --bright:  #E8F4FC;
-  --muted:   #3D5468;
-  --font-d:  'Barlow Condensed', sans-serif;
-  --font-b:  'Barlow', sans-serif;
+  --bg:      #070707;
+  --surface: #161616;
+  --panel:   #161616;
+  --border:  #2D2D2D;
+  --border2: #3E3E3E;
+  --accent:  #C9A44C;
+  --gold:    #C9A44C;
+  --red:     #6E1E2B;
+  --blue:    #7C5CFF;
+  --text:    #F3EFE3;
+  --bright:  #FFFFFF;
+  --muted:   #8C8C8C;
+  --font-d:  'Cinzel', serif;
+  --font-b:  'Inter', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,10 +84,10 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
 .orb-wrap { position: fixed; top: -120px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 0; }
 .orb {
   width: 700px; height: 700px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,214,143,.07) 0%, transparent 65%);
-  animation: breathe 6s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(124,92,255,.06) 0%, transparent 65%);
+  animation: breathe 8s ease-in-out infinite;
 }
-@keyframes breathe { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.08);opacity:1} }
+@keyframes breathe { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.05);opacity:.9} }
 
 .land-eyebrow { margin-bottom: 28px; }
 .land-logo {
@@ -159,8 +159,7 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
 }
 .tb-logo {
   font-family: var(--font-d); font-size: 24px; font-weight: 700; letter-spacing: 3px;
-  background: linear-gradient(120deg, var(--bright), var(--accent));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  color: var(--bright); display: flex; align-items: center; gap: 12px;
 }
 .tb-right { display: flex; align-items: center; gap: 14px; }
 .tb-week { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
@@ -211,16 +210,10 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
   overflow: hidden; margin-bottom: 22px;
   position: relative;
 }
-.agent-scan {
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
-  animation: scan 2.5s linear infinite;
-}
-@keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+.agent-scan { display: none; }
 .agent-header { padding: 22px 26px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .agent-title { display: flex; align-items: center; gap: 10px; }
-.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: p 1.2s ease-in-out infinite; }
-@keyframes p { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.25;transform:scale(.8)} }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .agent-ttl-txt { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
 .agent-prog-txt { font-size: 12px; color: var(--muted); }
 .agent-steps { padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
@@ -244,7 +237,6 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
 .verdict-box {
   margin: 0 22px 22px; padding: 20px;
   background: rgba(0,214,143,.06); border: 1px solid rgba(0,214,143,.2); border-radius: 10px;
-  animation: fadeUp .5s ease;
 }
 .verdict-lbl { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .verdict-txt { font-size: 14px; color: var(--bright); line-height: 1.65; }
@@ -254,9 +246,8 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
 /* ── MOVE CARD ── */
 .move-card {
   background: var(--panel); border: 1px solid var(--border2); border-radius: 14px;
-  overflow: hidden; margin-bottom: 22px; animation: fadeUp .4s ease;
+  overflow: hidden; margin-bottom: 22px;
 }
-@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 .mc-head {
   padding: 24px 28px;
   background: linear-gradient(135deg, rgba(0,214,143,.09) 0%, rgba(245,197,66,.04) 100%);
@@ -289,7 +280,7 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
 /* ── CONFIRMED / SKIPPED ── */
 .state-card {
   background: var(--panel); border: 1px solid var(--border2); border-radius: 14px;
-  padding: 44px; text-align: center; margin-bottom: 22px; animation: fadeUp .4s ease;
+  padding: 44px; text-align: center; margin-bottom: 22px;
 }
 .state-ico { font-size: 52px; margin-bottom: 16px; }
 .state-h { font-family: var(--font-d); font-size: 32px; font-weight: 700; letter-spacing: 1px; color: var(--bright); margin-bottom: 8px; }
@@ -351,15 +342,11 @@ body { background: var(--bg); font-family: var(--font-b); color: var(--text); mi
   position: fixed; inset: 0; z-index: 999;
   background: rgba(0,0,0,.85); backdrop-filter: blur(12px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
-  animation: fadeIn .2s ease;
 }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
 .modal {
   background: var(--panel); border: 1px solid var(--border2); border-radius: 18px;
   padding: 52px 48px; width: 100%; max-width: 560px; position: relative;
-  animation: slideUp .3s ease;
 }
-@keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
 .modal-x {
   position: absolute; top: 18px; right: 18px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
@@ -493,10 +480,10 @@ const AGENT_DEFS = [
    DATA LAYER
 ══════════════════════════════════════════════════════════════════ */
 const HISTORY_FALLBACK = [
-  { id:1, week:"Week 14", wkNum:14, move:"Start D. Henry over A. Jones — power back in tough weather matchup", type:"Start/Sit", outcome:"win",  result:"Henry 28.4 pts (Jones 11.2) — +17.2 advantage", eff:92, scoring:"PPR", source:"db", followed:true  },
-  { id:2, week:"Week 13", wkNum:13, move:"Pickup: Jaylen Warren — beat waiver wire before Thursday",           type:"Waiver",    outcome:"win",  result:"14.2 pts, decisive in 6-point victory",          eff:78, scoring:"PPR", source:"db", followed:true  },
-  { id:3, week:"Week 12", wkNum:12, move:"Bench CeeDee Lamb — elite CB matchup + rain forecast",               type:"Start/Sit", outcome:"loss", result:"Lamb 31.2 pts (rain stopped, CB injured early)",  eff:18, scoring:"PPR", source:"db", followed:true  },
-  { id:4, week:"Week 11", wkNum:11, move:"Trade: Chase + pick → Kelce + depth piece",                          type:"Trade",     outcome:"win",  result:"Kelce: 24.8, 31.2, 19.4 pts next 3 weeks",       eff:85, scoring:"PPR", source:"db", followed:false },
+  { id:1, week:"Week 14", wkNum:14, move:"Start D. Henry over A. Jones — power back in tough weather matchup", type:"Omen", outcome:"win",  result:"Henry 28.4 pts (Jones 11.2) — +17.2 advantage", eff:92, scoring:"PPR", source:"db", followed:true  },
+  { id:2, week:"Week 13", wkNum:13, move:"Pickup: Jaylen Warren — beat waiver wire before Thursday",           type:"Talon",    outcome:"win",  result:"14.2 pts, decisive in 6-point victory",          eff:78, scoring:"PPR", source:"db", followed:true  },
+  { id:3, week:"Week 12", wkNum:12, move:"Bench CeeDee Lamb — elite CB matchup + rain forecast",               type:"Omen", outcome:"loss", result:"Lamb 31.2 pts (rain stopped, CB injured early)",  eff:18, scoring:"PPR", source:"db", followed:true  },
+  { id:4, week:"Week 11", wkNum:11, move:"Trade: Chase + pick → Kelce + depth piece",                          type:"The Scale",     outcome:"win",  result:"Kelce: 24.8, 31.2, 19.4 pts next 3 weeks",       eff:85, scoring:"PPR", source:"db", followed:false },
   { id:5, week:"Week 10", wkNum:10, move:"Stack Mahomes + Kelce as locked core",                               type:"Stack",     outcome:"win",  result:"+44.2 combined, clinched playoff spot",           eff:96, scoring:"PPR", source:"db", followed:true  },
 ];
 
@@ -530,12 +517,12 @@ async function fetchStandings(platform, leagueId, teamName) {
    so the Anthropic API key is never exposed client-side.
 ══════════════════════════════════════════════════════════════════ */
 async function callManagerAgent(context) {
-  const sys = `You are the Slops Saloon Fantasy Football MVP Manager Agent — an elite fantasy football GM AI.
+  const sys = `You are Corvus — an elite fantasy football oracle AI.
 You receive structured intelligence from 6 sub-agents and synthesize ONE perfect weekly move.
 Rules:
 - Output ONLY valid JSON. No markdown, no preamble.
 - Format: { "moveType": string, "headline": string, "confidence": number(0-100), "reasoning": string, "shortVerdict": string }
-- moveType: one of ["Waiver Pickup","Start/Sit","Trade","Stack","Drop","Lineup Tweak"]
+- moveType: one of ["Talon","Omen","The Scale","Stack","Drop","Lineup Tweak"]
 - headline: 8 words max, action-oriented
 - confidence: integer, honest (not always high)
 - reasoning: 2-3 sentences, cite the agent signals, mention scoring format
@@ -570,7 +557,7 @@ Generate the single best move this GM should make this week.`;
     return JSON.parse(clean);
   } catch {
     return {
-      moveType: "Waiver Pickup",
+      moveType: "Talon",
       headline: "Add Jaylen Warren, Drop RB3",
       confidence: 87,
       reasoning: `Warren is absorbing 15+ carries weekly while Najee Harris manages a knee issue. The Bengals rank #31 vs RBs this season, allowing 142 rush yds/game, and with the WR2 questionable your ${context.scoring} scoring heavily rewards his target floor. Clear 52°F weather supports run game projection.`,
@@ -657,12 +644,15 @@ function Landing({ onStart, onSub, onPrivacy }) {
     <div className="land">
       <div className="orb-wrap"><div className="orb"/></div>
       <div className="land-eyebrow">
-        <span className="tag tag-gold">🍺 Slops Saloon Presents</span>
+        <span className="tag tag-gold">🦅 The Oracle Speaks</span>
       </div>
-      <div className="land-logo">SSFFMVP</div>
-      <div className="land-name">Slops Saloon Fantasy Football MVP</div>
-      <p className="land-h">One <strong>perfect move</strong> every week.<br/>Built by agents. Proven by results.</p>
-      <p className="land-p">Six specialized AI agents analyze weather, travel, game time, roster injuries, performance trends, and matchups — then a Manager Agent synthesizes ONE optimal move. Every result is tracked and fed back to improve the next recommendation.</p>
+      <div className="land-logo" style={{display:"flex", flexDirection:"column", alignItems:"center"}}>
+        <img src="/corvus-apollo-logo.png" alt="Corvus Logo" style={{height: 120, filter:"drop-shadow(0 0 16px rgba(124,92,255,0.25))", marginBottom: 12}} />
+        CORVUS
+      </div>
+      <div className="land-name">Mythic Fantasy Football Intelligence</div>
+      <p className="land-h"><strong>See the winning move.</strong><br/>The raven sees first.</p>
+      <p className="land-p">Corvus is your fantasy football raven: it watches every roster, every matchup, and every injury signal. Then it brings you the one move that matters most. No noise. No panic. Just the omen.</p>
       <div className="land-btns">
         <button className="btn btn-primary" onClick={onStart}>Connect My League →</button>
         <button className="btn btn-ghost" onClick={onSub}>View Plans</button>
@@ -1369,7 +1359,7 @@ function SubModal({ onClose, onSubscribe }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <button className="modal-x" onClick={onClose}>✕</button>
-        <div className="modal-eyebrow"><span className="tag tag-gold">🍺 Slops Saloon Pro</span></div>
+        <div className="modal-eyebrow"><span className="tag tag-gold">🦅 Corvus Black</span></div>
         <div className="modal-h">Go MVP</div>
         <div className="modal-p">One AI-crafted move every week from the Saloon's best analysts. Self-improving. Real data. Vault-secured. Cancel anytime.</div>
         <div className="plan-grid">
@@ -1413,14 +1403,14 @@ function SubGate({ onSub }) {
     <div className="gate">
       <div className="gate-lock">🍺</div>
       <div className="gate-h">Saloon Members Only</div>
-      <div className="gate-p">Subscribe to unlock your weekly AI move from the Slops Saloon. One perfect call, every single week. Vault-secured. Tuesday-scored.</div>
+      <div className="gate-p">Subscribe to unlock your weekly AI move from Corvus. One perfect omen, every single week. Vault-secured. Tuesday-scored.</div>
       <div className="gate-features">
         <div className="gate-feat">6 AI Agents + Manager</div>
         <div className="gate-feat">Self-Improving Model</div>
         <div className="gate-feat">🔐 Vault Encrypted</div>
         <div className="gate-feat">⚡ Redis Cached</div>
       </div>
-      <button className="btn btn-primary" onClick={onSub}>Join the Saloon — $9/mo →</button>
+      <button className="btn btn-primary" onClick={onSub}>Join Corvus Black — $9/mo →</button>
     </div>
   );
 }
@@ -1475,12 +1465,13 @@ function Dashboard({ user, onSub, onPrivacy }) {
     <div className="dash">
       <div className="topbar">
         <div className="tb-logo">
-          SSFFMVP
+          <img src="/corvus-apollo-logo.png" alt="Corvus" style={{height: 32, filter:"drop-shadow(0 0 8px rgba(124,92,255,0.3))"}} />
+          CORVUS
           <span style={{fontSize:10, fontFamily:"var(--font-b)", fontWeight:500, color:"var(--gold)",
-            letterSpacing:"2px", textTransform:"uppercase", marginLeft:8,
-            background:"rgba(245,197,66,.1)", border:"1px solid rgba(245,197,66,.2)",
+            letterSpacing:"2px", textTransform:"uppercase",
+            background:"rgba(201,164,76,.1)", border:"1px solid rgba(201,164,76,.2)",
             padding:"2px 8px", borderRadius:3}}>
-            🍺 Slops Saloon
+            🦅 The Oracle
           </span>
         </div>
         <div className="tb-right">
@@ -1541,9 +1532,9 @@ function PrivacyPolicy({ onBack }) {
   return (
     <div style={{position:"relative", zIndex:1}}>
       <div className="privacy-wrap">
-        <button className="privacy-back" onClick={onBack}>← Back to Slops Saloon</button>
+        <button className="privacy-back" onClick={onBack}>← Back to Corvus</button>
         <div className="privacy-title">Privacy Policy</div>
-        <div className="privacy-sub">Last updated: {new Date().getFullYear()} · Slops Saloon Fantasy Football MVP</div>
+        <div className="privacy-sub">Last updated: {new Date().getFullYear()} · Corvus Fantasy Football Oracle</div>
 
         <div className="probo-badge">
           🛡️ Probo Verified Compliance — GDPR · CCPA · Data Transparency
