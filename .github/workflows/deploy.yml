@@ -70,6 +70,7 @@ jobs:
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_ESPN_ENABLED=${{ secrets.VITE_ESPN_ENABLED }}
 
       - name: Build and push cron image
         uses: docker/build-push-action@v6
