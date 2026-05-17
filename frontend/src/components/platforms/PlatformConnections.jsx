@@ -106,6 +106,11 @@ function EspnCookieInstructions() {
         These cookies expire when you sign out of ESPN or after a long period of inactivity.
         If Corvus loses access to your ESPN data, return here and paste fresh values.
       </p>
+
+      <p className="mt-3 text-slate-400">
+        Your credentials are encrypted and stored securely. Disconnect at any time to remove
+        Corvus&apos;s access to your ESPN account.
+      </p>
     </section>
   );
 }
