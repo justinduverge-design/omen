@@ -9,7 +9,7 @@
  */
 
 const { adjustedProjection } = require("./optimizer");
-const { vorpForPlayer, bScore, REPLACEMENT_LEVELS } = require("./vorp");
+const { vorpForPlayer, bScore, REPLACEMENT_LEVELS, normalizePosition } = require("./vorp");
 
 const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
 
@@ -26,9 +26,9 @@ const DEFAULT_REPLACEMENT_LEVEL = Object.freeze({
 });
 
 function primaryPosition(player = {}) {
-  if (player.position) return String(player.position).toUpperCase();
+  if (player.position) return normalizePosition(player.position);
   if (Array.isArray(player.eligible_positions) && player.eligible_positions.length) {
-    return String(player.eligible_positions[0]).toUpperCase();
+    return normalizePosition(player.eligible_positions[0]);
   }
   return "UNK";
 }

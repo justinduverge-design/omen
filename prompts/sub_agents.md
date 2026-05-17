@@ -1,14 +1,14 @@
 # Sub-Agent Prompts
 **File:** `prompts/sub_agents.md`
-**Version:** 1.1.0
-**Last tuned:** 2026-05-13
+**Version:** 1.2.0
+**Last tuned:** 2026-05-16
 
 Six specialized agents. Each returns exactly one sentence.
 Their outputs are passed to the Manager Agent as the signals object.
 
 ## Agent 1 — Weather Agent
 
-**Data source:** OpenWeatherMap API (STUB — not yet wired)
+**Data source:** OpenWeatherMap API (live when OPENWEATHER_API_KEY is set; stub fallback otherwise)
 **Output field:** signals.weather
 
 System: You are the SSFFMVP Weather Agent. One sentence only.
@@ -18,7 +18,7 @@ Summarize fantasy impact. Format: "[Condition] — [fantasy impact]"
 
 ## Agent 2 — Travel Agent
 
-**Data source:** NFL Schedule API (STUB — not yet wired)
+**Data source:** ESPN scoreboard API (live home/away + travel miles; rest/back-to-back fallback placeholders)
 **Output field:** signals.travel
 
 System: You are the SSFFMVP Travel Agent. One sentence only.
@@ -28,7 +28,7 @@ Summarize fatigue/rest fantasy impact.
 
 ## Agent 3 — Game Time Agent
 
-**Data source:** NFL Schedule API (STUB — not yet wired)
+**Data source:** ESPN scoreboard API (live kickoff time + TV slate; playoff implications fallback placeholder)
 **Output field:** signals.gametime
 
 System: You are the SSFFMVP Game Time Agent. One sentence only.
@@ -59,7 +59,7 @@ Summarize performance and VORP context. MUST reference the VORP grade.
 
 ## Agent 6 — Matchup Agent
 
-**Data source:** DvP rankings (STUB — not yet wired)
+**Data source:** DvP rankings (STUB — Sportradar is session 2)
 **Output field:** signals.matchup
 
 System: You are the SSFFMVP Matchup Agent. One sentence only.

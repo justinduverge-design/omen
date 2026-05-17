@@ -18,6 +18,8 @@ const fs   = require("fs");
 const path = require("path");
 const { vorpForPlayer, SCARCITY_BONUS } = require("./vorp");
 const { runAgent } = require("./llm");
+const nflSchedule   = require("./nflSchedule");
+const weatherService = require("./weatherService");
 
 // ── Prompt templates ────────────────────────────────────────────────────────
 
@@ -25,12 +27,12 @@ const { runAgent } = require("./llm");
 // Each is a short system prompt string extracted from sub_agents.md.
 // We define them inline here to keep the service self-contained.
 const SUB_AGENT_PROMPTS = Object.freeze({
-  weather:  "You are the SSFFMVP Weather Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Condition summary] — [fantasy impact]\"",
-  travel:   "You are the SSFFMVP Travel Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Game situation] — [fantasy impact]\"",
-  gametime: "You are the SSFFMVP Game Time Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Kickoff context] — [fantasy impact]\"",
-  roster:   "You are the SSFFMVP Roster Agent. Reply with exactly one sentence summarizing the roster situation and fantasy impact. Format: \"[Roster situation] — [fantasy impact]\"",
-  perf:     "You are the SSFFMVP Performance Agent. Reply with exactly one sentence summarizing performance trend and VORP context. You MUST reference the VORP grade. Format: \"[Trend summary with VORP grade] — [projection implication]\"",
-  matchup:  "You are the SSFFMVP Matchup Agent. Reply with exactly one sentence summarizing matchup quality. You MUST include the DvP rank. Format: \"[Defense rank vs position] — [scheme insight]\"",
+  weather:  "You are the Corvus Weather Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Condition summary] — [fantasy impact]\"",
+  travel:   "You are the Corvus Travel Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Game situation] — [fantasy impact]\"",
+  gametime: "You are the Corvus Game Time Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Kickoff context] — [fantasy impact]\"",
+  roster:   "You are the Corvus Roster Agent. Reply with exactly one sentence summarizing the roster situation and fantasy impact. Format: \"[Roster situation] — [fantasy impact]\"",
+  perf:     "You are the Corvus Performance Agent. Reply with exactly one sentence summarizing performance trend and VORP context. You MUST reference the VORP grade. Format: \"[Trend summary with VORP grade] — [projection implication]\"",
+  matchup:  "You are the Corvus Matchup Agent. Reply with exactly one sentence summarizing matchup quality. You MUST include the DvP rank. Format: \"[Defense rank vs position] — [scheme insight]\"",
 });
 
 // ── VORP grade mapping ───────────────────────────────────────────────────────
@@ -124,48 +126,67 @@ function formatScarcityBlock(players, scoringFormat = "ppr") {
   return `POSITIONAL SCARCITY (waiver wire availability):\n${lines.join("\n")}\n\nApply the confidenceBonus for the target player's position to your base confidence score.`;
 }
 
-// ── External data stubs ──────────────────────────────────────────────────────
-// Each stub is clearly marked. When the real API is wired, replace the
-// stub function body only — the calling code does not change.
+// ── Stub fallback data ───────────────────────────────────────────────────────
+// Used when real APIs are unavailable (offseason, API key missing, network error).
+
+const WEATHER_STUB = Object.freeze({
+  temp_f: 65, wind_mph: 7, conditions: "Partly cloudy", precip_chance: 10,
+});
+const TRAVEL_STUB = Object.freeze({
+  home_away: "Home", rest_days: 7, travel_miles: 0, back_to_back: false,
+});
+const GAMETIME_STUB = Object.freeze({
+  kickoff_time: "1:00PM ET", tv_slate: "Early 1PM",
+  playoff_implications: "Game context unavailable (offseason or bye week)",
+});
 
 /**
- * STUB: replace with OpenWeatherMap API call using stadium coordinates.
- * Returns weather data for the target player's game.
+ * Fetch weather data for the target player's game venue.
+ * gameInfo: result from nflSchedule.getGameInfo(), or null.
+ * Returns real weather if available, stub if not (dome game or API unavailable).
  */
-function fetchWeatherData(/* gameInfo */) {
-  // STUB: replace with OpenWeatherMap API call
+async function fetchWeatherData(gameInfo) {
+  if (!gameInfo) return WEATHER_STUB;
+  if (gameInfo.is_dome) {
+    return {
+      ...WEATHER_STUB,
+      conditions:    `Dome game at ${gameInfo.venue_name} - weather neutral`,
+      precip_chance: 0,
+      wind_mph:      0,
+    };
+  }
+  const real = await weatherService.getVenueWeather({
+    lat:     gameInfo.venue_lat,
+    lng:     gameInfo.venue_lng,
+    is_dome: gameInfo.is_dome,
+  }).catch(() => null);
+  return real || WEATHER_STUB;
+}
+
+/**
+ * Fetch travel and rest data for the target player's game.
+ * gameInfo: result from nflSchedule.getGameInfo(), or null.
+ */
+async function fetchTravelData(gameInfo) {
+  if (!gameInfo) return TRAVEL_STUB;
   return {
-    temp_f:         65,
-    wind_mph:       7,
-    conditions:     "Partly cloudy",
-    precip_chance:  10,
+    home_away:    gameInfo.home_away,
+    rest_days:    7,   // TODO: compute from last game date once schedule history is available
+    travel_miles: gameInfo.travel_miles || 0,
+    back_to_back: false, // TODO: compute from consecutive away games
   };
 }
 
 /**
- * STUB: replace with NFL Schedule API call (Sportradar or similar).
- * Returns travel/rest data for the target player's team.
+ * Fetch game time and slate data.
+ * gameInfo: result from nflSchedule.getGameInfo(), or null.
  */
-function fetchTravelData(/* gameInfo */) {
-  // STUB: replace with NFL Schedule API + Maps distance calculation
+async function fetchGameTimeData(gameInfo) {
+  if (!gameInfo) return GAMETIME_STUB;
   return {
-    home_away:    "Home",
-    rest_days:    7,
-    travel_miles: 0,
-    back_to_back: false,
-  };
-}
-
-/**
- * STUB: replace with NFL Schedule API call.
- * Returns kickoff and slate data.
- */
-function fetchGameTimeData(/* gameInfo */) {
-  // STUB: replace with NFL Schedule API
-  return {
-    kickoff_time:        "1:00PM",
-    tv_slate:            "Early 1PM",
-    playoff_implications: "Neither team in playoff contention",
+    kickoff_time:         gameInfo.kickoff_local,
+    tv_slate:             gameInfo.tv_slate,
+    playoff_implications: "Not computed - add record-based logic in a future session",
   };
 }
 
@@ -211,10 +232,19 @@ async function runSubAgent(agentName, templateVars) {
  * scoringFormat: string.
  */
 async function buildSignals(targetPlayer, roster, scoringFormat) {
-  const weather  = fetchWeatherData();
-  const travel   = fetchTravelData();
-  const gametime = fetchGameTimeData();
-  const matchup  = fetchMatchupData();
+  // Fetch game info for the target player's team (schedule + venue).
+  // Returns null during offseason or on API failure; all fetch functions handle null gracefully.
+  const gameInfo = await nflSchedule
+    .getGameInfo(targetPlayer.team || targetPlayer.nfl_team)
+    .catch(() => null);
+
+  // Fetch external data in parallel where possible.
+  const [weather, travel, gametime] = await Promise.all([
+    fetchWeatherData(gameInfo),
+    fetchTravelData(gameInfo),
+    fetchGameTimeData(gameInfo),
+  ]);
+  const matchup = fetchMatchupData(); // still stub
 
   // Performance agent uses live VORP data.
   const vorpResult = vorpForPlayer(targetPlayer, { scoringFormat });
@@ -240,17 +270,17 @@ async function buildSignals(targetPlayer, roster, scoringFormat) {
         back_to_back: travel.back_to_back,
       }),
       runSubAgent("gametime", {
-        kickoff_time:        gametime.kickoff_time,
-        tv_slate:            gametime.tv_slate,
+        kickoff_time:         gametime.kickoff_time,
+        tv_slate:             gametime.tv_slate,
         playoff_implications: gametime.playoff_implications,
       }),
       runSubAgent("roster", {
         player_name:     name,
         position,
         injury_status:   status,
-        upstream_status: "Not available (STUB)",
-        depth_change:    "Not available (STUB)",
-        target_share:    "Not available (STUB)",
+        upstream_status: "Not available",
+        depth_change:    "Not available",
+        target_share:    "Not available",
       }),
       runSubAgent("perf", {
         player_name: name,
@@ -299,7 +329,7 @@ async function runManagerAgent({ signals, vorpBlock, scarcityBlock, context }) {
   } catch {
     // Fallback: inline condensed version if file read fails
     systemTemplate =
-      "You are the Slops Saloon MVP Manager Agent. " +
+      "You are the Corvus Manager Agent. " +
       "Synthesize the agent signals and math facts into ONE weekly move. " +
       "Return ONLY valid JSON with: moveType, headline, targetPlayer, targetPosition, " +
       "confidence, vorpGrade, scarcityBonus, reasoning, shortVerdict, dataSource.";
@@ -398,7 +428,7 @@ async function getMVPMove(players, opts = {}) {
     scarcity_block: scarcityBlock,
     generated_at:   new Date().toISOString(),
     scoring_format: scoringFormat,
-    note:           "External data (weather, travel, gametime, matchup) uses stub values. Wire real APIs to activate.",
+    note:           "Schedule + travel + gametime: live (ESPN API). Weather: live if OPENWEATHER_API_KEY is set. Matchup DvP: stub - next session.",
   };
 }
 

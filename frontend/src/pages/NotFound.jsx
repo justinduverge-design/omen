@@ -11,13 +11,13 @@ export default function NotFound() {
           Page not found
         </p>
         <h1 className="mt-5 text-4xl font-semibold text-white">
-          This route is not in the Saloon yet.
+          This route is not in Corvus yet.
         </h1>
         <p className="mt-6 text-slate-300">
-          Return to the brand shell while the platform map is still being built.
+          Return to the app shell while the platform map is still being built.
         </p>
         <Link className="mt-8 inline-flex text-sm font-semibold text-amber-300" to="/">
-          Back to Slops Saloon
+          Back to Corvus
         </Link>
       </main>
       <Footer />

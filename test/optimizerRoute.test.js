@@ -146,6 +146,19 @@ test("POST /api/optimizer/mvp-move rejects record prompt text before roster fetc
   assert.deepEqual(state.mvpMoveCalls, []);
 });
 
+test("POST /api/optimizer/mvp-move rejects week outside NFL regular season bounds", async () => {
+  const { app, state } = buildApp();
+  const res = await postMvpMove(app, {
+    leagueKey: "league-1",
+    week: "19",
+  });
+
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, "week must be between 1 and 18");
+  assert.deepEqual(state.yahooUserIds, []);
+  assert.deepEqual(state.mvpMoveCalls, []);
+});
+
 test("POST /api/optimizer/mvp-move passes valid scoringFormat and strict record to agents", async () => {
   const { app, state } = buildApp();
   const res = await postMvpMove(app, {

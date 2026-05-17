@@ -33,7 +33,7 @@ export default function Header() {
           className="text-sm font-semibold tracking-wide text-white"
           to="/"
         >
-          Slops Saloon
+          Corvus
         </Link>
 
         <nav aria-label="Primary navigation" className="flex items-center gap-5 text-sm">

@@ -142,6 +142,7 @@ module.exports = {
   REPLACEMENT_LEVELS,
   SCARCITY_THRESHOLDS,
   SCARCITY_BONUS,
+  normalizePosition,
   getReplacementLevel,
   scarcityTierForVorp,
   vorpForPlayer,

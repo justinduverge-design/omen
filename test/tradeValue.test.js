@@ -169,3 +169,21 @@ test("uses standard replacement levels for TE trade baselines", () => {
   assert.equal(result.receive.players[0].replacement_level, 3.5);
   assert.equal(result.scoring_format, "standard");
 });
+
+test("normalizes DST and D/ST aliases to the same trade scoring bucket", () => {
+  const dst = tradeValue.playerValue({
+    name: "DST Alias",
+    position: "DST",
+    projected_points: 8,
+  });
+  const dSlashSt = tradeValue.playerValue({
+    name: "D/ST Alias",
+    position: "D/ST",
+    projected_points: 8,
+  });
+
+  assert.equal(dst.position, "DST");
+  assert.equal(dSlashSt.position, "DST");
+  assert.equal(dst.replacement_level, dSlashSt.replacement_level);
+  assert.equal(dst.value, dSlashSt.value);
+});
