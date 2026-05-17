@@ -20,6 +20,7 @@ const { vorpForPlayer, SCARCITY_BONUS } = require("./vorp");
 const { runAgent } = require("./llm");
 const nflSchedule   = require("./nflSchedule");
 const weatherService = require("./weatherService");
+const { getDvpContext } = require("./matchupService");
 
 // ── Prompt templates ────────────────────────────────────────────────────────
 
@@ -139,6 +140,13 @@ const GAMETIME_STUB = Object.freeze({
   kickoff_time: "1:00PM ET", tv_slate: "Early 1PM",
   playoff_implications: "Game context unavailable (offseason or bye week)",
 });
+const MATCHUP_STUB = Object.freeze({
+  defense_name: "Opponent Defense",
+  dvp_rank:     16,
+  pts_allowed:  20.0,
+  scheme:       "Unknown",
+  key_defender: "No injury information available",
+});
 
 /**
  * Fetch weather data for the target player's game venue.
@@ -190,19 +198,17 @@ async function fetchGameTimeData(gameInfo) {
   };
 }
 
-/**
- * STUB: replace with Sportradar DvP rankings API.
- * Returns matchup data for the target player's opponent.
- */
-function fetchMatchupData(/* targetPlayer, opponentTeam */) {
-  // STUB: replace with Sportradar Defense vs. Position API
-  return {
-    defense_name: "Opponent Defense",
-    dvp_rank:     16,
-    pts_allowed:  20.0,
-    scheme:       "Unknown",
-    key_defender: "No injury information available",
-  };
+async function fetchMatchupData(playerInfo) {
+  try {
+    return await getDvpContext({
+      position:     playerInfo?.position,
+      opponentTeam: playerInfo?.opponent,
+      season:       playerInfo?.season || new Date().getFullYear(),
+      week:         playerInfo?.week || 1,
+    });
+  } catch {
+    return null;
+  }
 }
 
 // ── Sub-agent runners ────────────────────────────────────────────────────────
@@ -244,7 +250,21 @@ async function buildSignals(targetPlayer, roster, scoringFormat) {
     fetchTravelData(gameInfo),
     fetchGameTimeData(gameInfo),
   ]);
-  const matchup = fetchMatchupData(); // still stub
+  const matchupContext = await fetchMatchupData({
+    position: targetPlayer.position,
+    opponent: gameInfo?.opponent_abbr,
+    season:   targetPlayer.season,
+    week:     targetPlayer.week,
+  });
+  const matchup = matchupContext
+    ? {
+        defense_name: matchupContext.opponent_team,
+        dvp_rank:     matchupContext.dvp_label,
+        pts_allowed:  matchupContext.avg_points_allowed,
+        scheme:       `${matchupContext.sample_weeks}-game nflverse-data sample`,
+        key_defender: "Not modeled",
+      }
+    : MATCHUP_STUB;
 
   // Performance agent uses live VORP data.
   const vorpResult = vorpForPlayer(targetPlayer, { scoringFormat });
@@ -411,7 +431,7 @@ async function getMVPMove(players, opts = {}) {
   const targetPlayer = scored.length ? scored[0].player : (players[0] || {});
 
   // Run all 6 sub-agents in parallel.
-  const signals = await buildSignals(targetPlayer, players, scoringFormat);
+  const signals = await buildSignals({ ...targetPlayer, week: opts.week }, players, scoringFormat);
 
   // Run Manager Agent.
   const recommendation = await runManagerAgent({
@@ -428,7 +448,7 @@ async function getMVPMove(players, opts = {}) {
     scarcity_block: scarcityBlock,
     generated_at:   new Date().toISOString(),
     scoring_format: scoringFormat,
-    note:           "Schedule + travel + gametime: live (ESPN API). Weather: live if OPENWEATHER_API_KEY is set. Matchup DvP: stub - next session.",
+    note:           "Schedule + travel + gametime: live (ESPN API). Weather: live if OPENWEATHER_API_KEY is set. Matchup DvP: live via nflverse-data when current-week opponent and trailing sample are available; otherwise stub fallback.",
   };
 }
 
