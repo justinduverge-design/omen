@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import EmptyState from '../components/ui/EmptyState.jsx';
+import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const EMPTY_PLAYER = {
@@ -73,6 +75,36 @@ function PlayerInput({ label, player, onChange }) {
   );
 }
 
+function SignalsList({ signals }) {
+  if (!signals?.length) return null;
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">Signals</p>
+      <div className="flex flex-wrap gap-2">
+        {signals.map((signal, i) => {
+          const isHigh = signal.weight === 'high';
+          const isMedium = signal.weight === 'medium';
+          const chipClass = isHigh
+            ? 'border-amber-400/30 bg-amber-400/10 text-amber-300'
+            : isMedium
+            ? 'border-slate-600 bg-slate-800/80 text-slate-200'
+            : 'border-slate-700 bg-slate-800 text-slate-400';
+          const valueClass = isHigh ? 'text-amber-400/70' : 'text-slate-500';
+          return (
+            <span
+              key={i}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${chipClass}`}
+            >
+              {signal.label}
+              <span className={valueClass}>{signal.value}</span>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ResultPanel({ result, playerA, playerB }) {
   if (!result) return null;
 
@@ -92,11 +124,10 @@ function ResultPanel({ result, playerA, playerB }) {
       <p className="mt-4 rounded-md border border-slate-800 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100">
         {result.recommendation}
       </p>
-      {result.explanation ? (
-        <p className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
-          {result.explanation}
-        </p>
-      ) : null}
+      <p className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
+        {result.explanation ?? 'Reasoning unavailable — recommendation based on projected points.'}
+      </p>
+      <SignalsList signals={result.signals} />
     </section>
   );
 }
@@ -114,8 +145,9 @@ export default function StartSit() {
     projected_points: '14',
   });
   const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const hasInvalidProjection = useMemo(() => (
     [playerA, playerB].some((player) => (
@@ -132,9 +164,10 @@ export default function StartSit() {
   }
 
   async function handleSubmit(event) {
-    event.preventDefault();
-    setError('');
+    event?.preventDefault();
+    setError(null);
     setLoading(true);
+    setHasSubmitted(true);
 
     try {
       const recommendation = await apiFetch('/api/start-sit', {
@@ -174,11 +207,13 @@ export default function StartSit() {
           />
         </div>
 
-        {error ? (
-          <div className="rounded-md border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        ) : null}
+        {error && (
+          <ErrorState
+            title="Comparison failed"
+            message={error}
+            onRetry={handleSubmit}
+          />
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
@@ -203,7 +238,15 @@ export default function StartSit() {
         </div>
       </form>
 
-      <ResultPanel result={result} playerA={playerA} playerB={playerB} />
+      {!loading && !error && hasSubmitted && result && !result.winner && (
+        <EmptyState
+          eyebrow="Start/Sit"
+          title="No recommendation returned"
+          message="The comparison returned an incomplete result. Try adjusting the player names and projections."
+        />
+      )}
+
+      <ResultPanel result={result?.winner ? result : null} playerA={playerA} playerB={playerB} />
     </div>
   );
 }

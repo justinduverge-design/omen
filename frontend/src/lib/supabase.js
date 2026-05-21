@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
+const URL = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL);
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function normalizeSupabaseUrl(url) {
+  if (!url) return url;
+  return url.replace('.supabase.com', '.supabase.co');
+}
 
 function makeStub() {
   const err = () => Promise.reject(

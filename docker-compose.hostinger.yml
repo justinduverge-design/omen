@@ -1,0 +1,47 @@
+# ════════════════════════════════════════════════════════════════
+# Corvus Hostinger deploy override
+# ----------------------------------------------------------------
+# Use with the base compose file:
+#
+#   docker compose \
+#     --env-file "$CORVUS_ENV_FILE" \
+#     -f docker-compose.yml \
+#     -f docker-compose.hostinger.yml \
+#     up -d --no-deps api
+#
+# This file intentionally keeps Hostinger-specific deployment settings
+# out of the existing Oracle workflow and base compose file.
+# ════════════════════════════════════════════════════════════════
+
+services:
+  api:
+    image: corvus-api:${RELEASE_ID:-hostinger-local}
+    env_file:
+      - ${CORVUS_ENV_FILE:-/opt/corvus/shared/.env}
+    build:
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_ESPN_ENABLED: ${VITE_ESPN_ENABLED:-}
+    environment:
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL is required}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-gemma3:4b}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-30000}
+
+  cron:
+    profiles:
+      - cron
+    image: corvus-cron:${RELEASE_ID:-hostinger-local}
+    env_file:
+      - ${CORVUS_ENV_FILE:-/opt/corvus/shared/.env}
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      SPORTRADAR_API_KEY: ${SPORTRADAR_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-gemma3:4b}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-30000}

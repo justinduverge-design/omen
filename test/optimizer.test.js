@@ -47,6 +47,24 @@ test("POST /api/start-sit returns a ranked recommendation for valid players", as
   assert.equal(res.body.pointsDelta, 3.5);
   assert.equal(res.body.recommendation, "Start Tyreek Hill over Josh Allen");
   assert.ok(Object.prototype.hasOwnProperty.call(res.body, "explanation"));
+  assert.deepEqual(res.body.signals, [
+    { label: "Projection edge", value: "+3.5 pts", weight: "high" },
+  ]);
+});
+
+test("POST /api/start-sit includes injury status signals", async () => {
+  const app = buildApp();
+  const res = await request(app, {
+    playerA: { name: "Safe WR", position: "WR", projected_points: 14.2, status: "active" },
+    playerB: { name: "Risky WR", position: "WR", projected_points: 10.4, status: "questionable" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.winner, "A");
+  assert.deepEqual(res.body.signals, [
+    { label: "Projection edge", value: "+4.65 pts", weight: "high" },
+    { label: "Injury status", value: "Risky WR questionable", weight: "medium" },
+  ]);
 });
 
 test("POST /api/start-sit returns 400 when a required field is missing", async () => {

@@ -1,0 +1,19 @@
+You are reviewing a research packet for Corvus, a fantasy football decision assistant.
+
+Your job:
+1. Find weak assumptions
+2. Find missing risks
+3. Identify what is useful now vs later
+4. Recommend whether each idea belongs in V1, V1.5, or V2
+5. Keep the answer practical
+
+Do not write code.
+Do not suggest new tools unless they solve a specific Corvus problem.
+Do not overcomplicate the roadmap.
+
+Return:
+- Product decision
+- Feature impact
+- Data-source recommendation
+- Risks
+- Next questions

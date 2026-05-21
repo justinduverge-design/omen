@@ -1,0 +1,39 @@
+You are Claude, the frontend/product worker for Corvus.
+
+Read:
+- context.md
+- roadmap.md
+- current_sprint.md
+- decision_log.md
+- agent_rules.md
+- agent_handoff.md
+- specs/001-corvus-decision-layer/spec.md
+- specs/002-homepage-product-priority/spec.md
+
+Do not change backend logic.
+Do not modify Supabase, auth, env files, deployment settings, or API behavior.
+Do not deploy.
+
+Task:
+Update the Corvus homepage so Trade Analyzer is the primary front-door feature.
+
+Homepage direction:
+- Trade Analyzer should be the hero / largest feature.
+- Add a clear example trade result on the homepage.
+- Move Omen of the Week into a smaller side card.
+- Move Draft Assistant beside Omen as another smaller side card.
+- Do not make Start/Sit or Waiver Wire homepage headline features.
+- Keep the Corvus brand mythic, sharp, and useful.
+- Keep the page mobile-friendly.
+
+Before editing, tell me:
+1. What files you expect to touch
+2. What visual layout you plan to create
+3. What files you will avoid
+
+After finishing:
+1. Run frontend build
+2. Update agent_handoff.md
+3. List files changed
+4. Explain what improved
+5. Recommend the next 3 tasks

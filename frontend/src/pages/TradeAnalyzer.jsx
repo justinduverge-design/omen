@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import EmptyState from '../components/ui/EmptyState.jsx';
+import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const EMPTY_PLAYER = {
@@ -181,8 +183,9 @@ export default function TradeAnalyzer() {
     { ...EMPTY_PLAYER, name: 'Starter WR', position: 'WR', projected_points: '14' },
   ]);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const hasInvalidProjection = useMemo(() => (
     [...send, ...receive].some((player) => (
@@ -203,9 +206,10 @@ export default function TradeAnalyzer() {
   }
 
   async function handleSubmit(event) {
-    event.preventDefault();
-    setError('');
+    event?.preventDefault();
+    setError(null);
     setLoading(true);
+    setHasSubmitted(true);
 
     try {
       const payload = {
@@ -248,11 +252,6 @@ export default function TradeAnalyzer() {
             />
           </div>
 
-          {error ? (
-            <div className="rounded-md border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
@@ -274,7 +273,23 @@ export default function TradeAnalyzer() {
           </div>
         </form>
 
-        <ResultPanel result={result} />
+        {error && (
+          <ErrorState
+            title="Trade comparison failed"
+            message={error}
+            onRetry={handleSubmit}
+          />
+        )}
+
+        {!loading && !error && hasSubmitted && result && !result.verdict && (
+          <EmptyState
+            eyebrow="Trade Analyzer"
+            title="No result returned"
+            message="The comparison returned an incomplete result. Try adjusting the player details and running again."
+          />
+        )}
+
+        <ResultPanel result={result?.verdict ? result : null} />
       </div>
   );
 }

@@ -29,7 +29,7 @@ function platformStatus(rows) {
   const sleeper = byPlatform.get("sleeper");
   const espn = byPlatform.get("espn");
 
-  return {
+  const status = {
     yahoo: {
       connected: Boolean(yahoo?.is_active && yahoo?.token_secret_id),
       platform: "yahoo",
@@ -43,6 +43,11 @@ function platformStatus(rows) {
       connected: Boolean(espn?.is_active && espn?.espn_secret_id && espn?.swid_secret_id),
       platform: "espn",
     },
+  };
+
+  return {
+    ...status,
+    connections: status,
   };
 }
 

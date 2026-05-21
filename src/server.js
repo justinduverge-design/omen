@@ -22,6 +22,7 @@ const express = require("express");
 const path    = require("path");
 const fs      = require("fs");
 const config  = require("./config");
+const systemRoutes = require("./routes/system");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
   helmetMiddleware,
@@ -75,14 +76,24 @@ app.use((req, res, next) => {
   return generalRateLimit(req, res, next);
 });
 
-// --- Public routes ------------------------------------------------
-app.get("/api/health", (req, res) => {
-  res.json({
-    status:  "ok",
-    service: "ssffmvp-api",
-    uptime:  process.uptime(),
-  });
-});
+// --- Public system + mock contract routes ------------------------
+app.use("/api", systemRoutes);
+
+// --- App backbone summary routes --------------------------------
+try {
+  const dashboardRoutes = require("./routes/dashboard");
+  app.use("/api/dashboard", dashboardRoutes);
+} catch (e) {
+  logger.error("Dashboard router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Draft Assistant mock contract routes -----------------------
+try {
+  const draftAssistantRoutes = require("./routes/draftAssistant");
+  app.use("/api/draft-assistant", draftAssistantRoutes);
+} catch (e) {
+  logger.error("Draft Assistant router failed to load", { err: e.message, stack: e.stack });
+}
 
 // Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
 const SPA_DIR = path.join(__dirname, "..", "frontend", "dist");

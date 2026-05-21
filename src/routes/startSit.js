@@ -50,10 +50,59 @@ function normalizePlayer(player, key, selectedPosition = null) {
 }
 
 function withTimeout(promise, timeoutMs) {
-  return Promise.race([
-    promise.catch(() => null),
-    new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),
-  ]);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    promise
+      .catch(() => null)
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      });
+  });
+}
+
+function statusText(status) {
+  if (status == null || status === "") return "active";
+  return String(status).trim().toLowerCase();
+}
+
+function isActiveStatus(status) {
+  const normalized = statusText(status);
+  return ["active", "p", "probable"].includes(normalized);
+}
+
+function projectionEdgeWeight(pointsDelta) {
+  if (pointsDelta >= 3) return "high";
+  if (pointsDelta >= 1.5) return "medium";
+  return "low";
+}
+
+function buildSignals({ winningPlayer, losingPlayer, pointsDelta }) {
+  const signals = [
+    {
+      label: "Projection edge",
+      value: `+${pointsDelta} pts`,
+      weight: projectionEdgeWeight(pointsDelta),
+    },
+  ];
+
+  if (!isActiveStatus(losingPlayer.status)) {
+    signals.push({
+      label: "Injury status",
+      value: `${losingPlayer.name.trim()} ${statusText(losingPlayer.status)}`,
+      weight: "medium",
+    });
+  }
+
+  if (!isActiveStatus(winningPlayer.status)) {
+    signals.push({
+      label: "Starter risk",
+      value: `${winningPlayer.name.trim()} ${statusText(winningPlayer.status)}`,
+      weight: "medium",
+    });
+  }
+
+  return signals;
 }
 
 async function explainSafely({ loser, winner, pointsDelta, slot }) {
@@ -112,6 +161,7 @@ router.post("/", async (req, res, next) => {
     }
 
     const result = comparePlayers(playerA, playerB);
+    const signals = buildSignals(result);
     const explanation = await explainSafely({
       loser: result.losingPlayer,
       winner: result.winningPlayer,
@@ -124,6 +174,7 @@ router.post("/", async (req, res, next) => {
       pointsDelta: result.pointsDelta,
       recommendation: result.recommendation,
       explanation,
+      signals,
     });
   } catch (e) {
     return next(e);
@@ -133,3 +184,4 @@ router.post("/", async (req, res, next) => {
 module.exports = router;
 module.exports.validatePlayer = validatePlayer;
 module.exports.comparePlayers = comparePlayers;
+module.exports.buildSignals = buildSignals;

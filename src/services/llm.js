@@ -2,7 +2,7 @@
 
 /**
  * LLM service — wraps Ollama OpenAI-compatible API.
- * LLM_BASE_URL: base URL of the Ollama instance (e.g. http://2.24.79.103:11434)
+ * LLM_BASE_URL: private/internal Ollama URL (e.g. http://ollama.internal:11434)
  * LLM_MODEL:    model name (e.g. gemma4:e2b-q4_0 or gemma3:4b)
  * LLM_TIMEOUT:  ms before giving up (default 30000)
  *

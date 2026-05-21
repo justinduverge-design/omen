@@ -192,6 +192,11 @@ test("GET /api/platforms/status returns default shape for all three platforms", 
     yahoo: { connected: false, platform: "yahoo" },
     sleeper: { connected: false, platform: "sleeper", username: null },
     espn: { connected: false, platform: "espn" },
+    connections: {
+      yahoo: { connected: false, platform: "yahoo" },
+      sleeper: { connected: false, platform: "sleeper", username: null },
+      espn: { connected: false, platform: "espn" },
+    },
   });
 });
 
@@ -216,6 +221,10 @@ test("GET /api/platforms/status returns connected true when rows have credential
   assert.equal(res.body.sleeper.connected, true);
   assert.equal(res.body.sleeper.username, "sleepy");
   assert.equal(res.body.espn.connected, true);
+  assert.equal(res.body.connections.yahoo.connected, true);
+  assert.equal(res.body.connections.sleeper.connected, true);
+  assert.equal(res.body.connections.sleeper.username, "sleepy");
+  assert.equal(res.body.connections.espn.connected, true);
 });
 
 test("POST /api/sleeper/connect returns 400 for nonexistent username", async () => {

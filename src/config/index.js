@@ -16,6 +16,8 @@ const REQUIRED = [
   "SUPABASE_SERVICE_KEY",
 ];
 
+const llmTimeoutMs = Number(process.env.LLM_TIMEOUT);
+
 const config = {
   // --- Server ---------------------------------------------------
   port:        parseInt(process.env.PORT, 10) || 3000,
@@ -37,6 +39,13 @@ const config = {
 
   // --- OpenWeatherMap (optional - graceful fallback when not set)
   openWeatherApiKey: process.env.OPENWEATHER_API_KEY || null,
+
+  // --- Local LLM / Ollama (optional - internal only) -------------
+  llm: {
+    baseUrl:   process.env.LLM_BASE_URL || "",
+    model:     process.env.LLM_MODEL || "gemma3:4b",
+    timeoutMs: Number.isFinite(llmTimeoutMs) && llmTimeoutMs > 0 ? llmTimeoutMs : 30000,
+  },
 
   // --- Yahoo OAuth ----------------------------------------------
   yahoo: {
@@ -70,6 +79,8 @@ if (missing.length) {
 // Optional env vars (no crash if missing - services fall back gracefully):
 // OPENWEATHER_API_KEY - weather data for MVP Move agents
 // LLM_BASE_URL        - Gemma on Hostinger
+// LLM_MODEL           - Ollama model name
+// LLM_TIMEOUT         - Ollama request timeout in ms
 // REDIS_URL / REDIS_TOKEN - roster caching
 
 config.isProd = config.nodeEnv === "production";

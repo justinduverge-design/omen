@@ -1,0 +1,31 @@
+You are Codex, the engineering/backend/repo worker for Corvus.
+
+Read:
+- context.md
+- roadmap.md
+- current_sprint.md
+- decision_log.md
+- agent_rules.md
+- agent_inbox.md
+- agent_handoff.md
+- specs/002-homepage-product-priority/spec.md
+
+Do not deploy.
+Do not move the app to Hostinger.
+Do not touch DNS, SSL/TLS, Nginx, production secrets, or .env files.
+
+Task:
+Verify the current Trade Analyzer implementation.
+
+Answer:
+1. Is Trade Analyzer already built?
+2. What frontend file/component renders it?
+3. What backend endpoint powers it?
+4. Is it mock, live, or partial?
+5. Are there tests?
+6. Does anything block Claude from putting it front and center on the homepage?
+7. What exact next Claude prompt should Justin use?
+
+Make only documentation updates unless a tiny obvious bug blocks verification.
+
+Update agent_handoff.md when finished.

@@ -46,7 +46,8 @@ class YahooClient {
   // ---- Low-level GET --------------------------------------------
 
   async get(path) {
-    const res = await fetch(`${BASE}${path}?format=json`, {
+    const separator = path.includes("?") ? "&" : "?";
+    const res = await fetch(`${BASE}${path}${separator}format=json`, {
       headers: { Authorization: `Bearer ${this.accessToken}` },
     });
     if (res.status === 401) throw new Error("yahoo_token_expired");
@@ -113,6 +114,24 @@ class YahooClient {
     const count = Math.min(opts.count || 50, 50);
     const sort  = opts.sort  || "AR";    // AR = Average Rank
     return this.get(`/league/${leagueKey}/players;status=A;sort=${sort};count=${count};start=0`);
+  }
+
+  async getGameKeyForSeason(year) {
+    return this.get(`/games;game_codes=nfl;seasons=${year}`);
+  }
+
+  async getNFLPlayerPage(opts = {}) {
+    const count = Math.min(opts.count || 25, 25);
+    const start = Math.max(parseInt(opts.start, 10) || 0, 0);
+    return this.get(`/games;game_codes=nfl/players?count=${count}&start=${start}`);
+  }
+
+  async getDraftAnalysis(playerKeys) {
+    const keys = Array.isArray(playerKeys) ? playerKeys : [];
+    if (keys.length > 25) {
+      throw new Error("Yahoo draft_analysis batch cannot exceed 25 player_keys");
+    }
+    return this.get(`/players;player_keys=${keys.join(",")}/draft_analysis`);
   }
 
   /** Standings (used elsewhere, kept for compat). */

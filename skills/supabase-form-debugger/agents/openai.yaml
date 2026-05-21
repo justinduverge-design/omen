@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supabase Form Debugger"
+  short_description: "Debug Supabase form failures"
+  default_prompt: "Use this skill to debug a Supabase-backed frontend form that is stuck, failing, or not writing rows. Trace database/RLS, environment, client, and browser behavior before fixing."

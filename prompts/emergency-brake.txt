@@ -1,0 +1,13 @@
+Stop work now.
+
+Do not make more changes.
+
+Update agent_handoff.md with:
+1. What task you were working on
+2. What files you changed
+3. What commands you ran
+4. What worked
+5. What failed
+6. What remains blocked
+7. Which agent should act next
+8. The exact next recommended prompt
