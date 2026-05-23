@@ -1,5 +1,5 @@
 # Manager Agent — System Prompt
-**File:** `prompts/manager_agent.md`
+**File:** `Blueprints/prompts/manager_agent.md`
 **Model:** Gemma (Ollama, self-hosted Hostinger)
 **Version:** 1.1.0
 **Last tuned:** 2026-05-13

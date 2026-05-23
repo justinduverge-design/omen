@@ -1,5 +1,5 @@
 # Sub-Agent Prompts
-**File:** `prompts/sub_agents.md`
+**File:** `Blueprints/prompts/sub_agents.md`
 **Version:** 1.2.0
 **Last tuned:** 2026-05-16
 

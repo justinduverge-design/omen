@@ -1,5 +1,5 @@
 # Prompts Changelog
-**File:** `prompts/PROMPTS_CHANGELOG.md`
+**File:** `Blueprints/prompts/PROMPTS_CHANGELOG.md`
 
 Every change to any prompt in the `/prompts` directory must be logged here.
 Include: date, file changed, what changed, and why.
@@ -11,7 +11,7 @@ The self-improving loop tracks win rates but not prompt changes — this file fi
 
 ```
 ## [version] — YYYY-MM-DD
-**File:** prompts/filename.md
+**File:** Blueprints/prompts/filename.md
 **Changed by:** your name
 **Win rate at time of change:** X% (from system_context table)
 
@@ -28,7 +28,7 @@ What you expect this change to improve.
 ---
 
 ## [1.0.0] — 2025-11-12
-**File:** prompts/manager_agent.md
+**File:** Blueprints/prompts/manager_agent.md
 **Changed by:** Justin Duverge
 **Win rate at time of change:** N/A (initial version)
 
@@ -48,7 +48,7 @@ Future tuning can now be measured against this baseline.
 ---
 
 ## [1.0.0] — 2025-11-12
-**File:** prompts/sub_agents.md
+**File:** Blueprints/prompts/sub_agents.md
 **Changed by:** Justin Duverge
 **Win rate at time of change:** N/A (initial version)
 
