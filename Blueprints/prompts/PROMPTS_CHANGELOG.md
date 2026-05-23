@@ -67,4 +67,27 @@ which agent produced a bad signal when reviewing a wrong call.
 
 ---
 
+## [1.0.0] — 2026-05-22
+**File:** Blueprints/prompts/omen-mvp-move-frontend.md
+**Changed by:** Claude
+**Win rate at time of change:** N/A (initial version)
+
+### What changed
+Initial frontend implementation prompt created for the Omen of the Week / MVP Move screen.
+Covers: form inputs, full state machine (8 states), signals panel, confidence meter,
+risk display, mock/dev toggle, visual conventions, Football.jsx tab update, what not to
+build, and acceptance criteria.
+
+### Why
+The backend mock endpoint prompt (omen-mvp-move-development.md) already existed.
+The frontend prompt slot was empty. Without this prompt, frontend implementation
+would proceed without a reviewable brief anchored to the contract.
+
+### Expected effect
+A dev session given this prompt can implement the Omen screen correctly on the
+first pass — correct state machine, correct field mapping, correct visual style —
+without needing to re-read the full handoff and spec from scratch.
+
+---
+
 <!-- Add new entries above this line, newest first -->

@@ -18,9 +18,17 @@ Company-level decisions belong in the SLOPS OS layer. Corvus product decisions b
 - Start/Sit and waiver logic live inside Omen / MVP Move unless Justin separates them later.
 - Yahoo, Sleeper, and ESPN all matter.
 - ESPN is essential but risky and needs recovery playbooks.
+- ESPN recovery routes through `/account` with safe state/query context only.
+- ESPN league selection belongs in a full Account section for MVP, not a modal.
+- Omen may preserve safe request context after ESPN recovery, but the user must click to rerun.
+- `espn_import_blocked` remains the MVP user-facing state; safe backend `reason_code` values may be added later.
+- Security and privacy decisions are tracked in `Blueprints\security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
 - Users need plain-English reasoning, not heavy math.
 
 ## Open Decisions
 
-- First frontend-to-backend Omen / MVP Move contract request.
-- Exact ESPN recovery playbook states and user-facing copy.
+- Whether recovery analytics ship before or after the first paid launch gate.
+
+## Closed Decisions
+
+- Account page ESPN recovery handling — Account.jsx now reads `?recovery=<state>` via `useSearchParams` and passes `recoveryState` to `PlatformConnections`. ESPN CTA in Omen uses safe query params (`platform=espn&recovery=<state>`). `VITE_ESPN_ENABLED` gate is bypassed when arriving from an ESPN recovery state. Closed 2026-05-23.
