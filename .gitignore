@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.claude/
 
 # Secrets - NEVER COMMIT
 .env
@@ -32,6 +33,7 @@ desktop.ini
 *.swo
 
 # Built SPA artifacts
+dist/
 client/dist/
 client/node_modules/
 frontend/dist/
