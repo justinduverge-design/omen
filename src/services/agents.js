@@ -24,7 +24,7 @@ const { getDvpContext } = require("./matchupService");
 
 // ── Prompt templates ────────────────────────────────────────────────────────
 
-// Load sub-agent system prompts from the prompts/ directory.
+// Load sub-agent system prompts from the DBS prompt blueprints.
 // Each is a short system prompt string extracted from sub_agents.md.
 // We define them inline here to keep the service self-contained.
 const SUB_AGENT_PROMPTS = Object.freeze({
@@ -341,7 +341,7 @@ async function runManagerAgent({ signals, vorpBlock, scarcityBlock, context }) {
   let systemTemplate;
   try {
     systemTemplate = fs.readFileSync(
-      path.join(__dirname, "../../prompts/manager_agent.md"), "utf8"
+      path.join(__dirname, "..", "..", "Blueprints", "prompts", "manager_agent.md"), "utf8"
     );
     // Extract the system prompt block (between the ``` markers after "## System Prompt")
     const match = systemTemplate.match(/## System Prompt\n\n```\n([\s\S]*?)\n```/);

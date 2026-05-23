@@ -3,7 +3,7 @@
  * Slops Saloon Fantasy Football MVP (SSFFMVP)
  * Prompt Loader — ssffmvp_prompt_loader.js
  * ════════════════════════════════════════════════════════════════
- * Reads prompt templates from the /prompts directory and injects
+ * Reads prompt templates from the /Blueprints/prompts directory and injects
  * runtime values before passing them to the Anthropic API.
  *
  * This replaces the hardcoded template strings in ssffmvp_agents.js.
@@ -23,7 +23,7 @@ const fs   = require("fs");
 const path = require("path");
 
 // ── PROMPT FILE PATHS ────────────────────────────────────────────
-const PROMPTS_DIR    = path.join(__dirname, "..", "prompts");
+const PROMPTS_DIR    = path.join(__dirname, "..", "Blueprints", "prompts");
 const MANAGER_MD     = path.join(PROMPTS_DIR, "manager_agent.md");
 const SUB_AGENTS_MD  = path.join(PROMPTS_DIR, "sub_agents.md");
 
@@ -317,10 +317,11 @@ module.exports = {
   │   ├── ssffmvp_tuesday_cron.js
   │   ├── ssffmvp_gdpr.js
   │   └── ssffmvp_prompt_loader.js    ← this file
-  ├── prompts/
-  │   ├── manager_agent.md            ← Manager Agent system + user prompts
-  │   ├── sub_agents.md               ← All 6 sub-agent prompt templates
-  │   └── PROMPTS_CHANGELOG.md        ← Required edit log
+  ├── Blueprints/
+  │   └── prompts/
+  │       ├── manager_agent.md        ← Manager Agent system + user prompts
+  │       ├── sub_agents.md           ← All 6 sub-agent prompt templates
+  │       └── PROMPTS_CHANGELOG.md    ← Required edit log
   ├── client/
   │   └── SSFFMVP_v2_full.jsx
   └── ...
