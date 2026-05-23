@@ -132,4 +132,85 @@ async function runAgent(systemPrompt, userPrompt, { maxTokens = 400 } = {}) {
   }
 }
 
-module.exports = { chat, explainTrade, explainStartSit, runAgent };
+function stripJsonFence(text) {
+  return String(text || "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
+function shortUserString(value) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, 240);
+}
+
+function parseOmenExplanation(raw) {
+  if (!raw) return null;
+
+  let parsed = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(stripJsonFence(raw));
+    } catch {
+      return null;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+
+  const summary = shortUserString(parsed.summary);
+  const whyItMatters = shortUserString(parsed.why_it_matters);
+  const riskText = shortUserString(parsed.risk);
+  const confidenceText = shortUserString(parsed.confidence);
+  const dataUsed = Array.isArray(parsed.data_used)
+    ? parsed.data_used.map(shortUserString).filter(Boolean).slice(0, 8)
+    : null;
+
+  if (!summary || !whyItMatters || !riskText || !confidenceText || !dataUsed?.length) {
+    return null;
+  }
+
+  return {
+    summary,
+    why_it_matters: whyItMatters,
+    risk: riskText,
+    confidence: confidenceText,
+    data_used: dataUsed,
+  };
+}
+
+/**
+ * Generate plain-English Omen / MVP Move explanation copy from sanitized facts.
+ * The LLM may explain the already-built recommendation, but must not choose or
+ * alter the move, confidence, risk level, players, EV delta, or response state.
+ */
+async function explainOmenMvpMove(payload) {
+  const systemPrompt = [
+    "You are Corvus, a concise fantasy football analyst.",
+    "Explain only the already-selected MVP Move using plain English.",
+    "Do not change the recommendation, players, confidence score, risk level, expected value, or response state.",
+    "Use only the provided sanitized facts.",
+    "Return strict JSON only, with no markdown.",
+    'Required shape: {"summary":"string","why_it_matters":"string","risk":"string","confidence":"string","data_used":["string"]}',
+  ].join(" ");
+
+  const userPrompt = [
+    "Write the Omen / MVP Move explanation from these sanitized facts.",
+    JSON.stringify(payload),
+  ].join("\n\n");
+
+  const raw = await runAgent(systemPrompt, userPrompt, { maxTokens: 360 });
+  return parseOmenExplanation(raw);
+}
+
+module.exports = {
+  chat,
+  explainTrade,
+  explainStartSit,
+  runAgent,
+  explainOmenMvpMove,
+  parseOmenExplanation,
+};

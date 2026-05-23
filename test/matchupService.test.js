@@ -14,8 +14,10 @@ function csvFor(rows) {
 }
 
 function mockFetchWithCsv(csv, counter) {
-  global.fetch = async () => {
+  global.fetch = async (url) => {
     counter.count += 1;
+    counter.urls ||= [];
+    counter.urls.push(String(url));
     return {
       ok:   true,
       text: async () => csv,
@@ -51,6 +53,18 @@ describe("matchupService.getDvpContext", () => {
     });
 
     assert.equal(result, null);
+  });
+
+  it("returns null when nflverse CSV shape is invalid", async () => {
+    const counter = { count: 0 };
+    mockFetchWithCsv("season,week,position\n2096,1,WR", counter);
+
+    const result = await getDvpContext({
+      position: "WR", opponentTeam: "BAL", season: 2096, week: 8,
+    });
+
+    assert.equal(result, null);
+    assert.equal(counter.count, 1);
   });
 
   it("returns null when sample_weeks is less than 3", async () => {
@@ -99,6 +113,7 @@ describe("matchupService.getDvpContext", () => {
     assert.equal(result.sample_weeks, 5);
     assert.ok(["favorable", "neutral", "tough"].includes(result.dvp_label));
     assert.equal(counter.count, 1);
+    assert.match(counter.urls[0], /player_stats_2094\.csv$/);
   });
 
   it("uses the cache for the same season and week", async () => {

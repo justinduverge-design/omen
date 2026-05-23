@@ -172,6 +172,14 @@ try {
   logger.error("Start/Sit router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/omen (contract-stable MVP Move mock endpoint) ----
+try {
+  const omenRoutes = require("./routes/omen");
+  app.use("/api/omen", omenRoutes);
+} catch (e) {
+  logger.error("Omen router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/trade (free, auth-gated trade comparison) --------
 try {
   const tradeRoutes = require("./routes/trade");

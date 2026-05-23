@@ -9,8 +9,8 @@
  * or null if data is unavailable (offseason, fetch failure, missing player).
  */
 
-const NFLVERSE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats.csv";
+const NFLVERSE_BASE_URL =
+  "https://github.com/nflverse/nflverse-data/releases/download/player_stats";
 
 const FETCH_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -39,7 +39,11 @@ function _cacheSet(key, value) {
   _cache.set(key, { value, ts: Date.now() });
 }
 
-async function _fetchRows(cacheKey) {
+function _nflverseUrlForSeason(season) {
+  return `${NFLVERSE_BASE_URL}/player_stats_${season}.csv`;
+}
+
+async function _fetchRows(cacheKey, season) {
   const cached = _cacheGet(cacheKey);
   if (cached) return cached;
 
@@ -47,7 +51,7 @@ async function _fetchRows(cacheKey) {
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(NFLVERSE_URL, { signal: controller.signal });
+    const res = await fetch(_nflverseUrlForSeason(season), { signal: controller.signal });
     if (!res.ok) {
       _logger().warn("matchupService: nflverse-data returned non-OK", { status: res.status });
       return null;
@@ -135,7 +139,7 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
     if (!opponent || !Number.isInteger(seasonInt) || !Number.isInteger(weekInt)) return null;
 
     const cacheKey = `${seasonInt}-${weekInt}`;
-    const rows = await _fetchRows(cacheKey);
+    const rows = await _fetchRows(cacheKey, seasonInt);
     if (!rows) return null;
 
     const matching = rows
