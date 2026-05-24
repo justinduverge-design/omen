@@ -120,17 +120,25 @@ jobs:
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=20 \
               ubuntu@${{ secrets.ORACLE_HOST }} \
-              "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
-               git pull && \
+              "APP_DIR=\"\$HOME/corvus\" && \
+               LEGACY_APP_DIR=\"\$HOME/SlopsSaloon-Fantasy-Football-MVP\" && \
+               if [ ! -d \"\$APP_DIR/.git\" ] && [ -d \"\$LEGACY_APP_DIR/.git\" ]; then \
+                 echo '==> Moving legacy Oracle checkout to ~/corvus'; \
+                 mv \"\$LEGACY_APP_DIR\" \"\$APP_DIR\"; \
+               fi && \
+               cd \"\$APP_DIR\" && \
+               git remote set-url origin https://github.com/justinduverge-design/corvus && \
+               git pull --ff-only origin main && \
                printf '%s' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && \
                INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --projectId=4498715c-4213-41b1-acf4-278c1451e1fe --env=prod -- bash -lc '
                  set -euo pipefail
                  echo \"==> Checking required production environment\"
-                 docker compose config --quiet
+                 docker compose --project-name corvus config --quiet
                  echo \"==> Pulling GHCR images from GitHub Actions build\"
-                 docker compose pull api cron
+                 docker compose --project-name corvus pull api cron
                  echo \"==> Recreating API and cron with verified environment and no VPS build\"
-                 docker compose up -d --no-build api cron
+                 docker rm -f corvus_api corvus_cron 2>/dev/null || true
+                 docker compose --project-name corvus up -d --no-build api cron
                ' && \
                docker image prune -f"
 
