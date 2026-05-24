@@ -8,6 +8,21 @@ const EMPTY_STATUS = {
 };
 const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
 
+// User-facing recovery copy per ESPN state.
+// Shown as a banner above the ESPN card when the user arrives from an Omen
+// recovery CTA. Never place credential values, Vault ids, auth headers, or
+// raw ESPN errors in these strings.
+const ESPN_RECOVERY_COPY = {
+  espn_reauth_required:
+    'Your ESPN session has expired. Re-enter your cookies below to reconnect.',
+  espn_league_context_missing:
+    'Corvus needs your ESPN league ID. Enter it below to continue.',
+  espn_import_blocked:
+    'Your ESPN league may be private or the season may be inactive. Try refreshing your credentials below.',
+  espn_recovery_needed:
+    'Corvus lost access to your ESPN data. Reconnect below to continue.',
+};
+
 function errorMessage(error) {
   if (error instanceof ApiError) return error.message;
   return error?.message || 'Something went wrong. Try again.';
@@ -115,13 +130,21 @@ function EspnCookieInstructions() {
   );
 }
 
-export default function PlatformConnections() {
+export default function PlatformConnections({ recoveryState = null }) {
+  // Show ESPN card when feature-flagged on OR when arriving via an ESPN recovery CTA.
+  const espnRecovery = Boolean(recoveryState?.startsWith('espn_'));
+  const showEspnCard = ESPN_ENABLED || espnRecovery;
+
   const [status, setStatus] = useState(EMPTY_STATUS);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [action, setAction] = useState(null);
   const [errors, setErrors] = useState({});
   const [sleeperForm, setSleeperForm] = useState({ username: '', league_id: '' });
   const [espnForm, setEspnForm] = useState({ espn_s2: '', swid: '', league_id: '' });
+  // showEspnReconnectForm: true when the user clicks "Reconnect ESPN" while already connected.
+  const [showEspnReconnectForm, setShowEspnReconnectForm] = useState(false);
+  // espnConnectSucceeded: true after a successful ESPN connect during a recovery flow.
+  const [espnConnectSucceeded, setEspnConnectSucceeded] = useState(false);
 
   async function refreshStatus() {
     setLoadingStatus(true);
@@ -185,7 +208,11 @@ export default function PlatformConnections() {
         body: espnForm,
       });
       setEspnForm({ espn_s2: '', swid: '', league_id: '' });
+      setShowEspnReconnectForm(false);
       await refreshStatus();
+      // When arriving from an Omen recovery CTA, flag success so we can offer
+      // a "Return to Omen" link instead of just the disconnect button.
+      if (espnRecovery) setEspnConnectSucceeded(true);
     } catch (error) {
       setErrors((current) => ({ ...current, espn: errorMessage(error) }));
     } finally {
@@ -285,16 +312,45 @@ export default function PlatformConnections() {
         )}
       </Card>
 
-      {ESPN_ENABLED && (
+      {showEspnCard && (
         <Card
           title="ESPN"
           description="Connect your ESPN Fantasy account. You'll need two values from your ESPN browser — step-by-step instructions are shown below."
           connected={status.espn.connected}
         >
+          {/* Recovery context banner — shown when arriving from an Omen ESPN CTA */}
+          {espnRecovery && ESPN_RECOVERY_COPY[recoveryState] ? (
+            <div className="mb-4 rounded-md border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+              {ESPN_RECOVERY_COPY[recoveryState]}
+            </div>
+          ) : null}
+
           {loadingStatus ? (
             <p className="text-sm text-slate-400">Loading connection...</p>
-          ) : status.espn.connected ? (
+          ) : espnConnectSucceeded ? (
+            /* Recovery success: ESPN reconnected — offer return to Omen */
             <div className="space-y-3">
+              <p className="text-sm text-emerald-300">ESPN reconnected successfully.</p>
+              <a
+                className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
+                href="/football"
+              >
+                Return to Omen →
+              </a>
+            </div>
+          ) : status.espn.connected && !showEspnReconnectForm ? (
+            /* Connected — show disconnect, plus Reconnect button for expired-session state */
+            <div className="space-y-3">
+              {recoveryState === 'espn_reauth_required' ? (
+                <button
+                  className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={disabled}
+                  type="button"
+                  onClick={() => setShowEspnReconnectForm(true)}
+                >
+                  Reconnect ESPN
+                </button>
+              ) : null}
               <button
                 className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={disabled}
@@ -306,6 +362,7 @@ export default function PlatformConnections() {
               {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
             </div>
           ) : (
+            /* Not connected, or reconnecting after reauth recovery */
             <form className="space-y-4" onSubmit={connectEspn}>
               <Field
                 id="espn-s2"
@@ -330,13 +387,32 @@ export default function PlatformConnections() {
                 onChange={(league_id) => setEspnForm((current) => ({ ...current, league_id }))}
               />
               <EspnCookieInstructions />
-              <button
-                className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={disabled}
-                type="submit"
-              >
-                {action === 'espn' ? 'Connecting...' : 'Connect ESPN'}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={disabled}
+                  type="submit"
+                >
+                  {action === 'espn'
+                    ? 'Connecting...'
+                    : showEspnReconnectForm
+                      ? 'Reconnect ESPN'
+                      : 'Connect ESPN'}
+                </button>
+                {showEspnReconnectForm ? (
+                  <button
+                    className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={disabled}
+                    type="button"
+                    onClick={() => {
+                      setShowEspnReconnectForm(false);
+                      setEspnForm({ espn_s2: '', swid: '', league_id: '' });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
               {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
             </form>
           )}

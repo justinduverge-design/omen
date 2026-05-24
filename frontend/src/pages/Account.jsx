@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { supabase } from '../lib/supabase.js';
 
 export default function Account() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Safe — only state identifiers arrive here, never credential values.
+  const recoveryState = searchParams.get('recovery') || null;
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function Account() {
         </p>
       </section>
 
-      <PlatformConnections />
+      <PlatformConnections recoveryState={recoveryState} />
     </AppLayout>
   );
 }
