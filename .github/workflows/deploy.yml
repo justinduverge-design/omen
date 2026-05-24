@@ -123,7 +123,7 @@ jobs:
               "cd ~/SlopsSaloon-Fantasy-Football-MVP && \
                git pull && \
                printf '%s' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && \
-               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --env=production -- bash -lc '
+               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --projectId=4498715c-4213-41b1-acf4-278c1451e1fe --env=prod -- bash -lc '
                  set -euo pipefail
                  echo \"==> Checking required production environment\"
                  docker compose config --quiet
