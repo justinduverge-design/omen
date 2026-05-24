@@ -17,8 +17,21 @@
 - Security and privacy decisions are tracked in `Blueprints\security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
 - Users need plain-English reasoning, not heavy math.
 
+## Decisions Added 2026-05-23
+
+- **Canonical Omen path**: `POST /api/omen/mvp-move` + `OmenOfTheWeek.jsx` is the canonical path. `Omen.jsx` was a developer test harness — its route will be unregistered. `GET /api/omen-of-the-week` will be retired after `OmenOfTheWeek.jsx` migrates to POST. `RecoveryPanel` from `Omen.jsx` will be absorbed into `OmenOfTheWeek.jsx`.
+- **Matchup DvP data source**: nflverse-data (not Sportradar). Already live in the POST omen route.
+- **LLM reasoning**: Gemma/Ollama already wired in `src/routes/omen.js`. Not a stub.
+
+## Decisions Added 2026-05-24
+
+- **Omen migration complete**: `OmenOfTheWeek.jsx` now calls `POST /api/omen/mvp-move`. ESPN recovery states (4) wired. `GET /api/omen-of-the-week` retired. 175/175 tests pass.
+- **optimizer/omen product tier**: `POST /api/optimizer/mvp-move` (Pro-gated six-agent pipeline) and `POST /api/omen/mvp-move` are the same product surface at different enrichment tiers. Not competing features — same feature at free vs. Pro depth. Architectural merge decision is open and deferred to post-launch.
+
 ## Open Decisions
 
 - Final UI naming between Omen of the Week, Omen, MVP Move, or a combined label.
 - Whether waiver logic ever becomes a separate product surface.
 - Whether recovery analytics ship before or after the first paid launch gate.
+- Whether `getOmenOfTheWeekMock()` in systemContracts.js is retired after Omen migration or kept as a fallback.
+- Whether `POST /api/optimizer/mvp-move` merges into `POST /api/omen/mvp-move` as a Pro enrichment layer, or stays a separate route permanently.

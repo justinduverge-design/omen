@@ -16,10 +16,12 @@ Use the specs as source-of-truth files before asking Claude or Codex to build.
 
 ## Current priority specs
 
-1. `specs/000-infrastructure-boundaries/spec.md`
-2. `specs/001-corvus-decision-layer/spec.md`
-3. `specs/002-homepage-product-priority/spec.md`
-4. `specs/003-espn-recovery-playbook/spec.md`
+1. `Blueprints/specs/docs/infrastructure-boundaries.md`
+2. `Corvus/Blueprints/specs/corvus-decision-layer.md`
+3. `Corvus/Blueprints/specs/homepage-product-priority.md`
+4. `Corvus/Blueprints/playbooks/espn-recovery.md`
+
+Archived pre-DBS numbered specs live in `Archive/specs-pre-dbs/` for historical reference.
 
 ## Do not implement automatically
 

@@ -21,8 +21,13 @@
 - SLOPS-authored skills live only in `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\skills`.
 - Users need plain-English reasoning, not heavy math.
 
+## Decisions Added 2026-05-24
+
+- **optimizer/omen architectural merge**: `POST /api/optimizer/mvp-move` (Pro-gated six-agent pipeline: Manager Agent + Weather/Injury/Matchup/Trend/Vegas/News sub-agents) and `POST /api/omen/mvp-move` (canonical Omen path) are the same product surface at different tiers. Open decision: single endpoint with tier-based enrichment, or `optimizer` as an internal Pro layer called by the `omen` route. Deferred until after load testing and Stripe live validation.
+- **Canonical Omen endpoint confirmed**: `POST /api/omen/mvp-move` + `OmenOfTheWeek.jsx` is the display path. DvP enrichment via nflverse-data, LLM reasoning via Gemma/Ollama. GET `/api/omen-of-the-week` retired 2026-05-24.
+
 ## Open Decisions
 
 - Whether old root-level planning files should remain as redirects or be archived later.
 - Whether any tooling needs compatibility shims after active handoffs moved to `Blueprints\handoffs\`.
-- Whether root `current_sprint.md` should remain retired in favor of `Direction\current_sprint.md`.
+- Whether `POST /api/optimizer/mvp-move` merges into `POST /api/omen/mvp-move` as a Pro enrichment tier, or remains a separate route permanently.

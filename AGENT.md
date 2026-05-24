@@ -12,13 +12,13 @@ Justin owns product decisions.
 
 ## Current Focus
 
-Corvus is the active product.
+Corvus is the active product. The app backbone is complete.
 
-The current priority is finishing the app backbone before feature expansion.
+Current priority: git tree cleanup, npm audit fix, Stripe live validation, Docker deploy prove-out, then load test and deploy.
 
-Draft Assistant is the first-impression tool and is free this year only.
+The canonical Omen path is `POST /api/omen/mvp-move` with DvP enrichment (nflverse-data) and LLM reasoning (Gemma/Ollama). `OmenOfTheWeek.jsx` is the display layer. 175/175 tests pass.
 
-MVP Move / Omen of the Week is the paid centerpiece.
+`POST /api/optimizer/mvp-move` (Pro-gated six-agent pipeline) is a separate active route serving the same product surface at Pro depth. Merge decision is open — deferred to post-launch.
 
 ---
 
@@ -54,15 +54,13 @@ Do not build unrelated future products.
 
 Read these if present:
 
-1. `../context.md`
-2. `APP_UI_PLAN.md`
-3. `../roadmap.md`
-3. `../manifesto.md`
-4. `../TODO.md`
-5. `handoffs/frontend-to-backend.md`
-6. `handoffs/backend-to-frontend.md`
-7. `handoffs/decisions.md`
-9. `CLAUDE.md`
+1. `Direction/context.md`
+2. `Direction/current_sprint.md`
+3. `Direction/roadmap.md`
+4. `Blueprints/handoffs/frontend-to-backend.md`
+5. `Blueprints/handoffs/backend-to-frontend.md`
+6. `Blueprints/handoffs/decisions.md`
+7. `CLAUDE.md`
 
 If a file is missing, continue and mention it.
 
@@ -73,13 +71,13 @@ If a file is missing, continue and mention it.
 Read frontend requests from:
 
 ```text
-handoffs/frontend-to-backend.md
+Blueprints/handoffs/frontend-to-backend.md
 ```
 
 Write completed backend contracts to:
 
 ```text
-handoffs/backend-to-frontend.md
+Blueprints/handoffs/backend-to-frontend.md
 ```
 
 ---
@@ -119,6 +117,24 @@ Every endpoint handoff must include:
 - Mock data must be clearly labeled.
 - No mock data should be presented as live advice.
 
+## Universal Rules
+
+All agents working in this repo must:
+
+- Work only on the active task — avoid unrelated changes
+- End every session with a handoff update
+- Do not modify `.env` files or production secrets
+- Do not deploy the app
+- Do not move the app to Hostinger
+- Do not change DNS, SSL/TLS, or Nginx
+- Do not merge branches without approval
+- Do not delete major files
+- Do not rewrite architecture without approval
+- Do not start the next phase without Justin approval
+
+**Infrastructure Boundary:**
+Oracle is the current app hosting lane. Hostinger KVM 2 is the Ollama/Gemma AI engine lane. Hostinger web app deployment is parked unless Justin explicitly approves it.
+
 ---
 
 ## End Of Task Report
@@ -149,7 +165,7 @@ Prioritize backend support for:
 - health checks
 - mock endpoints where live integrations are not ready
 
-When Claude Code requests an endpoint for UI work, respond in `handoffs/backend-to-frontend.md` with:
+When Claude Code requests an endpoint for UI work, respond in `Blueprints/handoffs/backend-to-frontend.md` with:
 
 - exact route
 - method

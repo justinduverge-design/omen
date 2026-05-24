@@ -1,25 +1,41 @@
 # ssffmvp Current Sprint
 
+**Last updated**: 2026-05-23
+
 ## Focus
 
-ESPN recovery Account page wiring is complete. Next priority is Matchup DvP / Sportradar data integration and live LLM reasoning before paid launch.
+Canonicalize the Omen path. Then npm audit. Then launch validation.
 
-## Current Priority
+## Completed (as of 2026-05-23 audit)
 
-The Omen screen is live against the mock endpoint. All 8 states are verified. ESPN recovery CTA flow is wired end-to-end: Omen → Account with safe query params, Account reads recovery state, PlatformConnections shows state-specific copy, reconnect UI, and Return to Omen link.
+- Trade Analyzer — live, tested ✅
+- Start/Sit with LLM reasoning — live, tested ✅
+- Waiver wire optimizer — live, tested ✅
+- Platform adapters (Yahoo, Sleeper, ESPN) — live, tested ✅
+- Platform connection UI — live, tested ✅
+- Supabase auth + Vault encryption — live ✅
+- Structured logging — live ✅
+- Security middleware (helmet, rate limiting) — live ✅
+- ESPN recovery Account page — all 8 states verified ✅
+- Matchup DvP — live via nflverse-data ✅
+- LLM reasoning — live via Gemma/Ollama in POST /api/omen/mvp-move ✅
+- SLOPS OS DBS migration — all phases (1–6) complete ✅
 
-## Completed
+## In Progress / Next
 
-- Omen of the Week / MVP Move frontend — all 8 states verified. ✅
-- ESPN recovery Account page wiring — all 6 changes implemented. ✅
+| Priority | Task | Prompt |
+|----------|------|--------|
+| 🔴 1 | Omen path canonicalization | `Blueprints/prompts/codex-omen-path-canonicalize.md` |
+| 🔴 2 | npm audit fix (3 moderate prod vulns) | Write after Omen migration |
+| 🟡 3 | Stale doc cleanup | Claude pass |
+| 🟡 4 | Stripe live key validation | Codex |
+| 🟡 5 | Docker deploy prove-out | Codex |
+| ⬜ 6 | Load testing + final deploy | After all above |
 
-## Near-Term Work
+## Git State
 
-- Matchup DvP — approve Sportradar or equivalent provider, wire real confidence scores.
-- LLM reasoning — wire Gemma/Ollama to the Omen route (`llm_reasoning` signal is still stub).
-- Keep Trade Analyzer available as the front-door trust tool.
-- Keep Draft Assistant framed as the preparation and seasonal tool.
-- Preserve Start/Sit and waiver logic inside Omen / MVP Move unless Justin separates them later.
+- ssffmvp: diverged from origin/main — Codex prompt at `Blueprints/prompts/codex-git-ssffmvp-clean-tree.md`
+- SLOPS root: untracked, never committed — Codex prompt at `Blueprints/prompts/codex-git-slops-initial-commit.md` (in SLOPS root)
 
 ## Guardrails
 

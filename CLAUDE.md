@@ -38,7 +38,7 @@ node --test        # Node built-in test runner
 
 | Mount | File | Notes |
 |-------|------|-------|
-| `/api` | `routes/system.js` | Health, mock contracts |
+| `/api` | `routes/system.js` | Health, session, platform-status |
 | `/api/dashboard` | `routes/dashboard.js` | Summary data |
 | `/api/stripe` | `routes/stripe.js` | Checkout, portal, webhook |
 | `/api/yahoo` | `routes/yahoo.js` | Yahoo roster adapter |
@@ -49,6 +49,7 @@ node --test        # Node built-in test runner
 | `/api/start-sit` | `routes/startSit.js` | Free start/sit comparison |
 | `/api/trade` | `routes/trade.js` | Trade value comparison |
 | `/api/draft-assistant` | `routes/draftAssistant.js` | Draft tool |
+| `/api/omen` | `routes/omen.js` | POST /mvp-move — canonical Omen path (DvP + LLM enrichment) |
 | `/api` | `ssffmvp_api_v2.js` | **Legacy monolith**: Yahoo OAuth, standings, ESPN. New code goes in `src/routes/` instead. |
 | `/api` | `ssffmvp_agents.js` | Legacy Claude-based agent pipeline (still active) |
 
@@ -171,19 +172,38 @@ Do not expand the Slops Saloon landing page into a full content/media hub.
 
 ---
 
+## Universal Rules
+
+All agents working in this repo must:
+
+- Work only on the active task — avoid unrelated changes
+- End every session with a handoff update
+- Do not modify `.env` files or production secrets
+- Do not deploy the app
+- Do not move the app to Hostinger
+- Do not change DNS, SSL/TLS, or Nginx
+- Do not merge branches without approval
+- Do not delete major files
+- Do not rewrite architecture without approval
+- Do not start the next phase without Justin approval
+
+**Infrastructure Boundary:**
+Oracle is the current app hosting lane. Hostinger KVM 2 is the Ollama/Gemma AI engine lane. Hostinger web app deployment is parked unless Justin explicitly approves it.
+
+---
+
 ## Required Files To Read First
 
 Read these if present:
 
-1. `../context.md`
-2. `APP_UI_PLAN.md`
-3. `../roadmap.md`
-3. `../manifesto.md`
-4. `../TODO.md`
-5. `handoffs/backend-to-frontend.md`
-6. `handoffs/frontend-to-backend.md`
-7. `handoffs/decisions.md`
-9. `AGENT.md`
+1. `Direction/context.md`
+2. `Direction/current_sprint.md`
+3. `Direction/roadmap.md`
+4. `APP_UI_PLAN.md`
+5. `Blueprints/handoffs/backend-to-frontend.md`
+6. `Blueprints/handoffs/frontend-to-backend.md`
+7. `Blueprints/handoffs/decisions.md`
+8. `AGENT.md`
 
 If a file is missing, continue and mention it.
 
@@ -194,7 +214,7 @@ If a file is missing, continue and mention it.
 When you need backend support, write to:
 
 ```text
-handoffs/frontend-to-backend.md
+Blueprints/handoffs/frontend-to-backend.md
 ```
 
 Use clear contracts:

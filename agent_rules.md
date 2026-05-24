@@ -1,95 +1,15 @@
-# Agent Rules
+# agent_rules.md — Retired 2026-05-24
 
-## Universal Rules
+The universal rules from this file have been absorbed into `CLAUDE.md` and `AGENT.md`.
 
-All agents must:
+The read-first file list has been updated in both files to point to canonical `Direction/` locations.
 
-1. Read `context.md`
-2. Read `roadmap.md`
-3. Read `current_sprint.md`
-4. Read `agent_inbox.md`
-5. Read `agent_handoff.md`
-6. Work only on the active task
-7. Avoid unrelated changes
-8. End with a full handoff
+This file is no longer authoritative. It is kept as a stub to avoid broken references.
 
-## Forbidden For All Agents
+**Universal rules now live in:**
+- `CLAUDE.md` → "Universal Rules" section
+- `AGENT.md` → "Universal Rules" section
 
-Do not:
-
-- Modify `.env` files
-- Change production secrets
-- Deploy the app
-- Move the app to Hostinger
-- Change DNS
-- Change SSL/TLS
-- Change Nginx
-- Merge branches
-- Delete major files
-- Rewrite the whole architecture without approval
-- Start the next phase without approval
-- Make unrelated refactors
-
-## Infrastructure Boundary
-
-Oracle is the current app hosting lane.
-
-Hostinger KVM 2 is the Ollama/Gemma AI engine lane.
-
-Hostinger web app deployment is parked unless Justin explicitly approves it.
-
-## Codex Role
-
-Codex owns:
-
-- Repo structure
-- Build errors
-- Backend logic
-- APIs
-- Supabase
-- Auth/session logic
-- Platform integrations
-- Tests
-- Technical documentation
-
-Codex should avoid:
-
-- Major visual redesigns
-- Branding changes
-- Logo changes
-- Unapproved product strategy changes
-- Deployment planning unless explicitly requested
-
-## Claude Role
-
-Claude owns:
-
-- Landing page
-- App screens
-- UX
-- Copy
-- Layout
-- Mobile responsiveness
-- Visual polish
-- Component polish
-
-Claude should avoid:
-
-- Backend logic
-- Supabase schema
-- Auth/session logic
-- Environment variables
-- Deployment settings
-- API behavior
-
-## Required Handoff Format
-
-Every agent must end with:
-
-1. What I completed
-2. Files changed
-3. What works now
-4. What is still broken or uncertain
-5. Recommended next 3 tasks
-6. Which agent should do each task
-7. Exact next prompt to use
+**Role-specific rules live in:**
+- `CLAUDE.md` — frontend/UI agent (Claude Code)
+- `AGENT.md` — backend/repo agent (Codex)
