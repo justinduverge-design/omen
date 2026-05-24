@@ -8,6 +8,12 @@ Claude Code owns frontend and app UI. Codex owns backend systems that make the a
 
 Justin owns product decisions.
 
+## DBS Navigation
+
+- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
+- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+
 ---
 
 ## Current Focus

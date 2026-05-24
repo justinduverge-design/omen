@@ -1,28 +1,37 @@
-# Slops Saloon Context
+# Corvus Context
 
-## Layer
+## Product Layer
 
-Slops Saloon is the sports, music, and arts division of SLOPS OS. Directory: `slops-saloon/`.
+Corvus is the Fantasy Football MVP product inside `slops-saloon`.
 
-SLOPS is Justin's company operating system. Slops Saloon is the first and currently active division under it. The `slops-saloon/` directory is the active app layer where app development happens. Corvus is the Fantasy Football MVP product inside this layer.
+It is not the SLOPS company layer and not the whole Fantasy Sports MVP Builder department. It is the first product in that department.
 
-## Current Product Focus
+## Product Promise
 
-Corvus is the active product.
+Corvus should help users see the best fantasy football move without forcing them to understand heavy math.
 
-The product priority is to keep the app backbone stable while building fantasy football decision tools around clear contracts, plain-English reasoning, and safe platform integrations.
+The product should explain:
 
-## Product Rules
+- what move to make
+- why it matters
+- what the risk is
+- how confident Corvus is
+
+## Tool Hierarchy
 
 - Trade Analyzer is the front door.
 - Draft Assistant is the preparation and seasonal tool.
 - Omen of the Week / MVP Move is the main event.
 - Start/Sit lives inside Omen / MVP Move.
 - Waiver logic lives inside Omen / MVP Move unless explicitly separated later.
-- ESPN, Yahoo, and Sleeper all matter.
-- ESPN is essential but risky and needs recovery playbooks.
-- Users need plain-English reasoning, not heavy math.
 
-## Engineering Boundary
+## Platform Context
 
-App work happens in this repo. Product, brand, and Corv
+Yahoo, Sleeper, and ESPN all matter.
+
+ESPN is essential but risky. Treat ESPN as a high-value integration that needs careful recovery flows, user guidance, and clear failure states.
+
+## Voice
+
+Users need plain-English reasoning, not heavy math. Math can support decisions, but the product should communicate like a trusted fantasy football analyst.
+

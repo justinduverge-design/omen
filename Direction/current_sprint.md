@@ -1,4 +1,4 @@
-# slops-saloon Current Sprint
+# Corvus Current Sprint
 
 **Last updated**: 2026-05-23
 
@@ -6,37 +6,50 @@
 
 Canonicalize the Omen path. Then npm audit. Then launch validation.
 
-## Completed (as of 2026-05-23 audit)
+## Reality Check (2026-05-23 audit)
 
-- Trade Analyzer — live, tested ✅
-- Start/Sit with LLM reasoning — live, tested ✅
-- Waiver wire optimizer — live, tested ✅
-- Platform adapters (Yahoo, Sleeper, ESPN) — live, tested ✅
-- Platform connection UI — live, tested ✅
-- Supabase auth + Vault encryption — live ✅
-- Structured logging — live ✅
-- Security middleware (helmet, rate limiting) — live ✅
-- ESPN recovery Account page — all 8 states verified ✅
-- Matchup DvP — live via nflverse-data ✅
-- LLM reasoning — live via Gemma/Ollama in POST /api/omen/mvp-move ✅
-- SLOPS OS DBS migration — all phases (1–6) complete ✅
+What is actually done vs. what the docs said was next:
 
-## In Progress / Next
+| Item | Status |
+|------|--------|
+| Trade Analyzer | ✅ Live, tested |
+| Start/Sit with LLM reasoning | ✅ Live, tested |
+| Waiver wire optimizer | ✅ Live, tested |
+| Platform adapters (Yahoo, Sleeper, ESPN) | ✅ Live, tested |
+| Platform connection UI | ✅ Live, tested |
+| Supabase auth + Vault encryption | ✅ Live |
+| Structured logging | ✅ Live |
+| Security middleware (helmet, rate limiting) | ✅ Live |
+| ESPN recovery Account page wiring | ✅ Complete, all 8 states verified |
+| Matchup DvP | ✅ Live — nflverse-data (not Sportradar) |
+| LLM reasoning (Gemma/Ollama) | ✅ Live — wired in POST /api/omen/mvp-move route |
+| Omen path — canonical | 🔴 Split — OmenOfTheWeek.jsx still calls GET; needs migration to POST |
+| npm audit (0 vulnerabilities) | 🔴 3 moderate production vulns — not clean |
+| Docker deployment on Oracle VPS | 🟡 Config exists, live state not proven |
+| Stripe live keys + payment validation | 🟡 Backend exists, live validation not proven |
+| Load testing + final deploy | ⬜ Not started |
+| Dashboard polish / Hall of Records | 🟡 Partial |
 
-| Priority | Task | Prompt |
-|----------|------|--------|
-| 🔴 1 | Omen path canonicalization | `Blueprints/prompts/codex-omen-path-canonicalize.md` |
-| 🔴 2 | npm audit fix (3 moderate prod vulns) | Write after Omen migration |
-| 🟡 3 | Stale doc cleanup | Claude pass |
-| 🟡 4 | Stripe live key validation | Codex |
-| 🟡 5 | Docker deploy prove-out | Codex |
-| ⬜ 6 | Load testing + final deploy | After all above |
+## Current Next Task
 
-## Git State
+Run `slops-saloon/Blueprints/prompts/codex-omen-path-canonicalize.md` in Codex.
 
-- slops-saloon: diverged from origin/main — Codex prompt at `Blueprints/prompts/codex-git-slops-saloon-clean-tree.md`
-- SLOPS root: untracked, never committed — Codex prompt at `Blueprints/prompts/codex-git-slops-initial-commit.md` (in SLOPS root)
+Migrates `OmenOfTheWeek.jsx` to POST `/api/omen/mvp-move`, adds ESPN RecoveryPanel,
+retires `GET /omen-of-the-week` and unregisters `Omen.jsx` route.
+
+## After Omen Migration
+
+1. `npm audit fix` — targeted fix for 3 moderate production vulns, verify tests still pass
+2. Stale doc cleanup — manifesto.md, Blueprints/README.md missing; security-privacy.md probo claim wrong
+3. Stripe live validation + Docker deploy prove-out
+4. Load test
 
 ## Guardrails
 
-No deploys, production changes, secrets work, or app behavior changes without explicit Justin approval.
+- Keep Start/Sit and waiver logic inside Omen / MVP Move.
+- Treat ESPN as essential but fragile.
+- Route ESPN recovery through Account with safe state/query context only.
+- Do not auto-rerun Omen after recovery; require user click.
+- Keep Yahoo and Sleeper in scope.
+- Prefer plain-English reasoning over visible heavy math.
+- No deploys, production changes, or secrets work without explicit Justin approval.

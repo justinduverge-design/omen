@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Slops Saloon Fantasy Football MVP (SSFFMVP)** — branded as **Corvus**. Node.js/Express backend with an AI-powered fantasy football multi-agent pipeline. Integrates Sleeper, Yahoo, and ESPN platforms. Persistence: Supabase. Caching: Upstash Redis. Payments: Stripe. AI: Anthropic Claude + local Ollama (Gemma).
 
+## DBS Navigation
+
+- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
+- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+
 ---
 
 ## Commands
@@ -202,7 +208,7 @@ Read these if present:
 4. `Direction/decision_log.md`
 5. `Direction/agent_inbox.md`
 6. `Blueprints/agent_handoff.md`
-7. `Corvus/Blueprints/specs/app-ui-plan.md`
+7. `Blueprints/specs/app-ui-plan.md`
 8. `Blueprints/handoffs/backend-to-frontend.md`
 9. `Blueprints/handoffs/frontend-to-backend.md`
 10. `Blueprints/handoffs/decisions.md`

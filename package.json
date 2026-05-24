@@ -1,5 +1,5 @@
 {
-  "name": "slops-saloon",
+  "name": "corvus",
   "version": "1.0.0",
   "description": "Slops Saloon Fantasy Football MVP",
   "main": "src/server.js",
