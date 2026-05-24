@@ -78,6 +78,9 @@ function loadSystemRouter({
 function buildApp(options = {}) {
   const app = express();
   app.use("/api", loadSystemRouter(options));
+  app.use((req, res) => {
+    res.status(404).json({ error: "Not found", path: req.path });
+  });
   app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ error: err.message });
   });
@@ -158,38 +161,37 @@ test("GET /api/session returns unauthenticated shell for invalid bearer token", 
   });
 });
 
-test("GET /api/omen-of-the-week returns deterministic mock recommendation", async () => {
+test("GET /api/omen-of-the-week is retired without auth", async () => {
   const app = buildApp();
   const res = await request(app, "/api/omen-of-the-week");
+  const previewRes = await request(app, "/api/omen-of-the-week?preview=mock");
 
-  assert.equal(res.status, 200);
-  assert.equal(res.body.status, "mock_ready");
-  assert.equal(res.body.mode, "mock");
-  assert.equal(res.body.is_mock, true);
-  assert.equal(res.body.scoring_format, "PPR");
-  assert.equal(res.body.recommendation.move_type, "lineup_swap");
-  assert.equal(res.body.recommendation.confidence_score, 78);
-  assert.equal(res.body.recommendation.primary_action.projected_points_delta, 3.8);
-  assert.ok(Array.isArray(res.body.recommendation.reasoning));
-  assert.ok(Array.isArray(res.body.recommendation.alternatives));
+  assert.equal(res.status, 404);
+  assert.deepEqual(res.body, {
+    error: "Not found",
+    path: "/api/omen-of-the-week",
+  });
+  assert.equal(previewRes.status, 404);
+  assert.deepEqual(previewRes.body, {
+    error: "Not found",
+    path: "/api/omen-of-the-week",
+  });
 });
 
-test("GET /api/omen-of-the-week returns live empty state for authenticated user with no platform", async () => {
+test("GET /api/omen-of-the-week is retired for authenticated users", async () => {
   const app = buildApp();
   const res = await request(app, "/api/omen-of-the-week", {
     headers: { authorization: "Bearer valid-token" },
   });
 
-  assert.equal(res.status, 200);
-  assert.equal(res.body.mode, "live");
-  assert.equal(res.body.is_mock, false);
-  assert.equal(res.body.status, "needs_platform_connection");
-  assert.equal(res.body.scoring_format, "PPR");
-  assert.equal(res.body.recommendation, null);
-  assert.deepEqual(res.body.empty_state.connected_platforms, []);
+  assert.equal(res.status, 404);
+  assert.deepEqual(res.body, {
+    error: "Not found",
+    path: "/api/omen-of-the-week",
+  });
 });
 
-test("GET /api/omen-of-the-week reports connected live shell without leaking secrets", async () => {
+test("GET /api/omen-of-the-week retirement does not expose connection data", async () => {
   const app = buildApp({
     rows: [
       {
@@ -206,26 +208,21 @@ test("GET /api/omen-of-the-week reports connected live shell without leaking sec
     headers: { authorization: "Bearer valid-token" },
   });
 
-  assert.equal(res.status, 200);
-  assert.equal(res.body.mode, "live");
-  assert.equal(res.body.status, "connected_platform_pending_live_engine");
-  assert.equal(res.body.scoring_format, "PPR");
-  assert.equal(res.body.recommendation, null);
-  assert.deepEqual(res.body.empty_state.connected_platforms, [
-    { platform: "sleeper", league_id: "league-1", username: "sleepy" },
-  ]);
-
+  assert.equal(res.status, 404);
   assert.equal(JSON.stringify(res.body).includes("do-not-return"), false);
 });
 
-test("GET /api/omen-of-the-week rejects invalid authenticated live request", async () => {
+test("GET /api/omen-of-the-week stays retired for invalid authenticated requests", async () => {
   const app = buildApp({ authError: new Error("bad token") });
   const res = await request(app, "/api/omen-of-the-week", {
     headers: { authorization: "Bearer bad-token" },
   });
 
-  assert.equal(res.status, 401);
-  assert.equal(res.body.error, "Invalid or expired token");
+  assert.equal(res.status, 404);
+  assert.deepEqual(res.body, {
+    error: "Not found",
+    path: "/api/omen-of-the-week",
+  });
 });
 
 test("GET /api/platform-status reports readiness without leaking LLM URL", async () => {
@@ -236,7 +233,8 @@ test("GET /api/platform-status reports readiness without leaking LLM URL", async
   assert.equal(res.body.status, "ok");
   assert.equal(res.body.dependencies.llm.status, "configured_private");
   assert.equal(res.body.dependencies.llm.public_url_exposed, false);
-  assert.equal(res.body.endpoints.omen_of_the_week.path, "/api/omen-of-the-week");
+  assert.equal(res.body.endpoints.omen_of_the_week.method, "POST");
+  assert.equal(res.body.endpoints.omen_of_the_week.path, "/api/omen/mvp-move");
 
   const serialized = JSON.stringify(res.body);
   assert.equal(serialized.includes("ollama.internal"), false);

@@ -158,8 +158,8 @@ function getPlatformStatus(config, now = new Date()) {
         status: "ready",
       },
       omen_of_the_week: {
-        method: "GET",
-        path: "/api/omen-of-the-week",
+        method: "POST",
+        path: "/api/omen/mvp-move",
         auth_required: false,
         status: "mock_ready",
       },

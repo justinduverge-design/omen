@@ -4,13 +4,9 @@ const express = require("express");
 const config = require("../config");
 const {
   getHealthStatus,
-  getOmenOfTheWeekMock,
   getPlatformStatus,
 } = require("../services/systemContracts");
-const {
-  authenticateOmenRequest,
-  getLiveOmenForUser,
-} = require("../services/omen");
+const { authenticateOmenRequest } = require("../services/omen");
 
 const router = express.Router();
 
@@ -42,23 +38,6 @@ router.get("/session", async (req, res) => {
     });
   } catch (_e) {
     return res.json(unauthenticated);
-  }
-});
-
-router.get("/omen-of-the-week", async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || req.query.preview === "mock") {
-      return res.json(getOmenOfTheWeekMock());
-    }
-
-    const user = await authenticateOmenRequest(authHeader);
-    return res.json(await getLiveOmenForUser(user.id));
-  } catch (e) {
-    if (e.status === 401) {
-      return res.status(401).json({ error: e.message });
-    }
-    return next(e);
   }
 });
 
