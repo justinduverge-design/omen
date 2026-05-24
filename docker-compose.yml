@@ -19,7 +19,7 @@ services:
   # Runs platform_integration.js — handles OAuth, standings,
   # roster endpoints, and the agent pipeline route.
   api:
-    image: ghcr.io/justinduverge-design/ssffmvp:main
+    image: ghcr.io/justinduverge-design/slops-saloon:main
     build:
       context: .
       dockerfile: Dockerfile
@@ -31,7 +31,7 @@ services:
         VITE_SUPABASE_URL:      ${VITE_SUPABASE_URL:-}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
         VITE_API_BASE_URL:      ${VITE_API_BASE_URL:-}
-    container_name: ssffmvp_api
+    container_name: slops-saloon_api
     command: node src/server.js
     ports:
       # Bind to localhost only - nginx terminates TLS on 80/443
@@ -74,14 +74,14 @@ services:
   # ── CRON SERVICE ───────────────────────────────────────────────
   # Stays alive permanently using a lightweight Alpine cron daemon.
   # The actual tuesday_cron.js runs at 6:00 AM EST every Tuesday.
-  # Logs are written to /var/log/ssffmvp_cron.log inside container.
+  # Logs are written to /var/log/slops-saloon_cron.log inside container.
   cron:
-    image: ghcr.io/justinduverge-design/ssffmvp-cron:main
+    image: ghcr.io/justinduverge-design/slops-saloon-cron:main
     build:
       context: .
       dockerfile: Dockerfile.cron     # separate cron Dockerfile below
       target: production
-    container_name: ssffmvp_cron
+    container_name: slops-saloon_cron
     environment:
       NODE_ENV: production
       TZ: America/New_York            # ensures 6 AM EST is correct
@@ -115,4 +115,4 @@ services:
 # internally if needed (e.g. cron calls api endpoints)
 networks:
   default:
-    name: ssffmvp_network
+    name: slops-saloon_network

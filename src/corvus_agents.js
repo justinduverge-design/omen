@@ -1,7 +1,7 @@
 /**
 
 - ════════════════════════════════════════════════════════════════
-- Slops Saloon Fantasy Football MVP (SSFFMVP)
+- Slops Saloon Fantasy Football MVP (Corvus)
 - Master Grade Agent Layer — v4
 - ════════════════════════════════════════════════════════════════
 -
@@ -68,8 +68,8 @@
 - GET  /api/agents/scarcity/:leagueId  — scarcity report
 -
 - Consumed by:
-- ssffmvp_platform_integration.js  (standings + roster)
-- ssffmvp_tuesday_cron.js          (outcome scoring)
+- corvus_platform_integration.js  (standings + roster)
+- corvus_tuesday_cron.js          (outcome scoring)
 - ════════════════════════════════════════════════════════════════
   */
 
@@ -741,7 +741,7 @@ ingested_at timestamptz default now()
 MOUNT IN EXPRESS APP
 ════════════════════════════════════════════════════════════════
 
-const { router: agentRoutes } = require(”./ssffmvp_agents”);
+const { router: agentRoutes } = require(”./corvus_agents”);
 app.use(”/api”, agentRoutes);
 
 ════════════════════════════════════════════════════════════════

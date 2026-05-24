@@ -1,7 +1,7 @@
 /**
 
 - ════════════════════════════════════════════════════════════════
-- Slops Saloon Fantasy Football MVP (SSFFMVP)
+- Slops Saloon Fantasy Football MVP (Corvus)
 - Tuesday Morning Cron — v3 Production
 - ════════════════════════════════════════════════════════════════
 - Schedule: 0 6 * * 2  (6:00 AM EST every Tuesday)
@@ -55,7 +55,7 @@ const {
 buildVORPTable,
 buildScarcityReport,
 fetchWithLocalFallback,
-} = require(”./ssffmvp_agents”);
+} = require(”./corvus_agents”);
 
 // ── ENV VALIDATION ───────────────────────────────────────────────
 const REQUIRED = [“SUPABASE_URL”,“SUPABASE_SERVICE_KEY”,“SPORTRADAR_API_KEY”,“REDIS_URL”,“REDIS_TOKEN”];
@@ -287,7 +287,7 @@ try {
   );
   if (playerVorp) {
     // Projection = baseline + VORP (i.e. what we expected them to score)
-    const { REPLACEMENT_BASELINES } = require("./ssffmvp_agents");
+    const { REPLACEMENT_BASELINES } = require("./corvus_agents");
     const baselines = (REPLACEMENT_BASELINES?.[move.scoring] || {});
     const baseline  = baselines[playerVorp.pos] || 12.5;
     proj = parseFloat((baseline + Math.max(0, playerVorp.vorp)).toFixed(2));

@@ -1,12 +1,12 @@
 {
-  "name": "ssffmvp",
+  "name": "slops-saloon",
   "version": "1.0.0",
   "description": "Slops Saloon Fantasy Football MVP",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "cron": "node src/ssffmvp_tuesday_cron.js",
+    "cron": "node src/corvus_tuesday_cron.js",
     "test": "node --test"
   },
   "dependencies": {

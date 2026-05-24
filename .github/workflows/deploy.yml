@@ -1,5 +1,5 @@
 # =================================================================
-# SSFFMVP - Auto-deploy to Oracle on push to main
+# Slops Saloon - Auto-deploy to Oracle on push to main
 # -----------------------------------------------------------------
 # Required GitHub secrets (Settings -> Secrets and variables -> Actions):
 #   ORACLE_HOST     -  143.47.101.241
@@ -63,9 +63,9 @@ jobs:
           file: ./Dockerfile
           target: production
           push: true
-          tags: ghcr.io/justinduverge-design/ssffmvp:main
-          cache-from: type=gha,scope=ssffmvp-api
-          cache-to: type=gha,mode=max,scope=ssffmvp-api
+          tags: ghcr.io/justinduverge-design/slops-saloon:main
+          cache-from: type=gha,scope=slops-saloon-api
+          cache-to: type=gha,mode=max,scope=slops-saloon-api
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -79,9 +79,9 @@ jobs:
           file: ./Dockerfile.cron
           target: production
           push: true
-          tags: ghcr.io/justinduverge-design/ssffmvp-cron:main
-          cache-from: type=gha,scope=ssffmvp-cron
-          cache-to: type=gha,mode=max,scope=ssffmvp-cron
+          tags: ghcr.io/justinduverge-design/slops-saloon-cron:main
+          cache-from: type=gha,scope=slops-saloon-cron
+          cache-to: type=gha,mode=max,scope=slops-saloon-cron
 
   deploy:
     runs-on: ubuntu-latest
@@ -160,7 +160,7 @@ jobs:
         run: |
           ssh -i /tmp/oracle_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
               "$ORACLE_USER@$ORACLE_HOST" \
-              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs ssffmvp_api 2>&1 | tail -25' || true
+              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs slops-saloon_api 2>&1 | tail -25' || true
 
       - name: Clean up deploy key
         if: always()

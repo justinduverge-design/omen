@@ -1,5 +1,5 @@
 -- =================================================================
--- Slops Saloon Fantasy Football MVP (SSFFMVP)
+-- Slops Saloon Fantasy Football MVP (Corvus)
 -- Supabase setup - schema + RLS + Vault wrappers + subscriptions
 -- -----------------------------------------------------------------
 -- Run once on a fresh project; idempotent so it's safe to re-run on
@@ -118,7 +118,7 @@ create table if not exists public.oauth_state (
 );
 
 -- local_snapshots -- emergency-fallback ingestion path for ssff-bot data.
--- See ssffmvp_agents.js [A] LOCAL LOGIC BRIDGE.
+-- See corvus_agents.js [A] LOCAL LOGIC BRIDGE.
 create table if not exists public.local_snapshots (
   league_id    text primary key,
   snapshot     jsonb not null,

@@ -11,7 +11,7 @@ function nowIso(now = new Date()) {
 function getHealthStatus(now = new Date()) {
   return {
     status: "ok",
-    service: "ssffmvp-api",
+    service: "corvus-api",
     uptime: process.uptime(),
     timestamp: nowIso(now),
     contract_version: "system-health.v1",
@@ -146,7 +146,7 @@ function configuredStatus(value) {
 function getPlatformStatus(config, now = new Date()) {
   return {
     status: "ok",
-    service: "ssffmvp-api",
+    service: "corvus-api",
     mode: "contract_ready",
     generated_at: nowIso(now),
     contract_version: "platform-status.v1",

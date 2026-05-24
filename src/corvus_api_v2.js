@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * Slops Saloon Fantasy Football MVP (SSFFMVP)
- * Platform Integration Layer — ssffmvp_api_v2.js
+ * Slops Saloon Fantasy Football MVP (Corvus)
+ * Platform Integration Layer — corvus_api_v2.js
  * ════════════════════════════════════════════════════════════════
  */
 
