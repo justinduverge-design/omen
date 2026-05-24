@@ -36,14 +36,14 @@ For skills (reusable workflows), see:
 
 ```text
 SLOPS\Blueprints\skills\
-ssffmvp\Blueprints\skills\  (if app-specific)
+slops-saloon\Blueprints\skills\  (if app-specific)
 ```
 
 For agents (reusable roles), see:
 
 ```text
 SLOPS\Blueprints\agents\
-ssffmvp\Blueprints\agents\  (if app-specific)
+slops-saloon\Blueprints\agents\  (if app-specific)
 ```
 
 ## Before Adding Files Here

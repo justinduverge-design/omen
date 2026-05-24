@@ -33,7 +33,7 @@ What you expect this change to improve.
 **Win rate at time of change:** N/A (initial version)
 
 ### What changed
-Initial prompt created. Extracted from hardcoded template string in `ssffmvp_agents.js`
+Initial prompt created. Extracted from hardcoded template string in `slops-saloon_agents.js`
 and moved to this markdown file for version-controlled prompt management.
 
 ### Why

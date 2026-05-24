@@ -1,11 +1,11 @@
-# ssffmvp Decision Log
+# slops-saloon Decision Log
 
 ## Active Decisions
 
-- `ssffmvp` is the Fantasy Sports MVP Builder department and active app repo.
-- Corvus is the Fantasy Football MVP product inside `ssffmvp`.
-- App development happens inside `ssffmvp`.
-- Corvus product, brand, and spec context lives inside `ssffmvp\Corvus`.
+- `slops-saloon` is the Fantasy Sports MVP Builder department and active app repo.
+- Corvus is the Fantasy Football MVP product inside `slops-saloon`.
+- App development happens inside `slops-saloon`.
+- Corvus product, brand, and spec context lives inside `slops-saloon\Corvus`.
 - Trade Analyzer is the front door.
 - Draft Assistant is the preparation and seasonal tool.
 - Omen of the Week / MVP Move is the main event.

@@ -2,7 +2,7 @@
 ## Prompt for: Codex
 ## Operation type: Local build + health check + teardown — no push, no deploy
 ## Date: 2026-05-24
-## Repo: ssffmvp on Oracle VPS (not local machine)
+## Repo: slops-saloon on Oracle VPS (not local machine)
 ## Run on: Oracle VPS — production env must be present
 
 ---
@@ -57,7 +57,7 @@ building.
 ## Step 1: Verify prerequisites
 
 ```bash
-cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp
+cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon
 docker --version
 docker compose version
 ls client/package.json frontend/package.json

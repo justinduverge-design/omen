@@ -30,7 +30,7 @@ Date: 2026-05-20
 - FFC attribution must remain visible wherever FFC ADP is shown.
 - MFL must remain server-side only.
 - Production Supabase schema/RLS/Vault setup must be confirmed separately before deploy.
-- Legacy `ssffmvp_api_v2.js` remains mounted, so Yahoo callback compatibility should be reviewed before launch.
+- Legacy `slops-saloon_api_v2.js` remains mounted, so Yahoo callback compatibility should be reviewed before launch.
 
 ## Frontend / UX Risks
 

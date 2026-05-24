@@ -417,7 +417,7 @@ Unsafe event properties:
 Use this prompt for the next coding pass.
 
 ```text
-You are Codex, the backend engineer for the Slops Saloon `ssffmvp` repo.
+You are Codex, the backend engineer for the Slops Saloon `slops-saloon` repo.
 
 Implement the first ESPN recovery UI/backend alignment pass using the ESPN Recovery Playbook.
 

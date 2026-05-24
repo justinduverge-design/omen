@@ -1,4 +1,4 @@
-# ssffmvp Agent Inbox
+# slops-saloon Agent Inbox
 
 ## Open Requests
 
@@ -7,4 +7,4 @@
 
 ## Notes
 
-Use `Direction\context.md` for ssffmvp context and `Corvus\Direction\context.md` for Corvus product context.
+Use `Direction\context.md` for slops-saloon context and `Corvus\Direction\context.md` for Corvus product context.

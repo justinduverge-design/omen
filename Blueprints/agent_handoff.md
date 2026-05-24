@@ -1,4 +1,4 @@
-# ssffmvp Agent Handoff
+# slops-saloon Agent Handoff
 
 ## Current State
 
@@ -6,13 +6,13 @@ This file was recreated during a DBS integrity repair on 2026-05-21.
 
 Use this repo as the active app workspace:
 
-`C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp`
+`C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
 
 ## Layer Rules
 
 - SLOPS is Justin / Slops OS / company operating system.
-- `ssffmvp` is the Fantasy Sports MVP Builder department.
-- `ssffmvp\Corvus` is the Fantasy Football MVP product layer.
+- `slops-saloon` is the Fantasy Sports MVP Builder department.
+- `slops-saloon\Corvus` is the Fantasy Football MVP product layer.
 
 ## Product Rules
 
@@ -29,7 +29,7 @@ Use this repo as the active app workspace:
 
 Do not deploy, commit, push, delete files, move app folders, touch secrets, or modify production configuration without Justin's explicit approval.
 
-Do not work from `Projects\ssffmvp`.
+Do not work from `Projects\slops-saloon`.
 
 Do not touch `Archive\quarantine`.
 

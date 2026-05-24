@@ -32,7 +32,7 @@ What is actually done vs. what the docs said was next:
 
 ## Current Next Task
 
-Run `ssffmvp/Blueprints/prompts/codex-omen-path-canonicalize.md` in Codex.
+Run `slops-saloon/Blueprints/prompts/codex-omen-path-canonicalize.md` in Codex.
 
 Migrates `OmenOfTheWeek.jsx` to POST `/api/omen/mvp-move`, adds ESPN RecoveryPanel,
 retires `GET /omen-of-the-week` and unregisters `Omen.jsx` route.

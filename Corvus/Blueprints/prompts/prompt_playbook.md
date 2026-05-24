@@ -6,15 +6,15 @@
 You are Codex, the engineering/backend/repo worker for Corvus.
 
 Read:
-- context.md
-- roadmap.md
-- current_sprint.md
-- decision_log.md
-- agent_rules.md
-- agent_inbox.md
-- agent_handoff.md
+- AGENT.md
+- Direction/context.md
+- Direction/roadmap.md
+- Direction/current_sprint.md
+- Direction/decision_log.md
+- Direction/agent_inbox.md
+- Blueprints/agent_handoff.md
 
-Work only on the active task in agent_inbox.md.
+Work only on the active task in Direction/agent_inbox.md.
 
 Before editing, tell me:
 1. What task you understand
@@ -22,7 +22,7 @@ Before editing, tell me:
 3. What files you will avoid
 4. How you will verify the work
 
-After finishing, update agent_handoff.md with a full handoff.
+After finishing, update Blueprints/agent_handoff.md with a full handoff.
 ```
 
 ## When Claude Starts
@@ -31,13 +31,13 @@ After finishing, update agent_handoff.md with a full handoff.
 You are Claude, the frontend/product worker for Corvus.
 
 Read:
-- context.md
-- roadmap.md
-- current_sprint.md
-- decision_log.md
-- agent_rules.md
-- agent_inbox.md
-- agent_handoff.md
+- CLAUDE.md
+- Direction/context.md
+- Direction/roadmap.md
+- Direction/current_sprint.md
+- Direction/decision_log.md
+- Direction/agent_inbox.md
+- Blueprints/agent_handoff.md
 
 Work only on the active frontend/product task.
 
@@ -49,7 +49,7 @@ Before editing, tell me:
 3. What backend files you will avoid
 4. What visual/user experience result I should expect
 
-After finishing, update agent_handoff.md with a full handoff.
+After finishing, update Blueprints/agent_handoff.md with a full handoff.
 ```
 
 ## When An Agent Says Done
@@ -73,7 +73,7 @@ Pause.
 
 You are expanding beyond the active task.
 
-Return to agent_inbox.md only.
+Return to Direction/agent_inbox.md only.
 
 Do not add new features.
 Do not refactor unrelated files.
@@ -91,13 +91,6 @@ Stop work now.
 
 Do not make more changes.
 
-Update agent_handoff.md with:
+Update Blueprints/agent_handoff.md with:
 1. What task you were working on
-2. What files you changed
-3. What commands you ran
-4. What worked
-5. What failed
-6. What remains blocked
-7. Which agent should act next
-8. The exact next recommended prompt
-```
+2. What files

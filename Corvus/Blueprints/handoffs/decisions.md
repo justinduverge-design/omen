@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Shared frontend/backend engineering decisions for the active `ssffmvp` app repo.
+Shared frontend/backend engineering decisions for the active `slops-saloon` app repo.
 
 Company-level decisions belong in the SLOPS OS layer. Corvus product decisions belong under `Corvus\Direction` unless they directly affect app contracts.
 

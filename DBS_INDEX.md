@@ -1,14 +1,14 @@
-# ssffmvp DBS Index
+# slops-saloon DBS Index
 
-This is the repo-local navigation map for the active `ssffmvp` app repo.
+This is the repo-local navigation map for the active `slops-saloon` app repo.
 
 For the full three-layer SLOPS map, see `..\DBS_INDEX.md`.
 
 ## Layer
 
-`ssffmvp` is Layer 2 in the SLOPS folder system.
+`slops-saloon` is Layer 2 in the SLOPS folder system.
 
-Path: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp`
+Path: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
 
 Meaning: the Fantasy Sports MVP Builder department and the active app repo.
 
@@ -20,17 +20,21 @@ Corvus is the current product.
 
 The product priority is to keep the app backbone stable while building fantasy football decision tools around clear contracts, plain-English reasoning, and safe platform integrations.
 
-## Repo DBS Folders
+## Layer Structure
 
-Direction contains repo-level context, roadmap, priorities, and current working direction.
+`slops-saloon` is the Fantasy Sports MVP Builder department. It is the platform PM layer for Corvus (Fantasy Football MVP) and future fantasy sports tools. Each product lives in its own subfolder with its own DBS folders.
 
-Blueprints contains app specs, handoffs, prompts, workflows, reusable instructions, and implementation plans.
+## Repo DBS Folders (Platform Level)
 
-Solutions contains finished app-layer outputs or implementation-adjacent results. Do not move active source code here without explicit approval.
+Direction contains repo-level context, roadmap, priorities, and current working direction for the slops-saloon platform — not Corvus-specific content.
 
-References contains supporting research, source material, comparison notes, and historical context.
+Blueprints contains platform-level agent infrastructure. Corvus-specific specs, prompts, handoffs, and playbooks live under `Corvus\Blueprints\`.
 
-Archive preserves reviewed superseded, parked, stale, or quarantined material. Archive is preservation, not deletion.
+Solutions contains finished platform-layer outputs. Corvus-specific outputs live under `Corvus\Solutions\`.
+
+References contains platform-level supporting research. Corvus-specific research lives under `Corvus\References\`.
+
+Archive preserves reviewed superseded, parked, stale, or quarantined material at the platform level. Corvus-specific archived material lives under `Corvus\Archive\`. Archive is preservation, not deletion.
 
 ## Canonical Context
 
@@ -38,36 +42,31 @@ Archive preserves reviewed superseded, parked, stale, or quarantined material. A
 - Repo roadmap: `Direction\roadmap.md`
 - Product context: `Corvus\Direction\context.md`
 - Product roadmap: `Corvus\Direction\roadmap.md`
+- Product known issues: `Corvus\Direction\known_issues.md`
+- Product release readiness: `Corvus\Direction\release_readiness.md`
 - Product README: `Corvus\README.md`
 
 ## Canonical Handoffs
 
-- Frontend to backend requests: `Blueprints\handoffs\frontend-to-backend.md`
-- Backend to frontend responses: `Blueprints\handoffs\backend-to-frontend.md`
-- Shared engineering decisions: `Blueprints\handoffs\decisions.md`
-- Security and privacy tracker: `Blueprints\security-privacy.md`
+- Frontend to backend requests: `Corvus\Blueprints\handoffs\frontend-to-backend.md`
+- Backend to frontend responses: `Corvus\Blueprints\handoffs\backend-to-frontend.md`
+- Shared engineering decisions: `Corvus\Blueprints\handoffs\decisions.md`
+- Security and privacy tracker: `Corvus\Blueprints\security-privacy.md`
 - Compliance evidence map: `probo.yaml`
 
 Root handoffs outside this repo are OS-level history or redirects unless a future workflow says otherwise.
 
-## Specs and Prompts
+## Corvus Specs and Prompts
 
-App specs live under:
+All Corvus product specs, ADRs, and prompts now live under `Corvus\Blueprints\`:
 
-- `Blueprints\specs\`
-- `Blueprints\specs\docs\`
+- `Corvus\Blueprints\specs\` — product specs
+- `Corvus\Blueprints\specs\docs\` — ADRs and technical decisions
+- `Corvus\Blueprints\prompts\` — Codex and agent prompts
+- `Corvus\Blueprints\playbooks\` — operational playbooks (ESPN recovery, etc.)
+- `Corvus\Blueprints\handoffs\` — frontend/backend coordination
 
-App prompts live under:
-
-- `Blueprints\prompts\`
-
-Corvus product specs live under:
-
-- `Corvus\Blueprints\specs\`
-
-Corvus product playbooks live under:
-
-- `Corvus\Blueprints\playbooks\`
+The platform-level `Blueprints\` folder now contains only agent infrastructure: `agent_handoff.md` and `skills\`.
 
 ## Skills
 
@@ -75,7 +74,7 @@ All SLOPS-authored skills live at the SLOPS OS layer:
 
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\skills`
 
-When a skill is needed from inside `ssffmvp`, agents should still resolve it through the root skill index:
+When a skill is needed from inside `slops-saloon`, agents should still resolve it through the root skill index:
 
 1. `..\Blueprints\skills\README.md`
 2. `..\Blueprints\skills\SKILL_INDEX.md`
@@ -95,23 +94,4 @@ Active implementation remains in the app source tree, including:
 - `test\`
 - `Dockerfile`
 - `docker-compose.yml`
-- `package.json`
-
-Do not move source, deploy config, package files, SQL, tests, scripts, `.git`, `node_modules`, `.env`, secrets, keys, credentials, or active implementation assets during DBS cleanup.
-
-## Product Rules
-
-- Trade Analyzer is the front door.
-- Draft Assistant is the preparation and seasonal tool.
-- Omen of the Week / MVP Move is the main event.
-- Start/Sit lives inside Omen / MVP Move.
-- Waiver logic lives inside Omen / MVP Move unless explicitly separated later.
-- ESPN, Yahoo, and Sleeper all matter.
-- ESPN is essential but risky and needs recovery playbooks.
-- Users need plain-English reasoning, not heavy math.
-
-## Stale Path Warning
-
-Do not use old `Projects\ssffmvp` copies as active source.
-
-Do not inspect, restore, upload, commit, push, share, or reorganize quarantine contents without a secrets-safe review.
+- `

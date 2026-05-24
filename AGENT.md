@@ -57,10 +57,13 @@ Read these if present:
 1. `Direction/context.md`
 2. `Direction/current_sprint.md`
 3. `Direction/roadmap.md`
-4. `Blueprints/handoffs/frontend-to-backend.md`
-5. `Blueprints/handoffs/backend-to-frontend.md`
-6. `Blueprints/handoffs/decisions.md`
-7. `CLAUDE.md`
+4. `Direction/decision_log.md`
+5. `Direction/agent_inbox.md`
+6. `Blueprints/agent_handoff.md`
+7. `Blueprints/handoffs/frontend-to-backend.md`
+8. `Blueprints/handoffs/backend-to-frontend.md`
+9. `Blueprints/handoffs/decisions.md`
+10. `CLAUDE.md`
 
 If a file is missing, continue and mention it.
 
@@ -172,8 +175,3 @@ When Claude Code requests an endpoint for UI work, respond in `Blueprints/handof
 - request shape
 - response shape
 - example response
-- frontend usage example
-- mock/live status
-- limitations
-
-Do not leave Claude Code guessing.

@@ -1,5 +1,7 @@
 # current_sprint.md — Redirect
 
-This file has moved. Canonical location: `Direction/current_sprint.md`
+Platform sprint: `Direction/current_sprint.md`
 
-Do not update this file. Update the canonical version instead.
+Corvus product sprint: `Corvus\Direction\current_sprint.md`
+
+Do not update this file. U

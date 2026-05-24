@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm start          # node src/server.js
 npm run dev        # same as start (no hot reload)
-npm run cron       # node src/ssffmvp_tuesday_cron.js — run Tuesday scoring manually
+npm run cron       # node src/slops-saloon_tuesday_cron.js — run Tuesday scoring manually
 node --test        # Node built-in test runner
 ```
 
@@ -50,8 +50,8 @@ node --test        # Node built-in test runner
 | `/api/trade` | `routes/trade.js` | Trade value comparison |
 | `/api/draft-assistant` | `routes/draftAssistant.js` | Draft tool |
 | `/api/omen` | `routes/omen.js` | POST /mvp-move — canonical Omen path (DvP + LLM enrichment) |
-| `/api` | `ssffmvp_api_v2.js` | **Legacy monolith**: Yahoo OAuth, standings, ESPN. New code goes in `src/routes/` instead. |
-| `/api` | `ssffmvp_agents.js` | Legacy Claude-based agent pipeline (still active) |
+| `/api` | `slops-saloon_api_v2.js` | **Legacy monolith**: Yahoo OAuth, standings, ESPN. New code goes in `src/routes/` instead. |
+| `/api` | `slops-saloon_agents.js` | Legacy Claude-based agent pipeline (still active) |
 
 ### AI / Agent Layer — Two Implementations
 
@@ -60,7 +60,7 @@ node --test        # Node built-in test runner
 - Manager Agent synthesizes into a JSON move recommendation.
 - `llm.js` returns `null` on any failure — the app must work without LLM.
 
-**2. Legacy standalone** (`src/ssffmvp_agents.js`):
+**2. Legacy standalone** (`src/slops-saloon_agents.js`):
 - Uses Anthropic Claude directly (`claude-3-5-sonnet-latest`).
 - Contains the VORP engine, positional scarcity analysis, local snapshot fallback, and a pure-math fallback move if AI fails.
 - Still mounted as a router at `/api`. Exports `calcVORP`, `buildVORPTable`, etc. used by the Tuesday cron.
@@ -78,7 +78,7 @@ node --test        # Node built-in test runner
 - `middleware/subscription.js` — gates Pro-only routes via `users.is_subscribed` (denormalized fast-check).
 - `middleware/security.js` — Helmet, CORS, `generalRateLimit`, `authRateLimit`.
 
-### Tuesday Cron (`src/ssffmvp_tuesday_cron.js`)
+### Tuesday Cron (`src/slops-saloon_tuesday_cron.js`)
 
 Schedule: `0 6 * * 2` (6 AM EST). Flow:
 1. Fetch only `followed = true` moves (Human-in-the-Loop gate — only score moves the user actually executed in their platform).
@@ -199,11 +199,14 @@ Read these if present:
 1. `Direction/context.md`
 2. `Direction/current_sprint.md`
 3. `Direction/roadmap.md`
-4. `APP_UI_PLAN.md`
-5. `Blueprints/handoffs/backend-to-frontend.md`
-6. `Blueprints/handoffs/frontend-to-backend.md`
-7. `Blueprints/handoffs/decisions.md`
-8. `AGENT.md`
+4. `Direction/decision_log.md`
+5. `Direction/agent_inbox.md`
+6. `Blueprints/agent_handoff.md`
+7. `Corvus/Blueprints/specs/app-ui-plan.md`
+8. `Blueprints/handoffs/backend-to-frontend.md`
+9. `Blueprints/handoffs/frontend-to-backend.md`
+10. `Blueprints/handoffs/decisions.md`
+11. `AGENT.md`
 
 If a file is missing, continue and mention it.
 
@@ -297,7 +300,3 @@ Before major UI edits, identify:
 2. routing system
 3. main layout file
 4. dashboard entry point
-5. reusable component location
-6. current design/styling system
-
-Then proceed according to the requested session mode.

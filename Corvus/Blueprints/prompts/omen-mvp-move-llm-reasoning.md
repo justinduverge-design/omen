@@ -3,7 +3,7 @@
 Use this prompt for the next backend development pass.
 
 ```text
-You are Codex, the backend engineer for the Slops Saloon `ssffmvp` repo.
+You are Codex, the backend engineer for the Slops Saloon `slops-saloon` repo.
 
 Implement Gemma/Ollama-backed plain-English reasoning for the Omen of the Week / MVP Move backend route.
 

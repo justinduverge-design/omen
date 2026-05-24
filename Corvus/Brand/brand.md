@@ -26,6 +26,6 @@ Explain the recommendation, the evidence, the risk, and the confidence.
 ## Brand Boundaries
 
 - Slops Saloon is the umbrella.
-- `ssffmvp` is the Fantasy Sports MVP Builder department.
+- `slops-saloon` is the Fantasy Sports MVP Builder department.
 - Corvus is the fantasy football product.
 

@@ -1,6 +1,6 @@
 # Corvus
 
-Corvus is the Fantasy Football MVP product inside the `ssffmvp` Fantasy Sports MVP Builder department.
+Corvus is the Fantasy Football MVP product inside the `slops-saloon` Fantasy Sports MVP Builder department.
 
 Corvus helps fantasy football users make better weekly decisions with clear recommendations, platform-aware context, and plain-English reasoning.
 

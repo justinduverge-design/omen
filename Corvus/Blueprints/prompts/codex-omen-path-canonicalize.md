@@ -2,7 +2,7 @@
 ## Prompt for: Codex
 ## Operation type: Frontend + backend migration
 ## Date: 2026-05-23
-## Repo: ssffmvp
+## Repo: slops-saloon
 
 ---
 

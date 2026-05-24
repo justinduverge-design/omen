@@ -2,7 +2,7 @@
 ## Prompt for: Codex
 ## Operation type: Read-only validation — no transactions, no mutations
 ## Date: 2026-05-24
-## Repo: ssffmvp on Oracle VPS (not local machine)
+## Repo: slops-saloon on Oracle VPS (not local machine)
 ## Run on: Oracle VPS — production env must be active
 
 ---
@@ -17,7 +17,7 @@ local dev environment.
 Before running any steps, load the production env:
 
 ```bash
-cd /path/to/ssffmvp       # your Oracle repo path
+cd /path/to/slops-saloon       # your Oracle repo path
 set -a
 source .env
 set +a
@@ -55,7 +55,7 @@ mutations of any kind.
 ## Step 1: Confirm config loads
 
 ```bash
-cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp
+cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon
 node -e "require('./src/config'); console.log('Config loaded OK')"
 ```
 

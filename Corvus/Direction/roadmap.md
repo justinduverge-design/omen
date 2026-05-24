@@ -22,7 +22,7 @@ All core features are built and tested (175/175 tests pass):
 
 | Item | Status |
 |------|--------|
-| ssffmvp git tree rebase + clean commit | Pending (prompt ready) |
+| slops-saloon git tree rebase + clean commit | Pending (prompt ready) |
 | npm audit fix (3 moderate prod vulns) | Pending |
 | Stripe live key validation | Pending |
 | Docker deploy prove-out on Oracle VPS | Pending |

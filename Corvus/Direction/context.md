@@ -2,7 +2,7 @@
 
 ## Product Layer
 
-Corvus is the Fantasy Football MVP product inside `ssffmvp`.
+Corvus is the Fantasy Football MVP product inside `slops-saloon`.
 
 It is not the SLOPS company layer and not the whole Fantasy Sports MVP Builder department. It is the first product in that department.
 

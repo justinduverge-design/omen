@@ -100,7 +100,7 @@ Deployment is paused. These checks are for future use only.
 
 ## Codex Should Fix Next
 
-- Keep backend contracts stable and documented in `handoffs/backend-to-frontend.md`.
+- Keep backend contracts stable and documented in `Blueprints/handoffs/backend-to-frontend.md`.
 - Add or update backend tests only when contract behavior changes.
 - Confirm production-readiness of Supabase schema/RLS separately before deployment.
 - Confirm Yahoo OAuth callback paths and legacy callback compatibility before deployment.
@@ -124,4 +124,4 @@ Deployment is paused. These checks are for future use only.
 - Full league hosting
 - Fantasy basketball or baseball
 - Legacy Research Team
-- Slops Saloon media hub expansion
+- Slops Saloon media hub

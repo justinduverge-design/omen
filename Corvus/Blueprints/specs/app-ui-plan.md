@@ -138,13 +138,13 @@ Claude Code should prioritize reusable components such as:
 Every UI screen that needs backend data must have a matching backend contract in:
 
 ```text
-handoffs/frontend-to-backend.md
+Blueprints/handoffs/frontend-to-backend.md
 ```
 
 Codex must respond with completed contracts in:
 
 ```text
-handoffs/backend-to-frontend.md
+Blueprints/handoffs/backend-to-frontend.md
 ```
 
 ## Claude Code Responsibilities
@@ -179,4 +179,4 @@ A Corvus screen is good when a user can answer:
 3. Is my data connected?
 4. Is this mock, pending, or live?
 5. Why did Corvus recommend this?
-6. Can I use this comfortably on mobile?
+6. Can I use this c

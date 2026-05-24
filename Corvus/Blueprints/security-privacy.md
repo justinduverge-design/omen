@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the human-readable tracker for active `ssffmvp` security and privacy decisions.
+This is the human-readable tracker for active `slops-saloon` security and privacy decisions.
 
 `probo.yaml` is the machine-readable compliance and evidence map. This file explains the product and engineering defaults agents should follow before changing auth, platform connections, ESPN recovery, logging, analytics, or user data handling.
 
@@ -10,8 +10,8 @@ This is the human-readable tracker for active `ssffmvp` security and privacy dec
 
 - Compliance controls: `probo.yaml`
 - Security summary: `README.md`
-- Supabase RLS and Vault setup: `sql\ssffmvp_rls_security.sql`
-- GDPR/delete flow notes: `src\ssffmvp_gdpr.js`
+- Supabase RLS and Vault setup: `sql\slops-saloon_rls_security.sql`
+- GDPR/delete flow notes: `src\slops-saloon_gdpr.js`
 - ESPN recovery privacy rules: `Corvus\Blueprints\playbooks\espn-recovery.md`
 - Shared engineering decisions: `Blueprints\handoffs\decisions.md`
 

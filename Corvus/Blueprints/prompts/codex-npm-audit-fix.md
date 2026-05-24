@@ -2,13 +2,13 @@
 ## Prompt for: Codex
 ## Operation type: Dependency security — audit and fix moderate production vulnerabilities
 ## Date: 2026-05-24
-## Repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp`
+## Repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
 
 ---
 
 ## Context
 
-The ssffmvp app has 3 known moderate severity vulnerabilities in production dependencies (flagged in a prior `npm audit` run). This prompt resolves them using semver-compatible fixes only. The test suite must pass after the fix.
+The slops-saloon app has 3 known moderate severity vulnerabilities in production dependencies (flagged in a prior `npm audit` run). This prompt resolves them using semver-compatible fixes only. The test suite must pass after the fix.
 
 **175/175 tests pass on the current tree.** That baseline must be maintained.
 
@@ -27,7 +27,7 @@ The ssffmvp app has 3 known moderate severity vulnerabilities in production depe
 ## Step 1: Verify current audit state
 
 ```bash
-cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp
+cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon
 npm audit --production
 ```
 

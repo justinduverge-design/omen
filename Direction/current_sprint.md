@@ -1,4 +1,4 @@
-# ssffmvp Current Sprint
+# slops-saloon Current Sprint
 
 **Last updated**: 2026-05-23
 
@@ -34,7 +34,7 @@ Canonicalize the Omen path. Then npm audit. Then launch validation.
 
 ## Git State
 
-- ssffmvp: diverged from origin/main — Codex prompt at `Blueprints/prompts/codex-git-ssffmvp-clean-tree.md`
+- slops-saloon: diverged from origin/main — Codex prompt at `Blueprints/prompts/codex-git-slops-saloon-clean-tree.md`
 - SLOPS root: untracked, never committed — Codex prompt at `Blueprints/prompts/codex-git-slops-initial-commit.md` (in SLOPS root)
 
 ## Guardrails

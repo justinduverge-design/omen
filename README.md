@@ -10,10 +10,10 @@ Slops Saloon is the parent company, mission site, and long-term product studio. 
 
 ## DBS Navigation
 
-- App work happens in `ssffmvp`.
-- Product, brand, and spec context lives in `ssffmvp\Corvus`.
+- App work happens in `slops-saloon`.
+- Product, brand, and spec context lives in `slops-saloon\Corvus`.
 - Department docs, prompts, handoffs, and specs now live under `Direction`, `Blueprints`, `Solutions`, and `References`.
-- Do not use old `Projects\ssffmvp` copies for active work.
+- Do not use old `Projects\slops-saloon` copies for active work.
 - Do not touch `Archive\quarantine`.
 
 ---
@@ -186,7 +186,7 @@ npm test    # 99 tests - all must pass before any deploy
 ## Project Structure
 
 ```
-ssffmvp/
+slops-saloon/
 ├── src/
 │   ├── adapters/
 │   │   ├── yahoo.js               # Yahoo platform adapter

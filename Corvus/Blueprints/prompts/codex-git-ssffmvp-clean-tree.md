@@ -1,8 +1,17 @@
-# Codex Prompt — ssffmvp: Commit Doc Pass and Omen Canonical Migration
+# Codex Prompt — slops-saloon: Commit Doc Pass and Omen Canonical Migration
 ## Prompt for: Codex
 ## Operation type: Git — stage and commit uncommitted local changes in logical groups
 ## Date: 2026-05-24
-## Repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp`
+## Repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+
+---
+
+## Status
+
+Historical prompt. Do not execute as the current cleanup workflow. Current agent
+context paths are `Direction/context.md`, `Direction/current_sprint.md`,
+`Direction/decision_log.md`, `Direction/roadmap.md`,
+`Direction/agent_inbox.md`, and `Blueprints/agent_handoff.md`.
 
 ---
 
@@ -32,7 +41,7 @@ migration. This prompt stages and commits those two groups. No rebase is needed.
 ## Step 1: Verify state
 
 ```bash
-cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\ssffmvp
+cd C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon
 git status
 git log --oneline -6
 ```
@@ -46,14 +55,15 @@ Confirm:
 `AGENT.md`, `Blueprints/specs/docs/spec-kit-usage.md`, `CLAUDE.md`,
 `Corvus/Direction/current_sprint.md`, `Corvus/Direction/decision_log.md`,
 `Corvus/Direction/roadmap.md`, `Direction/current_sprint.md`,
-`Direction/decision_log.md`, `agent_handoff.md`, `agent_inbox.md`,
-`agent_rules.md`, `context.md`, `current_sprint.md`, `decision_log.md`,
-`frontend/src/pages/OmenOfTheWeek.jsx`, `roadmap.md`, `src/routes/system.js`,
+`Direction/decision_log.md`, `Direction/context.md`, `Direction/roadmap.md`,
+`Direction/agent_inbox.md`, `Blueprints/agent_handoff.md`,
+`frontend/src/pages/OmenOfTheWeek.jsx`, `src/routes/system.js`,
 `src/services/systemContracts.js`, `test/systemRoutes.test.js`
 
 **Expected deleted (D):**
-`handoffs/.gitkeep`, `handoffs/backend-to-frontend.md`, `handoffs/decision_log.md`,
-`handoffs/decisions.md`, `handoffs/frontend-to-backend.md`,
+`Archive/handoffs-pre-dbs/.gitkeep`, `Archive/handoffs-pre-dbs/backend-to-frontend.md`,
+`Archive/handoffs-pre-dbs/decision_log.md`, `Archive/handoffs-pre-dbs/decisions.md`,
+`Archive/handoffs-pre-dbs/frontend-to-backend.md`,
 `specs/000-infrastructure-boundaries/spec.md`, `specs/001-corvus-decision-layer/spec.md`,
 `specs/002-homepage-product-priority/spec.md`, `specs/003-espn-recovery-playbook/spec.md`,
 `specs/004-agent-workflow/spec.md`, `specs/005-nflverse-data-research/spec.md`
@@ -92,16 +102,12 @@ No `.jsx`, `.js`, `.ts`, `.yaml`, or test files.
 ```bash
 git add CLAUDE.md
 git add AGENT.md
-git add agent_rules.md
-git add context.md
-git add current_sprint.md
-git add decision_log.md
-git add roadmap.md
-git add agent_inbox.md
-git add agent_handoff.md
 git add Direction/context.md
 git add Direction/current_sprint.md
 git add Direction/decision_log.md
+git add Direction/roadmap.md
+git add Direction/agent_inbox.md
+git add Blueprints/agent_handoff.md
 git add Corvus/Direction/current_sprint.md
 git add Corvus/Direction/decision_log.md
 git add Corvus/Direction/roadmap.md
@@ -113,11 +119,11 @@ git add Corvus/Blueprints/specs/corvus-decision-layer.md
 git add Corvus/Blueprints/specs/homepage-product-priority.md
 git add References/
 git add Archive/
-git rm handoffs/backend-to-frontend.md
-git rm handoffs/decision_log.md
-git rm handoffs/decisions.md
-git rm handoffs/frontend-to-backend.md
-git rm handoffs/.gitkeep
+git add Archive/handoffs-pre-dbs/backend-to-frontend.md
+git add Archive/handoffs-pre-dbs/decision_log.md
+git add Archive/handoffs-pre-dbs/decisions.md
+git add Archive/handoffs-pre-dbs/frontend-to-backend.md
+git add Archive/handoffs-pre-dbs/.gitkeep
 git rm specs/000-infrastructure-boundaries/spec.md
 git rm specs/001-corvus-decision-layer/spec.md
 git rm specs/002-homepage-product-priority/spec.md
@@ -145,15 +151,15 @@ Agent files:
   handoff paths updated to Blueprints/handoffs/
 - AGENT.md: canonical Omen path documented, universal rules absorbed,
   handoff paths updated to Blueprints/handoffs/
-- agent_rules.md: retired stub (rules now in CLAUDE.md and AGENT.md)
+- Universal rules now live in CLAUDE.md and AGENT.md
 
-Root redirect stubs (canonical content lives in Direction/ and Blueprints/):
-- context.md, current_sprint.md, decision_log.md, roadmap.md,
-  agent_inbox.md, agent_handoff.md
+Canonical DBS pointers:
+- Direction/context.md, Direction/current_sprint.md, Direction/decision_log.md,
+  Direction/roadmap.md, Direction/agent_inbox.md, Blueprints/agent_handoff.md
 
 Direction updates:
 - Direction/context.md: Universal AI Rules merged from global-context.md
-- Direction/current_sprint.md, decision_log.md updated
+- Direction/current_sprint.md, Direction/decision_log.md updated
 - Corvus/Direction: decision_log.md updated, roadmap.md rewritten post-launch
 
 New specs and references:

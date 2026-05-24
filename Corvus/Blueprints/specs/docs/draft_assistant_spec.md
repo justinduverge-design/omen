@@ -393,4 +393,4 @@ Front end will build the Draft Assistant UI panel using mock data from the respo
 
 ---
 
-*Missing files at time of writing: `context.md`, `roadmap.md`, `manifesto.md`, `handoffs/decisions.md`, `handoffs/backend-to-frontend.md`, `handoffs/frontend-to-backend.md`, `AGENT.md` — none found in project root. Spec written from provided context and CLAUDE.md.*
+*DBS note: this older spec was written before the current navigation layout. Use `Direction/context.md`, `Direction/roadmap.md`, `Blueprints/handoffs/decisions.md`, `Blueprints/handoffs/backend-to-frontend.md`, `Blueprints/handoffs/frontend-to-backend.md`, `AGENT.md`,

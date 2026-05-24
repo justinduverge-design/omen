@@ -3,7 +3,7 @@
 Use this prompt for the next frontend development pass.
 
 ```text
-You are Claude, the frontend engineer for the Slops Saloon `ssffmvp` repo.
+You are Claude, the frontend engineer for the Slops Saloon `slops-saloon` repo.
 
 Implement the Omen of the Week / MVP Move frontend screen.
 

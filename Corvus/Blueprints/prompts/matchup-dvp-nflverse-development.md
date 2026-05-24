@@ -3,7 +3,7 @@
 Use this prompt for the next backend development pass.
 
 ```text
-You are Codex, the backend engineer for the Slops Saloon `ssffmvp` repo.
+You are Codex, the backend engineer for the Slops Saloon `slops-saloon` repo.
 
 Implement live Matchup DvP support for the Omen of the Week / MVP Move backend path using nflverse-data, while preserving the existing Omen contract envelope and all ESPN recovery behavior.
 

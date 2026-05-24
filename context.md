@@ -1,5 +1,7 @@
 # context.md — Redirect
 
-This file has moved. Canonical location: `Direction/context.md`
+Platform context: `Direction/context.md`
 
-Do not update this file. Update the canonical version instead.
+Corvus product context: `Corvus\Direction\context.md`
+
+Do not update this file. Update

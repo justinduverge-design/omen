@@ -20,7 +20,7 @@
 
 ## Work Completed This Session
 
-1. Read `layer-handoff-protocol.md` — understood the three SLOPS layers (0-OS, 1-ssffmvp, 2-Corvus) and handoff chain.
+1. Read `layer-handoff-protocol.md` — understood the three SLOPS layers (0-OS, 1-slops-saloon, 2-Corvus) and handoff chain.
 2. Implemented Change 1 — `Omen.jsx` `RecoveryPanel`: accepts `state` prop, builds safe query-param href for ESPN states only (`/account?platform=espn&recovery=<state>`). Non-ESPN states keep plain `/account`.
 3. Implemented Change 2 — `Account.jsx`: imports `useSearchParams`, reads `?recovery=` param, passes `recoveryState` to `PlatformConnections`. Never logs or displays the raw value.
 4. Implemented Change 3 — `PlatformConnections.jsx`: accepts `recoveryState` prop. Added `espnRecovery` and `showEspnCard` derived values. ESPN card renders when `VITE_ESPN_ENABLED === 'true'` OR when `recoveryState` starts with `espn_`.
@@ -84,7 +84,7 @@
 ## Exact Next Prompt For Justin
 
 ```text
-You are Claude, the frontend engineer for the Slops Saloon `ssffmvp` repo.
+You are Claude, the frontend engineer for the Slops Saloon `slops-saloon` repo.
 
 Read first — do not skip any:
 - DBS_INDEX.md
@@ -102,7 +102,7 @@ Context:
 
 Deliverables:
 
-1. Write `.claude/skills/run-ssffmvp/driver_espn_recovery.cjs` — a Playwright driver that:
+1. Write `.claude/skills/run-slops-saloon/driver_espn_recovery.cjs` — a Playwright driver that:
    - Navigates directly to `/account?platform=espn&recovery=espn_reauth_required`
    - Asserts the recovery banner text is visible
    - Asserts the "Reconnect ESPN" button is visible (for the connected + reauth state)

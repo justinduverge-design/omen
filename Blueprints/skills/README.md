@@ -1,6 +1,6 @@
-# ssffmvp Skills
+# slops-saloon Skills
 
-This folder is reserved for app-specific reusable skills for the ssffmvp product and its services.
+This folder is reserved for app-specific reusable skills for the slops-saloon product and its services.
 
 ## Canonical Skill Location
 
@@ -14,9 +14,9 @@ See that folder's README and SKILL_ROUTING.md for the authoritative skill lookup
 
 ## App-Specific Skills
 
-If ssffmvp requires skills not in the global library, they may be created here:
+If slops-saloon requires skills not in the global library, they may be created here:
 
-- Keep them scoped to ssffmvp concerns only.
+- Keep them scoped to slops-saloon concerns only.
 - Global reusable skills belong in `Blueprints\skills`, not here.
 - Name them consistently: kebab-case folder names, snake_case for divided categories.
 - Each skill should have a `SKILL.md` following the global template.

@@ -1,10 +1,10 @@
-# ssffmvp Context
+# Slops Saloon Context
 
 ## Layer
 
-`ssffmvp` is the Fantasy Sports MVP Builder department inside SLOPS.
+Slops Saloon is the sports, music, and arts division of SLOPS OS. Directory: `slops-saloon/`.
 
-SLOPS is Justin's company operating system and broader Slops Saloon workspace. `ssffmvp` is the active app repo where app development happens. Corvus is the Fantasy Football MVP product inside this repo.
+SLOPS is Justin's company operating system. Slops Saloon is the first and currently active division under it. The `slops-saloon/` directory is the active app layer where app development happens. Corvus is the Fantasy Football MVP product inside this layer.
 
 ## Current Product Focus
 
@@ -25,7 +25,4 @@ The product priority is to keep the app backbone stable while building fantasy f
 
 ## Engineering Boundary
 
-App work happens in this repo. Product, brand, and Corvus-specific specs live under `Corvus`.
-
-Do not work from old `Projects\ssffmvp` copies. Do not inspect or modify `Archive\quarantine`.
-
+App work happens in this repo. Product, brand, and Corv

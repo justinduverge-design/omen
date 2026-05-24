@@ -3,7 +3,7 @@
 Use this prompt for the next Corvus product/documentation pass.
 
 ```text
-You are Codex working on Corvus product/backend coordination for the Slops Saloon `ssffmvp` repo.
+You are Codex working on Corvus product/backend coordination for the Slops Saloon `slops-saloon` repo.
 
 Create the ESPN recovery playbook for Corvus.
 
