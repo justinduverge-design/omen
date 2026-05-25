@@ -340,6 +340,40 @@ Frontend action needed:
 
 Verify the Omen / MVP Move screen against the `state` envelope, including `confidence.score`, `risk.level`, plain-English explanation fields, mock/stub/live/unavailable signal labels, and platform-specific recovery UI for disconnected and ESPN recovery states.
 
+## Yahoo OAuth Callback Fix
+
+Date: 2026-05-24
+
+Owner: Codex/backend
+
+Feature: Yahoo connect — onboarding return path
+
+Status: Fixed. Yahoo connect-screen return is resolved. Full `?next=` round-trip through Yahoo OAuth is a future enhancement only — not required for launch.
+
+What changed:
+
+- `GET /api/yahoo/callback` now redirects to `/account/connect?connected=yahoo` instead of `/football?connected=yahoo`.
+- The `?connected=yahoo` query param is present so the frontend can detect a fresh connection and highlight the Yahoo card. The frontend reads this param on arrival at `/account/connect`.
+
+Frontend behavior:
+
+- After Yahoo OAuth completes, the user lands at `/account/connect?connected=yahoo`.
+- The ConnectLeague screen re-fetches platform status on mount and will show Yahoo as connected.
+- The `?connected=yahoo` param can optionally be used to briefly highlight the Yahoo card or show a success confirmation — this is a frontend polish item, not a blocker.
+
+Known remaining gap:
+
+- If a user clicked "Connect Yahoo" from somewhere other than `/account/connect` (e.g. deep in the app), the Yahoo OAuth flow does not return them to the original location. Full `?next=` preservation through Yahoo OAuth is a future backend enhancement.
+- Do not implement `?next=` round-trip through Yahoo OAuth without a separate product decision — it requires careful state validation on the backend to avoid open redirect risk.
+
+Frontend action needed:
+
+- Treat Yahoo connect-screen return as working.
+- Do not claim full `?next=` return-to-Omen after Yahoo connect as launch-ready.
+- The `ConnectLeague.jsx` screen already handles the `/account/connect` landing correctly — no code change needed on the frontend for this fix.
+
+---
+
 ## Response Template
 
 ```text

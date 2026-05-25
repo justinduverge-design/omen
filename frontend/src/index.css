@@ -4,9 +4,86 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Corvus theme tokens ─────────────────────────────────────────────────────
+   Applied via data-theme="dark" | "light" on <html>.
+   System mode resolves via JS (reads prefers-color-scheme, applies data-theme).
+   The :root block below is the dark fallback for SSR / before JS runs.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --color-bg:              #0A0A0B;
+  --color-surface-1:       #1C1C1E;
+  --color-surface-2:       #2C2C2E;
+  --color-surface-3:       #3A3A3C;
+  --color-border:          #3A3A3C;
+  --color-border-subtle:   #2C2C2E;
+  --color-text-primary:    #F5F0E8;
+  --color-text-secondary:  #AEAEB2;
+  --color-text-tertiary:   #6D6D72;
+  --color-accent:          #B8952A;
+  --color-accent-hover:    #D4AC30;
+  --color-accent-muted:    #3D2F0D;
+  --color-risk-low:        #34C759;
+  --color-risk-medium:     #FF9F0A;
+  --color-risk-high:       #8B1A1A;
+  --color-omen:            #5B2D8E;
+  --color-data-live:       #34C759;
+  --color-data-stub:       #FF9F0A;
+  --color-data-mock:       #636366;
+  --color-data-unavailable:#3A3A3C;
+}
+
+:root[data-theme="dark"] {
+  --color-bg:              #0A0A0B;
+  --color-surface-1:       #1C1C1E;
+  --color-surface-2:       #2C2C2E;
+  --color-surface-3:       #3A3A3C;
+  --color-border:          #3A3A3C;
+  --color-border-subtle:   #2C2C2E;
+  --color-text-primary:    #F5F0E8;
+  --color-text-secondary:  #AEAEB2;
+  --color-text-tertiary:   #6D6D72;
+  --color-accent:          #B8952A;
+  --color-accent-hover:    #D4AC30;
+  --color-accent-muted:    #3D2F0D;
+  --color-risk-low:        #34C759;
+  --color-risk-medium:     #FF9F0A;
+  --color-risk-high:       #8B1A1A;
+  --color-omen:            #5B2D8E;
+  --color-data-live:       #34C759;
+  --color-data-stub:       #FF9F0A;
+  --color-data-mock:       #636366;
+  --color-data-unavailable:#3A3A3C;
+}
+
+:root[data-theme="light"] {
+  --color-bg:              #FAFAF9;
+  --color-surface-1:       #FFFFFF;
+  --color-surface-2:       #F5F5F4;
+  --color-surface-3:       #EBEBEA;
+  --color-border:          #E5E5E3;
+  --color-border-subtle:   #F0F0EE;
+  --color-text-primary:    #1C1C1E;
+  --color-text-secondary:  #6B7280;
+  --color-text-tertiary:   #9CA3AF;
+  --color-accent:          #92740F;
+  --color-accent-hover:    #B8952A;
+  --color-accent-muted:    #FEF3C7;
+  --color-risk-low:        #16A34A;
+  --color-risk-medium:     #D97706;
+  --color-risk-high:       #991B1B;
+  --color-omen:            #6D28D9;
+  --color-data-live:       #16A34A;
+  --color-data-stub:       #D97706;
+  --color-data-mock:       #9CA3AF;
+  --color-data-unavailable:#E5E5E3;
+}
+
 @layer base {
   body {
     @apply font-sans antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;

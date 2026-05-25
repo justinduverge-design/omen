@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
+import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 
 export default function Account() {
@@ -18,13 +19,17 @@ export default function Account() {
       .then(({ data }) => {
         if (!mounted) return;
         if (!data?.session) {
-          navigate('/', { replace: true });
+          storeNextUrl('/account');
+          navigate('/login', { replace: true });
           return;
         }
         setCheckingSession(false);
       })
       .catch(() => {
-        if (mounted) navigate('/', { replace: true });
+        if (mounted) {
+          storeNextUrl('/account');
+          navigate('/login', { replace: true });
+        }
       });
 
     return () => { mounted = false; };

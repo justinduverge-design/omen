@@ -12,12 +12,22 @@ export default {
           amberLight: '#fcd34d',
           text: '#f8fafc',
           muted: '#94a3b8',
-        }
+        },
+        raven: '#0A0A0B',
+        charcoal: '#1C1C1E',
+        bone: '#F5F0E8',
+        gold: {
+          DEFAULT: '#B8952A',
+          light: '#D4AC30',
+          muted: '#3D2F0D',
+        },
+        crimson: '#8B1A1A',
+        omen: '#5B2D8E',
       },
       fontFamily: {
         serif: ['Cormorant Garamond', 'serif'],
         sans: ['Alegreya Sans', 'sans-serif'],
-      }
+      },
     },
   },
   plugins: [],

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { storeNextUrl } from '../../lib/nextUrl.js';
 import { supabase } from '../../lib/supabase.js';
 
 export default function ProtectedRoute({ children }) {
+  const location = useLocation();
   const [session, setSession] = useState(undefined); // undefined = still loading
 
   useEffect(() => {
@@ -41,13 +43,22 @@ export default function ProtectedRoute({ children }) {
 
   if (session === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-amber-400" />
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <span
+          className="h-5 w-5 animate-spin rounded-full border-2"
+          style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
+        />
       </div>
     );
   }
 
-  if (!session) return <Navigate to="/" replace />;
+  if (!session) {
+    storeNextUrl(location.pathname + location.search);
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
 }
