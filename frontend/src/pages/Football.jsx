@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
 import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
@@ -126,6 +127,17 @@ export default function Football() {
               eyebrow="Omen of the Week"
               title="Connect a fantasy platform"
               message="Link Yahoo, Sleeper, or ESPN to receive your personalized weekly omen."
+              ctaLabel="Connect a platform"
+              ctaHref="/account/connect"
+            />
+          );
+        }
+        if (omenStatus === 'needs_subscription') {
+          return (
+            <UpgradeState
+              eyebrow="Omen of the Week"
+              title="Corvus Pro required"
+              message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
             />
           );
         }
@@ -134,10 +146,14 @@ export default function Football() {
             <EmptyState
               eyebrow="Omen of the Week"
               title="Platform connected"
-              message="Your platform is connected. Live recommendations are being activated — check back soon."
+              message="Your platform is connected. Live recommendations are being prepared — check back soon."
             />
           );
         }
+        if (omenStatus === 'ready') {
+          return <OmenOfTheWeek />;
+        }
+        // Summary unavailable — OmenOfTheWeek handles its own backend states
         return <OmenOfTheWeek />;
 
       case 'trade':

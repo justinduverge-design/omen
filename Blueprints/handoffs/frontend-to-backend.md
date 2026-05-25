@@ -60,32 +60,9 @@ The `?connected=yahoo` query param is optional but useful — the frontend can r
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** Sign-in screen (`/login`)
-**Priority:** High — frontend has built UI for all four providers; three are unverified
+**Priority:** ~~High~~ **Resolved 2026-05-25**
 
-**Frontend need:**
-
-The `/login` screen now renders buttons for all four auth providers:
-- Google OAuth (`supabase.auth.signInWithOAuth({ provider: 'google' })`)
-- Apple Sign In (`supabase.auth.signInWithOAuth({ provider: 'apple' })`)
-- Discord OAuth (`supabase.auth.signInWithOAuth({ provider: 'discord' })`)
-- Email magic link (`supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: origin + '/login' } })`)
-
-All four use `redirectTo: window.location.origin + '/login'` as the OAuth callback destination.
-
-Email magic link is the only confirmed-wired provider. The other three require Supabase dashboard configuration.
-
-**Requested from Codex:**
-
-Confirm which of the following are configured in the Supabase project Auth → Providers settings:
-1. Google — client ID + secret, redirect URL whitelisted?
-2. Apple — service ID + key configured, redirect URL whitelisted?
-3. Discord — application client ID + secret, redirect URL whitelisted?
-
-For each unconfigured provider: confirm whether it is safe to show the button to users (fails gracefully with an error Supabase returns) or whether the button should be hidden until configuration is complete.
-
-**Frontend behavior if provider errors:** Supabase returns an error from `signInWithOAuth()` — the Login screen catches it and shows the error message inline. Users will not be silently dropped. This is an acceptable degraded state for launch if the providers are not configured yet, but Justin needs to know which providers actually work before approving the sign-in screen.
-
-**Do not guess — confirm from Supabase dashboard or project config, not from repository code.**
+**Resolution:** Codex confirmed email magic link is the only wired provider. Google, Apple, and Discord require Supabase dashboard config — safe to show buttons with inline error handling. Product decision needed before launch: label or gate unverified providers. See `backend-to-frontend.md` Frontend Request Response section.
 
 ---
 
@@ -94,20 +71,9 @@ For each unconfigured provider: confirm whether it is safe to show the button to
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** Draft Assistant (`/draft`)
-**Priority:** Medium — `/draft` is now a public route, backend status unknown
+**Priority:** ~~Medium~~ **Resolved 2026-05-25**
 
-**Frontend need:**
-
-`/draft` is now a public route (no auth required). The DraftAssistant page calls backend endpoints for recommendations.
-
-**Requested from Codex:**
-
-Confirm which endpoint(s) Draft Assistant calls and whether they require auth. Specifically:
-- What is the Draft Assistant endpoint path and method?
-- Is auth required on that endpoint?
-- If auth is currently required, can it be opened to unauthenticated callers the same way `POST /api/trade/compare` was opened in the Stage 1.5 pass?
-
-Draft Assistant is free this season. Unauthenticated access should work. If the endpoint requires auth today, this is a blocking gap for the public `/draft` route.
+**Resolution:** Both Draft Assistant endpoints are public with no auth required. `POST /api/draft-assistant/recommendations` and `GET /api/draft-assistant/adp` do not require auth. `GET /api/draft-assistant/adp` optionally enriches with Yahoo ADP if an auth header is present but degrades gracefully without it. No code change needed for public `/draft`. See `backend-to-frontend.md` Frontend Request Response section.
 
 ---
 
@@ -116,20 +82,160 @@ Draft Assistant is free this season. Unauthenticated access should work. If the 
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** ConnectLeague screen — ESPN card
-**Priority:** Low — affects ESPN visibility in production builds
+**Priority:** ~~Low~~ **Resolved 2026-05-25**
+
+**Resolution:** Codex recommends keeping `VITE_ESPN_ENABLED=false` in production unless Justin explicitly enables it. ESPN endpoint exists and returns safe error codes but remains fragile due to user-copied cookie dependency. If enabled, UI copy should frame ESPN as guided/manual connection. See `backend-to-frontend.md` Frontend Request Response section.
+
+---
+
+### Request 5 — Dashboard summary contract for app shell
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** App shell / dashboard (`/football`)
+**Priority:** ~~High~~ **Resolved 2026-05-24**
+
+**Resolution:** Mount path confirmed as `GET /api/dashboard/summary` (visible from `src/routes/dashboard.js`). All status values clarified by Justin and Codex. Waiver Wire and Omen gate behavior documented in `backend-to-frontend.md` Dashboard And Omen Gate Contract section. Frontend has enough to build the `/football` app shell.
+
+---
+
+### Request 6 — Omen subscription gate clarification
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Omen / MVP Move (`/omen`)
+**Priority:** ~~High~~ **Resolved 2026-05-24**
+
+**Resolution — Justin:** Gate order is locked: auth → platform → subscription (UpgradeState) → live Omen only when `status === "ready"`. Subscription gate is real and must not be skipped even when platform is connected. See `backend-to-frontend.md` Dashboard And Omen Gate Contract section for the full status map.
+
+---
+
+### Request 7 — Draft Assistant UI contract
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Draft Assistant (`/draft`)
+**Priority:** High — building Draft Assistant UI; contract read from code, needs Codex confirmation before wiring
 
 **Frontend need:**
 
-The ESPN card in `ConnectLeague.jsx` is hidden unless `VITE_ESPN_ENABLED=true` is set at build time (matching the existing behavior in `PlatformConnections.jsx`). If ESPN is already connected for a user, the card shows regardless of the flag.
+The frontend has read `src/routes/draftAssistant.js` and can see both endpoint contracts. This request documents what the frontend will build against and flags the gaps that need product decisions before launch.
 
-**Requested from Codex:**
+**Confirmed from code:**
 
-Confirm the intended build flag behavior for production:
-- Should `VITE_ESPN_ENABLED` be `true` in the production Oracle build?
-- Or should ESPN remain hidden in production until explicitly enabled?
-- Is the ESPN connect endpoint (`POST /api/platforms/espn/connect`) stable enough for production use, or is it still in a soft-launch / feature-gated state?
+`POST /api/draft-assistant/recommendations`
+- Auth: none required
+- Request body:
+```json
+{
+  "scoring_format": "ppr",
+  "draft_position": 5,
+  "round": 1,
+  "position_needs": ["RB", "WR"]
+}
+```
+- `scoring_format`: `ppr`, `half_ppr`, or `standard` — defaults to `ppr`
+- `draft_position`: integer > 0 — defaults to 5
+- `round`: integer > 0 — defaults to 1
+- `position_needs`: array of position strings (e.g. `["RB", "WR", "TE"]`)
 
-This does not require a code change — it is a deploy config decision. Respond with the intended flag value for the production build and the Oracle deploy environment.
+- Response shape:
+```json
+{
+  "feature": "draft_assistant",
+  "status": "mock_ready",
+  "mode": "mock",
+  "is_mock": true,
+  "contract_version": "draft-assistant-recommendations.v1",
+  "generated_at": "ISO timestamp",
+  "scoring_format": "ppr",
+  "draft_position": 5,
+  "round": 1,
+  "position_needs": ["RB"],
+  "note": "Mock recommendations — live Draft Assistant requires session + platform data.",
+  "recommendations": [
+    {
+      "rank": 1,
+      "name": "Sample RB1",
+      "position": "RB",
+      "team": "EXA",
+      "player": { "name": "Sample RB1", "position": "RB", "team": "EXA" },
+      "recommendation_type": "roster_fit",
+      "headline": "Secure the sample lead back before the value tier breaks",
+      "rationale": "...",
+      "reasoning": ["..."],
+      "confidence_score": 84,
+      "risk_level": "low",
+      "vorp_score": 18.6
+    }
+  ]
+}
+```
+
+`GET /api/draft-assistant/adp`
+- Auth: none required (optional Yahoo enrichment via `Authorization` header)
+- Query params: `format` (ppr/half-ppr/standard, required), `teams` (integer 1–20, required)
+- Dev/no-Redis: returns mock ADP
+- Prod + Redis: attempts live Yahoo ADP, falls back to mock on failure
+
+**Questions for Codex:**
+
+1. `is_mock: true` is always present in the current `/recommendations` response. Should the frontend show a MockBanner/preview label on all Draft Assistant output until live data is available? Or does the `note` field cover this sufficiently?
+
+2. What is the shape of the ADP response? `buildMockAdpResponse` is imported from `src/services/adp.js` — the frontend needs to know the response shape to render the ADP table. Please document the ADP response shape in `backend-to-frontend.md`.
+
+3. Is there a player roster / available players list endpoint, or does Draft Assistant operate purely from a position-needs + ADP model? The UI input design depends on whether users enter picked players or just position needs.
+
+4. `recommendation_type` has four values: `best_available`, `roster_fit`, `value_pick`, `risk_adjusted`. Should the UI display these as labels on each recommendation card?
+
+**Frontend states required:**
+- loading (POST in flight)
+- success with `is_mock: true` (current default — show MockBanner)
+- success with `is_mock: false` (future live state)
+- empty (no recommendations returned)
+- error (network/server failure)
+
+---
+
+### Request 8 — Omen context: how does the frontend populate the MVP Move request
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Omen / MVP Move (`/omen`)
+**Priority:** High — building Omen.jsx; need to know whether backend infers context or frontend must supply it
+
+**Frontend need:**
+
+`POST /api/omen/mvp-move` requires `platform`, `league_id`, `team_id`, `season`, `week`, `scoring_format`. The Frontend Alignment Audit in this file notes that the mounted Omen "lets the backend infer platform, league, team, and week where possible." But the frontend needs to know exactly which fields it must supply vs. which the backend can infer from auth context.
+
+**Questions for Codex:**
+
+1. Can the backend infer `platform`, `league_id`, `team_id`, `season`, `week`, and `scoring_format` entirely from the user's auth session and connected platform data — or must the frontend pass them explicitly?
+
+2. If a user has leagues on multiple platforms (e.g. Sleeper + Yahoo): does the backend pick the "primary" league, or does the frontend need to let the user choose a platform and league before calling the endpoint?
+
+3. Does the backend know the current NFL week, or must the frontend pass `week`? If the frontend must supply it, is there an endpoint to get the current season and week?
+
+4. If a user has one connected league, is the minimal valid request just:
+```json
+{
+  "platform": "sleeper",
+  "league_id": "league-1",
+  "scoring_format": "ppr",
+  "season": 2026,
+  "week": 8
+}
+```
+...and the backend fills in `team_id` and all signal fields from stored context?
+
+**Frontend design this drives:**
+
+- If backend infers all context: Omen screen needs no configuration UI — just a "Get my MVP Move" button.
+- If frontend must supply week: Omen needs a week picker.
+- If user can have multiple leagues: Omen needs a league/platform selector before the call.
+- The simpler the answer, the faster the build.
+
+---
 
 ## Frontend Alignment Audit
 

@@ -7,7 +7,7 @@ import Football from '../pages/Football';
 import Landing from '../pages/Landing.jsx';
 import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
-import Omen from '../pages/Omen.jsx';
+import OmenPage from '../pages/OmenPage.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
 
 export default function AppRoutes() {
@@ -43,7 +43,7 @@ export default function AppRoutes() {
         path="/omen"
         element={
           <ProtectedRoute>
-            <Omen />
+            <OmenPage />
           </ProtectedRoute>
         }
       />

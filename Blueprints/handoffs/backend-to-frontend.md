@@ -740,6 +740,179 @@ Request 4 - ESPN card build flag clarification:
 - Production recommendation: keep `VITE_ESPN_ENABLED=false` unless Justin explicitly wants ESPN visible as a soft-launch guided connection.
 - If enabled in production, UI copy should frame ESPN as guided/manual connection, not low-friction OAuth.
 
+## Dashboard And Omen Gate Contract
+
+Date: 2026-05-25
+
+Owner: Codex/backend
+
+Feature: Responses to Claude Requests 5 and 6
+
+Status: Contract updated. Omen is Pro/paid.
+
+Dashboard summary endpoint:
+
+- Confirmed endpoint: `GET /api/dashboard/summary`.
+- Auth: Supabase bearer token required.
+- Contract version: `dashboard-summary.v1`.
+- This is the app-shell source of truth for dashboard tool tiles and Omen gate state.
+
+Omen product decision:
+
+- Omen / Most Valuable Play is Pro/paid.
+- Omen requires auth, a usable platform/league path, and active subscription.
+- Frontend should show UpgradeState before trying live Omen when subscription is missing.
+- Frontend should not call non-mock `POST /api/omen/mvp-move` until dashboard/platform/subscription gates are satisfied.
+
+Dashboard Omen tool statuses:
+
+- `tools.omen_of_the_week.mode` is now always `pro`.
+- `status: "ready"` is reserved for the future live MVP Move route when platform context, subscription, and the live engine are all present.
+- `status: "needs_platform"` means no usable connected league exists. Show "Connect a league" and link to `/account/connect`.
+- `status: "needs_subscription"` means a usable platform path exists, but the user is not subscribed. Show UpgradeState.
+- `status: "pending_live_engine"` means platform/subscription gates may be satisfied, but the current live Omen MVP Move route cannot honestly produce a real recommendation yet. Show a connected/subscribed-but-not-ready state, not fake advice.
+
+Current backend behavior:
+
+```json
+{
+  "tools": {
+    "omen_of_the_week": {
+      "available": false,
+      "mode": "pro",
+      "status": "needs_subscription"
+    }
+  }
+}
+```
+
+Frontend gate order:
+
+1. No session: `ProtectedRoute` sends user to `/login`.
+2. `tools.omen_of_the_week.status === "needs_platform"`: show DisconnectedState with `/account/connect` CTA.
+3. `tools.omen_of_the_week.status === "needs_subscription"`: show UpgradeState.
+4. `tools.omen_of_the_week.status === "pending_live_engine"`: show connected-but-not-ready state.
+5. `tools.omen_of_the_week.status === "ready"`: show Omen CTA or call live Omen path. Backend does not emit this status yet for the MVP Move route.
+
+**Product confirmation — Justin 2026-05-24:** Gate order above is locked. Claude can build Omen gate logic without ambiguity. Auth first, then platform, then subscription (UpgradeState), then live Omen only when `status === "ready"`. Do not shortcut the subscription gate even if platform is connected.
+
+Waiver Wire:
+
+- `tools.waiver_wire` remains Pro.
+- Show as a locked/upsell tile when `needs_subscription`.
+- Show platform-disconnected copy when `needs_platform`.
+
+`POST /api/omen/mvp-move` recovery:
+
+- Non-mock live calls still fail closed with `live_omen_requires_connected_league_context` while the live route is not wired.
+- If frontend sees that error, safest recovery is to refetch `GET /api/dashboard/summary` and `GET /api/platforms`, then route according to the dashboard Omen status above.
+- Explicit mock/dev previews remain allowed only when visibly labeled as preview/mock.
+
+## Draft Assistant And Omen Context Response
+
+Date: 2026-05-25
+
+Owner: Codex/backend
+
+Feature: Responses to Claude Requests 7 and 8
+
+Status: Responded. No full UI work required.
+
+Request 7 - Draft Assistant UI contract:
+
+- `POST /api/draft-assistant/recommendations` is public and currently always returns `is_mock: true`, `mode: "mock"`, and `status: "mock_ready"`.
+- Frontend should show a visible MockBanner/preview label for all current Draft Assistant recommendation output. The `note` field is not enough by itself for launch honesty.
+- Empty state: if `recommendations` is missing or an empty array, show "No draft recommendation is available yet" rather than inventing a card.
+- Error state: network/server failure should show retry copy and preserve the user's selected scoring format, draft position, round, and position needs.
+
+Draft recommendation card labels:
+
+- `recommendation_type` should be displayed as a small label/badge.
+- Suggested labels:
+  - `best_available`: Best available
+  - `roster_fit`: Roster fit
+  - `value_pick`: Value pick
+  - `risk_adjusted`: Risk adjusted
+
+Draft Assistant ADP endpoint:
+
+- Endpoint: `GET /api/draft-assistant/adp?format=ppr&teams=12`
+- Auth: not required. Authorization is optional and only used for Yahoo enrichment when available.
+- `format` accepts `ppr`, `half-ppr`, or `standard`. The backend also normalizes `half_ppr` to `half-ppr`.
+- `teams` must be an integer from 1 to 20.
+
+ADP response shape:
+
+```json
+{
+  "is_mock": true,
+  "format": "ppr",
+  "teams": 12,
+  "note": "Mock ADP data - live ADP ingestion requires production Redis and source availability.",
+  "sources": {
+    "ffc": {
+      "fetched_at": "2026-05-25T00:00:00.000Z",
+      "attribution": "Fantasy Football Calculator",
+      "attribution_url": "https://fantasyfootballcalculator.com",
+      "players": [
+        {
+          "name": "Sample RB1",
+          "position": "RB",
+          "team": "EXA",
+          "adp": 8.2,
+          "player_id": "ffc_mock_1"
+        }
+      ]
+    },
+    "yahoo": {
+      "fetched_at": "2026-05-25T00:00:00.000Z",
+      "attribution": "Yahoo ADP",
+      "players": []
+    },
+    "mfl": {
+      "fetched_at": "2026-05-25T00:00:00.000Z",
+      "attribution": "MyFantasyLeague",
+      "players": []
+    }
+  }
+}
+```
+
+ADP rendering guidance:
+
+- Render ADP by source first (`ffc`, `yahoo`, `mfl`), or merge client-side only if the UI labels which source each row came from.
+- Player row fields are `player_id`, `name`, `position`, `team`, and `adp`.
+- If `is_mock: true`, label the table as preview/mock data.
+- If one source has an empty `players` array, show that source as unavailable instead of treating the whole endpoint as failed.
+
+Draft Assistant data model:
+
+- There is no available-player draft board endpoint yet.
+- There is no picked-player roster/draft-state endpoint yet.
+- Current Draft Assistant operates from user-entered `position_needs`, `draft_position`, `round`, scoring format, and ADP context.
+- Do not design a real-time draft room or picked-player tracker against the current backend.
+
+Request 8 - Omen context / MVP Move request:
+
+- The backend does not currently infer `platform`, `league_id`, `team_id`, `season`, `week`, and `scoring_format` for the `POST /api/omen/mvp-move` live MVP contract.
+- Non-mock `POST /api/omen/mvp-move` intentionally fails closed with `409 live_omen_requires_connected_league_context`.
+- The older internal live helper can build a Yahoo-backed Omen-like response, but it is not the same `omen_mvp_move` envelope and should not be wired by frontend as the final MVP Move contract.
+- Therefore, frontend should not build platform/week/team selectors for live MVP Move yet. That would create UI around a backend path that is not approved.
+
+Current Omen frontend guidance:
+
+- Use `GET /api/dashboard/summary` for Omen gate state.
+- Use `GET /api/platforms` for connection state and connect/reconnect CTAs.
+- If Omen status is `needs_platform`, show DisconnectedState.
+- If Omen status is `needs_subscription`, show UpgradeState.
+- If Omen status is `pending_live_engine`, show connected/subscribed-but-not-ready copy.
+- Do not call non-mock `POST /api/omen/mvp-move` unless `tools.omen_of_the_week.status === "ready"`. Backend does not emit `ready` yet for MVP Move.
+
+Future live MVP Move contract requirement:
+
+- Backend should add a separate live endpoint or upgrade `POST /api/omen/mvp-move` so it performs auth, subscription, primary league selection, current week resolution, and returns the `omen_mvp_move` envelope.
+- Until that exists, frontend should keep Omen paid/locked/not-ready rather than faking recommendations.
+
 ## Response Template
 
 ```text
