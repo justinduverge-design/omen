@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase.js';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -44,9 +43,9 @@ function Header() {
           </a>
           <a
             className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C]"
-            href="/football"
+            href="/login"
           >
-            Open App →
+            Sign In →
           </a>
         </div>
       </div>
@@ -195,7 +194,7 @@ function TradeAnalyzerHeroCard() {
           </p>
           <Button
             className="w-full bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-            href="/football"
+            href="/trade"
           >
             Analyze Your Trade <Arrow />
           </Button>
@@ -244,7 +243,7 @@ function OmenMiniCard() {
         </div>
         <a
           className="mt-4 block text-center text-xs uppercase tracking-[0.24em] text-[#C9A44C]/65 transition-colors hover:text-[#C9A44C]"
-          href="/football"
+          href="/login?next=/omen"
         >
           See your Omen →
         </a>
@@ -293,7 +292,7 @@ function DraftAssistantMiniCard() {
         </div>
         <a
           className="block text-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75"
-          href="/football"
+          href="/draft"
         >
           Open Draft Assistant →
         </a>
@@ -302,56 +301,21 @@ function DraftAssistantMiniCard() {
   );
 }
 
-// ─── Sign-in form (existing users) ───────────────────────────────────────────
+// ─── Sign-in shortcut (existing users) ───────────────────────────────────────
 
 function SignInForm() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleSignIn(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOtp({ email });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else {
-      setSent(true);
-    }
-  }
-
-  if (sent) {
-    return <p className="mt-4 text-xs text-[#F4EFE1]/50">Check your email for a sign-in link.</p>;
-  }
-
   return (
-    <form className="mt-4 flex flex-col gap-2" onSubmit={handleSignIn}>
+    <div className="mt-4">
       <p className="text-[10px] uppercase tracking-[0.22em] text-[#F4EFE1]/32">
-        Already have an account? Sign in
+        Already have an account?
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          aria-label="Email address"
-          className="min-h-[42px] flex-1 rounded-md border border-white/10 bg-[#080604] px-4 text-sm text-[#F4EFE1] placeholder-[#F4EFE1]/28 outline-none transition-colors focus:border-[#C9A44C]/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C9A44C]/40"
-          placeholder="you@example.com"
-          required
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button
-          className="inline-flex min-h-[42px] items-center justify-center rounded-md border border-[#C9A44C]/28 bg-transparent px-5 text-sm font-semibold text-[#C9A44C] transition-colors hover:border-[#C9A44C]/55 hover:bg-[#C9A44C]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C9A44C]/50 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={loading}
-          type="submit"
-        >
-          {loading ? 'Sending…' : 'Sign in'}
-        </button>
-      </div>
-      {error && <p className="text-xs text-red-300">{error}</p>}
-    </form>
+      <a
+        className="mt-2 inline-flex min-h-[42px] items-center rounded-md border border-[#C9A44C]/28 px-5 text-sm font-semibold text-[#C9A44C] transition-colors hover:border-[#C9A44C]/55 hover:bg-[#C9A44C]/10"
+        href="/login"
+      >
+        Sign in →
+      </a>
+    </div>
   );
 }
 
@@ -554,7 +518,7 @@ export default function Landing() {
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button
                 className="bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-                href="/football"
+                href="/trade"
               >
                 Run Your Trade <Arrow />
               </Button>
