@@ -11,12 +11,13 @@
 #   VITE_API_BASE_URL       - optional Vite API base URL override; blank uses same-origin /api
 #
 # Flow:
-#   1. Build API and cron images on GitHub Actions
-#   2. Push images to GHCR
-#   3. SSH to Oracle, git pull, validate Infisical env, pull images
-#   4. Recreate containers with --no-build
-#   5. Wait + smoke-test /api/health
-#   6. Fail the workflow if health check fails so you get a red X on GitHub
+#   1. Run backend tests, audit, and frontend build checks
+#   2. Build API and cron images on GitHub Actions
+#   3. Push images to GHCR
+#   4. SSH to Oracle, git pull, validate Infisical env, pull images
+#   5. Recreate containers with --no-build
+#   6. Wait + smoke-test /api/health
+#   7. Fail the workflow if health check fails so you get a red X on GitHub
 #
 # SY0-701 4.7 / 4.8: change-management with audit trail (git history +
 # Actions run logs) and rollback (revert commit -> auto-redeploy old).
@@ -35,8 +36,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run backend tests
+        run: npm test
+
+      - name: Run dependency audit
+        run: npm audit --audit-level=moderate
+
+      - name: Build primary frontend
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run build
+
+      - name: Build legacy client bundle
+        run: |
+          npm --prefix client ci
+          npm --prefix client run build
+
   build:
     runs-on: ubuntu-latest
+    needs: quality
     timeout-minutes: 20
     permissions:
       contents: read

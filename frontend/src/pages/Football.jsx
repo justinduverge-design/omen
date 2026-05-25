@@ -6,16 +6,12 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 import { apiFetch } from '../lib/api.js';
 import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
-import StartSit from './StartSit';
 import TradeAnalyzer from './TradeAnalyzer';
-import WaiverWire from './WaiverWire';
 
 const TABS = [
-  { id: 'draft', label: 'Draft Assistant' },
-  { id: 'omen', label: 'Omen of the Week' },
   { id: 'trade', label: 'Trade Analyzer' },
-  { id: 'start-sit', label: 'Start/Sit' },
-  { id: 'waiver', label: 'Waiver Wire' },
+  { id: 'omen', label: 'Omen of the Week' },
+  { id: 'draft', label: 'Draft Assistant' },
 ];
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
@@ -99,7 +95,7 @@ function PlatformStatusBar({ platforms, loading }) {
 }
 
 export default function Football() {
-  const [activeTab, setActiveTab] = useState('draft');
+  const [activeTab, setActiveTab] = useState('trade');
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
@@ -114,7 +110,6 @@ export default function Football() {
 
   const tools = summary?.tools;
   const omenStatus = tools?.omen_of_the_week?.status;
-  const waiverStatus = tools?.waiver_wire?.status;
 
   function renderTab(id) {
     switch (id) {
@@ -148,34 +143,6 @@ export default function Football() {
       case 'trade':
         return <TradeAnalyzer />;
 
-      case 'start-sit':
-        return <StartSit />;
-
-      case 'waiver':
-        if (summaryLoading) {
-          return <div className="h-32 animate-pulse rounded-xl bg-slate-800/50" />;
-        }
-        if (waiverStatus === 'needs_platform') {
-          return (
-            <DisconnectedState
-              eyebrow="Waiver Wire"
-              title="Connect Yahoo to access waiver picks"
-              message="Waiver wire rankings require a linked Yahoo account. Connect Yahoo to unlock VORP-ranked pickups for your roster."
-            />
-          );
-        }
-        if (waiverStatus === 'needs_subscription') {
-          return (
-            <EmptyState
-              eyebrow="Pro Feature"
-              title="Waiver Wire Optimizer"
-              message="Waiver wire rankings require a Corvus Pro subscription. Upgrade to access VORP-ranked pickups for your roster."
-              cta={{ href: '/account', label: 'Upgrade to Pro' }}
-            />
-          );
-        }
-        return <WaiverWire />;
-
       default:
         return null;
     }
@@ -191,7 +158,8 @@ export default function Football() {
           Hall of Records
         </h1>
         <p className="mt-4 text-sm leading-6 text-slate-400">
-          Your weekly omen, lineup decisions, and trade intelligence — grounded in defensible math.
+          Start with a trade check, prepare for the draft, then let Omen of the Week fold
+          start/sit and waiver choices into one plain-English weekly move.
         </p>
       </section>
 

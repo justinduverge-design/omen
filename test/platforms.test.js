@@ -91,6 +91,8 @@ function makeSupabase(state) {
 function loadPlatformsRouter({
   rows = [],
   sleeperUser,
+  sleeperLeagues,
+  sleeperRosterInfo,
   sleeperError,
   espnValid = true,
 } = {}) {
@@ -131,6 +133,22 @@ function loadPlatformsRouter({
             username,
             display_name: username,
           };
+        },
+        fetchSleeperLeagues: async () => sleeperLeagues || [{
+          league_id: "league-1",
+          name: "The Bird Board",
+          season: "2026",
+          scoring_settings: { rec: 1 },
+        }],
+        fetchSleeperRoster: async () => sleeperRosterInfo || {
+          roster_id: 7,
+          users: [{
+            user_id: "sleeper-user-1",
+            username: "sleepy",
+            display_name: "Sleepy",
+            metadata: { team_name: "Old School Whistles" },
+          }],
+          roster: { roster_id: 7, owner_id: "sleeper-user-1" },
         },
       };
     }
@@ -227,6 +245,74 @@ test("GET /api/platforms/status returns connected true when rows have credential
   assert.equal(res.body.connections.espn.connected, true);
 });
 
+test("GET /api/platforms returns UX contract with manual and selected league metadata", async () => {
+  const { app } = buildApp({
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "sleeper",
+        is_active: true,
+        platform_username: "sleepy",
+        league_id: "league-1",
+      },
+      {
+        user_id: "test-slops-user",
+        platform: "espn",
+        is_active: true,
+        espn_secret_id: "espn-secret",
+        swid_secret_id: "swid-secret",
+        league_id: "12345",
+        espn_team_id: "7",
+      },
+    ],
+  });
+  const res = await request(app, "/api/platforms");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.platforms.sleeper.status, "connected");
+  assert.equal(res.body.platforms.sleeper.username, "sleepy");
+  assert.deepEqual(res.body.platforms.sleeper.leagues, [{
+    id: "league-1",
+    name: null,
+    season: null,
+    scoring_format: null,
+    team_id: null,
+    team_name: null,
+    selected: true,
+  }]);
+  assert.equal(res.body.platforms.espn.status, "connected");
+  assert.equal(res.body.platforms.espn.leagues[0].team_id, "7");
+  assert.deepEqual(res.body.platforms.manual, {
+    platform: "manual",
+    status: "disconnected",
+    connected: false,
+    team_name: null,
+    leagues: [],
+  });
+});
+
+test("POST /api/platforms/sleeper/resolve returns leagues for username-first flow", async () => {
+  const { app } = buildApp();
+  const res = await request(app, "/api/platforms/sleeper/resolve", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", season: 2026 },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "resolved");
+  assert.equal(res.body.platform, "sleeper");
+  assert.equal(res.body.username, "sleepy");
+  assert.equal(res.body.sleeper_user_id, "sleeper-user-1");
+  assert.deepEqual(res.body.leagues, [{
+    id: "league-1",
+    name: "The Bird Board",
+    season: 2026,
+    scoring_format: "ppr",
+    team_id: "7",
+    team_name: "Old School Whistles",
+  }]);
+});
+
 test("POST /api/sleeper/connect returns 400 for nonexistent username", async () => {
   const err = new Error("not found");
   err.status = 404;
@@ -248,7 +334,8 @@ test("POST /api/espn/connect returns 422 if espn_s2 or swid missing", async () =
   });
 
   assert.equal(res.status, 422);
-  assert.equal(res.body.error, "espn_s2 and swid required");
+  assert.equal(res.body.status, "error");
+  assert.equal(res.body.code, "espn_cookies_required");
 });
 
 test("DELETE /api/platforms/invalid returns 400", async () => {

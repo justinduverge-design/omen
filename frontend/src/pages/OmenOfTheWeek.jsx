@@ -22,6 +22,22 @@ const SIGNAL_STYLES = {
   unavailable: 'border-slate-600 bg-slate-800/50 text-slate-500',
 };
 
+function buildOmenRequest() {
+  return {
+    season: new Date().getFullYear(),
+    scoring_format: 'ppr',
+    decision_scope: ['start_sit', 'waiver_pickup', 'trade_suggestion'],
+    include_signals: {
+      weather: true,
+      travel_home_away: true,
+      game_time_tv: true,
+      matchup_dvp: true,
+      llm_reasoning: true,
+    },
+    use_mock_data: false,
+  };
+}
+
 function useOmenData() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,8 +49,7 @@ function useOmenData() {
     try {
       const result = await apiFetch('/api/omen/mvp-move', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: buildOmenRequest(),
       });
       setData(result);
     } catch (err) {
@@ -438,6 +453,17 @@ function isMockMode(data) {
   return statuses.length > 0 && statuses.every((status) => status === 'mock' || status === 'stub');
 }
 
+function hasPreviewSignals(data) {
+  if (data?.mode === 'mock') return true;
+  if (data?.warnings?.some((warning) => /mock|stub|preview/i.test(String(warning)))) {
+    return true;
+  }
+
+  return Object.values(data?.signals || {}).some((signal) =>
+    signal?.status === 'mock' || signal?.status === 'stub'
+  );
+}
+
 function reasoningFromExplanation(explanation) {
   if (!explanation) return [];
 
@@ -487,12 +513,13 @@ export default function OmenOfTheWeek() {
 
   const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
   const mockMode = isMockMode(data);
+  const previewMode = hasPreviewSignals(data);
   const livePlatformLabel = !mockMode && platform?.name ? platformLabel(platform.name) : '';
 
   return (
     <div className="space-y-6">
-      {mockMode && (
-        <MockBanner message="Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins." />
+      {previewMode && (
+        <MockBanner message="Preview Mode - mock and stub signals are labeled below. Treat the recommendation as directional until every decision-critical signal is live." />
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">

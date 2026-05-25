@@ -59,7 +59,7 @@ RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile
+RUN npm ci
 
 COPY src/ ./src/
 

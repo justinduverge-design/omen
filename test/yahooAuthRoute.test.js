@@ -29,12 +29,46 @@ function makeSupabase(state) {
           state.upserts.push(payload);
           return Promise.resolve({ data: null, error: null });
         },
+        select() {
+          const query = {
+            filters: [],
+            eq(field, value) {
+              this.filters.push({ field, value });
+              return this;
+            },
+            maybeSingle() {
+              const row = state.oauthRows.find((candidate) =>
+                this.filters.every(({ field, value }) => candidate[field] === value)
+              );
+              return Promise.resolve({ data: row || null, error: null });
+            },
+          };
+          return query;
+        },
+        delete() {
+          const query = {
+            filters: [],
+            eq(field, value) {
+              this.filters.push({ field, value });
+              return this;
+            },
+            then(resolve, reject) {
+              const deleted = state.oauthRows.filter((candidate) =>
+                this.filters.every(({ field, value }) => candidate[field] === value)
+              );
+              state.deletes.push(...deleted);
+              state.oauthRows = state.oauthRows.filter((candidate) => !deleted.includes(candidate));
+              return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+            },
+          };
+          return query;
+        },
       };
     },
   };
 }
 
-function loadYahooRouter() {
+function loadYahooRouter({ oauthRows = [] } = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
@@ -43,7 +77,11 @@ function loadYahooRouter() {
   const state = {
     authTokens: [],
     upserts: [],
+    oauthRows: oauthRows.map((row) => ({ ...row })),
+    deletes: [],
     authUrlStates: [],
+    exchanges: [],
+    persists: [],
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -62,7 +100,12 @@ function loadYahooRouter() {
           return `https://yahoo.example/oauth?state=${stateValue}`;
         },
         exchangeYahooCode: async () => {
-          throw new Error("callback not exercised in yahoo auth route tests");
+          state.exchanges.push("code");
+          return {
+            access_token: "yahoo-access-token",
+            refresh_token: "yahoo-refresh-token",
+            expires_in: 3600,
+          };
         },
       };
     }
@@ -71,8 +114,8 @@ function loadYahooRouter() {
         getAuthenticatedYahooClient: async () => {
           throw new Error("roster path not exercised in yahoo auth route tests");
         },
-        persistYahooTokens: async () => {
-          throw new Error("callback not exercised in yahoo auth route tests");
+        persistYahooTokens: async (userId, tokens, leagueId) => {
+          state.persists.push({ userId, tokens, leagueId });
         },
       };
     }
@@ -94,9 +137,9 @@ function loadYahooRouter() {
   }
 }
 
-function buildApp() {
+function buildApp(options) {
   const app = express();
-  const loaded = loadYahooRouter();
+  const loaded = loadYahooRouter(options);
   app.use(express.json());
   app.use("/api/yahoo", loaded.router);
   app.use((err, _req, res, _next) => {
@@ -150,4 +193,31 @@ test("GET /api/yahoo/auth uses authenticated user id for oauth_state", async () 
   assert.equal(state.upserts[0].verifier, "league-1");
   assert.equal(state.authUrlStates[0], state.upserts[0].state);
   assert.equal(res.headers.get("location"), `https://yahoo.example/oauth?state=${state.upserts[0].state}`);
+});
+
+test("GET /api/yahoo/callback redirects back to account connect onboarding", async () => {
+  const { app, state } = buildApp({
+    oauthRows: [{
+      state: "valid-state",
+      platform: "yahoo",
+      user_id: "test-slops-user",
+      verifier: "league-1",
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    }],
+  });
+  const res = await request(app, "/api/yahoo/callback?code=code&state=valid-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "http://localhost:3000/account/connect?connected=yahoo");
+  assert.equal(state.exchanges.length, 1);
+  assert.deepEqual(state.persists[0], {
+    userId: "test-slops-user",
+    tokens: {
+      access_token: "yahoo-access-token",
+      refresh_token: "yahoo-refresh-token",
+      expires_in: 3600,
+    },
+    leagueId: "league-1",
+  });
+  assert.equal(state.deletes[0].state, "valid-state");
 });

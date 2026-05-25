@@ -3,7 +3,7 @@
 # ════════════════════════════════════════════════════════════════
 # Two services:
 #   api  — Express server (platform_integration.js) on port 3000
-#   cron — Worker that runs tuesday_cron.js on a schedule
+#   cron — Worker that runs corvus_tuesday_cron.js on a schedule
 #
 # Usage:
 #   docker-compose up --build          # start both services
@@ -73,7 +73,7 @@ services:
 
   # ── CRON SERVICE ───────────────────────────────────────────────
   # Stays alive permanently using a lightweight Alpine cron daemon.
-  # The actual tuesday_cron.js runs at 6:00 AM EST every Tuesday.
+  # The actual corvus_tuesday_cron.js runs at 6:00 AM EST every Tuesday.
   # Logs are written to /var/log/corvus_cron.log inside container.
   cron:
     image: ghcr.io/justinduverge-design/corvus-cron:main
@@ -90,6 +90,8 @@ services:
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:?SUPABASE_SERVICE_KEY is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       REDIS_TOKEN: ${REDIS_TOKEN:?REDIS_TOKEN is required}
+      CORVUS_CRON_SCORING_ENABLED: ${CORVUS_CRON_SCORING_ENABLED:-false}
+      SPORTRADAR_API_KEY: ${SPORTRADAR_API_KEY}
       YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID:?YAHOO_CLIENT_ID is required}
       YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET:?YAHOO_CLIENT_SECRET is required}
       YAHOO_REDIRECT_URI: ${YAHOO_REDIRECT_URI:?YAHOO_REDIRECT_URI is required}

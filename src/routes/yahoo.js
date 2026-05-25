@@ -75,7 +75,7 @@ router.get("/callback", async (req, res, next) => {
     await persistYahooTokens(oauthRow.user_id, tokens, oauthRow.verifier || null);
     await supabase.from("oauth_state").delete().eq("state", state);
 
-    return res.redirect(`${config.appBaseUrl}/football?connected=yahoo`);
+    return res.redirect(`${config.appBaseUrl}/account/connect?connected=yahoo`);
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);

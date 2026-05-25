@@ -32,7 +32,9 @@ create table if not exists public.users (
   platform      text,
   league_id     text,
   is_subscribed boolean default false,
-  created_at    timestamptz default now()
+  push_token     text,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
 );
 
 create table if not exists public.consent_records (
@@ -74,6 +76,7 @@ alter table public.platform_connections
   add column if not exists refresh_secret_id  uuid,   -- Vault secret_id
   add column if not exists token_expires_at   timestamptz,
   add column if not exists espn_secret_id     uuid,   -- Vault secret_id
+  add column if not exists swid_secret_id     uuid,   -- Vault secret_id
   add column if not exists espn_swid          text,
   add column if not exists espn_team_id       text,
   add column if not exists updated_at         timestamptz default now();
@@ -90,6 +93,14 @@ create table if not exists public.moves (
   target_player text,
   vorp_score    numeric,
   followed      boolean,
+  scoring       text default 'PPR',
+  platform      text,
+  league_id     text,
+  eff           integer,
+  result        text,
+  scored_at     timestamptz,
+  user_stars    integer,
+  user_note     text,
   outcome       text default 'pending',
   created_at    timestamptz default now()
 );
@@ -204,6 +215,23 @@ create policy oauth_self_delete on public.oauth_credentials for delete using    
 drop policy if exists platforms_self_select on public.platform_connections;
 create policy platforms_self_select on public.platform_connections for select using (auth.uid() = user_id);
 
+-- Column-level grants keep client-visible connection status useful without
+-- exposing Vault secret UUIDs. Server routes use service_role and bypass this.
+revoke all on table public.platform_connections from anon, authenticated;
+grant select (
+  id,
+  user_id,
+  platform,
+  league_id,
+  is_active,
+  created_at,
+  platform_user_id,
+  platform_username,
+  token_expires_at,
+  espn_team_id,
+  updated_at
+) on table public.platform_connections to authenticated;
+
 -- moves -- full self-access
 drop policy if exists moves_self_all on public.moves;
 create policy moves_self_all on public.moves for all
@@ -246,7 +274,8 @@ begin
     where n.nspname = 'public'
       and p.proname in ('vault_create_secret',
                         'vault_decrypt_secret',
-                        'vault_update_secret')
+                        'vault_update_secret',
+                        'vault_delete_secret')
   loop
     execute r.stmt;
   end loop;
@@ -298,12 +327,25 @@ begin
 end;
 $$;
 
+create or replace function public.vault_delete_secret(secret_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, vault
+as $$
+begin
+  delete from vault.secrets where id = secret_id;
+end;
+$$;
+
 revoke all on function public.vault_create_secret(text, text, text)  from public;
 revoke all on function public.vault_decrypt_secret(uuid)             from public;
 revoke all on function public.vault_update_secret(uuid, text)        from public;
-grant execute on function public.vault_create_secret(text, text, text) to authenticated, service_role;
-grant execute on function public.vault_decrypt_secret(uuid)            to authenticated, service_role;
-grant execute on function public.vault_update_secret(uuid, text)       to authenticated, service_role;
+revoke all on function public.vault_delete_secret(uuid)               from public;
+grant execute on function public.vault_create_secret(text, text, text) to service_role;
+grant execute on function public.vault_decrypt_secret(uuid)            to service_role;
+grant execute on function public.vault_update_secret(uuid, text)       to service_role;
+grant execute on function public.vault_delete_secret(uuid)             to service_role;
 
 
 -- =================================================================

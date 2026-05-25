@@ -51,6 +51,57 @@ function platformStatus(rows) {
   };
 }
 
+function selectedLeagueFromConnection(row) {
+  if (!row?.league_id) return [];
+  return [{
+    id: String(row.league_id),
+    name: null,
+    season: null,
+    scoring_format: null,
+    team_id: row.espn_team_id ? String(row.espn_team_id) : null,
+    team_name: null,
+    selected: true,
+  }];
+}
+
+function platformStatusContract(rows) {
+  const byPlatform = new Map((rows || []).map((row) => [row.platform, row]));
+  const legacy = platformStatus(rows);
+  const sleeper = byPlatform.get("sleeper");
+  const espn = byPlatform.get("espn");
+
+  return {
+    platforms: {
+      sleeper: {
+        platform: "sleeper",
+        status: legacy.sleeper.connected ? "connected" : "disconnected",
+        connected: legacy.sleeper.connected,
+        username: legacy.sleeper.username,
+        leagues: selectedLeagueFromConnection(sleeper),
+      },
+      yahoo: {
+        platform: "yahoo",
+        status: legacy.yahoo.connected ? "connected" : "disconnected",
+        connected: legacy.yahoo.connected,
+        leagues: selectedLeagueFromConnection(byPlatform.get("yahoo")),
+      },
+      espn: {
+        platform: "espn",
+        status: legacy.espn.connected ? "connected" : "disconnected",
+        connected: legacy.espn.connected,
+        leagues: selectedLeagueFromConnection(espn),
+      },
+      manual: {
+        platform: "manual",
+        status: "disconnected",
+        connected: false,
+        team_name: null,
+        leagues: [],
+      },
+    },
+  };
+}
+
 function secretIdFromVaultResult(data) {
   if (typeof data === "string") return data;
   if (data?.id) return data.id;
@@ -94,6 +145,48 @@ function isSleeperNotFound(err) {
   return err?.status === 404 || err?.response?.status === 404;
 }
 
+function currentSeason() {
+  return new Date().getFullYear();
+}
+
+function sleeperScoringFormat(league) {
+  const recValue = Number(league?.scoring_settings?.rec);
+  if (recValue === 0) return "standard";
+  if (recValue === 0.5) return "half_ppr";
+  return "ppr";
+}
+
+function sleeperTeamName(rosterInfo, sleeperUserId) {
+  const users = Array.isArray(rosterInfo?.users) ? rosterInfo.users : [];
+  const user = users.find((leagueUser) => String(leagueUser.user_id) === String(sleeperUserId));
+  return user?.metadata?.team_name || user?.display_name || user?.username || null;
+}
+
+async function sleeperLeagueSummary(league, sleeperUserId) {
+  const leagueId = String(league?.league_id || league?.id || "").trim();
+  let teamId = null;
+  let teamName = null;
+
+  if (leagueId) {
+    try {
+      const rosterInfo = await sleeperAdapter.fetchSleeperRoster(leagueId, sleeperUserId);
+      teamId = rosterInfo?.roster_id == null ? null : String(rosterInfo.roster_id);
+      teamName = sleeperTeamName(rosterInfo, sleeperUserId);
+    } catch {
+      // League discovery should still return leagues even if roster lookup drifts.
+    }
+  }
+
+  return {
+    id: leagueId,
+    name: league?.name || null,
+    season: Number(league?.season) || currentSeason(),
+    scoring_format: sleeperScoringFormat(league),
+    team_id: teamId,
+    team_name: teamName,
+  };
+}
+
 async function validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId }) {
   const roster = await espnAdapter.buildNormalizedRoster(leagueId, espn_s2, swid, 1, {
     teamId: espnTeamId,
@@ -101,26 +194,76 @@ async function validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId }) {
   return roster && roster.source === "espn";
 }
 
+async function getPlatformConnectionRows(userId) {
+  const { data, error } = await supabase
+    .from("platform_connections")
+    .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id,league_id,espn_team_id")
+    .eq("user_id", userId);
+
+  if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
+  return data || [];
+}
+
+router.get("/", requireAuth, async (req, res, next) => {
+  try {
+    const rows = await getPlatformConnectionRows(req.user.id);
+    return res.json(platformStatusContract(rows));
+  } catch (e) {
+    logger.error("Platform status contract lookup failed", { err: e.message });
+    return next(e);
+  }
+});
+
 router.get("/status", requireAuth, async (req, res, next) => {
   try {
-    const { data, error } = await supabase
-      .from("platform_connections")
-      .select("platform,is_active,platform_username,token_secret_id,espn_secret_id,swid_secret_id")
-      .eq("user_id", req.user.id);
-
-    if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
-    return res.json(platformStatus(data));
+    const rows = await getPlatformConnectionRows(req.user.id);
+    return res.json(platformStatus(rows));
   } catch (e) {
     logger.error("Platform status lookup failed", { err: e.message });
     return next(e);
   }
 });
 
+router.post("/sleeper/resolve", requireAuth, async (req, res, next) => {
+  try {
+    const username = String(req.body?.sleeper_username || req.body?.username || "").trim();
+    const season = Number(req.body?.season) || currentSeason();
+    if (!username) return res.status(422).json({ error: "sleeper_username required" });
+
+    let sleeperUser;
+    try {
+      sleeperUser = await sleeperAdapter.fetchSleeperUser(username);
+    } catch (e) {
+      if (isSleeperNotFound(e)) {
+        return res.status(400).json({ error: "Sleeper username not found" });
+      }
+      throw e;
+    }
+
+    const leagues = await sleeperAdapter.fetchSleeperLeagues(sleeperUser.user_id, season);
+    const summaries = await Promise.all(
+      leagues.map((league) => sleeperLeagueSummary(league, sleeperUser.user_id))
+    );
+
+    return res.json({
+      status: "resolved",
+      platform: "sleeper",
+      username: sleeperUser.username || username,
+      sleeper_user_id: sleeperUser.user_id,
+      season,
+      leagues: summaries,
+    });
+  } catch (e) {
+    logger.error("Sleeper resolve failed", { err: e.message });
+    return next(e);
+  }
+});
+
 router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
   try {
-    const username = String(req.body?.username || "").trim();
+    const username = String(req.body?.sleeper_username || req.body?.username || "").trim();
     const leagueId = String(req.body?.league_id || "").trim();
-    if (!username) return res.status(422).json({ error: "username required" });
+    if (!username) return res.status(422).json({ error: "sleeper_username required" });
     if (!leagueId) return res.status(422).json({ error: "league_id required" });
 
     let sleeperUser;
@@ -144,7 +287,13 @@ router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
     }, { onConflict: "user_id,platform" });
 
     if (error) throw new Error(`Sleeper connection upsert failed: ${error.message}`);
-    return res.json({ connected: true, username: sleeperUser.username || username });
+    return res.json({
+      connected: true,
+      status: "connected",
+      platform: "sleeper",
+      username: sleeperUser.username || username,
+      league_id: leagueId,
+    });
   } catch (e) {
     logger.error("Sleeper connect failed", { err: e.message });
     return next(e);
@@ -164,17 +313,35 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
       : String(req.body.espn_team_id).trim() || null;
 
     if (!espn_s2 || !swid) {
-      return res.status(422).json({ error: "espn_s2 and swid required" });
+      return res.status(422).json({
+        status: "error",
+        code: "espn_cookies_required",
+        message: "ESPN_S2 and SWID are required.",
+      });
     }
     if (!leagueId) {
-      return res.status(422).json({ error: "league_id required" });
+      return res.status(422).json({
+        status: "error",
+        code: "espn_league_id_required",
+        message: "ESPN league ID is required.",
+      });
     }
 
     try {
       const valid = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
-      if (!valid) return res.status(400).json({ error: "ESPN credentials invalid or expired" });
+      if (!valid) {
+        return res.status(400).json({
+          status: "error",
+          code: "espn_cookies_invalid",
+          message: "ESPN did not accept those cookies. They may be expired or copied incorrectly.",
+        });
+      }
     } catch (_e) {
-      return res.status(400).json({ error: "ESPN credentials invalid or expired" });
+      return res.status(400).json({
+        status: "error",
+        code: "espn_cookies_invalid",
+        message: "ESPN did not accept those cookies. They may be expired or copied incorrectly.",
+      });
     }
 
     const { data: existing, error: lookupError } = await supabase
@@ -203,7 +370,20 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
     }, { onConflict: "user_id,platform" });
 
     if (error) throw new Error(`ESPN connection upsert failed: ${error.message}`);
-    return res.json({ connected: true });
+    return res.json({
+      connected: true,
+      status: "connected",
+      platform: "espn",
+      leagues: [{
+        id: leagueId,
+        name: null,
+        season: currentSeason(),
+        scoring_format: null,
+        team_id: espnTeamId,
+        team_name: null,
+        selected: true,
+      }],
+    });
   } catch (e) {
     logger.error("ESPN connect failed", { err: e.message });
     return next(new Error("ESPN connect failed"));

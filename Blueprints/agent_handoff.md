@@ -4,15 +4,16 @@
 
 This file was recreated during a DBS integrity repair on 2026-05-21.
 
-Use this repo as the active app workspace:
+Use this repo as the active product workspace:
 
-`C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+`C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
 
 ## Layer Rules
 
 - SLOPS is Justin / Slops OS / company operating system.
-- `slops-saloon` is the Fantasy Sports MVP Builder department.
-- `slops-saloon\Corvus` is the Fantasy Football MVP product layer.
+- `slops-saloon` is the Slops Saloon division layer.
+- `slops-saloon\corvus` is the Fantasy Football MVP product repo.
+- The old nested `Corvus/` folder is retired.
 
 ## Product Rules
 
@@ -32,4 +33,3 @@ Do not deploy, commit, push, delete files, move app folders, touch secrets, or m
 Do not work from `Projects\slops-saloon`.
 
 Do not touch `Archive\quarantine`.
-

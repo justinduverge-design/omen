@@ -10,9 +10,11 @@ Slops Saloon is the parent company, mission site, and long-term product studio. 
 
 ## DBS Navigation
 
-- App work happens in `slops-saloon`.
-- Product, brand, and spec context lives in `slops-saloon\Corvus`.
-- Department docs, prompts, handoffs, and specs now live under `Direction`, `Blueprints`, `Solutions`, and `References`.
+- Layer 0 is `SLOPS/`.
+- Layer 1 is `SLOPS/slops-saloon/`.
+- Layer 2 is this repo: `SLOPS/slops-saloon/corvus/`.
+- Product, brand, handoff, prompt, and spec context lives at this repo root under `Direction`, `Blueprints`, `Brand`, `Solutions`, and `References`.
+- The old nested `Corvus/` folder is retired.
 - Do not use old `Projects\slops-saloon` copies for active work.
 - Do not touch `Archive\quarantine`.
 
@@ -31,7 +33,7 @@ Current MVP Move data status:
 | Weather | Live via OpenWeatherMap when `OPENWEATHER_API_KEY` is set in Infisical; stub fallback otherwise |
 | Travel/Home-Away | Live via ESPN scoreboard API |
 | Game time/TV slate | Live via ESPN scoreboard API |
-| Matchup DvP | Stub; Sportradar is the next MVP Move intelligence session |
+| Matchup DvP | Live through nflverse-data when enough matchup history is available; fallback otherwise |
 
 ---
 
@@ -121,8 +123,8 @@ Verdicts: `accept` (>2.0), `neutral` (±2.0), `decline` (<−2.0).
 ### 1. Clone
 
 ```bash
-git clone https://github.com/justinduverge-design/SlopsSaloon-Fantasy-Football-MVP.git
-cd SlopsSaloon-Fantasy-Football-MVP
+git clone https://github.com/justinduverge-design/corvus.git
+cd corvus
 ```
 
 ### 2. Environment variables
@@ -178,7 +180,7 @@ The built `frontend/dist` is served by Nginx in production.
 ### 5. Run tests
 
 ```bash
-npm test    # 99 tests - all must pass before any deploy
+npm test
 ```
 
 ---

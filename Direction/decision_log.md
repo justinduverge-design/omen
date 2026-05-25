@@ -27,6 +27,11 @@
 
 - **Omen migration complete**: `OmenOfTheWeek.jsx` now calls `POST /api/omen/mvp-move`. ESPN recovery states (4) wired. `GET /api/omen-of-the-week` retired. 175/175 tests pass.
 - **optimizer/omen product tier**: `POST /api/optimizer/mvp-move` (Pro-gated six-agent pipeline) and `POST /api/omen/mvp-move` are the same product surface at different enrichment tiers. Not competing features — same feature at free vs. Pro depth. Architectural merge decision is open and deferred to post-launch.
+- **Corvus repo restructure complete**: The nested `Corvus/` folder was folded into the repo root. The repo itself is now the Corvus product layer.
+- **Canonical local path**: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`.
+- **Canonical GitHub repo**: `justinduverge-design/corvus`.
+- **Canonical Oracle checkout**: `~/corvus`.
+- **Production service identity**: health checks report `service: corvus-api`.
 
 ## Open Decisions
 

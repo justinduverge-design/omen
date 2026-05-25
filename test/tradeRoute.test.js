@@ -2,33 +2,14 @@
 
 const assert = require("node:assert/strict");
 const http = require("node:http");
-const Module = require("node:module");
 const test = require("node:test");
 const express = require("express");
+const tradeRoutes = require("../src/routes/trade");
 
-function loadTradeRouterWithAuth(requireAuth) {
-  const routePath = require.resolve("../src/routes/trade");
-  delete require.cache[routePath];
-
-  const originalLoad = Module._load;
-  Module._load = function patchedLoad(request, parent, isMain) {
-    if (request === "../middleware/auth" && parent?.filename === routePath) {
-      return { requireAuth };
-    }
-    return originalLoad.call(this, request, parent, isMain);
-  };
-
-  try {
-    return require("../src/routes/trade");
-  } finally {
-    Module._load = originalLoad;
-  }
-}
-
-function buildApp(requireAuth) {
+function buildApp() {
   const app = express();
   app.use(express.json());
-  app.use("/api/trade", loadTradeRouterWithAuth(requireAuth));
+  app.use("/api/trade", tradeRoutes);
   app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ error: err.message });
   });
@@ -55,41 +36,9 @@ async function request(app, { body, headers = {} } = {}) {
   }
 }
 
-function authRequired(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing bearer token" });
-  }
-  if (auth !== "Bearer valid-token") {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-  req.user = { id: "test-user" };
-  return next();
-}
-
-test("POST /api/trade/compare rejects missing authorization", async () => {
-  const app = buildApp(authRequired);
-  const res = await request(app, {
-    body: { send: [{ name: "A", position: "RB" }], receive: [{ name: "B", position: "WR" }] },
-  });
-
-  assert.equal(res.status, 401);
-});
-
-test("POST /api/trade/compare rejects invalid authorization", async () => {
-  const app = buildApp(authRequired);
-  const res = await request(app, {
-    headers: { authorization: "Bearer bad-token" },
-    body: { send: [{ name: "A", position: "RB" }], receive: [{ name: "B", position: "WR" }] },
-  });
-
-  assert.equal(res.status, 401);
-});
-
 test("POST /api/trade/compare requires send array", async () => {
-  const app = buildApp(authRequired);
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: { receive: [{ name: "B", position: "WR" }] },
   });
 
@@ -98,9 +47,8 @@ test("POST /api/trade/compare requires send array", async () => {
 });
 
 test("POST /api/trade/compare requires receive array", async () => {
-  const app = buildApp(authRequired);
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: { send: [{ name: "A", position: "RB" }] },
   });
 
@@ -109,9 +57,8 @@ test("POST /api/trade/compare requires receive array", async () => {
 });
 
 test("POST /api/trade/compare rejects non-array send", async () => {
-  const app = buildApp(authRequired);
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: { send: "A", receive: [{ name: "B", position: "WR" }] },
   });
 
@@ -120,9 +67,8 @@ test("POST /api/trade/compare rejects non-array send", async () => {
 });
 
 test("POST /api/trade/compare caps send at 10 players", async () => {
-  const app = buildApp(authRequired);
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: {
       send: Array.from({ length: 11 }, (_, i) => ({ name: `A${i}`, position: "RB" })),
       receive: [{ name: "B", position: "WR" }],
@@ -133,10 +79,9 @@ test("POST /api/trade/compare caps send at 10 players", async () => {
   assert.equal(res.body.error, "send may contain 1-10 players");
 });
 
-test("POST /api/trade/compare returns comparison for valid one-for-one payload", async () => {
-  const app = buildApp(authRequired);
+test("POST /api/trade/compare returns public comparison for valid one-for-one payload", async () => {
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: {
       send: [{ name: "Bench RB", position: "RB", projected_points: 10 }],
       receive: [{ name: "Starter WR", position: "WR", projected_points: 14 }],
@@ -149,9 +94,8 @@ test("POST /api/trade/compare returns comparison for valid one-for-one payload",
 });
 
 test("POST /api/trade/compare handles missing projections with low confidence", async () => {
-  const app = buildApp(authRequired);
+  const app = buildApp();
   const res = await request(app, {
-    headers: { authorization: "Bearer valid-token" },
     body: {
       send: [{ name: "Known WR", position: "WR", projected_points: 12 }],
       receive: [{ name: "Unknown RB", position: "RB" }],

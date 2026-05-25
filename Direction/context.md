@@ -2,9 +2,23 @@
 
 ## Product Layer
 
-Corvus is the Fantasy Football MVP product inside `slops-saloon`.
+Corvus is the Fantasy Football MVP product inside the Slops Saloon division.
 
-It is not the SLOPS company layer and not the whole Fantasy Sports MVP Builder department. It is the first product in that department.
+Path:
+
+```text
+C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
+```
+
+It is not the SLOPS company layer and not the Slops Saloon division layer. It is the first active product under that division.
+
+## Current Route
+
+- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
+- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+
+The old nested `Corvus/` subfolder is retired. Product DBS folders now live at this repo root.
 
 ## Product Promise
 
@@ -35,3 +49,8 @@ ESPN is essential but risky. Treat ESPN as a high-value integration that needs c
 
 Users need plain-English reasoning, not heavy math. Math can support decisions, but the product should communicate like a trusted fantasy football analyst.
 
+## Active Handoffs
+
+- Frontend to backend: `Blueprints/handoffs/frontend-to-backend.md`
+- Backend to frontend: `Blueprints/handoffs/backend-to-frontend.md`
+- Shared engineering decisions: `Blueprints/handoffs/decisions.md`

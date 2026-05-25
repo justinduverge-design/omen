@@ -1,55 +1,48 @@
 # Corvus Current Sprint
 
-**Last updated**: 2026-05-23
+Last updated: 2026-05-24
 
-## Focus
+## Current State
 
-Canonicalize the Omen path. Then npm audit. Then launch validation.
+Corvus is live on the renamed route.
 
-## Reality Check (2026-05-23 audit)
+- Local repo path: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- GitHub repo: `justinduverge-design/corvus`
+- Oracle checkout path: `~/corvus`
+- Production service name: `corvus-api`
+- Docker containers: `corvus_api`, `corvus_cron`
+- Test baseline: 175/175 passing after restructure
 
-What is actually done vs. what the docs said was next:
+## Completed
 
-| Item | Status |
-|------|--------|
-| Trade Analyzer | ✅ Live, tested |
-| Start/Sit with LLM reasoning | ✅ Live, tested |
-| Waiver wire optimizer | ✅ Live, tested |
-| Platform adapters (Yahoo, Sleeper, ESPN) | ✅ Live, tested |
-| Platform connection UI | ✅ Live, tested |
-| Supabase auth + Vault encryption | ✅ Live |
-| Structured logging | ✅ Live |
-| Security middleware (helmet, rate limiting) | ✅ Live |
-| ESPN recovery Account page wiring | ✅ Complete, all 8 states verified |
-| Matchup DvP | ✅ Live — nflverse-data (not Sportradar) |
-| LLM reasoning (Gemma/Ollama) | ✅ Live — wired in POST /api/omen/mvp-move route |
-| Omen path — canonical | 🔴 Split — OmenOfTheWeek.jsx still calls GET; needs migration to POST |
-| npm audit (0 vulnerabilities) | 🔴 3 moderate production vulns — not clean |
-| Docker deployment on Oracle VPS | 🟡 Config exists, live state not proven |
-| Stripe live keys + payment validation | 🟡 Backend exists, live validation not proven |
-| Load testing + final deploy | ⬜ Not started |
-| Dashboard polish / Hall of Records | 🟡 Partial |
+- Repo renamed from `slops-saloon` to `corvus` on GitHub.
+- Local repo lives under the Slops Saloon division folder.
+- Retired nested `Corvus/` folder was folded into the repo root.
+- Product DBS folders now live at repo root.
+- `package.json` name is `corvus`.
+- Docker image/container/network names use `corvus`.
+- GitHub Actions deploy builds `corvus:main` and `corvus-cron:main`.
+- Oracle deploy checkout was moved to `~/corvus`.
+- Live `/api/health` returned HTTP 200 with `service: corvus-api`.
+- Canonical Omen endpoint is `POST /api/omen/mvp-move`.
 
-## Current Next Task
+## Now
 
-Run `slops-saloon/Blueprints/prompts/codex-omen-path-canonicalize.md` in Codex.
+- Stabilize context files so Justin can rewrite `AGENT.md` and `CLAUDE.md`.
+- Keep the product path and route unambiguous for all agents.
+- Keep backend/frontend contracts stable while context docs settle.
 
-Migrates `OmenOfTheWeek.jsx` to POST `/api/omen/mvp-move`, adds ESPN RecoveryPanel,
-retires `GET /omen-of-the-week` and unregisters `Omen.jsx` route.
+## Next
 
-## After Omen Migration
-
-1. `npm audit fix` — targeted fix for 3 moderate production vulns, verify tests still pass
-2. Stale doc cleanup — manifesto.md, Blueprints/README.md missing; security-privacy.md probo claim wrong
-3. Stripe live validation + Docker deploy prove-out
-4. Load test
+1. Justin rewrites `AGENT.md` and `CLAUDE.md`.
+2. Run targeted stale-doc cleanup for historical path references outside the active context set.
+3. Run `npm audit` review/fix as a separate code/dependency task.
+4. Validate Stripe live behavior as a separate approved production task.
+5. Load test `POST /api/omen/mvp-move` and `POST /api/trade/compare`.
 
 ## Guardrails
 
-- Keep Start/Sit and waiver logic inside Omen / MVP Move.
-- Treat ESPN as essential but fragile.
-- Route ESPN recovery through Account with safe state/query context only.
-- Do not auto-rerun Omen after recovery; require user click.
-- Keep Yahoo and Sleeper in scope.
-- Prefer plain-English reasoning over visible heavy math.
-- No deploys, production changes, or secrets work without explicit Justin approval.
+- Do not recreate `Corvus/`.
+- Do not change app behavior during context cleanup.
+- Do not touch `.env`, secrets, DNS, SSL, Nginx, Supabase migrations, Stripe production behavior, or package files without explicit approval.
+- Do not deploy unless Justin explicitly approves the deploy action.

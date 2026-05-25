@@ -1,7 +1,6 @@
 "use strict";
 
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
 const llm = require("../services/llm");
 const { compareTrade } = require("../services/tradeValue");
 
@@ -54,7 +53,7 @@ function validateTradePayload(body = {}) {
   return null;
 }
 
-router.post("/compare", requireAuth, async (req, res, next) => {
+router.post("/compare", async (req, res, next) => {
   try {
     const validationError = validateTradePayload(req.body);
     if (validationError) {

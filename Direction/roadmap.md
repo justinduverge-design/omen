@@ -1,50 +1,54 @@
 # Corvus Roadmap
 
-**Last updated**: 2026-05-24
+Last updated: 2026-05-24
 
 ## What Is Live
 
-All core features are built and tested (175/175 tests pass):
+- Trade Analyzer.
+- Draft Assistant.
+- Omen of the Week / MVP Move through `POST /api/omen/mvp-move`.
+- Start/Sit inside Omen.
+- Waiver logic inside Omen.
+- Yahoo, Sleeper, and ESPN platform adapters.
+- ESPN recovery Account page.
+- Matchup DvP through nflverse-data.
+- LLM reasoning through Gemma/Ollama when configured.
+- Supabase auth and Vault encryption.
+- Stripe backend surfaces.
+- Oracle deploy lane for `corvus-api`.
 
-- Trade Analyzer ✅
-- Draft Assistant ✅
-- Omen of the Week / MVP Move — canonical path live (`POST /api/omen/mvp-move`) ✅
-- Start/Sit inside Omen ✅
-- Waiver logic inside Omen ✅
-- Platform adapters: Yahoo, Sleeper, ESPN ✅
-- ESPN recovery Account page — all 8 states verified ✅
-- Matchup DvP via nflverse-data ✅
-- LLM reasoning via Gemma/Ollama ✅
-- Supabase auth + Vault encryption ✅
-- Stripe backend — exists, live validation pending
+## Current Infrastructure Route
 
-## Now — Launch Gate
+- GitHub: `https://github.com/justinduverge-design/corvus`
+- Local: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Oracle: `~/corvus`
+- GHCR API image: `ghcr.io/justinduverge-design/corvus:main`
+- GHCR cron image: `ghcr.io/justinduverge-design/corvus-cron:main`
 
-| Item | Status |
-|------|--------|
-| slops-saloon git tree rebase + clean commit | Pending (prompt ready) |
-| npm audit fix (3 moderate prod vulns) | Pending |
-| Stripe live key validation | Pending |
-| Docker deploy prove-out on Oracle VPS | Pending |
+## Now
 
-## Next — Deploy
+- Keep context, handoffs, and route docs aligned with the new layer structure.
+- Let Justin rewrite agent files on top of stable context.
+- Keep current API contracts stable.
 
-1. Load test `POST /api/omen/mvp-move` and `POST /api/trade/compare` under concurrent users
-2. Tag release
-3. Push to `main` → trigger Oracle GitHub Actions deploy
-4. Smoke test `https://slopssaloon.com/api/health` and the Omen/Trade flows
+## Next
 
-## Later — Post-Launch
+1. Stale-doc cleanup for old paths and historical launch notes.
+2. `npm audit` review/fix.
+3. Stripe live validation.
+4. Load testing for Omen and Trade Analyzer.
+5. Final launch readiness review.
 
-- **optimizer/omen tier merge**: Decide whether `POST /api/optimizer/mvp-move` (Pro six-agent pipeline) merges into `POST /api/omen/mvp-move` as a tier enrichment layer, or remains a separate route
-- Hall of Records dashboard polish
-- Draft Assistant season content
-- Recovery analytics shipping gate decision
-- `getOmenOfTheWeekMock()` in systemContracts.js — retire or keep as fallback
+## Later
+
+- Decide whether `POST /api/optimizer/mvp-move` merges into `POST /api/omen/mvp-move` as a Pro enrichment tier.
+- Polish Hall of Records dashboard.
+- Add Draft Assistant season content.
+- Decide whether recovery analytics ship before or after paid launch.
 
 ## Guardrails
 
-- No deploys, production changes, or secrets work without explicit Justin approval.
-- ESPN is essential but fragile — treat recovery flows as production-critical.
-- Keep Start/Sit and waiver logic inside Omen / MVP Move.
-- Plain-English reasoning over visible math.
+- Keep Start/Sit and waiver logic inside Omen / MVP Move unless Justin separates them.
+- Keep ESPN recovery user-safe and explicit.
+- Prefer plain-English reasoning over visible heavy math.
+- Do not change deploy, secrets, auth, payments, SQL, package files, or production config from roadmap cleanup.

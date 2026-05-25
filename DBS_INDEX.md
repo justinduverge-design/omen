@@ -1,97 +1,80 @@
-# slops-saloon DBS Index
+# Corvus DBS Index
 
-This is the repo-local navigation map for the active `slops-saloon` app repo.
+This is the product repo navigation map for Corvus.
 
-For the full three-layer SLOPS map, see `..\DBS_INDEX.md`.
+Corvus is Layer 2 inside SLOPS OS.
 
-## Layer
+## Canonical Path
 
-`slops-saloon` is Layer 2 in the SLOPS folder system.
+```text
+C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
+```
 
-Path: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+## Parent Layers
 
-Meaning: the Fantasy Sports MVP Builder department and the active app repo.
+- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
+- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
+- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
 
-Corvus is the active Fantasy Football MVP product inside this repo.
+## Current Truth
 
-## Current Product Focus
+- Corvus is the Fantasy Football MVP.
+- This repo is the product layer.
+- The old nested `Corvus/` folder is retired.
+- Product docs now live at the repo root under `Direction/`, `Blueprints/`, `Brand/`, `References/`, `Solutions/`, and `Archive/`.
+- GitHub repo: `justinduverge-design/corvus`.
+- Oracle checkout path: `~/corvus`.
+- Production health currently reports `service: corvus-api`.
 
-Corvus is the current product.
+## Product Folders
 
-The product priority is to keep the app backbone stable while building fantasy football decision tools around clear contracts, plain-English reasoning, and safe platform integrations.
+```text
+Direction/      Current product context, roadmap, sprint, decisions, risks
+Blueprints/     Product prompts, specs, handoffs, playbooks, and design/security docs
+Brand/          Corvus brand and positioning
+References/     Research and historical context
+Solutions/      Finished product outputs and reports
+Archive/        Superseded product history
+src/            Backend source
+frontend/       Current frontend app
+client/         Legacy/current frontend build input as used by Docker
+test/           Backend tests
+sql/            Database/reference SQL
+scripts/        Product scripts
+```
 
-## Layer Structure
+## Read First
 
-`slops-saloon` is the Fantasy Sports MVP Builder department. It is the platform PM layer for Corvus (Fantasy Football MVP) and future fantasy sports tools. Each product lives in its own subfolder with its own DBS folders.
+For backend or product work:
 
-## Repo DBS Folders (Platform Level)
+1. `Direction/context.md`
+2. `Direction/current_sprint.md`
+3. `Direction/roadmap.md`
+4. `Direction/decision_log.md`
+5. `Blueprints/handoffs/frontend-to-backend.md`
+6. `Blueprints/handoffs/backend-to-frontend.md`
+7. `Blueprints/handoffs/decisions.md`
 
-Direction contains repo-level context, roadmap, priorities, and current working direction for the slops-saloon platform — not Corvus-specific content.
+For frontend work:
 
-Blueprints contains platform-level agent infrastructure. Corvus-specific specs, prompts, handoffs, and playbooks live under `Corvus\Blueprints\`.
+1. `Direction/context.md`
+2. `Blueprints/design.md`
+3. `Blueprints/specs/app-ui-plan.md`
+4. `Blueprints/handoffs/backend-to-frontend.md`
+5. `Blueprints/handoffs/frontend-to-backend.md`
 
-Solutions contains finished platform-layer outputs. Corvus-specific outputs live under `Corvus\Solutions\`.
+## Handoffs
 
-References contains platform-level supporting research. Corvus-specific research lives under `Corvus\References\`.
+Use:
 
-Archive preserves reviewed superseded, parked, stale, or quarantined material at the platform level. Corvus-specific archived material lives under `Corvus\Archive\`. Archive is preservation, not deletion.
+- Frontend to backend requests: `Blueprints/handoffs/frontend-to-backend.md`
+- Backend to frontend responses: `Blueprints/handoffs/backend-to-frontend.md`
+- Shared engineering decisions: `Blueprints/handoffs/decisions.md`
 
-## Canonical Context
+## Source Boundary
 
-- Repo context: `Direction\context.md`
-- Repo roadmap: `Direction\roadmap.md`
-- Product context: `Corvus\Direction\context.md`
-- Product roadmap: `Corvus\Direction\roadmap.md`
-- Product known issues: `Corvus\Direction\known_issues.md`
-- Product release readiness: `Corvus\Direction\release_readiness.md`
-- Product README: `Corvus\README.md`
+Do not treat the parent `slops-saloon/` folder as the app repo.
 
-## Canonical Handoffs
+Do not recreate the retired `Corvus/` subfolder.
 
-- Frontend to backend requests: `Corvus\Blueprints\handoffs\frontend-to-backend.md`
-- Backend to frontend responses: `Corvus\Blueprints\handoffs\backend-to-frontend.md`
-- Shared engineering decisions: `Corvus\Blueprints\handoffs\decisions.md`
-- Security and privacy tracker: `Corvus\Blueprints\security-privacy.md`
-- Compliance evidence map: `probo.yaml`
-
-Root handoffs outside this repo are OS-level history or redirects unless a future workflow says otherwise.
-
-## Corvus Specs and Prompts
-
-All Corvus product specs, ADRs, and prompts now live under `Corvus\Blueprints\`:
-
-- `Corvus\Blueprints\specs\` — product specs
-- `Corvus\Blueprints\specs\docs\` — ADRs and technical decisions
-- `Corvus\Blueprints\prompts\` — Codex and agent prompts
-- `Corvus\Blueprints\playbooks\` — operational playbooks (ESPN recovery, etc.)
-- `Corvus\Blueprints\handoffs\` — frontend/backend coordination
-
-The platform-level `Blueprints\` folder now contains only agent infrastructure: `agent_handoff.md` and `skills\`.
-
-## Skills
-
-All SLOPS-authored skills live at the SLOPS OS layer:
-
-- `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\skills`
-
-When a skill is needed from inside `slops-saloon`, agents should still resolve it through the root skill index:
-
-1. `..\Blueprints\skills\README.md`
-2. `..\Blueprints\skills\SKILL_INDEX.md`
-3. `..\Blueprints\skills\<skill-name>\SKILL.md`
-
-Do not create app-local or Corvus-local skill folders unless Justin explicitly changes this rule.
-
-## App Source Boundary
-
-Active implementation remains in the app source tree, including:
-
-- `src\`
-- `frontend\`
-- `client\`
-- `scripts\`
-- `sql\`
-- `test\`
-- `Dockerfile`
-- `docker-compose.yml`
-- `
+Do not edit `.env`, secrets, DNS, SSL, Nginx, production infrastructure, Supabase migrations, Stripe behavior, package files, or deployment config unless Justin explicitly approves that exact work.

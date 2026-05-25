@@ -21,6 +21,52 @@ const DETERMINISTIC_MOCK_OPPONENT_BY_TEAM = Object.freeze({
   DAL: "PHI",
 });
 
+function isExplicitMockRequest(body = {}) {
+  return body.use_mock_data === true || body.mock_state != null;
+}
+
+function normalizePlatformName(platform) {
+  const value = String(platform || "").trim().toLowerCase();
+  return value || "unknown";
+}
+
+function liveOmenRequiresContextResponse(body = {}) {
+  return {
+    state: "error",
+    feature: "omen_mvp_move",
+    mode: "live",
+    request_id: `omen_req_${Date.now()}`,
+    generated_at: new Date().toISOString(),
+    platform: {
+      name: normalizePlatformName(body.platform),
+      status: "requires_connected_league",
+      recovery: {
+        code: "connect_league",
+        message: "Most Valuable Play requires sign-in and a connected league before Corvus can produce a real recommendation.",
+        cta: "Connect Your League",
+      },
+    },
+    league: null,
+    team: null,
+    signals: {
+      roster: {
+        status: "unavailable",
+        used: false,
+        source: "platform_adapter",
+        message: "No authenticated connected-league context was provided.",
+      },
+    },
+    recommendation: null,
+    alternatives: [],
+    warnings: [],
+    error: {
+      code: "live_omen_requires_connected_league_context",
+      message: "Most Valuable Play requires connected league context. Use explicit mock mode only for local contract previews.",
+      retryable: false,
+    },
+  };
+}
+
 function includeLlmReasoning(body = {}) {
   return body?.include_signals?.llm_reasoning !== false;
 }
@@ -204,6 +250,10 @@ async function enrichWithLlm(response, body) {
 }
 
 router.post("/mvp-move", async (req, res) => {
+  if (!isExplicitMockRequest(req.body || {})) {
+    return res.status(409).json(liveOmenRequiresContextResponse(req.body || {}));
+  }
+
   const result = buildOmenMvpMoveResponse(req.body || {});
   try {
     await enrichWithDvp(result.body, req.body || {});

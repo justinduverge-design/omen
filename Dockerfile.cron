@@ -1,7 +1,7 @@
 # ════════════════════════════════════════════════════════════════
-# Slops Saloon Fantasy Football MVP — Dockerfile.cron
+# Slops Saloon Fantasy Football MVP - Dockerfile.cron
 # Dedicated image for the Tuesday cron worker.
-# Uses Alpine's built-in crond daemon to schedule tuesday_cron.js
+# Uses Alpine's built-in crond daemon to schedule corvus_tuesday_cron.js
 # at 6:00 AM EST every Tuesday without any external cron library.
 # ════════════════════════════════════════════════════════════════
 
@@ -13,7 +13,7 @@ RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile
+RUN npm ci
 
 COPY src/    ./src/
 COPY client/ ./client/
@@ -39,22 +39,21 @@ COPY package.json ./
 # Schedule: 6:00 AM every Tuesday (TZ=America/New_York set in compose)
 # Format:   min hour day month weekday command
 # Weekday 2 = Tuesday
-# Output is appended to /var/log/ssffmvp_cron.log
-RUN echo "0 6 * * 2 node /app/src/ssffmvp_tuesday_cron.js >> /var/log/ssffmvp_cron.log 2>&1" \
-    > /etc/crontabs/ssffmvp
+# Output is appended to /var/log/corvus_cron.log
+RUN echo "0 6 * * 2 node /app/src/corvus_tuesday_cron.js >> /var/log/corvus_cron.log 2>&1" \
+    > /var/spool/cron/crontabs/ssffmvp
 
 # Ensure permissions are correct for the crond daemon to read it
 RUN chmod 0600 /var/spool/cron/crontabs/ssffmvp
 
 # Give the non-root user ownership of the log file location
-RUN touch /var/log/ssffmvp_cron.log \
-    && chown ssffmvp:ssffmvp /var/log/ssffmvp_cron.log
+RUN touch /var/log/corvus_cron.log \
+    && chown ssffmvp:ssffmvp /var/log/corvus_cron.log
 
 ENV NODE_ENV=production
 
 # ── ENTRYPOINT ───────────────────────────────────────────────────
 # tini handles signals cleanly (SIGTERM on docker stop)
 # crond -f -d 8 runs in foreground with debug level 8
-# -l /etc/crontabs tells crond where to find the crontab
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["crond", "-f", "-d", "8", "-c", "/var/spool/cron/crontabs"]
