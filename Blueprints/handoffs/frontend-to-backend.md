@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-26 (worktree cool-darwin-c7c0d7 pass)
+Last updated: 2026-05-26 (worktree cool-darwin-c7c0d7 pass 2)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -33,6 +33,10 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - `Account.jsx` subscription section built and wired to Stripe checkout/portal contracts.
 - `OmenOfTheWeek.jsx` live body corrected to `{}` and 401/402 defense-in-depth applied.
 - `Header.jsx` theme CSS vars applied — follows light/dark mode correctly.
+- `Landing.jsx` missing `supabase` import added — waitlist form no longer throws `ReferenceError` at runtime.
+- `PlatformConnections.jsx` endpoint corrected from `/api/platforms/status` (legacy) to `/api/platforms` (canonical Stage 1.5 route); CSS vars applied.
+- `DraftAssistant.jsx` year badge updated to `new Date().getFullYear()` (was hardcoded `2025`); CSS vars applied.
+- `DisconnectedState.jsx`, `EmptyState.jsx`, `UpgradeState.jsx` CSS vars applied — no hardcoded Tailwind color classes remain in UI primitives.
 
 ### Open blockers (ops/Justin — no code change needed)
 - Request 15: `waitlist_signups` Supabase table missing — waitlist form fails silently. Justin must approve migration.
