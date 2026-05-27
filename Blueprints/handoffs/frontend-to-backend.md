@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-26 (worktree cool-darwin-c7c0d7 pass 2)
+Last updated: 2026-05-27 (worktree cool-darwin-c7c0d7 — frontend code-complete)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -37,15 +37,20 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - `PlatformConnections.jsx` endpoint corrected from `/api/platforms/status` (legacy) to `/api/platforms` (canonical Stage 1.5 route); CSS vars applied.
 - `DraftAssistant.jsx` year badge updated to `new Date().getFullYear()` (was hardcoded `2025`); CSS vars applied.
 - `DisconnectedState.jsx`, `EmptyState.jsx`, `UpgradeState.jsx` CSS vars applied — no hardcoded Tailwind color classes remain in UI primitives.
+- `Football.jsx` CSS vars applied — tab bar, platform status bar, skeletons, all accent colors.
+- `OmenPage.jsx` CSS vars applied — header, skeletons, back-link.
+- `Account.jsx` plan prices wired to `GET /api/stripe/prices` with `$5`/`$20` hardcoded fallback; prices update live from Stripe config.
+- **Build verified:** ✓ 100 modules, 1.32s. Frontend is code-complete.
 
 ### Open blockers (ops/Justin — no code change needed)
 - Request 15: `waitlist_signups` Supabase SQL is prepared locally; Justin must still approve applying it to Supabase.
 - Request 16: Supabase subscription date-column SQL is prepared locally; Justin must still approve applying it to Supabase.
+- Stripe: confirm `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_SEASON_PRICE_ID` env vars match the active $5 and $20 Price IDs in the Stripe dashboard.
 - Stripe return URL configuration in Stripe dashboard — Justin/ops.
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
 
-### Open code questions (added as requests below)
-- Request 18: Prices updated to $5/mo (Monthly) and $20 (Season Pass) in Account.jsx display. **Stripe dashboard still needs Justin to create new Price objects at $5/$49 → see Request 18 for action items.**
+### Open code questions
+- None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).
 
 ## Open Frontend Requests
 
