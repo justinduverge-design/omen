@@ -38,14 +38,15 @@ function ConnectedBadge() {
 
 function Field({ id, label, value, onChange, autoComplete = 'off', type = 'text' }) {
   return (
-    <label className="block text-sm text-slate-300" htmlFor={id}>
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <label className="block text-sm" style={{ color: 'var(--color-text-primary)' }} htmlFor={id}>
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
         {label}
       </span>
       <input
         id={id}
         autoComplete={autoComplete}
-        className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+        className="w-full rounded-md px-3 py-2 text-sm outline-none transition-colors"
+        style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
         type={type}
         value={value}
         required
@@ -57,11 +58,11 @@ function Field({ id, label, value, onChange, autoComplete = 'off', type = 'text'
 
 function Card({ title, description, connected, children }) {
   return (
-    <article className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+    <article className="rounded-lg p-6" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface-1)' }}>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-white">{title}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>{title}</h2>
+          <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>{description}</p>
         </div>
         {connected ? <ConnectedBadge /> : null}
       </div>
@@ -72,15 +73,15 @@ function Card({ title, description, connected, children }) {
 
 function EspnCookieInstructions() {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 text-sm leading-6 text-slate-300">
-      <h3 className="text-sm font-semibold text-white">How to find your ESPN cookies</h3>
+    <section className="rounded-lg p-4 text-sm leading-6" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}>
+      <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>How to find your ESPN cookies</h3>
 
       <p className="mt-3">
         You need two cookies from ESPN&apos;s website: espn_s2 and SWID.
       </p>
 
       <div className="mt-4">
-        <p className="font-semibold text-slate-200">Chrome or Edge:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Chrome or Edge:</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
           <li>Press F12 to open DevTools.</li>
@@ -95,7 +96,7 @@ function EspnCookieInstructions() {
       </div>
 
       <div className="mt-4">
-        <p className="font-semibold text-slate-200">Firefox:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Firefox:</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
           <li>Press F12 to open DevTools.</li>
@@ -107,7 +108,7 @@ function EspnCookieInstructions() {
       </div>
 
       <div className="mt-4">
-        <p className="font-semibold text-slate-200">Safari:</p>
+        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Safari:</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>In Safari, go to Settings → Advanced and enable &quot;Show features for web developers.&quot;</li>
           <li>Go to espn.com and make sure you&apos;re signed in.</li>
@@ -122,7 +123,7 @@ function EspnCookieInstructions() {
         If Corvus loses access to your ESPN data, return here and paste fresh values.
       </p>
 
-      <p className="mt-3 text-slate-400">
+      <p className="mt-3" style={{ color: 'var(--color-text-secondary)' }}>
         Your credentials are encrypted and stored securely. Disconnect at any time to remove
         Corvus&apos;s access to your ESPN account.
       </p>
@@ -149,7 +150,7 @@ export default function PlatformConnections({ recoveryState = null }) {
   async function refreshStatus() {
     setLoadingStatus(true);
     try {
-      const nextStatus = await apiFetch('/api/platforms/status');
+      const nextStatus = await apiFetch('/api/platforms');
       setStatus({
         yahoo: nextStatus?.yahoo || EMPTY_STATUS.yahoo,
         sleeper: nextStatus?.sleeper || EMPTY_STATUS.sleeper,
@@ -236,11 +237,12 @@ export default function PlatformConnections({ recoveryState = null }) {
         connected={status.yahoo.connected}
       >
         {loadingStatus ? (
-          <p className="text-sm text-slate-400">Loading connection...</p>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading connection...</p>
         ) : status.yahoo.connected ? (
           <div className="space-y-3">
             <button
-              className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               disabled={disabled}
               type="button"
               onClick={() => disconnect('yahoo')}
@@ -270,14 +272,15 @@ export default function PlatformConnections({ recoveryState = null }) {
         connected={status.sleeper.connected}
       >
         {loadingStatus ? (
-          <p className="text-sm text-slate-400">Loading connection...</p>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading connection...</p>
         ) : status.sleeper.connected ? (
           <div className="space-y-3">
             {status.sleeper.username ? (
-              <p className="text-sm text-slate-300">Username: {status.sleeper.username}</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>Username: {status.sleeper.username}</p>
             ) : null}
             <button
-              className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               disabled={disabled}
               type="button"
               onClick={() => disconnect('sleeper')}
@@ -320,13 +323,13 @@ export default function PlatformConnections({ recoveryState = null }) {
         >
           {/* Recovery context banner — shown when arriving from an Omen ESPN CTA */}
           {espnRecovery && ESPN_RECOVERY_COPY[recoveryState] ? (
-            <div className="mb-4 rounded-md border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            <div className="mb-4 rounded-md px-4 py-3 text-sm text-amber-200" style={{ borderColor: 'var(--color-accent)', border: '1px solid var(--color-accent)', background: 'var(--color-accent-muted)' }}>
               {ESPN_RECOVERY_COPY[recoveryState]}
             </div>
           ) : null}
 
           {loadingStatus ? (
-            <p className="text-sm text-slate-400">Loading connection...</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Loading connection...</p>
           ) : espnConnectSucceeded ? (
             /* Recovery success: ESPN reconnected — offer return to Omen */
             <div className="space-y-3">
@@ -352,7 +355,8 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </button>
               ) : null}
               <button
-                className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 disabled={disabled}
                 type="button"
                 onClick={() => disconnect('espn')}
@@ -401,7 +405,8 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </button>
                 {showEspnReconnectForm ? (
                   <button
-                    className="rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                     disabled={disabled}
                     type="button"
                     onClick={() => {
