@@ -39,13 +39,13 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - `DisconnectedState.jsx`, `EmptyState.jsx`, `UpgradeState.jsx` CSS vars applied — no hardcoded Tailwind color classes remain in UI primitives.
 
 ### Open blockers (ops/Justin — no code change needed)
-- Request 15: `waitlist_signups` Supabase table missing — waitlist form fails silently. Justin must approve migration.
-- Request 16: Supabase schema migration (`trial_ends_at`, `current_period_end`) not applied — subscription renewal/trial dates will be null until applied. Justin must approve migration.
+- Request 15: `waitlist_signups` Supabase SQL is prepared locally; Justin must still approve applying it to Supabase.
+- Request 16: Supabase subscription date-column SQL is prepared locally; Justin must still approve applying it to Supabase.
 - Stripe return URL configuration in Stripe dashboard — Justin/ops.
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
 
 ### Open code questions (added as requests below)
-- Request 18: Plan pricing display — prices hardcoded in `Account.jsx` pending Justin confirmation.
+- Request 18: Prices updated to $5/mo (Monthly) and $20 (Season Pass) in Account.jsx display. **Stripe dashboard still needs Justin to create new Price objects at $5/$49 → see Request 18 for action items.**
 
 ## Open Frontend Requests
 
@@ -384,7 +384,7 @@ What was built:
 - Portal 404 (no customer record) degrades gracefully to checkout prompt
 - Stripe 503 shows "temporarily unavailable" copy without crashing
 
-**Note:** Plan prices ($9/mo, $49 season) are hardcoded pending Justin confirmation — see Request 18.
+**Note:** Plan prices confirmed by Justin as $5/mo and $20 season — updated in commit `98c3a05`. Stripe dashboard update still required before checkout goes live — see Request 18.
 
 ---
 
@@ -487,7 +487,9 @@ Response:
 **Date:** 2026-05-26
 **Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
 **Feature:** Landing page — waitlist form
-**Priority:** High — launch blocker. Form fails silently without this table.
+**Priority:** High — launch blocker. **Backend SQL prepared 2026-05-27; applying to Supabase still requires Justin approval.**
+
+**Resolution update:** Codex added `public.waitlist_signups` to `sql/corvus_rls_security.sql` with RLS enabled and insert-only browser access for `anon` and `authenticated` roles. Duplicate emails are intentionally allowed for launch so repeat submissions do not become generic frontend errors. No Supabase staging/prod migration was applied. See `backend-to-frontend.md` Supabase Launch SQL And Stripe Pricing Update.
 
 **Frontend need:**
 
@@ -519,7 +521,9 @@ No SELECT, UPDATE, or DELETE for the anon role. Adding a unique constraint on `e
 **Date:** 2026-05-26
 **Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
 **Feature:** Account page — subscription section
-**Priority:** High — launch blocker. `subscription.current_period_end` and `subscription.trial_ends_at` will not surface in `GET /api/dashboard/summary` until the columns exist in the `users` or `subscriptions` table.
+**Priority:** High — launch blocker. **Backend SQL prepared 2026-05-27; applying to Supabase still requires Justin approval.**
+
+**Resolution update:** Codex added explicit `ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS trial_ends_at/current_period_end` repair SQL to `sql/corvus_rls_security.sql`. This is necessary because `CREATE TABLE IF NOT EXISTS` does not repair missing columns on an existing table. No Supabase staging/prod migration was applied. See `backend-to-frontend.md` Supabase Launch SQL And Stripe Pricing Update.
 
 **Frontend need:**
 
@@ -536,7 +540,9 @@ The migration is `sql/corvus_rls_security.sql` per the backend evidence report.
 **Date:** 2026-05-26
 **Owner:** Claude Code / frontend audit
 **Feature:** Backend compat route retirement
-**Priority:** Informational
+**Priority:** ~~Informational~~ **Resolved 2026-05-27**
+
+**Resolution:** Codex retired the listed legacy compat handlers with explicit `410 Gone` JSON responses and canonical route hints where replacements exist. Broad route mounts were preserved for active canonical/launch routes. No frontend code change expected because launch validation already found zero frontend callers. See `backend-to-frontend.md` Legacy Compat Route Retirement Update.
 
 **Result:**
 
@@ -557,26 +563,29 @@ Frontend launch validation confirms the `frontend/` app calls **zero legacy comp
 
 ### Request 18 — Plan pricing display confirmation
 
-**Date:** 2026-05-26
+**Date:** 2026-05-26 / Updated 2026-05-27
 **Owner:** Claude Code / frontend
 **Feature:** Account page — subscription plan picker
-**Priority:** Medium — affects user-facing copy before first paid checkout
+**Priority:** ~~Medium~~ **Display resolved 2026-05-27 — Stripe dashboard action still needed from Justin**
 
-**Frontend need:**
+**Resolution (code):** Justin confirmed prices: `$5/mo` (Monthly, 7-day trial) and `$20` (Season Pass, one-time). `Account.jsx` updated — commit `98c3a05`. Backend `GET /api/stripe/prices` already added by Codex; it returns `null` on fallback rather than hardcoded amounts so no backend change needed.
 
-`Account.jsx` plan picker currently displays hardcoded prices: Monthly at `$9/mo` and Season Pass at `$49`. These were chosen as reasonable placeholders — the backend Stripe checkout contract does not expose pricing from the API.
+**Break-even confirmed:** Omen runs on a self-hosted Ollama instance (Gemma 3 4B) — zero per-call AI charges. $5/mo is comfortably viable.
 
-**Questions for Justin / backend:**
+**Action still required from Justin (Stripe dashboard — ops, not code):**
 
-1. Are `$9/mo` (Monthly, 7-day trial) and `$49` (Season Pass, one-time) the correct launch prices?
-2. Should prices come from the backend (e.g., a `GET /api/stripe/prices` endpoint) so they stay in sync with Stripe product config, or are hardcoded frontend strings acceptable?
-3. Is the 7-day trial description correct for the Monthly plan? Backend contract confirms `monthly` uses Stripe subscription mode with a 7-day trial.
+The frontend now displays `$5/mo` and `$20` but Stripe will charge whatever is on the Price objects in your Stripe dashboard. There is a price mismatch until you update those — users would see `$5` but get charged the old amount at checkout.
 
-**If prices are confirmed:** no code change needed — values are already displayed correctly.
+Steps required in the [Stripe dashboard](https://dashboard.stripe.com) before enabling checkout:
 
-**If prices need to change:** update `PlanCard` price props in `frontend/src/pages/Account.jsx` (lines ~65–80).
+1. Archive the old Monthly price (`STRIPE_MONTHLY_PRICE_ID`) — Stripe prices cannot be edited, only replaced.
+2. Create a new Monthly price: `$5.00 USD`, recurring monthly, 7-day trial.
+3. Update `STRIPE_MONTHLY_PRICE_ID` in your environment to the new price ID.
+4. Archive the old Season Pass price (`STRIPE_SEASON_PRICE_ID`).
+5. Create a new Season Pass price: `$20.00 USD`, one-time payment.
+6. Update `STRIPE_SEASON_PRICE_ID` in your environment to the new price ID.
 
-**If a dynamic pricing endpoint is preferred:** Claude will write the backend request and build the fetch once Codex adds the endpoint.
+Do not enable public checkout until steps 3 and 6 are done.
 
 ---
 
