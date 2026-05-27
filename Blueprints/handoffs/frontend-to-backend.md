@@ -45,7 +45,7 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 ### Open blockers (ops/Justin — no code change needed)
 - Request 15: `waitlist_signups` Supabase SQL is prepared locally; Justin must still approve applying it to Supabase.
 - Request 16: Supabase subscription date-column SQL is prepared locally; Justin must still approve applying it to Supabase.
-- Stripe: confirm `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_SEASON_PRICE_ID` env vars match the active $5 and $20 Price IDs in the Stripe dashboard.
+- ~~Stripe: `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_SEASON_PRICE_ID` updated in Infisical to match new $5/$20 Price IDs — 2026-05-27.~~ ✓ Done
 - Stripe return URL configuration in Stripe dashboard — Justin/ops.
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
 
