@@ -8,15 +8,40 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
+Last updated: 2026-05-26 (worktree cool-darwin-c7c0d7 pass)
+
 - Corvus is the Fantasy Football MVP product.
-- Trade Analyzer is the front door.
-- Draft Assistant is the preparation and seasonal tool.
-- Omen of the Week / MVP Move is the main event.
-- Start/Sit lives inside Omen / MVP Move.
-- Waiver logic lives inside Omen / MVP Move unless explicitly separated later.
-- Yahoo, Sleeper, and ESPN all matter.
-- ESPN is essential but risky and needs recovery playbooks.
+- Trade Analyzer is the front door (public, no auth).
+- Draft Assistant is the preparation and seasonal tool (public, no auth).
+- Omen of the Week / MVP Move is the weekly main event (Pro + platform required).
+- Start/Sit and Waiver Wire are deferred — no frontend routes, no backend launch dependency.
+- Yahoo, Sleeper, and ESPN all matter. ESPN gated by `VITE_ESPN_ENABLED`.
+- ESPN is essential but risky — requires recovery playbooks and staged cookie QA before public launch.
 - Users need plain-English reasoning, not heavy math.
+- Frontend lives in `frontend/` (React 18, React Router v6, Tailwind, Vite). `client/` is a legacy artifact.
+- All frontend API calls use canonical routes. No legacy compat routes are called from the frontend.
+
+## Launch Validation Status — 2026-05-26
+
+Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-2026-05-26.md`
+
+### Confirmed clean
+- Build passes — 100 modules, `✓ built in 1.31s`, emits `frontend/dist`. Verified in worktree cool-darwin-c7c0d7 on 2026-05-26.
+- All API calls use canonical routes — no legacy compat routes called. Backend can retire all compat routes.
+- Omen gating, ESPN recovery, Stripe return banners, and `ProtectedRoute` auth are correctly wired.
+- `StartSit.jsx` and `WaiverWire.jsx` exist but are not routed — confirmed deferred, matches backend.
+- `Account.jsx` subscription section built and wired to Stripe checkout/portal contracts.
+- `OmenOfTheWeek.jsx` live body corrected to `{}` and 401/402 defense-in-depth applied.
+- `Header.jsx` theme CSS vars applied — follows light/dark mode correctly.
+
+### Open blockers (ops/Justin — no code change needed)
+- Request 15: `waitlist_signups` Supabase table missing — waitlist form fails silently. Justin must approve migration.
+- Request 16: Supabase schema migration (`trial_ends_at`, `current_period_end`) not applied — subscription renewal/trial dates will be null until applied. Justin must approve migration.
+- Stripe return URL configuration in Stripe dashboard — Justin/ops.
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
+
+### Open code questions (added as requests below)
+- Request 18: Plan pricing display — prices hardcoded in `Account.jsx` pending Justin confirmation.
 
 ## Open Frontend Requests
 
@@ -115,7 +140,9 @@ The `?connected=yahoo` query param is optional but useful — the frontend can r
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** Draft Assistant (`/draft`)
-**Priority:** High — building Draft Assistant UI; contract read from code, needs Codex confirmation before wiring
+**Priority:** ~~High~~ **Resolved 2026-05-24**
+
+**Resolution:** Codex confirmed: MockBanner required on all Draft Assistant output (`is_mock: true` is the current default). `recommendation_type` values (`best_available`, `roster_fit`, `value_pick`, `risk_adjusted`) should display as labels. ADP response shape documented in `backend-to-frontend.md` Draft Assistant And Omen Context Response section. No draft board endpoint — user inputs position needs only. Frontend built accordingly.
 
 **Frontend need:**
 
@@ -202,7 +229,9 @@ The frontend has read `src/routes/draftAssistant.js` and can see both endpoint c
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** Omen / MVP Move (`/omen`)
-**Priority:** High — building Omen.jsx; need to know whether backend infers context or frontend must supply it
+**Priority:** ~~High~~ **Resolved 2026-05-24**
+
+**Resolution update 2026-05-25:** Codex shipped the live Omen MVP route. `status === 'ready'` is now emitted when the user has usable Yahoo context and an active subscription. Frontend must not build league/platform selectors for Yahoo v1; the live request body is `{}` and the backend infers context from stored platform connections. Sleeper and ESPN return `pending_live_engine` until their live engines are ready. See `backend-to-frontend.md` Dashboard And Omen Gate Contract and Draft Assistant And Omen Context Response sections.
 
 **Frontend need:**
 
@@ -237,6 +266,124 @@ The frontend has read `src/routes/draftAssistant.js` and can see both endpoint c
 
 ---
 
+### Request 11 — Omen live route status update
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Omen / MVP Move live route
+**Priority:** ~~Informational~~ **Resolved 2026-05-25 / re-applied 2026-05-26**
+
+**Resolution:** Changes from 2026-05-25 (prior worktree) re-applied in worktree cool-darwin-c7c0d7 on 2026-05-26. Commit: `7c0a25d`.
+
+Applied in this worktree:
+- Live request body is `{}` — `buildOmenRequest()` removed. Backend infers all context from stored platform connections.
+- 401 (`omen_auth_required`): stores `/omen` in `corvus.auth.next` localStorage, redirects to `/login`.
+- 402 (`omen_subscription_required`): renders `UpgradeState` inline — defense-in-depth behind the gate layer in `OmenPage`/`Football`.
+- `needsSubscription` state added to `useOmenData` hook.
+
+**Frontend changes confirmed:**
+
+- `OmenOfTheWeek.jsx` sends `body: {}` — backend infers all context from stored Yahoo credentials.
+- `401 omen_auth_required`: sets `localStorage['corvus.auth.next'] = '/omen'` then `navigate('/login')` — user returns to Omen after re-auth.
+- `402 omen_subscription_required`: renders `UpgradeState` inline — defense against subscription lapsing between dashboard gate and live call.
+- `state: 'needs_subscription'` branch (set on 402): renders `UpgradeState` with Omen copy.
+- `state: 'pending_live_engine'`: explicit branch — renders "Platform connected, live recommendations being prepared" — no longer falls through to empty state.
+- `state: 'error'` (including `omen_live_generation_failed`): caught by existing error branch, shows retry button.
+- Gate layers in `Football.jsx` and `OmenPage.jsx` still guard `OmenOfTheWeek` from rendering before `status === "ready"`. In-component 401/402 handling is defense-in-depth for race conditions.
+
+**No backend change requested.**
+
+---
+
+### Request 9 — Stripe checkout/portal contract + resolved success_url mismatch
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Account page — upgrade flow / subscription management
+**Priority:** ~~High~~ **Resolved 2026-05-25 — backend contract answered**
+
+**Resolution:** Codex fixed the Stripe return route and chose Account as the canonical subscription return screen. Checkout success returns to `/account?subscribed=true`; checkout cancel returns to `/account?cancelled=true`; portal returns to `/account`. `GET /api/dashboard/summary` now exposes a safe `subscription` block for Account UI. See `backend-to-frontend.md` Stripe Account Subscription Contract.
+
+**Contract confirmed from `src/routes/stripe.js` (frontend read-only, no changes made):**
+
+`POST /api/stripe/checkout`
+- Auth: required (`requireAuth`)
+- Request body: `{ "plan": "monthly" | "season" }`
+- Response: `{ "url": "<Stripe hosted checkout URL>" }`
+- On success: frontend should `window.location.href = url` (Stripe redirect)
+- On 503: Stripe not configured in env — show fallback message, do not crash
+- Plan details:
+  - `"monthly"` → subscription mode, 7-day free trial
+  - `"season"` → one-time payment mode (no trial)
+
+`POST /api/stripe/portal`
+- Auth: required (`requireAuth`)
+- Request body: none
+- Response: `{ "url": "<Stripe customer portal URL>" }`
+- On success: frontend should `window.location.href = url`
+- On 404: user has no Stripe customer record (not yet subscribed) — show checkout instead of portal
+
+**Original bug - `success_url` mismatch (resolved):**
+
+`src/routes/stripe.js` previously set:
+```js
+success_url: `${config.appBaseUrl}/dashboard?subscribed=true`
+```
+
+No `/dashboard` route exists in the frontend router. Codex resolved this by choosing Account as the canonical subscription return screen.
+
+**Actual backend resolution:**
+
+```
+success_url: /account?subscribed=true
+cancel_url: /account?cancelled=true
+portal return_url: /account
+```
+
+**Questions for Codex:**
+
+1. Is there an endpoint to check current subscription status (is_subscribed, plan type, trial status, renewal date) — or should the frontend rely solely on `GET /api/dashboard/summary` which returns no subscription fields today?
+
+2. Does the `/dashboard/summary` response need a `subscription` block (e.g. `{ is_subscribed: true, plan: "monthly", trial_ends_at: "ISO" }`) so the Account page can show "Manage subscription" (portal) vs. "Upgrade to Pro" (checkout)?
+
+3. After `cancel_url: ${config.appBaseUrl}/?cancelled=true` — should the frontend show anything on the landing page for `?cancelled=true`, or silently ignore it?
+
+**Frontend states the Account page upgrade section will need:**
+- `subscription_unknown` — summary loading (skeleton)
+- `not_subscribed` — show plan picker (monthly vs. season) + checkout CTA
+- `subscribed` — show "You are on Corvus Pro" + Manage subscription (portal CTA)
+- `trial` — show trial expiry + Manage subscription
+- `checkout_error` — Stripe 503, show fallback message
+- `portal_error` — portal 404 or 503, degrade gracefully
+- `?upgrade=true` entry — auto-scroll to plan picker, highlight Pro section
+- `?subscribed=true` return — show success confirmation banner
+
+---
+
+### Request 10 — Account page subscription section build
+
+**Date:** 2026-05-24
+**Owner:** Claude Code / frontend
+**Feature:** Account page (`/account`) — subscription section
+**Priority:** ~~High~~ **Resolved 2026-05-26**
+
+**Resolution:** Built in worktree cool-darwin-c7c0d7 on 2026-05-26. Commit: `7c0a25d`.
+
+What was built:
+- `SubscriptionSection` component reads `GET /api/dashboard/summary.subscription`
+- Not subscribed: plan picker with Monthly ($9/mo, 7-day trial) and Season Pass ($49) CTAs → `POST /api/stripe/checkout`
+- Subscribed: "Corvus Pro — Active" with renewal/expiry date + Manage Subscription → `POST /api/stripe/portal`
+- Trial: trial end date + Manage Subscription
+- `?upgrade=true`: auto-scrolls to subscription section, highlights upgrade callout
+- `?subscribed=true`: shows success banner, cleans param from URL
+- `?cancelled=true`: cleans param from URL silently
+- Portal 404 (no customer record) degrades gracefully to checkout prompt
+- Stripe 503 shows "temporarily unavailable" copy without crashing
+
+**Note:** Plan prices ($9/mo, $49 season) are hardcoded pending Justin confirmation — see Request 18.
+
+---
+
 ## Frontend Alignment Audit
 
 Date: 2026-05-24
@@ -260,6 +407,174 @@ Findings:
 Backend need:
 
 None for this pass. A later backend request may be useful if the dashboard should expose a preferred platform, league, team, week, or scoring format for the mounted Omen request.
+
+---
+
+### Request 13 — Omen live path for Sleeper users
+
+**Date:** 2026-05-25
+**Owner:** Claude Code / frontend audit
+**Feature:** Omen of the Week (`/omen`, `/football` omen tab)
+**Priority:** ~~High — Sleeper users pay for Pro and see `pending_live_engine` permanently~~ **Resolved 2026-05-27**
+
+**Resolution:** Codex aligned `GET /api/dashboard/summary` with the already-wired live MVP route. Subscribed users with usable Yahoo, Sleeper, or ESPN league context now receive `tools.omen_of_the_week.status === "ready"`. `POST /api/omen/mvp-move` still uses body `{}` and infers platform, league, team, and week server-side. Waiver Wire remains Yahoo-only. See `backend-to-frontend.md` Current Week And Sleeper Omen Gate Update.
+
+**Frontend need:**
+
+`GET /api/dashboard/summary` returns `omen_of_the_week.status === "pending_live_engine"` for all non-Yahoo users. The frontend correctly gates behind this status, but it means Sleeper subscribers cannot access Omen at all even with a paid subscription and a connected league.
+
+**Questions for Codex:**
+
+1. What does `POST /api/omen/mvp-move` need to receive a Sleeper-sourced roster? Does it need `platform: "sleeper"`, `league_id`, `team_id`, and `week` explicitly — or can the backend infer these from the connected platform record?
+
+2. Does `src/services/omen.js` or the Omen route need a new adapter path for Sleeper, or is the roster normalization contract already platform-agnostic?
+
+3. When Sleeper is wired: what triggers the gate status to change from `pending_live_engine` to `ready` in `buildOmenTool()` inside `src/routes/dashboard.js`?
+
+4. Is there an NFL current-week detection mechanism the backend can use for Sleeper, or must the frontend pass `week` explicitly?
+
+**Frontend states this unlocks:**
+
+- Sleeper users who are subscribed see live Omen output instead of the "being prepared" empty state.
+- No frontend changes expected unless the request shape changes.
+
+---
+
+### Request 14 — NFL current week endpoint
+
+**Date:** 2026-05-25
+**Owner:** Claude Code / frontend audit
+**Feature:** Omen, Waiver Wire, Start/Sit (any feature requiring week context)
+**Priority:** ~~Medium — blocks seamless Sleeper + ESPN Omen experience~~ **Resolved 2026-05-27**
+
+**Resolution:** Codex added `GET /api/system/current-week`. It is public, requires no query/body, and returns `contract_version`, `generated_at`, `season`, `week`, and `season_type`. Live Omen does not need frontend-supplied week; standalone roster utilities can call this endpoint before passing an explicit `week`. See `backend-to-frontend.md` Current Week And Sleeper Omen Gate Update.
+
+**Frontend need:**
+
+`GET /api/sleeper/roster` currently requires an explicit `week` query param. The route comment says "until Sleeper week detection is added." If Omen is wired for Sleeper, the frontend needs to know the current NFL week to pass it, or the backend needs to infer it.
+
+**Requested contract:**
+
+```
+GET /api/system/current-week
+```
+Response:
+```json
+{
+  "season": 2026,
+  "week": 8,
+  "season_type": "regular"
+}
+```
+
+**Alternatively:** confirm that the backend can infer the current week from the NFL calendar without a frontend-supplied param, and update the `POST /api/omen/mvp-move` contract accordingly.
+
+**Frontend states this drives:**
+
+- If the endpoint exists: Omen, waiver, and roster calls auto-populate week. No week picker needed.
+- If the frontend must supply week: Omen needs a week picker UI before the call.
+
+---
+
+---
+
+### Request 15 — `waitlist_signups` Supabase table creation (launch blocker)
+
+**Date:** 2026-05-26
+**Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
+**Feature:** Landing page — waitlist form
+**Priority:** High — launch blocker. Form fails silently without this table.
+
+**Frontend need:**
+
+`Landing.jsx` calls `supabase.from('waitlist_signups').insert({ email, platform })` directly from the browser using the anon key. The table does not exist in Supabase yet. On insert failure, the form shows a generic error. The `waitlist_signups` table must be created before launch.
+
+Required schema (already documented in `Landing.jsx:337`):
+
+```sql
+CREATE TABLE waitlist_signups (
+  id         uuid primary key default gen_random_uuid(),
+  email      text not null,
+  platform   text,
+  created_at timestamptz default now()
+);
+ALTER TABLE waitlist_signups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_insert" ON waitlist_signups FOR INSERT TO anon WITH CHECK (true);
+```
+
+No SELECT, UPDATE, or DELETE for the anon role. Adding a unique constraint on `email` is optional — evaluate whether duplicate submissions should be blocked silently or surfaced to the user.
+
+**Approval required:** Justin must approve applying this migration to Supabase staging then production.
+
+**No frontend code change needed.** The form call is already correct — it will start working as soon as the table exists and RLS policy is applied.
+
+---
+
+### Request 16 — Supabase schema migration for subscription display (launch blocker)
+
+**Date:** 2026-05-26
+**Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
+**Feature:** Account page — subscription section
+**Priority:** High — launch blocker. `subscription.current_period_end` and `subscription.trial_ends_at` will not surface in `GET /api/dashboard/summary` until the columns exist in the `users` or `subscriptions` table.
+
+**Frontend need:**
+
+`Account.jsx` reads `summary.subscription.current_period_end` and `summary.subscription.trial_ends_at` to display renewal/expiry dates in the `ActiveSubscription` component. Without the schema columns applied, these values will be `null` and the date display will be silently blank.
+
+The migration is `sql/corvus_rls_security.sql` per the backend evidence report.
+
+**Approval required:** Justin must approve applying the migration. Once applied, the Account page subscription display will work without any frontend changes.
+
+---
+
+### Request 17 — Legacy route caller audit result (informational — no action needed)
+
+**Date:** 2026-05-26
+**Owner:** Claude Code / frontend audit
+**Feature:** Backend compat route retirement
+**Priority:** Informational
+
+**Result:**
+
+Frontend launch validation confirms the `frontend/` app calls **zero legacy compat routes**. All API calls target canonical routes. The following backend compat routes have no frontend callers and can be retired at any time:
+
+- `POST /api/optimizer/mvp-move`
+- `POST /api/auth/sleeper/connect`
+- `GET /api/auth/yahoo/authorize`
+- `GET /api/auth/yahoo/callback`
+- `POST /api/auth/espn/connect`
+- `GET /api/league/standings`
+
+**No backend action required on frontend's part.** Retirement is a backend-only decision.
+
+---
+
+---
+
+### Request 18 — Plan pricing display confirmation
+
+**Date:** 2026-05-26
+**Owner:** Claude Code / frontend
+**Feature:** Account page — subscription plan picker
+**Priority:** Medium — affects user-facing copy before first paid checkout
+
+**Frontend need:**
+
+`Account.jsx` plan picker currently displays hardcoded prices: Monthly at `$9/mo` and Season Pass at `$49`. These were chosen as reasonable placeholders — the backend Stripe checkout contract does not expose pricing from the API.
+
+**Questions for Justin / backend:**
+
+1. Are `$9/mo` (Monthly, 7-day trial) and `$49` (Season Pass, one-time) the correct launch prices?
+2. Should prices come from the backend (e.g., a `GET /api/stripe/prices` endpoint) so they stay in sync with Stripe product config, or are hardcoded frontend strings acceptable?
+3. Is the 7-day trial description correct for the Monthly plan? Backend contract confirms `monthly` uses Stripe subscription mode with a 7-day trial.
+
+**If prices are confirmed:** no code change needed — values are already displayed correctly.
+
+**If prices need to change:** update `PlanCard` price props in `frontend/src/pages/Account.jsx` (lines ~65–80).
+
+**If a dynamic pricing endpoint is preferred:** Claude will write the backend request and build the fetch once Codex adds the endpoint.
+
+---
 
 ## Request Template
 
