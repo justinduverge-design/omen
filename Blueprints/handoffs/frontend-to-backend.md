@@ -43,10 +43,10 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - **Build verified:** ✓ 100 modules, 1.32s. Frontend is code-complete.
 
 ### Open blockers (ops/Justin — no code change needed)
-- Request 15: `waitlist_signups` Supabase SQL is prepared locally; Justin must still approve applying it to Supabase.
-- Request 16: Supabase subscription date-column SQL is prepared locally; Justin must still approve applying it to Supabase.
-- ~~Stripe: `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_SEASON_PRICE_ID` updated in Infisical to match new $5/$20 Price IDs — 2026-05-27.~~ ✓ Done
-- Stripe return URL configuration in Stripe dashboard — Justin/ops.
+- ~~Request 15: `waitlist_signups` table~~ ✓ Already live in Supabase — 8 signups exist. RLS confirmed: insert-only for anon + authenticated.
+- ~~Request 16: `trial_ends_at` / `current_period_end` columns~~ ✓ Migration applied 2026-05-27.
+- ~~Stripe price IDs updated in Infisical.~~ ✓ Done.
+- ~~Stripe return URLs~~ ✓ Code already correct (`/account?subscribed=true`, `/account`). Set `APP_BASE_URL` in Infisical to your production domain (currently defaults to `http://localhost:3000`).
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
 
 ### Open code questions
