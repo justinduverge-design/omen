@@ -27,10 +27,14 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950">
+    <header
+      className="border-b"
+      style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link
-          className="text-sm font-semibold tracking-wide text-white"
+          className="text-sm font-semibold tracking-wide"
+          style={{ color: 'var(--color-text-primary)' }}
           to="/"
         >
           Corvus
@@ -38,14 +42,16 @@ export default function Header() {
 
         <nav aria-label="Primary navigation" className="flex items-center gap-5 text-sm">
           <Link
-            className="text-slate-300 transition-colors hover:text-white"
+            className="transition-colors"
+            style={{ color: 'var(--color-text-secondary)' }}
             to="/football"
           >
             Football
           </Link>
           {isAuthenticated ? (
             <Link
-              className="text-slate-300 transition-colors hover:text-white"
+              className="transition-colors"
+              style={{ color: 'var(--color-text-secondary)' }}
               to="/account"
             >
               Account

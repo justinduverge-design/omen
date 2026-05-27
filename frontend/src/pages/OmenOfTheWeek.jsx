@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const ESPN_RECOVERY_STATES = new Set([
@@ -22,54 +24,45 @@ const SIGNAL_STYLES = {
   unavailable: 'border-slate-600 bg-slate-800/50 text-slate-500',
 };
 
-function buildOmenRequest() {
-  return {
-    season: new Date().getFullYear(),
-    scoring_format: 'ppr',
-    decision_scope: ['start_sit', 'waiver_pickup', 'trade_suggestion'],
-    include_signals: {
-      weather: true,
-      travel_home_away: true,
-      game_time_tv: true,
-      matchup_dvp: true,
-      llm_reasoning: true,
-    },
-    use_mock_data: false,
-  };
-}
-
 function useOmenData() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [needsSubscription, setNeedsSubscription] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNeedsSubscription(false);
     try {
-      const result = await apiFetch('/api/omen/mvp-move', {
-        method: 'POST',
-        body: buildOmenRequest(),
-      });
+      const result = await apiFetch('/api/omen/mvp-move', { method: 'POST', body: {} });
       setData(result);
     } catch (err) {
-      if (err instanceof ApiError && err.body?.state) {
-        setData(err.body);
-      } else {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'Failed to load the Omen. Please try again.',
-        );
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.body?.error?.code === 'omen_auth_required') {
+          localStorage.setItem('corvus.auth.next', '/omen');
+          navigate('/login', { replace: true });
+          return;
+        }
+        if (err.status === 402 || err.body?.error?.code === 'omen_subscription_required') {
+          setNeedsSubscription(true);
+          return;
+        }
+        if (err.body?.state) {
+          setData(err.body);
+          return;
+        }
       }
+      setError(err instanceof ApiError ? err.message : 'Failed to load the Omen. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => { load(); }, [load]);
 
-  return { data, loading, error, retry: load };
+  return { data, loading, error, retry: load, needsSubscription };
 }
 
 function LoadingState() {
@@ -481,9 +474,18 @@ function reasoningFromExplanation(explanation) {
 }
 
 export default function OmenOfTheWeek() {
-  const { data, loading, error, retry } = useOmenData();
+  const { data, loading, error, retry, needsSubscription } = useOmenData();
 
   if (loading) return <LoadingState />;
+  if (needsSubscription) {
+    return (
+      <UpgradeState
+        eyebrow="Omen of the Week"
+        title="Corvus Pro required"
+        message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
+      />
+    );
+  }
   if (error) return <ErrorState message={error} onRetry={retry} />;
 
   if (ESPN_RECOVERY_STATES.has(data?.state)) {
