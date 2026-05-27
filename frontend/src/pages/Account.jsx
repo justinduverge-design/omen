@@ -165,6 +165,7 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
   const [manageLoading, setManageLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [successBanner, setSuccessBanner] = useState('');
+  const [stripePrices, setStripePrices] = useState(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -190,6 +191,15 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
       .then((data) => { if (mounted) setSummary(data); })
       .catch(() => { if (mounted) setFetchError(true); })
       .finally(() => { if (mounted) setLoadingState(false); });
+    apiFetch('/api/stripe/prices')
+      .then((data) => {
+        if (mounted) {
+          const byId = {};
+          data.plans?.forEach((p) => { byId[p.id] = p.price?.display ?? null; });
+          setStripePrices(byId);
+        }
+      })
+      .catch(() => { /* silently ignore — fall back to hardcoded */ });
     return () => { mounted = false; };
   }, []);
 
@@ -257,7 +267,7 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <PlanCard
             title="Monthly"
-            price="$5"
+            price={stripePrices?.monthly ?? '$5'}
             period="mo"
             description="7-day free trial included. Cancel any time."
             highlight
@@ -266,7 +276,7 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
           />
           <PlanCard
             title="Season Pass"
-            price="$20"
+            price={stripePrices?.season ?? '$20'}
             period={null}
             description="One payment for the full NFL season."
             highlight={false}
