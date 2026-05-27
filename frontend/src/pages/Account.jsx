@@ -257,7 +257,7 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <PlanCard
             title="Monthly"
-            price="$9"
+            price="$5"
             period="mo"
             description="7-day free trial included. Cancel any time."
             highlight
@@ -266,7 +266,7 @@ function SubscriptionSection({ subscriptionRef, highlightUpgrade }) {
           />
           <PlanCard
             title="Season Pass"
-            price="$49"
+            price="$20"
             period={null}
             description="One payment for the full NFL season."
             highlight={false}
