@@ -1,17 +1,59 @@
 "use strict";
 
 const express = require("express");
+const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const {
   getHealthStatus,
   getPlatformStatus,
 } = require("../services/systemContracts");
 const { authenticateOmenRequest } = require("../services/omen");
+const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 
 const router = express.Router();
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 router.get("/health", (_req, res) => {
   res.json(getHealthStatus());
+});
+
+router.get("/ready", async (_req, res) => {
+  const criticalConfig = {
+    supabase_url: Boolean(config.supabaseUrl),
+    supabase_service_key: Boolean(config.supabaseServiceKey),
+  };
+  const optionalServices = {
+    stripe: Boolean(config.stripe.secretKey && config.stripe.webhookSecret),
+    yahoo_oauth: Boolean(config.yahoo.clientId && config.yahoo.clientSecret && config.yahoo.redirectUri),
+    redis: Boolean(config.redisUrl && config.redisToken),
+    llm_private: Boolean(config.llm.baseUrl),
+    openweather: Boolean(config.openWeatherApiKey),
+  };
+
+  let supabaseReachable = false;
+  let supabaseError = null;
+  try {
+    const { error } = await supabase.from("users").select("id").limit(1);
+    supabaseReachable = !error;
+    supabaseError = error?.message || null;
+  } catch (err) {
+    supabaseError = err.message;
+  }
+
+  const ready = Object.values(criticalConfig).every(Boolean) && supabaseReachable;
+  return res.status(ready ? 200 : 503).json({
+    contract_version: "system-ready.v1",
+    status: ready ? "ready" : "not_ready",
+    generated_at: new Date().toISOString(),
+    checks: {
+      supabase: {
+        status: supabaseReachable ? "reachable" : "unreachable",
+        error: supabaseError,
+      },
+      critical_config: criticalConfig,
+      optional_services: optionalServices,
+    },
+  });
 });
 
 router.get("/session", async (req, res) => {
@@ -39,6 +81,14 @@ router.get("/session", async (req, res) => {
   } catch (_e) {
     return res.json(unauthenticated);
   }
+});
+
+router.get("/system/current-week", (_req, res) => {
+  res.json({
+    contract_version: "system-current-week.v1",
+    generated_at: new Date().toISOString(),
+    ...getCurrentNflWeekContext(),
+  });
 });
 
 router.get("/platform-status", (_req, res) => {

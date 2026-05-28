@@ -77,3 +77,24 @@ test("POST /api/draft-assistant/recommendations returns UI-compatible mock recom
     assert.equal(typeof rec.confidence_score, "number");
   }
 });
+
+test("POST /api/draft-assistant/recommendations uses provider-backed ADP rows when supplied", async () => {
+  const res = await request(buildApp(), {
+    scoring_format: "ppr",
+    draft_position: 8,
+    round: 3,
+    position_needs: ["WR"],
+    adp_players: [
+      { name: "Real Receiver", position: "WR", team: "DAL", adp: 22.4 },
+      { name: "Real Runner", position: "RB", team: "ATL", adp: 25.1 },
+    ],
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.mode, "live_adp");
+  assert.equal(res.body.is_mock, false);
+  assert.equal(res.body.status, "adp_backed");
+  assert.equal(res.body.recommendations[0].name, "Real Receiver");
+  assert.equal(res.body.recommendations[0].recommendation_type, "roster_fit");
+  assert.match(res.body.note, /Provider-backed ADP/);
+});

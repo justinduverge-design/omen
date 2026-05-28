@@ -123,6 +123,48 @@ function buildMockRecommendations(positionNeeds = []) {
   ];
 }
 
+function normalizeAdpPlayers(players) {
+  if (!Array.isArray(players)) return [];
+  return players
+    .map((player) => ({
+      name: String(player.name || player.player_name || "").trim(),
+      position: String(player.position || "").trim().toUpperCase(),
+      team: String(player.team || player.team_abbr || "").trim().toUpperCase(),
+      adp: Number(player.adp ?? player.average_pick ?? player.pick),
+      rank: Number(player.rank ?? player.overall_rank),
+    }))
+    .filter((player) =>
+      player.name
+      && player.position
+      && Number.isFinite(player.adp)
+    )
+    .sort((a, b) => a.adp - b.adp);
+}
+
+function buildAdpBackedRecommendations(players, positionNeeds = []) {
+  const needs = new Set(positionNeeds);
+  return normalizeAdpPlayers(players).slice(0, 5).map((player, index) => {
+    const rosterFit = needs.has(player.position);
+    const vorp = Math.max(1, Number((100 - player.adp).toFixed(1)));
+    return recommendation({
+      rank: index + 1,
+      name: player.name,
+      position: player.position,
+      team: player.team || "FA",
+      type: rosterFit ? "roster_fit" : "value_pick",
+      headline: rosterFit
+        ? `Draft ${player.name} if you want to address ${player.position}`
+        : `Draft ${player.name} as the strongest ADP value on this board`,
+      rationale:
+        `Provider-backed ADP ranks ${player.name} at pick ${player.adp}. ` +
+        "Draft Assistant v1 uses ADP value and declared position needs, not a live draft-room feed.",
+      confidence: rosterFit ? 78 : 72,
+      risk: player.adp <= 36 ? "low" : "medium",
+      vorp,
+    });
+  });
+}
+
 const redis = config.redisUrl && config.redisToken
   ? new Redis({ url: config.redisUrl, token: config.redisToken })
   : null;
@@ -149,6 +191,24 @@ router.post("/recommendations", (req, res) => {
   const draftPosition = numberOrDefault(body.draft_position, 5);
   const round = numberOrDefault(body.round, 1);
   const positionNeeds = normalizePositionNeeds(body.position_needs);
+  const liveAdpRecommendations = buildAdpBackedRecommendations(body.adp_players, positionNeeds);
+
+  if (liveAdpRecommendations.length) {
+    return res.json({
+      feature: "draft_assistant",
+      status: "adp_backed",
+      mode: "live_adp",
+      is_mock: false,
+      contract_version: "draft-assistant-recommendations.v1",
+      generated_at: nowIso(),
+      scoring_format: scoringFormat,
+      draft_position: draftPosition,
+      round,
+      position_needs: positionNeeds,
+      note: "Provider-backed ADP recommendations. v1 does not claim live draft-room state.",
+      recommendations: liveAdpRecommendations,
+    });
+  }
 
   return res.json({
     feature: "draft_assistant",
@@ -197,3 +257,4 @@ router.get("/adp", async (req, res) => {
 
 module.exports = router;
 module.exports.buildMockRecommendations = buildMockRecommendations;
+module.exports.buildAdpBackedRecommendations = buildAdpBackedRecommendations;

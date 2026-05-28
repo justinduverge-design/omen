@@ -10,6 +10,9 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const { getCurrentNflWeekContext } = require("./nflSchedule");
+const sleeperAdapter = require("../adapters/sleeper");
+const espnAdapter = require("../adapters/espn");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
@@ -43,6 +46,31 @@ function selectYahooConnection(connections = []) {
   return connections.find((row) => row.platform === "yahoo" && hasUsableLeagueId(row)) || null;
 }
 
+function selectUsableYahooMvpConnection(connections = []) {
+  return connections.find((row) =>
+    row.platform === "yahoo"
+    && row.token_secret_id
+    && hasUsableLeagueId(row)
+  ) || null;
+}
+
+function selectUsableSleeperMvpConnection(connections = []) {
+  return connections.find((row) =>
+    row.platform === "sleeper"
+    && row.platform_username
+    && hasUsableLeagueId(row)
+  ) || null;
+}
+
+function selectUsableEspnMvpConnection(connections = []) {
+  return connections.find((row) =>
+    row.platform === "espn"
+    && row.espn_secret_id
+    && row.swid_secret_id
+    && hasUsableLeagueId(row)
+  ) || null;
+}
+
 function normalizedStatus(status) {
   return String(status || "").trim().toUpperCase();
 }
@@ -65,6 +93,13 @@ function confidenceLabelFromScore(score) {
   if (score >= 75) return "strong lean";
   if (score >= 60) return "lean";
   return "slight edge";
+}
+
+function mvpConfidenceLabelFromScore(score) {
+  if (score >= 85) return "high";
+  if (score >= 70) return "medium_high";
+  if (score >= 55) return "medium";
+  return "low";
 }
 
 function priorityFromScore(score) {
@@ -234,7 +269,7 @@ async function authenticateOmenRequest(authHeader) {
 async function getActivePlatformConnections(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,league_id,platform_username,is_active")
+    .select("platform,league_id,platform_username,is_active,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id")
     .eq("user_id", userId)
     .eq("is_active", true);
 
@@ -243,6 +278,20 @@ async function getActivePlatformConnections(userId) {
   }
 
   return Array.isArray(data) ? data : [];
+}
+
+async function getOmenSubscriptionStatus(userId) {
+  const { data, error } = await supabase
+    .from("users")
+    .select("is_subscribed")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`subscription lookup failed: ${error.message}`);
+  }
+
+  return Boolean(data?.is_subscribed);
 }
 
 async function getLiveOmenForUser(userId) {
@@ -420,6 +469,557 @@ function baseEnvelope(body = {}, state = "success") {
     recommendation: null,
     alternatives: [],
     warnings: [],
+  };
+}
+
+function liveBaseEnvelope({
+  platform = "yahoo",
+  platformStatus = "connected",
+  recovery = null,
+  leagueId = null,
+  leagueName = null,
+  teamId = null,
+  teamName = null,
+  season = new Date().getFullYear(),
+  week = null,
+  scoringFormat = "ppr",
+  state = "success",
+} = {}) {
+  return {
+    state,
+    feature: FEATURE,
+    mode: "live",
+    request_id: requestId(),
+    generated_at: nowIso(),
+    platform: {
+      name: platform,
+      status: platformStatus,
+      recovery,
+    },
+    league: {
+      id: leagueId,
+      name: leagueName,
+      season,
+      week,
+      scoring_format: normalizeScoringFormat(scoringFormat),
+    },
+    team: {
+      id: teamId,
+      name: teamName,
+    },
+    signals: {},
+    recommendation: null,
+    alternatives: [],
+    warnings: [],
+  };
+}
+
+function unavailableSignal(source, message) {
+  return signal("unavailable", false, source, message);
+}
+
+function liveMvpBlockedResponse({
+  status = "error",
+  platform = "unknown",
+  platformStatus = "error",
+  recovery = null,
+  code,
+  message,
+  httpStatus = 409,
+  retryable = false,
+} = {}) {
+  const response = liveBaseEnvelope({
+    platform,
+    platformStatus,
+    recovery,
+    state: status,
+  });
+  response.signals = {
+    roster: unavailableSignal(
+      "platform_adapter",
+      message || "A usable connected-league roster is not available."
+    ),
+  };
+  response.error = code
+    ? { code, message, retryable }
+    : undefined;
+  return { status: httpStatus, body: response };
+}
+
+function authRequiredMvpResponse(message = "Authentication is required for Most Valuable Play.") {
+  return liveMvpBlockedResponse({
+    status: "error",
+    platformStatus: "auth_required",
+    recovery: {
+      code: "sign_in",
+      message,
+      cta: "Sign In",
+    },
+    code: "omen_auth_required",
+    message,
+    httpStatus: 401,
+  });
+}
+
+function subscriptionRequiredMvpResponse() {
+  const message = "Most Valuable Play requires Pro.";
+  return liveMvpBlockedResponse({
+    status: "error",
+    platformStatus: "subscription_required",
+    recovery: {
+      code: "upgrade_required",
+      message,
+      cta: "Upgrade",
+    },
+    code: "omen_subscription_required",
+    message,
+    httpStatus: 402,
+  });
+}
+
+function platformDisconnectedMvpResponse() {
+  const response = liveBaseEnvelope({
+    platform: "unknown",
+    platformStatus: "disconnected",
+    recovery: {
+      code: "connect_platform",
+      message: "Connect Yahoo before Corvus can produce a live Most Valuable Play.",
+      cta: "Connect League",
+    },
+    state: "platform_disconnected",
+  });
+  response.signals = {
+    roster: unavailableSignal("platform_adapter", "No connected fantasy platform roster is available."),
+  };
+  return { status: 200, body: response };
+}
+
+function pendingLiveEngineMvpResponse(connections = []) {
+  const preferred = connections.find((connection) => connection.platform === "sleeper")
+    || connections.find((connection) => connection.platform === "espn")
+    || connections[0]
+    || {};
+  const platform = preferred.platform || "unknown";
+  const response = liveBaseEnvelope({
+    platform,
+    platformStatus: "pending_live_engine",
+    recovery: {
+      code: "live_engine_pending",
+      message: "This platform is connected, but it does not have enough usable league context for live Most Valuable Play yet.",
+      cta: "Reconnect League",
+    },
+    leagueId: preferred.league_id || null,
+    state: "pending_live_engine",
+  });
+  response.signals = {
+    roster: unavailableSignal(
+      `${platform}_adapter`,
+      "A platform connection exists, but Corvus cannot safely build a live roster from it yet."
+    ),
+  };
+  response.warnings.push("Live MVP Move requires a usable Yahoo, Sleeper, or ESPN league connection.");
+  return { status: 200, body: response };
+}
+
+function platformRecoveryMvpResponse({
+  platform,
+  state,
+  code,
+  message,
+  cta = "Reconnect League",
+  fieldsNeeded = [],
+  leagueId = null,
+  retryable = false,
+}) {
+  const response = liveBaseEnvelope({
+    platform,
+    platformStatus: "recovery_needed",
+    recovery: {
+      code,
+      message,
+      cta,
+      ...(fieldsNeeded.length ? { fields_needed: fieldsNeeded } : {}),
+    },
+    leagueId,
+    state,
+  });
+  response.signals = {
+    roster: unavailableSignal(`${platform}_adapter`, message),
+  };
+  response.error = { code, message, retryable };
+  return { status: 200, body: response };
+}
+
+function displayPlatform(platform) {
+  const value = String(platform || "").toLowerCase();
+  if (value === "espn") return "ESPN";
+  if (value === "sleeper") return "Sleeper";
+  if (value === "yahoo") return "Yahoo";
+  return "Platform";
+}
+
+function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
+  const platform = connection.platform || roster.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const response = liveBaseEnvelope({
+    platform,
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "empty",
+  });
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.explanation = {
+    summary: "No move clears the recommendation threshold this week.",
+    why_it_matters: "The current lineup and bench options do not show a strong enough live edge to force a move.",
+    risk: "Forcing a marginal lineup change can create avoidable downside.",
+    confidence: "Confidence is moderate that standing pat is better than forcing a move.",
+    data_used: [`${platformLabel} roster`, "normalized lineup slots", "optimizer projection edge"],
+  };
+  response.confidence = confidence(68, "medium", `No ${platformLabel} lineup swap cleared the optimizer threshold.`);
+  return { status: 200, body: response };
+}
+
+function expectedValueLabel(delta) {
+  const value = Math.abs(Number(delta) || 0);
+  if (value >= 5) return "major";
+  if (value >= 2) return "meaningful";
+  return "small";
+}
+
+function riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform }) {
+  const platformLabel = displayPlatform(platform);
+  const reasons = [
+    `The optimizer sees a ${formatDelta(swap.delta)} projection edge from the normalized ${platformLabel} roster.`,
+  ];
+  if (isRiskyStatus(startPlayer?.status)) {
+    reasons.push(`${startPlayer.name} carries availability risk.`);
+  }
+  if (isOutStatus(sitPlayer?.status)) {
+    reasons.push(`${sitPlayer.name} appears unavailable, which strengthens the swap.`);
+  }
+  reasons.push(`Waiver and trade market signals are not part of this first live ${platformLabel} MVP Move.`);
+  return reasons;
+}
+
+function playerForMvp(player, fallback) {
+  const source = player || fallback || {};
+  return {
+    id: source.player_key || null,
+    name: source.name || "Unknown",
+    position: source.position || null,
+    team: source.team || null,
+    opponent_team: source.opponent || null,
+  };
+}
+
+function buildLiveMvpSignals({ connectedPlatforms = [], platform = "yahoo" } = {}) {
+  const platformLabel = displayPlatform(platform);
+  return {
+    roster: signal(
+      "live",
+      true,
+      `${platform}_roster`,
+      `Roster imported from the connected ${platformLabel} league.`
+    ),
+    projections: signal(
+      "live",
+      true,
+      `${platform}_roster_or_optimizer_projection`,
+      "Projection edge comes from normalized roster projection fields and optimizer math."
+    ),
+    weather: signal(
+      process.env.OPENWEATHER_API_KEY ? "live" : "stub",
+      Boolean(process.env.OPENWEATHER_API_KEY),
+      process.env.OPENWEATHER_API_KEY ? "openweathermap" : "weather_not_used",
+      process.env.OPENWEATHER_API_KEY
+        ? "Weather provider is configured, but weather is not decision-critical for this lineup swap."
+        : `Weather is not used in this first live ${platformLabel} MVP Move.`
+    ),
+    travel_home_away: signal(
+      "stub",
+      false,
+      "pending_schedule_context",
+      `Home/away and travel context are not decision-critical for this first live ${platformLabel} MVP Move.`
+    ),
+    game_time_tv: signal(
+      "stub",
+      false,
+      "pending_schedule_context",
+      `Kickoff and TV context are not decision-critical for this first live ${platformLabel} MVP Move.`
+    ),
+    matchup_dvp: signal(
+      "stub",
+      false,
+      "pending_nflverse_data",
+      "Matchup DvP is attempted only when the selected player has enough opponent context."
+    ),
+    waivers: signal(
+      "unavailable",
+      false,
+      `not_in_scope_for_${platform}_mvp_v1`,
+      `Waiver pool is not used in this first live ${platformLabel} MVP Move.`
+    ),
+    llm_reasoning: signal(
+      "stub",
+      true,
+      "template",
+      "Plain-English explanation is generated from deterministic optimizer facts."
+    ),
+    connected_platforms: signal(
+      "live",
+      connectedPlatforms.length > 0,
+      "platform_connections",
+      `${connectedPlatforms.length} active platform connection(s) considered.`
+    ),
+  };
+}
+
+function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }) {
+  const platform = connection.platform || roster.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const startPlayer = findRosterPlayer(roster, swap.to.player_key);
+  const sitPlayer = findRosterPlayer(roster, swap.from.player_key);
+  const confidenceScore = finiteNumber(swap.confidence) || 50;
+  const delta = finiteNumber(swap.delta) || 0;
+  const rosterSlot = swap.slot || sitPlayer?.selected_position || sitPlayer?.position || "lineup";
+  const primary = playerForMvp(startPlayer, swap.to);
+  const comparison = playerForMvp(sitPlayer, swap.from);
+  const title = `Start ${primary.name} over ${comparison.name}`;
+  const riskLevel = riskLevelForStart(startPlayer || swap.to);
+
+  const response = liveBaseEnvelope({
+    platform,
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.recommendation = {
+    id: `live_omen_start_sit_${swap.to.player_key || "unknown"}`,
+    type: "start_sit",
+    title,
+    move: `Move ${primary.name} into your ${rosterSlot} slot and bench ${comparison.name}.`,
+    primary_player: primary,
+    comparison_player: comparison,
+    expected_value_delta: {
+      points: delta,
+      label: expectedValueLabel(delta),
+    },
+    confidence: confidence(
+      confidenceScore,
+      mvpConfidenceLabelFromScore(confidenceScore),
+      `The optimizer sees a ${formatDelta(delta)} edge from live ${platformLabel} roster context.`
+    ),
+    risk: risk(riskLevel, riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform })),
+    explanation: {
+      summary: `Your best live move is to start ${primary.name} over ${comparison.name}.`,
+      why_it_matters:
+        `${primary.name} grades as the better ${rosterSlot} option by ${formatDelta(delta)} in the normalized ${platformLabel} lineup.`,
+      risk:
+        `Risk is ${riskLevel} because this first live Omen uses roster and projection math, while waiver/trade context remains out of scope.`,
+      confidence: `Confidence is ${confidenceScore} out of 100.`,
+      data_used: [
+        `${platformLabel} roster`,
+        "starter and bench slots",
+        "projected point edge",
+        "player availability status",
+      ],
+    },
+  };
+  response.warnings.push(`Live ${platformLabel} MVP Move v1 covers lineup swaps first; waivers and trades are not included yet.`);
+  return response;
+}
+
+function currentNflWeek(now = new Date()) {
+  return getCurrentNflWeekContext(now).week;
+}
+
+async function vaultDecrypt(secretId) {
+  if (!secretId) return null;
+  const { data, error } = await supabase.rpc("vault_decrypt_secret", { secret_id: secretId });
+  if (error) throw new Error("platform credentials unavailable");
+  return data?.decrypted_secret ?? data?.[0]?.decrypted_secret ?? null;
+}
+
+async function buildRosterForConnection(userId, connection, week) {
+  if (connection.platform === "yahoo") {
+    const { client: yahoo } = await getAuthenticatedYahooClient(userId);
+    const cacheKey = `ssff:omen-mvp:${userId}:${connection.league_id}:current`;
+    return rosterSvc.fetchAndNormalizeRoster(yahoo, connection.league_id, null, cacheKey);
+  }
+
+  if (connection.platform === "sleeper") {
+    return sleeperAdapter.buildNormalizedRoster(
+      connection.league_id,
+      connection.platform_username,
+      week
+    );
+  }
+
+  if (connection.platform === "espn") {
+    const espnS2 = await vaultDecrypt(connection.espn_secret_id);
+    const swid = await vaultDecrypt(connection.swid_secret_id);
+    if (!espnS2 || !swid) {
+      const err = new Error("ESPN credentials missing");
+      err.code = "espn_reauth_required";
+      throw err;
+    }
+    return espnAdapter.buildNormalizedRoster(
+      connection.league_id,
+      espnS2,
+      swid,
+      week,
+      { teamId: connection.espn_team_id || undefined }
+    );
+  }
+
+  throw new Error(`Unsupported platform: ${connection.platform}`);
+}
+
+function pickLiveMvpConnection(connections = []) {
+  return selectUsableYahooMvpConnection(connections)
+    || selectUsableSleeperMvpConnection(connections)
+    || selectUsableEspnMvpConnection(connections)
+    || null;
+}
+
+function incompleteConnectionResponse(connections = []) {
+  const yahoo = connections.find((row) => row.platform === "yahoo");
+  if (yahoo && !selectUsableYahooMvpConnection([yahoo])) {
+    return platformRecoveryMvpResponse({
+      platform: "yahoo",
+      state: "yahoo_reauth_required",
+      code: "yahoo_reauth_required",
+      message: "Reconnect Yahoo so Corvus can refresh the league roster.",
+      cta: "Reconnect Yahoo",
+      fieldsNeeded: ["Yahoo OAuth token"],
+      leagueId: yahoo.league_id || null,
+    });
+  }
+
+  const sleeper = connections.find((row) => row.platform === "sleeper");
+  if (sleeper && !selectUsableSleeperMvpConnection([sleeper])) {
+    return platformRecoveryMvpResponse({
+      platform: "sleeper",
+      state: "sleeper_league_context_missing",
+      code: "sleeper_league_context_missing",
+      message: "Sleeper needs a username and league id before Corvus can produce a live Most Valuable Play.",
+      cta: "Reconnect Sleeper",
+      fieldsNeeded: ["Sleeper username", "league id"],
+      leagueId: sleeper.league_id || null,
+    });
+  }
+
+  const espn = connections.find((row) => row.platform === "espn");
+  if (espn && !selectUsableEspnMvpConnection([espn])) {
+    return platformRecoveryMvpResponse({
+      platform: "espn",
+      state: "espn_reauth_required",
+      code: "espn_reauth_required",
+      message: "ESPN needs fresh cookie credentials and a league id before Corvus can produce a live Most Valuable Play.",
+      cta: "Reconnect ESPN",
+      fieldsNeeded: ["ESPN_S2", "SWID", "league id"],
+      leagueId: espn.league_id || null,
+    });
+  }
+
+  return pendingLiveEngineMvpResponse(connections);
+}
+
+function espnRecoveryFromError(connection, err) {
+  const status = err?.status || err?.response?.status;
+  const message = String(err?.message || "").toLowerCase();
+  if (
+    err?.code === "espn_reauth_required"
+    || status === 401
+    || status === 403
+    || message.includes("unauthorized")
+    || message.includes("forbidden")
+  ) {
+    return platformRecoveryMvpResponse({
+      platform: "espn",
+      state: "espn_reauth_required",
+      code: "espn_reauth_required",
+      message: "Your ESPN connection needs fresh cookies before Corvus can read this league.",
+      cta: "Reconnect ESPN",
+      fieldsNeeded: ["ESPN_S2", "SWID"],
+      leagueId: connection.league_id,
+    });
+  }
+
+  if (status === 404 || message.includes("team not found") || message.includes("league")) {
+    return platformRecoveryMvpResponse({
+      platform: "espn",
+      state: "espn_league_context_missing",
+      code: "espn_league_context_missing",
+      message: "Corvus could not find that ESPN league or team. Select the league again or re-import ESPN.",
+      cta: "Select ESPN League",
+      leagueId: connection.league_id,
+    });
+  }
+
+  return platformRecoveryMvpResponse({
+    platform: "espn",
+    state: "espn_import_blocked",
+    code: "espn_import_blocked",
+    message: "ESPN returned an unexpected import response. Retry, reconnect, or verify league access.",
+    cta: "Retry ESPN Import",
+    leagueId: connection.league_id,
+    retryable: true,
+  });
+}
+
+async function buildLiveOmenMvpMoveForUser(userId) {
+  const connections = await getActivePlatformConnections(userId);
+  if (!connections.length) return platformDisconnectedMvpResponse();
+
+  const connectedPlatforms = connections.map(safePlatformSummary);
+  const connection = pickLiveMvpConnection(connections);
+  if (!connection) return incompleteConnectionResponse(connections);
+
+  const week = currentNflWeek();
+  let roster;
+  try {
+    roster = await buildRosterForConnection(userId, connection, week);
+  } catch (err) {
+    if (connection.platform === "espn") return espnRecoveryFromError(connection, err);
+    if (connection.platform === "sleeper") {
+      return platformRecoveryMvpResponse({
+        platform: "sleeper",
+        state: "sleeper_league_context_missing",
+        code: "sleeper_league_context_missing",
+        message: "Sleeper roster import failed. Confirm the username and league selection, then reconnect Sleeper.",
+        cta: "Reconnect Sleeper",
+        fieldsNeeded: ["Sleeper username", "league id"],
+        leagueId: connection.league_id,
+        retryable: true,
+      });
+    }
+    throw err;
+  }
+  const [swap] = optimizer.evaluateLineup(roster);
+
+  if (!swap) {
+    return liveEmptyMvpResponse({
+      roster,
+      connection,
+      connectedPlatforms,
+    });
+  }
+
+  return {
+    status: 200,
+    body: mapLineupSwapToMvpMove({
+      roster,
+      swap,
+      connection,
+      connectedPlatforms,
+    }),
   };
 }
 
@@ -611,9 +1211,13 @@ function buildOmenMvpMoveResponse(body = {}) {
 
 module.exports = {
   authenticateOmenRequest,
+  authRequiredMvpResponse,
+  buildLiveOmenMvpMoveForUser,
   getActivePlatformConnections,
+  getOmenSubscriptionStatus,
   getLiveOmenForUser,
   selectYahooConnection,
+  subscriptionRequiredMvpResponse,
   mapLineupSwapToOmen,
   FEATURE,
   VALID_SIGNAL_STATUSES,

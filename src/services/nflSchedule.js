@@ -22,6 +22,24 @@ const FETCH_TIMEOUT_MS = 5000;
 const _cache = new Map();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
+function getCurrentNflWeekContext(now = new Date()) {
+  const current = new Date(now);
+  const year = current.getUTCFullYear();
+  const month = current.getUTCMonth();
+  const season = month <= 1 ? year - 1 : year;
+  const regularSeasonStart = Date.UTC(season, 8, 5);
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const rawWeek = Math.floor((current.getTime() - regularSeasonStart) / weekMs) + 1;
+  const week = Math.min(18, Math.max(1, rawWeek));
+  const seasonType = rawWeek > 18 ? "postseason" : "regular";
+
+  return {
+    season,
+    week,
+    season_type: seasonType,
+  };
+}
+
 function _logger() {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
     return { info() {}, warn() {} };
@@ -196,4 +214,4 @@ function __clearCache() {
   _cache.clear();
 }
 
-module.exports = { getGameInfo, __clearCache };
+module.exports = { getGameInfo, getCurrentNflWeekContext, __clearCache };

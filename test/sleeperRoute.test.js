@@ -113,11 +113,11 @@ test("GET /api/sleeper/roster requires leagueId", async () => {
   assert.equal(res.body.error, "leagueId query param required");
 });
 
-test("GET /api/sleeper/roster requires week until week detection exists", async () => {
+test("GET /api/sleeper/roster requires explicit week context", async () => {
   const res = await request(buildApp(), "/api/sleeper/roster?username=testuser&leagueId=league-1");
 
   assert.equal(res.status, 400);
-  assert.equal(res.body.error, "week query param required until Sleeper week detection is added");
+  assert.equal(res.body.error, "week query param required; use GET /api/system/current-week to resolve it");
 });
 
 test("GET /api/sleeper/roster returns normalized roster", async () => {

@@ -41,7 +41,12 @@ class FakeQuery {
   }
 }
 
-function loadDashboardRouter({ platformRows = [], userRows = [], requireAuth } = {}) {
+function loadDashboardRouter({
+  platformRows = [],
+  subscriptionRows = [],
+  userRows = [],
+  requireAuth,
+} = {}) {
   const routePath = require.resolve("../src/routes/dashboard");
   delete require.cache[routePath];
 
@@ -50,6 +55,7 @@ function loadDashboardRouter({ platformRows = [], userRows = [], requireAuth } =
       return {
         select() {
           if (table === "platform_connections") return new FakeQuery(platformRows);
+          if (table === "subscriptions") return new FakeQuery(subscriptionRows);
           if (table === "users") return new FakeQuery(userRows);
           throw new Error(`unexpected table ${table}`);
         },
@@ -139,6 +145,17 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     userRows: [
       { id: "test-user", is_subscribed: true },
     ],
+    subscriptionRows: [
+      {
+        user_id: "test-user",
+        plan: "monthly",
+        status: "active",
+        subscribed_at: "2026-05-24T12:00:00.000Z",
+        canceled_at: null,
+        expires_at: "2026-06-24T12:00:00.000Z",
+        stripe_customer_id: "cus_test",
+      },
+    ],
   });
 
   const res = await request(app, "/api/dashboard/summary", {
@@ -148,6 +165,17 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
   assert.equal(res.status, 200);
   assert.equal(res.body.contract_version, "dashboard-summary.v1");
   assert.equal(res.body.is_mock, false);
+  assert.deepEqual(res.body.subscription, {
+    is_subscribed: true,
+    status: "active",
+    plan: "monthly",
+    subscribed_at: "2026-05-24T12:00:00.000Z",
+    canceled_at: null,
+    expires_at: "2026-06-24T12:00:00.000Z",
+    trial_ends_at: null,
+    current_period_end: "2026-06-24T12:00:00.000Z",
+    can_manage_billing: true,
+  });
   assert.deepEqual(res.body.platforms.yahoo, {
     connected: true,
     league_id: "449.l.123",
@@ -159,7 +187,7 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
   assert.deepEqual(res.body.platforms.espn, { connected: false });
   assert.deepEqual(res.body.tools.omen_of_the_week, {
     available: true,
-    mode: "live",
+    mode: "pro",
     status: "ready",
   });
   assert.deepEqual(res.body.tools.waiver_wire, {
@@ -198,7 +226,7 @@ test("GET /api/dashboard/summary marks expired Yahoo OAuth token for reconnect U
   });
   assert.deepEqual(res.body.tools.omen_of_the_week, {
     available: false,
-    mode: "live",
+    mode: "pro",
     status: "pending_live_engine",
   });
   assert.deepEqual(res.body.tools.waiver_wire, {
@@ -208,7 +236,7 @@ test("GET /api/dashboard/summary marks expired Yahoo OAuth token for reconnect U
   });
 });
 
-test("GET /api/dashboard/summary marks Omen pending and waiver needing platform without usable Yahoo", async () => {
+test("GET /api/dashboard/summary marks Omen pending and waiver needing platform without usable Omen context", async () => {
   const app = buildApp({
     platformRows: [
       {
@@ -230,12 +258,126 @@ test("GET /api/dashboard/summary marks Omen pending and waiver needing platform 
   assert.equal(res.status, 200);
   assert.deepEqual(res.body.tools.omen_of_the_week, {
     available: false,
-    mode: "live",
+    mode: "pro",
     status: "pending_live_engine",
   });
   assert.deepEqual(res.body.tools.waiver_wire, {
     available: false,
     mode: "pro",
     status: "needs_platform",
+  });
+});
+
+test("GET /api/dashboard/summary marks Omen ready for subscribed Sleeper users with usable league context", async () => {
+  const app = buildApp({
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+      },
+    ],
+    userRows: [
+      { id: "test-user", is_subscribed: true },
+    ],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.tools.omen_of_the_week, {
+    available: true,
+    mode: "pro",
+    status: "ready",
+  });
+  assert.deepEqual(res.body.tools.waiver_wire, {
+    available: false,
+    mode: "pro",
+    status: "needs_platform",
+  });
+});
+
+test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with usable league context", async () => {
+  const app = buildApp({
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "espn",
+        is_active: true,
+        league_id: "espn-league-1",
+        espn_secret_id: "espn-secret",
+        swid_secret_id: "swid-secret",
+      },
+    ],
+    userRows: [
+      { id: "test-user", is_subscribed: true },
+    ],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.tools.omen_of_the_week, {
+    available: true,
+    mode: "pro",
+    status: "ready",
+  });
+  assert.deepEqual(res.body.platforms.espn, { connected: true });
+});
+
+test("GET /api/dashboard/summary marks Omen pro-gated when platform exists but user is not subscribed", async () => {
+  const app = buildApp({
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "449.l.123",
+        token_secret_id: "secret-id",
+        token_expires_at: "2999-01-01T00:00:00.000Z",
+      },
+    ],
+    userRows: [
+      { id: "test-user", is_subscribed: false },
+    ],
+    subscriptionRows: [
+      {
+        user_id: "test-user",
+        plan: "monthly",
+        status: "canceled",
+        subscribed_at: "2026-05-01T12:00:00.000Z",
+        canceled_at: "2026-05-20T12:00:00.000Z",
+        expires_at: null,
+        stripe_customer_id: "cus_test",
+      },
+    ],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.tools.omen_of_the_week, {
+    available: false,
+    mode: "pro",
+    status: "needs_subscription",
+  });
+  assert.deepEqual(res.body.subscription, {
+    is_subscribed: false,
+    status: "canceled",
+    plan: "monthly",
+    subscribed_at: "2026-05-01T12:00:00.000Z",
+    canceled_at: "2026-05-20T12:00:00.000Z",
+    expires_at: null,
+    trial_ends_at: null,
+    current_period_end: null,
+    can_manage_billing: true,
   });
 });

@@ -115,22 +115,21 @@ test("POST /api/omen/mvp-move returns success response envelope", async () => {
   Object.values(res.body.signals).forEach(assertSignal);
 });
 
-test("POST /api/omen/mvp-move fails closed for non-mock live requests without connected context", async () => {
+test("POST /api/omen/mvp-move requires auth for non-mock live requests", async () => {
   const res = await postMvpMove({
     platform: "sleeper",
     decision_scope: ["start_sit"],
     include_signals: { matchup_dvp: true, llm_reasoning: true },
   });
 
-  assert.equal(res.status, 409);
+  assert.equal(res.status, 401);
   assert.equal(res.body.state, "error");
   assert.equal(res.body.mode, "live");
   assert.equal(res.body.recommendation, null);
-  assert.equal(res.body.platform.name, "sleeper");
-  assert.equal(res.body.platform.status, "requires_connected_league");
-  assert.equal(res.body.platform.recovery.code, "connect_league");
+  assert.equal(res.body.platform.status, "auth_required");
+  assert.equal(res.body.platform.recovery.code, "sign_in");
   assert.equal(res.body.signals.roster.status, "unavailable");
-  assert.equal(res.body.error.code, "live_omen_requires_connected_league_context");
+  assert.equal(res.body.error.code, "omen_auth_required");
 });
 
 test("POST /api/omen/mvp-move uses live LLM explanation for eligible success response", async () => {

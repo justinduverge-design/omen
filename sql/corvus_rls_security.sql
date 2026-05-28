@@ -153,7 +153,23 @@ create table if not exists public.subscriptions (
   status             text default 'active',
   subscribed_at      timestamptz default now(),
   canceled_at        timestamptz,
+  trial_ends_at      timestamptz,
+  current_period_end timestamptz,
   expires_at         timestamptz
+);
+
+alter table public.subscriptions
+  add column if not exists trial_ends_at      timestamptz,
+  add column if not exists current_period_end timestamptz;
+
+-- waitlist_signups -- public landing-page capture.
+-- Duplicate emails are allowed intentionally so the current frontend never
+-- turns a repeat signup into a generic launch-blocking error.
+create table if not exists public.waitlist_signups (
+  id         uuid primary key default gen_random_uuid(),
+  email      text not null,
+  platform   text,
+  created_at timestamptz default now()
 );
 
 
@@ -168,6 +184,7 @@ create index if not exists idx_moves_user_week              on public.moves     
 create index if not exists idx_moves_pending                on public.moves                (outcome) where outcome = 'pending';
 create index if not exists idx_oauth_state_expires_at       on public.oauth_state          (expires_at);
 create index if not exists idx_subscriptions_customer       on public.subscriptions        (stripe_customer_id);
+create index if not exists idx_waitlist_signups_created_at  on public.waitlist_signups     (created_at);
 
 
 -- =================================================================
@@ -184,6 +201,7 @@ alter table public.oauth_state           enable row level security;
 alter table public.local_snapshots       enable row level security;
 alter table public.system_context        enable row level security;
 alter table public.subscriptions         enable row level security;
+alter table public.waitlist_signups      enable row level security;
 
 -- users -- self-only
 drop policy if exists users_self_select on public.users;
@@ -248,6 +266,16 @@ create policy deletion_audit_no_user_read on public.deletion_audit_log for selec
 -- subscriptions -- read-own only; only service_role (webhook) writes
 drop policy if exists subscriptions_self_select on public.subscriptions;
 create policy subscriptions_self_select on public.subscriptions for select using (auth.uid() = user_id);
+
+-- waitlist_signups -- browser may insert only; no anon/auth select/update/delete
+drop policy if exists anon_insert on public.waitlist_signups;
+create policy anon_insert on public.waitlist_signups
+  for insert to anon, authenticated
+  with check (true);
+
+revoke all on table public.waitlist_signups from anon, authenticated;
+grant insert (email, platform) on table public.waitlist_signups to anon, authenticated;
+grant select, insert, update, delete on table public.waitlist_signups to service_role;
 
 
 -- =================================================================

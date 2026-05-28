@@ -43,7 +43,7 @@ router.get("/roster", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "leagueId query param required" });
     }
     if (!week) {
-      return res.status(400).json({ error: "week query param required until Sleeper week detection is added" });
+      return res.status(400).json({ error: "week query param required; use GET /api/system/current-week to resolve it" });
     }
 
     const wk = parseInt(week, 10);

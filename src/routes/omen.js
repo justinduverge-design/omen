@@ -1,7 +1,14 @@
 "use strict";
 
 const express = require("express");
-const { buildOmenMvpMoveResponse } = require("../services/omen");
+const {
+  authRequiredMvpResponse,
+  buildLiveOmenMvpMoveForUser,
+  buildOmenMvpMoveResponse,
+  authenticateOmenRequest,
+  getOmenSubscriptionStatus,
+  subscriptionRequiredMvpResponse,
+} = require("../services/omen");
 const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
 
@@ -23,48 +30,6 @@ const DETERMINISTIC_MOCK_OPPONENT_BY_TEAM = Object.freeze({
 
 function isExplicitMockRequest(body = {}) {
   return body.use_mock_data === true || body.mock_state != null;
-}
-
-function normalizePlatformName(platform) {
-  const value = String(platform || "").trim().toLowerCase();
-  return value || "unknown";
-}
-
-function liveOmenRequiresContextResponse(body = {}) {
-  return {
-    state: "error",
-    feature: "omen_mvp_move",
-    mode: "live",
-    request_id: `omen_req_${Date.now()}`,
-    generated_at: new Date().toISOString(),
-    platform: {
-      name: normalizePlatformName(body.platform),
-      status: "requires_connected_league",
-      recovery: {
-        code: "connect_league",
-        message: "Most Valuable Play requires sign-in and a connected league before Corvus can produce a real recommendation.",
-        cta: "Connect Your League",
-      },
-    },
-    league: null,
-    team: null,
-    signals: {
-      roster: {
-        status: "unavailable",
-        used: false,
-        source: "platform_adapter",
-        message: "No authenticated connected-league context was provided.",
-      },
-    },
-    recommendation: null,
-    alternatives: [],
-    warnings: [],
-    error: {
-      code: "live_omen_requires_connected_league_context",
-      message: "Most Valuable Play requires connected league context. Use explicit mock mode only for local contract previews.",
-      retryable: false,
-    },
-  };
 }
 
 function includeLlmReasoning(body = {}) {
@@ -249,9 +214,63 @@ async function enrichWithLlm(response, body) {
   return response;
 }
 
+async function liveOmenResult(req) {
+  let user;
+  try {
+    user = await authenticateOmenRequest(req.headers.authorization);
+  } catch (e) {
+    return authRequiredMvpResponse(e.message);
+  }
+
+  try {
+    const isSubscribed = await getOmenSubscriptionStatus(user.id);
+    if (!isSubscribed) return subscriptionRequiredMvpResponse();
+
+    return await buildLiveOmenMvpMoveForUser(user.id);
+  } catch (e) {
+    return {
+      status: 500,
+      body: {
+        state: "error",
+        feature: "omen_mvp_move",
+        mode: "live",
+        request_id: `omen_req_${Date.now()}`,
+        generated_at: new Date().toISOString(),
+        platform: {
+          name: "unknown",
+          status: "error",
+          recovery: null,
+        },
+        league: null,
+        team: null,
+        signals: {},
+        recommendation: null,
+        alternatives: [],
+        warnings: [],
+        error: {
+          code: "omen_live_generation_failed",
+          message: "Corvus could not generate a live Most Valuable Play right now.",
+          retryable: true,
+        },
+      },
+    };
+  }
+}
+
 router.post("/mvp-move", async (req, res) => {
   if (!isExplicitMockRequest(req.body || {})) {
-    return res.status(409).json(liveOmenRequiresContextResponse(req.body || {}));
+    const result = await liveOmenResult(req);
+    try {
+      await enrichWithDvp(result.body, req.body || {});
+    } catch {
+      // DvP is an enhancement only. Keep deterministic response.
+    }
+    try {
+      await enrichWithLlm(result.body, req.body || {});
+    } catch {
+      // LLM explanation is an enhancement only. Keep deterministic response.
+    }
+    return res.status(result.status).json(result.body);
   }
 
   const result = buildOmenMvpMoveResponse(req.body || {});

@@ -97,9 +97,25 @@ const authRateLimit = rateLimit({
   message:         { error: "Too many auth attempts. Try again in 10 minutes." },
 });
 
+// ── Public tool rate limit ───────────────────────────────────────
+// Applied to high-work public endpoints such as Trade Analyzer and Draft
+// Assistant. Keeps the free surface usable without letting one client turn it
+// into an unbounded compute sink.
+const publicToolRateLimit = rateLimit({
+  windowMs:        60 * 1000,
+  limit:           30,
+  standardHeaders: "draft-7",
+  legacyHeaders:   false,
+  message:         {
+    error: "Too many tool requests, please slow down.",
+    code: "public_tool_rate_limited",
+  },
+});
+
 module.exports = {
   helmetMiddleware,
   corsMiddleware,
   generalRateLimit,
   authRateLimit,
+  publicToolRateLimit,
 };

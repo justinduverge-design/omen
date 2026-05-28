@@ -17,7 +17,11 @@ function installMockFetch() {
 
 installMockFetch();
 
-const { getGameInfo, __clearCache } = require("../src/services/nflSchedule");
+const {
+  getGameInfo,
+  getCurrentNflWeekContext,
+  __clearCache,
+} = require("../src/services/nflSchedule");
 
 const MOCK_SCOREBOARD = {
   events: [
@@ -74,5 +78,23 @@ describe("nflSchedule.getGameInfo", () => {
     global.fetch = async () => { throw new Error("Network error"); };
     const info = await getGameInfo("KC");
     assert.equal(info, null);
+  });
+});
+
+describe("nflSchedule.getCurrentNflWeekContext", () => {
+  it("returns upcoming season week 1 during offseason", () => {
+    assert.deepEqual(getCurrentNflWeekContext(new Date("2026-05-26T12:00:00Z")), {
+      season: 2026,
+      week: 1,
+      season_type: "regular",
+    });
+  });
+
+  it("returns the prior season during January playoff window", () => {
+    assert.deepEqual(getCurrentNflWeekContext(new Date("2027-01-20T12:00:00Z")), {
+      season: 2026,
+      week: 18,
+      season_type: "postseason",
+    });
   });
 });

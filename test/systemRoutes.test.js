@@ -22,6 +22,10 @@ class FakeQuery {
     return this;
   }
 
+  limit() {
+    return this;
+  }
+
   then(resolve, reject) {
     return Promise.resolve({
       data: this.rows.filter((row) =>
@@ -51,7 +55,7 @@ function loadSystemRouter({
       ),
     },
     from(table) {
-      assert.equal(table, "platform_connections");
+      assert.ok(["platform_connections", "users"].includes(table));
       return {
         select() {
           return new FakeQuery(rows);
@@ -62,6 +66,9 @@ function loadSystemRouter({
 
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === "@supabase/supabase-js" && parent?.filename === routePath) {
+      return { createClient: () => fakeSupabase };
+    }
     if (request === "@supabase/supabase-js" && parent?.filename === omenPath) {
       return { createClient: () => fakeSupabase };
     }
@@ -116,6 +123,18 @@ test("GET /api/health returns stable public health shape", async () => {
   assert.equal(typeof res.body.uptime, "number");
 });
 
+test("GET /api/ready separates dependency readiness from health", async () => {
+  const app = buildApp();
+  const res = await request(app, "/api/ready");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.contract_version, "system-ready.v1");
+  assert.equal(res.body.status, "ready");
+  assert.equal(res.body.checks.supabase.status, "reachable");
+  assert.equal(res.body.checks.critical_config.supabase_url, true);
+  assert.equal(res.body.checks.optional_services.llm_private, true);
+});
+
 test("GET /api/session returns unauthenticated shell without auth", async () => {
   const app = buildApp();
   const res = await request(app, "/api/session");
@@ -159,6 +178,19 @@ test("GET /api/session returns unauthenticated shell for invalid bearer token", 
     user: null,
     contract_version: "session.v1",
   });
+});
+
+test("GET /api/system/current-week returns public NFL week context", async () => {
+  const app = buildApp();
+  const res = await request(app, "/api/system/current-week");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.contract_version, "system-current-week.v1");
+  assert.equal(typeof res.body.generated_at, "string");
+  assert.equal(Number.isInteger(res.body.season), true);
+  assert.equal(Number.isInteger(res.body.week), true);
+  assert.equal(res.body.week >= 1 && res.body.week <= 18, true);
+  assert.ok(["regular", "postseason"].includes(res.body.season_type));
 });
 
 test("GET /api/omen-of-the-week is retired without auth", async () => {

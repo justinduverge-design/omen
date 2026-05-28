@@ -18,17 +18,41 @@ const { logger }       = require("../middleware/logging");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
-/** Mark a user as subscribed. Called from the checkout.session.completed webhook. */
-async function activate({ userId, plan, stripeCustomerId }) {
+function isoOrNull(value) {
+  if (!value) return null;
+  if (typeof value === "number") return new Date(value * 1000).toISOString();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function isPaidStatus(status, plan) {
+  if (plan === "season" && status === "active") return true;
+  return ["active", "trialing"].includes(String(status || "").toLowerCase());
+}
+
+/** Persist a Stripe subscription/payment lifecycle snapshot. */
+async function activate({
+  userId,
+  plan,
+  stripeCustomerId,
+  status = "active",
+  trialEndsAt = null,
+  currentPeriodEnd = null,
+  expiresAt = null,
+  canceledAt = null,
+}) {
   if (!userId) throw new Error("subscription.activate(): userId is required");
 
   const { error: subErr } = await supabase.from("subscriptions").upsert({
     user_id:            userId,
     plan,
     stripe_customer_id: stripeCustomerId,
-    status:             "active",
+    status,
     subscribed_at:      new Date().toISOString(),
-    canceled_at:        null,
+    canceled_at:        isoOrNull(canceledAt),
+    trial_ends_at:      isoOrNull(trialEndsAt),
+    current_period_end: isoOrNull(currentPeriodEnd),
+    expires_at:         isoOrNull(expiresAt || currentPeriodEnd),
   });
   if (subErr) throw new Error(`subscriptions.upsert failed: ${subErr.message}`);
 
@@ -36,15 +60,15 @@ async function activate({ userId, plan, stripeCustomerId }) {
   // don't want to JOIN every time).
   const { error: userErr } = await supabase
     .from("users")
-    .update({ is_subscribed: true })
+    .update({ is_subscribed: isPaidStatus(status, plan) })
     .eq("id", userId);
   if (userErr) throw new Error(`users.update failed: ${userErr.message}`);
 
-  logger.info("Subscription activated", { userId, plan });
+  logger.info("Subscription state persisted", { userId, plan, status });
 }
 
 /** Mark a user as no longer subscribed. Called from cancel/payment-failed events. */
-async function deactivate({ stripeCustomerId }) {
+async function deactivate({ stripeCustomerId, status = "canceled", canceledAt = null }) {
   if (!stripeCustomerId) return;
 
   const { data: sub } = await supabase
@@ -59,12 +83,12 @@ async function deactivate({ stripeCustomerId }) {
   }
 
   await supabase.from("subscriptions").update({
-    status:      "canceled",
-    canceled_at: new Date().toISOString(),
+    status,
+    canceled_at: isoOrNull(canceledAt) || new Date().toISOString(),
   }).eq("user_id", sub.user_id);
 
   await supabase.from("users").update({ is_subscribed: false }).eq("id", sub.user_id);
-  logger.info("Subscription deactivated", { userId: sub.user_id });
+  logger.info("Subscription deactivated", { userId: sub.user_id, status });
 }
 
 /** Get a user's current subscription record. Returns null if none. */
@@ -77,4 +101,4 @@ async function getByUserId(userId) {
   return data || null;
 }
 
-module.exports = { activate, deactivate, getByUserId };
+module.exports = { activate, deactivate, getByUserId, isPaidStatus, isoOrNull };

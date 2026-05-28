@@ -161,7 +161,14 @@ function getPlatformStatus(config, now = new Date()) {
         method: "POST",
         path: "/api/omen/mvp-move",
         auth_required: false,
-        status: "mock_ready",
+        status: "mock_ready_live_pro_gated",
+        note: "Mock previews do not require auth. Non-mock live requests require bearer auth, Pro subscription, and a usable Yahoo, Sleeper, or ESPN league connection.",
+      },
+      current_week: {
+        method: "GET",
+        path: "/api/system/current-week",
+        auth_required: false,
+        status: "ready",
       },
       platform_status: {
         method: "GET",

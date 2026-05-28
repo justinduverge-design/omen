@@ -36,6 +36,38 @@ if (!config.stripe.secretKey) {
 
 const stripe = config.stripe.secretKey ? new Stripe(config.stripe.secretKey) : null;
 
+function subscriptionSnapshot(subscription, fallback = {}) {
+  const metadata = subscription?.metadata || fallback.metadata || {};
+  return {
+    userId: metadata.userId || fallback.userId,
+    plan: metadata.plan || fallback.plan,
+    stripeCustomerId: subscription?.customer || fallback.stripeCustomerId,
+    status: subscription?.status || fallback.status || "active",
+    trialEndsAt: subscription?.trial_end || null,
+    currentPeriodEnd: subscription?.current_period_end || null,
+    expiresAt: subscription?.current_period_end || fallback.expiresAt || null,
+    canceledAt: subscription?.canceled_at || subscription?.ended_at || null,
+  };
+}
+
+async function subscriptionForCheckoutSession(session) {
+  if (session.subscription && stripe?.subscriptions?.retrieve) {
+    const subscription = await stripe.subscriptions.retrieve(session.subscription);
+    return subscriptionSnapshot(subscription, {
+      userId: session.metadata?.userId,
+      plan: session.metadata?.plan,
+      stripeCustomerId: session.customer,
+    });
+  }
+
+  return subscriptionSnapshot(null, {
+    userId: session.metadata?.userId,
+    plan: session.metadata?.plan,
+    stripeCustomerId: session.customer,
+    status: "active",
+  });
+}
+
 // =================================================================
 // Webhook router  (RAW body)
 // =================================================================
@@ -64,17 +96,29 @@ webhookRouter.post(
       switch (event.type) {
         case "checkout.session.completed": {
           const s = event.data.object;
-          await subscriptionSvc.activate({
-            userId:           s.metadata?.userId,
-            plan:             s.metadata?.plan,
-            stripeCustomerId: s.customer,
+          await subscriptionSvc.activate(await subscriptionForCheckoutSession(s));
+          break;
+        }
+        case "customer.subscription.created":
+        case "customer.subscription.updated": {
+          await subscriptionSvc.activate(subscriptionSnapshot(event.data.object));
+          break;
+        }
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object;
+          await subscriptionSvc.deactivate({
+            stripeCustomerId: subscription.customer,
+            status: subscription.status || "canceled",
+            canceledAt: subscription.canceled_at || subscription.ended_at,
           });
           break;
         }
-        case "customer.subscription.deleted":
         case "invoice.payment_failed": {
           const customerId = event.data.object.customer;
-          await subscriptionSvc.deactivate({ stripeCustomerId: customerId });
+          await subscriptionSvc.deactivate({
+            stripeCustomerId: customerId,
+            status: "payment_failed",
+          });
           break;
         }
         default:
@@ -99,6 +143,107 @@ webhookRouter.post(
 const router = express.Router();
 
 const VALID_PLANS = new Set(["monthly", "season"]);
+const PLAN_METADATA = {
+  monthly: {
+    id: "monthly",
+    label: "Monthly",
+    checkout_plan: "monthly",
+    checkout_mode: "subscription",
+    trial_period_days: 7,
+  },
+  season: {
+    id: "season",
+    label: "Season Pass",
+    checkout_plan: "season",
+    checkout_mode: "payment",
+    trial_period_days: 0,
+  },
+};
+
+function priceIdForPlan(plan) {
+  return plan === "season"
+    ? config.stripe.seasonPriceId
+    : config.stripe.monthlyPriceId;
+}
+
+function formatStripeAmount({ unitAmount, currency, recurring }) {
+  if (!Number.isFinite(unitAmount) || !currency) return null;
+
+  const amount = unitAmount / 100;
+  let formatted;
+  try {
+    formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: String(currency).toUpperCase(),
+      maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    }).format(amount);
+  } catch (_err) {
+    formatted = `${amount.toFixed(Number.isInteger(amount) ? 0 : 2)} ${String(currency).toUpperCase()}`;
+  }
+
+  if (!recurring?.interval) return formatted;
+  const interval = recurring.interval === "month" ? "mo" : recurring.interval;
+  return `${formatted}/${interval}`;
+}
+
+function publicPriceShape(plan, stripePrice = null, error = null) {
+  const metadata = PLAN_METADATA[plan];
+  const unitAmount = Number.isFinite(stripePrice?.unit_amount)
+    ? stripePrice.unit_amount
+    : null;
+  const currency = stripePrice?.currency || null;
+  const recurring = stripePrice?.recurring
+    ? {
+        interval: stripePrice.recurring.interval || null,
+        interval_count: stripePrice.recurring.interval_count || null,
+      }
+    : null;
+
+  return {
+    ...metadata,
+    stripe_price_id_configured: Boolean(priceIdForPlan(plan)),
+    price: stripePrice
+      ? {
+          unit_amount: unitAmount,
+          currency,
+          recurring,
+          display: formatStripeAmount({ unitAmount, currency, recurring }),
+        }
+      : null,
+    unavailable_reason: error || null,
+  };
+}
+
+router.get("/prices", async (_req, res) => {
+  const plans = [];
+
+  for (const plan of VALID_PLANS) {
+    const priceId = priceIdForPlan(plan);
+    if (!stripe) {
+      plans.push(publicPriceShape(plan, null, "stripe_not_configured"));
+      continue;
+    }
+    if (!priceId) {
+      plans.push(publicPriceShape(plan, null, "stripe_price_id_missing"));
+      continue;
+    }
+
+    try {
+      const stripePrice = await stripe.prices.retrieve(priceId);
+      plans.push(publicPriceShape(plan, stripePrice));
+    } catch (err) {
+      logger.warn("Stripe price lookup failed", { plan, err: err.message });
+      plans.push(publicPriceShape(plan, null, "stripe_price_lookup_failed"));
+    }
+  }
+
+  res.json({
+    contract_version: "stripe-prices.v1",
+    generated_at: new Date().toISOString(),
+    source: stripe ? "stripe" : "unconfigured",
+    plans,
+  });
+});
 
 router.post("/checkout", requireAuth, async (req, res, next) => {
   try {
@@ -111,9 +256,7 @@ router.post("/checkout", requireAuth, async (req, res, next) => {
 
     const userId  = req.user.id;
     const email   = req.user.email;
-    const priceId = plan === "season"
-      ? config.stripe.seasonPriceId
-      : config.stripe.monthlyPriceId;
+    const priceId = priceIdForPlan(plan);
 
     if (!priceId) {
       logger.error("Missing Stripe price ID for plan", { plan });
@@ -126,8 +269,8 @@ router.post("/checkout", requireAuth, async (req, res, next) => {
       customer_email:       email,
       line_items:           [{ price: priceId, quantity: 1 }],
       metadata:             { userId, plan },
-      success_url:          `${config.appBaseUrl}/dashboard?subscribed=true`,
-      cancel_url:           `${config.appBaseUrl}/?cancelled=true`,
+      success_url:          `${config.appBaseUrl}/account?subscribed=true`,
+      cancel_url:           `${config.appBaseUrl}/account?cancelled=true`,
       ...(plan === "monthly" && {
         subscription_data: { trial_period_days: 7 },
       }),
@@ -150,7 +293,7 @@ router.post("/portal", requireAuth, async (req, res, next) => {
 
     const session = await stripe.billingPortal.sessions.create({
       customer:   sub.stripe_customer_id,
-      return_url: `${config.appBaseUrl}/dashboard`,
+      return_url: `${config.appBaseUrl}/account`,
     });
     res.json({ url: session.url });
   } catch (e) {

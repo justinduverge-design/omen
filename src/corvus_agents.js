@@ -292,7 +292,7 @@ async function runAgentPipeline(context = {}) {
 router.all("/agents/*", (_req, res) => {
   res.status(410).json({
     error: "legacy_agent_routes_retired",
-    message: "Use /api/optimizer/mvp-move or /api/omen/mvp-move instead.",
+    message: "Use /api/omen/mvp-move instead.",
   });
 });
 

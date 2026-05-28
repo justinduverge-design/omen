@@ -218,163 +218,44 @@ class ESPNClient {
 
 const sleeper = new SleeperClient();
 
-router.post("/auth/sleeper/connect", requireAuth, async (req, res) => {
-  const { username } = req.body;
-  const appUserId = req.user.id;
-  if (!username) return res.status(400).json({ error: "username required" });
-
-  try {
-    const sleeperUser = await sleeper.getUser(username);
-    const leagues     = await sleeper.getUserLeagues(sleeperUser.user_id);
-    if (!leagues.length) return res.status(404).json({ error: "No NFL leagues found for this user" });
-
-    await supabase.from("platform_connections").upsert({
-      user_id:           appUserId,
-      platform:          "sleeper",
-      platform_user_id:  sleeperUser.user_id,
-      platform_username: sleeperUser.username,
-      updated_at:        new Date().toISOString(),
-    });
-
-    res.json({ ok: true, sleeperUserId: sleeperUser.user_id, leagues });
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
-
-router.get("/auth/yahoo/authorize", requireAuth, async (req, res) => {
-  const { leagueId } = req.query;
-  const appUserId = req.user.id;
-  const state = crypto.randomBytes(16).toString("hex");
-
-  await supabase.from("oauth_state").upsert({
-    state,
-    platform:   "yahoo",
-    user_id:    appUserId,
-    verifier:   leagueId || null,
-    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-  });
-
-  res.redirect(YahooClient.getAuthUrl(state));
-});
-
-router.get("/auth/yahoo/callback", async (req, res) => {
-  const { code, state } = req.query;
-  if (!code || !state) return res.status(400).send("Missing code or state");
-
-  try {
-    const { data: oauthRow, error } = await supabase
-      .from("oauth_state")
-      .select("*")
-      .eq("state", state)
-      .eq("platform", "yahoo")
-      .single();
-
-    if (error || !oauthRow) return res.status(400).send("Invalid or expired OAuth state");
-
-    const tokens = await YahooClient.exchangeCode(code);
-
-    const [accessSecretId, refreshSecretId] = await Promise.all([
-      vaultCreate(tokens.access_token,  `yahoo_access_${oauthRow.user_id}`),
-      vaultCreate(tokens.refresh_token, `yahoo_refresh_${oauthRow.user_id}`),
-    ]);
-
-    await supabase.from("platform_connections").upsert({
-      user_id:           oauthRow.user_id,
-      platform:          "yahoo",
-      league_id:         oauthRow.verifier || "yahoo",
-      platform_user_id:  tokens.xoauth_yahoo_guid || null,
-      token_secret_id:   accessSecretId,
-      refresh_secret_id: refreshSecretId,
-      token_expires_at:  new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-      is_active:         true,
-      updated_at:        new Date().toISOString(),
-    });
-
-    await supabase.from("oauth_state").delete().eq("state", state);
-
-    res.redirect(`${APP_BASE_URL}/dashboard?connected=yahoo`);
-  } catch (e) {
-    res.status(500).send(`OAuth error: ${e.message}`);
-  }
-});
-
-router.post("/auth/espn/connect", requireAuth, async (req, res) => {
-  const { espnS2, swid, leagueId } = req.body;
-  const appUserId = req.user.id;
-  try {
-    const espn = new ESPNClient(espnS2, swid);
-    const data = await espn.getLeague(leagueId);
-    
-    const [espnSecretId, swidSecretId] = await Promise.all([
-      vaultCreate(espnS2, `espn_s2_${appUserId}`),
-      vaultCreate(swid, `espn_swid_${appUserId}`),
-    ]);
-
-    await supabase.from("platform_connections").upsert({
-      user_id:        appUserId,
-      platform:       "espn",
-      espn_secret_id: espnSecretId,
-      swid_secret_id: swidSecretId,
-      league_id:      String(leagueId),
-      updated_at:     new Date().toISOString(),
-    });
-
-    res.json({ ok: true, leagueName: data.settings?.name || "ESPN League" });
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
-
-// ════════════════════════════════════════════════════════════════
-// ROUTES — LEAGUE DATA
-// ════════════════════════════════════════════════════════════════
-
-router.get("/league/standings", requireAuth, async (req, res) => {
-  const { leagueId } = req.query;
-  const appUserId = req.user.id;
-
-  try {
-    const { data: conn } = await supabase
-      .from("platform_connections")
-      .select("*")
-      .eq("user_id", appUserId)
-      .single();
-
-    if (!conn) return res.status(404).json({ error: "No platform connected" });
-
-    let standings = [];
-
-    if (conn.platform === "sleeper") {
-      standings = await sleeper.buildStandings(leagueId, conn.platform_user_id);
-    } else if (conn.platform === "yahoo") {
-      let accessToken = await vaultDecrypt(conn.token_secret_id);
-      
-      if (new Date(conn.token_expires_at) < new Date()) {
-        const refreshToken = await vaultDecrypt(conn.refresh_secret_id);
-        const refreshed = await YahooClient.refreshToken(refreshToken);
-        accessToken = refreshed.access_token;
-        await vaultUpdate(conn.token_secret_id, accessToken);
-        await supabase.from("platform_connections").update({
-          token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
-        }).eq("user_id", appUserId);
-      }
-
-      const yahoo = new YahooClient(accessToken);
-      standings = await yahoo.getLeagueStandings(leagueId);
-    } else if (conn.platform === "espn") {
-      const espnS2 = await vaultDecrypt(conn.espn_secret_id);
-      const swid = await vaultDecrypt(conn.swid_secret_id);
-      if (!swid) return res.status(401).json({ error: "ESPN re-auth required" });
-      const espn = new ESPNClient(espnS2, swid);
-      standings = await espn.buildStandings(leagueId, conn.espn_team_id, new Date().getFullYear());
+function retiredLegacyRoute({ deprecatedEndpoint, canonicalEndpoint = null }) {
+  return (_req, res) => {
+    res.set("Deprecation", "true");
+    if (canonicalEndpoint) {
+      res.set("Link", `<${canonicalEndpoint}>; rel="canonical"`);
     }
+    return res.status(410).json({
+      error: "Legacy endpoint retired",
+      code: "legacy_route_retired",
+      deprecated_endpoint: deprecatedEndpoint,
+      canonical_endpoint: canonicalEndpoint,
+    });
+  };
+}
 
-    res.json({ standings, source: conn.platform });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+router.post("/auth/sleeper/connect", retiredLegacyRoute({
+  deprecatedEndpoint: "/api/auth/sleeper/connect",
+  canonicalEndpoint: "/api/platforms/sleeper/connect",
+}));
+
+router.get("/auth/yahoo/authorize", retiredLegacyRoute({
+  deprecatedEndpoint: "/api/auth/yahoo/authorize",
+  canonicalEndpoint: "/api/yahoo/auth",
+}));
+
+router.get("/auth/yahoo/callback", retiredLegacyRoute({
+  deprecatedEndpoint: "/api/auth/yahoo/callback",
+  canonicalEndpoint: "/api/yahoo/callback",
+}));
+
+router.post("/auth/espn/connect", retiredLegacyRoute({
+  deprecatedEndpoint: "/api/auth/espn/connect",
+  canonicalEndpoint: "/api/platforms/espn/connect",
+}));
+
+router.get("/league/standings", retiredLegacyRoute({
+  deprecatedEndpoint: "/api/league/standings",
+}));
 
 router.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: `${Math.floor((Date.now() - START_TIME) / 1000)}s` });

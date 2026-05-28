@@ -26,13 +26,11 @@ const { requireSubscription } = require("../middleware/subscription");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const rosterSvc               = require("../services/roster");
 const optimizer               = require("../services/optimizer");
-const agents                  = require("../services/agents");
 const { vorpForPlayer }       = require("../services/vorp");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const VALID_SCORING_FORMATS = ["standard", "half_ppr", "ppr"];
-const VALID_RECORD_PATTERN = /^\d{1,2}-\d{1,2}(?:-\d{1,2})?$/;
 const MOCK_WAIVER_CANDIDATES = Object.freeze([
   Object.freeze({
     name: "Mock RB Pickup",
@@ -149,6 +147,26 @@ function mockWaiverResponse(roster) {
     generated_at: new Date().toISOString(),
   };
 }
+
+function retiredCompatRoute({ deprecatedEndpoint, canonicalEndpoint }) {
+  return (_req, res) => {
+    res.set("Deprecation", "true");
+    if (canonicalEndpoint) {
+      res.set("Link", `<${canonicalEndpoint}>; rel="canonical"`);
+    }
+    return res.status(410).json({
+      error: "Legacy endpoint retired",
+      code: "legacy_route_retired",
+      deprecated_endpoint: deprecatedEndpoint,
+      canonical_endpoint: canonicalEndpoint,
+    });
+  };
+}
+
+router.post("/mvp-move", retiredCompatRoute({
+  deprecatedEndpoint: "/api/optimizer/mvp-move",
+  canonicalEndpoint: "/api/omen/mvp-move",
+}));
 
 // All optimizer endpoints require both auth AND a Pro subscription.
 router.use(requireAuth);
@@ -272,56 +290,6 @@ router.get("/waiver", async (req, res, next) => {
       return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
     }
     return next(e);
-  }
-});
-
-// POST /api/optimizer/mvp-move
-// Returns the single highest-value weekly move for this user's team.
-// Requires Pro subscription. Uses Gemma + 6-agent pipeline.
-router.post("/mvp-move", async (req, res, next) => {
-  try {
-    const { leagueKey, week, scoringFormat, record } = req.body;
-    if (!leagueKey) {
-      return res.status(400).json({ error: "leagueKey required" });
-    }
-    if (scoringFormat && !VALID_SCORING_FORMATS.includes(scoringFormat)) {
-      return res.status(400).json({ error: "Invalid scoringFormat" });
-    }
-    const safeRecord = typeof record === "string" ? record.trim() : "";
-    if (safeRecord && !VALID_RECORD_PATTERN.test(safeRecord)) {
-      return res.status(400).json({ error: "Invalid record" });
-    }
-
-    const wk = parseWeek(week);
-    if (wk === undefined) {
-      return res.status(400).json({ error: "week must be between 1 and 18" });
-    }
-
-    const { client: yahoo } = await getAuthenticatedYahooClient(req.user.id);
-    const cacheKey = `ssff:roster:${req.user.id}:${leagueKey}:${wk || "current"}`;
-    const roster   = await rosterSvc.fetchAndNormalizeRoster(yahoo, leagueKey, wk, cacheKey);
-
-    const players  = [
-      ...roster.slots.starters,
-      ...roster.slots.bench,
-    ].filter(Boolean);
-
-    const result = await agents.getMVPMove(players, {
-      scoringFormat: scoringFormat || "ppr",
-      record:        safeRecord || null,
-    });
-
-    res.json({
-      week:       roster.week,
-      league_key: roster.league_key,
-      team_key:   roster.team_key,
-      ...result,
-    });
-  } catch (e) {
-    if (e.message === "yahoo_token_expired") {
-      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
-    }
-    next(e);
   }
 });
 

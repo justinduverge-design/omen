@@ -40,6 +40,16 @@ async function request(app, path, { method = "GET", body } = {}) {
   }
 }
 
+function assertRetiredRoute(res, { deprecatedEndpoint, canonicalEndpoint = null }) {
+  assert.equal(res.status, 410);
+  assert.deepEqual(res.body, {
+    error: "Legacy endpoint retired",
+    code: "legacy_route_retired",
+    deprecated_endpoint: deprecatedEndpoint,
+    canonical_endpoint: canonicalEndpoint,
+  });
+}
+
 test("GET /api/health returns 200 without auth", async () => {
   const app = buildApp();
   const res = await request(app, "/api/health");
@@ -48,26 +58,40 @@ test("GET /api/health returns 200 without auth", async () => {
   assert.equal(res.body.status, "ok");
 });
 
-test("POST /api/auth/sleeper/connect rejects missing auth token", async () => {
+test("POST /api/auth/sleeper/connect is retired with canonical route hint", async () => {
   const app = buildApp();
   const res = await request(app, "/api/auth/sleeper/connect", {
     method: "POST",
     body: { username: "test-user", userId: "attacker-chosen-user" },
   });
 
-  assert.equal(res.status, 401);
-  assert.equal(res.body.error, "Missing bearer token");
+  assertRetiredRoute(res, {
+    deprecatedEndpoint: "/api/auth/sleeper/connect",
+    canonicalEndpoint: "/api/platforms/sleeper/connect",
+  });
 });
 
-test("GET /api/auth/yahoo/authorize rejects missing auth token without redirecting", async () => {
+test("GET /api/auth/yahoo/authorize is retired with canonical route hint", async () => {
   const app = buildApp();
   const res = await request(app, "/api/auth/yahoo/authorize?userId=attacker-chosen-user&leagueId=1");
 
-  assert.equal(res.status, 401);
-  assert.equal(res.body.error, "Missing bearer token");
+  assertRetiredRoute(res, {
+    deprecatedEndpoint: "/api/auth/yahoo/authorize",
+    canonicalEndpoint: "/api/yahoo/auth",
+  });
 });
 
-test("POST /api/auth/espn/connect rejects missing auth token", async () => {
+test("GET /api/auth/yahoo/callback is retired with canonical route hint", async () => {
+  const app = buildApp();
+  const res = await request(app, "/api/auth/yahoo/callback?code=test&state=test");
+
+  assertRetiredRoute(res, {
+    deprecatedEndpoint: "/api/auth/yahoo/callback",
+    canonicalEndpoint: "/api/yahoo/callback",
+  });
+});
+
+test("POST /api/auth/espn/connect is retired with canonical route hint", async () => {
   const app = buildApp();
   const res = await request(app, "/api/auth/espn/connect", {
     method: "POST",
@@ -79,14 +103,17 @@ test("POST /api/auth/espn/connect rejects missing auth token", async () => {
     },
   });
 
-  assert.equal(res.status, 401);
-  assert.equal(res.body.error, "Missing bearer token");
+  assertRetiredRoute(res, {
+    deprecatedEndpoint: "/api/auth/espn/connect",
+    canonicalEndpoint: "/api/platforms/espn/connect",
+  });
 });
 
-test("GET /api/league/standings rejects missing auth token", async () => {
+test("GET /api/league/standings is retired without a canonical replacement", async () => {
   const app = buildApp();
   const res = await request(app, "/api/league/standings?userId=attacker-chosen-user&leagueId=1");
 
-  assert.equal(res.status, 401);
-  assert.equal(res.body.error, "Missing bearer token");
+  assertRetiredRoute(res, {
+    deprecatedEndpoint: "/api/league/standings",
+  });
 });

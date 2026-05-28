@@ -32,6 +32,33 @@ function hasUsableYahooToken(row, now = new Date()) {
   );
 }
 
+function hasUsableSleeperContext(row) {
+  return Boolean(
+    row?.platform === "sleeper"
+    && row?.is_active
+    && row?.platform_username
+    && hasUsableLeagueId(row)
+  );
+}
+
+function hasUsableEspnContext(row) {
+  return Boolean(
+    row?.platform === "espn"
+    && row?.is_active
+    && row?.espn_secret_id
+    && row?.swid_secret_id
+    && hasUsableLeagueId(row)
+  );
+}
+
+function hasUsableOmenContext(row) {
+  return (
+    (hasUsableYahooToken(row) && hasUsableLeagueId(row))
+    || hasUsableSleeperContext(row)
+    || hasUsableEspnContext(row)
+  );
+}
+
 function buildPlatformSummary(rows = [], now = new Date()) {
   const activeRows = rows.filter((row) => row?.is_active);
   const yahoo = activeRows.find((row) => row.platform === "yahoo" && row.token_secret_id);
@@ -61,19 +88,22 @@ function buildPlatformSummary(rows = [], now = new Date()) {
   };
 }
 
-function buildOmenTool(rows = []) {
+function buildOmenTool({ rows = [], isSubscribed = false } = {}) {
   const activeRows = rows.filter((row) => row?.is_active);
-  const usableYahoo = activeRows.find((row) =>
-    hasUsableYahooToken(row) && hasUsableLeagueId(row)
-  );
+  const usableOmenConnection = activeRows.find(hasUsableOmenContext);
 
-  if (usableYahoo) {
-    return { available: true, mode: "live", status: "ready" };
+  if (!usableOmenConnection) {
+    if (activeRows.length) {
+      return { available: false, mode: "pro", status: "pending_live_engine" };
+    }
+    return { available: false, mode: "pro", status: "needs_platform" };
   }
-  if (activeRows.length) {
-    return { available: false, mode: "live", status: "pending_live_engine" };
+
+  if (!isSubscribed) {
+    return { available: false, mode: "pro", status: "needs_subscription" };
   }
-  return { available: false, mode: "mock", status: "needs_platform" };
+
+  return { available: true, mode: "pro", status: "ready" };
 }
 
 function buildWaiverTool({ rows = [], isSubscribed = false }) {
@@ -101,31 +131,69 @@ async function getPlatformRows(userId) {
 }
 
 async function getSubscriptionStatus(userId) {
-  const { data, error } = await supabase
-    .from("users")
-    .select("is_subscribed")
-    .eq("id", userId)
-    .maybeSingle();
+  const [{ data: user, error: userError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("is_subscribed")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan,status,subscribed_at,canceled_at,expires_at,trial_ends_at,current_period_end,stripe_customer_id")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
 
-  if (error) return false;
-  return Boolean(data?.is_subscribed);
+  if (userError || subscriptionError) {
+    return {
+      is_subscribed: false,
+      status: "unknown",
+      plan: null,
+      subscribed_at: null,
+      canceled_at: null,
+      expires_at: null,
+      trial_ends_at: null,
+      current_period_end: null,
+      can_manage_billing: false,
+    };
+  }
+
+  const isSubscribed = Boolean(user?.is_subscribed);
+  const storedStatus = subscription?.status || null;
+  const status = isSubscribed
+    ? storedStatus || "active"
+    : storedStatus === "canceled" ? "canceled" : "none";
+
+  return {
+    is_subscribed: isSubscribed,
+    status,
+    plan: subscription?.plan || null,
+    subscribed_at: subscription?.subscribed_at || null,
+    canceled_at: subscription?.canceled_at || null,
+    expires_at: subscription?.expires_at || null,
+    trial_ends_at: subscription?.trial_ends_at || null,
+    current_period_end: subscription?.current_period_end || subscription?.expires_at || null,
+    can_manage_billing: Boolean(subscription?.stripe_customer_id),
+  };
 }
 
 router.get("/summary", requireAuth, async (req, res, next) => {
   try {
-    const [rows, isSubscribed] = await Promise.all([
+    const [rows, subscription] = await Promise.all([
       getPlatformRows(req.user.id),
       getSubscriptionStatus(req.user.id),
     ]);
+    const isSubscribed = subscription.is_subscribed;
 
     return res.json({
       contract_version: "dashboard-summary.v1",
       generated_at: nowIso(),
       is_mock: false,
+      subscription,
       platforms: buildPlatformSummary(rows),
       tools: {
         draft_assistant: { available: true, mode: "free", status: "ready" },
-        omen_of_the_week: buildOmenTool(rows),
+        omen_of_the_week: buildOmenTool({ rows, isSubscribed }),
         start_sit: { available: true, mode: "free", status: "ready" },
         trade_analyzer: { available: true, mode: "free", status: "ready" },
         waiver_wire: buildWaiverTool({ rows, isSubscribed }),
