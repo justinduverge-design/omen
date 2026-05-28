@@ -20,7 +20,7 @@ Corvus is the active Fantasy Football MVP product inside the Slops Saloon divisi
 ```bash
 npm start          # node src/server.js
 npm run dev        # same as start
-npm run cron       # node src/slops-saloon_tuesday_cron.js
+npm run cron       # node src/corvus_tuesday_cron.js
 node --test        # Node built-in test runner
 ```
 
@@ -36,8 +36,8 @@ Do not run deploys, migrations, package installs, Docker, Stripe live actions, o
 - `src/adapters/`: platform adapter normalization.
 - `src/services/`: subscription, LLM, VORP, agent support.
 - `frontend/`: active UI/app shell.
-- `slops-saloon_api_v2.js`: legacy monolith; avoid adding new work here.
-- `slops-saloon_agents.js`: legacy active agent pipeline; do not remove casually.
+- `src/corvus_api_v2.js`: legacy monolith; avoid adding new work here.
+- `src/corvus_agents.js`: legacy active agent pipeline; do not remove casually.
 
 ## 5. Decision Tables
 

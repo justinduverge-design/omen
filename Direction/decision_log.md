@@ -33,6 +33,12 @@
 - **Canonical Oracle checkout**: `~/corvus`.
 - **Production service identity**: health checks report `service: corvus-api`.
 
+## Decisions Added 2026-05-25
+
+- **Backend contract truth reconciled**: `Blueprints/handoffs/backend-to-frontend.md` now states the current tested Omen behavior. `POST /api/omen/mvp-move` has a Yahoo-first live path for authenticated, subscribed users with usable Yahoo league context. Sleeper and ESPN live Omen remain `pending_live_engine`.
+- **Current local backend verification**: `npm test` passes 199/199 locally.
+- **Frontend build blocker recorded**: primary `frontend/` build currently fails in `frontend/src/pages/Account.jsx`; this is assigned as a Layer 2 Claude/frontend task, not a backend blocker.
+
 ## Open Decisions
 
 - Final UI naming between Omen of the Week, Omen, MVP Move, or a combined label.

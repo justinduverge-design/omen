@@ -73,3 +73,104 @@ Do not touch `Archive\quarantine`.
 3. Update `AppLayout.jsx` to use CSS custom property tokens for theming consistency across authenticated pages
 4. Build the app shell / dashboard (`/football`) with sidebar nav and the correct tool links
 5. Update `Omen.jsx` to use the auth+league gate pattern — show `DisconnectedState` if no platform connected, confirm paid-tier gate before showing live Omen
+
+---
+
+## Session Handoff — 2026-05-25
+
+### What was completed
+
+**Backend — live Omen MVP route:**
+- `POST /api/omen/mvp-move` now has a real live path.
+- Auth is required for non-mock live calls.
+- Pro subscription is required.
+- Connected platform is required.
+- Yahoo is the first live source.
+- Sleeper and ESPN return `pending_live_engine` until their live Omen engines are ready.
+- Response envelope remains `omen_mvp_move`.
+
+**Backend — dashboard and subscription contract:**
+- `GET /api/dashboard/summary` is the gate source for Omen and Account subscription UI.
+- Omen tool states are `needs_platform`, `needs_subscription`, `pending_live_engine`, and `ready`.
+- A safe `subscription` block now exists in dashboard summary.
+- Stripe checkout success returns to `/account?subscribed=true`.
+- Stripe cancel returns to `/account?cancelled=true`.
+- Stripe portal returns to `/account`.
+
+**Frontend — canonical Omen state hardening:**
+- Canonical `frontend/src/pages/OmenOfTheWeek.jsx` now sends `{}` to live Omen.
+- `401` live Omen response routes to `/login` with `corvus.auth.next=/omen`.
+- `402` live Omen response renders `UpgradeState`.
+- `pending_live_engine` renders connected-but-not-ready copy instead of falling through to the empty state.
+- Important: this was first found only in `.claude/worktrees/dreamy-ride-ab2778`; canonical file has now been patched.
+
+**Documentation / handoff:**
+- `Blueprints/handoffs/backend-to-frontend.md` contains the current live Omen and Stripe subscription contracts.
+- `Blueprints/handoffs/frontend-to-backend.md` has Claude Request 11 as informational only.
+- `Direction/context.md` now includes current build truth.
+
+### Verification completed
+
+- Backend full test suite passed: `npm test` — 199 passing.
+- Frontend build passed: `npm run build` in `frontend/`.
+- `git diff --check` passed.
+
+### Known limitations
+
+- `trial_ends_at` is currently `null`; webhook does not persist Stripe trial end yet.
+- Live Omen v1 is Yahoo lineup-swap first. Waiver/trade MVP logic is future expansion.
+- Sleeper and ESPN can connect, but their live Omen engines are pending.
+- Supabase dashboard config for Google, Apple, and Discord still must be confirmed before claiming those providers work.
+
+### Next recommended work
+
+1. Claude builds the Account subscription section from the dashboard `subscription` block.
+2. Browser QA `/account?upgrade=true`, `/account?subscribed=true`, and `/account?cancelled=true`.
+3. Browser QA `/omen` for auth-expired, subscription-lapsed, pending-engine, empty, and success states.
+4. Codex follow-up later: persist Stripe trial/current period dates from webhook events.
+
+---
+
+## Session Handoff — 2026-05-26
+
+### What was completed
+
+**Backend — investor hardening pass:**
+- `POST /api/omen/mvp-move` now has live start/sit MVP paths for Yahoo, Sleeper, and ESPN when auth, subscription, credentials, and league context are usable.
+- Sleeper and ESPN no longer default to `pending_live_engine`; they return live `success`/`empty` or explicit recovery states.
+- ESPN cookie secrets are decrypted server-side only through Vault and are not exposed in response bodies.
+- Draft Assistant recommendations can use supplied provider-backed ADP rows and return `mode: "live_adp"`, `is_mock: false`; mock fallback remains labeled.
+- Stripe webhook handling now covers checkout completion, subscription created/updated/deleted, and invoice payment failed.
+- Subscription metadata now supports `trial_ends_at`, `current_period_end`, `expires_at`, and `canceled_at` where Stripe provides them.
+- `/api/user/export`, `/api/user/consent`, and `/api/user/delete` are mounted privacy routes.
+- `/api/ready` now separates dependency/config readiness from `/api/health`.
+- Trade Analyzer and Draft Assistant have a stricter public tool rate limit.
+- `scripts/load-corvus-routes.js` was added for local/staging smoke-load checks.
+
+**Documentation / reporting:**
+- Corvus Layer 2 docs were updated with the 2026-05-26 backend truth.
+- `Blueprints/handoffs/backend-to-frontend.md` now has the current contract section Claude should read first.
+- Layer 1 Slops Saloon status/report files were prepared for HQ visibility.
+
+### Verification completed
+
+- `npm test` passed: 207/207.
+- `npm audit --audit-level=moderate` passed: 0 vulnerabilities.
+- `npm --prefix frontend run build` passed and emitted `frontend/dist`.
+- `git diff --check` passed before implementation.
+
+### Still requires Justin approval or non-local validation
+
+- Stripe test-mode checkout/portal/webhook validation, then production Stripe validation only with Justin approval.
+- Supabase production schema application for new subscription metadata columns.
+- Supabase Auth provider confirmation for Google, Apple, and Discord.
+- Real-account Yahoo/Sleeper/ESPN Omen QA before public “all platforms live” claims.
+- Production deploy.
+- Cron scoring enablement with `CORVUS_CRON_SCORING_ENABLED=true`.
+
+### Next recommended work
+
+1. Run Stripe test-mode validation and record evidence.
+2. Run `scripts/load-corvus-routes.js` against local/staging with an auth token.
+3. Claude updates Account/Omen UI from the 2026-05-26 backend-to-frontend contract.
+4. Decide whether to merge or retire `POST /api/optimizer/mvp-move` now that `POST /api/omen/mvp-move` is canonical.

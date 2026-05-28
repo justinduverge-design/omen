@@ -2,6 +2,7 @@
 ## Operation type: DBS reorganization + source rename + division folder creation — no deploy
 ## Date: 2026-05-24
 ## Repo: slops-saloon/corvus/
+## Status: Historical completed migration prompt — do not re-run without rewriting for the current repo state.
 
 ---
 

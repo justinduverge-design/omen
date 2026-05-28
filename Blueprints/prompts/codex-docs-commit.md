@@ -2,6 +2,7 @@
 ## Operation type: git cleanup + stage + commit — no source changes, no deploy
 ## Date: 2026-05-24
 ## Repo: ssffmvp/ (will be renamed to slops-saloon/ later)
+## Status: Historical pre-rename prompt — stale for current `slops-saloon/corvus` work.
 
 ---
 

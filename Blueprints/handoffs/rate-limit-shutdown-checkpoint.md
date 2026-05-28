@@ -1,122 +1,102 @@
 # Rate-Limit Shutdown Checkpoint
 
-**Date:** 2026-05-23
-**Owner:** Claude
-**Session type:** ESPN recovery Account page wiring — all 6 changes implemented
+Date: 2026-05-24
+Agent: Claude Code (frontend)
+Worktree: `corvus/.claude/worktrees/dreamy-ride-ab2778` → branch `claude/dreamy-ride-ab2778`
 
 ---
 
 ## Current Project State
 
-- Trade Analyzer is live and the active front door.
-- Omen of the Week / MVP Move frontend is complete. All 8 contract states verified end-to-end with Playwright.
-- ESPN recovery Account page wiring is complete. The full Omen → Account → reconnect → Return to Omen journey is implemented and wired.
-- Backend mock endpoint (`POST /api/omen/mvp-move`) is registered in `server.js`. All ESPN states return correct recovery envelopes.
-- `llm_reasoning` signal is still `stub`. Omen explanations are deterministic templates.
-- Matchup DvP is still stubbed. Confidence scores remain `medium`.
-- No commits or pushes made this session.
+- Corvus app backbone is substantially complete: routing, auth gate, dashboard shell, Draft Assistant, Trade Analyzer, Omen gate, and Account subscription section are all wired.
+- Live Omen backend is active (Codex shipped Yahoo-backed MVP Move route). Frontend gate is correct: `status === "ready"` → live call; all other states show locked/disconnected/upgrade UI.
+- Stripe checkout and portal flows are fully wired from the Account page. Redirect URLs confirmed: `/account?subscribed=true` / `/account?cancelled=true` / `/account`.
+- Dashboard summary now exposes a safe `subscription` block — Account page consumes it directly with no separate endpoint needed.
+- All changes committed in the worktree (7 commits ahead of origin/main) and synced to canonical `corvus/`.
 
 ---
 
 ## Work Completed This Session
 
-1. Read `layer-handoff-protocol.md` — understood the three SLOPS layers (0-OS, 1-slops-saloon, 2-Corvus) and handoff chain.
-2. Implemented Change 1 — `Omen.jsx` `RecoveryPanel`: accepts `state` prop, builds safe query-param href for ESPN states only (`/account?platform=espn&recovery=<state>`). Non-ESPN states keep plain `/account`.
-3. Implemented Change 2 — `Account.jsx`: imports `useSearchParams`, reads `?recovery=` param, passes `recoveryState` to `PlatformConnections`. Never logs or displays the raw value.
-4. Implemented Change 3 — `PlatformConnections.jsx`: accepts `recoveryState` prop. Added `espnRecovery` and `showEspnCard` derived values. ESPN card renders when `VITE_ESPN_ENABLED === 'true'` OR when `recoveryState` starts with `espn_`.
-5. Implemented Change 4 — `PlatformConnections.jsx`: added `ESPN_RECOVERY_COPY` map with state-specific user-facing messages. Recovery banner renders above the ESPN form when arriving from an Omen recovery CTA.
-6. Implemented Change 5 — `PlatformConnections.jsx`: when `recoveryState === 'espn_reauth_required'` and ESPN is already connected, a "Reconnect ESPN" button appears that opens the connect form. A "Cancel" button returns to the connected view.
-7. Implemented Change 6 — `PlatformConnections.jsx`: after a successful ESPN connect during a recovery flow, `espnConnectSucceeded` is set. ESPN card switches to a success view with a "Return to Omen →" link pointing to `/football`.
-8. Updated `Direction/current_sprint.md`, `Corvus/Direction/current_sprint.md`, and `Blueprints/handoffs/decisions.md` to reflect ESPN recovery wiring as closed.
+1. **Handoff Requests 9 + 10 written** (`frontend-to-backend.md`) — Stripe contract, `success_url` mismatch bug report, Account subscription section scope.
+2. **`OmenOfTheWeek.jsx` hardened for live route** — 401 → `navigate('/login')` with `corvus.auth.next` preservation; 402 → `UpgradeState` inline; `pending_live_engine` explicit branch.
+3. **Handoff Request 11 written** — live Omen frontend wiring complete, no Codex action needed.
+4. **`Account.jsx` rebuilt** — full subscription section:
+   - Plan picker: Monthly (7-day trial) / Season Pass (one-time) → Stripe checkout
+   - Active state: Pro badge, plan label, renewal date, Manage Subscription → portal
+   - `?subscribed=true` success banner, `?cancelled=true` soft banner, `?upgrade=true` scroll-to
+   - Per-status Stripe error handling (400/404/503)
+   - Loading skeleton, error/retry state, `status: "unknown"` handling
+5. **`backend-to-frontend.md` committed** with Codex's Stripe/subscription update.
 
 ---
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `frontend/src/pages/Omen.jsx` | `RecoveryPanel` — accepts `state` prop, builds safe `accountHref` for ESPN states |
-| `frontend/src/pages/Account.jsx` | Added `useSearchParams`, reads `recovery` param, passes `recoveryState` to `PlatformConnections` |
-| `frontend/src/components/platforms/PlatformConnections.jsx` | Accepts `recoveryState` prop; ESPN_ENABLED bypass; recovery banner; reconnect UI; Return to Omen link |
-| `Direction/current_sprint.md` | Advanced focus to Matchup DvP and LLM reasoning |
-| `Corvus/Direction/current_sprint.md` | Marked ESPN recovery wiring complete, set next priority |
-| `Blueprints/handoffs/decisions.md` | Closed ESPN recovery open decision, one remaining open decision |
+| File | Status |
+|------|--------|
+| `frontend/src/pages/OmenOfTheWeek.jsx` | Updated — 401/402 handling, pending_live_engine branch |
+| `frontend/src/pages/Account.jsx` | Rebuilt — full subscription section |
+| `Blueprints/handoffs/frontend-to-backend.md` | Updated — Requests 9, 10, 11 |
+| `Blueprints/handoffs/backend-to-frontend.md` | Updated — Codex Stripe + subscription block |
+
+All files synced to canonical `corvus/` and committed in worktree.
 
 ---
 
-## Files Not Found
+## Files Not Found / Not Checked
 
-| File | Status |
-|---|---|
-| `Blueprints/security-privacy.md` | Not read — no new security surface added; URL params are state identifiers only, no credentials |
-| `probo.yaml` | Not read — no compliance evidence changes |
+- `Direction/current_sprint.md` — not read this session; may need updating to reflect subscription UI completion.
+- `frontend/dist/` — build not run; `npm run build` in `frontend/` not verified.
+- `frontend/src/components/platforms/PlatformConnections.jsx` — not touched; uses legacy `GET /api/platforms/status` (known inconsistency, not blocking).
 
 ---
 
 ## What Was Not Done
 
-- No Playwright QA driver written for the recovery flow — the Omen driver covers the CTA render; Account page recovery states were not exercised with a new driver.
-- Matchup DvP / Sportradar integration not started.
-- LLM reasoning (Gemma) not wired to Omen route.
-- Stripe live keys not touched.
-- Security hardening (helmet, rate limiting) not started.
-- No commits or pushes made.
-- No deploy performed.
+- **`npm run build`** — not run; build output not verified.
+- **Browser visual test** — no UI inspection this session.
+- **`trial_ends_at` UI** — always `null` from backend; not shown. Needs Stripe webhook update.
+- **Waiver Wire UI** — not built.
+- **Start/Sit UI** — not built.
+- **Worktree merge** — `claude/dreamy-ride-ab2778` not pushed or merged.
 
 ---
 
 ## Current Risks / Open Questions
 
-- **Recovery analytics timing is open.** Whether recovery event tracking ships before or after the first paid launch gate is undecided.
-- **Matchup DvP is still stubbed.** Confidence scores remain `medium` until Sportradar or an equivalent provider is approved.
-- **Gemma/Ollama reasoning is templated.** The `llm_reasoning` signal is `stub` — Omen explanations are deterministic templates, not live LLM output.
-- **No QA driver for Account recovery flow.** The reconnect UI and Return to Omen link were not exercised with Playwright. Manual testing recommended before paid launch.
-- **`VITE_ESPN_ENABLED=false` + recovery flow** — the ESPN card bypass logic has not been exercised against a real backend. The `espnRecovery` flag is derived from URL param; if the backend returns an ESPN state but `VITE_ESPN_ENABLED` is false, the card will now show. This is the intended behavior but has not been verified with a running server.
+1. **`trial_ends_at` always null** — backend Stripe webhook does not yet persist `trial_end`. UI cannot show trial expiry until fixed.
+2. **Worktree not merged** — 7 commits ahead of origin/main. Needs review and merge before changes are live.
+3. **Build not verified** — `npm install && npm run build` not run in worktree. May surface import errors.
+4. **Stripe plan pricing** — no prices in the UI (correct — Stripe checkout shows price). Justin should confirm pricing is set in the Stripe dashboard.
+5. **`PlatformConnections.jsx` uses legacy endpoint** — `GET /api/platforms/status` vs `GET /api/platforms`. Both exist; inconsistency only, not blocking.
 
 ---
 
 ## Recommended Next Step
 
-**Matchup DvP provider decision** — the confidence score is the most visible stub in the Omen screen. Approve Sportradar or an equivalent provider, then request a Codex backend task to wire real DvP data into the service. Alternatively, write a QA driver for the Account recovery flow first if pre-launch risk review is required.
+Build and browser-test the Account page, then merge the worktree branch.
+
+1. `cd corvus/frontend && npm install && npm run build` — verify build passes
+2. Start dev server, visually test `/account` for all 3 subscription states
+3. Verify `?subscribed=true`, `?cancelled=true`, `?upgrade=true` flows
+4. Merge `claude/dreamy-ride-ab2778` → main once verified
+
+After merge: Waiver Wire UI (Pro-gated), then Start/Sit UI (free).
 
 ---
 
-## Exact Next Prompt For Justin
+## Exact Next Prompt
 
-```text
-You are Claude, the frontend engineer for the Slops Saloon `slops-saloon` repo.
-
-Read first — do not skip any:
-- DBS_INDEX.md
-- Blueprints/handoffs/rate-limit-shutdown-checkpoint.md
-- Blueprints/handoffs/decisions.md
-- Direction/current_sprint.md
-
-Goal: Write a Playwright QA driver for the ESPN recovery Account page flow.
-
-Context:
-- Omen.jsx RecoveryPanel now builds `/account?platform=espn&recovery=<state>` for ESPN states.
-- Account.jsx reads `?recovery=` and passes `recoveryState` to PlatformConnections.
-- PlatformConnections shows a recovery banner, reconnect UI, and Return to Omen link.
-- No QA driver exists for this flow yet.
-
-Deliverables:
-
-1. Write `.claude/skills/run-slops-saloon/driver_espn_recovery.cjs` — a Playwright driver that:
-   - Navigates directly to `/account?platform=espn&recovery=espn_reauth_required`
-   - Asserts the recovery banner text is visible
-   - Asserts the "Reconnect ESPN" button is visible (for the connected + reauth state)
-   - Asserts the connect form is visible when ESPN is not connected
-   - Asserts the "Return to Omen →" link is present after a mocked successful connect
-   - Uses page.route() to mock `/api/platforms/status` and `/api/platforms/espn/connect`
-   - Uses page.route() to mock Supabase auth (or navigates around the auth gate)
-   - Screenshots each state
-
-2. Run the driver and report pass/fail per assertion.
-
-Scope:
-- Frontend QA only — Playwright driver and assertion logic.
-- Do not touch backend, secrets, SQL, payments, deploy config, or infrastructure.
-- Do not start new features.
-- Do not commit or push.
+```
+Read backend-to-frontend.md and the rate-limit-shutdown-checkpoint.md in
+Blueprints/handoffs/, then build and visually verify the Account page
+subscription section in the browser. Test:
+1. Not-subscribed state — plan picker, both plan options, checkout CTA
+2. Subscribed state — Pro badge, Manage Subscription button
+3. ?upgrade=true scroll from UpgradeState CTA on the Omen tab
+4. ?subscribed=true success banner on return from Stripe
+5. Stripe 503 graceful fallback message
+Fix any issues found, confirm npm run build passes, then confirm the
+page is ready for Justin to review before merging the worktree branch.
 ```

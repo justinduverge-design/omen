@@ -4,6 +4,8 @@ This is the product repo navigation map for Corvus.
 
 Corvus is Layer 2 inside SLOPS OS.
 
+When Justin says "Layer 3," treat that as this third layer in plain English.
+
 ## Canonical Path
 
 ```text
@@ -43,25 +45,45 @@ sql/            Database/reference SQL
 scripts/        Product scripts
 ```
 
+## Baseline Entry Files
+
+This app layer still exposes the SLOPS baseline context files:
+
+```text
+context.md
+DBS_INDEX.md
+README.md
+AGENTS.md
+CLAUDE.md
+```
+
+On this Windows workspace, lowercase `agents.md` / `claude.md` references resolve to the canonical `AGENTS.md` / `CLAUDE.md` files.
+
+The app may have extra source, config, and test folders. Those do not replace the baseline DBS entry files.
+
 ## Read First
 
 For backend or product work:
 
-1. `Direction/context.md`
-2. `Direction/current_sprint.md`
-3. `Direction/roadmap.md`
-4. `Direction/decision_log.md`
-5. `Blueprints/handoffs/frontend-to-backend.md`
-6. `Blueprints/handoffs/backend-to-frontend.md`
-7. `Blueprints/handoffs/decisions.md`
+1. `context.md`
+2. `AGENTS.md`
+3. `Direction/context.md`
+4. `Direction/current_sprint.md`
+5. `Direction/roadmap.md`
+6. `Direction/decision_log.md`
+7. `Blueprints/handoffs/frontend-to-backend.md`
+8. `Blueprints/handoffs/backend-to-frontend.md`
+9. `Blueprints/handoffs/decisions.md`
 
 For frontend work:
 
-1. `Direction/context.md`
-2. `Blueprints/design.md`
-3. `Blueprints/specs/app-ui-plan.md`
-4. `Blueprints/handoffs/backend-to-frontend.md`
-5. `Blueprints/handoffs/frontend-to-backend.md`
+1. `context.md`
+2. `CLAUDE.md`
+3. `Direction/context.md`
+4. `Blueprints/design.md`
+5. `Blueprints/specs/app-ui-plan.md`
+6. `Blueprints/handoffs/backend-to-frontend.md`
+7. `Blueprints/handoffs/frontend-to-backend.md`
 
 ## Handoffs
 

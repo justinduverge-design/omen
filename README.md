@@ -13,10 +13,21 @@ Slops Saloon is the parent company, mission site, and long-term product studio. 
 - Layer 0 is `SLOPS/`.
 - Layer 1 is `SLOPS/slops-saloon/`.
 - Layer 2 is this repo: `SLOPS/slops-saloon/corvus/`.
+- If Justin says "Layer 3," treat that as this third layer in plain English.
 - Product, brand, handoff, prompt, and spec context lives at this repo root under `Direction`, `Blueprints`, `Brand`, `Solutions`, and `References`.
 - The old nested `Corvus/` folder is retired.
 - Do not use old `Projects\slops-saloon` copies for active work.
 - Do not touch `Archive\quarantine`.
+
+Baseline context entry files:
+
+- `context.md`
+- `DBS_INDEX.md`
+- `README.md`
+- `AGENTS.md`
+- `CLAUDE.md`
+
+On this Windows workspace, lowercase `agents.md` / `claude.md` references resolve to the canonical `AGENTS.md` / `CLAUDE.md` files.
 
 ---
 
@@ -188,7 +199,7 @@ npm test
 ## Project Structure
 
 ```
-slops-saloon/
+corvus/
 ├── src/
 │   ├── adapters/
 │   │   ├── yahoo.js               # Yahoo platform adapter

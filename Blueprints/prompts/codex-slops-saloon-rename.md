@@ -3,6 +3,7 @@
 ## Operation type: File renames + require() updates + config files — no deploy
 ## Date: 2026-05-24
 ## Repo: `slops-saloon/` (currently on disk as `ssffmvp/` until Justin renames the directory)
+## Status: Historical pre-rename prompt — stale for current `slops-saloon/corvus` work.
 
 ---
 
