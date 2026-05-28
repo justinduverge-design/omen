@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiFetch } from '../lib/api.js';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -332,26 +333,12 @@ function WaitlistSection() {
     e.preventDefault();
     if (status === 'submitting') return;
     setStatus('submitting');
-
-    // TODO [Codex]: Create the `waitlist_signups` table in Supabase before launch.
-    // Required schema:
-    //   CREATE TABLE waitlist_signups (
-    //     id          uuid primary key default gen_random_uuid(),
-    //     email       text not null,
-    //     platform    text,
-    //     created_at  timestamptz default now()
-    //   );
-    // RLS: ENABLE ROW LEVEL SECURITY, then:
-    //   CREATE POLICY "anon_insert" ON waitlist_signups FOR INSERT TO anon WITH CHECK (true);
-    // No SELECT/UPDATE/DELETE for anon role. Add a unique constraint on email if desired.
-    // Once the table exists this frontend call will work without any other changes.
-
     try {
-      const { error } = await supabase
-        .from('waitlist_signups')
-        .insert({ email, platform: platform || null });
-
-      setStatus(error ? 'error' : 'success');
+      await apiFetch('/api/waitlist', {
+        method: 'POST',
+        body: { email, platform: platform || null },
+      });
+      setStatus('success');
     } catch {
       setStatus('error');
     }

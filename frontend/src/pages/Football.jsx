@@ -19,7 +19,7 @@ const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
 function PlatformStatusBar({ platforms, loading }) {
   if (loading) {
-    return <div className="h-10 animate-pulse rounded-lg bg-slate-800/50" />;
+    return <div className="h-10 animate-pulse rounded-lg" style={{ background: 'var(--color-surface-2)' }} />;
   }
   if (!platforms) return null;
 
@@ -34,18 +34,19 @@ function PlatformStatusBar({ platforms, loading }) {
   return (
     <div className="space-y-2">
       {connected.length === 0 && tokenExpired.length === 0 ? (
-        <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
-          <p className="text-xs text-slate-400">No fantasy platform connected.</p>
+        <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No fantasy platform connected.</p>
           <Link
-            className="text-xs font-semibold text-amber-400 transition-colors hover:text-amber-300"
+            className="text-xs font-semibold transition-colors"
+            style={{ color: 'var(--color-accent)' }}
             to="/account"
           >
             Connect a platform →
           </Link>
         </div>
       ) : connected.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-2.5">
-          <p className="text-xs text-slate-500">Connected:</p>
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border px-4 py-2.5" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Connected:</p>
           {connected.map(([key, val]) => {
             const label = PLATFORM_LABELS[key] ?? key;
             const suffix = key === 'sleeper' && val?.username ? ` · ${val.username}` : '';
@@ -60,7 +61,8 @@ function PlatformStatusBar({ platforms, loading }) {
             );
           })}
           <Link
-            className="ml-auto text-xs text-slate-500 transition-colors hover:text-slate-300"
+            className="ml-auto text-xs transition-colors hover:text-slate-300"
+            style={{ color: 'var(--color-text-secondary)' }}
             to="/account"
           >
             Manage
@@ -74,14 +76,16 @@ function PlatformStatusBar({ platforms, loading }) {
         return (
           <div
             key={key}
-            className="flex items-center justify-between rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3"
+            className="flex items-center justify-between rounded-lg border px-4 py-3"
+            style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)' }}
           >
-            <p className="text-xs text-amber-300">
+            <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
               {label} session expired — reconnect to restore your live data
             </p>
             {reconnectUrl && (
               <button
-                className="ml-4 shrink-0 text-xs font-semibold text-amber-400 transition-colors hover:text-amber-300"
+                className="ml-4 shrink-0 text-xs font-semibold transition-colors"
+                style={{ color: 'var(--color-accent)' }}
                 type="button"
                 onClick={() => { window.location.href = reconnectUrl; }}
               >
@@ -119,7 +123,7 @@ export default function Football() {
 
       case 'omen':
         if (summaryLoading) {
-          return <div className="h-32 animate-pulse rounded-xl bg-slate-800/50" />;
+          return <div className="h-32 animate-pulse rounded-xl" style={{ background: 'var(--color-surface-2)' }} />;
         }
         if (omenStatus === 'needs_platform') {
           return (
@@ -167,13 +171,13 @@ export default function Football() {
   return (
     <AppLayout>
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
           Corvus · Hall of Records
         </p>
-        <h1 className="mt-3 font-serif text-4xl tracking-wide text-white sm:text-5xl">
+        <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
           Hall of Records
         </h1>
-        <p className="mt-4 text-sm leading-6 text-slate-400">
+        <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Start with a trade check, prepare for the draft, then let Omen of the Week fold
           start/sit and waiver choices into one plain-English weekly move.
         </p>
@@ -182,18 +186,18 @@ export default function Football() {
       <PlatformStatusBar platforms={summary?.platforms} loading={summaryLoading} />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
-      <div className="-mb-px flex overflow-x-auto border-b border-slate-800">
+      <div className="-mb-px flex overflow-x-auto border-b" style={{ borderColor: 'var(--color-border)' }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              className={[
-                'shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors',
+              className="shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+              style={
                 isActive
-                  ? 'border-amber-400 text-amber-300'
-                  : 'border-transparent text-slate-400 hover:border-slate-600 hover:text-white',
-              ].join(' ')}
+                  ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
+                  : { borderColor: 'transparent', color: 'var(--color-text-secondary)' }
+              }
               type="button"
               onClick={() => setActiveTab(tab.id)}
             >

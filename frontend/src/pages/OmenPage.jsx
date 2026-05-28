@@ -13,10 +13,10 @@ function OmenHeader() {
       <p className="text-xs font-semibold uppercase tracking-widest text-purple-300">
         Corvus Pro
       </p>
-      <h1 className="mt-3 font-serif text-4xl tracking-wide text-white sm:text-5xl">
+      <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
         Omen of the Week
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-400">
+      <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
         Your single highest-value move — start/sit, waiver, or trade — distilled into
         one plain-English call each week.
       </p>
@@ -27,9 +27,9 @@ function OmenHeader() {
 function LoadingGate() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="h-5 w-32 rounded-md bg-slate-800" />
-      <div className="h-8 w-64 rounded-md bg-slate-800" />
-      <div className="h-48 rounded-xl bg-slate-800/50" />
+      <div className="h-5 w-32 rounded-md" style={{ background: 'var(--color-surface-2)' }} />
+      <div className="h-8 w-64 rounded-md" style={{ background: 'var(--color-surface-2)' }} />
+      <div className="h-48 rounded-xl" style={{ background: 'var(--color-surface-2)' }} />
     </div>
   );
 }
@@ -95,9 +95,10 @@ export default function OmenPage() {
 
       {renderContent()}
 
-      <div className="border-t border-slate-800 pt-4">
+      <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="text-xs text-slate-500 transition-colors hover:text-slate-300"
+          className="text-xs transition-colors"
+          style={{ color: 'var(--color-text-secondary)' }}
           to="/football"
         >
           ← Back to dashboard

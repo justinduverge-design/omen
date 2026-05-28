@@ -8,16 +8,35 @@ export default function UpgradeState({
   ctaTo = '/account?upgrade=true',
 }) {
   return (
-    <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-10 text-center">
+    <div
+      className="rounded-xl border p-10 text-center"
+      style={{ borderColor: 'rgba(93,45,142,0.4)', background: 'rgba(93,45,142,0.06)' }}
+    >
       {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-300">{eyebrow}</p>
+        <p
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-omen)' }}
+        >
+          {eyebrow}
+        </p>
       )}
-      {title && <p className="mt-3 text-lg font-semibold text-white">{title}</p>}
-      <p className="mt-2 text-sm leading-6 text-slate-400">
+      {title && (
+        <p
+          className="mt-3 text-lg font-semibold"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          {title}
+        </p>
+      )}
+      <p
+        className="mt-2 text-sm leading-6"
+        style={{ color: 'var(--color-text-secondary)' }}
+      >
         {message ?? 'Most Valuable Play is a Corvus Pro feature. Upgrade to receive your personalized weekly move.'}
       </p>
       <Link
-        className="mt-6 inline-flex items-center rounded-md bg-purple-500/15 px-5 py-2.5 text-sm font-semibold text-purple-300 transition-colors hover:bg-purple-500/25"
+        className="mt-6 inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-purple-500/25"
+        style={{ background: 'rgba(93,45,142,0.06)', color: 'var(--color-omen)' }}
         to={ctaTo}
       >
         {ctaLabel} →
