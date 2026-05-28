@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const ESPN_RECOVERY_STATES = new Set([
@@ -22,26 +24,11 @@ const SIGNAL_STYLES = {
   unavailable: 'border-slate-600 bg-slate-800/50 text-slate-500',
 };
 
-function buildOmenRequest() {
-  return {
-    season: new Date().getFullYear(),
-    scoring_format: 'ppr',
-    decision_scope: ['start_sit', 'waiver_pickup', 'trade_suggestion'],
-    include_signals: {
-      weather: true,
-      travel_home_away: true,
-      game_time_tv: true,
-      matchup_dvp: true,
-      llm_reasoning: true,
-    },
-    use_mock_data: false,
-  };
-}
-
 function useOmenData() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,11 +36,19 @@ function useOmenData() {
     try {
       const result = await apiFetch('/api/omen/mvp-move', {
         method: 'POST',
-        body: buildOmenRequest(),
+        body: {},
       });
       setData(result);
     } catch (err) {
-      if (err instanceof ApiError && err.body?.state) {
+      if (err instanceof ApiError && err.status === 401) {
+        try { localStorage.setItem('corvus.auth.next', '/omen'); } catch (_) {}
+        navigate('/login');
+        return;
+      }
+      if (err instanceof ApiError && err.status === 402) {
+        // Subscription lapsed between dashboard gate and live call — degrade gracefully.
+        setData({ state: 'needs_subscription' });
+      } else if (err instanceof ApiError && err.body?.state) {
         setData(err.body);
       } else {
         setError(
@@ -65,7 +60,7 @@ function useOmenData() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -453,17 +448,6 @@ function isMockMode(data) {
   return statuses.length > 0 && statuses.every((status) => status === 'mock' || status === 'stub');
 }
 
-function hasPreviewSignals(data) {
-  if (data?.mode === 'mock') return true;
-  if (data?.warnings?.some((warning) => /mock|stub|preview/i.test(String(warning)))) {
-    return true;
-  }
-
-  return Object.values(data?.signals || {}).some((signal) =>
-    signal?.status === 'mock' || signal?.status === 'stub'
-  );
-}
-
 function reasoningFromExplanation(explanation) {
   if (!explanation) return [];
 
@@ -485,6 +469,36 @@ export default function OmenOfTheWeek() {
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
+
+  if (data?.state === 'needs_subscription') {
+    return (
+      <UpgradeState
+        eyebrow="Omen of the Week"
+        title="Corvus Pro required"
+        message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
+      />
+    );
+  }
+
+  if (data?.state === 'pending_live_engine') {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+          Omen of the Week
+        </p>
+        <p className="mt-3 text-lg font-semibold text-white">Platform connected</p>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Your platform is connected. Live recommendations are being prepared — check back soon.
+        </p>
+        <Link
+          className="mt-6 inline-flex items-center text-xs text-slate-500 transition-colors hover:text-slate-300"
+          to="/football"
+        >
+          ← Back to dashboard
+        </Link>
+      </div>
+    );
+  }
 
   if (ESPN_RECOVERY_STATES.has(data?.state)) {
     return <RecoveryPanel platform={data.platform} state={data.state} />;
@@ -513,13 +527,12 @@ export default function OmenOfTheWeek() {
 
   const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
   const mockMode = isMockMode(data);
-  const previewMode = hasPreviewSignals(data);
   const livePlatformLabel = !mockMode && platform?.name ? platformLabel(platform.name) : '';
 
   return (
     <div className="space-y-6">
-      {previewMode && (
-        <MockBanner message="Preview Mode - mock and stub signals are labeled below. Treat the recommendation as directional until every decision-critical signal is live." />
+      {mockMode && (
+        <MockBanner message="Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins." />
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">

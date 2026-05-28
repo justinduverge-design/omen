@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import AppLayout from '../components/layout/AppLayout.jsx';
 import ProtectedRoute from '../components/layout/ProtectedRoute.jsx';
 import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
@@ -16,8 +17,8 @@ export default function AppRoutes() {
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/trade" element={<TradeAnalyzer />} />
-      <Route path="/draft" element={<DraftAssistant />} />
+      <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
+      <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />
 
       {/* ConnectLeague handles its own auth gate internally */}
       <Route path="/account/connect" element={<ConnectLeague />} />
