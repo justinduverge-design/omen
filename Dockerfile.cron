@@ -6,7 +6,7 @@
 # ════════════════════════════════════════════════════════════════
 
 # ── STAGE 1: Builder ─────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN apk add --no-cache python3 make g++
 
@@ -20,7 +20,7 @@ COPY client/ ./client/
 
 
 # ── STAGE 2: Production ──────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Install tini (proper PID 1 init) and crond
 RUN apk add --no-cache tini dcron

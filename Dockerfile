@@ -7,7 +7,7 @@
 # =================================================================
 
 # --- STAGE 1: Client builder (Vite) ------------------------------
-FROM node:20-alpine AS client-builder
+FROM node:24-alpine AS client-builder
 
 # Vite inlines VITE_* env vars at build time, so we accept them as
 # build args. docker-compose passes them through from .env.
@@ -33,7 +33,7 @@ RUN npm run build
 
 
 # ---- frontend (Vite) ----
-FROM node:22-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_API_BASE_URL
@@ -51,7 +51,7 @@ RUN npm run build
 
 
 # --- STAGE 2: API builder (Express) ------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Install build tools needed for native npm packages
 RUN apk add --no-cache python3 make g++
@@ -65,7 +65,7 @@ COPY src/ ./src/
 
 
 # --- STAGE 3: Production -----------------------------------------
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Security: non-root user (SY0-701 5.4: least privilege)
 RUN addgroup -S ssffmvp && adduser -S ssffmvp -G ssffmvp
