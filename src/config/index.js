@@ -62,6 +62,11 @@ const config = {
     seasonPriceId:  process.env.STRIPE_SEASON_PRICE_ID,
   },
 
+  // --- Resend (transactional email) -----------------------------
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || null,
+  },
+
   // --- Anthropic ------------------------------------------------
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
 };

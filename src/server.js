@@ -29,6 +29,7 @@ const {
   corsMiddleware,
   generalRateLimit,
   authRateLimit,
+  publicToolRateLimit,
 } = require("./middleware/security");
 
 const app = express();
@@ -90,7 +91,7 @@ try {
 // --- Draft Assistant mock contract routes -----------------------
 try {
   const draftAssistantRoutes = require("./routes/draftAssistant");
-  app.use("/api/draft-assistant", draftAssistantRoutes);
+  app.use("/api/draft-assistant", publicToolRateLimit, draftAssistantRoutes);
 } catch (e) {
   logger.error("Draft Assistant router failed to load", { err: e.message, stack: e.stack });
 }
@@ -156,6 +157,14 @@ try {
   logger.error("Platforms router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/user (privacy export/delete + consent) -----------
+try {
+  const userPrivacyRoutes = require("./routes/userPrivacy");
+  app.use("/api/user", userPrivacyRoutes);
+} catch (e) {
+  logger.error("User privacy router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
@@ -183,9 +192,17 @@ try {
 // --- Mount /api/trade (free, auth-gated trade comparison) --------
 try {
   const tradeRoutes = require("./routes/trade");
-  app.use("/api/trade", tradeRoutes);
+  app.use("/api/trade", publicToolRateLimit, tradeRoutes);
 } catch (e) {
   logger.error("Trade router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/waitlist (public waitlist signup + welcome email)
+try {
+  const waitlistRoutes = require("./routes/waitlist");
+  app.use("/api/waitlist", publicToolRateLimit, waitlistRoutes);
+} catch (e) {
+  logger.error("Waitlist router failed to load", { err: e.message, stack: e.stack });
 }
 
 // --- Mount the v2 router (Sleeper, Yahoo OAuth, ESPN, standings) -
