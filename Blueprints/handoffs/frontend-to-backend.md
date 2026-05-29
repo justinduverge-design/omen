@@ -718,6 +718,271 @@ Users pick their favorite NFL team. The app's accent colors shift to that team's
 
 ---
 
+---
+
+### Request 21 — HITL Feedback Loop (Human-in-the-Loop)
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend
+**Feature:** Omen of the Week — post-recommendation feedback card
+**Priority:** High — this is the self-improving loop; without it the Tuesday cron has no clean calibration data
+**Status:** Planned. **Gated:** Omen page must pass `/ui-ux-pro-max-skill` audit before this is built. Account page audit is also pending.
+
+**What it does:**
+
+After the Omen MVP Move is delivered, a feedback card appears below the recommendation:
+- "Did you run it?" — Yes / No (two-button pair, not a toggle switch)
+- Star rating 1–5 (filled gold on selection)
+- Optional note: "What happened?" (single-line, placeholder: "Injury, lineup change, trusted the Omen…")
+- Submit: "Lock it in" — full-width gold button
+
+After submission: card collapses to a confirmation ("Recorded. The raven remembers."), non-reversible.
+
+**Why this matters:** The Tuesday cron only scores moves where `followed = true`. This gate is what makes the AI calibration data clean. Without it, every Omen is assumed ignored — the effectiveness score is meaningless.
+
+**Backend endpoint needed from Codex:**
+
+```
+POST /api/omen/feedback
+```
+- Auth: required
+- Request body:
+```json
+{
+  "followed": true,
+  "stars": 4,
+  "note": "Changed lineup last minute, worked out",
+  "week": 1,
+  "season": 2026
+}
+```
+- Behavior: look up the user's move row for `week` + `season`, upsert `followed`, `stars`, `note`. Create the row if it doesn't exist (user may have dismissed the Omen without the card being shown yet).
+- Response: `{ "recorded": true, "move_id": "uuid" }`
+- Auth error: `401`
+- Idempotent: re-submitting the same week/season updates the existing record (user can correct within a grace period — product decision for Codex/Justin)
+
+**Supabase migration needed (Justin approval required before applying):**
+
+`moves` table must have at minimum:
+```sql
+CREATE TABLE IF NOT EXISTS public.moves (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users(id) on delete cascade,
+  season          int not null,
+  week            int not null,
+  move_type       text,           -- 'start_sit', 'waiver_pickup', 'trade_suggestion', etc.
+  recommendation  text,           -- plain-English summary of the Omen recommendation
+  followed        boolean,        -- null = not yet answered
+  stars           int,            -- 1-5, nullable
+  note            text,           -- user's optional note
+  outcome         text default 'pending', -- 'pending', 'win', 'loss'
+  effectiveness_pct int,          -- 0-100, written by Tuesday cron
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  unique(user_id, season, week)
+);
+ALTER TABLE public.moves ENABLE ROW LEVEL SECURITY;
+-- User can read and write their own rows only
+CREATE POLICY "moves_owner" ON public.moves
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
+
+**Frontend states required:**
+- `idle` — feedback card visible below Omen recommendation
+- `submitting` — submit button disabled, spinner
+- `submitted` — card collapses, brief confirmation shown
+- `error` — inline error below submit: "Couldn't save. Try again."
+- `already_recorded` — if user returns to the page after submitting: show read-only summary ("You ran it — 4 stars")
+
+**Notes:**
+- Do NOT build the feedback card until the Omen page UX audit passes
+- The card design is the most important UI decision in this feature — see Claude Design prompt in `slops-saloon/Blueprints/handoffs/corvus-features-ux-roadmap.md`
+- Frontend component: `frontend/src/components/omen/OmenFeedback.jsx`
+- Rendered in `OmenPage.jsx` below the `OmenOfTheWeek` result card, visible only when `state === 'success'` or `state === 'empty'`
+
+---
+
+### Request 22 — Move History + W/L Effectiveness Tracking
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend
+**Feature:** Account page — move history panel (new section in `/account` or route `/account/history`)
+**Priority:** High — this is the "receipts" screen; users see the AI is right more than it's wrong, which drives retention and upgrades
+**Status:** Planned. Depends on Request 21 (HITL) being live and the `moves` table existing with data.
+
+**What it shows:**
+
+Each past weekly move (one per week, going back all seasons):
+- Week label + season year
+- Move type badge (Start/Sit, Waiver, Trade)
+- Recommendation summary (plain-English, truncated to ~60 chars)
+- Whether the user followed it: ✓ or –
+- Outcome badge: Win / Loss / Pending (gold, green, red)
+- Effectiveness %: a colored progress bar (green ≥70, gold ≥40, red <40)
+
+Summary stats at top of section:
+- W–L record (e.g. "7–3")
+- Average effectiveness % across all `followed = true` scored moves
+
+**Backend endpoint needed from Codex:**
+
+```
+GET /api/moves
+```
+- Auth: required
+- Query params: `season` (optional, defaults to current season), `limit` (optional, default 20)
+- Response:
+```json
+{
+  "contract_version": "moves-history.v1",
+  "generated_at": "ISO",
+  "season": 2026,
+  "summary": {
+    "wins": 7,
+    "losses": 3,
+    "pending": 2,
+    "avg_effectiveness_pct": 71,
+    "followed_count": 10,
+    "total_count": 12
+  },
+  "moves": [
+    {
+      "id": "uuid",
+      "season": 2026,
+      "week": 8,
+      "move_type": "start_sit",
+      "recommendation": "Start Breece Hall over James Conner",
+      "followed": true,
+      "stars": 4,
+      "outcome": "win",
+      "effectiveness_pct": 84,
+      "created_at": "ISO"
+    }
+  ]
+}
+```
+- Rows where `followed = null` are included but outcome/effectiveness are excluded from summary stats
+- Rows where `outcome = 'pending'` are included in total_count but not wins/losses
+
+**Frontend states required:**
+- `loading` — skeleton rows (3–5 placeholder bars)
+- `success` — summary stats + move list
+- `empty` — "No moves yet. Follow your first Omen to start building your record."
+- `error` — "Couldn't load history. Try again."
+
+**Notes:**
+- Route: `/account` with a new "History" tab/section, or `/account/history` as a dedicated route
+- The progress bar color logic: `effectiveness_pct >= 70` → green, `>= 40` → gold, `< 40` → red, `null` → muted (pending)
+- Do not show this section until the HITL endpoint is live — empty state is only useful once users have submitted at least one feedback
+
+---
+
+### Request 23 — League Standings Panel
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend
+**Feature:** Account page or Football dashboard — league standings table
+**Priority:** Medium — grounds the app in the user's real situation; Omen means more when you can see you're 3rd place and need a win
+**Status:** Planned. Partially scaffolded in backend per prior roadmap — confirm before building.
+
+**What it shows:**
+
+A table of the user's current league standings:
+- Rank
+- Team name (with a subtle "you" indicator on the current user's team)
+- Record (W–L)
+- Points / total score
+
+Platform badge shows source (Sleeper / Yahoo / ESPN).
+
+If multiple leagues are connected, show the primary/selected league with a dropdown to switch.
+
+**Backend endpoint needed from Codex:**
+
+The legacy `GET /api/league/standings` was retired with `410`. Codex needs to either:
+- Add `GET /api/league/standings` as a new canonical route (different from the retired compat route)
+- Or expose standings via `GET /api/platforms/standings?leagueId=...`
+
+Preferred contract:
+```
+GET /api/league/standings
+```
+- Auth: required
+- Query params: `platform` (yahoo/sleeper/espn), `leagueId` (optional — uses primary connected league if omitted)
+- Response:
+```json
+{
+  "contract_version": "league-standings.v1",
+  "generated_at": "ISO",
+  "platform": "sleeper",
+  "league_id": "league-1",
+  "league_name": "The Commissioner's League",
+  "season": 2026,
+  "week": 8,
+  "standings": [
+    {
+      "rank": 1,
+      "team_id": "7",
+      "team_name": "Ravens Flock",
+      "is_current_user": true,
+      "wins": 6,
+      "losses": 2,
+      "points_for": 1142.4,
+      "points_against": 980.6
+    }
+  ]
+}
+```
+- `is_current_user: true` flags the row to highlight in the UI
+- `401` if not authenticated
+- `404` if no connected league for the requested platform
+
+**Frontend states required:**
+- `loading` — skeleton table (8 rows, 4 columns)
+- `success` — standings table, current user's row highlighted in gold border
+- `disconnected` — "Connect a league to see your standings" with link to `/account/connect`
+- `error` — "Couldn't load standings. Try again."
+
+**Notes:**
+- Check with Codex whether `GET /api/league/standings` is genuinely scaffolded before building the frontend against it — confirm the route and response shape before wiring
+- ESPN standings are subject to the same cookie fragility as ESPN roster — surface ESPN standing errors gracefully, do not block the whole panel
+- Location: could live in `/football` dashboard (below Omen card) or as a section in `/account`. Product decision before build.
+
+---
+
+### Note — frontend/src/data/nflPlayers.js (frontend-only, no Codex request)
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend
+**Feature:** Trade Analyzer autocomplete data source (part of Request 20)
+**Status:** Planned. Frontend-only. No backend endpoint needed.
+
+This is a static data file, not an API request. Claude builds it directly.
+
+File: `frontend/src/data/nflPlayers.js`
+
+Shape:
+```js
+export const NFL_PLAYERS = [
+  { id: 'patrick-mahomes', name: 'Patrick Mahomes', position: 'QB', team: 'KC' },
+  { id: 'justin-jefferson', name: 'Justin Jefferson', position: 'WR', team: 'MIN' },
+  // ... ~700 skill-position players
+];
+```
+
+Positions included: QB, RB, WR, TE, K — no DST (team defenses are handled differently in trade context).
+
+Used by:
+- `TradeAnalyzer.jsx` — filter by position, match typed characters, show max 8 suggestions
+- Eventually: `frontend/src/data/nflTeams.js` can co-locate for the team theme feature (Request 19)
+
+Updated each preseason. In season 2026, a `projected_points` field can be added to pre-populate the Projection input on autocomplete selection.
+
+No backend request needed. No migration needed. No approval needed — Claude can build this file immediately.
+
+---
+
 ## Request Template
 
 ```text

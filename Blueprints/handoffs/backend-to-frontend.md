@@ -50,6 +50,73 @@ Frontend action needed:
 
 ---
 
+## Upcoming Backend Builds — Pending Codex — 2026-05-28
+
+Date: 2026-05-28
+
+Owner: Pending Codex / backend
+
+Status: Not yet built. These are the next four backend contracts Claude/frontend is waiting on. Full frontend request specs are in `frontend-to-backend.md` Requests 19–23 and the nflPlayers note.
+
+---
+
+### HITL Feedback Loop — `POST /api/omen/feedback`
+
+Frontend request: `frontend-to-backend.md` Request 21.
+
+What Codex needs to build:
+- `POST /api/omen/feedback` — upsert user's feedback for a given week/season into the `moves` table
+- `moves` table Supabase migration (Justin approval required before applying — add to `sql/corvus_rls_security.sql`)
+- Route: auth required, idempotent (re-submit same week/season = update, not duplicate)
+
+Key constraint: `followed = true` is the gate for the Tuesday cron. Only moves where `followed = true` get scored for effectiveness. The cron must not score rows where `followed = null` (not yet answered) or `followed = false`.
+
+Expected response: `{ "recorded": true, "move_id": "uuid" }`
+
+Gate status: do NOT build frontend until Omen page passes `/ui-ux-pro-max-skill` audit. Audit has not been run on OmenPage.jsx yet — that is the next UX task.
+
+---
+
+### Move History — `GET /api/moves`
+
+Frontend request: `frontend-to-backend.md` Request 22.
+
+What Codex needs to build:
+- `GET /api/moves` — auth required, returns user's move history with summary stats
+- Reads from `moves` table: outcome and effectiveness_pct are written by the Tuesday cron
+- Summary aggregates: wins, losses, pending, avg_effectiveness_pct (excluding unscored/unfollowed rows)
+- Depends on `moves` table existing (same migration as HITL above)
+
+Expected response shape: see Request 22 for full JSON contract.
+
+---
+
+### League Standings — `GET /api/league/standings`
+
+Frontend request: `frontend-to-backend.md` Request 23.
+
+What Codex needs to build:
+- `GET /api/league/standings` — auth required, returns standings for user's connected league
+- **Important:** the legacy `GET /api/league/standings` was retired with `410 legacy_route_retired` in the 2026-05-27 pass. The new route is a canonical replacement, not a compat route.
+- Query params: `platform`, `leagueId` (optional — infers from primary connection)
+- Must support Yahoo, Sleeper, ESPN adapters
+- `is_current_user: true` on the row matching the authenticated user's team
+
+Confirm with Codex whether the partial scaffold mentioned in the roadmap still exists or was cleaned during the compat route retirement. If the scaffold was removed, this is a net-new build.
+
+---
+
+### User Team Preference — `PATCH /api/account/preferences` + `GET /api/dashboard/summary` update
+
+Frontend request: `frontend-to-backend.md` Request 19.
+
+What Codex needs to build:
+- `PATCH /api/account/preferences` — upsert `favorite_team` (team abbreviation string) to user profile
+- Add `user.favorite_team` to `GET /api/dashboard/summary` response so `TeamThemeProvider` can read it on app load without a separate fetch
+- Supabase migration: `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;` (Justin approval required)
+
+---
+
 ## Supabase Launch SQL And Stripe Pricing Update - 2026-05-27
 
 Date: 2026-05-27
