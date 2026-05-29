@@ -5,6 +5,7 @@ const ALLOWED_DESTINATIONS = new Set([
   '/trade',
   '/draft',
   '/omen',
+  '/account',
   '/account/connect',
   '/football',
 ]);
@@ -33,7 +34,7 @@ export function storeNextUrl(raw) {
 }
 
 export function consumeNextUrl() {
-  const stored = localStorage.getItem(STORAGE_KEY) || '/';
+  const stored = localStorage.getItem(STORAGE_KEY) || '/account';
   localStorage.removeItem(STORAGE_KEY);
   return sanitize(stored);
 }
