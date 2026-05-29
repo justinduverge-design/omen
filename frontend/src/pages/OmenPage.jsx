@@ -10,7 +10,7 @@ import OmenOfTheWeek from './OmenOfTheWeek.jsx';
 function OmenHeader() {
   return (
     <section className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-widest text-purple-300">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Corvus Pro
       </p>
       <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
@@ -97,8 +97,7 @@ export default function OmenPage() {
 
       <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="text-xs transition-colors"
-          style={{ color: 'var(--color-text-secondary)' }}
+          className="rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
           to="/football"
         >
           ← Back to dashboard
