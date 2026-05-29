@@ -49,14 +49,6 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13.19 9.27c-.02-1.82 1.49-2.7 1.56-2.74-0.85-1.24-2.17-1.41-2.64-1.43-1.12-.11-2.2.66-2.77.66-.57 0-1.44-.65-2.37-.63-1.22.02-2.34.71-2.97 1.8C2.4 8.96 3.36 12.32 4.5 14.1c.57.82 1.24 1.74 2.12 1.71.85-.03 1.17-.55 2.2-.55 1.02 0 1.32.55 2.21.53.92-.02 1.5-.83 2.06-1.66.65-.94.92-1.86.94-1.9-.02-.01-1.82-.7-1.84-2.96z" fill="currentColor" />
-      <path d="M11.37 3.87c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.44.5-.82 1.31-.72 2.08.76.06 1.53-.39 2-.95z" fill="currentColor" />
-    </svg>
-  );
-}
 
 function DiscordIcon() {
   return (
@@ -258,11 +250,6 @@ export default function Login() {
             <AuthButton onClick={() => signInWithProvider('google')}>
               <GoogleIcon />
               Continue with Google
-            </AuthButton>
-
-            <AuthButton onClick={() => signInWithProvider('apple')}>
-              <AppleIcon />
-              Continue with Apple
             </AuthButton>
 
             <AuthButton onClick={() => signInWithProvider('discord')}>
