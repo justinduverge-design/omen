@@ -71,21 +71,21 @@ function PlanCard({ option, selected, onSelect }) {
       className={[
         'w-full rounded-xl border p-4 text-left transition-colors',
         isSelected
-          ? 'border-purple-500/60 bg-purple-500/10'
+          ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10'
           : 'border-slate-800 bg-slate-900 hover:border-slate-700',
       ].join(' ')}
       type="button"
       onClick={() => onSelect(option.id)}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className={`text-sm font-semibold ${isSelected ? 'text-purple-200' : 'text-white'}`}>
+        <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-white'}`}>
           {option.label}
         </p>
         <span
           className={[
             'rounded-full border px-2 py-0.5 text-xs font-semibold',
             isSelected
-              ? 'border-purple-400/30 bg-purple-400/10 text-purple-300'
+              ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
               : 'border-slate-700 bg-slate-800 text-slate-400',
           ].join(' ')}
         >
@@ -112,7 +112,7 @@ function PlanPicker({ onCheckout, loading, error }) {
       {error && <p className="text-xs text-red-400">{error}</p>}
 
       <button
-        className="w-full rounded-xl bg-purple-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-400 disabled:opacity-60"
+        className="w-full rounded-xl bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60"
         disabled={loading}
         type="button"
         onClick={() => onCheckout(selected)}
@@ -277,7 +277,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
   return (
     <section ref={sectionRef} className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-300">Corvus Pro</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus Pro</p>
         <h2 className="mt-1 text-xl font-semibold text-white">Subscription</h2>
       </div>
       {renderBody()}

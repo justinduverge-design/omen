@@ -1,6 +1,6 @@
 # Corvus Current Sprint
 
-Last updated: 2026-05-27
+Last updated: 2026-05-28
 
 ## Current State
 
@@ -34,6 +34,11 @@ Corvus is live on the renamed route.
 - Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
 - Legacy compat routes from frontend Request 17 now return explicit `410 legacy_route_retired` responses.
 - `sql/corvus_rls_security.sql` now contains prepared waitlist and subscription-date repair SQL; it has not been applied to Supabase.
+- Apple sign-in button removed from `frontend/src/pages/Login.jsx` — Apple Developer account costs money; button will not return unless account is purchased (commit `f23f684`).
+- Google OAuth `redirect_uri_mismatch` fixed — Supabase Site URL changed from `localhost` to `https://slopssaloon.com`; Supabase callback URL added to Google Cloud Console Authorized redirect URIs.
+- Discord OAuth `invalid redirect_uri` fixed — `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Discord Developer Portal; Discord app credentials entered in Supabase Auth dashboard.
+- `frontend/src/lib/nextUrl.js` updated: `/account` added to ALLOWED_DESTINATIONS; `consumeNextUrl()` default changed from `'/'` to `'/account'` so post-login lands on Account page instead of appearing to "just refresh" (commit `17bd327`).
+- UX/UI audit completed across Landing, Login, Account, and Omen pages using `/ui-ux-pro-max-skill`. Seven gaps documented in `slops-saloon/Blueprints/handoffs/corvus-features-ux-roadmap.md`. Fixes are blocked until Justin approves the UX pass.
 
 ## Now
 
@@ -48,9 +53,10 @@ Corvus is live on the renamed route.
 1. Get Justin approval to apply prepared Supabase SQL to staging, verify waitlist insert and subscription date columns, then apply to production.
 2. Run Stripe test-mode checkout, portal, pricing, and webhook validation before paid-launch confidence.
 3. Run `scripts/load-corvus-routes.js` against local/staging targets and save results.
-4. Confirm Supabase Auth providers for Google, Apple, and Discord in the Supabase dashboard.
+4. ~~Confirm Supabase Auth providers for Google, Apple, and Discord~~ — **Done 2026-05-28.** Google ✅, Discord ✅, Apple intentionally removed.
 5. QA ESPN cookie recovery without logging or displaying cookie values.
-6. Claude can optionally wire Account pricing display to `GET /api/stripe/prices`.
+6. Apply UX audit fixes (7 gaps) across Landing, Login, Account, Omen — requires Justin approval before build.
+7. Claude can optionally wire Account pricing display to `GET /api/stripe/prices`.
 
 ## Guardrails
 

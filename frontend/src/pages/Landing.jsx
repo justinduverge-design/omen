@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api.js';
 
 function Button({ children, className = '', disabled = false, href }) {
   const base =
-    'inline-flex min-h-[44px] items-center justify-center rounded-md px-6 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]';
+    'inline-flex min-h-[44px] items-center justify-center rounded-md px-6 text-sm font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]';
   const cls = [base, disabled ? 'cursor-default opacity-55' : '', className]
     .filter(Boolean)
     .join(' ');
@@ -37,13 +37,13 @@ function Header() {
         <CorvusLogo />
         <div className="flex items-center gap-6">
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75"
+            className="text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
             href="#waitlist"
           >
             Join Waitlist
           </a>
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C]"
+            className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
             href="/login"
           >
             Sign In →
@@ -67,7 +67,7 @@ function StoryArc() {
     <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-6">
       {storySteps.map((step, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="shrink-0 font-mono text-[10px] text-[#C9A44C]/50">
+          <span className="shrink-0 font-mono text-xs text-[#C9A44C]/50">
             {'0' + (i + 1)}
           </span>
           <span className="text-xs leading-5 text-[#F4EFE1]/45">{step}</span>
@@ -428,7 +428,7 @@ function WaitlistSection() {
 
               {/* Submit */}
               <button
-                className="mt-1 inline-flex min-h-[46px] w-full items-center justify-center rounded-md bg-[#C9A44C] px-6 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] disabled:cursor-not-allowed disabled:opacity-55"
+                className="mt-1 inline-flex min-h-[46px] w-full items-center justify-center rounded-md bg-[#C9A44C] px-6 text-sm font-semibold text-black transition-colors active:scale-[0.97] hover:bg-[#dbb95a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] disabled:cursor-not-allowed disabled:opacity-55"
                 disabled={status === 'submitting'}
                 type="submit"
               >

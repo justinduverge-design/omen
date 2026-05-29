@@ -17,6 +17,39 @@ Claude/frontend reads this file before wiring UI to backend behavior.
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
 
+## Auth Providers And Post-Login UX Resolution - 2026-05-28
+
+Date: 2026-05-28
+
+Owner: Claude/frontend + Justin/ops
+
+Feature: Supabase OAuth providers, Login UX, nextUrl.js
+
+Status: All three auth provider items resolved. Several earlier sections in this file contain stale warnings about Google/Apple/Discord being "unconfirmed" — this entry supersedes them.
+
+Auth provider status (final):
+
+| Provider | Status | Notes |
+| :--- | :--- | :--- |
+| Google | ✅ Live | Supabase Site URL set to `https://slopssaloon.com`. `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Google Cloud Console Authorized redirect URIs. Confirmed working on production. |
+| Discord | ✅ Live | `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Discord Developer Portal. Discord app credentials entered in Supabase Auth dashboard. Confirmed working on production. |
+| Apple | ✅ Intentionally removed | Apple Developer account costs money. Button removed from `frontend/src/pages/Login.jsx` (commit `f23f684`). Decision logged in `decisions.md`. |
+| Email magic link | ✅ Live (was already live) | Unchanged. |
+
+Post-login routing fix:
+
+- `frontend/src/lib/nextUrl.js` updated (commit `17bd327`).
+- `/account` added to `ALLOWED_DESTINATIONS` Set.
+- `consumeNextUrl()` default changed from `'/'` to `'/account'`.
+- Effect: if the user signs in with no pending `next` destination, they land on Account, not the landing page. This eliminates the "login feels like a refresh" UX problem.
+
+Frontend action needed:
+
+- None. Both commits are merged and live.
+- The stale notes in "UX/UI Build Backend Contract Audit", "Current Contract Truth - 2026-05-26", and "Frontend Request Response" about providers being unconfirmed are superseded by this entry.
+
+---
+
 ## Supabase Launch SQL And Stripe Pricing Update - 2026-05-27
 
 Date: 2026-05-27

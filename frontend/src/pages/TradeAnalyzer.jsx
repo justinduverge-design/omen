@@ -52,7 +52,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
             <label className="text-xs font-semibold text-slate-400">
               Name
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
                 value={player.name}
                 onChange={(event) => onChange(index, { name: event.target.value })}
               />
@@ -61,7 +61,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
             <label className="text-xs font-semibold text-slate-400">
               Pos
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
                 value={player.position}
                 onChange={(event) => onChange(index, { position: event.target.value })}
               >
@@ -74,7 +74,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
             <label className="text-xs font-semibold text-slate-400">
               Projection
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
                 min="0"
                 step="0.1"
                 type="number"
@@ -86,7 +86,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
             <label className="text-xs font-semibold text-slate-400">
               Status
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
                 value={player.status}
                 onChange={(event) => onChange(index, { status: event.target.value })}
               >

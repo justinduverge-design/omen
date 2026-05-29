@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-27 (worktree cool-darwin-c7c0d7 — frontend code-complete)
+Last updated: 2026-05-28 (auth providers resolved; UX audit complete; team theme personalization planned)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -94,9 +94,17 @@ The `?connected=yahoo` query param is optional but useful — the frontend can r
 **Date:** 2026-05-24
 **Owner:** Claude Code / frontend
 **Feature:** Sign-in screen (`/login`)
-**Priority:** ~~High~~ **Resolved 2026-05-25**
+**Priority:** ~~High~~ **Fully resolved 2026-05-28**
 
-**Resolution:** Codex confirmed email magic link is the only wired provider. Google, Apple, and Discord require Supabase dashboard config — safe to show buttons with inline error handling. Product decision needed before launch: label or gate unverified providers. See `backend-to-frontend.md` Frontend Request Response section.
+**Final resolution (2026-05-28):** All providers are now confirmed live or intentionally removed.
+- Google OAuth: ✅ Live on production.
+- Discord OAuth: ✅ Live on production.
+- Apple OAuth: ✅ Button removed — Apple Developer account costs money.
+- Email magic link: ✅ Was already live, unchanged.
+
+See `backend-to-frontend.md` "Auth Providers And Post-Login UX Resolution - 2026-05-28" for full detail.
+
+**Earlier resolution (2026-05-25, superseded):** Codex confirmed email magic link is the only wired provider. Google, Apple, and Discord required Supabase dashboard config.
 
 ---
 
@@ -591,6 +599,122 @@ Steps required in the [Stripe dashboard](https://dashboard.stripe.com) before en
 6. Update `STRIPE_SEASON_PRICE_ID` in your environment to the new price ID.
 
 Do not enable public checkout until steps 3 and 6 are done.
+
+---
+
+---
+
+### Request 20 — Trade Analyzer form rework + player autocomplete
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend (planned — not yet built)
+**Feature:** Trade Analyzer (`/trade`) — form layout + player name autocomplete
+**Priority:** Medium — UX improvement, no backend blocker for Phase 1
+**Status:** Planned. Phase 1 is frontend-only. Phase 2 needs a backend player search endpoint.
+
+**Problem:**
+
+The current player row layout (`Name | Pos | Projection | Status | Remove`) gives the name field the least visual space even though it needs the most. The name is visually truncated (shows "Ber" instead of "Berryman"). There is no autocomplete — users must type full exact names.
+
+**Proposed row layout change:**
+
+New order: `Pos | Name (autocomplete) | Projection | Status | ×`
+
+Rationale: user mentally knows position before name. Position-first narrows the autocomplete candidate pool from ~700 players to ~150 (RBs) or ~200 (WRs), improving match quality immediately.
+
+CSS widths:
+- Position: 72px (compact dropdown, only QB/RB/WR/TE/K/DEF)
+- Name: `flex-grow`, `min-w-[150px]` — gets all remaining space
+- Projection: 88px (number input, 1–3 digits)
+- Status: 96px (compact dropdown)
+- Remove: 32px icon-only `×` button (not text label)
+
+Mobile (< 640px): Row 1 = `Pos + Name`. Row 2 = `Proj + Status + ×`.
+
+**Autocomplete — Phase 1 (frontend-only, no backend request):**
+
+- `frontend/src/data/nflPlayers.js` — static file, ~700 skill-position players: `{ id, name, position, team }`
+- Filter by selected position first, then by typed characters (prefix or includes match)
+- Max 8 suggestions shown in a dropdown below the name field
+- On select: auto-fill Name. Optionally pre-fill a default Projection from a `projected_points` field in the data.
+- Data source: public ADP / roster lists, updated each preseason
+
+**Autocomplete — Phase 2 (backend, future request to Codex):**
+
+- New endpoint: `GET /api/players/search?position=RB&q=pat`
+- Returns `[{ id, name, position, team, projected_points }]` — max 10 results
+- Backed by the same player data the Draft Assistant / Omen engines use
+- Replaces the static file; static file remains as offline fallback
+
+**Trade Analyzer content additions (right column, desktop):**
+
+Alongside the form rework, the `/trade` page needs a "Trade Room" right column (desktop: two-column layout; mobile: stacked below form):
+
+1. **Trade tips** — static card with 4 principles:
+   - "Buy after one bad week" — noise vs. signal
+   - "Sell before the schedule gets brutal" — check next 4 weeks
+   - "Projection column is your edge" — value over name recognition
+   - "Position scarcity compounds in the second half" — TE1 timing
+
+2. **Top 5 Buy-Low targets** — initially mock data from `frontend/src/data/tradePulse.js`, later wired to `GET /api/trade/pulse` (future Codex request). Each row: name, position, team, one-line reason.
+
+3. **Platform activity (future)** — "Most traded on Sleeper this week" — deferred until user activity data exists.
+
+**Backend request to Codex (when Phase 2 is ready):**
+
+- `GET /api/players/search?position=<pos>&q=<query>` — see Phase 2 above
+- `GET /api/trade/pulse` — returns `buy_low: [{name, position, team, reason}]` and `sell_high: [...]`, max 5 each, mock initially
+
+**No backend action needed for Phase 1.** All Phase 1 work is frontend-only.
+
+---
+
+### Request 19 — User team preference + theme personalization
+
+**Date:** 2026-05-28
+**Owner:** Claude Code / frontend (planned — not yet built)
+**Feature:** Account page — team personalization / dynamic app theming
+**Priority:** Medium — post-UX-audit feature
+**Status:** Planned. UX audit must pass first. Backend migration requires Justin approval.
+
+**Product intent:**
+
+Users pick their favorite NFL team. The app's accent colors shift to that team's primary and secondary colors. The Omen card, CTAs, platform status indicators, and headers all reflect the user's team. Default theme stays Corvus gold for users who haven't picked.
+
+**Frontend plan (no code written yet):**
+
+1. `frontend/src/data/nflTeams.js` — static file with all 32 NFL teams: `{ id: "KC", name: "Kansas City Chiefs", primary: "#E31837", secondary: "#FFB81C", logoUrl: null }`. No backend dependency.
+2. `frontend/src/components/TeamThemeProvider.jsx` — reads `favorite_team` from the user profile on app load, injects CSS custom properties (`--color-brand`, `--color-accent`, `--color-surface-highlight`) onto `document.documentElement`. Wraps the app shell.
+3. Account page "Your Team" section — 32-team logo/color tile grid, single selection, saves via backend endpoint (see below).
+4. Onboarding prompt — after first successful sign-in with a connected platform, show a "Personalize Corvus — pick your team" card. Dismissible without selecting.
+
+**Backend need from Codex:**
+
+1. **Supabase migration** (requires Justin approval before applying):
+   - Add `favorite_team text` column to `public.profiles` (or `public.user_settings` if that table exists).
+   - No constraint — nullable, any team abbreviation the frontend sends.
+
+2. **New endpoint:** `PATCH /api/account/preferences`
+   - Auth: required.
+   - Request body: `{ "favorite_team": "KC" }` (team abbreviation string, nullable to clear).
+   - Response: `{ "updated": true, "favorite_team": "KC" }`.
+   - No validation beyond `typeof string || null` — frontend controls the allowed set.
+
+3. **`GET /api/dashboard/summary` or `/api/account/profile`** — should include `favorite_team` in the response so `TeamThemeProvider` can read it on app load without a separate fetch.
+   - Preferred: add `user.favorite_team` to the existing `GET /api/dashboard/summary` payload.
+   - Acceptable fallback: add a lightweight `GET /api/account/preferences` endpoint.
+
+**Frontend states required:**
+- No team selected: render default Corvus gold theme, show team picker CTA in Account.
+- Team selected: inject team CSS vars, show selected team tile in Account.
+- Loading (profile fetch in flight): show default theme, no flash.
+- Save in flight: optimistic UI — apply new theme immediately, revert on error.
+
+**Notes / risks:**
+- Do not apply this until the UX audit fixes are shipped and Justin approves the migration.
+- NFL team colors are public knowledge; the frontend data file needs no license.
+- This is a personalization feature, not a competitive intelligence feature — it does not affect Omen recommendations.
+- ESPN must never log or display cookie values (unrelated guardrail, still applies).
 
 ---
 

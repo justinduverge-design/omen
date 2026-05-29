@@ -195,7 +195,7 @@ export default function Login() {
   if (redirecting) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center"
+        className="flex min-h-[100dvh] items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
         <p className="text-sm text-[var(--color-text-secondary)]">Signing you in…</p>
@@ -205,7 +205,7 @@ export default function Login() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center px-4 py-12"
+      className="flex min-h-[100dvh] flex-col items-center justify-center px-4 py-12"
       style={{ background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow */}

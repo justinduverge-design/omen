@@ -34,3 +34,8 @@ Company-level decisions belong in the SLOPS OS layer. Division decisions belong 
 ## Closed Decisions
 
 - Account page ESPN recovery handling — Account.jsx now reads `?recovery=<state>` via `useSearchParams` and passes `recoveryState` to `PlatformConnections`. ESPN CTA in Omen uses safe query params (`platform=espn&recovery=<state>`). `VITE_ESPN_ENABLED` gate is bypassed when arriving from an ESPN recovery state. Closed 2026-05-23.
+- Apple sign-in permanently disabled — Apple Developer account costs money. Button removed from Login.jsx. Will not return unless Justin explicitly approves purchasing an Apple Developer account. Closed 2026-05-28.
+- Google OAuth provider configured — Supabase Site URL set to `https://slopssaloon.com`; `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Google Cloud Console Authorized redirect URIs. Closed 2026-05-28.
+- Discord OAuth provider configured — `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Discord Developer Portal; credentials entered in Supabase Auth dashboard. Closed 2026-05-28.
+- Post-login default destination changed to `/account` — `nextUrl.js` `consumeNextUrl()` default was `'/'`; changed to `'/account'`. `/account` also added to ALLOWED_DESTINATIONS. Prevents login appearing to "just refresh" when no `next` param is set. Closed 2026-05-28.
+- UX/UI audit gating rule — `/ui-ux-pro-max-skill` must be run on any page before new feature code is written for that page. Rule is in effect as of 2026-05-28. Seven audit gaps documented at `slops-saloon/Blueprints/handoffs/corvus-features-ux-roadmap.md`. Fixes require Justin approval before application.

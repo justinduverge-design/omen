@@ -45,7 +45,7 @@ function Field({ id, label, value, onChange, autoComplete = 'off', type = 'text'
       <input
         id={id}
         autoComplete={autoComplete}
-        className="w-full rounded-md px-3 py-2 text-sm outline-none transition-colors"
+        className="w-full rounded-md px-3 py-2 text-sm outline-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
         style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
         type={type}
         value={value}

@@ -382,7 +382,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Draft Position (1–12)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400"
+              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="12"
               min="1"
@@ -395,7 +395,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Current Round (1–15)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400"
+              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="15"
               min="1"
