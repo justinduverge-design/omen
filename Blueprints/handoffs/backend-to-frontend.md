@@ -6,13 +6,20 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
-## Active Context
+## Active Context — Last updated 2026-05-29
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door.
 - Draft Assistant is the preparation and seasonal tool.
 - Omen of the Week / MVP Move is the main event.
 - Start/Sit and waiver logic live inside Omen / MVP Move unless separated later.
+
+**Frontend state as of 2026-05-29 (commit `f989522`):**
+- Navigation: hamburger + `NavDrawer` sidebar with all routes. Logo slot is a `[C]` monogram placeholder.
+- `/account/appearance` — Team Theme page live. Calls `PATCH /api/account/preferences` (soft fail until endpoint built).
+- `OmenFeedback` card wired below Omen success state. Calls `POST /api/omen/feedback` (soft fail until endpoint built).
+- `frontend/src/data/nflTeams.js` — 32-team color strategy in place.
+- `frontend/src/data/nflPlayers.js` — ~350-player roster for Trade Analyzer Phase 1 autocomplete.
 - Yahoo, Sleeper, and ESPN all matter.
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
