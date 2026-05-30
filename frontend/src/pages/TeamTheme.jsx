@@ -65,7 +65,7 @@ function TeamTile({ team, selected, onClick, animDelay }) {
     >
       {/* Team abbreviation */}
       <span
-        className="font-serif text-[24px] font-bold leading-none tracking-[0.02em]"
+        className="font-display text-[24px] font-bold leading-none tracking-[0.02em]"
         style={{ color: team.secondary }}
       >
         {team.abbr}
@@ -286,14 +286,8 @@ export default function TeamTheme() {
             Settings · Appearance
           </p>
           <h1
-            className="mb-4 font-serif"
-            style={{
-              color: 'var(--color-text-primary)',
-              fontSize: '3.25rem',
-              lineHeight: 1.02,
-              letterSpacing: '-0.012em',
-              fontWeight: 500,
-            }}
+            className="mb-4 text-6xl font-bold tracking-tight"
+            style={{ color: 'var(--color-text-primary)', lineHeight: 1.02 }}
           >
             Your team.
           </h1>
@@ -396,33 +390,56 @@ export default function TeamTheme() {
                     Selected
                   </p>
                   {selectedTeam ? (
-                    <div className="flex flex-wrap items-baseline gap-3">
-                      <span
-                        className="font-serif text-2xl"
-                        style={{ color: 'var(--color-text-primary)' }}
-                      >
-                        {selectedTeam.city} {selectedTeam.name}
-                      </span>
-                      <span
-                        className="font-mono text-[11px] uppercase tracking-widest tabular-nums"
-                        style={{ color: 'var(--color-text-tertiary)' }}
-                      >
-                        {selectedTeam.div}
-                      </span>
-                      {schemeLabel && (
+                    <div>
+                      <div className="flex flex-wrap items-baseline gap-3">
                         <span
-                          className="rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider"
-                          style={{
-                            color: accentText,
-                            borderColor: `color-mix(in srgb, ${accentText} 40%, var(--color-border) 60%)`,
-                          }}
+                          className="font-display text-3xl font-bold"
+                          style={{ color: 'var(--color-text-primary)' }}
                         >
-                          {schemeLabel}
+                          {selectedTeam.city} {selectedTeam.name}
                         </span>
+                        <span
+                          className="font-mono text-[11px] uppercase tracking-widest tabular-nums"
+                          style={{ color: 'var(--color-text-tertiary)' }}
+                        >
+                          {selectedTeam.div}
+                        </span>
+                        {schemeLabel && (
+                          <span
+                            className="rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider"
+                            style={{
+                              color: accentText,
+                              borderColor: `color-mix(in srgb, ${accentText} 40%, var(--color-border) 60%)`,
+                            }}
+                          >
+                            {schemeLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Identity block */}
+                      {selectedTeam.wardRoom && (
+                        <div className="mt-4 space-y-2">
+                          <span
+                            className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+                            style={{
+                              color: accentText,
+                              borderColor: `color-mix(in srgb, ${accentText} 40%, var(--color-border) 60%)`,
+                            }}
+                          >
+                            {selectedTeam.cultureTag}
+                          </span>
+                          <p
+                            className="text-base font-semibold leading-snug"
+                            style={{ color: accentText, maxWidth: '40ch' }}
+                          >
+                            {selectedTeam.wardRoom}
+                          </p>
+                        </div>
                       )}
                     </div>
                   ) : (
-                    <span className="font-serif text-2xl" style={{ color: 'var(--color-text-primary)' }}>
+                    <span className="font-display text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                       Corvus default
                     </span>
                   )}
@@ -444,8 +461,8 @@ export default function TeamTheme() {
               {/* Scheme note */}
               {selectedTeam?.note && (
                 <p
-                  className="mt-3 text-xs leading-relaxed"
-                  style={{ color: 'var(--color-text-tertiary)', maxWidth: '56ch' }}
+                  className="mt-3 text-sm leading-relaxed"
+                  style={{ color: 'var(--color-text-secondary)', maxWidth: '56ch' }}
                 >
                   {selectedTeam.note}
                 </p>
@@ -469,7 +486,7 @@ export default function TeamTheme() {
                     }}
                   />
                   <span
-                    className="font-serif text-[15px]"
+                    className="text-sm font-medium"
                     style={{ color: selectedAbbr === null ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}
                   >
                     Corvus default
