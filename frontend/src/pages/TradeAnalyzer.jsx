@@ -12,7 +12,6 @@ const EMPTY_PLAYER = {
 };
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
-const STATUSES = ['', 'Q', 'OUT', 'IR', 'P'];
 const MAX_SUGGESTIONS = 8;
 
 const INPUT_CLS =
@@ -101,7 +100,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_88px_96px_32px]">
+    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_32px]">
 
       {/* ── Position ─────────────────────────────────────────────────────────── */}
       <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
@@ -161,33 +160,6 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
             ))}
           </ul>
         )}
-      </label>
-
-      {/* ── Projection ───────────────────────────────────────────────────────── */}
-      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-        Proj
-        <input
-          className={`mt-1 ${INPUT_CLS}`}
-          min="0"
-          step="0.1"
-          type="number"
-          value={player.projected_points}
-          onChange={(e) => onChange(index, { projected_points: e.target.value })}
-        />
-      </label>
-
-      {/* ── Status ───────────────────────────────────────────────────────────── */}
-      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-        Status
-        <select
-          className={`mt-1 ${INPUT_CLS}`}
-          value={player.status}
-          onChange={(e) => onChange(index, { status: e.target.value })}
-        >
-          {STATUSES.map((s) => (
-            <option key={s || 'empty'} value={s}>{s || '–'}</option>
-          ))}
-        </select>
       </label>
 
       {/* ── Remove ×  ────────────────────────────────────────────────────────── */}
@@ -306,20 +278,12 @@ function ResultPanel({ result }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function TradeAnalyzer() {
-  const [send, setSend] = useState([
-    { ...EMPTY_PLAYER, name: 'Bench RB', projected_points: '10' },
-  ]);
-  const [receive, setReceive] = useState([
-    { ...EMPTY_PLAYER, name: 'Starter WR', position: 'WR', projected_points: '14' },
-  ]);
+  const [send, setSend] = useState([{ ...EMPTY_PLAYER }]);
+  const [receive, setReceive] = useState([{ ...EMPTY_PLAYER, position: 'WR' }]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  const hasInvalidProjection = [...send, ...receive].some(
-    (p) => p.projected_points !== '' && !Number.isFinite(Number(p.projected_points)),
-  );
 
   function updateSide(setter, index, patch) {
     setter((players) =>
@@ -382,7 +346,7 @@ export default function TradeAnalyzer() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading || hasInvalidProjection}
+            disabled={loading}
             type="submit"
           >
             {loading ? (
@@ -393,9 +357,6 @@ export default function TradeAnalyzer() {
             ) : null}
             {loading ? 'Comparing...' : 'Compare Trade'}
           </button>
-          {hasInvalidProjection ? (
-            <p className="text-sm text-red-300">Projection must be a number.</p>
-          ) : null}
         </div>
       </form>
 
