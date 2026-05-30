@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
+import { searchPlayers } from '../data/nflPlayers.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
@@ -12,22 +13,200 @@ const EMPTY_PLAYER = {
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
 const STATUSES = ['', 'Q', 'OUT', 'IR', 'P'];
+const MAX_SUGGESTIONS = 8;
+
+const INPUT_CLS =
+  'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm ' +
+  'text-[var(--color-text-primary)] outline-none transition-colors ' +
+  'focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 ' +
+  'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]';
 
 function cleanPlayer(player) {
   const cleaned = {
     name: player.name.trim() || 'Unknown',
     position: player.position,
   };
-
   if (player.projected_points !== '') {
     cleaned.projected_points = Number(player.projected_points);
   }
   if (player.status) {
     cleaned.status = player.status;
   }
-
   return cleaned;
 }
+
+// ─── Single player row with position-first layout + autocomplete ──────────────
+
+function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const closeTimeout = useRef(null);
+
+  function computeSuggestions(position, query) {
+    if (!query.trim()) return [];
+    return searchPlayers(position, query).slice(0, MAX_SUGGESTIONS);
+  }
+
+  function handlePositionChange(position) {
+    onChange(index, { position });
+    // Re-filter suggestions with new position, keeping current name query
+    if (player.name.trim()) {
+      const next = computeSuggestions(position, player.name);
+      setSuggestions(next);
+      setShowSuggestions(next.length > 0);
+    }
+  }
+
+  function handleNameChange(value) {
+    onChange(index, { name: value });
+    const next = computeSuggestions(player.position, value);
+    setSuggestions(next);
+    setShowSuggestions(next.length > 0);
+    setActiveIdx(-1);
+  }
+
+  function selectSuggestion(p) {
+    onChange(index, { name: p.name });
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveIdx(-1);
+  }
+
+  function handleNameFocus() {
+    clearTimeout(closeTimeout.current);
+    if (suggestions.length > 0) setShowSuggestions(true);
+  }
+
+  function handleNameBlur() {
+    // Delay so onMouseDown on a suggestion fires before close
+    closeTimeout.current = setTimeout(() => setShowSuggestions(false), 150);
+  }
+
+  function handleKeyDown(e) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, -1));
+    } else if (e.key === 'Enter' && activeIdx >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[activeIdx]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveIdx(-1);
+    }
+  }
+
+  return (
+    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_88px_96px_32px]">
+
+      {/* ── Position ─────────────────────────────────────────────────────────── */}
+      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
+        Pos
+        <select
+          className={`mt-1 ${INPUT_CLS}`}
+          value={player.position}
+          onChange={(e) => handlePositionChange(e.target.value)}
+        >
+          {POSITIONS.map((pos) => (
+            <option key={pos} value={pos}>{pos}</option>
+          ))}
+        </select>
+      </label>
+
+      {/* ── Name + autocomplete dropdown ─────────────────────────────────────── */}
+      <label className="relative text-xs font-semibold text-[var(--color-text-secondary)]">
+        Name
+        <input
+          autoComplete="off"
+          className={`mt-1 ${INPUT_CLS}`}
+          value={player.name}
+          onChange={(e) => handleNameChange(e.target.value)}
+          onFocus={handleNameFocus}
+          onBlur={handleNameBlur}
+          onKeyDown={handleKeyDown}
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <ul
+            aria-label="Player suggestions"
+            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] py-1 shadow-lg"
+            role="listbox"
+          >
+            {suggestions.map((p, si) => (
+              <li
+                key={p.id}
+                aria-selected={si === activeIdx}
+                className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm transition-colors ${
+                  si === activeIdx
+                    ? 'bg-[var(--color-accent)]/15 text-[var(--color-text-primary)]'
+                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
+                }`}
+                role="option"
+                onMouseDown={(e) => {
+                  e.preventDefault(); // prevent blur before click
+                  selectSuggestion(p);
+                }}
+              >
+                <span>{p.name}</span>
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: 'var(--color-accent)', opacity: 0.7 }}
+                >
+                  {p.team}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </label>
+
+      {/* ── Projection ───────────────────────────────────────────────────────── */}
+      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
+        Proj
+        <input
+          className={`mt-1 ${INPUT_CLS}`}
+          min="0"
+          step="0.1"
+          type="number"
+          value={player.projected_points}
+          onChange={(e) => onChange(index, { projected_points: e.target.value })}
+        />
+      </label>
+
+      {/* ── Status ───────────────────────────────────────────────────────────── */}
+      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
+        Status
+        <select
+          className={`mt-1 ${INPUT_CLS}`}
+          value={player.status}
+          onChange={(e) => onChange(index, { status: e.target.value })}
+        >
+          {STATUSES.map((s) => (
+            <option key={s || 'empty'} value={s}>{s || '–'}</option>
+          ))}
+        </select>
+      </label>
+
+      {/* ── Remove ×  ────────────────────────────────────────────────────────── */}
+      <div className="flex items-end pb-0.5">
+        <button
+          aria-label={`Remove ${sectionTitle} player ${index + 1}`}
+          className="flex h-9 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={totalCount === 1}
+          type="button"
+          onClick={() => onRemove(index)}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Side section (Send / Receive) ────────────────────────────────────────────
 
 function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
   return (
@@ -45,74 +224,22 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
 
       <div className="space-y-3">
         {players.map((player, index) => (
-          <div
-            className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[1fr_96px_120px_96px_auto]"
+          <PlayerRow
             key={`${title}-${index}`}
-          >
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Name
-              <input
-                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
-                value={player.name}
-                onChange={(event) => onChange(index, { name: event.target.value })}
-              />
-            </label>
-
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Pos
-              <select
-                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
-                value={player.position}
-                onChange={(event) => onChange(index, { position: event.target.value })}
-              >
-                {POSITIONS.map((position) => (
-                  <option key={position} value={position}>{position}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Projection
-              <input
-                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
-                min="0"
-                step="0.1"
-                type="number"
-                value={player.projected_points}
-                onChange={(event) => onChange(index, { projected_points: event.target.value })}
-              />
-            </label>
-
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Status
-              <select
-                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
-                value={player.status}
-                onChange={(event) => onChange(index, { status: event.target.value })}
-              >
-                {STATUSES.map((status) => (
-                  <option key={status || 'empty'} value={status}>
-                    {status || '-'}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              aria-label={`Remove ${title} player ${index + 1}`}
-              className="self-end rounded-md border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={players.length === 1}
-              type="button"
-              onClick={() => onRemove(index)}
-            >
-              Remove
-            </button>
-          </div>
+            sectionTitle={title}
+            index={index}
+            player={player}
+            totalCount={players.length}
+            onChange={onChange}
+            onRemove={onRemove}
+          />
         ))}
       </div>
     </section>
   );
 }
+
+// ─── Result panel ─────────────────────────────────────────────────────────────
 
 function ResultPanel({ result }) {
   if (!result) return null;
@@ -144,6 +271,7 @@ function ResultPanel({ result }) {
           {result.verdict}
         </span>
       </div>
+
       {result.explanation ? (
         <p className="mt-4 rounded-md border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
           {result.explanation}
@@ -175,6 +303,8 @@ function ResultPanel({ result }) {
   );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function TradeAnalyzer() {
   const [send, setSend] = useState([
     { ...EMPTY_PLAYER, name: 'Bench RB', projected_points: '10' },
@@ -187,22 +317,18 @@ export default function TradeAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const hasInvalidProjection = useMemo(() => (
-    [...send, ...receive].some((player) => (
-      player.projected_points !== '' && !Number.isFinite(Number(player.projected_points))
-    ))
-  ), [send, receive]);
+  const hasInvalidProjection = [...send, ...receive].some(
+    (p) => p.projected_points !== '' && !Number.isFinite(Number(p.projected_points)),
+  );
 
   function updateSide(setter, index, patch) {
-    setter((players) => (
-      players.map((player, playerIndex) => (
-        playerIndex === index ? { ...player, ...patch } : player
-      ))
-    ));
+    setter((players) =>
+      players.map((player, i) => (i === index ? { ...player, ...patch } : player)),
+    );
   }
 
   function removeSidePlayer(setter, index) {
-    setter((players) => players.filter((_, playerIndex) => playerIndex !== index));
+    setter((players) => players.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(event) {
@@ -222,9 +348,10 @@ export default function TradeAnalyzer() {
       });
       setResult(comparison);
     } catch (caught) {
-      const message = caught instanceof ApiError && caught.status === 401
-        ? 'Sign in through the football app, then try again.'
-        : caught.message || 'Trade comparison failed.';
+      const message =
+        caught instanceof ApiError && caught.status === 401
+          ? 'Sign in through the football app, then try again.'
+          : caught.message || 'Trade comparison failed.';
       setError(message);
       setResult(null);
     } finally {
@@ -233,62 +360,62 @@ export default function TradeAnalyzer() {
   }
 
   return (
-      <div className="flex flex-col gap-8">
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div className="grid gap-5 xl:grid-cols-2">
-            <PlayerRows
-              title="Send"
-              players={send}
-              onAdd={() => setSend((players) => [...players, { ...EMPTY_PLAYER }])}
-              onChange={(index, patch) => updateSide(setSend, index, patch)}
-              onRemove={(index) => removeSidePlayer(setSend, index)}
-            />
-            <PlayerRows
-              title="Receive"
-              players={receive}
-              onAdd={() => setReceive((players) => [...players, { ...EMPTY_PLAYER }])}
-              onChange={(index, patch) => updateSide(setReceive, index, patch)}
-              onRemove={(index) => removeSidePlayer(setReceive, index)}
-            />
-          </div>
+    <div className="flex flex-col gap-8">
+      <form className="space-y-5" onSubmit={handleSubmit}>
+        <div className="grid gap-5 xl:grid-cols-2">
+          <PlayerRows
+            title="Send"
+            players={send}
+            onAdd={() => setSend((players) => [...players, { ...EMPTY_PLAYER }])}
+            onChange={(index, patch) => updateSide(setSend, index, patch)}
+            onRemove={(index) => removeSidePlayer(setSend, index)}
+          />
+          <PlayerRows
+            title="Receive"
+            players={receive}
+            onAdd={() => setReceive((players) => [...players, { ...EMPTY_PLAYER }])}
+            onChange={(index, patch) => updateSide(setReceive, index, patch)}
+            onRemove={(index) => removeSidePlayer(setReceive, index)}
+          />
+        </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={loading || hasInvalidProjection}
-              type="submit"
-            >
-              {loading ? (
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
-                />
-              ) : null}
-              {loading ? 'Comparing...' : 'Compare Trade'}
-            </button>
-            {hasInvalidProjection ? (
-              <p className="text-sm text-red-300">Projection must be a number.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={loading || hasInvalidProjection}
+            type="submit"
+          >
+            {loading ? (
+              <span
+                aria-hidden="true"
+                className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
+              />
             ) : null}
-          </div>
-        </form>
+            {loading ? 'Comparing...' : 'Compare Trade'}
+          </button>
+          {hasInvalidProjection ? (
+            <p className="text-sm text-red-300">Projection must be a number.</p>
+          ) : null}
+        </div>
+      </form>
 
-        {error && (
-          <ErrorState
-            title="Trade comparison failed"
-            message={error}
-            onRetry={handleSubmit}
-          />
-        )}
+      {error && (
+        <ErrorState
+          title="Trade comparison failed"
+          message={error}
+          onRetry={handleSubmit}
+        />
+      )}
 
-        {!loading && !error && hasSubmitted && result && !result.verdict && (
-          <EmptyState
-            eyebrow="Trade Analyzer"
-            title="No result returned"
-            message="The comparison returned an incomplete result. Try adjusting the player details and running again."
-          />
-        )}
+      {!loading && !error && hasSubmitted && result && !result.verdict && (
+        <EmptyState
+          eyebrow="Trade Analyzer"
+          title="No result returned"
+          message="The comparison returned an incomplete result. Try adjusting the player details and running again."
+        />
+      )}
 
-        <ResultPanel result={result?.verdict ? result : null} />
-      </div>
+      <ResultPanel result={result?.verdict ? result : null} />
+    </div>
   );
 }
