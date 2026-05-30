@@ -418,23 +418,52 @@ export default function TeamTheme() {
                       </div>
 
                       {/* Identity block */}
-                      {selectedTeam.wardRoom && (
-                        <div className="mt-4 space-y-2">
-                          <span
-                            className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-                            style={{
-                              color: accentText,
-                              borderColor: `color-mix(in srgb, ${accentText} 40%, var(--color-border) 60%)`,
-                            }}
-                          >
-                            {selectedTeam.cultureTag}
-                          </span>
-                          <p
-                            className="text-base font-semibold leading-snug"
-                            style={{ color: accentText, maxWidth: '40ch' }}
-                          >
-                            {selectedTeam.wardRoom}
-                          </p>
+                      {(selectedTeam.cry || selectedTeam.wardRoom) && (
+                        <div className="mt-5 space-y-1.5">
+
+                          {/* cultureTag — pill */}
+                          <div className="mb-3">
+                            <span
+                              className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+                              style={{
+                                color: accentText,
+                                borderColor: `color-mix(in srgb, ${accentText} 40%, var(--color-border) 60%)`,
+                              }}
+                            >
+                              {selectedTeam.cultureTag}
+                            </span>
+                          </div>
+
+                          {/* cry — the chant, lighter weight */}
+                          {selectedTeam.cry && (
+                            <p
+                              className="text-sm font-semibold uppercase tracking-widest"
+                              style={{ color: accentText, opacity: 0.65 }}
+                            >
+                              {selectedTeam.cry}
+                            </p>
+                          )}
+
+                          {/* wardRoom — the statement, full weight */}
+                          {selectedTeam.wardRoom && (
+                            <p
+                              className="text-xl font-bold leading-tight"
+                              style={{ color: accentText }}
+                            >
+                              {selectedTeam.wardRoom}
+                            </p>
+                          )}
+
+                          {/* lore — the deep cut, most muted */}
+                          {selectedTeam.lore && (
+                            <p
+                              className="pt-0.5 text-xs font-medium"
+                              style={{ color: accentText, opacity: 0.45 }}
+                            >
+                              {selectedTeam.lore}
+                            </p>
+                          )}
+
                         </div>
                       )}
                     </div>

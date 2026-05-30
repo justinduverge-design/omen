@@ -13,11 +13,21 @@
  * The `accent` value feeds directly into the CSS var override. textSafe() in
  * teamTheme.js lifts very dark accents to minimum L=58 for readability as text.
  *
- * Format: { abbr, city, name, div, primary, secondary, accent, scheme,
- *           colorRush?, note?, cultureTag, wardRoom }
+ * Identity fields (all in team accent color across the app):
  *
- *   cultureTag  — 1–3 word fan identity label shown as a pill after selection
- *   wardRoom    — 1–2 sentence identity statement shown on TeamTheme after selection
+ *   cultureTag  — 1–3 word fan identity label (pill/badge)
+ *   cry         — the chant; short, punchy, what they yell in the stadium
+ *   wardRoom    — one-liner war room statement; harder, what the GM says at halftime
+ *   lore?       — optional deeper fan culture line for teams with more to say
+ *
+ * Placement guide:
+ *   cultureTag → TeamTheme pill, NavDrawer team label
+ *   cry        → Omen loading state, TeamTheme above wardRoom (lighter weight)
+ *   wardRoom   → TeamTheme selection moment (bold, full weight)
+ *   lore       → TeamTheme secondary line (muted, fan deep-cut)
+ *
+ * Format: { abbr, city, name, div, primary, secondary, accent, scheme,
+ *           colorRush?, note?, cultureTag, cry, wardRoom, lore? }
  */
 
 export const NFL_TEAMS = [
@@ -27,14 +37,16 @@ export const NFL_TEAMS = [
     div: 'AFC East',  primary: '#00338D', secondary: '#C60C30',
     accent: '#00338D', scheme: 'standard',
     cultureTag: "Bills Mafia",
-    wardRoom: "Everybody Eats.",
+    cry:        "Everybody Eats",
+    wardRoom:   "Mafia don't leave their own.",
   },
   {
     abbr: 'MIA', city: 'Miami',        name: 'Dolphins',
     div: 'AFC East',  primary: '#008E97', secondary: '#FC4C02',
     accent: '#008E97', scheme: 'standard',
     cultureTag: "The 305",
-    wardRoom: "Fins Up! 305 on deck.",
+    cry:        "Fins Up",
+    wardRoom:   "305 never sleeps.",
   },
   {
     abbr: 'NE',  city: 'New England',  name: 'Patriots',
@@ -43,7 +55,8 @@ export const NFL_TEAMS = [
     colorRush: '#C60C30',
     note: 'Patriots Color Rush all-red is highly popular. Standard navy (#002244) is very dark and indistinguishable from other dark-navy teams. Red is the Patriots\' distinctive visible accent.',
     cultureTag: "Pats Nation",
-    wardRoom: "We all we got, we all we need. Do your job.",
+    cry:        "Do Your Job",
+    wardRoom:   "We all we got, we all we need.",
   },
   {
     abbr: 'NYJ', city: 'New York',     name: 'Jets',
@@ -52,7 +65,8 @@ export const NFL_TEAMS = [
     colorRush: '#00703C',
     note: 'Jets fans have campaigned to bring back classic Kelly Green for decades. The current dark teal (#125740) is divisive. Kelly Green is the beloved identity.',
     cultureTag: "Gang Green",
-    wardRoom: "J-E-T-S. Now let's get to work.",
+    cry:        "J-E-T-S",
+    wardRoom:   "Gang Green don't blink.",
   },
 
   // ─── AFC North ────────────────────────────────────────────────────────────
@@ -62,14 +76,16 @@ export const NFL_TEAMS = [
     accent: '#241773', scheme: 'standard',
     // textSafe lifts #241773 (L≈7.7) to readable purple ~#6B4FD4
     cultureTag: "The Flock",
-    wardRoom: "Play Like a Raven. Big Truzz.",
+    cry:        "Big Truzz",
+    wardRoom:   "Play like a Raven.",
   },
   {
     abbr: 'CIN', city: 'Cincinnati',   name: 'Bengals',
     div: 'AFC North', primary: '#FB4F14', secondary: '#000000',
     accent: '#FB4F14', scheme: 'standard',
     cultureTag: "The Jungle",
-    wardRoom: "Who Dey? Who Dey? They gotta play us.",
+    cry:        "Who Dey",
+    wardRoom:   "They gotta play us.",
   },
   {
     abbr: 'CLE', city: 'Cleveland',    name: 'Browns',
@@ -78,7 +94,8 @@ export const NFL_TEAMS = [
     colorRush: '#FF3C00',
     note: 'Browns Color Rush all-orange is iconic and fan-beloved. Standard dark brown (#311D00) would vanish on Corvus dark UI.',
     cultureTag: "Dawg Pound",
-    wardRoom: "In Browns We Trust. Cleveland doesn't fold.",
+    cry:        "In Browns We Trust",
+    wardRoom:   "Cleveland doesn't fold.",
   },
   {
     abbr: 'PIT', city: 'Pittsburgh',   name: 'Steelers',
@@ -86,7 +103,9 @@ export const NFL_TEAMS = [
     accent: '#FFB612', scheme: 'secondary',
     note: 'Steelers gold (#FFB612) is one of the most iconic colors in the NFL. Standard primary (#101820) is near-black and invisible on dark UI.',
     cultureTag: "Steeler Nation",
-    wardRoom: "Redd up the Stillers room. Here We Go!",
+    cry:        "Here We Go",
+    wardRoom:   "Redd up the war room.",
+    lore:       "Stillers Nation.",
   },
 
   // ─── AFC South ────────────────────────────────────────────────────────────
@@ -96,21 +115,24 @@ export const NFL_TEAMS = [
     accent: '#A71930', scheme: 'secondary',
     note: 'Standard Texans primary (#03202F) is near-black. Texans red (#A71930) is the visible identity anchor on the dark Corvus UI.',
     cultureTag: "Bull Pen",
-    wardRoom: "Texas does it bigger. Swarm!",
+    cry:        "Swarm",
+    wardRoom:   "Texas does it bigger.",
   },
   {
     abbr: 'IND', city: 'Indianapolis', name: 'Colts',
     div: 'AFC South', primary: '#002C5F', secondary: '#A2AAAD',
     accent: '#002C5F', scheme: 'standard',
     cultureTag: "Horseshoe",
-    wardRoom: "For The Shoe! The Loud House is calling.",
+    cry:        "For The Shoe",
+    wardRoom:   "The Loud House is calling.",
   },
   {
     abbr: 'JAX', city: 'Jacksonville', name: 'Jaguars',
     div: 'AFC South', primary: '#006778', secondary: '#D7A22A',
     accent: '#006778', scheme: 'standard',
     cultureTag: "Duval",
-    wardRoom: "Duuuuuuvaaall. DTWD.",
+    cry:        "DUUUVAL",
+    wardRoom:   "Get it right, this isn't Miami.",
   },
   {
     abbr: 'TEN', city: 'Tennessee',    name: 'Titans',
@@ -119,7 +141,8 @@ export const NFL_TEAMS = [
     colorRush: '#4B92DB',
     note: 'Titans sky blue from their Color Rush look is beloved by fans — the classic "Columbia Blue" identity. Standard dark navy (#0C2340) is indistinct.',
     cultureTag: "Titan Up",
-    wardRoom: "Titan Up. How Ya Feel?",
+    cry:        "How Ya Feel?",
+    wardRoom:   "Tennessee don't tap out.",
   },
 
   // ─── AFC West ─────────────────────────────────────────────────────────────
@@ -128,14 +151,16 @@ export const NFL_TEAMS = [
     div: 'AFC West',  primary: '#FB4F14', secondary: '#002244',
     accent: '#FB4F14', scheme: 'standard',
     cultureTag: "Broncos Country",
-    wardRoom: "Mile High Magic. The altitude changes things.",
+    cry:        "Mile High Magic",
+    wardRoom:   "The altitude changes things.",
   },
   {
     abbr: 'KC',  city: 'Kansas City',  name: 'Chiefs',
     div: 'AFC West',  primary: '#E31837', secondary: '#FFB81C',
     accent: '#E31837', scheme: 'standard',
     cultureTag: "Chiefs Kingdom",
-    wardRoom: "Never a Doubt. We Got Corvus.",
+    cry:        "Never a Doubt",
+    wardRoom:   "Kingdom don't fold.",
   },
   {
     abbr: 'LV',  city: 'Las Vegas',    name: 'Raiders',
@@ -143,7 +168,8 @@ export const NFL_TEAMS = [
     accent: '#A5ACAF', scheme: 'secondary',
     note: 'Raiders silver (#A5ACAF) is used because the standard black primary (#0B0B0B) is invisible on Corvus dark background. Silver is the Raiders\' other identity color.',
     cultureTag: "Raider Nation",
-    wardRoom: "The Autumn Wind — Just Win, Baby!",
+    cry:        "Just Win Baby",
+    wardRoom:   "The Autumn Wind don't stop.",
   },
   {
     abbr: 'LAC', city: 'Los Angeles',  name: 'Chargers',
@@ -152,7 +178,8 @@ export const NFL_TEAMS = [
     colorRush: '#6DB3E5',
     note: 'Powder Blue color rush is vastly more popular with Chargers fans than standard navy. The Chargers\' powder blue identity predates the current branding and is considered their true colors by a significant portion of the fan base.',
     cultureTag: "Broltchachos",
-    wardRoom: "Bolt Up. Charge! Super Chargers!",
+    cry:        "Bolt Up",
+    wardRoom:   "Chargers don't ask permission.",
   },
 
   // ─── NFC East ─────────────────────────────────────────────────────────────
@@ -161,7 +188,8 @@ export const NFL_TEAMS = [
     div: 'NFC East',  primary: '#003594', secondary: '#869397',
     accent: '#003594', scheme: 'standard',
     cultureTag: "America's Team",
-    wardRoom: "How 'Bout Them Cowboys! We Dem Boyz.",
+    cry:        "We Dem Boyz",
+    wardRoom:   "How 'Bout Them Cowboys.",
   },
   {
     abbr: 'NYG', city: 'New York',     name: 'Giants',
@@ -169,7 +197,9 @@ export const NFL_TEAMS = [
     accent: '#A71930', scheme: 'secondary',
     note: 'Giants red (#A71930) is vibrant and distinctive. Standard navy (#0B2265) is extremely dark.',
     cultureTag: "Big Blue",
-    wardRoom: "Fe-Fi-Fo-Fum. GO Big Blue!",
+    cry:        "GO Big Blue",
+    wardRoom:   "Fe-Fi-Fo-Fum.",
+    lore:       "Giants don't sleep.",
   },
   {
     abbr: 'PHI', city: 'Philadelphia', name: 'Eagles',
@@ -177,7 +207,8 @@ export const NFL_TEAMS = [
     accent: '#004C54', scheme: 'standard',
     // Midnight Green IS the Eagles identity. textSafe lifts it to readable.
     cultureTag: "Birds Gang",
-    wardRoom: "Fly Eagles Fly. No one likes us, we don't care.",
+    cry:        "Fly Eagles Fly",
+    wardRoom:   "No one likes us, we don't care.",
   },
   {
     abbr: 'WAS', city: 'Washington',   name: 'Commanders',
@@ -185,7 +216,8 @@ export const NFL_TEAMS = [
     accent: '#FFB612', scheme: 'secondary',
     note: 'Commanders gold (#FFB612) pops on dark UI. Dark maroon (#5A1414) is distinctive but textSafe is less effective on warm darks.',
     cultureTag: "District",
-    wardRoom: "Hail to the Commanders. Hail Victory!",
+    cry:        "Hail Victory",
+    wardRoom:   "The District doesn't kneel.",
   },
 
   // ─── NFC North ────────────────────────────────────────────────────────────
@@ -195,14 +227,16 @@ export const NFL_TEAMS = [
     accent: '#C83803', scheme: 'secondary',
     note: 'Bears orange (#C83803) is the real visible identity. Standard primary (#0B162A) is near-black and would vanish on Corvus dark UI.',
     cultureTag: "Da Bears",
-    wardRoom: "Good, Better, Best. Bear Down.",
+    cry:        "Bear Down",
+    wardRoom:   "Good, better, best. Never rest.",
   },
   {
     abbr: 'DET', city: 'Detroit',      name: 'Lions',
     div: 'NFC North', primary: '#0076B6', secondary: '#B0B7BC',
     accent: '#0076B6', scheme: 'standard',
     cultureTag: "One Pride",
-    wardRoom: "Detroit vs. Everybody. The city runs on this.",
+    cry:        "Detroit vs. Everybody",
+    wardRoom:   "The city always shows up.",
   },
   {
     abbr: 'GB',  city: 'Green Bay',    name: 'Packers',
@@ -210,14 +244,17 @@ export const NFL_TEAMS = [
     accent: '#FFB612', scheme: 'secondary',
     note: 'Packers gold (#FFB612) is equally iconic as the green and more vibrant on a dark UI. Forest green textSafe-lifted works but gold is more instantly Packer.',
     cultureTag: "Cheesehead Nation",
-    wardRoom: "Go You Packers Go. Titletown. The Bears Still Suck!",
+    cry:        "Go You Packers Go",
+    wardRoom:   "Titletown.",
+    lore:       "The Bears still suck.",
   },
   {
     abbr: 'MIN', city: 'Minnesota',    name: 'Vikings',
     div: 'NFC North', primary: '#4F2683', secondary: '#FFC62F',
     accent: '#4F2683', scheme: 'standard',
     cultureTag: "Skol Vikings",
-    wardRoom: "Skol. The Bold North remembers — and the North wins.",
+    cry:        "Skol",
+    wardRoom:   "The Bold North doesn't forget.",
   },
 
   // ─── NFC South ────────────────────────────────────────────────────────────
@@ -226,28 +263,33 @@ export const NFL_TEAMS = [
     div: 'NFC South', primary: '#A71930', secondary: '#000000',
     accent: '#A71930', scheme: 'standard',
     cultureTag: "Rise Up",
-    wardRoom: "The City Too Busy to Hate. F.I.L.A. Rise Up.",
+    cry:        "Rise Up",
+    wardRoom:   "The City Too Busy to Hate.",
+    lore:       "F.I.L.A.",
   },
   {
     abbr: 'CAR', city: 'Carolina',     name: 'Panthers',
     div: 'NFC South', primary: '#0085CA', secondary: '#101820',
     accent: '#0085CA', scheme: 'standard',
     cultureTag: "Keep Pounding",
-    wardRoom: "Keep Pounding. Carolina never stops running.",
+    cry:        "Keep Pounding",
+    wardRoom:   "Carolina never stops running.",
   },
   {
     abbr: 'NO',  city: 'New Orleans',  name: 'Saints',
     div: 'NFC South', primary: '#D3BC8D', secondary: '#101820',
     accent: '#D3BC8D', scheme: 'standard',
     cultureTag: "Who Dat Nation",
-    wardRoom: "Where y'at? Laissez les bons temps rouler.",
+    cry:        "Who Dat",
+    wardRoom:   "Laissez les bons temps rouler.",
   },
   {
     abbr: 'TB',  city: 'Tampa Bay',    name: 'Buccaneers',
     div: 'NFC South', primary: '#D50A0A', secondary: '#FF7900',
     accent: '#D50A0A', scheme: 'standard',
     cultureTag: "Krewe",
-    wardRoom: "Fire the Cannons! No Risk It, No Biscuit.",
+    cry:        "Fire the Cannons",
+    wardRoom:   "No Risk It, No Biscuit.",
   },
 
   // ─── NFC West ─────────────────────────────────────────────────────────────
@@ -256,7 +298,8 @@ export const NFL_TEAMS = [
     div: 'NFC West',  primary: '#97233F', secondary: '#FFB612',
     accent: '#97233F', scheme: 'standard',
     cultureTag: "Red Sea",
-    wardRoom: "Red Sea rising. Be Water. Desert heat never cools.",
+    cry:        "Be Water",
+    wardRoom:   "Red Sea rising.",
   },
   {
     abbr: 'LAR', city: 'Los Angeles',  name: 'Rams',
@@ -264,14 +307,17 @@ export const NFL_TEAMS = [
     accent: '#FFA300', scheme: 'secondary',
     note: 'Rams gold/bone (#FFA300) is the distinctive modern Rams color. Standard navy is dark and shared with other franchises.',
     cultureTag: "Rams House",
-    wardRoom: "Whose House?! Rams House! Horns Up!",
+    cry:        "Whose House",
+    wardRoom:   "Whose House? Rams House.",
+    lore:       "Horns Up.",
   },
   {
     abbr: 'SF',  city: 'San Francisco', name: '49ers',
     div: 'NFC West',  primary: '#AA0000', secondary: '#B3995D',
     accent: '#AA0000', scheme: 'standard',
     cultureTag: "Gold Rush",
-    wardRoom: "Faithful to The Bay. Bang! Bang! Niner Gang!",
+    cry:        "Bang Bang Niner Gang",
+    wardRoom:   "Faithful to The Bay.",
   },
   {
     abbr: 'SEA', city: 'Seattle',      name: 'Seahawks',
@@ -279,7 +325,8 @@ export const NFL_TEAMS = [
     accent: '#69BE28', scheme: 'secondary',
     note: "Seahawks Action Green (#69BE28) is their most distinctive color and instantly recognizable. Standard navy is very dark and shared with other teams.",
     cultureTag: "The 12s",
-    wardRoom: "SEA! HAWKS! Go Hawks!",
+    cry:        "SEA HAWKS",
+    wardRoom:   "12s don't leave.",
   },
 ];
 
