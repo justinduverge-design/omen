@@ -73,7 +73,7 @@ Key constraint: `followed = true` is the gate for the Tuesday cron. Only moves w
 
 Expected response: `{ "recorded": true, "move_id": "uuid" }`
 
-Gate status: do NOT build frontend until Omen page passes `/ui-ux-pro-max-skill` audit. Audit has not been run on OmenPage.jsx yet — that is the next UX task.
+Gate status: **CLEARED 2026-05-28.** Omen page passed `/ui-ux-pro-max-skill` audit. Fixes applied: "Corvus Pro" label brand token corrected, back-link focus-visible ring added, inline-style color converted to Tailwind CSS-var hover-capable class. HITL build is now unblocked on the frontend side — only blocker remaining is Justin approving the `moves` table Supabase migration.
 
 ---
 

@@ -9,6 +9,7 @@ import Landing from '../pages/Landing.jsx';
 import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
+import TeamTheme from '../pages/TeamTheme.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
 
 export default function AppRoutes() {
@@ -22,6 +23,16 @@ export default function AppRoutes() {
 
       {/* ConnectLeague handles its own auth gate internally */}
       <Route path="/account/connect" element={<ConnectLeague />} />
+
+      {/* Team theme / appearance — auth required */}
+      <Route
+        path="/account/appearance"
+        element={
+          <ProtectedRoute>
+            <TeamTheme />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Auth-required routes */}
       <Route

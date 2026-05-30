@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-28 (auth providers resolved; UX audit complete; team theme personalization planned)
+Last updated: 2026-05-28 (auth providers resolved; all 7 UX audit fixes applied; nflPlayers.js built; Omen page audit cleared — HITL gate open pending moves migration)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -956,7 +956,7 @@ GET /api/league/standings
 **Date:** 2026-05-28
 **Owner:** Claude Code / frontend
 **Feature:** Trade Analyzer autocomplete data source (part of Request 20)
-**Status:** Planned. Frontend-only. No backend endpoint needed.
+**Status:** ✅ Built 2026-05-28. File live at `frontend/src/data/nflPlayers.js`. ~350 players (QB/RB/WR/TE/K/DEF across all 32 franchises). Exports `NFL_PLAYERS` array and `searchPlayers(position, query)` helper. Phase 2 replacement: `GET /api/players/search`.
 
 This is a static data file, not an API request. Claude builds it directly.
 

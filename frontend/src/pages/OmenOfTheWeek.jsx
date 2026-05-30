@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
@@ -592,6 +593,16 @@ export default function OmenOfTheWeek() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* HITL Feedback — the ritual that teaches the Omen */}
+      {!mockMode && (
+        <OmenFeedback
+          week={league?.week}
+          season={league?.season}
+          moveTitle={rec.title}
+          moveSubtext={rec.explanation?.summary}
+        />
       )}
     </div>
   );

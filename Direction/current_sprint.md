@@ -1,6 +1,6 @@
 # Corvus Current Sprint
 
-Last updated: 2026-05-28
+Last updated: 2026-05-28 (session 2 — UX audit fixes + nflPlayers.js)
 
 ## Current State
 
@@ -34,11 +34,19 @@ Corvus is live on the renamed route.
 - Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
 - Legacy compat routes from frontend Request 17 now return explicit `410 legacy_route_retired` responses.
 - `sql/corvus_rls_security.sql` now contains prepared waitlist and subscription-date repair SQL; it has not been applied to Supabase.
-- Apple sign-in button removed from `frontend/src/pages/Login.jsx` — Apple Developer account costs money; button will not return unless account is purchased (commit `f23f684`).
-- Google OAuth `redirect_uri_mismatch` fixed — Supabase Site URL changed from `localhost` to `https://slopssaloon.com`; Supabase callback URL added to Google Cloud Console Authorized redirect URIs.
-- Discord OAuth `invalid redirect_uri` fixed — `https://xyudxfhqejbwvjngiwhw.supabase.co/auth/v1/callback` added to Discord Developer Portal; Discord app credentials entered in Supabase Auth dashboard.
-- `frontend/src/lib/nextUrl.js` updated: `/account` added to ALLOWED_DESTINATIONS; `consumeNextUrl()` default changed from `'/'` to `'/account'` so post-login lands on Account page instead of appearing to "just refresh" (commit `17bd327`).
-- UX/UI audit completed across Landing, Login, Account, and Omen pages using `/ui-ux-pro-max-skill`. Seven gaps documented in `slops-saloon/Blueprints/handoffs/corvus-features-ux-roadmap.md`. Fixes are blocked until Justin approves the UX pass.
+- Apple sign-in button removed from `frontend/src/pages/Login.jsx` — Apple Developer account costs money; button will not return unless account is purchased.
+- Google OAuth `redirect_uri_mismatch` fixed — Supabase Site URL changed from `localhost` to `https://slopssaloon.com`; callback URL added to Google Cloud Console.
+- Discord OAuth `invalid redirect_uri` fixed — callback URL added to Discord Developer Portal; Discord credentials entered in Supabase Auth dashboard.
+- `frontend/src/lib/nextUrl.js` updated: post-login default destination changed from `'/'` to `'/account'`; `/account` added to ALLOWED_DESTINATIONS.
+- UX/UI audit completed across Landing, Login, Account, and Omen pages using `/ui-ux-pro-max-skill`. All 7 gaps documented and fixed (commit `7b71a87` + `7b1cbab`):
+  - Focus-visible keyboard rings added to: Landing nav links, DraftAssistant inputs, TradeAnalyzer inputs/selects, ConnectLeague buttons, PlatformConnections buttons, OmenPage back-link.
+  - `active:scale-[0.97]` press feedback added to Landing CTAs and waitlist button.
+  - `text-[10px]` story arc steps changed to `text-xs` (12px minimum — accessibility).
+  - `min-h-screen` on Login changed to `min-h-[100dvh]` (mobile browser address bar fix).
+  - Account plan card hardcoded `purple-*` classes replaced with `var(--color-accent)` / `var(--color-accent-hover)` brand tokens.
+  - OmenPage "Corvus Pro" label `text-purple-300` replaced with `text-[var(--color-accent)]`.
+  - OmenPage back-link inline-style color converted to Tailwind CSS-var classes with hover + focus-visible ring.
+- `frontend/src/data/nflPlayers.js` created (commit `7b1cbab`): ~350-player static roster covering QB/RB/WR/TE/K/DEF for all 32 franchises. Exports `NFL_PLAYERS` array and `searchPlayers(position, query)` helper. Used by Trade Analyzer Phase 1 autocomplete. Phase 2 replaces with `GET /api/players/search`.
 
 ## Now
 
@@ -55,8 +63,10 @@ Corvus is live on the renamed route.
 3. Run `scripts/load-corvus-routes.js` against local/staging targets and save results.
 4. ~~Confirm Supabase Auth providers for Google, Apple, and Discord~~ — **Done 2026-05-28.** Google ✅, Discord ✅, Apple intentionally removed.
 5. QA ESPN cookie recovery without logging or displaying cookie values.
-6. Apply UX audit fixes (7 gaps) across Landing, Login, Account, Omen — requires Justin approval before build.
-7. Claude can optionally wire Account pricing display to `GET /api/stripe/prices`.
+6. ~~Apply UX audit fixes (7 gaps) across Landing, Login, Account, Omen~~ — **Done 2026-05-28.** All 7 fixes committed.
+7. Run `/ui-ux-pro-max-skill` on Account / Connect page — next UX gate before building new features on those surfaces.
+8. Build HITL Feedback Loop on OmenPage (Request 21) — gated on Justin approving `moves` table Supabase migration. Omen page audit cleared. Contract in `frontend-to-backend.md`.
+9. Build Trade Analyzer form rework: position-first layout, name autocomplete via `nflPlayers.js`, Trade Room right column (Request 20). No backend dep — purely frontend.
 
 ## Guardrails
 
