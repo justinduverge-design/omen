@@ -27,6 +27,11 @@ Company-level decisions belong in the SLOPS OS layer. Division decisions belong 
 - Security and privacy decisions are tracked in `Blueprints\security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
 - Users need plain-English reasoning, not heavy math.
 
+## Strategic Notes
+
+- Corvus as app template — everything built in Corvus (AppLayout, CSS token system, TeamThemeProvider, ProtectedRoute, auth flow, PlayerRow autocomplete, component library, handoff structure) is the intended template for every future SLOPS OS product. When the next product starts, Corvus is the scaffold. Do not treat Corvus patterns as one-offs — treat them as the division standard. Logged 2026-05-30.
+- `/corvus` route is now the frictionless tool entry point — public, no auth, Trade Analyzer live. This is the conversion path from `slopssaloon.com` traffic. `/` is the Corvus marketing/waitlist page until a Slops Saloon division landing is built to replace it. Logged 2026-05-30.
+
 ## Open Decisions
 
 - Whether recovery analytics ship before or after the first paid launch gate.
