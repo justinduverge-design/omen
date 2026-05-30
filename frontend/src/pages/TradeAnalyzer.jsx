@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { searchPlayers } from '../data/nflPlayers.js';
+import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
@@ -275,6 +276,93 @@ function ResultPanel({ result }) {
   );
 }
 
+// ─── Trade Room sidebar ───────────────────────────────────────────────────────
+
+const TRADE_TIPS = [
+  {
+    title: 'Buy after one bad week',
+    body: 'One game is noise. The market overreacts. Move before it corrects.',
+  },
+  {
+    title: 'Sell into the schedule',
+    body: "Value peaks before a brutal stretch. Check the next four matchups.",
+  },
+  {
+    title: 'Depth wins championships',
+    body: 'The waiver wire dries up in October. Build roster depth now.',
+  },
+  {
+    title: 'TE1 is a multiplier',
+    body: 'Position scarcity is real. A true TE1 compounds in value all season.',
+  },
+];
+
+function TradeTipsCard() {
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+        Corvus · Strategy
+      </p>
+      <h3 className="mt-1 text-base font-bold text-[var(--color-text-primary)]">Trade Room</h3>
+      <ul className="mt-4 space-y-4">
+        {TRADE_TIPS.map((tip) => (
+          <li key={tip.title} className="flex gap-3">
+            <span
+              aria-hidden="true"
+              className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: 'var(--color-accent)' }}
+            />
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
+              <p className="mt-0.5 text-xs leading-5 text-[var(--color-text-secondary)]">{tip.body}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BuyLowCard() {
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+        Mock · Buy Low
+      </p>
+      <h3 className="mt-1 text-base font-bold text-[var(--color-text-primary)]">Targets</h3>
+      <ul className="mt-4 divide-y divide-[var(--color-border)]">
+        {TRADE_PULSE.buy_low.map((target) => (
+          <li key={target.id} className="py-3 first:pt-0 last:pb-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {target.name}
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span
+                  className="inline-block rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
+                  style={{
+                    color: 'var(--color-accent)',
+                    borderColor: 'color-mix(in srgb, var(--color-accent) 35%, transparent)',
+                  }}
+                >
+                  {target.position}
+                </span>
+                <span className="text-xs text-[var(--color-text-tertiary)]">{target.team}</span>
+              </div>
+            </div>
+            <p className="mt-0.5 text-xs leading-5 text-[var(--color-text-secondary)]">
+              {target.reason}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-[10px] text-[var(--color-text-tertiary)]">
+        Mock data · updated each preseason
+      </p>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function TradeAnalyzer() {
@@ -324,59 +412,70 @@ export default function TradeAnalyzer() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="grid gap-5 xl:grid-cols-2">
-          <PlayerRows
-            title="Send"
-            players={send}
-            onAdd={() => setSend((players) => [...players, { ...EMPTY_PLAYER }])}
-            onChange={(index, patch) => updateSide(setSend, index, patch)}
-            onRemove={(index) => removeSidePlayer(setSend, index)}
+    <div className="grid gap-8 xl:grid-cols-[1fr_256px]">
+
+      {/* ── Main column: form + result ─────────────────────────────────────── */}
+      <div className="flex flex-col gap-8">
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <PlayerRows
+              title="Send"
+              players={send}
+              onAdd={() => setSend((players) => [...players, { ...EMPTY_PLAYER }])}
+              onChange={(index, patch) => updateSide(setSend, index, patch)}
+              onRemove={(index) => removeSidePlayer(setSend, index)}
+            />
+            <PlayerRows
+              title="Receive"
+              players={receive}
+              onAdd={() => setReceive((players) => [...players, { ...EMPTY_PLAYER }])}
+              onChange={(index, patch) => updateSide(setReceive, index, patch)}
+              onRemove={(index) => removeSidePlayer(setReceive, index)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? (
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
+                />
+              ) : null}
+              {loading ? 'Comparing...' : 'Compare Trade'}
+            </button>
+          </div>
+        </form>
+
+        {error && (
+          <ErrorState
+            title="Trade comparison failed"
+            message={error}
+            onRetry={handleSubmit}
           />
-          <PlayerRows
-            title="Receive"
-            players={receive}
-            onAdd={() => setReceive((players) => [...players, { ...EMPTY_PLAYER }])}
-            onChange={(index, patch) => updateSide(setReceive, index, patch)}
-            onRemove={(index) => removeSidePlayer(setReceive, index)}
+        )}
+
+        {!loading && !error && hasSubmitted && result && !result.verdict && (
+          <EmptyState
+            eyebrow="Trade Analyzer"
+            title="No result returned"
+            message="The comparison returned an incomplete result. Try adjusting the player details and running again."
           />
-        </div>
+        )}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading}
-            type="submit"
-          >
-            {loading ? (
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
-              />
-            ) : null}
-            {loading ? 'Comparing...' : 'Compare Trade'}
-          </button>
-        </div>
-      </form>
+        <ResultPanel result={result?.verdict ? result : null} />
+      </div>
 
-      {error && (
-        <ErrorState
-          title="Trade comparison failed"
-          message={error}
-          onRetry={handleSubmit}
-        />
-      )}
+      {/* ── Trade Room sidebar ─────────────────────────────────────────────── */}
+      <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+        <TradeTipsCard />
+        <BuyLowCard />
+      </aside>
 
-      {!loading && !error && hasSubmitted && result && !result.verdict && (
-        <EmptyState
-          eyebrow="Trade Analyzer"
-          title="No result returned"
-          message="The comparison returned an incomplete result. Try adjusting the player details and running again."
-        />
-      )}
-
-      <ResultPanel result={result?.verdict ? result : null} />
     </div>
   );
 }
