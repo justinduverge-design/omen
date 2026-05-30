@@ -6,7 +6,38 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
-## Active Context — Last updated 2026-05-29
+## UX Audit + Font System + Team Identity — 2026-05-30
+
+Date: 2026-05-30
+Owner: Claude/frontend
+Feature: Track A (font system + CSS token sweep), Track B (team identity layer), Track C (atomic identity schema split)
+Status: All three tracks complete and pushed to remote.
+
+Commits: Track A `31a308e` · Track B `385dbb4` · Track C `d16c48b`
+
+Track A — Font system + CSS token sweep:
+- Google Fonts import updated: Barlow Condensed (display), DM Sans (body/UI), DM Mono (data), Cormorant Garamond (brand-only).
+- `tailwind.config.js` fontFamily: `sans` = DM Sans, `display` = Barlow Condensed, `mono` = DM Mono, `serif` = Cormorant Garamond (brand-only).
+- `index.css` base layer: `h1, h2 { @apply font-display; }`.
+- Full CSS token sweep across TradeAnalyzer.jsx, DraftAssistant.jsx, Account.jsx, Football.jsx — all hardcoded `amber-*`/`slate-*` replaced with `var(--color-*)` tokens. Team theme now applies universally.
+
+Track B — Team identity layer:
+- `nflTeams.js`: `cultureTag` + `wardRoom` fields added for all 32 teams.
+- `TeamTheme.jsx`: GM-framing h1, font-display abbr in tiles, identity pill + wardRoom statement block.
+- `Account.jsx`: Appearance section added, linking to `/account/appearance`.
+
+Track C — Atomic identity schema:
+- `nflTeams.js`: identity split into 4 atomic fields — `cultureTag`, `cry`, `wardRoom`, `lore` (optional, 5 teams).
+- `TeamTheme.jsx`: 4-level visual hierarchy — pill → chant (65% opacity) → statement (full weight) → deep-cut (45% opacity).
+- Fields independently deployable; `cry` planned for Omen loading state in a future pass.
+
+Frontend action needed:
+- None. All three tracks are shipped.
+- Next build: Trade Analyzer form rework (position-first layout + autocomplete from `nflPlayers.js`) — frontend-only, no backend dependency.
+
+---
+
+## Active Context — Last updated 2026-05-30
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door.
