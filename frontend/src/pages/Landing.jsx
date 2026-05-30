@@ -195,7 +195,7 @@ function TradeAnalyzerHeroCard() {
           </p>
           <Button
             className="w-full bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-            href="/trade"
+            href="/corvus"
           >
             Analyze Your Trade <Arrow />
           </Button>
@@ -306,7 +306,7 @@ function DraftAssistantMiniCard() {
 
 function SignInForm() {
   return (
-    <div className="mt-4">
+    <div className="mt-3">
       <p className="text-[10px] uppercase tracking-[0.22em] text-[#F4EFE1]/32">
         Already have an account?
       </p>
@@ -317,6 +317,92 @@ function SignInForm() {
         Sign in →
       </a>
     </div>
+  );
+}
+
+// ─── Inline waitlist form (hero) ──────────────────────────────────────────────
+
+function HeroWaitlist() {
+  const [email, setEmail] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [status, setStatus] = useState('idle');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (status === 'submitting') return;
+    setStatus('submitting');
+    try {
+      await apiFetch('/api/waitlist', {
+        method: 'POST',
+        body: { email, platform: platform || null },
+      });
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  if (status === 'success') {
+    return (
+      <div className="mt-6 rounded-xl border border-[#C9A44C]/30 bg-[#C9A44C]/8 px-5 py-4">
+        <p className="text-sm font-semibold text-[#C9A44C]">You're on the list.</p>
+        <p className="mt-0.5 text-xs text-[#F4EFE1]/55">The raven will send word.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form className="mt-6 flex flex-col gap-3" onSubmit={handleSubmit}>
+      {/* Platform pills */}
+      <div className="flex flex-wrap gap-2">
+        {PLATFORMS.map((p) => (
+          <label
+            key={p}
+            className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              platform === p
+                ? 'border-[#C9A44C]/55 bg-[#C9A44C]/14 text-[#C9A44C]'
+                : 'border-white/14 bg-transparent text-[#F4EFE1]/40 hover:border-white/28 hover:text-[#F4EFE1]/65'
+            }`}
+          >
+            <input
+              checked={platform === p}
+              className="sr-only"
+              name="hero-platform"
+              type="radio"
+              value={p}
+              onChange={() => setPlatform(p)}
+            />
+            {p}
+          </label>
+        ))}
+      </div>
+
+      {/* Email + submit */}
+      <div className="flex gap-2">
+        <input
+          aria-label="Email address"
+          className="min-h-[44px] flex-1 rounded-md border border-white/12 bg-[#080604] px-4 text-sm text-[#F4EFE1] placeholder-[#F4EFE1]/28 outline-none transition-colors focus:border-[#C9A44C]/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C9A44C]/40"
+          placeholder="you@example.com"
+          required
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <button
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[#C9A44C] px-5 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55 whitespace-nowrap"
+          disabled={status === 'submitting'}
+          type="submit"
+        >
+          {status === 'submitting' ? 'Joining…' : 'Join Waitlist'}
+        </button>
+      </div>
+
+      {status === 'error' && (
+        <p className="text-xs text-red-300" role="alert">
+          Something went wrong. Try again in a moment.
+        </p>
+      )}
+    </form>
   );
 }
 
@@ -476,17 +562,12 @@ export default function Landing() {
 
         {/* ── Hero ── */}
         <section className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 md:py-24 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14">
-          {/* Left: headline + CTAs */}
+          {/* Left: headline + waitlist */}
           <div className="animate-[fadeIn_0.6s_ease-out]">
             <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
-              Corvus · Trade Analyzer
+              Corvus · Fantasy Intelligence
             </p>
 
-            {/*
-              Font: Alegreya Sans (font-sans) — more editorial/contemporary than
-              Cormorant Garamond at hero scale. Avoids the "wedding invitation"
-              feel while preserving a humanist, intelligent tone.
-            */}
             <h1 className="mt-4 font-sans text-4xl font-medium leading-[1.12] tracking-[-0.01em] text-[#F4EFE1] md:text-5xl lg:text-[3.25rem]">
               Know the move
               <br />
@@ -498,26 +579,22 @@ export default function Landing() {
               — then gives you a plain-English accept, decline, or hold recommendation.
             </p>
 
-            {/* Visual story arc */}
+            {/* Story arc */}
             <StoryArc />
 
-            {/* CTAs */}
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Button
-                className="bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-                href="/trade"
-              >
-                Run Your Trade <Arrow />
-              </Button>
-              <Button
-                className="border border-white/15 bg-transparent text-[#F4EFE1] hover:bg-white/8"
-                href="#secondary"
-              >
-                Explore Corvus
-              </Button>
-            </div>
+            {/* Waitlist — primary CTA */}
+            <HeroWaitlist />
 
-            <SignInForm />
+            {/* Secondary: sign in + try live tool */}
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <SignInForm />
+              <a
+                className="mt-3 inline-flex items-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/38 transition-colors hover:text-[#F4EFE1]/65"
+                href="/corvus"
+              >
+                Try the live tool →
+              </a>
+            </div>
           </div>
 
           {/* Right: Trade Analyzer example */}
@@ -542,8 +619,29 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── Waitlist ── */}
-        <WaitlistSection />
+        {/* ── Try it live bar ── */}
+        <section className="relative mx-auto max-w-7xl px-5 pb-24">
+          <div className="relative overflow-hidden rounded-2xl border border-[#C9A44C]/22 bg-[#0c0c0c] px-8 py-10 shadow-2xl shadow-black/60 md:px-12">
+            <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-full bg-[#C9A44C]/7 blur-3xl" />
+            <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
+              <div>
+                <p className="text-sm text-[#C9A44C]/55">𖤍</p>
+                <h2 className="mt-1 font-sans text-xl font-semibold text-[#F4EFE1]">
+                  Ready to run a real trade?
+                </h2>
+                <p className="mt-1 text-sm text-[#F4EFE1]/45">
+                  No account required. Corvus analyzes any trade in seconds.
+                </p>
+              </div>
+              <a
+                className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-md bg-[#C9A44C] px-7 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] active:scale-[0.97]"
+                href="/corvus"
+              >
+                Try the live tool →
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );

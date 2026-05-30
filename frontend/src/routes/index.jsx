@@ -5,6 +5,7 @@ import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
 import DraftAssistant from '../pages/DraftAssistant.jsx';
 import Football from '../pages/Football';
+import CorvusLanding from '../pages/CorvusLanding.jsx';
 import Landing from '../pages/Landing.jsx';
 import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
@@ -17,6 +18,7 @@ export default function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
+      <Route path="/corvus" element={<CorvusLanding />} />
       <Route path="/login" element={<Login />} />
       <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
       <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />

@@ -365,7 +365,7 @@ function BuyLowCard() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function TradeAnalyzer() {
+export default function TradeAnalyzer({ compact = false }) {
   const [send, setSend] = useState([{ ...EMPTY_PLAYER }]);
   const [receive, setReceive] = useState([{ ...EMPTY_PLAYER, position: 'WR' }]);
   const [result, setResult] = useState(null);
@@ -412,7 +412,7 @@ export default function TradeAnalyzer() {
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[1fr_256px]">
+    <div className={`grid gap-8 ${compact ? '' : 'xl:grid-cols-[1fr_256px]'}`}>
 
       {/* ── Main column: form + result ─────────────────────────────────────── */}
       <div className="flex flex-col gap-8">
@@ -471,10 +471,12 @@ export default function TradeAnalyzer() {
       </div>
 
       {/* ── Trade Room sidebar ─────────────────────────────────────────────── */}
-      <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
-        <TradeTipsCard />
-        <BuyLowCard />
-      </aside>
+      {!compact && (
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <TradeTipsCard />
+          <BuyLowCard />
+        </aside>
+      )}
 
     </div>
   );
