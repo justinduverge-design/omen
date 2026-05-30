@@ -61,7 +61,7 @@ function PlatformStatusBar({ platforms, loading }) {
             );
           })}
           <Link
-            className="ml-auto text-xs transition-colors hover:text-slate-300"
+            className="ml-auto text-xs transition-colors hover:text-[var(--color-text-primary)]"
             style={{ color: 'var(--color-text-secondary)' }}
             to="/account"
           >
@@ -174,7 +174,7 @@ export default function Football() {
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
           Corvus · Hall of Records
         </p>
-        <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
+        <h1 className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl" style={{ color: 'var(--color-text-primary)' }}>
           Hall of Records
         </h1>
         <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>

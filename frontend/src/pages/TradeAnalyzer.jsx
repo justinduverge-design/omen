@@ -31,11 +31,11 @@ function cleanPlayer(player) {
 
 function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+    <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h2>
         <button
-          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm font-semibold text-slate-200 transition-colors hover:border-amber-400 hover:text-amber-300"
+          className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
           type="button"
           onClick={onAdd}
         >
@@ -46,22 +46,22 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
       <div className="space-y-3">
         {players.map((player, index) => (
           <div
-            className="grid gap-3 rounded-md border border-slate-800 bg-slate-950 p-3 md:grid-cols-[1fr_96px_120px_96px_auto]"
+            className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[1fr_96px_120px_96px_auto]"
             key={`${title}-${index}`}
           >
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
               Name
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
                 value={player.name}
                 onChange={(event) => onChange(index, { name: event.target.value })}
               />
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
               Pos
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
                 value={player.position}
                 onChange={(event) => onChange(index, { position: event.target.value })}
               >
@@ -71,10 +71,10 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
               </select>
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
               Projection
               <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
                 min="0"
                 step="0.1"
                 type="number"
@@ -83,10 +83,10 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
               />
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
               Status
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
                 value={player.status}
                 onChange={(event) => onChange(index, { status: event.target.value })}
               >
@@ -100,7 +100,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
 
             <button
               aria-label={`Remove ${title} player ${index + 1}`}
-              className="self-end rounded-md border border-slate-800 px-3 py-2 text-sm text-slate-400 transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+              className="self-end rounded-md border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
               disabled={players.length === 1}
               type="button"
               onClick={() => onRemove(index)}
@@ -120,23 +120,23 @@ function ResultPanel({ result }) {
   const verdictStyles = {
     accept: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
     decline: 'border-red-400/30 bg-red-400/10 text-red-300',
-    neutral: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+    neutral: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent-hover)]',
   };
 
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+    <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
             Result
           </p>
-          <h2 className="mt-2 text-3xl font-semibold text-white">
+          <h2 className="mt-2 font-mono text-3xl font-semibold text-[var(--color-text-primary)]">
             {result.net_value > 0 ? '+' : ''}{result.net_value}
           </h2>
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
             VORP value
           </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Confidence: {result.confidence}
           </p>
         </div>
@@ -145,7 +145,7 @@ function ResultPanel({ result }) {
         </span>
       </div>
       {result.explanation ? (
-        <p className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
+        <p className="mt-4 rounded-md border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
           {result.explanation}
         </p>
       ) : null}
@@ -155,16 +155,16 @@ function ResultPanel({ result }) {
           ['Send', result.send],
           ['Receive', result.receive],
         ].map(([label, side]) => (
-          <div className="rounded-md border border-slate-800 bg-slate-950 p-4" key={label}>
+          <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4" key={label}>
             <div className="flex items-center justify-between gap-3">
-              <h3 className="font-semibold text-white">{label}</h3>
-              <span className="text-sm text-slate-400">{side.total_value}</span>
+              <h3 className="font-semibold text-[var(--color-text-primary)]">{label}</h3>
+              <span className="text-sm text-[var(--color-text-secondary)]">{side.total_value}</span>
             </div>
             <ul className="mt-3 space-y-2">
               {side.players.map((player, index) => (
                 <li className="flex items-center justify-between gap-3 text-sm" key={`${label}-${index}`}>
-                  <span className="text-slate-300">{player.name}</span>
-                  <span className="text-slate-500">{player.value}</span>
+                  <span className="text-[var(--color-text-primary)]">{player.name}</span>
+                  <span className="text-[var(--color-text-tertiary)]">{player.value}</span>
                 </li>
               ))}
             </ul>
@@ -252,17 +252,16 @@ export default function TradeAnalyzer() {
             />
           </div>
 
-
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={loading || hasInvalidProjection}
               type="submit"
             >
               {loading ? (
                 <span
                   aria-hidden="true"
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-amber-950/30 border-t-amber-950"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
                 />
               ) : null}
               {loading ? 'Comparing...' : 'Compare Trade'}

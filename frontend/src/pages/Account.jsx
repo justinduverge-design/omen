@@ -46,10 +46,10 @@ function SubscriptionBanner({ type, onDismiss }) {
 
   if (type === 'cancelled') {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-amber-400/20 bg-amber-400/5 px-5 py-3">
-        <p className="text-sm text-amber-300/80">Checkout cancelled — no changes were made.</p>
+      <div className="flex items-center justify-between rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 px-5 py-3">
+        <p className="text-sm text-[var(--color-text-secondary)]">Checkout cancelled — no changes were made.</p>
         <button
-          className="ml-4 shrink-0 text-xs text-slate-500 transition-colors hover:text-slate-300"
+          className="ml-4 shrink-0 text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
           type="button"
           onClick={onDismiss}
         >
@@ -72,13 +72,13 @@ function PlanCard({ option, selected, onSelect }) {
         'w-full rounded-xl border p-4 text-left transition-colors',
         isSelected
           ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10'
-          : 'border-slate-800 bg-slate-900 hover:border-slate-700',
+          : 'border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-surface-3)]',
       ].join(' ')}
       type="button"
       onClick={() => onSelect(option.id)}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-white'}`}>
+        <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-[var(--color-text-primary)]'}`}>
           {option.label}
         </p>
         <span
@@ -86,13 +86,13 @@ function PlanCard({ option, selected, onSelect }) {
             'rounded-full border px-2 py-0.5 text-xs font-semibold',
             isSelected
               ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-              : 'border-slate-700 bg-slate-800 text-slate-400',
+              : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)]',
           ].join(' ')}
         >
           {option.badge}
         </span>
       </div>
-      <p className="mt-1 text-xs leading-5 text-slate-400">{option.description}</p>
+      <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">{option.description}</p>
     </button>
   );
 }
@@ -120,7 +120,7 @@ function PlanPicker({ onCheckout, loading, error }) {
         {loading ? 'Redirecting to Stripe…' : selectedOption?.cta ?? 'Continue to checkout'}
       </button>
 
-      <p className="text-center text-xs text-slate-500">
+      <p className="text-center text-xs text-[var(--color-text-tertiary)]">
         Payments secured by Stripe.
       </p>
     </div>
@@ -156,9 +156,9 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Corvus Pro · Active
         </span>
-        {planLabel && <span className="text-xs text-slate-400">{planLabel}</span>}
+        {planLabel && <span className="text-xs text-[var(--color-text-secondary)]">{planLabel}</span>}
         {periodLabel && (
-          <span className="ml-auto text-xs text-slate-500">
+          <span className="ml-auto text-xs text-[var(--color-text-tertiary)]">
             {renewsOrExpires} {periodLabel}
           </span>
         )}
@@ -168,7 +168,7 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
 
       {subscription?.can_manage_billing && (
         <button
-          className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:text-white disabled:opacity-60"
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-surface-3)] hover:text-[var(--color-text-primary)] disabled:opacity-60"
           disabled={loading}
           type="button"
           onClick={onManage}
@@ -232,19 +232,19 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
     if (summaryLoading) {
       return (
         <div className="animate-pulse space-y-3">
-          <div className="h-14 rounded-xl bg-slate-800/60" />
-          <div className="h-14 rounded-xl bg-slate-800/40" />
-          <div className="h-11 w-full rounded-xl bg-slate-800/40" />
+          <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
+          <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
+          <div className="h-11 w-full rounded-xl bg-[var(--color-surface-2)]" />
         </div>
       );
     }
 
     if (summaryError || subscription?.status === 'unknown') {
       return (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-          <p className="text-sm text-slate-400">Could not load subscription status.</p>
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+          <p className="text-sm text-[var(--color-text-secondary)]">Could not load subscription status.</p>
           <button
-            className="mt-3 text-xs font-semibold text-amber-400 transition-colors hover:text-amber-300"
+            className="mt-3 text-xs font-semibold text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
             type="button"
             onClick={onRefetch}
           >
@@ -278,7 +278,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
     <section ref={sectionRef} className="space-y-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus Pro</p>
-        <h2 className="mt-1 text-xl font-semibold text-white">Subscription</h2>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Subscription</h2>
       </div>
       {renderBody()}
     </section>
@@ -375,7 +375,7 @@ export default function Account() {
   if (checkingSession) {
     return (
       <AppLayout>
-        <p className="text-sm text-slate-400">Checking account access…</p>
+        <p className="text-sm text-[var(--color-text-secondary)]">Checking account access…</p>
       </AppLayout>
     );
   }
@@ -385,9 +385,9 @@ export default function Account() {
       {banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Corvus</p>
-        <h1 className="mt-3 font-serif text-4xl tracking-wide text-white sm:text-5xl">Account</h1>
-        <p className="mt-4 text-sm leading-6 text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus</p>
+        <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
+        <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
           Manage your Corvus Pro subscription and fantasy platform connections.
         </p>
       </section>
@@ -400,16 +400,37 @@ export default function Account() {
         sectionRef={subscriptionRef}
       />
 
-      <div className="border-t border-slate-800 pt-6">
+      <div className="border-t border-[var(--color-border)] pt-6">
         <section className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Platforms</p>
-          <h2 className="text-xl font-semibold text-white">Platform Connections</h2>
-          <p className="text-sm leading-6 text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Platforms</p>
+          <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Platform Connections</h2>
+          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
             Connect the fantasy platforms Corvus uses to read your rosters.
           </p>
         </section>
         <div className="mt-4">
           <PlatformConnections recoveryState={recoveryState} />
+        </div>
+      </div>
+
+      <div className="border-t border-[var(--color-border)] pt-6">
+        <section className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Appearance</p>
+          <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Team Theme</h2>
+          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
+            Choose your team. Corvus colors its entire interface to match.
+          </p>
+        </section>
+        <div className="mt-4">
+          <a
+            href="/account/appearance"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          >
+            Customize Team Colors
+            <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
         </div>
       </div>
     </AppLayout>

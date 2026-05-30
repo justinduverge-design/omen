@@ -25,8 +25,10 @@ export default {
         omen: '#5B2D8E',
       },
       fontFamily: {
-        serif: ['Cormorant Garamond', 'serif'],
-        sans: ['Alegreya Sans', 'sans-serif'],
+        sans:    ['DM Sans', 'system-ui', 'sans-serif'],
+        serif:   ['Cormorant Garamond', 'Georgia', 'serif'],
+        display: ['Barlow Condensed', 'system-ui', 'sans-serif'],
+        mono:    ['DM Mono', 'ui-monospace', 'monospace'],
       },
     },
   },

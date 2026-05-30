@@ -85,7 +85,7 @@ function PositionBadge({ position }) {
 
 function ConfidenceBar({ score }) {
   const barColor =
-    score >= 70 ? 'bg-amber-400' : score >= 50 ? 'bg-amber-400/60' : 'bg-slate-600';
+    score >= 70 ? 'bg-[var(--color-accent)]' : score >= 50 ? 'bg-[var(--color-accent)]/60' : 'bg-[var(--color-surface-3)]';
   return (
     <div className="flex items-center gap-3">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-surface-1)' }}>
@@ -179,7 +179,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
     <div
       className={`space-y-4 rounded-xl border p-5 ${
         isTop
-          ? 'border-amber-400/40 bg-amber-400/5 shadow-lg shadow-amber-400/5'
+          ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5 shadow-lg shadow-[var(--color-accent)]/5'
           : ''
       }`}
       style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
@@ -189,7 +189,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
           <span
             className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
               isTop
-                ? 'bg-amber-400 text-amber-950'
+                ? 'bg-[var(--color-accent)] text-black'
                 : 'border'
             }`}
             style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
@@ -342,7 +342,7 @@ export default function DraftAssistant({ platforms }) {
           Draft Assistant
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
           <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
             {`Free · ${new Date().getFullYear()} Season`}
           </span>
@@ -382,7 +382,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Draft Position (1–12)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="12"
               min="1"
@@ -395,7 +395,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Current Round (1–15)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-400"
+              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="15"
               min="1"
@@ -434,14 +434,14 @@ export default function DraftAssistant({ platforms }) {
         </fieldset>
 
         <button
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={loading}
           type="submit"
         >
           {loading && (
             <span
               aria-hidden="true"
-              className="h-4 w-4 animate-spin rounded-full border-2 border-amber-950/30 border-t-amber-950"
+              className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
             />
           )}
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}
