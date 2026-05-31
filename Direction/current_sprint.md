@@ -1,6 +1,6 @@
 # Corvus Current Sprint
 
-Last updated: 2026-05-31 (session 5 — HITL feedback backend + team preference backend)
+Last updated: 2026-05-31 (session 6 — HITL DB gate + Move History backend)
 
 ## Current State
 
@@ -11,7 +11,7 @@ Corvus is live on the renamed route.
 - Oracle checkout path: `~/corvus`
 - Production service name: `corvus-api`
 - Docker containers: `corvus_api`, `corvus_cron`
-- Test baseline: 226/226 passing locally on 2026-05-31
+- Test baseline: 231/231 passing locally on 2026-05-31
 
 ## Completed
 
@@ -32,25 +32,27 @@ Corvus is live on the renamed route.
 - **Footer:** converted from hardcoded `slate-*` to CSS vars.
 - **HITL feedback backend:** `POST /api/omen/feedback` built locally. Auth required. Upserts `followed`, `user_stars`, and `user_note` to `moves` by `user_id + week_num + season`.
 - **Team preference backend:** `PATCH /api/account/preferences` built locally. Auth required. Upserts `favorite_team` to `profiles`; dashboard summary now includes `user.favorite_team`.
-- **SQL readiness:** `sql/corvus_rls_security.sql` updated for `moves` feedback idempotence and `profiles.favorite_team`; no Supabase SQL has been applied from this local session.
+- **HITL database gate:** approved `moves` feedback repair applied through Supabase connector. Live table now has `followed`, `user_stars`, `user_note`, `outcome`, and unique `(user_id, week_num, season)` index. Database idempotence smoke passed and temporary rows were cleaned up.
+- **Move History backend:** `GET /api/moves` built locally. Auth required. Returns `moves-history.v1` with season/limit filters, user-only rows, W/L/pending summary, and backend-to-frontend column mapping.
+- **SQL readiness:** `sql/corvus_rls_security.sql` updated for `moves` feedback idempotence and `profiles.favorite_team`; `moves` repair has been applied, while `profiles.favorite_team` still needs Justin approval before Supabase application.
 
 ## Now
 
 - Keep backend/frontend contracts aligned with tested app behavior.
 - Treat `POST /api/omen/mvp-move` as paid live Omen for subscribed users.
-- Keep prepared Supabase SQL distinct from applied database state until Justin approves migration/application.
+- Keep prepared Supabase SQL distinct from applied database state unless Justin approves migration/application.
+- Build canonical `GET /api/league/standings` next; Move History is now unblocked.
 - Logo placeholder (`[C]` circle in header/drawer) is intentional — swap with SVG inline component when logo is ready.
 
 ## Next
 
-1. Apply the approved `moves` table SQL through the approved Supabase lane, then verify `POST /api/omen/feedback` against Supabase.
+1. Build canonical League Standings (`GET /api/league/standings`) with Yahoo, Sleeper, and ESPN adapter paths.
 2. Get Justin approval to apply `profiles.favorite_team`, then verify `PATCH /api/account/preferences` and `GET /api/dashboard/summary.user.favorite_team` against Supabase.
-3. Build Move History (`GET /api/moves`) after `moves` exists with HITL data.
-4. Run `/ui-ux-pro-max-skill` on Account page + ConnectLeague page — next UX gate.
-5. Build Trade Analyzer form rework: position-first, autocomplete via `nflPlayers.js`, Trade Room column. No backend dep.
-6. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
-7. Run Stripe test-mode checkout and webhook validation before paid-launch confidence.
-8. QA ESPN cookie recovery without logging or displaying cookie values.
+3. Run `/ui-ux-pro-max-skill` on Account page + ConnectLeague page — next UX gate.
+4. Build Trade Analyzer form rework: position-first, autocomplete via `nflPlayers.js`, Trade Room column. No backend dep.
+5. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
+6. Run Stripe test-mode checkout and webhook validation before paid-launch confidence.
+7. QA ESPN cookie recovery without logging or displaying cookie values.
 
 ## Guardrails
 

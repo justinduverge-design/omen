@@ -200,6 +200,95 @@ Files changed:
 Verified local checks:
 - `npm test` passed: 226/226.
 
+## Move History Contract — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Request 22
+Status: Built locally and verified. Live Supabase `moves` feedback columns and idempotence index were applied and smoke-tested through the Supabase connector. No deploy was performed.
+
+### Move History — `GET /api/moves`
+
+Status: Built.
+
+Method and path: `GET /api/moves`
+
+Auth: Required Supabase bearer token.
+
+Query params:
+
+- `season`: optional positive integer. Defaults to the current NFL season from backend week context.
+- `limit`: optional integer from 1 to 100. Defaults to `20`.
+
+Response:
+
+```json
+{
+  "contract_version": "moves-history.v1",
+  "generated_at": "2026-05-31T12:00:00.000Z",
+  "season": 2026,
+  "summary": {
+    "wins": 1,
+    "losses": 1,
+    "pending": 1,
+    "avg_effectiveness_pct": 63,
+    "followed_count": 2,
+    "total_count": 3
+  },
+  "moves": [
+    {
+      "id": "uuid",
+      "season": 2026,
+      "week": 8,
+      "move_type": "start_sit",
+      "recommendation": "Start Breece Hall over James Conner",
+      "followed": true,
+      "stars": 4,
+      "outcome": "win",
+      "effectiveness_pct": 84,
+      "created_at": "2026-10-20T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+Backend mapping:
+
+- `week_num` -> `week`
+- `headline` first, then `reasoning` -> `recommendation`
+- `user_stars` -> `stars`
+- `eff` -> `effectiveness_pct`
+- missing `outcome` -> `pending`
+
+Summary rules:
+
+- `total_count`: number of returned rows after filters and limit.
+- `followed_count`: returned rows where `followed === true`.
+- `wins` / `losses`: followed rows only, with `outcome === "win"` or `"loss"`.
+- `pending`: returned rows with `outcome === "pending"`.
+- `avg_effectiveness_pct`: rounded average of `eff` for followed scored rows only; `null` when no followed scored rows exist.
+
+Frontend action needed:
+
+- Hall of Records / Move History can now call `GET /api/moves`.
+- Treat empty `moves: []` as a real empty state, not an error.
+- Treat `outcome: "pending"` as unscored.
+- Do not calculate W/L totals on the client; use `summary`.
+
+Verification:
+
+- Live Supabase schema gate passed after approved repair: `followed`, `user_stars`, `user_note`, `outcome`, and unique `(user_id, week_num, season)` index are present.
+- Live database idempotence smoke passed: same user/week/season updated one row and returned the same move id.
+- Local focused checks passed: `node --test test\movesRoute.test.js test\omenFeedbackRoute.test.js test\securitySql.test.js test\deployHardening.test.js`.
+- Full local checks passed: `npm test` 231/231.
+
+Files changed:
+
+- `src/routes/moves.js`
+- `src/server.js`
+- `test/movesRoute.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
 ## Auth Providers And Post-Login UX Resolution - 2026-05-28
 
 Date: 2026-05-28

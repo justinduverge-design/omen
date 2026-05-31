@@ -172,6 +172,14 @@ try {
   logger.error("User privacy router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/moves (Omen history + W/L effectiveness) --------
+try {
+  const movesRoutes = require("./routes/moves");
+  app.use("/api/moves", movesRoutes);
+} catch (e) {
+  logger.error("Moves router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");

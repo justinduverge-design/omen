@@ -17,7 +17,8 @@ Last updated: 2026-05-31
 - Stripe backend surfaces.
 - `GET /api/system/current-week`.
 - `GET /api/stripe/prices`.
-- `POST /api/omen/feedback` in local backend code. Auth required; records HITL feedback into `moves` once the approved Supabase SQL is applied.
+- `POST /api/omen/feedback` in local backend code. Auth required; records HITL feedback into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
+- `GET /api/moves` in local backend code. Auth required; returns `moves-history.v1` with user move history, W/L/pending summary, and effectiveness aggregation.
 - `PATCH /api/account/preferences` in local backend code. Auth required; records `favorite_team` into `profiles` once Justin approves and applies the profile column SQL.
 - `GET /api/dashboard/summary.user.favorite_team` in local backend code, returning `null` safely until profile data exists.
 - Explicit `410 legacy_route_retired` responses for retired compat routes.
@@ -35,13 +36,14 @@ Last updated: 2026-05-31
 
 - Keep context, handoffs, and route docs aligned with the 2026-05-31 backend contract truth.
 - Keep current API contracts stable after Requests 13-18.
-- Treat prepared Supabase SQL as local/reviewable only until Justin approves staging/prod application.
+- Treat prepared Supabase SQL as local/reviewable only until Justin approves staging/prod application, except the approved `moves` repair already applied on 2026-05-31.
 - Use `POST /api/omen/mvp-move` as the only canonical Omen/MVP Move path.
-- Treat `POST /api/omen/feedback` and `PATCH /api/account/preferences` as code-ready but database-application-gated until the matching Supabase SQL is applied.
+- Treat `GET /api/moves` as the canonical Move History path.
+- Treat `PATCH /api/account/preferences` as code-ready but database-application-gated until the matching Supabase SQL is applied.
 
 ## Next
 
-1. Apply approved `moves` SQL through the approved Supabase lane, then verify HITL feedback against Supabase.
+1. Build canonical `GET /api/league/standings` and replace the current retired `410` behavior for that path.
 2. Get Justin approval for `profiles.favorite_team`, apply through the approved Supabase lane, then verify team preference and dashboard summary.
 3. Run Stripe test-mode checkout, portal, pricing, and webhook validation.
 4. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
@@ -53,7 +55,6 @@ Last updated: 2026-05-31
 
 - Delete retired compat route handlers after one release/log window if no callers hit the `410` responses.
 - Polish Hall of Records dashboard.
-- Build Move History (`GET /api/moves`) once HITL feedback has real `moves` rows.
 - Add Draft Assistant season content.
 - Decide whether recovery analytics ship before or after paid launch.
 
