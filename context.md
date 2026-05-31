@@ -25,15 +25,17 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - Frontend/backend handoffs live in `Blueprints/handoffs/`.
 - App source and config live here, not in the parent `slops-saloon/` layer.
 
-## Latest Resume Point — 2026-05-27
+## Latest Resume Point — 2026-05-31
 
-- Local backend tests pass 216/216.
+- Local backend tests pass 226/226.
 - Live Omen is canonical at `POST /api/omen/mvp-move` and uses body `{}` after dashboard status is `ready`.
 - Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
 - `GET /api/system/current-week` exists for public season/week context.
 - `GET /api/stripe/prices` exists as a read-only pricing display contract.
+- `POST /api/omen/feedback` is built locally for HITL feedback. It is auth-required and upserts `followed`, `user_stars`, and `user_note` to `moves` by `user_id + week_num + season`.
+- `PATCH /api/account/preferences` is built locally for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary now includes `user.favorite_team`.
 - Legacy compat routes from the frontend audit now return `410 legacy_route_retired`.
-- Supabase SQL is prepared for `waitlist_signups`, `subscriptions.trial_ends_at`, and `subscriptions.current_period_end`, but it has not been applied to staging or production.
+- Supabase SQL is prepared for `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, and `profiles.favorite_team`, but it has not been applied to staging or production from this local session.
 - Remaining launch blockers are approval/ops: apply prepared Supabase SQL, confirm prod Supabase env, validate Stripe dashboard/return URLs, and run Stripe test-mode validation.
 
 ## Read First

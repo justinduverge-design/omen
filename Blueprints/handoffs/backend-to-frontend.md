@@ -55,6 +55,151 @@ Frontend action needed:
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
 
+## HITL Feedback + Team Preference Contracts — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Requests 21 and 19
+Status: Completed locally. No deploy, production action, `.env`, DNS, SSL, Nginx, Stripe, or Supabase database application was performed.
+
+### HITL Feedback Loop — `POST /api/omen/feedback`
+
+Status: Built.
+
+Method and path: `POST /api/omen/feedback`
+
+Auth: Required Supabase bearer token.
+
+Request body:
+
+```json
+{
+  "followed": true,
+  "stars": 4,
+  "note": "Changed lineup last minute, worked out",
+  "week": 1,
+  "season": 2026
+}
+```
+
+Response:
+
+```json
+{
+  "recorded": true,
+  "move_id": "uuid"
+}
+```
+
+Behavior:
+- Writes to `public.moves`.
+- Uses backend column names: `week_num`, `season`, `followed`, `user_stars`, `user_note`.
+- Idempotent by `user_id + week_num + season`: re-submitting the same week/season updates the existing move row instead of creating a duplicate.
+- `followed = true` remains the Tuesday cron scoring gate. `followed = false` and `followed = null` are not scored.
+
+Validation:
+- `week` and `season` must be positive integers.
+- `followed` must be boolean.
+- `stars` may be `null` or an integer from 1 to 5.
+- `note` may be `null` or a string; stored notes are trimmed and capped to 500 characters.
+
+Frontend action needed:
+- `OmenFeedback.jsx` can call this route after Omen success/empty state.
+- On `200`, collapse the card into the recorded state.
+- On `401`, route to login using existing auth flow.
+- On `422` or `500`, keep the card open and show retry copy.
+
+### Team Preference — `PATCH /api/account/preferences`
+
+Status: Built.
+
+Method and path: `PATCH /api/account/preferences`
+
+Auth: Required Supabase bearer token.
+
+Request body:
+
+```json
+{
+  "favorite_team": "KC"
+}
+```
+
+Clearing body:
+
+```json
+{
+  "favorite_team": null
+}
+```
+
+Response:
+
+```json
+{
+  "updated": true,
+  "favorite_team": "KC"
+}
+```
+
+Behavior:
+- Upserts `favorite_team` into `public.profiles` by `user_id`.
+- String values are trimmed and uppercased.
+- `null` clears the saved team.
+- No team-set validation is performed by backend; frontend owns the allowed 32-team set.
+
+Dashboard summary addition:
+
+`GET /api/dashboard/summary` now includes:
+
+```json
+{
+  "user": {
+    "favorite_team": "KC"
+  }
+}
+```
+
+If no profile row exists or the `profiles` table/column is not applied yet, `favorite_team` returns `null` rather than breaking the dashboard summary.
+
+Frontend action needed:
+- `TeamThemeProvider` should read `summary.user.favorite_team`.
+- Account Appearance can keep optimistic localStorage behavior, then persist through `PATCH /api/account/preferences`.
+- Treat `null` as Corvus default theme.
+
+### SQL / Migration Notes
+
+Local SQL file updated: `sql/corvus_rls_security.sql`.
+
+Prepared for HITL:
+- Adds repair columns for existing `moves` tables: `followed`, `user_stars`, `user_note`, `outcome`.
+- Adds unique index `idx_moves_user_week_unique` on `(user_id, week_num, season)` so Supabase upsert is safe and idempotent.
+
+Prepared for team preference:
+- Creates `public.profiles` if missing.
+- Adds `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;`.
+- Enables RLS and self-only select/insert/update policies.
+- Grants minimum profile access to `authenticated` plus server access to `service_role`.
+
+Approval boundary:
+- Justin has approved the existing `moves` table application path, but this local session did not apply SQL to Supabase.
+- The `profiles.favorite_team` change still requires Justin approval before applying to Supabase, per Request 19.
+
+Files changed:
+- `src/routes/omen.js`
+- `src/routes/account.js`
+- `src/routes/dashboard.js`
+- `src/server.js`
+- `sql/corvus_rls_security.sql`
+- `test/omenFeedbackRoute.test.js`
+- `test/accountPreferencesRoute.test.js`
+- `test/dashboardSummary.test.js`
+- `test/securitySql.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
+Verified local checks:
+- `npm test` passed: 226/226.
+
 ## Auth Providers And Post-Login UX Resolution - 2026-05-28
 
 Date: 2026-05-28

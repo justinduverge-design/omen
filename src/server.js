@@ -88,6 +88,13 @@ try {
   logger.error("Dashboard router failed to load", { err: e.message, stack: e.stack });
 }
 
+try {
+  const accountRoutes = require("./routes/account");
+  app.use("/api/account", accountRoutes);
+} catch (e) {
+  logger.error("Account router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Draft Assistant mock contract routes -----------------------
 try {
   const draftAssistantRoutes = require("./routes/draftAssistant");

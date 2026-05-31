@@ -43,6 +43,7 @@ class FakeQuery {
 
 function loadDashboardRouter({
   platformRows = [],
+  profileRows = [],
   subscriptionRows = [],
   userRows = [],
   requireAuth,
@@ -55,6 +56,7 @@ function loadDashboardRouter({
       return {
         select() {
           if (table === "platform_connections") return new FakeQuery(platformRows);
+          if (table === "profiles") return new FakeQuery(profileRows);
           if (table === "subscriptions") return new FakeQuery(subscriptionRows);
           if (table === "users") return new FakeQuery(userRows);
           throw new Error(`unexpected table ${table}`);
@@ -145,6 +147,9 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     userRows: [
       { id: "test-user", is_subscribed: true },
     ],
+    profileRows: [
+      { user_id: "test-user", favorite_team: "KC" },
+    ],
     subscriptionRows: [
       {
         user_id: "test-user",
@@ -165,6 +170,7 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
   assert.equal(res.status, 200);
   assert.equal(res.body.contract_version, "dashboard-summary.v1");
   assert.equal(res.body.is_mock, false);
+  assert.deepEqual(res.body.user, { favorite_team: "KC" });
   assert.deepEqual(res.body.subscription, {
     is_subscribed: true,
     status: "active",

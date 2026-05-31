@@ -1,6 +1,9 @@
 "use strict";
 
 const express = require("express");
+const { createClient } = require("@supabase/supabase-js");
+const config = require("../config");
+const { requireAuth } = require("../middleware/auth");
 const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
@@ -13,6 +16,7 @@ const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
 
 const router = express.Router();
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const LLM_ELIGIBLE_STATES = new Set(["success", "empty"]);
 const LLM_BLOCKED_STATES = new Set([
@@ -38,6 +42,56 @@ function includeLlmReasoning(body = {}) {
 
 function includeMatchupDvp(body = {}) {
   return body?.include_signals?.matchup_dvp !== false;
+}
+
+function parseRequiredPositiveInteger(value) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0) return null;
+  return number;
+}
+
+function parseOptionalStars(value) {
+  if (value == null) return null;
+  const stars = Number(value);
+  if (!Number.isInteger(stars) || stars < 1 || stars > 5) return undefined;
+  return stars;
+}
+
+function parseOptionalNote(value) {
+  if (value == null) return null;
+  if (typeof value !== "string") return undefined;
+  const note = value.trim();
+  return note ? note.slice(0, 500) : null;
+}
+
+function parseFeedbackPayload(body = {}) {
+  const week = parseRequiredPositiveInteger(body.week);
+  const season = parseRequiredPositiveInteger(body.season);
+  const stars = parseOptionalStars(body.stars);
+  const note = parseOptionalNote(body.note);
+
+  if (!week || !season) {
+    return { error: "week and season are required" };
+  }
+  if (typeof body.followed !== "boolean") {
+    return { error: "followed must be true or false" };
+  }
+  if (stars === undefined) {
+    return { error: "stars must be an integer from 1 to 5 or null" };
+  }
+  if (note === undefined) {
+    return { error: "note must be a string or null" };
+  }
+
+  return {
+    value: {
+      week,
+      season,
+      followed: body.followed,
+      stars,
+      note,
+    },
+  };
 }
 
 function isValidExplanation(value) {
@@ -256,6 +310,36 @@ async function liveOmenResult(req) {
     };
   }
 }
+
+router.post("/feedback", requireAuth, async (req, res, next) => {
+  try {
+    const parsed = parseFeedbackPayload(req.body || {});
+    if (parsed.error) {
+      return res.status(422).json({ error: parsed.error });
+    }
+
+    const { week, season, followed, stars, note } = parsed.value;
+    const { data, error } = await supabase
+      .from("moves")
+      .upsert({
+        user_id: req.user.id,
+        week_num: week,
+        season,
+        followed,
+        user_stars: stars,
+        user_note: note,
+      }, { onConflict: "user_id,week_num,season" })
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw new Error(`move feedback upsert failed: ${error.message}`);
+    if (!data?.id) throw new Error("move feedback upsert failed: missing move id");
+
+    return res.json({ recorded: true, move_id: data.id });
+  } catch (e) {
+    return next(e);
+  }
+});
 
 router.post("/mvp-move", async (req, res) => {
   if (!isExplicitMockRequest(req.body || {})) {
