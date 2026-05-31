@@ -6,12 +6,32 @@ import { supabase } from '../lib/supabase.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
-function PlatformCard({ title, icon, description, badge, children }) {
+const PLATFORM_ICONS = {
+  Sleeper:        { letter: 'S', bg: 'rgba(99,102,241,0.15)',  color: '#818cf8' },
+  Yahoo:          { letter: 'Y', bg: 'rgba(147,51,234,0.15)', color: '#c084fc' },
+  ESPN:           { letter: 'E', bg: 'rgba(239,68,68,0.15)',  color: '#f87171' },
+  'Manual Entry': { letter: 'M', bg: 'rgba(100,116,139,0.15)', color: 'var(--color-text-secondary)' },
+};
+
+function PlatformIcon({ title }) {
+  const s = PLATFORM_ICONS[title] ?? { letter: title[0], bg: 'var(--color-surface-2)', color: 'var(--color-accent)' };
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {s.letter}
+    </span>
+  );
+}
+
+function PlatformCard({ title, description, badge, children }) {
   return (
     <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-xl" aria-hidden="true">{icon}</span>
+          <PlatformIcon title={title} />
           <div>
             <h2 className="font-sans text-sm font-semibold text-[var(--color-text-primary)]">
               {title}
@@ -155,7 +175,6 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
     return (
       <PlatformCard
         title="Sleeper"
-        icon="🌙"
         description="Connected with your Sleeper account."
         badge={<ConnectedBadge />}
       >
@@ -175,7 +194,6 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
   return (
     <PlatformCard
       title="Sleeper"
-      icon="🌙"
       description="Enter your Sleeper username — no password needed."
     >
       {step === 'idle' && (
@@ -284,7 +302,6 @@ function YahooCard({ connected, disabled, onRefresh }) {
     return (
       <PlatformCard
         title="Yahoo"
-        icon="🟣"
         description="Yahoo Fantasy is connected."
         badge={<ConnectedBadge />}
       >
@@ -299,7 +316,6 @@ function YahooCard({ connected, disabled, onRefresh }) {
   return (
     <PlatformCard
       title="Yahoo"
-      icon="🟣"
       description="Connect via Yahoo OAuth. You'll be redirected to Yahoo to authorize access."
     >
       <CTAButton
@@ -308,9 +324,6 @@ function YahooCard({ connected, disabled, onRefresh }) {
       >
         Connect Yahoo
       </CTAButton>
-      <p className="mt-2 text-[10px] text-[var(--color-text-tertiary)]">
-        Note: returning back to this page after Yahoo OAuth is a known gap — you may need to navigate back manually.
-      </p>
     </PlatformCard>
   );
 }
@@ -437,7 +450,6 @@ function EspnCard({ connected, disabled, onRefresh }) {
     return (
       <PlatformCard
         title="ESPN"
-        icon="🏈"
         description="ESPN Fantasy is connected."
         badge={<ConnectedBadge />}
       >
@@ -457,8 +469,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
   return (
     <PlatformCard
       title="ESPN"
-      icon="🏈"
-      description="Requires two cookies from your ESPN browser session. Takes about 2 minutes — every step is shown below."
+      description="Requires two cookies from your ESPN session. Every step is shown below — takes about 2 minutes."
       badge={connected ? <ConnectedBadge /> : undefined}
     >
       <div className="flex flex-col gap-4">
@@ -509,7 +520,6 @@ function ManualCard() {
   return (
     <PlatformCard
       title="Manual Entry"
-      icon="✏️"
       description="Enter your league details without a platform connection."
     >
       <div
@@ -605,7 +615,7 @@ export default function ConnectLeague() {
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">
             Step 2 of 2
           </p>
-          <h1 className="font-serif text-3xl font-semibold text-[var(--color-text-primary)]">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
             Connect Your League
           </h1>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">

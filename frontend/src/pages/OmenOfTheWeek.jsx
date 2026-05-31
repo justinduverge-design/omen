@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import UpgradeState from '../components/ui/UpgradeState.jsx';
@@ -68,24 +69,41 @@ function useOmenData() {
   return { data, loading, error, retry: load };
 }
 
-function LoadingState() {
+function LoadingState({ cry }) {
   return (
-    <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Loading omen">
-      <div className="h-5 w-40 rounded-md bg-slate-800" />
-      <div className="h-8 w-2/3 rounded-md bg-slate-800" />
-      <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <div className="h-4 w-full rounded bg-slate-800" />
-        <div className="h-4 w-5/6 rounded bg-slate-800" />
+    <div aria-busy="true" aria-label="Loading omen">
+      {/* Real header — branded, not a skeleton block */}
+      <div className="mb-5 space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+          Omen of the Week
+        </p>
+        {cry && (
+          <p
+            className="text-sm font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--color-accent)', opacity: 0.5 }}
+          >
+            {cry}
+          </p>
+        )}
       </div>
-      <div className="h-2 rounded-full bg-slate-800" />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-16 rounded-xl bg-slate-800" />
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="h-24 rounded-xl bg-slate-800" />
-        <div className="h-24 rounded-xl bg-slate-800" />
+
+      {/* Content skeleton */}
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 w-2/3 rounded-md bg-slate-800" />
+        <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
+          <div className="h-4 w-full rounded bg-slate-800" />
+          <div className="h-4 w-5/6 rounded bg-slate-800" />
+        </div>
+        <div className="h-2 rounded-full bg-slate-800" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-slate-800" />
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="h-24 rounded-xl bg-slate-800" />
+          <div className="h-24 rounded-xl bg-slate-800" />
+        </div>
       </div>
     </div>
   );
@@ -465,10 +483,21 @@ function reasoningFromExplanation(explanation) {
   return lines;
 }
 
+function getTeamCry() {
+  try {
+    const abbr = localStorage.getItem('corvus.theme.team');
+    if (!abbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === abbr)?.cry ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function OmenOfTheWeek() {
   const { data, loading, error, retry } = useOmenData();
+  const cry = useMemo(() => getTeamCry(), []);
 
-  if (loading) return <LoadingState />;
+  if (loading) return <LoadingState cry={cry} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
 
   if (data?.state === 'needs_subscription') {
