@@ -164,6 +164,53 @@ async function fetchSleeperRoster(leagueId, userId) {
   };
 }
 
+function statWithDecimal(settings = {}, wholeKey, decimalKey) {
+  const whole = Number(settings?.[wholeKey] || 0);
+  const decimal = Number(settings?.[decimalKey] || 0);
+  return Math.round((whole + (decimal / 100)) * 100) / 100;
+}
+
+function sleeperTeamName(user, roster) {
+  return user?.metadata?.team_name
+    || user?.display_name
+    || user?.username
+    || `Team ${roster?.roster_id || ""}`.trim()
+    || "Unknown";
+}
+
+async function fetchSleeperStandings(leagueId, currentUserId = null) {
+  const [rosters, users] = await Promise.all([
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
+  ]);
+
+  const leagueUsers = Array.isArray(users) ? users : [];
+  const standings = (Array.isArray(rosters) ? rosters : []).map((roster) => {
+    const ownerId = roster?.owner_id == null ? null : String(roster.owner_id);
+    const user = leagueUsers.find((leagueUser) => String(leagueUser.user_id) === ownerId);
+    const settings = roster?.settings || {};
+
+    return {
+      rank: 0,
+      team_id: roster?.roster_id == null ? null : String(roster.roster_id),
+      team_name: sleeperTeamName(user, roster),
+      is_current_user: currentUserId != null && ownerId === String(currentUserId),
+      wins: Number(settings.wins || 0),
+      losses: Number(settings.losses || 0),
+      points_for: statWithDecimal(settings, "fpts", "fpts_decimal"),
+      points_against: statWithDecimal(settings, "fpts_against", "fpts_against_decimal"),
+    };
+  });
+
+  return standings
+    .sort((a, b) => (
+      b.wins - a.wins
+      || b.points_for - a.points_for
+      || String(a.team_id || "").localeCompare(String(b.team_id || ""))
+    ))
+    .map((team, index) => ({ ...team, rank: index + 1 }));
+}
+
 async function fetchSleeperPlayers() {
   const cached = await readCache(PLAYERS_CACHE_KEY);
   if (cached) return cached;
@@ -246,7 +293,9 @@ async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
 module.exports = {
   fetchSleeperUser,
   fetchSleeperLeagues,
+  fetchSleeperLeague,
   fetchSleeperRoster,
+  fetchSleeperStandings,
   fetchSleeperPlayers,
   fetchSleeperProjections,
   buildNormalizedRoster,

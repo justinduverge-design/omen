@@ -68,12 +68,14 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - `GET /api/stripe/prices` is a read-only pricing display contract sourced from configured Stripe Price IDs.
 - `GET /api/dashboard/summary` now includes a safe `subscription` block for Account page UI.
 - `GET /api/dashboard/summary` now includes `user.favorite_team`, returning `null` safely if profile data is unavailable.
-- `POST /api/omen/feedback` is built locally for HITL feedback and upserts by user/week/season into `moves`.
+- `POST /api/omen/feedback` is built locally for HITL feedback and upserts by user/week/season into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
+- `GET /api/moves` is built locally for Move History and returns `moves-history.v1`.
+- `GET /api/league/standings` is built locally for League Standings and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
 - `PATCH /api/account/preferences` is built locally for favorite NFL team preference and upserts into `profiles`.
 - Canonical frontend file `frontend/src/pages/OmenOfTheWeek.jsx` now handles `401`, `402`, and `pending_live_engine` defensively.
-- Legacy compat routes listed in the frontend handoff now return `410 legacy_route_retired` with canonical hints where available.
-- `sql/corvus_rls_security.sql` contains prepared SQL for `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, and `profiles.favorite_team`, but no Supabase migration has been applied from this local session.
-- Local backend test baseline: 226/226 passing on 2026-05-31.
+- Legacy compat routes listed in the frontend handoff now return `410 legacy_route_retired` with canonical hints where available, except `/api/league/standings`, which has been restored as a canonical route.
+- `sql/corvus_rls_security.sql` contains prepared SQL for `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, and `profiles.favorite_team`. The `moves` repair is applied; `profiles.favorite_team` remains approval-gated.
+- Local backend test baseline: 231/231 passing on 2026-05-31 after Move History; League Standings focused tests pass.
 
 ## Current Backend / Frontend Boundary
 

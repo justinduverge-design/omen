@@ -108,12 +108,3 @@ test("POST /api/auth/espn/connect is retired with canonical route hint", async (
     canonicalEndpoint: "/api/platforms/espn/connect",
   });
 });
-
-test("GET /api/league/standings is retired without a canonical replacement", async () => {
-  const app = buildApp();
-  const res = await request(app, "/api/league/standings?userId=attacker-chosen-user&leagueId=1");
-
-  assertRetiredRoute(res, {
-    deprecatedEndpoint: "/api/league/standings",
-  });
-});

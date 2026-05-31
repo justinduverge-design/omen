@@ -80,6 +80,20 @@ class YahooClient {
     return null;
   }
 
+  async getLeagueMetadata(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}`);
+    const meta = d?.fantasy_content?.league?.[0];
+    if (!Array.isArray(meta)) return {};
+
+    const entry = (key) => meta.find(x => x?.[key])?.[key] || null;
+    return {
+      league_id: leagueKey,
+      league_name: entry("name"),
+      season: Number(entry("season")) || null,
+      week: Number(entry("current_week")) || null,
+    };
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
     const path = week
@@ -134,8 +148,8 @@ class YahooClient {
     return this.get(`/players;player_keys=${keys.join(",")}/draft_analysis`);
   }
 
-  /** Standings (used elsewhere, kept for compat). */
-  async getLeagueStandings(leagueKey) {
+  /** Standings. Includes legacy fields for old internal callers. */
+  async getLeagueStandings(leagueKey, myTeamKey = null) {
     const d = await this.get(`/league/${leagueKey}/standings`);
     const standings = d?.fantasy_content?.league?.[1]?.standings?.[0]?.teams;
     if (!standings) return [];
@@ -144,13 +158,26 @@ class YahooClient {
       .map((t, i) => {
         const info  = t.team[0];
         const stats = t.team[2]?.team_standings;
+        const teamKey = info?.find?.(x => x?.team_key)?.team_key || null;
+        const name = info?.find?.(x => x?.name)?.name || "Unknown";
+        const wins = Number(stats?.outcome_totals?.wins || 0);
+        const losses = Number(stats?.outcome_totals?.losses || 0);
+        const pointsFor = Number(stats?.points_for || 0);
+        const pointsAgainst = Number(stats?.points_against || 0);
         return {
-          rank:    parseInt(stats?.rank) || i + 1,
-          name:    info?.find?.(x => x?.name)?.name || "Unknown",
-          rec:     `${stats?.outcome_totals?.wins || 0}-${stats?.outcome_totals?.losses || 0}`,
-          pts:     stats?.points_for?.toFixed?.(2) || "0.00",
-          pts_num: parseFloat(stats?.points_for) || 0,
-          me:      false,
+          rank: parseInt(stats?.rank, 10) || i + 1,
+          team_id: teamKey,
+          team_name: name,
+          is_current_user: Boolean(myTeamKey && teamKey === myTeamKey),
+          wins,
+          losses,
+          points_for: pointsFor,
+          points_against: pointsAgainst,
+          name,
+          rec: `${wins}-${losses}`,
+          pts: pointsFor.toFixed(2),
+          pts_num: pointsFor,
+          me: Boolean(myTeamKey && teamKey === myTeamKey),
         };
       });
   }

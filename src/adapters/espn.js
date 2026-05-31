@@ -75,6 +75,10 @@ function firstFinite(...values) {
   return null;
 }
 
+function finiteOrZero(...values) {
+  return firstFinite(...values) ?? 0;
+}
+
 function possibleOwnerIds(team) {
   return [
     team?.ownerId,
@@ -105,6 +109,61 @@ function rosterEntries(team) {
   if (Array.isArray(team?.players)) return team.players;
   if (Array.isArray(team?.roster?.entries)) return team.roster.entries;
   return [];
+}
+
+function teamId(team) {
+  const id = team?.id ?? team?.teamId ?? team?.team_id;
+  return id == null ? null : String(id);
+}
+
+function teamName(team) {
+  const combined = `${team?.location || ""} ${team?.nickname || ""}`.trim();
+  return team?.name
+    || team?.teamName
+    || combined
+    || team?.abbrev
+    || team?.abbreviation
+    || "Unknown";
+}
+
+function teamWins(team) {
+  return finiteOrZero(
+    team?.wins,
+    team?.record?.overall?.wins,
+    team?.record?.wins,
+    team?.overallRecord?.wins
+  );
+}
+
+function teamLosses(team) {
+  return finiteOrZero(
+    team?.losses,
+    team?.record?.overall?.losses,
+    team?.record?.losses,
+    team?.overallRecord?.losses
+  );
+}
+
+function teamPointsFor(team) {
+  return finiteOrZero(
+    team?.regularSeasonPointsFor,
+    team?.pointsFor,
+    team?.totalPointsScored,
+    team?.totalPoints,
+    team?.record?.overall?.pointsFor
+  );
+}
+
+function teamPointsAgainst(team) {
+  return finiteOrZero(
+    team?.regularSeasonPointsAgainst,
+    team?.pointsAgainst,
+    team?.record?.overall?.pointsAgainst
+  );
+}
+
+function rankingHint(team) {
+  return firstFinite(team?.finalStandingsPosition, team?.playoffSeed, team?.rankCalculatedFinal);
 }
 
 function unwrapPlayer(entry) {
@@ -173,6 +232,34 @@ function normalizePlayer(entry) {
   };
 }
 
+async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
+  const seasonId = Number(opts.seasonId || currentSeason());
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const client = new Client({ leagueId, espnS2: espn_s2, SWID: swid });
+  const teams = await client.getTeamsAtWeek({ seasonId, scoringPeriodId });
+  const currentTeam = findUserTeam(teams, swid, opts);
+  const currentTeamId = teamId(currentTeam);
+
+  return (Array.isArray(teams) ? teams : [])
+    .map((team) => ({
+      rank: rankingHint(team),
+      team_id: teamId(team),
+      team_name: teamName(team),
+      is_current_user: currentTeamId != null && teamId(team) === currentTeamId,
+      wins: teamWins(team),
+      losses: teamLosses(team),
+      points_for: teamPointsFor(team),
+      points_against: teamPointsAgainst(team),
+    }))
+    .sort((a, b) => (
+      (a.rank || Number.MAX_SAFE_INTEGER) - (b.rank || Number.MAX_SAFE_INTEGER)
+      || b.wins - a.wins
+      || b.points_for - a.points_for
+      || String(a.team_id || "").localeCompare(String(b.team_id || ""))
+    ))
+    .map((team, index) => ({ ...team, rank: index + 1 }));
+}
+
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const seasonId = Number(opts.seasonId || currentSeason());
   const scoringPeriodId = Number(week);
@@ -206,5 +293,6 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
 }
 
 module.exports = {
+  buildLeagueStandings,
   buildNormalizedRoster,
 };

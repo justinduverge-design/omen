@@ -289,6 +289,92 @@ Files changed:
 - `test/movesRoute.test.js`
 - `Blueprints/handoffs/backend-to-frontend.md`
 
+## League Standings Contract — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Request 23
+Status: Built locally and verified. Canonical route is restored; the old `410 legacy_route_retired` handler for this path was removed from the legacy v2 router. No deploy was performed.
+
+### League Standings — `GET /api/league/standings`
+
+Status: Built.
+
+Method and path: `GET /api/league/standings`
+
+Auth: Required Supabase bearer token.
+
+Query params:
+
+- `platform`: optional. Allowed values: `yahoo`, `sleeper`, `espn`.
+- `leagueId`: optional. If omitted, backend chooses the first usable active connection by priority: Yahoo, Sleeper, ESPN.
+
+Response:
+
+```json
+{
+  "contract_version": "league-standings.v1",
+  "generated_at": "2026-05-31T12:00:00.000Z",
+  "platform": "sleeper",
+  "league_id": "league-1",
+  "league_name": "The Commissioner's League",
+  "season": 2026,
+  "week": 8,
+  "standings": [
+    {
+      "rank": 1,
+      "team_id": "7",
+      "team_name": "Ravens Flock",
+      "is_current_user": true,
+      "wins": 6,
+      "losses": 2,
+      "points_for": 1142.4,
+      "points_against": 980.6
+    }
+  ]
+}
+```
+
+Provider behavior:
+
+- Yahoo uses the existing authenticated Yahoo client, stored OAuth/Vault path, and Yahoo standings helper.
+- Sleeper uses league rosters/users and ranks by wins, then points-for.
+- ESPN uses stored Vault cookie credentials through the existing ESPN auth helper and returns safe reconnect errors when credentials are missing or unusable.
+
+Error responses:
+
+- `400 { "code": "invalid_platform" }` for unsupported `platform`.
+- `404 { "code": "league_not_connected" }` when no usable connected league matches the request.
+- `401/404 { "code": "<platform>_reconnect_required" }` for provider auth/reconnect states.
+- `502 { "code": "league_standings_provider_failed" }` for upstream/provider failures.
+
+Frontend action needed:
+
+- League Standings panel can call `GET /api/league/standings`.
+- Prefer no query params for the default connected league.
+- Pass `platform` and `leagueId` only when the user explicitly selects a league/platform.
+- Use `is_current_user` to highlight the user's team.
+- Never inspect provider-specific secrets; none are returned.
+
+Verification:
+
+- Focused checks passed: `node --test test\leagueStandingsRoute.test.js test\sleeperAdapter.test.js test\espnAdapter.test.js test\corvusApiV2.test.js`.
+- Tests cover connected Yahoo/Sleeper/ESPN mocks, disconnected `404`, invalid platform, safe provider failure, ESPN reconnect, and no raw ESPN cookie/secret leakage in responses.
+
+Files changed:
+
+- `src/routes/league.js`
+- `src/server.js`
+- `src/corvus_api_v2.js`
+- `src/services/yahoo.js`
+- `src/adapters/sleeper.js`
+- `src/adapters/espn.js`
+- `test/leagueStandingsRoute.test.js`
+- `test/sleeperAdapter.test.js`
+- `test/espnAdapter.test.js`
+- `test/corvusApiV2.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
 ## Auth Providers And Post-Login UX Resolution - 2026-05-28
 
 Date: 2026-05-28

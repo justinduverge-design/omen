@@ -180,6 +180,14 @@ try {
   logger.error("Moves router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/league (canonical connected-league contracts) ---
+try {
+  const leagueRoutes = require("./routes/league");
+  app.use("/api/league", leagueRoutes);
+} catch (e) {
+  logger.error("League router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
