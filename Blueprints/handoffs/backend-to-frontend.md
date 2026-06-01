@@ -55,6 +55,326 @@ Frontend action needed:
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
 
+## HITL Feedback + Team Preference Contracts — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Requests 21 and 19
+Status: Completed locally. No deploy, production action, `.env`, DNS, SSL, Nginx, Stripe, or Supabase database application was performed.
+
+### HITL Feedback Loop — `POST /api/omen/feedback`
+
+Status: Built.
+
+Method and path: `POST /api/omen/feedback`
+
+Auth: Required Supabase bearer token.
+
+Request body:
+
+```json
+{
+  "followed": true,
+  "stars": 4,
+  "note": "Changed lineup last minute, worked out",
+  "week": 1,
+  "season": 2026
+}
+```
+
+Response:
+
+```json
+{
+  "recorded": true,
+  "move_id": "uuid"
+}
+```
+
+Behavior:
+- Writes to `public.moves`.
+- Uses backend column names: `week_num`, `season`, `followed`, `user_stars`, `user_note`.
+- Idempotent by `user_id + week_num + season`: re-submitting the same week/season updates the existing move row instead of creating a duplicate.
+- `followed = true` remains the Tuesday cron scoring gate. `followed = false` and `followed = null` are not scored.
+
+Validation:
+- `week` and `season` must be positive integers.
+- `followed` must be boolean.
+- `stars` may be `null` or an integer from 1 to 5.
+- `note` may be `null` or a string; stored notes are trimmed and capped to 500 characters.
+
+Frontend action needed:
+- `OmenFeedback.jsx` can call this route after Omen success/empty state.
+- On `200`, collapse the card into the recorded state.
+- On `401`, route to login using existing auth flow.
+- On `422` or `500`, keep the card open and show retry copy.
+
+### Team Preference — `PATCH /api/account/preferences`
+
+Status: Built.
+
+Method and path: `PATCH /api/account/preferences`
+
+Auth: Required Supabase bearer token.
+
+Request body:
+
+```json
+{
+  "favorite_team": "KC"
+}
+```
+
+Clearing body:
+
+```json
+{
+  "favorite_team": null
+}
+```
+
+Response:
+
+```json
+{
+  "updated": true,
+  "favorite_team": "KC"
+}
+```
+
+Behavior:
+- Upserts `favorite_team` into `public.profiles` by `user_id`.
+- String values are trimmed and uppercased.
+- `null` clears the saved team.
+- No team-set validation is performed by backend; frontend owns the allowed 32-team set.
+
+Dashboard summary addition:
+
+`GET /api/dashboard/summary` now includes:
+
+```json
+{
+  "user": {
+    "favorite_team": "KC"
+  }
+}
+```
+
+If no profile row exists or the `profiles` table/column is not applied yet, `favorite_team` returns `null` rather than breaking the dashboard summary.
+
+Frontend action needed:
+- `TeamThemeProvider` should read `summary.user.favorite_team`.
+- Account Appearance can keep optimistic localStorage behavior, then persist through `PATCH /api/account/preferences`.
+- Treat `null` as Corvus default theme.
+
+### SQL / Migration Notes
+
+Local SQL file updated: `sql/corvus_rls_security.sql`.
+
+Prepared for HITL:
+- Adds repair columns for existing `moves` tables: `followed`, `user_stars`, `user_note`, `outcome`.
+- Adds unique index `idx_moves_user_week_unique` on `(user_id, week_num, season)` so Supabase upsert is safe and idempotent.
+
+Prepared for team preference:
+- Creates `public.profiles` if missing.
+- Adds `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;`.
+- Enables RLS and self-only select/insert/update policies.
+- Grants minimum profile access to `authenticated` plus server access to `service_role`.
+
+Approval boundary:
+- Justin has approved the existing `moves` table application path, but this local session did not apply SQL to Supabase.
+- The `profiles.favorite_team` change still requires Justin approval before applying to Supabase, per Request 19.
+
+Files changed:
+- `src/routes/omen.js`
+- `src/routes/account.js`
+- `src/routes/dashboard.js`
+- `src/server.js`
+- `sql/corvus_rls_security.sql`
+- `test/omenFeedbackRoute.test.js`
+- `test/accountPreferencesRoute.test.js`
+- `test/dashboardSummary.test.js`
+- `test/securitySql.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
+Verified local checks:
+- `npm test` passed: 226/226.
+
+## Move History Contract — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Request 22
+Status: Built locally and verified. Live Supabase `moves` feedback columns and idempotence index were applied and smoke-tested through the Supabase connector. No deploy was performed.
+
+### Move History — `GET /api/moves`
+
+Status: Built.
+
+Method and path: `GET /api/moves`
+
+Auth: Required Supabase bearer token.
+
+Query params:
+
+- `season`: optional positive integer. Defaults to the current NFL season from backend week context.
+- `limit`: optional integer from 1 to 100. Defaults to `20`.
+
+Response:
+
+```json
+{
+  "contract_version": "moves-history.v1",
+  "generated_at": "2026-05-31T12:00:00.000Z",
+  "season": 2026,
+  "summary": {
+    "wins": 1,
+    "losses": 1,
+    "pending": 1,
+    "avg_effectiveness_pct": 63,
+    "followed_count": 2,
+    "total_count": 3
+  },
+  "moves": [
+    {
+      "id": "uuid",
+      "season": 2026,
+      "week": 8,
+      "move_type": "start_sit",
+      "recommendation": "Start Breece Hall over James Conner",
+      "followed": true,
+      "stars": 4,
+      "outcome": "win",
+      "effectiveness_pct": 84,
+      "created_at": "2026-10-20T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+Backend mapping:
+
+- `week_num` -> `week`
+- `headline` first, then `reasoning` -> `recommendation`
+- `user_stars` -> `stars`
+- `eff` -> `effectiveness_pct`
+- missing `outcome` -> `pending`
+
+Summary rules:
+
+- `total_count`: number of returned rows after filters and limit.
+- `followed_count`: returned rows where `followed === true`.
+- `wins` / `losses`: followed rows only, with `outcome === "win"` or `"loss"`.
+- `pending`: returned rows with `outcome === "pending"`.
+- `avg_effectiveness_pct`: rounded average of `eff` for followed scored rows only; `null` when no followed scored rows exist.
+
+Frontend action needed:
+
+- Hall of Records / Move History can now call `GET /api/moves`.
+- Treat empty `moves: []` as a real empty state, not an error.
+- Treat `outcome: "pending"` as unscored.
+- Do not calculate W/L totals on the client; use `summary`.
+
+Verification:
+
+- Live Supabase schema gate passed after approved repair: `followed`, `user_stars`, `user_note`, `outcome`, and unique `(user_id, week_num, season)` index are present.
+- Live database idempotence smoke passed: same user/week/season updated one row and returned the same move id.
+- Local focused checks passed: `node --test test\movesRoute.test.js test\omenFeedbackRoute.test.js test\securitySql.test.js test\deployHardening.test.js`.
+- Full local checks passed: `npm test` 231/231.
+
+Files changed:
+
+- `src/routes/moves.js`
+- `src/server.js`
+- `test/movesRoute.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
+## League Standings Contract — 2026-05-31
+
+Date: 2026-05-31
+Owner: Codex/backend
+Feature: Frontend Request 23
+Status: Built locally and verified. Canonical route is restored; the old `410 legacy_route_retired` handler for this path was removed from the legacy v2 router. No deploy was performed.
+
+### League Standings — `GET /api/league/standings`
+
+Status: Built.
+
+Method and path: `GET /api/league/standings`
+
+Auth: Required Supabase bearer token.
+
+Query params:
+
+- `platform`: optional. Allowed values: `yahoo`, `sleeper`, `espn`.
+- `leagueId`: optional. If omitted, backend chooses the first usable active connection by priority: Yahoo, Sleeper, ESPN.
+
+Response:
+
+```json
+{
+  "contract_version": "league-standings.v1",
+  "generated_at": "2026-05-31T12:00:00.000Z",
+  "platform": "sleeper",
+  "league_id": "league-1",
+  "league_name": "The Commissioner's League",
+  "season": 2026,
+  "week": 8,
+  "standings": [
+    {
+      "rank": 1,
+      "team_id": "7",
+      "team_name": "Ravens Flock",
+      "is_current_user": true,
+      "wins": 6,
+      "losses": 2,
+      "points_for": 1142.4,
+      "points_against": 980.6
+    }
+  ]
+}
+```
+
+Provider behavior:
+
+- Yahoo uses the existing authenticated Yahoo client, stored OAuth/Vault path, and Yahoo standings helper.
+- Sleeper uses league rosters/users and ranks by wins, then points-for.
+- ESPN uses stored Vault cookie credentials through the existing ESPN auth helper and returns safe reconnect errors when credentials are missing or unusable.
+
+Error responses:
+
+- `400 { "code": "invalid_platform" }` for unsupported `platform`.
+- `404 { "code": "league_not_connected" }` when no usable connected league matches the request.
+- `401/404 { "code": "<platform>_reconnect_required" }` for provider auth/reconnect states.
+- `502 { "code": "league_standings_provider_failed" }` for upstream/provider failures.
+
+Frontend action needed:
+
+- League Standings panel can call `GET /api/league/standings`.
+- Prefer no query params for the default connected league.
+- Pass `platform` and `leagueId` only when the user explicitly selects a league/platform.
+- Use `is_current_user` to highlight the user's team.
+- Never inspect provider-specific secrets; none are returned.
+
+Verification:
+
+- Focused checks passed: `node --test test\leagueStandingsRoute.test.js test\sleeperAdapter.test.js test\espnAdapter.test.js test\corvusApiV2.test.js`.
+- Tests cover connected Yahoo/Sleeper/ESPN mocks, disconnected `404`, invalid platform, safe provider failure, ESPN reconnect, and no raw ESPN cookie/secret leakage in responses.
+
+Files changed:
+
+- `src/routes/league.js`
+- `src/server.js`
+- `src/corvus_api_v2.js`
+- `src/services/yahoo.js`
+- `src/adapters/sleeper.js`
+- `src/adapters/espn.js`
+- `test/leagueStandingsRoute.test.js`
+- `test/sleeperAdapter.test.js`
+- `test/espnAdapter.test.js`
+- `test/corvusApiV2.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+
 ## Auth Providers And Post-Login UX Resolution - 2026-05-28
 
 Date: 2026-05-28

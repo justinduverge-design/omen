@@ -143,3 +143,57 @@ test("player_key is prefixed with espn", async () => {
 
   assert.equal(roster.slots.starters[0].player_key, "espn:1001");
 });
+
+test("buildLeagueStandings maps ESPN teams without exposing cookies", async () => {
+  const teams = [
+    {
+      id: 9,
+      ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      name: "Current Team",
+      wins: 5,
+      losses: 3,
+      regularSeasonPointsFor: 1001.2,
+      regularSeasonPointsAgainst: 944.6,
+    },
+    {
+      id: 4,
+      name: "Top Team",
+      wins: 7,
+      losses: 1,
+      regularSeasonPointsFor: 1200,
+      regularSeasonPointsAgainst: 900,
+    },
+  ];
+  const adapter = loadEspnAdapterWithTeams(teams);
+
+  const standings = await adapter.buildLeagueStandings(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    { seasonId: 2026, week: 8 }
+  );
+
+  assert.deepEqual(standings, [
+    {
+      rank: 1,
+      team_id: "4",
+      team_name: "Top Team",
+      is_current_user: false,
+      wins: 7,
+      losses: 1,
+      points_for: 1200,
+      points_against: 900,
+    },
+    {
+      rank: 2,
+      team_id: "9",
+      team_name: "Current Team",
+      is_current_user: true,
+      wins: 5,
+      losses: 3,
+      points_for: 1001.2,
+      points_against: 944.6,
+    },
+  ]);
+  assert.equal(JSON.stringify(standings).includes("espn-cookie"), false);
+});

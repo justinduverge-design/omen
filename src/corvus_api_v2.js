@@ -253,10 +253,6 @@ router.post("/auth/espn/connect", retiredLegacyRoute({
   canonicalEndpoint: "/api/platforms/espn/connect",
 }));
 
-router.get("/league/standings", retiredLegacyRoute({
-  deprecatedEndpoint: "/api/league/standings",
-}));
-
 router.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: `${Math.floor((Date.now() - START_TIME) / 1000)}s` });
 });

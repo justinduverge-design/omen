@@ -177,11 +177,28 @@ async function getSubscriptionStatus(userId) {
   };
 }
 
+async function getUserProfile(userId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("favorite_team")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    return { favorite_team: null };
+  }
+
+  return {
+    favorite_team: data?.favorite_team || null,
+  };
+}
+
 router.get("/summary", requireAuth, async (req, res, next) => {
   try {
-    const [rows, subscription] = await Promise.all([
+    const [rows, subscription, userProfile] = await Promise.all([
       getPlatformRows(req.user.id),
       getSubscriptionStatus(req.user.id),
+      getUserProfile(req.user.id),
     ]);
     const isSubscribed = subscription.is_subscribed;
 
@@ -189,6 +206,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       contract_version: "dashboard-summary.v1",
       generated_at: nowIso(),
       is_mock: false,
+      user: userProfile,
       subscription,
       platforms: buildPlatformSummary(rows),
       tools: {

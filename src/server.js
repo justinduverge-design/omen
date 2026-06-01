@@ -88,6 +88,13 @@ try {
   logger.error("Dashboard router failed to load", { err: e.message, stack: e.stack });
 }
 
+try {
+  const accountRoutes = require("./routes/account");
+  app.use("/api/account", accountRoutes);
+} catch (e) {
+  logger.error("Account router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Draft Assistant mock contract routes -----------------------
 try {
   const draftAssistantRoutes = require("./routes/draftAssistant");
@@ -163,6 +170,22 @@ try {
   app.use("/api/user", userPrivacyRoutes);
 } catch (e) {
   logger.error("User privacy router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/moves (Omen history + W/L effectiveness) --------
+try {
+  const movesRoutes = require("./routes/moves");
+  app.use("/api/moves", movesRoutes);
+} catch (e) {
+  logger.error("Moves router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/league (canonical connected-league contracts) ---
+try {
+  const leagueRoutes = require("./routes/league");
+  app.use("/api/league", leagueRoutes);
+} catch (e) {
+  logger.error("League router failed to load", { err: e.message, stack: e.stack });
 }
 
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----

@@ -182,3 +182,63 @@ test("missing projections do not crash and produce null projected_points", async
 
   assert.equal(roster.slots.bench[0].projected_points, null);
 });
+
+test("fetchSleeperStandings ranks by wins then points for", async () => {
+  const data = fixtures();
+  data.users = [
+    { user_id: "user-1", display_name: "Test User", metadata: { team_name: "Current Team" } },
+    { user_id: "user-2", display_name: "Other User", metadata: { team_name: "Other Team" } },
+  ];
+  data.rosters = [
+    {
+      roster_id: 7,
+      owner_id: "user-1",
+      settings: {
+        wins: 6,
+        losses: 2,
+        fpts: 1142,
+        fpts_decimal: 40,
+        fpts_against: 980,
+        fpts_against_decimal: 60,
+      },
+    },
+    {
+      roster_id: 2,
+      owner_id: "user-2",
+      settings: {
+        wins: 6,
+        losses: 2,
+        fpts: 1200,
+        fpts_decimal: 10,
+        fpts_against: 1001,
+        fpts_against_decimal: 20,
+      },
+    },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const standings = await adapter.fetchSleeperStandings("league-1", "user-1");
+
+  assert.deepEqual(standings, [
+    {
+      rank: 1,
+      team_id: "2",
+      team_name: "Other Team",
+      is_current_user: false,
+      wins: 6,
+      losses: 2,
+      points_for: 1200.1,
+      points_against: 1001.2,
+    },
+    {
+      rank: 2,
+      team_id: "7",
+      team_name: "Current Team",
+      is_current_user: true,
+      wins: 6,
+      losses: 2,
+      points_for: 1142.4,
+      points_against: 980.6,
+    },
+  ]);
+});

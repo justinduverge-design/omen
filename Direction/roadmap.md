@@ -1,6 +1,6 @@
 # Corvus Roadmap
 
-Last updated: 2026-05-27
+Last updated: 2026-05-31
 
 ## What Is Live
 
@@ -17,6 +17,11 @@ Last updated: 2026-05-27
 - Stripe backend surfaces.
 - `GET /api/system/current-week`.
 - `GET /api/stripe/prices`.
+- `POST /api/omen/feedback` in local backend code. Auth required; records HITL feedback into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
+- `GET /api/moves` in local backend code. Auth required; returns `moves-history.v1` with user move history, W/L/pending summary, and effectiveness aggregation.
+- `GET /api/league/standings` in local backend code. Auth required; returns `league-standings.v1` for Yahoo, Sleeper, and ESPN connected leagues.
+- `PATCH /api/account/preferences` in local backend code. Auth required; records `favorite_team` into `profiles` once Justin approves and applies the profile column SQL.
+- `GET /api/dashboard/summary.user.favorite_team` in local backend code, returning `null` safely until profile data exists.
 - Explicit `410 legacy_route_retired` responses for retired compat routes.
 - Oracle deploy lane for `corvus-api`.
 
@@ -30,20 +35,22 @@ Last updated: 2026-05-27
 
 ## Now
 
-- Keep context, handoffs, and route docs aligned with the 2026-05-27 backend contract truth.
+- Keep context, handoffs, and route docs aligned with the 2026-05-31 backend contract truth.
 - Keep current API contracts stable after Requests 13-18.
-- Treat prepared Supabase SQL as local/reviewable only until Justin approves staging/prod application.
+- Treat prepared Supabase SQL as local/reviewable only until Justin approves staging/prod application, except the approved `moves` repair already applied on 2026-05-31.
 - Use `POST /api/omen/mvp-move` as the only canonical Omen/MVP Move path.
+- Treat `GET /api/moves` as the canonical Move History path.
+- Treat `GET /api/league/standings` as the canonical League Standings path. The old retired `410` handler for this route has been removed.
+- Treat `PATCH /api/account/preferences` as code-ready but database-application-gated until the matching Supabase SQL is applied.
 
 ## Next
 
-1. Get Justin approval to apply prepared Supabase SQL to staging, verify waitlist insert and subscription date columns, then apply to production.
-2. Run Stripe test-mode checkout, portal, pricing, and webhook validation.
-3. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
-4. Confirm Supabase Auth providers for Google, Apple, and Discord in the Supabase dashboard.
-5. QA real Yahoo/Sleeper/ESPN Omen flows, including ESPN recovery, without logging cookie values.
-6. Load test Omen and Trade Analyzer.
-7. Final launch readiness review.
+1. Get Justin approval for `profiles.favorite_team`, apply through the approved Supabase lane, then verify team preference and dashboard summary.
+2. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN recovery, without logging cookie values.
+3. Run Stripe test-mode checkout, portal, pricing, and webhook validation.
+4. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
+5. Load test Omen and Trade Analyzer.
+6. Final launch readiness review.
 
 ## Later
 

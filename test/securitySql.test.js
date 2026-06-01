@@ -92,6 +92,30 @@ test("subscriptions migration repairs Stripe date columns on existing tables", (
   assert.match(compactSql, /alter table public\.subscriptions add column if not exists trial_ends_at timestamptz, add column if not exists current_period_end timestamptz;/i);
 });
 
+test("profiles table supports self-only favorite_team preference", () => {
+  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const compactSql = sql.replace(/\s+/g, " ");
+
+  assert.match(sql, /create table if not exists public\.profiles/i);
+  assert.match(compactSql, /alter table public\.profiles add column if not exists favorite_team text;/i);
+  assert.match(sql, /alter table public\.profiles\s+enable row level security/i);
+  assert.match(compactSql, /create policy profiles_self_select on public\.profiles for select to authenticated using \(\(select auth\.uid\(\)\) = user_id\);/i);
+  assert.match(compactSql, /create policy profiles_self_insert on public\.profiles for insert to authenticated with check \(\(select auth\.uid\(\)\) = user_id\);/i);
+  assert.match(compactSql, /create policy profiles_self_update on public\.profiles for update to authenticated using \(\(select auth\.uid\(\)\) = user_id\) with check \(\(select auth\.uid\(\)\) = user_id\);/i);
+  assert.match(sql, /grant select \(user_id, favorite_team\) on table public\.profiles to authenticated;/i);
+  assert.match(sql, /grant insert \(user_id, favorite_team\) on table public\.profiles to authenticated;/i);
+  assert.match(sql, /grant update \(favorite_team\) on table public\.profiles to authenticated;/i);
+});
+
+test("moves table supports idempotent HITL feedback upsert", () => {
+  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const compactSql = sql.replace(/\s+/g, " ");
+
+  assert.match(compactSql, /alter table public\.moves add column if not exists followed boolean, add column if not exists user_stars integer, add column if not exists user_note text, add column if not exists outcome text default 'pending';/i);
+  assert.match(sql, /create unique index if not exists idx_moves_user_week_unique on public\.moves\s+\(user_id, week_num, season\);/i);
+  assert.match(sql, /grant select, insert, update on table public\.moves to service_role;/i);
+});
+
 test("compliance evidence manifest points at current Corvus files", () => {
   const manifest = readRepoFile("probo.yaml");
 

@@ -37,6 +37,15 @@ create table if not exists public.users (
   updated_at     timestamptz default now()
 );
 
+create table if not exists public.profiles (
+  user_id       uuid primary key references public.users(id) on delete cascade,
+  favorite_team text,
+  created_at    timestamptz default now()
+);
+
+alter table public.profiles
+  add column if not exists favorite_team text;
+
 create table if not exists public.consent_records (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid references auth.users(id) on delete cascade,
@@ -104,6 +113,12 @@ create table if not exists public.moves (
   outcome       text default 'pending',
   created_at    timestamptz default now()
 );
+
+alter table public.moves
+  add column if not exists followed   boolean,
+  add column if not exists user_stars integer,
+  add column if not exists user_note  text,
+  add column if not exists outcome    text default 'pending';
 
 create table if not exists public.deletion_audit_log (
   id            uuid primary key default gen_random_uuid(),
@@ -181,6 +196,7 @@ create index if not exists idx_consent_records_user_id      on public.consent_re
 create index if not exists idx_oauth_credentials_user_id    on public.oauth_credentials    (user_id);
 create index if not exists idx_platform_connections_user_id on public.platform_connections (user_id);
 create index if not exists idx_moves_user_week              on public.moves                (user_id, week_num, season);
+create unique index if not exists idx_moves_user_week_unique on public.moves               (user_id, week_num, season);
 create index if not exists idx_moves_pending                on public.moves                (outcome) where outcome = 'pending';
 create index if not exists idx_oauth_state_expires_at       on public.oauth_state          (expires_at);
 create index if not exists idx_subscriptions_customer       on public.subscriptions        (stripe_customer_id);
@@ -192,6 +208,7 @@ create index if not exists idx_waitlist_signups_created_at  on public.waitlist_s
 -- =================================================================
 
 alter table public.users                 enable row level security;
+alter table public.profiles              enable row level security;
 alter table public.consent_records       enable row level security;
 alter table public.oauth_credentials     enable row level security;
 alter table public.platform_connections  enable row level security;
@@ -210,6 +227,27 @@ drop policy if exists users_self_insert on public.users;
 create policy users_self_select on public.users for select using      (auth.uid() = id);
 create policy users_self_update on public.users for update using      (auth.uid() = id);
 create policy users_self_insert on public.users for insert with check (auth.uid() = id);
+
+-- profiles -- self-only team preference
+drop policy if exists profiles_self_select on public.profiles;
+drop policy if exists profiles_self_insert on public.profiles;
+drop policy if exists profiles_self_update on public.profiles;
+create policy profiles_self_select on public.profiles
+  for select to authenticated
+  using ((select auth.uid()) = user_id);
+create policy profiles_self_insert on public.profiles
+  for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+create policy profiles_self_update on public.profiles
+  for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+revoke all on table public.profiles from anon, authenticated;
+grant select (user_id, favorite_team) on table public.profiles to authenticated;
+grant insert (user_id, favorite_team) on table public.profiles to authenticated;
+grant update (favorite_team) on table public.profiles to authenticated;
+grant select, insert, update on table public.profiles to service_role;
 
 -- consent_records
 drop policy if exists consent_self_select on public.consent_records;
@@ -254,6 +292,7 @@ grant select (
 drop policy if exists moves_self_all on public.moves;
 create policy moves_self_all on public.moves for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+grant select, insert, update on table public.moves to service_role;
 
 -- deletion_audit_log -- never readable by users; service_role still bypasses RLS
 drop policy if exists deletion_audit_no_user_read on public.deletion_audit_log;
