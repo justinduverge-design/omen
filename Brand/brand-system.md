@@ -1,95 +1,77 @@
 # Corvus Brand System
 
 **Status:** v1 — canonical brand reference
-**Last Updated:** 2026-05-31
+**Last Updated:** 2026-06-01
 
 ---
 
 ## 1. Identity
 
-**Product name:** Corvus
+**Product:** Corvus
+**Parent:** Slops Saloon
 
-Corvus is the fantasy football intelligence product inside the Slops Saloon ecosystem. It is the first product. Future Slops Saloon products will live alongside it.
-
-**Parent company:** Slops Saloon. Not a former name — the umbrella.
+Corvus is the fantasy football intelligence product inside the Slops Saloon ecosystem. It helps managers see the best move before the rest of the league does.
 
 **Primary tagline:** `Deus pascit corvos.`
-Latin: "God feeds the ravens." Mythological resonance. Use in wordmark and brand contexts.
+Use for wordmark, lore, and brand context.
 
 **Marketing line:** `See the move before the league does.`
-Plain English. Use in landing page hero copy and marketing contexts.
+Use for landing pages, hero copy, and public-facing explanations.
 
-**Retired taglines — do not use:**
-- ~~"See the winning move."~~
-- ~~"Where the math meets the legend."~~
+**Do not use:**
+- "See the winning move."
+- "Where the math meets the legend."
 
 ---
 
 ## 2. What Corvus Is and Is Not
 
-Corvus is a **decision layer**, not a chatbot, dashboard, or data dump.
+Corvus is a **decision layer**, not a chatbot, dashboard, data dump, or gambling product.
 
-It helps users decide what to do next: who to start, who to trade, who to pick up.
-
-It knows the answer before you ask. It explains the move. It tells you the risk. It stops.
+It helps fantasy managers decide what to do next: who to start, who to trade, who to pick up. It gives the move, explains the risk, and stops.
 
 **Corvus is:**
-- A sharp, observant fantasy football analyst
+- A sharp fantasy football analyst
 - A front office perspective in a consumer product
-- A trusted sports mind that delivers a decision
-- A product with a point of view
+- A trusted sports mind with a point of view
 
 **Corvus is not:**
 - A generic AI assistant
-- A gambling product
 - A meme brand
-- A chatbot
 - A corporate SaaS deck
 - A fantasy content farm
-- A spreadsheet
+- A spreadsheet assignment
 
 ---
 
 ## 3. Brand Personality
 
-| Quality | What it means |
+| Quality | Meaning |
 |---|---|
-| Dark | The aesthetic and tone are serious and intentional, not bright and cheerful |
-| Strategic | Every output is aimed at a decision, not information |
-| Observant | Corvus watches the league. It sees what others miss |
-| Precise | Vague language erodes trust. Be exact |
-| Premium | High-end presentation. No clutter, no shortcuts |
-| Ancient in restraint | Raven/oracle/omen language sharpens the product. It does not make the interface harder to understand |
+| Strategic | Every output points toward a decision. |
+| Observant | Corvus sees what others miss. |
+| Precise | Vague language erodes trust. |
+| Premium | High-end presentation. No clutter. |
+| Mythic restraint | Raven, oracle, and omen language should sharpen the product, not obscure it. |
 
 ---
 
 ## 4. Voice
 
-### Standard
-
-Corvus should sound like a disciplined organization, not a corporation pretending to have personality.
-
-Institutional but human. Direct. Opinionated. Never padded.
+Corvus sounds institutional but human: direct, opinionated, restrained, and useful.
 
 ### Writing Rules
 
-- Use plain English.
 - Lead with the move, not the explanation.
+- Use plain English.
 - Be precise. Vague language erodes trust.
-- Be warm. The platform exists to bring people together through sports.
-- Do not pad.
-- Do not hedge when a decision has been made.
-- Do not use filler.
-- Do not sound casual to the point of being flippant.
+- Be warm without becoming casual or flippant.
+- Do not pad. Do not hedge after a decision has been made.
+- Avoid hype, filler, and empty startup language.
 - Do not sound like a chatbot.
-- Do not use empty startup language.
-- Do not over-explain obvious points.
 - Every sentence should carry weight.
-- Avoid hype. The product earns attention through quality, not marketing noise.
 
 ### Product Copy Examples
-
-Lead with the move, not the explanation.
 
 Good: `"Start Player A over Player B — your upside improves by 4.2 expected points."`
 Bad: `"Based on our analysis of multiple data signals, we recommend that..."`
@@ -100,35 +82,11 @@ Bad: `"Our system is moderately confident"`
 Good: `"Your current lineup is solid. No move clears the bar this week."`
 Bad: `"No recommendations available at this time."`
 
-Use raven/oracle/omen language sparingly. It should sharpen the product, not make the interface harder to understand.
-
 ---
 
 ## 5. Visual Identity
 
-Reference [`Blueprints/specs/corvus-ux-ui-design-system-v1.md`](../Blueprints/specs/corvus-ux-ui-design-system-v1.md) for all implementation details: CSS tokens, Tailwind config, typography usage rules, component specs, copy guidelines, accessibility requirements.
-
-### Color Palette
-
-| Color | Role | Feel |
-|---|---|---|
-| Raven black | Primary background | Authority, depth |
-| Charcoal | Card and panel surfaces | Structure |
-| Bone white | Text, light surface | Warmth, clarity |
-| Antique gold | Accent, CTA, confidence | Premium |
-| Deep crimson | Risk indicators, warnings | Alert, danger |
-| Electric violet | AI signal, Omen accent | Intelligence |
-
-Canonical hex values are defined in `corvus-ux-ui-design-system-v1.md`. Do not source values from archived docs.
-
-### Typography
-
-- **Cormorant Garamond** — Serif. Brand headlines, display moments, Omen card titles, product identity.
-- **Alegreya Sans** — Sans-serif. All UI: nav, labels, body copy, buttons, inputs.
-
-### Motif
-
-Raven, oracle, omen, constellation intelligence, war-room judgment. Dark, strategic, presentation-worthy. No clutter.
+Reference `Blueprints/specs/corvus-ux-ui-design-system-v1.md` for implementation details.
 
 ---
 
@@ -156,25 +114,31 @@ Corvus combines fantasy football context, platform data, and plain-English expla
 
 ## 7. Feature Naming
 
-| Feature | User-Facing Name | Status |
-|---|---|---|
-| Weekly best move recommendation | Omen | Confirmed — paid core feature |
-| Trade evaluation tool | Trade Analyzer | Confirmed — free tool |
-| Subscription tier | Pro | Confirmed |
-| Internal/brand nickname for trade tool | The Scale | Internal only, not user-facing yet |
-| Waiver wire tool | Talon | Hold / provisional |
-| Dashboard | Aerie | Hold / provisional |
-| Paid tier brand name | Corvus Black | Hold / not confirmed |
-| Weekly forecast | The Prophecy | Hold |
-| League hub | Rookery | Hold |
+### Active User-Facing Names
 
-Munin and Hugin are internal agent names only. Do not use in user-facing copy without separate approval.
+| Feature | Name |
+|---|---|
+| Weekly best move recommendation | Omen |
+| Trade evaluation tool | Trade Analyzer |
+| Subscription tier | Pro |
+
+### Internal or On-Hold Names
+
+| Name | Status |
+|---|---|
+| The Scale | Internal nickname for Trade Analyzer |
+| Talon | Provisional waiver feature name |
+| Aerie | Provisional dashboard name |
+| Corvus Black | Paid tier name on hold |
+| The Prophecy | Hold |
+| Rookery | Hold |
+| Munin / Hugin | Internal agent names only |
 
 ---
 
 ## 8. Product Pillars
 
-Every feature decision is governed by these four pillars. If a feature does not serve at least one, it does not belong.
+Every feature should serve at least one pillar.
 
 | Pillar | What it means |
 |---|---|
@@ -187,26 +151,20 @@ Every feature decision is governed by these four pillars. If a feature does not 
 
 ## 9. Non-Negotiables
 
-- No paid dependencies without CEO approval
-- No placeholder features in production — hide incomplete features, never display them
-- No unnecessary data collection
-- No sharing user data without explicit necessity
-- No compromise on system quality
-- Choose the harder right over the easier wrong
-- Avoid hype. The product earns attention through quality, not marketing noise
+- No paid dependencies without CEO approval.
+- No placeholder features in production.
+- Hide incomplete features; never promote them.
+- No unnecessary data collection.
+- No user data sharing without explicit necessity.
+- No compromise on system quality.
 
 ---
 
 ## 10. Open Questions / Later Decisions
 
-1. **Paid tier naming** — `Corvus Black` is on hold. Decide before billing goes live. `Pro` is the confirmed subscription name for now.
-
-2. **Feature rollout naming** — Talon, Aerie, The Prophecy, and Rookery are provisional. Confirm user-facing names before each feature ships, not before.
-
-3. **Design system review** — `corvus-ux-ui-design-system-v1.md` should be reviewed against the Slops OS app template spec (`slops-saloon/Blueprints/specs/slops-os-app-template-spec.md`) before the next major UI build phase. Not urgent now.
-
-4. **Archive the old Brand files** — Once this file is validated, `brand.md`, `BRAND_STRATEGY.md`, and `positioning.md` should be moved to `Archive/`. Do not do this until Justin confirms `brand-system.md` is ready.
-
-5. **Tagline placement on the landing page** — `Deus pascit corvos.` works in wordmark and brand contexts. Confirm whether it appears in hero copy or only in the wordmark/about context.
-
-6. **Platform naming convention in copy** — Confirm the standard for naming platforms in user-facing UI (e.g., "Connect Yahoo" vs "Connect your Yahoo league").
+- Confirm paid tier name before billing goes live: `Pro` vs `Corvus Black`.
+- Confirm user-facing names before each feature ships: Talon, Aerie, The Prophecy, Rookery.
+- Review design system against the Slops OS app template before the next major UI build.
+- Archive old brand files after this file is approved.
+- Decide whether `Deus pascit corvos.` appears in hero copy or only brand/wordmark contexts.
+- Confirm platform naming convention in UI copy.
