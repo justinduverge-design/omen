@@ -1,0 +1,198 @@
+# Corvus Brand System
+
+**Status:** Canonical | Last updated: 2026-06-01
+**Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `corvus-ux-ui-design-system-v1.md`
+**Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
+
+---
+
+## 1. Identity
+
+Corvus is a fantasy football decision tool from Slops Saloon. It helps managers check their next move before it costs them — not by validating gut feelings, but by testing them.
+
+Slops Saloon is the parent company and product studio. Corvus is its first product. Future products live alongside Corvus under Slops Saloon, not inside it.
+
+---
+
+## 2. Copy Anchors
+
+These are not standalone taglines. They are placed lines — each has a specific job in context.
+
+**Internal Latin mark:** `Deus pascit corvos.`
+Use for wordmark, lore, and brand context. Not a public marketing line.
+
+**Primary marketing line:** `Less guessing. Better moves.`
+Homepage hero, ads, short public-facing copy.
+
+**Secondary line:** `The edge is in what you almost missed.`
+Subheads, feature sections, product explainers, and moments where Corvus is positioned as catching hidden risk or overlooked opportunity.
+
+**Approved alternate:** `See the move before the league does.`
+Use when copy needs a stronger competitive fantasy-football feel.
+
+**Do not use:**
+- `Know your move before you make it.` — implies the user already has the right answer; Corvus tests the instinct, it does not flatter it
+- `See the winning move.` — too vague, too generic
+- `Where the math meets the legend.` — retired
+
+---
+
+## 3. What Corvus Is / Is Not
+
+**Is:**
+- A decision layer for weekly fantasy football
+- A tool that reads your actual roster, matchup, and league
+- An explainer — recommendation first, evidence second
+- A check on instinct, not a replacement for it
+
+**Is not:**
+- A general chatbot
+- A stats dashboard
+- A fantasy news aggregator
+- A league management platform
+
+The user leaves with a decision, not a spreadsheet assignment.
+
+---
+
+## 4. Audience
+
+Fantasy football managers who want confident weekly decisions without needing to become data scientists.
+
+They believe they already know the right move. Corvus tests that belief, surfaces the risk they almost missed, and either confirms the call or changes it.
+
+---
+
+## 5. Positioning
+
+**One-line:** Corvus helps fantasy football players see their best move with clear, platform-aware reasoning.
+
+**Product ladder:**
+1. Trade Analyzer — builds trust as the free front door
+2. Draft Assistant — helps users prepare for the season
+3. Omen — the core weekly decision moment (paid)
+
+**Differentiation:** Platform context combined with plain-English explanation. Not just data — a recommendation with a reason. No spreadsheet homework required.
+
+**Platform reality:** Yahoo, Sleeper, and ESPN all matter. ESPN carries higher reliability and recovery risk than the others.
+
+---
+
+## 6. Brand Personality
+
+- Sharp and observant
+- Institutional but approachable
+- Confident without being arrogant
+- Warm — the platform exists to bring people together through sports
+- Mythological undertones: raven, oracle, omen, high vantage, judgment
+- Data-serious, not spreadsheet-cold
+
+Corvus knows the answer before you ask. It explains the move. It tells you the risk. Then it stops.
+
+---
+
+## 7. Voice and Writing Rules
+
+Plain English. No jargon without explanation. Be precise — vague language erodes trust. Avoid hype, hedging, corporate filler, and condescension.
+
+**Lead with the move, not the reasoning.**
+- Good: `"Start Player A over Player B — your upside improves by 4.2 expected points."`
+- Bad: `"Based on our analysis of multiple data signals, we recommend that..."`
+
+**Confidence framing:**
+- Good: `"74 — Medium-High Confidence"`
+- Bad: `"Our system is moderately confident"`
+
+**Risk framing:**
+- Good: `"Medium risk. Player A has a strong role but a less stable matchup signal."`
+- Bad: `"Risk level is medium due to factors related to matchup uncertainty."`
+
+**Empty states:** Acknowledge the situation. Do not apologize.
+- Good: `"Your current lineup is solid. No move clears the bar this week."`
+- Bad: `"No recommendations available at this time."`
+
+**Errors:** Honest and actionable. Tell the user what to do next.
+
+**Loading states:** Contextual, not generic.
+- Good: `"Analyzing your matchup…"`
+- Bad: `"Loading…"`
+
+**Platform disconnected:**
+- Good: `"Connect your Sleeper league and Corvus will find your Most Valuable Play."`
+- Bad: `"Platform not connected. Please authenticate to continue."`
+
+---
+
+## 8. Visual Direction
+
+**Palette:**
+
+| Color | Name | Role |
+|-------|------|------|
+| `#0A0A0B` | Raven black | Primary background |
+| `#1C1C1E` | Charcoal | Card and panel surfaces |
+| `#F5F0E8` | Bone white | Primary text, light surfaces |
+| `#B8952A` | Antique gold | Accent, CTA, premium moments |
+| `#8B1A1A` | Deep crimson | Risk indicators, warnings |
+| `#5B2D8E` | Electric violet | AI signal, Omen accent moments |
+
+**Typography:**
+- Brand headlines, display, Omen card titles: Cormorant Garamond (serif)
+- All UI, body copy, labels, buttons: Alegreya Sans (sans-serif)
+
+**Feel:** Dark, strategic, observant, premium. No clutter. No neon sports bar energy. Presentation-worthy at full scale.
+
+**Animation:** Subtle. 150ms ease-in-out for state changes. No bouncy or game-like motion.
+
+**Accessibility:** Color is never the only differentiator — confidence and risk always carry labels. WCAG AA minimum contrast. All interactive elements keyboard-navigable. Focus rings: visible, gold accent, consistent across themes.
+
+---
+
+## 9. Feature Naming
+
+| Name | Status | Use |
+|------|--------|-----|
+| `Omen` | Confirmed | Paid core recommendation feature. User-facing. |
+| `Trade Analyzer` | Confirmed | Free tool. Plain name. User-facing. |
+| `The Scale` | Internal only | Nickname for trade analysis logic. Never shown to users. |
+| `Talon` | Hold / provisional | Do not ship or use in copy until confirmed. |
+| `Aerie` | Hold / provisional | Do not ship or use in copy until confirmed. |
+| `Corvus Black` | Hold | Do not ship or use in copy until confirmed. |
+| `Rookery` | Hold | Do not ship or use in copy until confirmed. |
+| `The Prophecy` | Hold | Do not ship or use in copy until confirmed. |
+| `Munin / Hugin` | Internal only | Norse raven reference. Not user-facing. |
+
+---
+
+## 10. Product Pillars
+
+Every feature must serve at least one. A feature that serves none does not belong.
+
+| # | Pillar | What It Means |
+|---|--------|---------------|
+| 1 | Decision Intelligence | Every tool helps the user make a better call. Data-backed, not gut-feel. |
+| 2 | Engagement | Makes the game more interesting, not more complicated. Entertainment drives retention. |
+| 3 | Trust | No misleading outputs. No dark patterns. No data sharing without necessity. |
+| 4 | Accessibility | Intuitive on first use. No learning curve for core features. |
+
+---
+
+## 11. Non-Negotiables
+
+- No paid dependencies without CEO approval
+- No placeholder features in production — hide incomplete features, never display them
+- No unnecessary data collection
+- No sharing user data without explicit necessity
+- No compromise on system quality
+- Every feature passes the AAA Framework before shipping: Accuracy + Accessibility + Aesthetic Integrity. Two out of three is a fail.
+
+---
+
+## 12. Open Questions / Later Decisions
+
+- Paid tier name (TBD)
+- League hosting tier name (TBD)
+- Icon library: Heroicons or Lucide — confirm before build
+- `Talon`, `Aerie`, `Corvus Black`, `Rookery`, `The Prophecy` — confirm or retire each before use
+- Raven/omen brand asset — design not started
+- `Deus pascit corvos.` — confirm scope: wordmark only, or broader brand presence?
