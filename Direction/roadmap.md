@@ -47,7 +47,7 @@ Last updated: 2026-06-02
 
 ## Next
 
-1. **Ops (Justin):** Confirm prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) and `APP_BASE_URL`. ~~Stripe price IDs~~ ✓ confirmed correct in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. Run Stripe test-mode checkout and webhook validation.
+1. ~~Stripe price IDs~~ ✓ confirmed in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓ confirmed. ~~`APP_BASE_URL`~~ ✓ confirmed. **Run Stripe test-mode checkout and webhook validation** — only remaining ops gate before launch.
 2. Smoke-test `PATCH /api/account/preferences`, team theme hydration, `POST /api/omen/feedback`, `GET /api/moves`, and `GET /api/league/standings` against production with authenticated users.
 3. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN reconnect recovery, without logging cookie values.
 4. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.

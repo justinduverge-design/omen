@@ -56,7 +56,7 @@ Corvus is live on the renamed route.
 
 ## Next
 
-1. **Ops (Justin):** Confirm prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) and `APP_BASE_URL` in Infisical. ~~Stripe price IDs~~ ✓ confirmed correct in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. Run Stripe test-mode checkout and webhook validation.
+1. ~~Stripe price IDs~~ ✓ confirmed in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓ confirmed. ~~`APP_BASE_URL`~~ ✓ confirmed. **Run Stripe test-mode checkout and webhook validation** — this is the only remaining pre-launch ops gate.
 2. **Authenticated smoke:** `PATCH /api/account/preferences` → verify theme saves; `GET /api/dashboard/summary.user.favorite_team` → verify theme rehydrates on sign-in.
 3. **Authenticated smoke:** `POST /api/omen/feedback` → confirm feedback records and Omen HITL loop closes.
 4. **Authenticated smoke:** `GET /api/moves` and `GET /api/league/standings` → verify data returns for connected users.

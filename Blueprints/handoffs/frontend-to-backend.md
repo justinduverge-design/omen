@@ -48,7 +48,7 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - ~~Request 16: `trial_ends_at` / `current_period_end` columns~~ ✓ Migration applied 2026-05-27.
 - ~~Stripe price IDs updated in Infisical.~~ ✓ Done.
 - ~~Stripe return URLs~~ ✓ Code already correct (`/account?subscribed=true`, `/account`). Set `APP_BASE_URL` in Infisical to your production domain (currently defaults to `http://localhost:3000`).
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
+- ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation~~ ✓ Confirmed.
 
 ### Backend resolution update — 2026-05-31
 - Request 19 is resolved: `PATCH /api/account/preferences` is built, `GET /api/dashboard/summary.user.favorite_team` is available, and `profiles.favorite_team` is applied in Supabase.
@@ -66,7 +66,7 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
   - `App.jsx` reads `summary.user.favorite_team` on `SIGNED_IN` / `INITIAL_SESSION` and applies team CSS vars.
   - `MoveHistory.jsx` calls `GET /api/moves`; mounted on Football page "History" tab.
   - `LeagueStandings.jsx` calls `GET /api/league/standings`; mounted above the tab bar on Football page; handles all documented error codes.
-- Remaining open items: prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), `APP_BASE_URL` confirmation. ~~Stripe price IDs~~ ✓ confirmed in Infisical. Stripe test-mode checkout and webhook validation still pending.
+- All env gates cleared: ~~Stripe price IDs~~ ✓, ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓, ~~`APP_BASE_URL`~~ ✓. Remaining: Stripe test-mode checkout and webhook validation.
 
 ### Open code questions
 - None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).
