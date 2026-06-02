@@ -31,7 +31,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - Post-deploy smoke: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
 - Tier 2 frontend is **built and deployed**: Account pricing display (`GET /api/stripe/prices`), Omen feedback hardening (`POST /api/omen/feedback`), team theme hydration (`GET /api/dashboard/summary.user.favorite_team`), Move History / Hall of Records (`GET /api/moves`), and League Standings (`GET /api/league/standings`) are all live.
 - Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Corvus should infer/enrich those signals during analysis rather than asking the user to supply them.
-- Remaining launch work is QA/ops validation: confirm prod Supabase Vite env, validate Stripe dashboard prices and `APP_BASE_URL`, run Stripe test-mode validation, smoke-test HITL feedback and team preference in the app, and QA real Yahoo/Sleeper/ESPN Omen and League Standings flows.
+- Remaining launch work is QA/ops validation: confirm prod Supabase Vite env and `APP_BASE_URL`. ~~Stripe price IDs~~ ✓ confirmed correct in Infisical; ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. Run Stripe test-mode validation, smoke-test HITL feedback and team preference in the app, and QA real Yahoo/Sleeper/ESPN Omen and League Standings flows.
 
 - Local backend tests pass 240/240.
 - Live Omen is canonical at `POST /api/omen/mvp-move` and uses body `{}` after dashboard status is `ready`.

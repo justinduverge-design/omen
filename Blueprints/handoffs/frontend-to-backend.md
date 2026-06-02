@@ -66,7 +66,7 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
   - `App.jsx` reads `summary.user.favorite_team` on `SIGNED_IN` / `INITIAL_SESSION` and applies team CSS vars.
   - `MoveHistory.jsx` calls `GET /api/moves`; mounted on Football page "History" tab.
   - `LeagueStandings.jsx` calls `GET /api/league/standings`; mounted above the tab bar on Football page; handles all documented error codes.
-- Remaining open items are ops/Justin (see Open blockers above): prod Supabase Vite env, `APP_BASE_URL`, and Stripe test-mode validation.
+- Remaining open items: prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), `APP_BASE_URL` confirmation. ~~Stripe price IDs~~ ✓ confirmed in Infisical. Stripe test-mode checkout and webhook validation still pending.
 
 ### Open code questions
 - None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).
@@ -416,7 +416,7 @@ What was built:
 - Portal 404 (no customer record) degrades gracefully to checkout prompt
 - Stripe 503 shows "temporarily unavailable" copy without crashing
 
-**Note:** Plan prices confirmed by Justin as $5/mo and $20 season — updated in commit `98c3a05`. Stripe dashboard update still required before checkout goes live — see Request 18.
+**Note:** Plan prices confirmed by Justin as $5/mo and $20 season — updated in commit `98c3a05`. Stripe prices and Infisical price IDs confirmed correct — see Request 18.
 
 ---
 
@@ -598,26 +598,15 @@ Frontend launch validation confirms the `frontend/` app calls **zero legacy comp
 **Date:** 2026-05-26 / Updated 2026-05-27
 **Owner:** Claude Code / frontend
 **Feature:** Account page — subscription plan picker
-**Priority:** ~~Medium~~ **Display resolved 2026-05-27 — Stripe dashboard action still needed from Justin**
+**Priority:** ~~Medium~~ **Resolved — Stripe prices and Infisical keys confirmed correct.**
 
 **Resolution (code):** Justin confirmed prices: `$5/mo` (Monthly, 7-day trial) and `$20` (Season Pass, one-time). `Account.jsx` updated — commit `98c3a05`. Backend `GET /api/stripe/prices` already added by Codex; it returns `null` on fallback rather than hardcoded amounts so no backend change needed.
 
 **Break-even confirmed:** Omen runs on a self-hosted Ollama instance (Gemma 3 4B) — zero per-call AI charges. $5/mo is comfortably viable.
 
-**Action still required from Justin (Stripe dashboard — ops, not code):**
+**Stripe dashboard ops — resolved:**
 
-The frontend now displays `$5/mo` and `$20` but Stripe will charge whatever is on the Price objects in your Stripe dashboard. There is a price mismatch until you update those — users would see `$5` but get charged the old amount at checkout.
-
-Steps required in the [Stripe dashboard](https://dashboard.stripe.com) before enabling checkout:
-
-1. Archive the old Monthly price (`STRIPE_MONTHLY_PRICE_ID`) — Stripe prices cannot be edited, only replaced.
-2. Create a new Monthly price: `$5.00 USD`, recurring monthly, 7-day trial.
-3. Update `STRIPE_MONTHLY_PRICE_ID` in your environment to the new price ID.
-4. Archive the old Season Pass price (`STRIPE_SEASON_PRICE_ID`).
-5. Create a new Season Pass price: `$20.00 USD`, one-time payment.
-6. Update `STRIPE_SEASON_PRICE_ID` in your environment to the new price ID.
-
-Do not enable public checkout until steps 3 and 6 are done.
+~~Steps required before enabling checkout~~ ✓ Done. Justin confirmed $5/mo and $20 season prices are set in Stripe and Infisical has the correct `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_SEASON_PRICE_ID`. Remaining pre-checkout gate is Stripe test-mode checkout and webhook validation.
 
 ---
 
