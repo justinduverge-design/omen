@@ -37,7 +37,7 @@ Frontend action needed:
 
 ---
 
-## Active Context — Last updated 2026-05-30
+## Active Context — Last updated 2026-06-01
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door.
@@ -47,20 +47,39 @@ Frontend action needed:
 
 **Frontend state as of 2026-05-29 (commit `f989522`):**
 - Navigation: hamburger + `NavDrawer` sidebar with all routes. Logo slot is a `[C]` monogram placeholder.
-- `/account/appearance` — Team Theme page live. Calls `PATCH /api/account/preferences` (soft fail until endpoint built).
-- `OmenFeedback` card wired below Omen success state. Calls `POST /api/omen/feedback` (soft fail until endpoint built).
+- `/account/appearance` — Team Theme page live. Calls `PATCH /api/account/preferences`; backend route and `profiles.favorite_team` storage are ready.
+- `OmenFeedback` card wired below Omen success state. Calls `POST /api/omen/feedback`; backend route and `moves` HITL storage are ready.
 - `frontend/src/data/nflTeams.js` — 32-team color strategy in place.
 - `frontend/src/data/nflPlayers.js` — ~350-player roster for Trade Analyzer Phase 1 autocomplete.
+- Trade Analyzer Phase 1 intentionally omits user-entered Projection and Status fields; Corvus should infer/enrich those signals during analysis.
+- Tier 2 scaffold folders are prepared for Claude under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
 - Yahoo, Sleeper, and ESPN all matter.
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
+
+## Tier 2 Frontend Build Packet — 2026-06-01
+
+Date: 2026-06-01
+Owner: Claude/frontend, with Codex/backend contract support
+Status: Backend contracts ready. Production deploy of latest `origin/main` was approved by Justin, completed as GitHub Actions run `26787476324`, and passed `/api/health` plus `/api/ready` smoke checks.
+
+Build order:
+- Account pricing display: call `GET /api/stripe/prices`; show live configured prices when available, with safe fallback/unavailable copy.
+- Omen feedback hardening: `POST /api/omen/feedback` is live; remove stale 404/501 soft-success behavior and handle `200`, `401`, `422`, and `500`.
+- Team theme hydration: add app-level/provider-level hydration from `GET /api/dashboard/summary.user.favorite_team`, using localStorage as fallback.
+- Move History / Hall of Records: call `GET /api/moves` and render summary, empty, loading, and error states on `/football` by default.
+- League Standings: call `GET /api/league/standings`; render default connected league first, then add selector behavior only if frontend exposes a league/platform chooser.
+
+No new backend endpoints are required for Tier 2. Future Phase 2 endpoints remain `GET /api/players/search` and `GET /api/trade/pulse`.
+
+---
 
 ## HITL Feedback + Team Preference Contracts — 2026-05-31
 
 Date: 2026-05-31
 Owner: Codex/backend
 Feature: Frontend Requests 21 and 19
-Status: Completed locally. No deploy, production action, `.env`, DNS, SSL, Nginx, Stripe, or Supabase database application was performed.
+Status: Backend completed. Supabase SQL was applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy, `.env`, DNS, SSL, Nginx, Stripe, or production infrastructure action was performed.
 
 ### HITL Feedback Loop — `POST /api/omen/feedback`
 
@@ -160,7 +179,7 @@ Dashboard summary addition:
 }
 ```
 
-If no profile row exists or the `profiles` table/column is not applied yet, `favorite_team` returns `null` rather than breaking the dashboard summary.
+If no profile row exists or the user has not selected a team yet, `favorite_team` returns `null` rather than breaking the dashboard summary.
 
 Frontend action needed:
 - `TeamThemeProvider` should read `summary.user.favorite_team`.
@@ -169,21 +188,18 @@ Frontend action needed:
 
 ### SQL / Migration Notes
 
-Local SQL file updated: `sql/corvus_rls_security.sql`.
+Local SQL file updated and applied: `sql/corvus_rls_security.sql`.
 
-Prepared for HITL:
-- Adds repair columns for existing `moves` tables: `followed`, `user_stars`, `user_note`, `outcome`.
-- Adds unique index `idx_moves_user_week_unique` on `(user_id, week_num, season)` so Supabase upsert is safe and idempotent.
-
-Prepared for team preference:
-- Creates `public.profiles` if missing.
-- Adds `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;`.
-- Enables RLS and self-only select/insert/update policies.
-- Grants minimum profile access to `authenticated` plus server access to `service_role`.
+Supabase application:
+- Applied as migration `20260531160851_apply_corvus_rls_security_full_setup`.
+- Verified live `moves` repair columns: `followed`, `user_stars`, `user_note`, `outcome`.
+- Verified live unique index `idx_moves_user_week_unique` on `(user_id, week_num, season)` so Supabase upsert is safe and idempotent.
+- Verified live `profiles.favorite_team` column plus profile RLS/grants.
+- Verified live subscription date columns, waitlist insert-only access, platform connection safe-column grants, and service-role Vault wrapper RPCs.
 
 Approval boundary:
-- Justin has approved the existing `moves` table application path, but this local session did not apply SQL to Supabase.
-- The `profiles.favorite_team` change still requires Justin approval before applying to Supabase, per Request 19.
+- Justin approved applying `sql/corvus_rls_security.sql`; the Supabase SQL gate for these contracts is cleared.
+- No app deploy or production infrastructure change was performed.
 
 Files changed:
 - `src/routes/omen.js`
@@ -198,7 +214,7 @@ Files changed:
 - `Blueprints/handoffs/backend-to-frontend.md`
 
 Verified local checks:
-- `npm test` passed: 226/226.
+- Latest full local baseline after later backend work: `npm test` passed 240/240.
 
 ## Move History Contract — 2026-05-31
 
@@ -280,7 +296,7 @@ Verification:
 - Live Supabase schema gate passed after approved repair: `followed`, `user_stars`, `user_note`, `outcome`, and unique `(user_id, week_num, season)` index are present.
 - Live database idempotence smoke passed: same user/week/season updated one row and returned the same move id.
 - Local focused checks passed: `node --test test\movesRoute.test.js test\omenFeedbackRoute.test.js test\securitySql.test.js test\deployHardening.test.js`.
-- Full local checks passed: `npm test` 231/231.
+- Full local checks passed after later backend work: `npm test` 240/240.
 
 Files changed:
 
@@ -408,13 +424,13 @@ Frontend action needed:
 
 ---
 
-## Upcoming Backend Builds — Pending Codex — 2026-05-28
+## Backend Request Status Rollup — Updated 2026-05-31
 
 Date: 2026-05-28
 
-Owner: Pending Codex / backend
+Owner: Codex / backend
 
-Status: Not yet built. These are the next four backend contracts Claude/frontend is waiting on. Full frontend request specs are in `frontend-to-backend.md` Requests 19–23 and the nflPlayers note.
+Status: Superseded by completed contracts above. Requests 19, 21, 22, and 23 are built locally; `sql/corvus_rls_security.sql` has been applied and verified in Supabase; no app deploy was performed. Frontend should use the completed contract sections above for implementation.
 
 ---
 
@@ -424,14 +440,14 @@ Frontend request: `frontend-to-backend.md` Request 21.
 
 What Codex needs to build:
 - `POST /api/omen/feedback` — upsert user's feedback for a given week/season into the `moves` table
-- `moves` table Supabase migration (Justin approval required before applying — add to `sql/corvus_rls_security.sql`)
+- `moves` table Supabase migration — resolved 2026-05-31 through applied migration `20260531160851_apply_corvus_rls_security_full_setup`
 - Route: auth required, idempotent (re-submit same week/season = update, not duplicate)
 
 Key constraint: `followed = true` is the gate for the Tuesday cron. Only moves where `followed = true` get scored for effectiveness. The cron must not score rows where `followed = null` (not yet answered) or `followed = false`.
 
 Expected response: `{ "recorded": true, "move_id": "uuid" }`
 
-Gate status: **CLEARED 2026-05-28.** Omen page passed `/ui-ux-pro-max-skill` audit. Fixes applied: "Corvus Pro" label brand token corrected, back-link focus-visible ring added, inline-style color converted to Tailwind CSS-var hover-capable class. HITL build is now unblocked on the frontend side — only blocker remaining is Justin approving the `moves` table Supabase migration.
+Gate status: **CLEARED 2026-05-31.** Omen page passed `/ui-ux-pro-max-skill` audit, HITL backend is built, and the Supabase `moves` storage gate is applied and verified.
 
 ---
 
@@ -455,7 +471,7 @@ Frontend request: `frontend-to-backend.md` Request 23.
 
 What Codex needs to build:
 - `GET /api/league/standings` — auth required, returns standings for user's connected league
-- **Important:** the legacy `GET /api/league/standings` was retired with `410 legacy_route_retired` in the 2026-05-27 pass. The new route is a canonical replacement, not a compat route.
+- **Important:** `GET /api/league/standings` is now restored as the canonical `league-standings.v1` route.
 - Query params: `platform`, `leagueId` (optional — infers from primary connection)
 - Must support Yahoo, Sleeper, ESPN adapters
 - `is_current_user: true` on the row matching the authenticated user's team
@@ -471,7 +487,7 @@ Frontend request: `frontend-to-backend.md` Request 19.
 What Codex needs to build:
 - `PATCH /api/account/preferences` — upsert `favorite_team` (team abbreviation string) to user profile
 - Add `user.favorite_team` to `GET /api/dashboard/summary` response so `TeamThemeProvider` can read it on app load without a separate fetch
-- Supabase migration: `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;` (Justin approval required)
+- Supabase migration: `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_team text;` — applied and verified 2026-05-31.
 
 ---
 
@@ -483,7 +499,7 @@ Owner: Codex/backend
 
 Feature: Frontend Requests 15, 16, and 18
 
-Status: Local backend/repo preparation completed. No Supabase staging/prod migration was applied. No Stripe dashboard, product, price, checkout, customer, subscription, portal, webhook secret, package, deploy, or infrastructure change was performed.
+Status: Backend/repo preparation completed. Supabase SQL portions are now applied and verified as part of migration `20260531160851_apply_corvus_rls_security_full_setup`. No Stripe dashboard, product, price, checkout, customer, subscription, portal, webhook secret, package, deploy, or infrastructure change was performed.
 
 Request 15 - waitlist_signups:
 
@@ -493,7 +509,7 @@ Request 15 - waitlist_signups:
 - Browser access is insert-only for `anon` and `authenticated` roles on `email, platform`.
 - No browser SELECT/UPDATE/DELETE grant is provided.
 - Duplicate emails are intentionally allowed for launch so repeat submissions do not turn into generic frontend errors.
-- Applying this to Supabase staging/prod still requires explicit Justin approval.
+- Supabase application is complete and verified as of 2026-05-31.
 
 Request 16 - subscription date columns:
 
@@ -501,7 +517,7 @@ Request 16 - subscription date columns:
   - `alter table public.subscriptions add column if not exists trial_ends_at timestamptz`
   - `alter table public.subscriptions add column if not exists current_period_end timestamptz`
 - This matters because `create table if not exists public.subscriptions (...)` does not add missing columns to an already-existing table.
-- `GET /api/dashboard/summary.subscription.trial_ends_at` and `.current_period_end` will surface real values only after the approved Supabase migration is applied and Stripe webhook events populate those columns.
+- `GET /api/dashboard/summary.subscription.trial_ends_at` and `.current_period_end` will surface real values after Stripe webhook events populate those applied columns.
 
 Request 18 - pricing endpoint:
 
@@ -589,7 +605,7 @@ Retired routes:
 - `GET /api/auth/yahoo/authorize` -> `410`, canonical: `GET /api/yahoo/auth`
 - `GET /api/auth/yahoo/callback` -> `410`, canonical: `GET /api/yahoo/callback`
 - `POST /api/auth/espn/connect` -> `410`, canonical: `POST /api/platforms/espn/connect`
-- `GET /api/league/standings` -> `410`, no canonical launch replacement
+- `GET /api/league/standings` -> restored 2026-05-31 as canonical `league-standings.v1`; no longer retired.
 
 Response shape:
 

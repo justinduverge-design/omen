@@ -25,9 +25,16 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - Frontend/backend handoffs live in `Blueprints/handoffs/`.
 - App source and config live here, not in the parent `slops-saloon/` layer.
 
-## Latest Resume Point — 2026-05-31
+## Latest Resume Point — 2026-06-01
 
-- Local backend tests pass 231/231 after Phase 2; Phase 3 focused tests pass locally.
+- Justin approved deploying the latest production build from `origin/main`. Codex triggered GitHub Actions deploy run `26787476324` for `.github/workflows/deploy.yml` on `main`; it completed successfully.
+- Post-deploy smoke passed from Codex on 2026-06-01: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
+- Local `main` is currently diverged from `origin/main` because the remote contains a squash-style production commit plus brand docs while local still has three equivalent backend feature commits. Do not push local `main` until the branch is reconciled intentionally.
+- Tier 2 frontend prep is now the active local coordination task. Claude owns the builds; Codex owns backend contracts and smoke/QA support.
+- Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Corvus should infer/enrich those signals during analysis rather than asking the user to supply them.
+- Tier 2 frontend folders are prepared for account subscription/pricing UI, league standings, move history, team-theme provider hydration, and trade component extraction.
+
+- Local backend tests pass 240/240 after the HITL, Move History, League Standings, team preference, and local Docker-run work.
 - Live Omen is canonical at `POST /api/omen/mvp-move` and uses body `{}` after dashboard status is `ready`.
 - Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
 - `GET /api/system/current-week` exists for public season/week context.
@@ -37,8 +44,8 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - `GET /api/league/standings` is built locally for League Standings. It is auth-required and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
 - `PATCH /api/account/preferences` is built locally for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary now includes `user.favorite_team`.
 - Legacy compat routes from the frontend audit now return `410 legacy_route_retired`, except `/api/league/standings`, which has been restored as a canonical route.
-- Supabase SQL is prepared for `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, and `profiles.favorite_team`. The `moves` repair has been applied; `profiles.favorite_team` still needs Justin approval before application.
-- Remaining launch blockers are approval/ops: apply profile preference SQL, confirm prod Supabase env, validate Stripe dashboard/return URLs, run Stripe test-mode validation, and QA real provider League Standings.
+- Supabase SQL from `sql/corvus_rls_security.sql` has been applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
+- Remaining launch blockers are QA/ops: confirm prod Supabase env at deploy time, validate Stripe dashboard/return URLs, run Stripe test-mode validation, smoke-test HITL/team preference in the app, and QA real provider League Standings.
 
 ## Read First
 

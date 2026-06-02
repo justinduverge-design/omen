@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-30 (UX/UI audit complete; font system locked; CSS token sweep done across all pages; team identity schema live — cultureTag/cry/wardRoom/lore; Trade Analyzer form rework starting)
+Last updated: 2026-06-01 (Tier 2 frontend prep; deploy approved)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -20,6 +20,7 @@ Last updated: 2026-05-30 (UX/UI audit complete; font system locked; CSS token sw
 - Users need plain-English reasoning, not heavy math.
 - Frontend lives in `frontend/` (React 18, React Router v6, Tailwind, Vite). `client/` is a legacy artifact.
 - All frontend API calls use canonical routes. No legacy compat routes are called from the frontend.
+- Trade Analyzer Phase 1 intentionally omits user-entered Projection and Status fields. Corvus owns projection/status enrichment during trade analysis.
 
 ## Launch Validation Status — 2026-05-26
 
@@ -48,6 +49,21 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - ~~Stripe price IDs updated in Infisical.~~ ✓ Done.
 - ~~Stripe return URLs~~ ✓ Code already correct (`/account?subscribed=true`, `/account`). Set `APP_BASE_URL` in Infisical to your production domain (currently defaults to `http://localhost:3000`).
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
+
+### Backend resolution update — 2026-05-31
+- Request 19 is resolved: `PATCH /api/account/preferences` is built, `GET /api/dashboard/summary.user.favorite_team` is available, and `profiles.favorite_team` is applied in Supabase.
+- Request 21 is resolved: `POST /api/omen/feedback` is built and the `moves` HITL columns plus unique week/season idempotence index are applied in Supabase.
+- Request 22 is resolved: `GET /api/moves` is built with `moves-history.v1`.
+- Request 23 is resolved: canonical `GET /api/league/standings` is built with `league-standings.v1`; the old `410` behavior for this path was removed.
+- Supabase migration applied: `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy was performed.
+
+### Tier 2 coordination update — 2026-06-01
+- Justin approved deploying latest production from `origin/main`; Codex triggered GitHub Actions run `26787476324`, which completed successfully.
+- Post-deploy smoke passed: `/api/health` returned `status: ok`; `/api/ready` returned `status: ready`.
+- Claude will confirm the rest of Tier 1 ops/env gates: production Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation.
+- Tier 2 frontend scaffold folders are prepared under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
+- Tier 2 build queue: Account pricing display from `GET /api/stripe/prices`; Omen feedback hardening; team-theme provider hydration from `GET /api/dashboard/summary.user.favorite_team`; Move History from `GET /api/moves`; League Standings from `GET /api/league/standings`.
+- Current frontend inspection found no active `GET /api/stripe/prices` caller in `Account.jsx`; treat pricing display as Tier 2 frontend work even though an older note says it was wired.
 
 ### Open code questions
 - None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).
@@ -500,9 +516,9 @@ Response:
 **Date:** 2026-05-26
 **Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
 **Feature:** Landing page — waitlist form
-**Priority:** High — launch blocker. **Backend SQL prepared 2026-05-27; applying to Supabase still requires Justin approval.**
+**Priority:** High — launch blocker. **Resolved: table/policies are live in Supabase and covered by the 2026-05-31 full SQL verification.**
 
-**Resolution update:** Codex added `public.waitlist_signups` to `sql/corvus_rls_security.sql` with RLS enabled and insert-only browser access for `anon` and `authenticated` roles. Duplicate emails are intentionally allowed for launch so repeat submissions do not become generic frontend errors. No Supabase staging/prod migration was applied. See `backend-to-frontend.md` Supabase Launch SQL And Stripe Pricing Update.
+**Resolution update:** Codex added `public.waitlist_signups` to `sql/corvus_rls_security.sql` with RLS enabled and insert-only browser access for `anon` and `authenticated` roles. Duplicate emails are intentionally allowed for launch so repeat submissions do not become generic frontend errors. This is now live in Supabase; see `backend-to-frontend.md` for the 2026-05-31 SQL verification.
 
 **Frontend need:**
 
@@ -523,7 +539,7 @@ CREATE POLICY "anon_insert" ON waitlist_signups FOR INSERT TO anon WITH CHECK (t
 
 No SELECT, UPDATE, or DELETE for the anon role. Adding a unique constraint on `email` is optional — evaluate whether duplicate submissions should be blocked silently or surfaced to the user.
 
-**Approval required:** Justin must approve applying this migration to Supabase staging then production.
+**Approval status:** Applied and verified in Supabase on 2026-05-31.
 
 **No frontend code change needed.** The form call is already correct — it will start working as soon as the table exists and RLS policy is applied.
 
@@ -534,9 +550,9 @@ No SELECT, UPDATE, or DELETE for the anon role. Adding a unique constraint on `e
 **Date:** 2026-05-26
 **Owner:** Claude Code / frontend audit → Codex / backend (Supabase migration)
 **Feature:** Account page — subscription section
-**Priority:** High — launch blocker. **Backend SQL prepared 2026-05-27; applying to Supabase still requires Justin approval.**
+**Priority:** High — launch blocker. **Resolved: subscription date columns are live in Supabase and covered by the 2026-05-31 full SQL verification.**
 
-**Resolution update:** Codex added explicit `ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS trial_ends_at/current_period_end` repair SQL to `sql/corvus_rls_security.sql`. This is necessary because `CREATE TABLE IF NOT EXISTS` does not repair missing columns on an existing table. No Supabase staging/prod migration was applied. See `backend-to-frontend.md` Supabase Launch SQL And Stripe Pricing Update.
+**Resolution update:** Codex added explicit `ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS trial_ends_at/current_period_end` repair SQL to `sql/corvus_rls_security.sql`. This is necessary because `CREATE TABLE IF NOT EXISTS` does not repair missing columns on an existing table. This is now live in Supabase; see `backend-to-frontend.md` for the 2026-05-31 SQL verification.
 
 **Frontend need:**
 
@@ -544,7 +560,7 @@ No SELECT, UPDATE, or DELETE for the anon role. Adding a unique constraint on `e
 
 The migration is `sql/corvus_rls_security.sql` per the backend evidence report.
 
-**Approval required:** Justin must approve applying the migration. Once applied, the Account page subscription display will work without any frontend changes.
+**Approval status:** Applied and verified in Supabase on 2026-05-31. The Account page subscription display now depends on Stripe webhook data populating those columns, not on schema availability.
 
 ---
 
@@ -675,7 +691,7 @@ Alongside the form rework, the `/trade` page needs a "Trade Room" right column (
 **Owner:** Claude Code / frontend (planned — not yet built)
 **Feature:** Account page — team personalization / dynamic app theming
 **Priority:** Medium — post-UX-audit feature
-**Status:** Planned. UX audit must pass first. Backend migration requires Justin approval.
+**Status:** Resolved 2026-05-31. Backend route is built, dashboard summary includes `user.favorite_team`, and the Supabase `profiles.favorite_team` column is applied and verified.
 
 **Product intent:**
 
@@ -690,7 +706,7 @@ Users pick their favorite NFL team. The app's accent colors shift to that team's
 
 **Backend need from Codex:**
 
-1. **Supabase migration** (requires Justin approval before applying):
+1. **Supabase migration** (resolved 2026-05-31):
    - Add `favorite_team text` column to `public.profiles` (or `public.user_settings` if that table exists).
    - No constraint — nullable, any team abbreviation the frontend sends.
 
@@ -711,7 +727,7 @@ Users pick their favorite NFL team. The app's accent colors shift to that team's
 - Save in flight: optimistic UI — apply new theme immediately, revert on error.
 
 **Notes / risks:**
-- Do not apply this until the UX audit fixes are shipped and Justin approves the migration.
+- Supabase storage is ready; frontend still owns optimistic UI, fallback theme behavior, and the 32-team allowed set.
 - NFL team colors are public knowledge; the frontend data file needs no license.
 - This is a personalization feature, not a competitive intelligence feature — it does not affect Omen recommendations.
 - ESPN must never log or display cookie values (unrelated guardrail, still applies).
@@ -726,7 +742,7 @@ Users pick their favorite NFL team. The app's accent colors shift to that team's
 **Owner:** Claude Code / frontend
 **Feature:** Omen of the Week — post-recommendation feedback card
 **Priority:** High — this is the self-improving loop; without it the Tuesday cron has no clean calibration data
-**Status:** Planned. **Gated:** Omen page must pass `/ui-ux-pro-max-skill` audit before this is built. Account page audit is also pending.
+**Status:** Resolved 2026-05-31. Backend route is built and the Supabase `moves` HITL columns plus unique idempotence index are applied and verified.
 
 **What it does:**
 
@@ -761,7 +777,7 @@ POST /api/omen/feedback
 - Auth error: `401`
 - Idempotent: re-submitting the same week/season updates the existing record (user can correct within a grace period — product decision for Codex/Justin)
 
-**Supabase migration needed (Justin approval required before applying):**
+**Supabase migration status:** resolved 2026-05-31. The live table uses backend column names `week_num`, `user_stars`, and `user_note`; see `backend-to-frontend.md` for the exact implemented contract.
 
 `moves` table must have at minimum:
 ```sql
@@ -809,7 +825,7 @@ CREATE POLICY "moves_owner" ON public.moves
 **Owner:** Claude Code / frontend
 **Feature:** Account page — move history panel (new section in `/account` or route `/account/history`)
 **Priority:** High — this is the "receipts" screen; users see the AI is right more than it's wrong, which drives retention and upgrades
-**Status:** Planned. Depends on Request 21 (HITL) being live and the `moves` table existing with data.
+**Status:** Resolved 2026-05-31. `GET /api/moves` is built; non-empty responses depend on users creating live move rows.
 
 **What it shows:**
 
@@ -884,7 +900,7 @@ GET /api/moves
 **Owner:** Claude Code / frontend
 **Feature:** Account page or Football dashboard — league standings table
 **Priority:** Medium — grounds the app in the user's real situation; Omen means more when you can see you're 3rd place and need a win
-**Status:** Planned. Partially scaffolded in backend per prior roadmap — confirm before building.
+**Status:** Resolved 2026-05-31. Canonical `GET /api/league/standings` is built; frontend should use the `league-standings.v1` contract in `backend-to-frontend.md`.
 
 **What it shows:**
 
@@ -900,9 +916,7 @@ If multiple leagues are connected, show the primary/selected league with a dropd
 
 **Backend endpoint needed from Codex:**
 
-The legacy `GET /api/league/standings` was retired with `410`. Codex needs to either:
-- Add `GET /api/league/standings` as a new canonical route (different from the retired compat route)
-- Or expose standings via `GET /api/platforms/standings?leagueId=...`
+The legacy `GET /api/league/standings` retirement has been reversed for this path. Codex restored it as a canonical route.
 
 Preferred contract:
 ```
