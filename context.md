@@ -25,24 +25,23 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - Frontend/backend handoffs live in `Blueprints/handoffs/`.
 - App source and config live here, not in the parent `slops-saloon/` layer.
 
-## Latest Resume Point — 2026-06-01
+## Latest Resume Point — 2026-06-02
 
-- Justin approved deploying the latest production build from `origin/main`. Codex triggered GitHub Actions deploy run `26787476324` for `.github/workflows/deploy.yml` on `main`; it completed successfully.
-- Post-deploy smoke passed from Codex on 2026-06-01: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
-- Local `main` is currently diverged from `origin/main` because the remote contains a squash-style production commit plus brand docs while local still has three equivalent backend feature commits. Do not push local `main` until the branch is reconciled intentionally.
-- Tier 2 frontend prep is now the active local coordination task. Claude owns the builds; Codex owns backend contracts and smoke/QA support.
+- PR #22 (`fix(ui): brand-spec fonts — Cormorant Garamond + Alegreya Sans`) was squash-merged into `main` and deployed as GitHub Actions run `26833528435` for `.github/workflows/deploy.yml`; it completed successfully.
+- Post-deploy smoke: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
+- Tier 2 frontend is **built and deployed**: Account pricing display (`GET /api/stripe/prices`), Omen feedback hardening (`POST /api/omen/feedback`), team theme hydration (`GET /api/dashboard/summary.user.favorite_team`), Move History / Hall of Records (`GET /api/moves`), and League Standings (`GET /api/league/standings`) are all live.
 - Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Corvus should infer/enrich those signals during analysis rather than asking the user to supply them.
-- Tier 2 frontend folders are prepared for account subscription/pricing UI, league standings, move history, team-theme provider hydration, and trade component extraction.
+- Remaining launch work is QA/ops validation: confirm prod Supabase Vite env, validate Stripe dashboard prices and `APP_BASE_URL`, run Stripe test-mode validation, smoke-test HITL feedback and team preference in the app, and QA real Yahoo/Sleeper/ESPN Omen and League Standings flows.
 
-- Local backend tests pass 240/240 after the HITL, Move History, League Standings, team preference, and local Docker-run work.
+- Local backend tests pass 240/240.
 - Live Omen is canonical at `POST /api/omen/mvp-move` and uses body `{}` after dashboard status is `ready`.
 - Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
 - `GET /api/system/current-week` exists for public season/week context.
-- `GET /api/stripe/prices` exists as a read-only pricing display contract.
-- `POST /api/omen/feedback` is built locally for HITL feedback. It is auth-required and upserts `followed`, `user_stars`, and `user_note` to `moves` by `user_id + week_num + season`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
-- `GET /api/moves` is built locally for Move History. It is auth-required and returns `moves-history.v1`.
-- `GET /api/league/standings` is built locally for League Standings. It is auth-required and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
-- `PATCH /api/account/preferences` is built locally for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary now includes `user.favorite_team`.
+- `GET /api/stripe/prices` exists as a read-only pricing display contract; `Account.jsx` calls it live with a safe fallback.
+- `POST /api/omen/feedback` is deployed. It is auth-required and upserts `followed`, `user_stars`, and `user_note` to `moves` by `user_id + week_num + season`. The live Supabase `moves` repair is applied and idempotence-smoked.
+- `GET /api/moves` is deployed for Move History. It is auth-required and returns `moves-history.v1`.
+- `GET /api/league/standings` is deployed for League Standings. It is auth-required and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
+- `PATCH /api/account/preferences` is deployed for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary includes `user.favorite_team`.
 - Legacy compat routes from the frontend audit now return `410 legacy_route_retired`, except `/api/league/standings`, which has been restored as a canonical route.
 - Supabase SQL from `sql/corvus_rls_security.sql` has been applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
 - Remaining launch blockers are QA/ops: confirm prod Supabase env at deploy time, validate Stripe dashboard/return URLs, run Stripe test-mode validation, smoke-test HITL/team preference in the app, and QA real provider League Standings.

@@ -37,7 +37,13 @@
 
 - **Backend contract truth reconciled**: `Blueprints/handoffs/backend-to-frontend.md` now states the current tested Omen behavior. `POST /api/omen/mvp-move` has a Yahoo-first live path for authenticated, subscribed users with usable Yahoo league context. Sleeper and ESPN live Omen remain `pending_live_engine`.
 - **Current local backend verification**: `npm test` passes 199/199 locally.
-- **Frontend build blocker recorded**: primary `frontend/` build currently fails in `frontend/src/pages/Account.jsx`; this is assigned as a Layer 2 Claude/frontend task, not a backend blocker.
+- **Frontend build blocker recorded**: primary `frontend/` build currently fails in `frontend/src/pages/Account.jsx`; this is assigned as a Layer 2 Claude/frontend task, not a backend blocker. *(Resolved — build passes as of 2026-05-26. All subsequent builds are clean. Test baseline reached 240/240 by 2026-05-31.)*
+
+## Decisions Added 2026-06-02
+
+- **Tier 2 frontend deployed**: All five Tier 2 features (Account pricing display, Omen feedback hardening, team theme hydration, Move History / Hall of Records, League Standings) built and deployed in PR #22 (run `26833528435`). See `decisions.md` for the full closed decision entry.
+- **Font system corrected**: Production font stack is Cormorant Garamond (display/brand) + Alegreya Sans (body/UI) + DM Mono (data). PR #22 corrected the prior Barlow Condensed + DM Sans spec to align with `Brand/brand-system.md`.
+- **Production deploy confirmed**: PR #22 run `26833528435` completed successfully. Smoke: `/api/health` `status: ok`; `/api/ready` `status: ready`.
 
 ## Open Decisions
 

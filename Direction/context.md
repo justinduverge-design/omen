@@ -55,7 +55,7 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - Backend to frontend: `Blueprints/handoffs/backend-to-frontend.md`
 - Shared engineering decisions: `Blueprints/handoffs/decisions.md`
 
-## Current Build Truth — 2026-05-31
+## Current Build Truth — 2026-06-02
 
 - Live Omen MVP route exists at `POST /api/omen/mvp-move`.
 - Live Omen requires auth, Pro subscription, and a usable Yahoo, Sleeper, or ESPN league connection.
@@ -65,17 +65,18 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - `GET /api/system/current-week` provides public season/week context for routes that still need explicit week input.
 - Trade Analyzer is free and public.
 - Stripe checkout and portal return to `/account`.
-- `GET /api/stripe/prices` is a read-only pricing display contract sourced from configured Stripe Price IDs.
+- `GET /api/stripe/prices` is a read-only pricing display contract sourced from configured Stripe Price IDs; `Account.jsx` calls it live with a null-safe fallback.
 - `GET /api/dashboard/summary` now includes a safe `subscription` block for Account page UI.
 - `GET /api/dashboard/summary` now includes `user.favorite_team`, returning the saved favorite team or `null` when the user has not chosen one.
-- `POST /api/omen/feedback` is built locally for HITL feedback and upserts by user/week/season into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
-- `GET /api/moves` is built locally for Move History and returns `moves-history.v1`.
-- `GET /api/league/standings` is built locally for League Standings and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
-- `PATCH /api/account/preferences` is built locally for favorite NFL team preference and upserts into `profiles`; the Supabase `profiles.favorite_team` column is applied and verified.
+- `POST /api/omen/feedback` is deployed for HITL feedback and upserts by user/week/season into `moves`. The live Supabase `moves` repair is applied and idempotence-smoked. Frontend: `OmenFeedback.jsx` is wired and handles `200`, `401`, `422`, and `500`.
+- `GET /api/moves` is deployed for Move History and returns `moves-history.v1`. Frontend: `MoveHistory.jsx` is wired on the Football page "History" tab.
+- `GET /api/league/standings` is deployed for League Standings and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN. Frontend: `LeagueStandings.jsx` is mounted above the tab bar on the Football page.
+- `PATCH /api/account/preferences` is deployed for favorite NFL team preference and upserts into `profiles`; the Supabase `profiles.favorite_team` column is applied and verified. Frontend: `TeamTheme.jsx` calls the endpoint; `App.jsx` hydrates team theme from `summary.user.favorite_team` on sign-in.
 - Canonical frontend file `frontend/src/pages/OmenOfTheWeek.jsx` now handles `401`, `402`, and `pending_live_engine` defensively.
 - Legacy compat routes listed in the frontend handoff now return `410 legacy_route_retired` with canonical hints where available, except `/api/league/standings`, which has been restored as a canonical route.
 - `sql/corvus_rls_security.sql` has been applied and verified in Supabase as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, subscription date columns, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
-- Local backend test baseline: 240/240 passing on 2026-05-31.
+- Backend test baseline: 240/240.
+- Tier 2 frontend deployed (PR #22, run `26833528435`): Account pricing display, Omen feedback hardening, team theme hydration, Move History / Hall of Records, and League Standings are all live.
 
 ## Current Backend / Frontend Boundary
 

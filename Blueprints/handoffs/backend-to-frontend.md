@@ -84,10 +84,11 @@ Status: All three tracks complete and pushed to remote.
 Commits: Track A `31a308e` · Track B `385dbb4` · Track C `d16c48b`
 
 Track A — Font system + CSS token sweep:
-- Google Fonts import updated: Barlow Condensed (display), DM Sans (body/UI), DM Mono (data), Cormorant Garamond (brand-only).
-- `tailwind.config.js` fontFamily: `sans` = DM Sans, `display` = Barlow Condensed, `mono` = DM Mono, `serif` = Cormorant Garamond (brand-only).
+- Initial font spec: Barlow Condensed (display), DM Sans (body/UI), DM Mono (data), Cormorant Garamond (brand-only). **Superseded by PR #22** — see font system note below.
 - `index.css` base layer: `h1, h2 { @apply font-display; }`.
 - Full CSS token sweep across TradeAnalyzer.jsx, DraftAssistant.jsx, Account.jsx, Football.jsx — all hardcoded `amber-*`/`slate-*` replaced with `var(--color-*)` tokens. Team theme now applies universally.
+
+**Font system corrected by PR #22:** Production stack is Cormorant Garamond (`font-display` + `font-serif`, h1/h2 + brand moments) + Alegreya Sans (`font-sans`, body/UI) + DM Mono (`font-mono`, data). See `Brand/brand-system.md` and `decisions.md` for the authoritative spec.
 
 Track B — Team identity layer:
 - `nflTeams.js`: `cultureTag` + `wardRoom` fields added for all 32 teams.
@@ -105,7 +106,7 @@ Frontend action needed:
 
 ---
 
-## Active Context — Last updated 2026-06-01
+## Active Context — Last updated 2026-06-02
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door.
@@ -113,30 +114,33 @@ Frontend action needed:
 - Omen of the Week / MVP Move is the main event.
 - Start/Sit and waiver logic live inside Omen / MVP Move unless separated later.
 
-**Frontend state as of 2026-05-29 (commit `f989522`):**
+**Frontend state as of 2026-06-02 (PR #22, run `26833528435`):**
 - Navigation: hamburger + `NavDrawer` sidebar with all routes. Logo slot is a `[C]` monogram placeholder.
-- `/account/appearance` — Team Theme page live. Calls `PATCH /api/account/preferences`; backend route and `profiles.favorite_team` storage are ready.
-- `OmenFeedback` card wired below Omen success state. Calls `POST /api/omen/feedback`; backend route and `moves` HITL storage are ready.
+- `/account/appearance` — Team Theme page live. Calls `PATCH /api/account/preferences`; backend route and `profiles.favorite_team` storage are deployed.
+- `App.jsx` — hydrates team theme from `GET /api/dashboard/summary.user.favorite_team` on sign-in; falls back to localStorage.
+- `OmenFeedback.jsx` — wired below Omen success state. Calls `POST /api/omen/feedback`; handles `200`, `401`, `422`, `500`.
+- `MoveHistory.jsx` — wired to `GET /api/moves`; mounted on Football page "History" tab.
+- `LeagueStandings.jsx` — wired to `GET /api/league/standings`; mounted above the tab bar on Football page; handles all documented error codes.
+- `Account.jsx` — pricing display calls `GET /api/stripe/prices` via `fetchStripePrices()`; null-safe fallback in place.
 - `frontend/src/data/nflTeams.js` — 32-team color strategy in place.
 - `frontend/src/data/nflPlayers.js` — ~350-player roster for Trade Analyzer Phase 1 autocomplete.
 - Trade Analyzer Phase 1 intentionally omits user-entered Projection and Status fields; Corvus should infer/enrich those signals during analysis.
-- Tier 2 scaffold folders are prepared for Claude under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
 - Yahoo, Sleeper, and ESPN all matter.
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
 
-## Tier 2 Frontend Build Packet — 2026-06-01
+## Tier 2 Frontend Build Packet — 2026-06-02 (completed)
 
-Date: 2026-06-01
-Owner: Claude/frontend, with Codex/backend contract support
-Status: Backend contracts ready. Production deploy of latest `origin/main` was approved by Justin, completed as GitHub Actions run `26787476324`, and passed `/api/health` plus `/api/ready` smoke checks.
+Date: 2026-06-02
+Owner: Claude/frontend
+Status: **All five Tier 2 items built and deployed** as part of PR #22 (run `26833528435`).
 
-Build order:
-- Account pricing display: call `GET /api/stripe/prices`; show live configured prices when available, with safe fallback/unavailable copy.
-- Omen feedback hardening: `POST /api/omen/feedback` is live; remove stale 404/501 soft-success behavior and handle `200`, `401`, `422`, and `500`.
-- Team theme hydration: add app-level/provider-level hydration from `GET /api/dashboard/summary.user.favorite_team`, using localStorage as fallback.
-- Move History / Hall of Records: call `GET /api/moves` and render summary, empty, loading, and error states on `/football` by default.
-- League Standings: call `GET /api/league/standings`; render default connected league first, then add selector behavior only if frontend exposes a league/platform chooser.
+Completed:
+- Account pricing display: `Account.jsx` calls `GET /api/stripe/prices` via `fetchStripePrices()`; live prices shown when Stripe is configured; null-safe fallback copy for unavailable prices.
+- Omen feedback hardening: `OmenFeedback.jsx` calls real `POST /api/omen/feedback`; handles `200`, `401`, `422`, and `500`; renders below Omen success state only (not mock mode).
+- Team theme hydration: `App.jsx` reads `summary.user.favorite_team` on `SIGNED_IN` / `INITIAL_SESSION` auth events; applies CSS vars immediately; falls back to localStorage for returning users.
+- Move History / Hall of Records: `MoveHistory.jsx` calls `GET /api/moves`; renders summary stats, move rows, loading skeleton, empty state, and error/retry. Mounted on Football page "History" tab.
+- League Standings: `LeagueStandings.jsx` calls `GET /api/league/standings`; handles `league_not_connected` (panel hides), `*_reconnect_required` (reconnect CTA), and generic errors (retry CTA). Mounted above tab bar on Football page.
 
 No new backend endpoints are required for Tier 2. Future Phase 2 endpoints remain `GET /api/players/search` and `GET /api/trade/pulse`.
 
@@ -147,7 +151,7 @@ No new backend endpoints are required for Tier 2. Future Phase 2 endpoints remai
 Date: 2026-05-31
 Owner: Codex/backend
 Feature: Frontend Requests 21 and 19
-Status: Backend completed. Supabase SQL was applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy, `.env`, DNS, SSL, Nginx, Stripe, or production infrastructure action was performed.
+Status: Backend completed. Supabase SQL applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Frontend wired and deployed in PR #22 (run `26833528435`).
 
 ### HITL Feedback Loop — `POST /api/omen/feedback`
 
@@ -289,7 +293,7 @@ Verified local checks:
 Date: 2026-05-31
 Owner: Codex/backend
 Feature: Frontend Request 22
-Status: Built locally and verified. Live Supabase `moves` feedback columns and idempotence index were applied and smoke-tested through the Supabase connector. No deploy was performed.
+Status: Backend built and verified. Live Supabase `moves` feedback columns and idempotence index applied and smoke-tested. Frontend (`MoveHistory.jsx`) deployed in PR #22 (run `26833528435`).
 
 ### Move History — `GET /api/moves`
 
@@ -378,7 +382,7 @@ Files changed:
 Date: 2026-05-31
 Owner: Codex/backend
 Feature: Frontend Request 23
-Status: Built locally and verified. Canonical route is restored; the old `410 legacy_route_retired` handler for this path was removed from the legacy v2 router. No deploy was performed.
+Status: Backend built and verified. Canonical route restored; the old `410 legacy_route_retired` handler for this path was removed from the legacy v2 router. Frontend (`LeagueStandings.jsx`) deployed in PR #22 (run `26833528435`).
 
 ### League Standings — `GET /api/league/standings`
 

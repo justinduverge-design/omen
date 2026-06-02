@@ -1,6 +1,6 @@
 # Corvus Roadmap
 
-Last updated: 2026-06-01
+Last updated: 2026-06-02
 
 ## What Is Live
 
@@ -17,11 +17,11 @@ Last updated: 2026-06-01
 - Stripe backend surfaces.
 - `GET /api/system/current-week`.
 - `GET /api/stripe/prices`.
-- `POST /api/omen/feedback` in local backend code. Auth required; records HITL feedback into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
-- `GET /api/moves` in local backend code. Auth required; returns `moves-history.v1` with user move history, W/L/pending summary, and effectiveness aggregation.
-- `GET /api/league/standings` in local backend code. Auth required; returns `league-standings.v1` for Yahoo, Sleeper, and ESPN connected leagues.
-- `PATCH /api/account/preferences` in local backend code. Auth required; records `favorite_team` into `profiles`; the backing Supabase column is applied and verified.
-- `GET /api/dashboard/summary.user.favorite_team` in local backend code, returning the saved favorite team or `null` when the user has not chosen one.
+- `POST /api/omen/feedback`. Auth required; records HITL feedback into `moves`. Live Supabase `moves` repair applied and idempotence-smoked. Frontend: `OmenFeedback.jsx` wired.
+- `GET /api/moves`. Auth required; returns `moves-history.v1` with user move history, W/L/pending summary, and effectiveness aggregation. Frontend: `MoveHistory.jsx` wired.
+- `GET /api/league/standings`. Auth required; returns `league-standings.v1` for Yahoo, Sleeper, and ESPN connected leagues. Frontend: `LeagueStandings.jsx` wired.
+- `PATCH /api/account/preferences`. Auth required; records `favorite_team` into `profiles`; the backing Supabase column is applied and verified. Frontend: `TeamTheme.jsx` wired.
+- `GET /api/dashboard/summary.user.favorite_team`, returning the saved favorite team or `null` when the user has not chosen one. Frontend: `App.jsx` hydrates on sign-in.
 - Explicit `410 legacy_route_retired` responses for retired compat routes.
 - Oracle deploy lane for `corvus-api`.
 
@@ -35,26 +35,24 @@ Last updated: 2026-06-01
 
 ## Now
 
-- Keep context, handoffs, and route docs aligned with the 2026-05-31 backend contract truth.
-- Keep current API contracts stable after Requests 13-18.
-- Treat `sql/corvus_rls_security.sql` as applied and verified in Supabase as migration `20260531160851_apply_corvus_rls_security_full_setup`.
-- Use `POST /api/omen/mvp-move` as the only canonical Omen/MVP Move path.
-- Treat `GET /api/moves` as the canonical Move History path.
-- Treat `GET /api/league/standings` as the canonical League Standings path. The old retired `410` handler for this route has been removed.
-- Treat `PATCH /api/account/preferences` as code-ready and database-ready; next step is authenticated app smoke testing.
-- Treat Trade Analyzer Projection and Status as Corvus-owned analysis signals, not user-entered Phase 1 fields.
-- Treat Tier 2 frontend as prepared for Claude: account pricing, Omen feedback hardening, team theme hydration, Move History/Hall of Records, and League Standings.
-- Production deploy of latest `origin/main` was approved, completed through GitHub Actions run `26787476324`, and passed `/api/health` plus `/api/ready` smoke checks.
+- Keep context, handoffs, and route docs aligned with the 2026-06-02 production state.
+- Keep current API contracts stable.
+- `sql/corvus_rls_security.sql` is applied and verified in Supabase as migration `20260531160851_apply_corvus_rls_security_full_setup`.
+- `POST /api/omen/mvp-move` is the only canonical Omen/MVP Move path.
+- `GET /api/moves` is the canonical Move History path.
+- `GET /api/league/standings` is the canonical League Standings path. The old retired `410` handler for this route has been removed.
+- `PATCH /api/account/preferences` is deployed and database-ready; next step is authenticated app smoke testing.
+- Trade Analyzer Projection and Status are Corvus-owned analysis signals, not user-entered Phase 1 fields.
+- Tier 2 frontend is **built and deployed** (PR #22, run `26833528435`): Account pricing display, Omen feedback hardening, team theme hydration, Move History/Hall of Records, and League Standings are all live.
 
 ## Next
 
-1. Claude confirms remaining Tier 1 ops/env gates: production Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation.
-2. Claude builds Tier 2 frontend from prepared folders: account pricing, Omen feedback hardening, team theme provider hydration, Move History/Hall of Records, League Standings.
-3. Smoke-test dashboard summary, Omen feedback, moves, league standings, and account preferences against production with authenticated users.
-4. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN recovery, without logging cookie values.
-5. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
-6. Load test Omen and Trade Analyzer.
-7. Final launch readiness review.
+1. **Ops (Justin):** Confirm prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), set `APP_BASE_URL` to production domain, update Stripe price IDs to $5/mo and $20 season, run Stripe test-mode checkout and webhook validation.
+2. Smoke-test `PATCH /api/account/preferences`, team theme hydration, `POST /api/omen/feedback`, `GET /api/moves`, and `GET /api/league/standings` against production with authenticated users.
+3. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN reconnect recovery, without logging cookie values.
+4. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
+5. Load test Omen and Trade Analyzer.
+6. Final launch readiness review.
 
 ## Later
 

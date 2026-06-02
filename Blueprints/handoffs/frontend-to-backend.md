@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-06-01 (Tier 2 frontend prep; deploy approved)
+Last updated: 2026-06-02 (Tier 2 frontend deployed; docs reconciled post-PR-#22)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -55,15 +55,18 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - Request 21 is resolved: `POST /api/omen/feedback` is built and the `moves` HITL columns plus unique week/season idempotence index are applied in Supabase.
 - Request 22 is resolved: `GET /api/moves` is built with `moves-history.v1`.
 - Request 23 is resolved: canonical `GET /api/league/standings` is built with `league-standings.v1`; the old `410` behavior for this path was removed.
-- Supabase migration applied: `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy was performed.
+- Supabase migration applied: `20260531160851_apply_corvus_rls_security_full_setup`.
 
-### Tier 2 coordination update — 2026-06-01
-- Justin approved deploying latest production from `origin/main`; Codex triggered GitHub Actions run `26787476324`, which completed successfully.
+### Tier 2 coordination update — 2026-06-02 (completed)
+- PR #22 deployed as GitHub Actions run `26833528435`; completed successfully.
 - Post-deploy smoke passed: `/api/health` returned `status: ok`; `/api/ready` returned `status: ready`.
-- Claude will confirm the rest of Tier 1 ops/env gates: production Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation.
-- Tier 2 frontend scaffold folders are prepared under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
-- Tier 2 build queue: Account pricing display from `GET /api/stripe/prices`; Omen feedback hardening; team-theme provider hydration from `GET /api/dashboard/summary.user.favorite_team`; Move History from `GET /api/moves`; League Standings from `GET /api/league/standings`.
-- Current frontend inspection found no active `GET /api/stripe/prices` caller in `Account.jsx`; treat pricing display as Tier 2 frontend work even though an older note says it was wired.
+- Tier 2 frontend is **built and deployed**:
+  - `Account.jsx` calls `GET /api/stripe/prices` via `fetchStripePrices()` with null-safe fallback; prices display live from Stripe config.
+  - `OmenFeedback.jsx` calls real `POST /api/omen/feedback`; handles `200`, `401`, `422`, and `500`; renders below Omen success state.
+  - `App.jsx` reads `summary.user.favorite_team` on `SIGNED_IN` / `INITIAL_SESSION` and applies team CSS vars.
+  - `MoveHistory.jsx` calls `GET /api/moves`; mounted on Football page "History" tab.
+  - `LeagueStandings.jsx` calls `GET /api/league/standings`; mounted above the tab bar on Football page; handles all documented error codes.
+- Remaining open items are ops/Justin (see Open blockers above): prod Supabase Vite env, `APP_BASE_URL`, and Stripe test-mode validation.
 
 ### Open code questions
 - None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).

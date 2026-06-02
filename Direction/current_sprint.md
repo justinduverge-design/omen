@@ -1,6 +1,6 @@
 # Corvus Current Sprint
 
-Last updated: 2026-06-01 (Tier 2 prep + production deploy approved)
+Last updated: 2026-06-02 (post-PR-#22 reconciliation — Tier 2 frontend deployed)
 
 ## Current State
 
@@ -12,7 +12,7 @@ Corvus is live on the renamed route.
 - Production service name: `corvus-api`
 - Docker containers: `corvus_api`, `corvus_cron`
 - Test baseline: 240/240 passing locally on 2026-05-31
-- Production deploy approval: Justin approved deploying latest `origin/main` on 2026-06-01; GitHub Actions run `26787476324` completed successfully.
+- Production deploy: PR #22 merged and deployed as GitHub Actions run `26833528435`; completed successfully on 2026-06-02.
 - Post-deploy smoke: `/api/health` returned `status: ok`; `/api/ready` returned `status: ready`.
 
 ## Completed
@@ -38,25 +38,31 @@ Corvus is live on the renamed route.
 - **Move History backend:** `GET /api/moves` built locally. Auth required. Returns `moves-history.v1` with season/limit filters, user-only rows, W/L/pending summary, and backend-to-frontend column mapping.
 - **League Standings backend:** canonical `GET /api/league/standings` built locally. Auth required. Supports Yahoo, Sleeper, and ESPN provider paths; old retired `410` behavior for this route was removed from the legacy router.
 - **Supabase SQL applied:** `sql/corvus_rls_security.sql` was applied through the approved Supabase lane as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live: `profiles.favorite_team`, `moves` HITL columns and unique idempotence index, subscription date columns, waitlist insert-only policy, platform connection safe-column grants, and service-role Vault wrapper RPCs.
+- **Tier 2 frontend deployed (PR #22, run `26833528435`):**
+  - `Account.jsx` — Account pricing display wired to `GET /api/stripe/prices` with null-safe fallback.
+  - `OmenFeedback.jsx` — HITL feedback hardened to call real `POST /api/omen/feedback`; handles `200`, `401`, `422`, `500`.
+  - `App.jsx` — team theme hydration reads `summary.user.favorite_team` on every sign-in event.
+  - `MoveHistory.jsx` — Move History / Hall of Records wired to `GET /api/moves`; mounted on Football page "History" tab.
+  - `LeagueStandings.jsx` — League Standings wired to `GET /api/league/standings`; mounted above tabs on Football page.
+- **Font system corrected (PR #22):** Production font stack is Cormorant Garamond (display/brand), Alegreya Sans (body/UI), DM Mono (data/numbers).
 
 ## Now
 
 - Keep backend/frontend contracts aligned with tested app behavior.
 - Treat `POST /api/omen/mvp-move` as paid live Omen for subscribed users.
-- Treat the current Supabase SQL gate as cleared for `sql/corvus_rls_security.sql`; remaining work is app QA, provider validation, and deploy readiness.
-- Let frontend build Hall of Records and League Standings against the documented canonical contracts.
 - Trade Analyzer Projection and Status inputs are intentionally removed from the user form. Corvus owns projection/status enrichment during analysis.
-- Tier 2 frontend scaffold folders exist under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
 - Logo placeholder (`[C]` circle in header/drawer) is intentional — swap with SVG inline component when logo is ready.
+- All Tier 2 frontend work is complete. Focus is QA, ops validation, and launch readiness.
 
 ## Next
 
-1. Claude confirms remaining Tier 1 ops/env items: prod Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation plan.
-2. Claude builds Tier 2 frontend in this order: Account pricing display, Omen feedback hardening, team-theme provider hydration, Hall of Records/Move History, League Standings.
-3. Smoke-test `PATCH /api/account/preferences`, `GET /api/dashboard/summary.user.favorite_team`, `POST /api/omen/feedback`, `GET /api/moves`, and `GET /api/league/standings` against the running app.
-4. QA real Yahoo/Sleeper/ESPN Omen and League Standings flows, especially ESPN reconnect behavior, without logging cookie values.
-5. Run `/ui-ux-pro-max-skill` on Account page + ConnectLeague page before finalizing those screens.
-6. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
+1. **Ops (Justin):** Confirm prod Supabase Vite env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), set `APP_BASE_URL` to production domain in Infisical, update Stripe price IDs to match $5/mo and $20 season, run Stripe test-mode checkout and webhook validation.
+2. **Authenticated smoke:** `PATCH /api/account/preferences` → verify theme saves; `GET /api/dashboard/summary.user.favorite_team` → verify theme rehydrates on sign-in.
+3. **Authenticated smoke:** `POST /api/omen/feedback` → confirm feedback records and Omen HITL loop closes.
+4. **Authenticated smoke:** `GET /api/moves` and `GET /api/league/standings` → verify data returns for connected users.
+5. QA real Yahoo/Sleeper/ESPN Omen and League Standings flows, especially ESPN reconnect behavior, without logging cookie values.
+6. Run `/ui-ux-pro-max-skill` on Account page + ConnectLeague page before adding further features to those screens.
+7. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
 
 ## Guardrails
 
