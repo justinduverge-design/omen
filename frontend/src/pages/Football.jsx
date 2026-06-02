@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import LeagueStandings from '../components/league/LeagueStandings.jsx';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import MoveHistory from '../components/moves/MoveHistory.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import UpgradeState from '../components/ui/UpgradeState.jsx';
@@ -13,6 +15,7 @@ const TABS = [
   { id: 'trade', label: 'Trade Analyzer' },
   { id: 'omen', label: 'Omen of the Week' },
   { id: 'draft', label: 'Draft Assistant' },
+  { id: 'history', label: 'History' },
 ];
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
@@ -163,6 +166,9 @@ export default function Football() {
       case 'trade':
         return <TradeAnalyzer />;
 
+      case 'history':
+        return <MoveHistory />;
+
       default:
         return null;
     }
@@ -184,6 +190,8 @@ export default function Football() {
       </section>
 
       <PlatformStatusBar platforms={summary?.platforms} loading={summaryLoading} />
+
+      <LeagueStandings />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
       <div className="-mb-px flex overflow-x-auto border-b" style={{ borderColor: 'var(--color-border)' }}>

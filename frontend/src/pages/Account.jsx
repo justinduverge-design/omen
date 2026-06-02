@@ -23,6 +23,19 @@ const PLAN_OPTIONS = [
   },
 ];
 
+async function fetchStripePrices() {
+  try {
+    const data = await apiFetch('/api/stripe/prices');
+    const map = {};
+    for (const plan of data?.plans ?? []) {
+      if (plan.price?.display) map[plan.id] = plan.price.display;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 // ── Banner ────────────────────────────────────────────────────────────────────
 
 function SubscriptionBanner({ type, onDismiss }) {
@@ -64,7 +77,7 @@ function SubscriptionBanner({ type, onDismiss }) {
 
 // ── Plan picker ───────────────────────────────────────────────────────────────
 
-function PlanCard({ option, selected, onSelect }) {
+function PlanCard({ option, selected, onSelect, price }) {
   const isSelected = selected === option.id;
   return (
     <button
@@ -78,12 +91,19 @@ function PlanCard({ option, selected, onSelect }) {
       onClick={() => onSelect(option.id)}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-[var(--color-text-primary)]'}`}>
-          {option.label}
-        </p>
+        <div className="flex items-baseline gap-2">
+          <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-[var(--color-text-primary)]'}`}>
+            {option.label}
+          </p>
+          {price && (
+            <span className={`font-mono text-sm tabular-nums ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}>
+              {price}
+            </span>
+          )}
+        </div>
         <span
           className={[
-            'rounded-full border px-2 py-0.5 text-xs font-semibold',
+            'rounded-full border px-2 py-0.5 text-xs font-semibold shrink-0',
             isSelected
               ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
               : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)]',
@@ -99,13 +119,18 @@ function PlanCard({ option, selected, onSelect }) {
 
 function PlanPicker({ onCheckout, loading, error }) {
   const [selected, setSelected] = useState('monthly');
+  const [prices, setPrices] = useState({});
   const selectedOption = PLAN_OPTIONS.find((o) => o.id === selected);
+
+  useEffect(() => {
+    fetchStripePrices().then(setPrices);
+  }, []);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         {PLAN_OPTIONS.map((opt) => (
-          <PlanCard key={opt.id} option={opt} selected={selected} onSelect={setSelected} />
+          <PlanCard key={opt.id} option={opt} selected={selected} onSelect={setSelected} price={prices[opt.id]} />
         ))}
       </div>
 

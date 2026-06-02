@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApiError, apiFetch } from '../../lib/api.js';
 
 // SVG polygon points for the 5-pointed star
@@ -18,19 +19,8 @@ function Star({ filled }) {
   );
 }
 
-/**
- * OmenFeedback — The HITL ritual card shown below the Omen of the Week.
- *
- * Props:
- *   week       {number}  — current fantasy week (e.g. 8)
- *   season     {number}  — current season year (e.g. 2025)
- *   moveTitle  {string}  — the omen headline shown as context (e.g. "Start Barkley over Jones")
- *   moveSubtext {string} — secondary omen context (e.g. "PHI pace + favorable match")
- *
- * Backend: POST /api/omen/feedback (Request 21 — not yet built).
- * On 404 or 501: treated as soft success so UI completes the ritual.
- */
 export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
+  const navigate = useNavigate();
   const [followed, setFollowed] = useState(null); // null | true | false
   const [stars, setStars] = useState(0);
   const [note, setNote] = useState('');
@@ -55,11 +45,10 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
       });
       setDone(true);
     } catch (err) {
-      // Backend not yet built — treat 404/501 as soft success
-      if (err instanceof ApiError && (err.status === 404 || err.status === 501)) {
-        setDone(true);
+      if (err instanceof ApiError && err.status === 401) {
+        navigate('/login');
       } else {
-        setSubmitError(err?.message || 'Failed to save. Try again.');
+        setSubmitError("Couldn't save. Try again.");
       }
     } finally {
       setSubmitting(false);
