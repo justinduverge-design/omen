@@ -33,7 +33,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 ```text
 Direction/      Current product context, roadmap, sprint, decisions, risks
 Blueprints/     Product prompts, specs, handoffs, playbooks, and design/security docs
-Brand/          Corvus brand and positioning
+Brand/          Corvus brand system; `brand-system.md` is canonical, older drafts live in `Brand/archive/`
 References/     Research and historical context
 Solutions/      Finished product outputs and reports
 Archive/        Superseded product history
