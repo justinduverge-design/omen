@@ -4,6 +4,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { ensureAppUser } = require("../services/appUser");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -28,6 +29,8 @@ router.patch("/preferences", requireAuth, async (req, res, next) => {
     if (parsed.error) {
       return res.status(422).json({ error: parsed.error });
     }
+
+    await ensureAppUser(req.user);
 
     const { data, error } = await supabase
       .from("profiles")

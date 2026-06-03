@@ -26,6 +26,7 @@ const Stripe  = require("stripe");
 const config             = require("../config");
 const { logger }         = require("../middleware/logging");
 const { requireAuth }    = require("../middleware/auth");
+const { ensureAppUser }  = require("../services/appUser");
 const subscriptionSvc    = require("../services/subscription");
 
 if (!config.stripe.secretKey) {
@@ -262,6 +263,8 @@ router.post("/checkout", requireAuth, async (req, res, next) => {
       logger.error("Missing Stripe price ID for plan", { plan });
       return res.status(500).json({ error: "Server price config missing" });
     }
+
+    await ensureAppUser(req.user);
 
     const session = await stripe.checkout.sessions.create({
       mode:                 plan === "season" ? "payment" : "subscription",

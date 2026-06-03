@@ -105,6 +105,7 @@ function loadPlatformsRouter({
     upserts: [],
     deleted: [],
     rpcs: [],
+    appUsers: [],
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -116,8 +117,15 @@ function loadPlatformsRouter({
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
         requireAuth: (req, _res, next) => {
-          req.user = { id: "test-slops-user" };
+          req.user = { id: "test-slops-user", email: "user@example.com" };
           next();
+        },
+      };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
         },
       };
     }
@@ -313,6 +321,28 @@ test("POST /api/platforms/sleeper/resolve returns leagues for username-first flo
   }]);
 });
 
+test("POST /api/platforms/sleeper/connect bootstraps app user before saving connection", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "league-1" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, {
+    connected: true,
+    status: "connected",
+    platform: "sleeper",
+    username: "sleepy",
+    league_id: "league-1",
+  });
+  assert.deepEqual(state.appUsers, [{ id: "test-slops-user", email: "user@example.com" }]);
+  assert.equal(state.upserts[0].payload.user_id, "test-slops-user");
+  assert.equal(state.upserts[0].payload.platform, "sleeper");
+  assert.equal(state.upserts[0].payload.platform_user_id, "sleeper-user-1");
+  assert.equal(state.upserts[0].options.onConflict, "user_id,platform");
+});
+
 test("POST /api/sleeper/connect returns 400 for nonexistent username", async () => {
   const err = new Error("not found");
   err.status = 404;
@@ -324,6 +354,28 @@ test("POST /api/sleeper/connect returns 400 for nonexistent username", async () 
 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "Sleeper username not found");
+});
+
+test("POST /api/platforms/espn/connect bootstraps app user before saving connection", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: {
+      espn_s2: "espn-cookie",
+      swid: "{swid-cookie}",
+      league_id: "12345",
+      espn_team_id: "7",
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.connected, true);
+  assert.equal(res.body.platform, "espn");
+  assert.deepEqual(state.appUsers, [{ id: "test-slops-user", email: "user@example.com" }]);
+  assert.equal(state.upserts[0].payload.user_id, "test-slops-user");
+  assert.equal(state.upserts[0].payload.platform, "espn");
+  assert.equal(state.upserts[0].payload.league_id, "12345");
+  assert.equal(state.upserts[0].options.onConflict, "user_id,platform");
 });
 
 test("POST /api/espn/connect returns 422 if espn_s2 or swid missing", async () => {

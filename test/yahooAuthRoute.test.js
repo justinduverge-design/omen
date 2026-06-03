@@ -19,7 +19,7 @@ function makeSupabase(state) {
         if (token !== "valid-token") {
           return { data: { user: null }, error: new Error("invalid token") };
         }
-        return { data: { user: { id: "test-slops-user" } }, error: null };
+        return { data: { user: { id: "test-slops-user", email: "user@example.com" } }, error: null };
       },
     },
     from(table) {
@@ -82,6 +82,7 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
     authUrlStates: [],
     exchanges: [],
     persists: [],
+    appUsers: [],
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -116,6 +117,13 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
         },
         persistYahooTokens: async (userId, tokens, leagueId) => {
           state.persists.push({ userId, tokens, leagueId });
+        },
+      };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
         },
       };
     }
@@ -156,7 +164,11 @@ async function request(app, path, options = {}) {
   try {
     const res = await fetch(`http://127.0.0.1:${port}${path}`, {
       method: options.method || "GET",
-      headers: options.headers,
+      headers: {
+        ...(options.body ? { "content-type": "application/json" } : {}),
+        ...(options.headers || {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
       redirect: "manual",
     });
     const contentType = res.headers.get("content-type") || "";
@@ -177,6 +189,7 @@ test("GET /api/yahoo/auth rejects missing authorization", async () => {
   assert.equal(res.status, 401);
   assert.equal(res.body.error, "Missing bearer token");
   assert.deepEqual(state.upserts, []);
+  assert.deepEqual(state.appUsers, []);
 });
 
 test("GET /api/yahoo/auth uses authenticated user id for oauth_state", async () => {
@@ -191,8 +204,37 @@ test("GET /api/yahoo/auth uses authenticated user id for oauth_state", async () 
   assert.equal(state.upserts[0].platform, "yahoo");
   assert.equal(state.upserts[0].user_id, "test-slops-user");
   assert.equal(state.upserts[0].verifier, "league-1");
+  assert.deepEqual(state.appUsers, [{ id: "test-slops-user", email: "user@example.com" }]);
   assert.equal(state.authUrlStates[0], state.upserts[0].state);
   assert.equal(res.headers.get("location"), `https://yahoo.example/oauth?state=${state.upserts[0].state}`);
+});
+
+test("POST /api/yahoo/auth rejects missing authorization", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/yahoo/auth", { method: "POST" });
+
+  assert.equal(res.status, 401);
+  assert.equal(res.body.error, "Missing bearer token");
+  assert.deepEqual(state.upserts, []);
+  assert.deepEqual(state.appUsers, []);
+});
+
+test("POST /api/yahoo/auth returns auth URL and bootstraps app user", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/yahoo/auth", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: { leagueId: "league-1" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.authTokens[0], "valid-token");
+  assert.equal(state.upserts.length, 1);
+  assert.equal(state.upserts[0].platform, "yahoo");
+  assert.equal(state.upserts[0].user_id, "test-slops-user");
+  assert.equal(state.upserts[0].verifier, "league-1");
+  assert.deepEqual(state.appUsers, [{ id: "test-slops-user", email: "user@example.com" }]);
+  assert.deepEqual(res.body, { url: `https://yahoo.example/oauth?state=${state.upserts[0].state}` });
 });
 
 test("GET /api/yahoo/callback redirects back to account connect onboarding", async () => {

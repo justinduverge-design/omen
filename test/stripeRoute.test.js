@@ -28,6 +28,7 @@ function loadStripeRouter({
     portalPayload: null,
     activations: [],
     deactivations: [],
+    appUsers: [],
   };
 
   class FakeStripe {
@@ -107,6 +108,13 @@ function loadStripeRouter({
         requireAuth: (req, _res, next) => {
           req.user = { id: "user-1", email: "user@example.com" };
           next();
+        },
+      };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
         },
       };
     }
@@ -297,6 +305,7 @@ test("POST /api/stripe/checkout returns users to Account after successful checko
 
   assert.equal(res.status, 200);
   assert.equal(res.body.url, "https://stripe.example/checkout");
+  assert.deepEqual(state.appUsers, [{ id: "user-1", email: "user@example.com" }]);
   assert.equal(state.checkoutPayload.success_url, "https://corvus.example/account?subscribed=true");
   assert.equal(state.checkoutPayload.cancel_url, "https://corvus.example/account?cancelled=true");
 });
