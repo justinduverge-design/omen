@@ -233,6 +233,16 @@ function retiredLegacyRoute({ deprecatedEndpoint, canonicalEndpoint = null }) {
   };
 }
 
+function redirectLegacyRoute({ canonicalEndpoint }) {
+  return (req, res) => {
+    const queryIndex = req.originalUrl.indexOf("?");
+    const query = queryIndex === -1 ? "" : req.originalUrl.slice(queryIndex);
+    res.set("Deprecation", "true");
+    res.set("Link", `<${canonicalEndpoint}>; rel="canonical"`);
+    return res.redirect(302, `${canonicalEndpoint}${query}`);
+  };
+}
+
 router.post("/auth/sleeper/connect", retiredLegacyRoute({
   deprecatedEndpoint: "/api/auth/sleeper/connect",
   canonicalEndpoint: "/api/platforms/sleeper/connect",
@@ -243,8 +253,7 @@ router.get("/auth/yahoo/authorize", retiredLegacyRoute({
   canonicalEndpoint: "/api/yahoo/auth",
 }));
 
-router.get("/auth/yahoo/callback", retiredLegacyRoute({
-  deprecatedEndpoint: "/api/auth/yahoo/callback",
+router.get("/auth/yahoo/callback", redirectLegacyRoute({
   canonicalEndpoint: "/api/yahoo/callback",
 }));
 

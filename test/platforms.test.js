@@ -94,6 +94,7 @@ function loadPlatformsRouter({
   sleeperLeagues,
   sleeperRosterInfo,
   sleeperError,
+  espnError,
   espnValid = true,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
@@ -162,9 +163,10 @@ function loadPlatformsRouter({
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
       return {
-        buildNormalizedRoster: async () => (
-          espnValid ? { source: "espn", slots: { starters: [], bench: [], ir: [] } } : null
-        ),
+        buildNormalizedRoster: async () => {
+          if (espnError) throw espnError;
+          return espnValid ? { source: "espn", slots: { starters: [], bench: [], ir: [] } } : null;
+        },
       };
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -388,6 +390,45 @@ test("POST /api/espn/connect returns 422 if espn_s2 or swid missing", async () =
   assert.equal(res.status, 422);
   assert.equal(res.body.status, "error");
   assert.equal(res.body.code, "espn_cookies_required");
+});
+
+test("POST /api/platforms/espn/connect returns safe message when ESPN rejects cookies", async () => {
+  const { app } = buildApp({ espnValid: false });
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: {
+      espn_s2: "espn-cookie",
+      swid: "{swid-cookie}",
+      league_id: "12345",
+    },
+  });
+
+  assert.equal(res.status, 400);
+  assert.equal(res.body.status, "error");
+  assert.equal(res.body.code, "espn_cookies_invalid");
+  assert.match(res.body.message, /same signed-in ESPN browser session/i);
+  assert.equal(JSON.stringify(res.body).includes("espn-cookie"), false);
+  assert.equal(JSON.stringify(res.body).includes("swid-cookie"), false);
+});
+
+test("POST /api/platforms/espn/connect returns safe league/team message for ESPN 404", async () => {
+  const espnError = Object.assign(new Error("ESPN team not found in this league"), { status: 404 });
+  const { app } = buildApp({ espnError });
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: {
+      espn_s2: "espn-cookie",
+      swid: "{swid-cookie}",
+      league_id: "12345",
+    },
+  });
+
+  assert.equal(res.status, 400);
+  assert.equal(res.body.status, "error");
+  assert.equal(res.body.code, "espn_league_or_team_not_found");
+  assert.match(res.body.message, /Confirm the League ID/i);
+  assert.equal(JSON.stringify(res.body).includes("espn-cookie"), false);
+  assert.equal(JSON.stringify(res.body).includes("swid-cookie"), false);
 });
 
 test("DELETE /api/platforms/invalid returns 400", async () => {

@@ -45,7 +45,7 @@ export async function apiFetch(path, opts = {}) {
     : await res.text().catch(() => null);
 
   if (!res.ok) {
-    const message = parsed?.error || `Request failed: ${res.status}`;
+    const message = parsed?.message || parsed?.error || `Request failed: ${res.status}`;
     throw new ApiError(message, res.status, parsed);
   }
 
