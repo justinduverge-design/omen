@@ -60,5 +60,14 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Onboarding gate — redirect new users until setup is complete.
+  // Exempt /onboarding itself to avoid a redirect loop.
+  if (
+    !localStorage.getItem('corvus.onboarding.done') &&
+    location.pathname !== '/onboarding'
+  ) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return children;
 }
