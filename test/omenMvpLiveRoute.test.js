@@ -108,6 +108,7 @@ function loadOmenRouter({ subscribed = true } = {}) {
 
   const state = {
     authHeaders: [],
+    llmPayloads: [],
     subscriptionUserIds: [],
     liveUserIds: [],
   };
@@ -136,7 +137,18 @@ function loadOmenRouter({ subscribed = true } = {}) {
       };
     }
     if (request === "../services/llm" && parent?.filename === routePath) {
-      return { explainOmenMvpMove: async () => null };
+      return {
+        explainOmenMvpMove: async (payload) => {
+          state.llmPayloads.push(payload);
+          return {
+            summary: "Live Gemma says this is the move.",
+            why_it_matters: "It adds value without changing the rest of the roster.",
+            risk: "The risk is low.",
+            confidence: "Confidence is 82 out of 100.",
+            data_used: ["Yahoo roster"],
+          };
+        },
+      };
     }
     if (request === "../services/matchupService" && parent?.filename === routePath) {
       return { getDvpContext: async () => null };
@@ -216,4 +228,28 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized subs
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+});
+
+test("POST /api/omen/mvp-move skips LLM by default for live empty-body requests", async () => {
+  const { app, state } = buildApp({ subscribed: true });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.state, "success");
+  assert.deepEqual(state.llmPayloads, []);
+});
+
+test("POST /api/omen/mvp-move allows explicit live LLM opt-in", async () => {
+  const { app, state } = buildApp({ subscribed: true });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: true, matchup_dvp: false } },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.recommendation.explanation.summary, "Live Gemma says this is the move.");
+  assert.equal(state.llmPayloads.length, 1);
+  assert.equal(state.llmPayloads[0].state, "success");
 });

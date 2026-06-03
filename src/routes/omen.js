@@ -37,8 +37,10 @@ function isExplicitMockRequest(body = {}) {
   return body.use_mock_data === true || body.mock_state != null;
 }
 
-function includeLlmReasoning(body = {}) {
-  return body?.include_signals?.llm_reasoning !== false;
+function includeLlmReasoning(body = {}, { defaultEnabled = true } = {}) {
+  const value = body?.include_signals?.llm_reasoning;
+  if (value === undefined || value === null) return defaultEnabled;
+  return value !== false;
 }
 
 function includeMatchupDvp(body = {}) {
@@ -253,8 +255,8 @@ async function enrichWithDvp(response, body) {
   return response;
 }
 
-async function enrichWithLlm(response, body) {
-  if (!includeLlmReasoning(body)) return response;
+async function enrichWithLlm(response, body, options) {
+  if (!includeLlmReasoning(body, options)) return response;
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
   if (!LLM_ELIGIBLE_STATES.has(response.state)) return response;
 
@@ -353,7 +355,7 @@ router.post("/mvp-move", async (req, res) => {
       // DvP is an enhancement only. Keep deterministic response.
     }
     try {
-      await enrichWithLlm(result.body, req.body || {});
+      await enrichWithLlm(result.body, req.body || {}, { defaultEnabled: false });
     } catch {
       // LLM explanation is an enhancement only. Keep deterministic response.
     }

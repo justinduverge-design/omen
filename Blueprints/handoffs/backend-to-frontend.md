@@ -6,6 +6,40 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Omen Live Fast Default — 2026-06-03
+
+Date: 2026-06-03
+Owner: Codex/backend
+Feature: `POST /api/omen/mvp-move` launch latency
+Status: Backend patch prepared.
+
+Problem:
+- The mounted Omen frontend sends `POST /api/omen/mvp-move` with body `{}`.
+- Backend treated missing `include_signals.llm_reasoning` as enabled.
+- A cold or slow Gemma/Ollama call could therefore hold the whole live Omen response for roughly the LLM timeout window, even though the deterministic recommendation was already available.
+
+Contract adjustment:
+- Live non-mock requests now default to deterministic Omen only when `llm_reasoning` is omitted.
+- Explicit opt-in still works:
+
+```json
+{
+  "include_signals": {
+    "llm_reasoning": true
+  }
+}
+```
+
+Frontend action:
+- For launch, keep the current live request body as `{}`.
+- Do not add `llm_reasoning: true` to the mounted Omen call unless Justin explicitly accepts the slower Gemma wait.
+- The response contract is otherwise unchanged; fallback/template explanation remains valid.
+
+Verification:
+- Focused Omen tests passed: `node --test test/omenMvpLiveRoute.test.js test/omenRoute.test.js` — 36/36.
+
+---
+
 ## UX Audit + Font System + Team Identity — 2026-05-30
 
 Date: 2026-05-30
