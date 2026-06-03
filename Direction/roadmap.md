@@ -1,6 +1,6 @@
 # Corvus Roadmap
 
-Last updated: 2026-06-01
+Last updated: 2026-06-03
 
 ## What Is Live
 
@@ -15,6 +15,7 @@ Last updated: 2026-06-01
 - LLM reasoning through Gemma/Ollama when configured.
 - Supabase auth and Vault encryption.
 - Stripe backend surfaces.
+- Stripe sandbox checkout/webhook validation on production.
 - `GET /api/system/current-week`.
 - `GET /api/stripe/prices`.
 - `POST /api/omen/feedback` in local backend code. Auth required; records HITL feedback into `moves`. The approved live Supabase `moves` repair is applied and idempotence-smoked.
@@ -24,6 +25,7 @@ Last updated: 2026-06-01
 - `GET /api/dashboard/summary.user.favorite_team` in local backend code, returning the saved favorite team or `null` when the user has not chosen one.
 - Explicit `410 legacy_route_retired` responses for retired compat routes.
 - Oracle deploy lane for `corvus-api`.
+- Authenticated provider-connect bootstrap for Yahoo/Sleeper/ESPN/account/Omen/Stripe write paths.
 
 ## Current Infrastructure Route
 
@@ -44,16 +46,17 @@ Last updated: 2026-06-01
 - Treat `PATCH /api/account/preferences` as code-ready and database-ready; next step is authenticated app smoke testing.
 - Treat Trade Analyzer Projection and Status as Corvus-owned analysis signals, not user-entered Phase 1 fields.
 - Treat Tier 2 frontend as prepared for Claude: account pricing, Omen feedback hardening, team theme hydration, Move History/Hall of Records, and League Standings.
-- Production deploy of latest `origin/main` was approved, completed through GitHub Actions run `26787476324`, and passed `/api/health` plus `/api/ready` smoke checks.
+- Production deploys after PR #23 and PR #24 completed through GitHub Actions runs `26895012706` and `26897470052`; `/api/health`, `/api/ready`, and `GET /api/stripe/prices` smoke checks passed.
+- Treat Stripe sandbox checkout and webhook validation as complete: monthly test checkout returned to Account and marked `Corvus Pro · Active`.
 
 ## Next
 
-1. Claude confirms remaining Tier 1 ops/env gates: production Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation.
-2. Claude builds Tier 2 frontend from prepared folders: account pricing, Omen feedback hardening, team theme provider hydration, Move History/Hall of Records, League Standings.
-3. Smoke-test dashboard summary, Omen feedback, moves, league standings, and account preferences against production with authenticated users.
-4. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN recovery, without logging cookie values.
-5. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
-6. Load test Omen and Trade Analyzer.
+1. QA real Yahoo/Sleeper/ESPN League Standings and Omen flows, including ESPN recovery, without logging cookie values.
+2. Smoke-test dashboard summary, Omen feedback, moves, league standings, and account preferences against production with authenticated users.
+3. Claude continues Tier 2 frontend from prepared folders: Omen feedback hardening, team theme provider hydration, Move History/Hall of Records, and League Standings.
+4. Run `scripts/load-corvus-routes.js` against local/staging targets and save evidence.
+5. Load test Omen and Trade Analyzer.
+6. Before paid launch, switch Infisical from Stripe sandbox values back to live values and run final live-mode checkout/webhook readiness.
 7. Final launch readiness review.
 
 ## Later

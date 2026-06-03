@@ -37,7 +37,7 @@ Frontend action needed:
 
 ---
 
-## Active Context — Last updated 2026-06-01
+## Active Context — Last updated 2026-06-03
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door.
@@ -53,6 +53,9 @@ Frontend action needed:
 - `frontend/src/data/nflPlayers.js` — ~350-player roster for Trade Analyzer Phase 1 autocomplete.
 - Trade Analyzer Phase 1 intentionally omits user-entered Projection and Status fields; Corvus should infer/enrich those signals during analysis.
 - Tier 2 scaffold folders are prepared for Claude under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
+- PR #23 and PR #24 are merged and deployed. Current production includes provider/auth bootstrap and the live-schema checkout fix.
+- Stripe sandbox validation passed end to end on production: `GET /api/stripe/prices` returns `$5/mo` and `$20`, monthly Checkout opened, webhook returned, and Account rendered `Corvus Pro · Active`.
+- Remaining launch work is provider QA and frontend polish, not a missing Stripe checkout contract.
 - Yahoo, Sleeper, and ESPN all matter.
 - ESPN is essential but risky and needs recovery playbooks.
 - User-facing reasoning should stay plain-English.
@@ -61,7 +64,7 @@ Frontend action needed:
 
 Date: 2026-06-01
 Owner: Claude/frontend, with Codex/backend contract support
-Status: Backend contracts ready. Production deploy of latest `origin/main` was approved by Justin, completed as GitHub Actions run `26787476324`, and passed `/api/health` plus `/api/ready` smoke checks.
+Status: Backend contracts ready. Superseded production deploys completed as GitHub Actions runs `26895012706` and `26897470052`. Latest smoke passed `/api/health`, `/api/ready`, and Stripe sandbox price lookup.
 
 Build order:
 - Account pricing display: call `GET /api/stripe/prices`; show live configured prices when available, with safe fallback/unavailable copy.
@@ -74,12 +77,90 @@ No new backend endpoints are required for Tier 2. Future Phase 2 endpoints remai
 
 ---
 
+## Provider Auth Bootstrap + Stripe Sandbox Validation — 2026-06-03
+
+Date: 2026-06-03
+Owner: Codex/backend
+Feature: Provider connection auth bootstrap, Yahoo OAuth start, Stripe sandbox checkout validation
+Status: Deployed to production. PR #23 deployed through run `26895012706`; PR #24 deployed through run `26897470052`.
+
+### Backend write bootstrap
+
+Authenticated app-owned write routes now bootstrap a matching `public.users` row before writing dependent rows:
+
+- `POST /api/platforms/sleeper/connect`
+- `POST /api/platforms/espn/connect`
+- `POST /api/yahoo/auth`
+- `PATCH /api/account/preferences`
+- `POST /api/omen/feedback`
+- `POST /api/stripe/checkout`
+
+`ensureAppUser(authUser)` writes only:
+
+```json
+{
+  "id": "auth-user-uuid",
+  "email": "user@example.com"
+}
+```
+
+It intentionally does not write `updated_at` because the live `public.users` schema does not expose that column.
+
+### Yahoo OAuth start
+
+Frontend should use authenticated API start:
+
+```http
+POST /api/yahoo/auth
+```
+
+Request body:
+
+```json
+{
+  "leagueId": "optional"
+}
+```
+
+Response:
+
+```json
+{
+  "url": "https://api.login.yahoo.com/..."
+}
+```
+
+Frontend action:
+- Call with `apiFetch` so the Supabase bearer token is attached.
+- Redirect the browser to `url` from the JSON response.
+- Do not raw-navigate to `/api/yahoo/auth` from the browser for the normal frontend flow.
+
+### Stripe validation
+
+`GET /api/stripe/prices` is live and returned:
+
+- Monthly: `$5/mo`
+- Season Pass: `$20`
+
+Production was temporarily pointed at Stripe sandbox/test values through Infisical. Monthly sandbox checkout was completed with a Stripe test card. The webhook returned to Corvus and Account showed the active subscription state.
+
+Frontend action:
+- Account pricing display and checkout contract are valid.
+- Continue to show checkout/portal state from `GET /api/dashboard/summary.subscription`.
+- Before public paid launch, Justin/ops must switch Infisical back to live Stripe values and run final live-mode readiness.
+
+Known limitations:
+- The Stripe connector available to Codex showed the live account side, not the sandbox account objects; production app responses and user checkout were the validation source.
+- Provider QA still needs real logged-in browser testing for Yahoo, Sleeper, and ESPN.
+
+---
+
 ## HITL Feedback + Team Preference Contracts — 2026-05-31
 
 Date: 2026-05-31
 Owner: Codex/backend
 Feature: Frontend Requests 21 and 19
-Status: Backend completed. Supabase SQL was applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy, `.env`, DNS, SSL, Nginx, Stripe, or production infrastructure action was performed.
+Status: Backend completed. Supabase SQL was applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Originally no app deploy was performed for this 2026-05-31 handoff; the routes have since shipped in later production deploys.
 
 ### HITL Feedback Loop — `POST /api/omen/feedback`
 
@@ -199,7 +280,7 @@ Supabase application:
 
 Approval boundary:
 - Justin approved applying `sql/corvus_rls_security.sql`; the Supabase SQL gate for these contracts is cleared.
-- No app deploy or production infrastructure change was performed.
+- Historical note: no app deploy or production infrastructure change was performed during this 2026-05-31 SQL/backend handoff. Later production deploys shipped these contracts.
 
 Files changed:
 - `src/routes/omen.js`
@@ -430,7 +511,7 @@ Date: 2026-05-28
 
 Owner: Codex / backend
 
-Status: Superseded by completed contracts above. Requests 19, 21, 22, and 23 are built locally; `sql/corvus_rls_security.sql` has been applied and verified in Supabase; no app deploy was performed. Frontend should use the completed contract sections above for implementation.
+Status: Superseded by completed contracts above. Requests 19, 21, 22, and 23 are built and have since shipped through production deploys. `sql/corvus_rls_security.sql` has been applied and verified in Supabase. Frontend should use the completed contract sections above for implementation.
 
 ---
 

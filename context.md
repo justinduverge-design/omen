@@ -25,7 +25,16 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - Frontend/backend handoffs live in `Blueprints/handoffs/`.
 - App source and config live here, not in the parent `slops-saloon/` layer.
 
-## Latest Resume Point — 2026-06-01
+## Latest Resume Point — 2026-06-03
+
+- PR #23, `fix: bootstrap app users before provider writes`, was squash-merged to `main` and deployed through GitHub Actions run `26895012706`.
+- PR #24, `fix: align app user bootstrap with live schema`, was squash-merged to `main` and deployed through GitHub Actions run `26897470052`.
+- Post-deploy smoke after PR #24 passed: `/api/health` returned `status: ok` / `service: corvus-api`, `/api/ready` returned `status: ready`, and `GET /api/stripe/prices` returned sandbox Stripe prices `$5/mo` and `$20`.
+- Stripe sandbox validation passed end to end on production: monthly test checkout opened, completed with Stripe test mode, webhook returned to Corvus, and Account showed `Corvus Pro · Active`.
+- `APP_BASE_URL` should remain `https://slopssaloon.com` for live-site sandbox validation. Use localhost only for local dev with Stripe CLI forwarding.
+- `ensureAppUser(authUser)` now bootstraps only live-safe `public.users` identity fields (`id`, `email`) before app-owned writes. It intentionally does not write `updated_at` because the live `public.users` table does not currently expose that column.
+- Local backend test baseline after PR #24: `npm test` passed 246/246.
+- Remaining launch blockers are no longer Stripe checkout setup. Remaining work is provider QA, authenticated app smoke for Tier 2 surfaces, frontend polish, and final launch readiness.
 
 - Justin approved deploying the latest production build from `origin/main`. Codex triggered GitHub Actions deploy run `26787476324` for `.github/workflows/deploy.yml` on `main`; it completed successfully.
 - Post-deploy smoke passed from Codex on 2026-06-01: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
@@ -45,7 +54,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - `PATCH /api/account/preferences` is built locally for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary now includes `user.favorite_team`.
 - Legacy compat routes from the frontend audit now return `410 legacy_route_retired`, except `/api/league/standings`, which has been restored as a canonical route.
 - Supabase SQL from `sql/corvus_rls_security.sql` has been applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
-- Remaining launch blockers are QA/ops: confirm prod Supabase env at deploy time, validate Stripe dashboard/return URLs, run Stripe test-mode validation, smoke-test HITL/team preference in the app, and QA real provider League Standings.
+- Remaining launch blockers are QA/ops: smoke-test HITL/team preference in the app, QA real provider League Standings and Omen flows, and confirm launch-mode Stripe values before switching from sandbox back to live checkout.
 
 ## Read First
 

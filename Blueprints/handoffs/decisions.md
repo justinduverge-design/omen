@@ -28,6 +28,8 @@ Company-level decisions belong in the SLOPS OS layer. Division decisions belong 
 - Users need plain-English reasoning, not heavy math.
 - Trade Analyzer Phase 1 does not ask users for Projection or Status. Corvus should infer, enrich, or label those signals during analysis rather than requiring user-entered projections/statuses.
 - Tier 2 frontend default placement: Hall of Records/Move History and League Standings should start on `/football` unless Justin or Claude explicitly moves them.
+- Stripe sandbox checkout/webhook validation passed on production on 2026-06-03. `APP_BASE_URL` stays `https://slopssaloon.com` for live-site sandbox or live checkout validation. Before public paid launch, Justin/ops must intentionally switch Infisical from sandbox Stripe values back to live values and run final live-mode readiness. Closed 2026-06-03.
+- App-owned write routes should bootstrap `public.users` just-in-time from the authenticated Supabase user before writing dependent rows. The bootstrap writes only `id` and `email` to match the live schema unless Justin approves a schema migration. Closed 2026-06-03.
 
 ## Strategic Notes
 

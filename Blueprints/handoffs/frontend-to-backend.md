@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-06-01 (Tier 2 frontend prep; deploy approved)
+Last updated: 2026-06-03 (Stripe sandbox validated; provider QA next)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -47,26 +47,28 @@ Paired report: `Solutions/reports/corvus-launch-validation-frontend-evidence-202
 - ~~Request 15: `waitlist_signups` table~~ ✓ Already live in Supabase — 8 signups exist. RLS confirmed: insert-only for anon + authenticated.
 - ~~Request 16: `trial_ends_at` / `current_period_end` columns~~ ✓ Migration applied 2026-05-27.
 - ~~Stripe price IDs updated in Infisical.~~ ✓ Done.
-- ~~Stripe return URLs~~ ✓ Code already correct (`/account?subscribed=true`, `/account`). Set `APP_BASE_URL` in Infisical to your production domain (currently defaults to `http://localhost:3000`).
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation — Justin/ops.
+- ~~Stripe return URLs~~ ✓ Code already correct (`/account?subscribed=true`, `/account`). `APP_BASE_URL` should remain `https://slopssaloon.com` for live-site sandbox or live checkout validation.
+- ~~Stripe sandbox checkout/webhook validation~~ ✓ Passed 2026-06-03. Test monthly Checkout opened, completed, webhook returned, and Account showed `Corvus Pro · Active`.
+- ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` prod env confirmation~~ ✓ Production frontend auth/session flow is confirmed by successful logged-in Account checkout.
 
 ### Backend resolution update — 2026-05-31
 - Request 19 is resolved: `PATCH /api/account/preferences` is built, `GET /api/dashboard/summary.user.favorite_team` is available, and `profiles.favorite_team` is applied in Supabase.
 - Request 21 is resolved: `POST /api/omen/feedback` is built and the `moves` HITL columns plus unique week/season idempotence index are applied in Supabase.
 - Request 22 is resolved: `GET /api/moves` is built with `moves-history.v1`.
 - Request 23 is resolved: canonical `GET /api/league/standings` is built with `league-standings.v1`; the old `410` behavior for this path was removed.
-- Supabase migration applied: `20260531160851_apply_corvus_rls_security_full_setup`. No app deploy was performed.
+- Supabase migration applied: `20260531160851_apply_corvus_rls_security_full_setup`. Historical note: no app deploy was performed during that 2026-05-31 handoff; later deploys shipped the routes.
 
 ### Tier 2 coordination update — 2026-06-01
 - Justin approved deploying latest production from `origin/main`; Codex triggered GitHub Actions run `26787476324`, which completed successfully.
 - Post-deploy smoke passed: `/api/health` returned `status: ok`; `/api/ready` returned `status: ready`.
-- Claude will confirm the rest of Tier 1 ops/env gates: production Supabase Vite env, `APP_BASE_URL`, Stripe price IDs, and Stripe test-mode validation.
+- Superseding update 2026-06-03: PR #23 and PR #24 deployed through runs `26895012706` and `26897470052`; Stripe sandbox checkout/webhook validation passed.
+- Remaining launch QA now centers on authenticated provider flows, Omen feedback/team preference smoke, Move History, and League Standings.
 - Tier 2 frontend scaffold folders are prepared under `frontend/src/components/account`, `frontend/src/components/league`, `frontend/src/components/moves`, `frontend/src/components/trade`, and `frontend/src/providers`.
-- Tier 2 build queue: Account pricing display from `GET /api/stripe/prices`; Omen feedback hardening; team-theme provider hydration from `GET /api/dashboard/summary.user.favorite_team`; Move History from `GET /api/moves`; League Standings from `GET /api/league/standings`.
-- Current frontend inspection found no active `GET /api/stripe/prices` caller in `Account.jsx`; treat pricing display as Tier 2 frontend work even though an older note says it was wired.
+- Tier 2 build queue: Omen feedback hardening; team-theme provider hydration from `GET /api/dashboard/summary.user.favorite_team`; Move History from `GET /api/moves`; League Standings from `GET /api/league/standings`.
+- Account pricing display is now confirmed live: Account shows `$5/mo` and `$20` from `GET /api/stripe/prices`.
 
 ### Open code questions
-- None. All code work is complete. Remaining items are ops/Justin only (see Open blockers above).
+- No backend code gap is open for Stripe checkout. Provider QA may still reveal provider-specific follow-ups.
 
 ## Open Frontend Requests
 
@@ -601,11 +603,11 @@ Frontend launch validation confirms the `frontend/` app calls **zero legacy comp
 
 **Break-even confirmed:** Omen runs on a self-hosted Ollama instance (Gemma 3 4B) — zero per-call AI charges. $5/mo is comfortably viable.
 
-**Action still required from Justin (Stripe dashboard — ops, not code):**
+**Historical action, resolved for sandbox validation on 2026-06-03:**
 
-The frontend now displays `$5/mo` and `$20` but Stripe will charge whatever is on the Price objects in your Stripe dashboard. There is a price mismatch until you update those — users would see `$5` but get charged the old amount at checkout.
+The frontend displays `$5/mo` and `$20`. Production was temporarily pointed at Stripe sandbox values in Infisical, and sandbox checkout/webhook validation passed end to end. Before public paid launch, Justin/ops must intentionally switch Infisical back to live Stripe values and run a final live-mode readiness check.
 
-Steps required in the [Stripe dashboard](https://dashboard.stripe.com) before enabling checkout:
+Original dashboard guidance for live mode remains:
 
 1. Archive the old Monthly price (`STRIPE_MONTHLY_PRICE_ID`) — Stripe prices cannot be edited, only replaced.
 2. Create a new Monthly price: `$5.00 USD`, recurring monthly, 7-day trial.
@@ -614,7 +616,7 @@ Steps required in the [Stripe dashboard](https://dashboard.stripe.com) before en
 5. Create a new Season Pass price: `$20.00 USD`, one-time payment.
 6. Update `STRIPE_SEASON_PRICE_ID` in your environment to the new price ID.
 
-Do not enable public checkout until steps 3 and 6 are done.
+Do not enable public live-money checkout until steps 3 and 6 are done for the live Stripe environment.
 
 ---
 
