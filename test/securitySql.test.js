@@ -111,7 +111,7 @@ test("moves table supports idempotent HITL feedback upsert", () => {
   const sql = readRepoFile("sql", "corvus_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
-  assert.match(compactSql, /alter table public\.moves add column if not exists followed boolean, add column if not exists user_stars integer, add column if not exists user_note text, add column if not exists outcome text default 'pending';/i);
+  assert.match(compactSql, /alter table public\.moves add column if not exists followed boolean, add column if not exists user_stars integer, add column if not exists user_note text, add column if not exists outcome text default 'pending', add column if not exists eff integer;/i);
   assert.match(sql, /create unique index if not exists idx_moves_user_week_unique on public\.moves\s+\(user_id, week_num, season\);/i);
   assert.match(sql, /grant select, insert, update on table public\.moves to service_role;/i);
 });
