@@ -30,10 +30,13 @@ async function request(app, path, { method = "GET", body } = {}) {
       method,
       headers: body ? { "content-type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
+      redirect: "manual",
     });
+    const contentType = res.headers.get("content-type") || "";
     return {
       status: res.status,
-      body: await res.json(),
+      headers: res.headers,
+      body: contentType.includes("application/json") ? await res.json() : await res.text(),
     };
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -81,14 +84,12 @@ test("GET /api/auth/yahoo/authorize is retired with canonical route hint", async
   });
 });
 
-test("GET /api/auth/yahoo/callback is retired with canonical route hint", async () => {
+test("GET /api/auth/yahoo/callback redirects to canonical callback with query", async () => {
   const app = buildApp();
   const res = await request(app, "/api/auth/yahoo/callback?code=test&state=test");
 
-  assertRetiredRoute(res, {
-    deprecatedEndpoint: "/api/auth/yahoo/callback",
-    canonicalEndpoint: "/api/yahoo/callback",
-  });
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "/api/yahoo/callback?code=test&state=test");
 });
 
 test("POST /api/auth/espn/connect is retired with canonical route hint", async () => {

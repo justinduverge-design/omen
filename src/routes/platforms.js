@@ -189,10 +189,34 @@ async function sleeperLeagueSummary(league, sleeperUserId) {
 }
 
 async function validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId }) {
-  const roster = await espnAdapter.buildNormalizedRoster(leagueId, espn_s2, swid, 1, {
-    teamId: espnTeamId,
-  });
-  return roster && roster.source === "espn";
+  try {
+    const roster = await espnAdapter.buildNormalizedRoster(leagueId, espn_s2, swid, 1, {
+      teamId: espnTeamId,
+    });
+    return { valid: Boolean(roster && roster.source === "espn") };
+  } catch (error) {
+    return {
+      valid: false,
+      status: error?.status || error?.response?.status || null,
+      message: error?.message || "ESPN connection validation failed",
+    };
+  }
+}
+
+function espnValidationError(result) {
+  if (result?.status === 404 || /team not found|league/i.test(result?.message || "")) {
+    return {
+      status: "error",
+      code: "espn_league_or_team_not_found",
+      message: "ESPN accepted the request, but Corvus could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
+    };
+  }
+
+  return {
+    status: "error",
+    code: "espn_cookies_invalid",
+    message: "ESPN did not accept those cookies. Make sure espn_s2 and SWID were copied from the same signed-in ESPN browser session.",
+  };
 }
 
 async function getPlatformConnectionRows(userId) {
@@ -332,21 +356,9 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
 
     await ensureAppUser(req.user);
 
-    try {
-      const valid = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
-      if (!valid) {
-        return res.status(400).json({
-          status: "error",
-          code: "espn_cookies_invalid",
-          message: "ESPN did not accept those cookies. They may be expired or copied incorrectly.",
-        });
-      }
-    } catch (_e) {
-      return res.status(400).json({
-        status: "error",
-        code: "espn_cookies_invalid",
-        message: "ESPN did not accept those cookies. They may be expired or copied incorrectly.",
-      });
+    const validation = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
+    if (!validation.valid) {
+      return res.status(400).json(espnValidationError(validation));
     }
 
     const { data: existing, error: lookupError } = await supabase
