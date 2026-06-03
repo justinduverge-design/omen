@@ -52,8 +52,7 @@ test("ensureAppUser upserts only app-user identity fields", async () => {
   assert.equal(state.upserts[0].options.onConflict, "id");
   assert.equal(state.upserts[0].payload.id, "user-1");
   assert.equal(state.upserts[0].payload.email, "user@example.com");
-  assert.equal(typeof state.upserts[0].payload.updated_at, "string");
-  assert.deepEqual(Object.keys(state.upserts[0].payload).sort(), ["email", "id", "updated_at"]);
+  assert.deepEqual(Object.keys(state.upserts[0].payload).sort(), ["email", "id"]);
 });
 
 test("ensureAppUser rejects authenticated users without email", async () => {
