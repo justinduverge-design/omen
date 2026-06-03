@@ -12,6 +12,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
+const { ensureAppUser } = require("../services/appUser");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -266,6 +267,8 @@ router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
     if (!username) return res.status(422).json({ error: "sleeper_username required" });
     if (!leagueId) return res.status(422).json({ error: "league_id required" });
 
+    await ensureAppUser(req.user);
+
     let sleeperUser;
     try {
       sleeperUser = await sleeperAdapter.fetchSleeperUser(username);
@@ -327,6 +330,8 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
       });
     }
 
+    await ensureAppUser(req.user);
+
     try {
       const valid = await validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId });
       if (!valid) {
@@ -385,6 +390,7 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
       }],
     });
   } catch (e) {
+    if (e.status && e.status < 500) return next(e);
     logger.error("ESPN connect failed", { err: e.message });
     return next(new Error("ESPN connect failed"));
   }

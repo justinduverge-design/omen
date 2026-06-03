@@ -4,6 +4,7 @@ import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { supabase } from '../lib/supabase.js';
+import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
@@ -73,6 +74,9 @@ function ProGate() {
 }
 
 function TokenExpiredState() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   return (
     <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Waiver Wire</p>
@@ -82,11 +86,22 @@ function TokenExpiredState() {
       </p>
       <button
         className="mt-6 inline-flex items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
+        disabled={loading}
         type="button"
-        onClick={() => { window.location.href = '/api/yahoo/auth'; }}
+        onClick={async () => {
+          setError('');
+          setLoading(true);
+          try {
+            await startYahooOAuth();
+          } catch (err) {
+            setError(err.message || 'Could not reconnect Yahoo. Try again.');
+            setLoading(false);
+          }
+        }}
       >
-        Reconnect Yahoo →
+        {loading ? 'Reconnecting...' : 'Reconnect Yahoo →'}
       </button>
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
     </div>
   );
 }

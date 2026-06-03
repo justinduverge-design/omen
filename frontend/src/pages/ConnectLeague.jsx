@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
+import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -287,6 +288,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
 
 function YahooCard({ connected, disabled, onRefresh }) {
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   async function handleDisconnect() {
     setError('');
@@ -320,10 +322,21 @@ function YahooCard({ connected, disabled, onRefresh }) {
     >
       <CTAButton
         disabled={disabled}
-        onClick={() => { window.location.href = '/api/yahoo/auth'; }}
+        loading={loading}
+        onClick={async () => {
+          setError('');
+          setLoading(true);
+          try {
+            await startYahooOAuth();
+          } catch (err) {
+            setError(err.message || 'Could not start Yahoo connection. Try again.');
+            setLoading(false);
+          }
+        }}
       >
         Connect Yahoo
       </CTAButton>
+      <ErrorMsg message={error} />
     </PlatformCard>
   );
 }

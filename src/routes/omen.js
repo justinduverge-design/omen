@@ -4,6 +4,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { ensureAppUser } = require("../services/appUser");
 const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
@@ -319,6 +320,8 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
     }
 
     const { week, season, followed, stars, note } = parsed.value;
+    await ensureAppUser(req.user);
+
     const { data, error } = await supabase
       .from("moves")
       .upsert({

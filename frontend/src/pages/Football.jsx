@@ -7,6 +7,7 @@ import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
+import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
 import TradeAnalyzer from './TradeAnalyzer';
@@ -21,6 +22,9 @@ const TABS = [
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
 function PlatformStatusBar({ platforms, loading }) {
+  const [reconnecting, setReconnecting] = useState(null);
+  const [reconnectError, setReconnectError] = useState(null);
+
   if (loading) {
     return <div className="h-10 animate-pulse rounded-lg" style={{ background: 'var(--color-surface-2)' }} />;
   }
@@ -75,7 +79,7 @@ function PlatformStatusBar({ platforms, loading }) {
 
       {tokenExpired.map(([key]) => {
         const label = PLATFORM_LABELS[key] ?? key;
-        const reconnectUrl = key === 'yahoo' ? '/api/yahoo/auth' : null;
+        const canReconnect = key === 'yahoo';
         return (
           <div
             key={key}
@@ -85,16 +89,31 @@ function PlatformStatusBar({ platforms, loading }) {
             <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
               {label} session expired — reconnect to restore your live data
             </p>
-            {reconnectUrl && (
+            {canReconnect && (
               <button
                 className="ml-4 shrink-0 text-xs font-semibold transition-colors"
                 style={{ color: 'var(--color-accent)' }}
+                disabled={reconnecting === key}
                 type="button"
-                onClick={() => { window.location.href = reconnectUrl; }}
+                onClick={async () => {
+                  setReconnectError(null);
+                  setReconnecting(key);
+                  try {
+                    await startYahooOAuth();
+                  } catch (error) {
+                    setReconnectError(error.message || `Could not reconnect ${label}. Try again.`);
+                    setReconnecting(null);
+                  }
+                }}
               >
-                Reconnect {label} →
+                {reconnecting === key ? 'Reconnecting...' : `Reconnect ${label} →`}
               </button>
             )}
+            {reconnectError ? (
+              <p className="ml-4 text-xs" style={{ color: 'var(--color-risk-high)' }}>
+                {reconnectError}
+              </p>
+            ) : null}
           </div>
         );
       })}

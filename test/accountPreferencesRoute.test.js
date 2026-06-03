@@ -42,7 +42,7 @@ function loadAccountRouter({ profileRows = [], requireAuth } = {}) {
   const routePath = require.resolve("../src/routes/account");
   delete require.cache[routePath];
 
-  const state = { upserts: [] };
+  const state = { upserts: [], appUsers: [] };
   const fakeSupabase = {
     from(table) {
       if (table !== "profiles") throw new Error(`unexpected table ${table}`);
@@ -58,9 +58,16 @@ function loadAccountRouter({ profileRows = [], requireAuth } = {}) {
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
         requireAuth: requireAuth || ((req, _res, next) => {
-          req.user = { id: "user-1" };
+          req.user = { id: "user-1", email: "User@Example.com" };
           next();
         }),
+      };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
+        },
       };
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -124,6 +131,7 @@ test("PATCH /api/account/preferences upserts normalized favorite_team", async ()
   assert.deepEqual(res.body, { updated: true, favorite_team: "KC" });
   assert.equal(profileRows.length, 1);
   assert.deepEqual(profileRows[0], { user_id: "user-1", favorite_team: "KC" });
+  assert.deepEqual(state.appUsers, [{ id: "user-1", email: "User@Example.com" }]);
   assert.equal(state.upserts[0].options.onConflict, "user_id");
 });
 

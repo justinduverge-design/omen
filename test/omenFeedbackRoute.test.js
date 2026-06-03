@@ -47,7 +47,7 @@ function loadOmenRouter({ moveRows = [], requireAuth } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
-  const state = { upserts: [] };
+  const state = { upserts: [], appUsers: [] };
   const fakeSupabase = {
     from(table) {
       if (table !== "moves") throw new Error(`unexpected table ${table}`);
@@ -66,9 +66,16 @@ function loadOmenRouter({ moveRows = [], requireAuth } = {}) {
           if (!req.headers.authorization) {
             return _res.status(401).json({ error: "Missing bearer token" });
           }
-          req.user = { id: "user-1" };
+          req.user = { id: "user-1", email: "user@example.com" };
           return next();
         }),
+      };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
+        },
       };
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -150,6 +157,7 @@ test("POST /api/omen/feedback records a new move feedback row", async () => {
     user_stars: 4,
     user_note: "Changed lineup last minute, worked out",
   });
+  assert.deepEqual(state.appUsers, [{ id: "user-1", email: "user@example.com" }]);
   assert.equal(state.upserts[0].options.onConflict, "user_id,week_num,season");
 });
 

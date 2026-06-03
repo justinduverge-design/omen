@@ -23,6 +23,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { logger }              = require("../middleware/logging");
 const { requireAuth }         = require("../middleware/auth");
+const { ensureAppUser }       = require("../services/appUser");
 const { getYahooAuthUrl, exchangeYahooCode } = require("../middleware/yahooOAuth");
 const { getAuthenticatedYahooClient, persistYahooTokens } = require("../services/yahooAuth");
 const yahooAdapter            = require("../adapters/yahoo");
@@ -30,22 +31,39 @@ const yahooAdapter            = require("../adapters/yahoo");
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
+async function createYahooAuthStart(req, leagueId) {
+  const userId = req.user.id;
+  await ensureAppUser(req.user);
+
+  const state = crypto.randomBytes(16).toString("hex");
+  const { error } = await supabase.from("oauth_state").upsert({
+    state,
+    platform: "yahoo",
+    user_id: userId,
+    verifier: leagueId,
+    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  });
+  if (error) throw new Error(`OAuth state persistence failed: ${error.message}`);
+
+  return { url: getYahooAuthUrl(state) };
+}
+
 router.get("/auth", requireAuth, async (req, res, next) => {
   try {
-    const userId = req.user.id;
     const leagueId = req.query.leagueId || req.query.league_id || null;
+    const { url } = await createYahooAuthStart(req, leagueId);
+    return res.redirect(url);
+  } catch (e) {
+    logger.error("Yahoo OAuth authorize failed", { err: e.message });
+    return next(e);
+  }
+});
 
-    const state = crypto.randomBytes(16).toString("hex");
-    const { error } = await supabase.from("oauth_state").upsert({
-      state,
-      platform: "yahoo",
-      user_id: userId,
-      verifier: leagueId,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-    });
-    if (error) throw new Error(`OAuth state persistence failed: ${error.message}`);
-
-    return res.redirect(getYahooAuthUrl(state));
+router.post("/auth", requireAuth, async (req, res, next) => {
+  try {
+    const leagueId = req.body?.leagueId || req.body?.league_id || null;
+    const { url } = await createYahooAuthStart(req, leagueId);
+    return res.json({ url });
   } catch (e) {
     logger.error("Yahoo OAuth authorize failed", { err: e.message });
     return next(e);

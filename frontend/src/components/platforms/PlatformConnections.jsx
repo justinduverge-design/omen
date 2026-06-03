@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
+import { startYahooOAuth } from '../../lib/yahooAuth.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -199,6 +200,17 @@ export default function PlatformConnections({ recoveryState = null }) {
     }
   }
 
+  async function connectYahoo() {
+    setAction('yahoo');
+    setErrors((current) => ({ ...current, yahoo: null }));
+    try {
+      await startYahooOAuth();
+    } catch (error) {
+      setErrors((current) => ({ ...current, yahoo: errorMessage(error) }));
+      setAction(null);
+    }
+  }
+
   async function connectEspn(event) {
     event.preventDefault();
     setAction('espn');
@@ -255,13 +267,13 @@ export default function PlatformConnections({ recoveryState = null }) {
           <div className="space-y-3">
             <button
               className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
+              disabled={disabled}
               type="button"
-              onClick={() => {
-                window.location.href = '/api/yahoo/auth';
-              }}
+              onClick={connectYahoo}
             >
-              Connect Yahoo
+              {action === 'yahoo' ? 'Connecting...' : 'Connect Yahoo'}
             </button>
+            {errors.yahoo ? <p className="text-sm text-red-300">{errors.yahoo}</p> : null}
           </div>
         )}
       </Card>
