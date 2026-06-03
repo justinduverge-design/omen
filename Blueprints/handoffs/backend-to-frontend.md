@@ -40,6 +40,40 @@ Verification:
 
 ---
 
+## Move History `eff` Column Repair — 2026-06-03
+
+Date: 2026-06-03
+Owner: Codex/backend
+Feature: Request 24 — Move History / History tab production error
+Status: Resolved in Supabase and patched in repo SQL.
+
+Problem:
+- `GET /api/moves` selects `eff`.
+- Live `public.moves` did not have `eff` because the table existed before the CREATE TABLE definition included it, and the later ALTER repair block omitted it.
+- Result: History tab could show "Couldn't load history" from the missing-column backend failure.
+
+Supabase repair applied:
+
+```sql
+alter table public.moves
+  add column if not exists eff integer;
+```
+
+Applied migration: `20260603164638_add_moves_eff_column`
+
+Verification:
+- Live schema confirmed `public.moves.eff` exists as `integer`.
+- Production `/api/health` returned `status: ok` and `service: corvus-api`.
+- Production `/api/ready` returned `status: ready`.
+- Focused local tests passed: `node --test test/securitySql.test.js test/movesRoute.test.js` — 13/13.
+
+Frontend action:
+- No frontend code change is required for the missing-column failure.
+- `GET /api/moves` should now return an empty/list response instead of failing because `eff` is missing.
+- Treat `effectiveness_pct: null` as pending or unscored.
+
+---
+
 ## UX Audit + Font System + Team Identity — 2026-05-30
 
 Date: 2026-05-30

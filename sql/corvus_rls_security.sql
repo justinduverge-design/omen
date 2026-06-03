@@ -118,7 +118,8 @@ alter table public.moves
   add column if not exists followed   boolean,
   add column if not exists user_stars integer,
   add column if not exists user_note  text,
-  add column if not exists outcome    text default 'pending';
+  add column if not exists outcome    text default 'pending',
+  add column if not exists eff        integer;
 
 create table if not exists public.deletion_audit_log (
   id            uuid primary key default gen_random_uuid(),
