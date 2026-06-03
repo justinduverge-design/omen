@@ -9,6 +9,7 @@ import CorvusLanding from '../pages/CorvusLanding.jsx';
 import Landing from '../pages/Landing.jsx';
 import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
+import Onboarding from '../pages/Onboarding.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
 import TeamTheme from '../pages/TeamTheme.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
@@ -32,6 +33,16 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <TeamTheme />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Onboarding — protected; skips to /football if already complete */}
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
           </ProtectedRoute>
         }
       />

@@ -1,3 +1,4 @@
+import HelpButton from '../ui/HelpButton.jsx';
 import Footer from './Footer.jsx';
 import Header from './Header.jsx';
 
@@ -9,6 +10,7 @@ export default function AppLayout({ children }) {
         {children}
       </main>
       <Footer />
+      <HelpButton />
     </div>
   );
 }
