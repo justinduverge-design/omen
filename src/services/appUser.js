@@ -25,7 +25,6 @@ async function ensureAppUser(authUser) {
     .upsert({
       id: userId,
       email,
-      updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
 
   if (error) throw new Error(`app user bootstrap failed: ${error.message}`);
