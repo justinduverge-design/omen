@@ -135,6 +135,36 @@ test("GET /api/ready separates dependency readiness from health", async () => {
   assert.equal(res.body.checks.optional_services.llm_private, true);
 });
 
+test("GET /api/version returns safe deploy metadata", async () => {
+  const oldGithubSha = process.env.GITHUB_SHA;
+  const oldGithubRunId = process.env.GITHUB_RUN_ID;
+  process.env.GITHUB_SHA = "abc123";
+  process.env.GITHUB_RUN_ID = "98765";
+
+  try {
+    const app = buildApp();
+    const res = await request(app, "/api/version");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.contract_version, "system-version.v1");
+    assert.equal(res.body.service, "corvus-api");
+    assert.equal(res.body.package_name, "corvus");
+    assert.equal(res.body.package_version, "1.0.0");
+    assert.equal(res.body.git_sha, "abc123");
+    assert.equal(res.body.build_id, "98765");
+    assert.equal(typeof res.body.generated_at, "string");
+
+    const serialized = JSON.stringify(res.body).toLowerCase();
+    assert.equal(serialized.includes("service_key"), false);
+    assert.equal(serialized.includes("secret"), false);
+  } finally {
+    if (oldGithubSha == null) delete process.env.GITHUB_SHA;
+    else process.env.GITHUB_SHA = oldGithubSha;
+    if (oldGithubRunId == null) delete process.env.GITHUB_RUN_ID;
+    else process.env.GITHUB_RUN_ID = oldGithubRunId;
+  }
+});
+
 test("GET /api/session returns unauthenticated shell without auth", async () => {
   const app = buildApp();
   const res = await request(app, "/api/session");

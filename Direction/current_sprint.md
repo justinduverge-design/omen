@@ -53,10 +53,14 @@ Corvus is live on the renamed route.
 - Trade Analyzer Projection and Status inputs are intentionally removed from the user form. Corvus owns projection/status enrichment during analysis.
 - Logo placeholder (`[C]` circle in header/drawer) is intentional — swap with SVG inline component when logo is ready.
 - All Tier 2 frontend work is complete. Focus is QA, ops validation, and launch readiness.
+- Tier 2 authenticated production smoke passed on 2026-06-04 using `scripts/smoke-tier2-endpoints.js`: 13/13 checks passed. Verified Stripe prices (`$5/mo`, `$20`), protected-route 401 guards, dashboard favorite-team hydration, preference patch + restore (`BAL` then back to `MIA`), Omen feedback write for season `2099` week `1`, Move History retrieval of that smoke row, and Sleeper League Standings (`12` teams). Token was cleared from the shell after the run.
+- SPA cache headers fixed locally on 2026-06-04: `index.html` now sends `Cache-Control: no-cache, must-revalidate` while hashed Vite assets keep the long static cache. Regression coverage added in `test/spaCache.test.js`; full backend suite passes 244/244.
+- Backend polish batch completed locally on 2026-06-04: added `GET /api/version`, added `CORVUS_TIER2_CLEANUP=1` smoke cleanup mode, added `Blueprints/api-routes.md` canonical/retired route reference, and standardized League Standings error envelopes with user-safe `message` and `action` fields.
+- Stripe webhook hardening completed locally on 2026-06-04 after Stripe dashboard showed `500 ERR` for `customer.subscription.created`. Root cause: subscription-created events may arrive without Corvus `userId` metadata, even though the Checkout Session has it. Fix stamps metadata onto future monthly subscriptions, recovers user mapping from existing subscription rows or related Checkout Sessions, and acknowledges truly unmapped subscription events without activating or causing Stripe retry storms. Full backend suite passes 247/247. Needs normal deploy before resending the failed Stripe event.
 
 ## Next
 
-1. ~~Stripe price IDs~~ ✓ confirmed in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓ confirmed. ~~`APP_BASE_URL`~~ ✓ confirmed. **Run Stripe test-mode checkout and webhook validation** — this is the only remaining pre-launch ops gate.
+1. ~~Stripe price IDs~~ ✓ confirmed in Infisical. ~~$5/mo and $20 season prices~~ ✓ updated in Stripe dashboard. ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓ confirmed. ~~`APP_BASE_URL`~~ ✓ confirmed. **Deploy webhook hardening, resend the failed Stripe `customer.subscription.created` event, and confirm `200` delivery** — this is the only remaining pre-launch ops gate.
 2. **Authenticated smoke:** `PATCH /api/account/preferences` → verify theme saves; `GET /api/dashboard/summary.user.favorite_team` → verify theme rehydrates on sign-in.
 3. **Authenticated smoke:** `POST /api/omen/feedback` → confirm feedback records and Omen HITL loop closes.
 4. **Authenticated smoke:** `GET /api/moves` and `GET /api/league/standings` → verify data returns for connected users.

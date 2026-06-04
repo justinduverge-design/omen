@@ -146,6 +146,185 @@ No new backend endpoints are required for Tier 2. Future Phase 2 endpoints remai
 
 ---
 
+## Tier 2 Smoke Runner — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: Authenticated smoke testing for Tier 2 endpoints
+Status: Completed. Authenticated production smoke passed 13/13 checks on 2026-06-04.
+
+Script:
+
+```text
+scripts/smoke-tier2-endpoints.js
+```
+
+Endpoints covered:
+- `GET /api/stripe/prices`
+- `PATCH /api/account/preferences`
+- `POST /api/omen/feedback`
+- `GET /api/moves`
+- `GET /api/league/standings`
+
+Production evidence collected:
+- `GET /api/stripe/prices` returned `200`, `contract_version: stripe-prices.v1`, source `stripe`, with Monthly `$5/mo` and Season `$20`.
+- Protected endpoint auth guards returned `401` without a bearer token for preferences, feedback, moves, and standings.
+- Authenticated dashboard summary returned `200` with `user.favorite_team` present.
+- `PATCH /api/account/preferences` succeeded, changed favorite team to `BAL`, dashboard summary rehydrated `BAL`, then restore succeeded back to `MIA`.
+- `POST /api/omen/feedback` succeeded for smoke target season `2099`, week `1`; returned `recorded: true` with a move id present.
+- `GET /api/moves?season=2099&limit=5` returned `200`, `contract_version: moves-history.v1`, `total_count: 1`, and found the smoke feedback move.
+- `GET /api/league/standings` returned `200`, `contract_version: league-standings.v1`, platform `sleeper`, league id present, and `12` standings rows.
+- Auth token was cleared from the shell after the run.
+
+Local contract verification:
+- Targeted Tier 2 backend tests passed: 29/29.
+- Covered account preferences, Omen feedback idempotence, Move History, League Standings provider paths, and Stripe price/checkout/portal/webhook contracts.
+
+How to run the full authenticated smoke:
+
+```text
+CORVUS_BASE_URL=https://slopssaloon.com
+CORVUS_AUTH_TOKEN=<supabase-access-token>
+CORVUS_TIER2_WRITE=1
+node scripts/smoke-tier2-endpoints.js
+```
+
+Notes:
+- The script reads the token only from the process environment and never prints it.
+- `CORVUS_TIER2_WRITE=1` is required before the script writes preferences or feedback.
+- Preference smoke restores the original `summary.user.favorite_team`.
+- Feedback smoke writes/upserts one `moves` row for the authenticated user by `season + week`; use a test account for production smoke.
+- Default feedback target is season `2099`, week `1` to keep smoke data out of the current-season Move History unless overridden.
+
+Frontend action needed:
+- None. Tier 2 authenticated production smoke is complete.
+
+---
+
+## SPA Cache Header Fix — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: Production SPA deploy freshness
+Status: Fixed locally. Needs normal review/deploy before production headers change.
+
+Problem:
+- Production was serving `index.html` with `Cache-Control: public, max-age=2592000`.
+- Browsers could keep an old SPA shell after deploy, causing stale asset references or an unstyled page.
+
+Fix:
+- `index.html` now gets `Cache-Control: no-cache, must-revalidate`, plus legacy `Pragma: no-cache` and `Expires: 0`.
+- Static Vite assets keep the existing long cache behavior.
+- The same index cache headers are applied to both `/` via static serving and client-route SPA fallback responses.
+
+Files changed:
+- `src/middleware/spaCache.js`
+- `src/server.js`
+- `test/spaCache.test.js`
+
+Verification:
+- `node --test test/spaCache.test.js` passed 3/3.
+- `node --test` passed 244/244.
+
+Frontend action needed:
+- None.
+- After deploy, hard-refresh once if a browser already has the old 30-day cached shell.
+
+---
+
+## Stripe Webhook Hardening — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: Stripe subscription-created webhook recovery
+Status: Completed locally. Needs normal review/deploy before production webhook behavior changes.
+
+Why this happened:
+- Stripe dashboard showed `500 ERR` for `customer.subscription.created` delivered to `https://slopssaloon.com/api/stripe/webhook`.
+- The webhook activation path requires a Corvus `userId`.
+- Monthly checkout stored `userId` on the Checkout Session, but `customer.subscription.created` can arrive as a Subscription object without that metadata. That made the backend throw instead of persisting the subscription state.
+
+Changes:
+- `POST /api/stripe/checkout` now includes `subscription_data.metadata` for monthly subscriptions: `{ userId, plan }`.
+- Subscription-created/updated webhooks now recover `userId` from:
+  - Subscription metadata when present.
+  - Existing Corvus subscription row by Stripe customer id.
+  - Related Stripe Checkout Session metadata by subscription id.
+- If a subscription event still cannot be mapped to a Corvus user, the webhook logs a safe warning and returns `200` without activating a subscription. This avoids repeated Stripe retries for an event the backend cannot safely attach.
+
+Frontend action needed:
+- None. Account checkout, portal, and pricing contracts are unchanged.
+
+Ops action after deploy:
+- In Stripe dashboard, resend the failed `customer.subscription.created` event and confirm delivery returns `200`.
+- Then verify the test user's Account/dashboard subscription state.
+
+Verification:
+- `node --check src\routes\stripe.js`
+- `node --check src\services\subscription.js`
+- `node --test test\stripeRoute.test.js` passed 11/11.
+- `node --test` passed 247/247.
+
+---
+
+## Backend Polish Batch — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: Launch-readiness backend polish
+Status: Completed locally. Needs normal review/deploy before production behavior changes.
+
+Changes:
+- Added `GET /api/version` with safe deploy metadata under `system-version.v1`.
+- Added `CORVUS_TIER2_CLEANUP=1` mode to `scripts/smoke-tier2-endpoints.js`; after Move History verifies the season/week smoke row, cleanup mode rewrites that same idempotent row to `followed=false`, `stars=null`, and a cleanup note.
+- Added `Blueprints/api-routes.md` as the compact canonical/retired route reference.
+- Standardized League Standings error envelopes under `league-standings-error.v1` with stable `error`, `code`, `message`, `action`, and optional `platform`.
+- Cache-control tests for SPA `index.html` were already added as part of the SPA cache header fix.
+
+New endpoint:
+
+```text
+GET /api/version
+```
+
+Example response:
+
+```json
+{
+  "contract_version": "system-version.v1",
+  "service": "corvus-api",
+  "package_name": "corvus",
+  "package_version": "1.0.0",
+  "node_env": "production",
+  "git_sha": "commit-or-null",
+  "build_id": "build-or-null",
+  "image_tag": "image-or-null",
+  "generated_at": "2026-06-04T00:00:00.000Z"
+}
+```
+
+League Standings error example:
+
+```json
+{
+  "contract_version": "league-standings-error.v1",
+  "error": "No connected league found",
+  "code": "league_not_connected",
+  "message": "Connect a Yahoo, Sleeper, or ESPN league before viewing standings.",
+  "action": "connect_league"
+}
+```
+
+Frontend action needed:
+- No required changes. Existing `error` and `code` fields remain.
+- Claude may optionally use the new `message` and `action` fields for clearer League Standings recovery UI.
+
+Verification:
+- `node --test test\systemRoutes.test.js test\leagueStandingsRoute.test.js test\spaCache.test.js` passed 23/23.
+- `node --test` passed 244/244.
+
+---
+
 ## HITL Feedback + Team Preference Contracts — 2026-05-31
 
 Date: 2026-05-31

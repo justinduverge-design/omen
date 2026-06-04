@@ -3,6 +3,7 @@
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
+const packageJson = require("../../package.json");
 const {
   getHealthStatus,
   getPlatformStatus,
@@ -53,6 +54,27 @@ router.get("/ready", async (_req, res) => {
       critical_config: criticalConfig,
       optional_services: optionalServices,
     },
+  });
+});
+
+router.get("/version", (_req, res) => {
+  res.json({
+    contract_version: "system-version.v1",
+    service: "corvus-api",
+    package_name: packageJson.name,
+    package_version: packageJson.version,
+    node_env: config.nodeEnv,
+    git_sha: process.env.GITHUB_SHA
+      || process.env.COMMIT_SHA
+      || process.env.SOURCE_VERSION
+      || process.env.RENDER_GIT_COMMIT
+      || null,
+    build_id: process.env.GITHUB_RUN_ID
+      || process.env.BUILD_ID
+      || process.env.RENDER_SERVICE_ID
+      || null,
+    image_tag: process.env.IMAGE_TAG || process.env.GHCR_IMAGE_TAG || null,
+    generated_at: new Date().toISOString(),
   });
 });
 

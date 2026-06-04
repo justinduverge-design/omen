@@ -200,7 +200,10 @@ test("GET /api/league/standings rejects invalid platform", async () => {
   const res = await request(app, "/api/league/standings?platform=manual");
 
   assert.equal(res.status, 400);
+  assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "invalid_platform");
+  assert.equal(res.body.message, "League standings only supports Yahoo, Sleeper, or ESPN.");
+  assert.equal(res.body.action, "choose_supported_platform");
 });
 
 test("GET /api/league/standings returns 404 when no connected league exists", async () => {
@@ -209,7 +212,10 @@ test("GET /api/league/standings returns 404 when no connected league exists", as
   const res = await request(app, "/api/league/standings");
 
   assert.equal(res.status, 404);
+  assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "league_not_connected");
+  assert.equal(res.body.message, "Connect a Yahoo, Sleeper, or ESPN league before viewing standings.");
+  assert.equal(res.body.action, "connect_league");
 });
 
 test("GET /api/league/standings returns Sleeper standings", async () => {
@@ -307,7 +313,10 @@ test("GET /api/league/standings returns reconnect error for ESPN auth failures",
   const res = await request(app, "/api/league/standings?platform=espn");
 
   assert.equal(res.status, 401);
+  assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "espn_reconnect_required");
+  assert.equal(res.body.message, "Corvus needs a fresh connection before it can load these standings.");
+  assert.equal(res.body.action, "reconnect_platform");
 });
 
 test("GET /api/league/standings returns safe provider failure", async () => {
@@ -331,6 +340,9 @@ test("GET /api/league/standings returns safe provider failure", async () => {
   const res = await request(app, "/api/league/standings?platform=sleeper");
 
   assert.equal(res.status, 502);
+  assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "league_standings_provider_failed");
   assert.equal(res.body.platform, "sleeper");
+  assert.equal(res.body.message, "Corvus could not load standings from the league provider right now.");
+  assert.equal(res.body.action, "retry_later");
 });

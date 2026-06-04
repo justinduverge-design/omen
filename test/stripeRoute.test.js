@@ -11,6 +11,7 @@ const express = require("express");
 
 function loadStripeRouter({
   subscription = { stripe_customer_id: "cus_test" },
+  subscriptionByCustomer = null,
   webhookEvent = { type: "noop", data: { object: {} } },
   stripeConfig = {
     secretKey: "sk_test",
@@ -18,6 +19,12 @@ function loadStripeRouter({
     monthlyPriceId: "price_monthly",
     seasonPriceId: "price_season",
   },
+  checkoutSessions = [
+    {
+      customer: "cus_test",
+      metadata: { userId: "user-1", plan: "monthly" },
+    },
+  ],
   priceLookupFailures = [],
 } = {}) {
   const routePath = require.resolve("../src/routes/stripe");
@@ -39,6 +46,7 @@ function loadStripeRouter({
             state.checkoutPayload = payload;
             return { url: "https://stripe.example/checkout" };
           },
+          list: async () => ({ data: checkoutSessions }),
         },
       };
       this.billingPortal = {
@@ -127,6 +135,7 @@ function loadStripeRouter({
           state.deactivations.push(payload);
         },
         getByUserId: async () => subscription,
+        getByStripeCustomerId: async () => subscriptionByCustomer,
       };
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -308,6 +317,10 @@ test("POST /api/stripe/checkout returns users to Account after successful checko
   assert.deepEqual(state.appUsers, [{ id: "user-1", email: "user@example.com" }]);
   assert.equal(state.checkoutPayload.success_url, "https://corvus.example/account?subscribed=true");
   assert.equal(state.checkoutPayload.cancel_url, "https://corvus.example/account?cancelled=true");
+  assert.deepEqual(state.checkoutPayload.subscription_data, {
+    trial_period_days: 7,
+    metadata: { userId: "user-1", plan: "monthly" },
+  });
 });
 
 test("POST /api/stripe/portal returns users to Account after billing management", async () => {
@@ -347,6 +360,85 @@ test("POST /api/stripe/webhook persists checkout subscription trial metadata", a
     expiresAt: 1782864000,
     canceledAt: null,
   });
+});
+
+test("POST /api/stripe/webhook recovers subscription metadata from checkout session lookup", async () => {
+  const { app, state } = buildWebhookApp({
+    webhookEvent: {
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_test",
+          customer: "cus_test",
+          status: "trialing",
+          trial_end: 1780272000,
+          current_period_end: 1782864000,
+          metadata: {},
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(state.activations[0], {
+    userId: "user-1",
+    plan: "monthly",
+    stripeCustomerId: "cus_test",
+    status: "trialing",
+    trialEndsAt: 1780272000,
+    currentPeriodEnd: 1782864000,
+    expiresAt: 1782864000,
+    canceledAt: null,
+  });
+});
+
+test("POST /api/stripe/webhook recovers subscription metadata from existing customer record", async () => {
+  const { app, state } = buildWebhookApp({
+    subscriptionByCustomer: { user_id: "user-2", plan: "monthly" },
+    checkoutSessions: [],
+    webhookEvent: {
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_test",
+          customer: "cus_test",
+          status: "active",
+          current_period_end: 1782864000,
+          metadata: {},
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.equal(state.activations[0].userId, "user-2");
+  assert.equal(state.activations[0].plan, "monthly");
+});
+
+test("POST /api/stripe/webhook acknowledges unmapped subscription events without activating", async () => {
+  const { app, state } = buildWebhookApp({
+    checkoutSessions: [],
+    webhookEvent: {
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_orphan",
+          customer: "cus_orphan",
+          status: "trialing",
+          metadata: {},
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.equal(state.activations.length, 0);
 });
 
 test("POST /api/stripe/webhook maps payment failure to a non-subscribed state", async () => {

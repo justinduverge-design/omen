@@ -101,4 +101,21 @@ async function getByUserId(userId) {
   return data || null;
 }
 
-module.exports = { activate, deactivate, getByUserId, isPaidStatus, isoOrNull };
+async function getByStripeCustomerId(stripeCustomerId) {
+  if (!stripeCustomerId) return null;
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("stripe_customer_id", stripeCustomerId)
+    .maybeSingle();
+  return data || null;
+}
+
+module.exports = {
+  activate,
+  deactivate,
+  getByStripeCustomerId,
+  getByUserId,
+  isPaidStatus,
+  isoOrNull,
+};

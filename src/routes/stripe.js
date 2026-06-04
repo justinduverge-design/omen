@@ -69,6 +69,38 @@ async function subscriptionForCheckoutSession(session) {
   });
 }
 
+async function subscriptionForSubscriptionEvent(subscription) {
+  const snapshot = subscriptionSnapshot(subscription);
+  if (snapshot.userId) return snapshot;
+
+  const existing = await subscriptionSvc.getByStripeCustomerId?.(subscription.customer);
+  if (existing?.user_id) {
+    return {
+      ...snapshot,
+      userId: existing.user_id,
+      plan: snapshot.plan || existing.plan,
+    };
+  }
+
+  if (subscription.id && stripe?.checkout?.sessions?.list) {
+    const sessions = await stripe.checkout.sessions.list({
+      subscription: subscription.id,
+      limit: 1,
+    });
+    const session = sessions?.data?.[0];
+    if (session?.metadata?.userId) {
+      return {
+        ...snapshot,
+        userId: session.metadata.userId,
+        plan: snapshot.plan || session.metadata.plan,
+        stripeCustomerId: snapshot.stripeCustomerId || session.customer,
+      };
+    }
+  }
+
+  return snapshot;
+}
+
 // =================================================================
 // Webhook router  (RAW body)
 // =================================================================
@@ -102,7 +134,17 @@ webhookRouter.post(
         }
         case "customer.subscription.created":
         case "customer.subscription.updated": {
-          await subscriptionSvc.activate(subscriptionSnapshot(event.data.object));
+          const subscription = event.data.object;
+          const snapshot = await subscriptionForSubscriptionEvent(subscription);
+          if (!snapshot.userId) {
+            logger.warn("Stripe subscription event missing user mapping", {
+              type: event.type,
+              subscriptionId: subscription.id,
+              stripeCustomerId: subscription.customer,
+            });
+            break;
+          }
+          await subscriptionSvc.activate(snapshot);
           break;
         }
         case "customer.subscription.deleted": {
@@ -275,7 +317,10 @@ router.post("/checkout", requireAuth, async (req, res, next) => {
       success_url:          `${config.appBaseUrl}/account?subscribed=true`,
       cancel_url:           `${config.appBaseUrl}/account?cancelled=true`,
       ...(plan === "monthly" && {
-        subscription_data: { trial_period_days: 7 },
+        subscription_data: {
+          trial_period_days: 7,
+          metadata: { userId, plan },
+        },
       }),
     });
 

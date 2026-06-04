@@ -25,6 +25,10 @@ const config  = require("./config");
 const systemRoutes = require("./routes/system");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
+  setSpaIndexCacheHeaders,
+  setSpaStaticCacheHeaders,
+} = require("./middleware/spaCache");
+const {
   helmetMiddleware,
   corsMiddleware,
   generalRateLimit,
@@ -110,10 +114,13 @@ const HAS_SPA = fs.existsSync(SPA_INDEX);
 
 if (HAS_SPA) {
   logger.info("Serving SPA from client/dist", { path: SPA_DIR });
-  // Static assets (JS, CSS, images) - immutable cache OK because Vite
-  // hashes filenames on every build (e.g. index-CAWhu1N_.js).
-  // index:true means express.static auto-serves index.html for "/".
-  app.use(express.static(SPA_DIR, { maxAge: "30d" }));
+  // Static assets (JS, CSS, images) can be cached because Vite hashes
+  // build outputs. The SPA shell must revalidate so deploys do not leave
+  // browsers stuck on an old index.html that points at stale assets.
+  app.use(express.static(SPA_DIR, {
+    maxAge: "30d",
+    setHeaders: setSpaStaticCacheHeaders,
+  }));
 } else {
   logger.warn("No SPA found at client/dist - falling back to JSON status");
   app.get("/", (req, res) => {
@@ -251,6 +258,7 @@ if (HAS_SPA) {
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     if (req.path.includes("."))       return next();  // missed static asset = 404
+    setSpaIndexCacheHeaders(res);
     res.sendFile(SPA_INDEX, (err) => {
       if (err) {
         logger.error("SPA sendFile failed", { err: err.message, path: req.path });

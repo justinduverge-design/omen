@@ -16,6 +16,28 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const PLATFORM_PRIORITY = ["yahoo", "sleeper", "espn"];
+const ERROR_COPY = Object.freeze({
+  invalid_platform: {
+    error: "Invalid platform",
+    message: "League standings only supports Yahoo, Sleeper, or ESPN.",
+    action: "choose_supported_platform",
+  },
+  league_not_connected: {
+    error: "No connected league found",
+    message: "Connect a Yahoo, Sleeper, or ESPN league before viewing standings.",
+    action: "connect_league",
+  },
+  reconnect_required: {
+    error: "League provider reconnect required",
+    message: "Corvus needs a fresh connection before it can load these standings.",
+    action: "reconnect_platform",
+  },
+  provider_failed: {
+    error: "League standings provider failed",
+    message: "Corvus could not load standings from the league provider right now.",
+    action: "retry_later",
+  },
+});
 
 function nowIso() {
   return new Date().toISOString();
@@ -131,15 +153,30 @@ function providerAuthCode(platform) {
   return `${platform}_reconnect_required`;
 }
 
+function errorEnvelope({ code, status, platform = null }) {
+  const copy = ERROR_COPY[code]
+    || (code?.endsWith("_reconnect_required") ? ERROR_COPY.reconnect_required : null)
+    || ERROR_COPY.provider_failed;
+  return {
+    status,
+    body: {
+      contract_version: "league-standings-error.v1",
+      error: copy.error,
+      code,
+      message: copy.message,
+      action: copy.action,
+      ...(platform ? { platform } : {}),
+    },
+  };
+}
+
 router.get("/standings", requireAuth, async (req, res, next) => {
   const platform = normalizePlatform(req.query.platform);
   const leagueId = normalizeLeagueId(req.query.leagueId);
 
   if (platform && !VALID_PLATFORMS.has(platform)) {
-    return res.status(400).json({
-      error: "platform must be yahoo, sleeper, or espn",
-      code: "invalid_platform",
-    });
+    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    return res.status(result.status).json(result.body);
   }
 
   try {
@@ -148,10 +185,8 @@ router.get("/standings", requireAuth, async (req, res, next) => {
     const connection = selectConnection(rows, { platform, leagueId });
 
     if (!connection) {
-      return res.status(404).json({
-        error: "No connected league found",
-        code: "league_not_connected",
-      });
+      const result = errorEnvelope({ code: "league_not_connected", status: 404 });
+      return res.status(result.status).json(result.body);
     }
 
     try {
@@ -166,25 +201,28 @@ router.get("/standings", requireAuth, async (req, res, next) => {
       }
     } catch (e) {
       if (e?.status === 401 || e?.status === 404) {
-        return res.status(e.status).json({
-          error: "League provider reconnect required",
+        const result = errorEnvelope({
           code: providerAuthCode(connection.platform),
+          status: e.status,
           platform: connection.platform,
         });
+        return res.status(result.status).json(result.body);
       }
 
       logger.error("League standings provider failed", {
         err: e.message,
         platform: connection.platform,
       });
-      return res.status(502).json({
-        error: "League standings provider failed",
+      const result = errorEnvelope({
         code: "league_standings_provider_failed",
+        status: 502,
         platform: connection.platform,
       });
+      return res.status(result.status).json(result.body);
     }
 
-    return res.status(400).json({ error: "Unsupported platform", code: "invalid_platform" });
+    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    return res.status(result.status).json(result.body);
   } catch (e) {
     return next(e);
   }
@@ -193,3 +231,4 @@ router.get("/standings", requireAuth, async (req, res, next) => {
 module.exports = router;
 module.exports.selectConnection = selectConnection;
 module.exports.connectionUsable = connectionUsable;
+module.exports.errorEnvelope = errorEnvelope;
