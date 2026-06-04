@@ -229,13 +229,25 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
 
         {/* Drawer footer */}
         <div
-          className="px-5 py-4 text-xs"
-          style={{
-            borderTop: '1px solid var(--color-border)',
-            color: 'var(--color-text-tertiary)',
-          }}
+          className="px-5 py-4"
+          style={{ borderTop: '1px solid var(--color-border)' }}
         >
-          &copy; {new Date().getFullYear()} Slops Saloon
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                supabase.auth.signOut();
+              }}
+              className="mb-3 w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              Sign out
+            </button>
+          )}
+          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            &copy; {new Date().getFullYear()} Slops Saloon
+          </p>
         </div>
       </div>
     </>
