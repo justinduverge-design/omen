@@ -1,11 +1,10 @@
 "use strict";
 
-const path = require("path");
-
 const SPA_INDEX_CACHE_CONTROL = "no-cache, must-revalidate";
 
 function isSpaIndex(filePath = "") {
-  return path.basename(filePath).toLowerCase() === "index.html";
+  const normalizedPath = String(filePath).replaceAll("\\", "/");
+  return normalizedPath.split("/").pop().toLowerCase() === "index.html";
 }
 
 function setSpaIndexCacheHeaders(res) {
