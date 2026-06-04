@@ -8,18 +8,23 @@ function loadEspnAdapterWithTeams(teams) {
   const adapterPath = require.resolve("../src/adapters/espn");
   delete require.cache[adapterPath];
 
+  const { EventEmitter } = require("node:events");
+
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
-    if (request === "espn-fantasy-football-api/node" && parent?.filename === adapterPath) {
+    if (request === "https" && parent?.filename === adapterPath) {
       return {
-        Client: class MockClient {
-          constructor(options) {
-            this.options = options;
-          }
-
-          async getTeamsAtWeek() {
-            return teams;
-          }
+        request: (_options, callback) => {
+          const body = JSON.stringify({ teams });
+          const req = new EventEmitter();
+          req.end = () => {
+            const res = new EventEmitter();
+            res.statusCode = 200;
+            callback(res);
+            res.emit("data", Buffer.from(body));
+            res.emit("end");
+          };
+          return req;
         },
       };
     }
