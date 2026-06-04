@@ -6,6 +6,46 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## ESPN Connect Input Normalization — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: ESPN guided connect recovery
+Status: Completed locally. Not deployed.
+
+Context:
+- Justin was signed into `https://fantasy.espn.com/football/league?leagueId=2114292181`.
+- ESPN's own league API returned JSON in the same browser session, proving the browser session and league id were valid.
+- Corvus still returned the user-facing `espn_cookies_invalid` error from `POST /api/platforms/espn/connect`.
+
+Root cause:
+- Backend accepted only raw cookie values and a raw numeric league id.
+- Real browser copy flows can produce `espn_s2=...`, `SWID=...`, trailing semicolons/spaces, URL-encoded SWID braces, or a full ESPN league URL.
+- Those pasted formats were sent to ESPN as malformed cookie values, making a valid ESPN session look invalid.
+
+Patch completed:
+- `POST /api/platforms/espn/connect` now normalizes ESPN inputs before validation and Vault storage.
+- Accepted ESPN S2 formats now include raw value, `espn_s2=<value>`, and cookie-header style fragments.
+- Accepted SWID formats now include raw `{uuid}`, `SWID={uuid}`, and URL-encoded `%7Buuid%7D`.
+- Accepted league id formats now include raw numeric id, `leagueId=<id>`, `league_id=<id>`, and full ESPN league URLs.
+- Raw ESPN cookies are still never logged, echoed, or exposed in responses.
+
+Contract impact:
+- No frontend request or response shape changed.
+- Existing `ConnectLeague.jsx` can keep posting `{ espn_s2, swid, league_id }`.
+- Existing error handling remains valid. The backend still returns safe user-facing errors for missing cookies, missing league id, cookie rejection, and league/team mismatch.
+
+Verification:
+- Focused ESPN/platform tests passed: `node --test test/platforms.test.js test/espnAdapter.test.js test/leagueStandingsRoute.test.js` — 29/29.
+- Full backend suite passed: `npm test` — 262/262.
+
+Frontend action needed:
+- None required before deploy.
+- After backend deploy, retry ESPN connect from `/account/connect` using the same form. It should now tolerate copied cookie pairs and a full ESPN league URL.
+- Optional later polish: update helper copy to explicitly say Corvus accepts either raw values or copied `name=value` cookie text.
+
+---
+
 ## Stripe Webhook Recovery Follow-Up — 2026-06-04
 
 Date: 2026-06-04

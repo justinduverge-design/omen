@@ -106,6 +106,7 @@ function loadPlatformsRouter({
     upserts: [],
     deleted: [],
     rpcs: [],
+    espnCalls: [],
     appUsers: [],
   };
   const fakeSupabase = makeSupabase(state);
@@ -163,7 +164,8 @@ function loadPlatformsRouter({
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
       return {
-        buildNormalizedRoster: async () => {
+        buildNormalizedRoster: async (...args) => {
+          state.espnCalls.push(args);
           if (espnError) throw espnError;
           return espnValid ? { source: "espn", slots: { starters: [], bench: [], ir: [] } } : null;
         },
@@ -378,6 +380,30 @@ test("POST /api/platforms/espn/connect bootstraps app user before saving connect
   assert.equal(state.upserts[0].payload.platform, "espn");
   assert.equal(state.upserts[0].payload.league_id, "12345");
   assert.equal(state.upserts[0].options.onConflict, "user_id,platform");
+});
+
+test("POST /api/platforms/espn/connect accepts copied cookie pairs and league URL", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/platforms/espn/connect", {
+    method: "POST",
+    body: {
+      espn_s2: " espn_s2=espn-cookie; ",
+      swid: " SWID=%7Baaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee%7D; ",
+      league_id: "https://fantasy.espn.com/football/league?leagueId=2114292181",
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.connected, true);
+  assert.equal(state.espnCalls[0][0], "2114292181");
+  assert.equal(state.espnCalls[0][1], "espn-cookie");
+  assert.equal(state.espnCalls[0][2], "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}");
+  assert.equal(state.upserts[0].payload.league_id, "2114292181");
+  assert.equal(state.rpcs.find((rpc) => rpc.params.name === "espn_s2_test-slops-user").params.secret, "espn-cookie");
+  assert.equal(
+    state.rpcs.find((rpc) => rpc.params.name === "espn_swid_test-slops-user").params.secret,
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}"
+  );
 });
 
 test("POST /api/espn/connect returns 422 if espn_s2 or swid missing", async () => {

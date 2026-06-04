@@ -24,6 +24,69 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function stripWrappingQuotes(value) {
+  const trimmed = String(value || "").trim();
+  if (trimmed.length < 2) return trimmed;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  return ((first === "\"" && last === "\"") || (first === "'" && last === "'"))
+    ? trimmed.slice(1, -1).trim()
+    : trimmed;
+}
+
+function extractCookieValue(rawValue, cookieName) {
+  const target = cookieName.toLowerCase();
+  const raw = stripWrappingQuotes(rawValue).replace(/;+\s*$/, "");
+  if (!raw) return "";
+
+  for (const part of raw.split(";")) {
+    const index = part.indexOf("=");
+    if (index === -1) continue;
+    const name = part.slice(0, index).trim().toLowerCase();
+    if (name === target) {
+      return stripWrappingQuotes(part.slice(index + 1)).replace(/;+\s*$/, "");
+    }
+  }
+
+  const prefix = `${cookieName}=`;
+  if (raw.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return stripWrappingQuotes(raw.slice(prefix.length)).replace(/;+\s*$/, "");
+  }
+
+  return raw;
+}
+
+function normalizeSwidCookie(rawValue) {
+  let value = extractCookieValue(rawValue, "SWID");
+  try {
+    if (/%7b|%7d/i.test(value)) value = decodeURIComponent(value);
+  } catch {
+    // Keep the original value if a pasted cookie contains unrelated percent escapes.
+  }
+
+  const unwrapped = value.replace(/[{}]/g, "");
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(unwrapped);
+  return uuidLike ? `{${unwrapped}}` : value;
+}
+
+function normalizeEspnLeagueId(rawValue) {
+  const raw = stripWrappingQuotes(rawValue);
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+    const fromUrl = parsed.searchParams.get("leagueId") || parsed.searchParams.get("league_id");
+    if (fromUrl) return fromUrl.trim();
+  } catch {
+    // Plain ids and query fragments are handled below.
+  }
+
+  const queryMatch = raw.match(/(?:leagueId|league_id)=([^&\s]+)/i);
+  if (queryMatch) return queryMatch[1].trim();
+
+  return raw.trim();
+}
+
 function platformStatus(rows) {
   const byPlatform = new Map((rows || []).map((row) => [row.platform, row]));
   const yahoo = byPlatform.get("yahoo");
@@ -332,9 +395,9 @@ router.post("/espn/connect", requireAuth, (req, res, next) => {
   return next();
 }, async (req, res, next) => {
   try {
-    const espn_s2 = String(req.body?.espn_s2 || "");
-    const swid = String(req.body?.swid || "");
-    const leagueId = String(req.body?.league_id || "").trim();
+    const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
+    const swid = normalizeSwidCookie(req.body?.swid);
+    const leagueId = normalizeEspnLeagueId(req.body?.league_id);
     const espnTeamId = req.body?.espn_team_id == null
       ? null
       : String(req.body.espn_team_id).trim() || null;
