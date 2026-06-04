@@ -242,50 +242,59 @@ function swidWithBraces(swid) {
   return `{${s}}`;
 }
 
-function fetchEspnApi(leagueId, espn_s2, swid, views) {
-  const season = currentSeason();
-  const viewQuery = Array.isArray(views) ? views.join("&view=") : views;
-  const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=${viewQuery}`;
-  const cookieHeader = `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`;
-
-  const options = {
-    hostname: "fantasy.espn.com",
-    path,
-    method: "GET",
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Referer": "https://fantasy.espn.com/",
-      "Accept": "application/json",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Cookie": cookieHeader,
-    },
+function makeEspnHeaders(espn_s2, swid) {
+  return {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Referer": "https://fantasy.espn.com/",
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cookie": `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`,
   };
+}
 
+function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
   return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      const chunks = [];
-      res.on("data", (chunk) => chunks.push(chunk));
-      res.on("end", () => {
-        const body = Buffer.concat(chunks).toString("utf8");
-        if (res.statusCode === 401 || res.statusCode === 403) {
-          const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
-          err.status = 401;
-          return reject(err);
+    const req = https.request(
+      { hostname, path, method: "GET", headers: makeEspnHeaders(espn_s2, swid) },
+      (res) => {
+        if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) && res.headers.location && redirectsLeft > 0) {
+          res.resume();
+          try {
+            const loc = new URL(res.headers.location, `https://${hostname}`);
+            doEspnRequest(loc.hostname, loc.pathname + loc.search, espn_s2, swid, redirectsLeft - 1)
+              .then(resolve, reject);
+          } catch {
+            const err = new Error("ESPN API returned an invalid redirect");
+            err.status = 502;
+            reject(err);
+          }
+          return;
         }
-        if (res.statusCode !== 200) {
-          const err = new Error(`ESPN API returned HTTP ${res.statusCode}`);
-          err.status = res.statusCode >= 500 ? 502 : res.statusCode;
-          return reject(err);
-        }
-        try {
-          resolve(JSON.parse(body));
-        } catch {
-          const err = new Error("ESPN API returned non-JSON response");
-          err.status = 502;
-          reject(err);
-        }
-      });
-    });
+
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+          if (res.statusCode === 401 || res.statusCode === 403) {
+            const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
+            err.status = 401;
+            return reject(err);
+          }
+          if (res.statusCode !== 200) {
+            const err = new Error(`ESPN API returned HTTP ${res.statusCode}`);
+            err.status = res.statusCode >= 500 ? 502 : res.statusCode;
+            return reject(err);
+          }
+          try {
+            resolve(JSON.parse(body));
+          } catch {
+            const err = new Error("ESPN API returned non-JSON response");
+            err.status = 502;
+            reject(err);
+          }
+        });
+      }
+    );
     req.on("error", (err) => {
       err.status = 502;
       reject(err);
@@ -294,8 +303,17 @@ function fetchEspnApi(leagueId, espn_s2, swid, views) {
   });
 }
 
+function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId) {
+  const season = currentSeason();
+  const viewParams = (Array.isArray(views) ? views : [views]).map((v) => `view=${v}`).join("&");
+  const periodParam = scoringPeriodId != null ? `&scoringPeriodId=${scoringPeriodId}` : "";
+  const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?${viewParams}${periodParam}`;
+  return doEspnRequest("fantasy.espn.com", path, espn_s2, swid, 3);
+}
+
 async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"]);
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId);
   const teams = data?.teams || [];
   const currentTeam = findUserTeam(teams, swid, opts);
   const currentTeamId = teamId(currentTeam);
@@ -322,7 +340,7 @@ async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
 
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"]);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId);
   const teams = data?.teams || [];
   const team = findUserTeam(teams, swid, opts);
   if (!team) {
