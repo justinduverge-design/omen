@@ -86,7 +86,7 @@ function SkeletonTable() {
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
         <div
           key={i}
-          className="h-9 animate-pulse rounded"
+          className="h-9 animate-pulse motion-reduce:animate-none rounded"
           style={{ background: 'var(--color-surface-2)' }}
         />
       ))}

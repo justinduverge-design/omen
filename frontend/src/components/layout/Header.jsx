@@ -12,8 +12,9 @@ const NAV_SECTIONS = [
     label: 'Dashboard',
     auth: true,
     items: [
-      { label: 'Football',        to: '/football' },
+      { label: 'Football',         to: '/football' },
       { label: 'Omen of the Week', to: '/omen' },
+      { label: 'The Ledger',       to: '/ledger', note: 'Your record' },
     ],
   },
   {
@@ -28,7 +29,8 @@ const NAV_SECTIONS = [
     label: 'League',
     auth: true,
     items: [
-      { label: 'Connect League',  to: '/account/connect' },
+      { label: 'Standings',      to: '/standings' },
+      { label: 'Connect League', to: '/account/connect' },
     ],
   },
   {
@@ -69,7 +71,7 @@ function NavItem({ to, label, note, active, onClick }) {
     <Link
       to={to}
       onClick={onClick}
-      className="group flex items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+      className="group flex min-h-[44px] items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
       style={{
         color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
         background: active ? 'var(--color-accent-muted)' : 'transparent',
@@ -120,7 +122,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
     <>
       {/* Scrim */}
       <div
-        className="fixed inset-0 z-40 transition-opacity duration-300"
+        className="fixed inset-0 z-40 transition-opacity duration-300 motion-reduce:transition-none"
         style={{
           background: 'rgba(0,0,0,0.55)',
           opacity: open ? 1 : 0,
@@ -133,10 +135,11 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
       {/* Drawer panel */}
       <div
         ref={drawerRef}
+        id="corvus-nav-drawer"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col transition-transform duration-300 ease-in-out"
+        className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col transition-transform duration-300 ease-in-out motion-reduce:transition-none"
         style={{
           background: 'var(--color-surface-1)',
           borderRight: '1px solid var(--color-border)',
@@ -174,7 +177,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
             type="button"
             aria-label="Close navigation"
             onClick={onClose}
-            className="rounded-md p-2 transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             <CloseIcon />
@@ -291,7 +294,7 @@ export default function Header() {
             aria-expanded={drawerOpen}
             aria-controls="corvus-nav-drawer"
             onClick={openDrawer}
-            className="rounded-md p-1.5 transition-colors hover:bg-[var(--color-surface-1)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-1)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
             style={{ color: 'var(--color-text-secondary)' }}
           >
             <HamburgerIcon />

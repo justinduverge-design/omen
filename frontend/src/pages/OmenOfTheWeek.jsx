@@ -88,7 +88,7 @@ function LoadingState({ cry }) {
       </div>
 
       {/* Content skeleton */}
-      <div className="animate-pulse space-y-4">
+      <div className="animate-pulse motion-reduce:animate-none space-y-4">
         <div className="h-8 w-2/3 rounded-md bg-slate-800" />
         <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
           <div className="h-4 w-full rounded bg-slate-800" />
@@ -115,7 +115,7 @@ function ErrorState({ message, onRetry }) {
       <p className="text-sm font-semibold text-red-300">Failed to load Omen of the Week</p>
       <p className="mt-1 text-sm text-red-200/70">{message}</p>
       <button
-        className="mt-4 inline-flex items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
+        className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
         type="button"
         onClick={onRetry}
       >
@@ -161,7 +161,7 @@ function PlatformPromptState({ platform }) {
         {recovery?.message ?? 'Link Yahoo, Sleeper, or ESPN to receive your personalized weekly omen.'}
       </p>
       <a
-        className="mt-6 inline-flex items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
         href="/account"
       >
         {recovery?.cta ?? 'Connect a platform'} →
@@ -197,7 +197,7 @@ function RecoveryPanel({ platform, state }) {
       ) : null}
       {recovery?.cta ? (
         <a
-          className="mt-4 inline-flex items-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-400"
+          className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-400"
           href={accountHref}
         >
           {recovery.cta} →
@@ -254,7 +254,7 @@ function ConfidenceBar({ confidence }) {
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          className={`h-full rounded-full transition-all duration-500 motion-reduce:transition-none ${barColor}`}
           style={{ width: `${score}%` }}
         />
       </div>

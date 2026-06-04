@@ -48,7 +48,7 @@ export default function ProtectedRoute({ children }) {
         style={{ background: 'var(--color-bg)' }}
       >
         <span
-          className="h-5 w-5 animate-spin rounded-full border-2"
+          className="h-5 w-5 animate-spin motion-reduce:hidden rounded-full border-2"
           style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
         />
       </div>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { supabase } from '../lib/supabase.js';
-import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
@@ -64,7 +64,7 @@ function ProGate() {
         Waiver wire rankings require a Corvus Pro subscription. Upgrade to access VORP-ranked pickups for your roster.
       </p>
       <a
-        className="mt-6 inline-flex items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
         href="/account"
       >
         Upgrade to Pro →
@@ -74,9 +74,6 @@ function ProGate() {
 }
 
 function TokenExpiredState() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
   return (
     <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Waiver Wire</p>
@@ -85,23 +82,12 @@ function TokenExpiredState() {
         Reconnect your Yahoo account to restore your live waiver rankings.
       </p>
       <button
-        className="mt-6 inline-flex items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
-        disabled={loading}
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
         type="button"
-        onClick={async () => {
-          setError('');
-          setLoading(true);
-          try {
-            await startYahooOAuth();
-          } catch (err) {
-            setError(err.message || 'Could not reconnect Yahoo. Try again.');
-            setLoading(false);
-          }
-        }}
+        onClick={() => { window.location.href = '/api/yahoo/auth'; }}
       >
-        {loading ? 'Reconnecting...' : 'Reconnect Yahoo →'}
+        Reconnect Yahoo →
       </button>
-      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
     </div>
   );
 }
@@ -114,6 +100,12 @@ function AuthGate() {
       <p className="mt-2 text-sm leading-6 text-slate-400">
         Connect your fantasy platform and sign in to receive VORP-ranked waiver recommendations for your roster.
       </p>
+      <Link
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
+        to="/login"
+      >
+        Sign in →
+      </Link>
     </div>
   );
 }
@@ -176,8 +168,8 @@ export default function WaiverWire() {
 
   if (session === undefined) {
     return (
-      <div className="flex h-32 items-center justify-center">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-amber-400" />
+      <div className="flex h-32 items-center justify-center" aria-label="Loading" role="status">
+        <span className="h-5 w-5 animate-spin motion-reduce:hidden rounded-full border-2 border-slate-700 border-t-amber-400" aria-hidden="true" />
       </div>
     );
   }
@@ -192,7 +184,7 @@ export default function WaiverWire() {
         <label className="text-xs font-semibold text-slate-400">
           Week (optional)
           <input
-            className="mt-1 block w-24 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="mt-1 block w-24 min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
             max="18"
             min="1"
             placeholder="Current"
@@ -203,14 +195,14 @@ export default function WaiverWire() {
         </label>
 
         <button
-          className="inline-flex items-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={loading}
           type="submit"
         >
           {loading ? (
             <span
               aria-hidden="true"
-              className="h-4 w-4 animate-spin rounded-full border-2 border-amber-950/30 border-t-amber-950"
+              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
             />
           ) : null}
           {loading ? 'Loading' : 'Get Picks'}

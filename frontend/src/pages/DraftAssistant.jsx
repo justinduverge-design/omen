@@ -90,7 +90,7 @@ function ConfidenceBar({ score }) {
     <div className="flex items-center gap-3">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-surface-1)' }}>
         <div
-          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          className={`h-full rounded-full transition-all duration-500 motion-reduce:transition-none ${barColor}`}
           style={{ width: `${score}%` }}
         />
       </div>
@@ -110,8 +110,8 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
     return (
       <div className="flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
         <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
-        <div className="h-4 w-20 animate-pulse rounded" style={{ background: 'var(--color-surface-1)' }} />
-        <div className="h-4 w-16 animate-pulse rounded" style={{ background: 'var(--color-surface-1)' }} />
+        <div className="h-4 w-20 animate-pulse motion-reduce:animate-none rounded" style={{ background: 'var(--color-surface-1)' }} />
+        <div className="h-4 w-16 animate-pulse motion-reduce:animate-none rounded" style={{ background: 'var(--color-surface-1)' }} />
       </div>
     );
   }
@@ -253,7 +253,7 @@ function LoadingRecommendations() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="animate-pulse space-y-3 rounded-xl border p-5"
+          className="animate-pulse motion-reduce:animate-none space-y-3 rounded-xl border p-5"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
         >
           <div className="flex items-center gap-3">
@@ -382,7 +382,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Draft Position (1–12)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="12"
               min="1"
@@ -395,7 +395,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Current Round (1–15)
             <input
-              className="mt-2 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="15"
               min="1"
@@ -419,7 +419,7 @@ export default function DraftAssistant({ platforms }) {
               return (
                 <button
                   key={pos}
-                  className="rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
+                  className="inline-flex min-h-[44px] items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
                   style={isSelected
                     ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }
                     : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
@@ -441,7 +441,7 @@ export default function DraftAssistant({ platforms }) {
           {loading && (
             <span
               aria-hidden="true"
-              className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
+              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
             />
           )}
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}

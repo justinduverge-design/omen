@@ -179,7 +179,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Injury, lineup change, trusted the Omen..."
-            className="w-full bg-transparent pb-3 font-serif text-base outline-none transition-colors placeholder:italic"
+            className="w-full min-h-[44px] bg-transparent pb-3 font-serif text-base outline-none transition-colors placeholder:italic"
             style={{
               color: 'var(--color-text-primary)',
               borderBottom: `1px solid ${note ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -189,7 +189,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
 
         {/* Error */}
         {submitError && (
-          <p className="mb-4 text-sm" style={{ color: '#B66A6A' }}>
+          <p className="mb-4 text-sm text-red-400" role="alert">
             {submitError}
           </p>
         )}
@@ -197,6 +197,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
         {/* Submit */}
         <button
           type="button"
+          aria-busy={submitting}
           disabled={submitting}
           onClick={handleSubmit}
           className="w-full rounded-md font-serif text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"

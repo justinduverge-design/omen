@@ -17,6 +17,10 @@ class FakeProfileQuery {
   }
 
   upsert(payload, options = {}) {
+    if (this.state.profileError) {
+      this.result = null;
+      return this;
+    }
     this.state.upserts.push({ payload, options });
     const existingIndex = this.rows.findIndex((row) => row.user_id === payload.user_id);
     if (existingIndex >= 0) {
@@ -34,11 +38,11 @@ class FakeProfileQuery {
   }
 
   maybeSingle() {
-    return Promise.resolve({ data: this.result, error: null });
+    return Promise.resolve({ data: this.result, error: this.state.profileError });
   }
 }
 
-function loadAccountRouter({ profileRows = [], requireAuth } = {}) {
+function loadAccountRouter({ profileRows = [], profileError = null, requireAuth } = {}) {
   const routePath = require.resolve("../src/routes/account");
   delete require.cache[routePath];
 
@@ -46,6 +50,7 @@ function loadAccountRouter({ profileRows = [], requireAuth } = {}) {
   const fakeSupabase = {
     from(table) {
       if (table !== "profiles") throw new Error(`unexpected table ${table}`);
+      state.profileError = profileError;
       return new FakeProfileQuery(profileRows, state);
     },
   };
@@ -146,6 +151,23 @@ test("PATCH /api/account/preferences clears favorite_team with null", async () =
   assert.deepEqual(res.body, { updated: true, favorite_team: null });
   assert.equal(profileRows.length, 1);
   assert.equal(profileRows[0].favorite_team, null);
+});
+
+test("PATCH /api/account/preferences reports migration pending when favorite_team column is missing", async () => {
+  const { app, profileRows, state } = buildApp({
+    profileError: {
+      code: "PGRST204",
+      message: "Could not find the favorite_team column of profiles in the schema cache",
+    },
+  });
+
+  const res = await patch(app, "/api/account/preferences", { favorite_team: "KC" });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { updated: false, reason: "migration_pending" });
+  assert.deepEqual(state.appUsers, [{ id: "user-1", email: "User@Example.com" }]);
+  assert.equal(state.upserts.length, 0);
+  assert.equal(profileRows.length, 0);
 });
 
 test("PATCH /api/account/preferences rejects non-string favorite_team", async () => {

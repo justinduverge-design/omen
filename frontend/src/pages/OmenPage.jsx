@@ -26,7 +26,7 @@ function OmenHeader() {
 
 function LoadingGate() {
   return (
-    <div className="space-y-4 animate-pulse">
+    <div className="space-y-4 animate-pulse motion-reduce:animate-none">
       <div className="h-5 w-32 rounded-md" style={{ background: 'var(--color-surface-2)' }} />
       <div className="h-8 w-64 rounded-md" style={{ background: 'var(--color-surface-2)' }} />
       <div className="h-48 rounded-xl" style={{ background: 'var(--color-surface-2)' }} />

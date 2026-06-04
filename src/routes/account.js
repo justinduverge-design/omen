@@ -19,6 +19,17 @@ function normalizeFavoriteTeam(value) {
   return { value: normalized || null };
 }
 
+function isFavoriteTeamMigrationPending(error) {
+  const code = String(error?.code || "");
+  const text = [error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (code === "42703" || code === "PGRST204" || text.includes("favorite_team"))
+    && (text.includes("column") || text.includes("schema cache") || text.includes("does not exist"));
+}
+
 router.patch("/preferences", requireAuth, async (req, res, next) => {
   try {
     if (!Object.prototype.hasOwnProperty.call(req.body || {}, "favorite_team")) {
@@ -41,7 +52,10 @@ router.patch("/preferences", requireAuth, async (req, res, next) => {
       .select("favorite_team")
       .maybeSingle();
 
-    if (error) throw new Error(`profile preference upsert failed: ${error.message}`);
+    if (error) {
+      if (isFavoriteTeamMigrationPending(error)) return res.json({ updated: false, reason: "migration_pending" });
+      throw new Error(`profile preference upsert failed: ${error.message}`);
+    }
 
     return res.json({
       updated: true,
@@ -54,3 +68,4 @@ router.patch("/preferences", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.normalizeFavoriteTeam = normalizeFavoriteTeam;
+module.exports.isFavoriteTeamMigrationPending = isFavoriteTeamMigrationPending;
