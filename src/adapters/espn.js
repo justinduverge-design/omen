@@ -6,9 +6,13 @@
  * Normalizes ESPN roster data into the platform-agnostic roster shape used by
  * src/services/roster.js. ESPN data is cookie/session scoped, so caching is
  * intentionally deferred.
+ *
+ * Uses Node's built-in https module with browser-like headers instead of the
+ * espn-fantasy-football-api library, which bundles its own axios and sends
+ * User-Agent: axios/VERSION — rejected by ESPN's API.
  */
 
-const { Client } = require("espn-fantasy-football-api/node");
+const https = require("https");
 
 const LINEUP_SLOT_MAP = {
   0: "QB",
@@ -232,11 +236,67 @@ function normalizePlayer(entry) {
   };
 }
 
+function swidWithBraces(swid) {
+  const s = String(swid || "").trim();
+  if (s.startsWith("{")) return s;
+  return `{${s}}`;
+}
+
+function fetchEspnApi(leagueId, espn_s2, swid, views) {
+  const season = currentSeason();
+  const viewQuery = Array.isArray(views) ? views.join("&view=") : views;
+  const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=${viewQuery}`;
+  const cookieHeader = `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`;
+
+  const options = {
+    hostname: "fantasy.espn.com",
+    path,
+    method: "GET",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Referer": "https://fantasy.espn.com/",
+      "Accept": "application/json",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Cookie": cookieHeader,
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const body = Buffer.concat(chunks).toString("utf8");
+        if (res.statusCode === 401 || res.statusCode === 403) {
+          const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
+          err.status = 401;
+          return reject(err);
+        }
+        if (res.statusCode !== 200) {
+          const err = new Error(`ESPN API returned HTTP ${res.statusCode}`);
+          err.status = res.statusCode >= 500 ? 502 : res.statusCode;
+          return reject(err);
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch {
+          const err = new Error("ESPN API returned non-JSON response");
+          err.status = 502;
+          reject(err);
+        }
+      });
+    });
+    req.on("error", (err) => {
+      err.status = 502;
+      reject(err);
+    });
+    req.end();
+  });
+}
+
 async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
-  const seasonId = Number(opts.seasonId || currentSeason());
-  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
-  const client = new Client({ leagueId, espnS2: espn_s2, SWID: swid });
-  const teams = await client.getTeamsAtWeek({ seasonId, scoringPeriodId });
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"]);
+  const teams = data?.teams || [];
   const currentTeam = findUserTeam(teams, swid, opts);
   const currentTeamId = teamId(currentTeam);
 
@@ -261,13 +321,9 @@ async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
 }
 
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
-  const seasonId = Number(opts.seasonId || currentSeason());
   const scoringPeriodId = Number(week);
-  const client = new Client({ leagueId, espnS2: espn_s2, SWID: swid });
-
-  // TODO: Add short-lived session-scoped caching around this ESPN fetch once
-  // we have a secure cookie handling path that does not place cookies in logs.
-  const teams = await client.getTeamsAtWeek({ seasonId, scoringPeriodId });
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"]);
+  const teams = data?.teams || [];
   const team = findUserTeam(teams, swid, opts);
   if (!team) {
     const err = new Error("ESPN team not found in this league");
