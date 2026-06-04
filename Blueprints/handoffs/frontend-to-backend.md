@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-06-03 (Full UI/UX audit across all 15 pages + shared components complete; Ledger page at /ledger live; Standings page at /standings live; Omen.jsx gated to /dev/omen; Trade Analyzer rework prep doc written)
+Last updated: 2026-06-04 (Worktree `claude/ecstatic-newton-f05326` fully committed — 17 pages, 16 commits ahead of main, pending merge. Backends for HITL feedback, move history, league standings, and team preferences are built locally in the worktree and need merge + deploy. `profiles.favorite_team` migration still requires Justin approval before Supabase application.)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -672,10 +672,10 @@ Alongside the form rework, the `/trade` page needs a "Trade Room" right column (
 ### Request 19 — User team preference + theme personalization
 
 **Date:** 2026-05-28
-**Owner:** Claude Code / frontend (planned — not yet built)
+**Owner:** Claude Code / frontend
 **Feature:** Account page — team personalization / dynamic app theming
 **Priority:** Medium — post-UX-audit feature
-**Status:** Planned. UX audit must pass first. Backend migration requires Justin approval.
+**Status:** Frontend complete (`TeamTheme.jsx` at `/account/appearance`, `nflTeams.js` data file). Backend built locally in worktree: `PATCH /api/account/preferences` upserts `favorite_team` to `profiles`; `GET /api/dashboard/summary` now includes `user.favorite_team`. **Pending:** (1) worktree merge + deploy, (2) Justin approval to apply `profiles.favorite_team` column migration to Supabase.
 
 **Product intent:**
 
@@ -726,7 +726,7 @@ Users pick their favorite NFL team. The app's accent colors shift to that team's
 **Owner:** Claude Code / frontend
 **Feature:** Omen of the Week — post-recommendation feedback card
 **Priority:** High — this is the self-improving loop; without it the Tuesday cron has no clean calibration data
-**Status:** Planned. **Gated:** Omen page must pass `/ui-ux-pro-max-skill` audit before this is built. Account page audit is also pending.
+**Status:** Frontend complete — `OmenFeedback.jsx` wired below Omen success state in `OmenPage.jsx`. Calls `POST /api/omen/feedback` with soft success until backend is live. Backend built locally in worktree: auth-required, upserts `followed`, `user_stars`, `user_note` on `moves` by `user_id + week_num + season`. `moves` table feedback repair already applied to Supabase (unique index, feedback columns). **Pending:** worktree merge + deploy.
 
 **What it does:**
 
@@ -809,7 +809,7 @@ CREATE POLICY "moves_owner" ON public.moves
 **Owner:** Claude Code / frontend
 **Feature:** The Ledger — move history page at `/ledger`
 **Priority:** High — this is the "receipts" screen; users see the AI is right more than it's wrong, which drives retention and upgrades
-**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Ledger.jsx` built at `/ledger`, auth-required via `ProtectedRoute`. Calls `GET /api/moves`, handles loading/error/empty/populated states. Nav item "The Ledger" added under Dashboard section. Brand name "The Ledger" approved by Justin. "Hall of Records" name retired.
+**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Ledger.jsx` built at `/ledger`, auth-required via `ProtectedRoute`. Calls `GET /api/moves`, handles loading/error/empty/populated states. Nav item "The Ledger" added under Dashboard section. Brand name "The Ledger" approved by Justin. "Hall of Records" name retired. Backend built locally in worktree: `GET /api/moves` returns `moves-history.v1` with season/limit filters, W/L/pending summary, user-only rows. **Pending:** worktree merge + deploy. After deploy, verify response shape matches contract below against live `moves` table.
 
 **What it shows:**
 
@@ -884,7 +884,7 @@ GET /api/moves
 **Owner:** Claude Code / frontend
 **Feature:** Standings page at `/standings`
 **Priority:** Medium — grounds the app in the user's real situation; Omen means more when you can see you're 3rd place and need a win
-**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Standings.jsx` built at `/standings`, auth-required via `ProtectedRoute`. Calls `GET /api/league/standings`, handles 5 states: loading, disconnected (CTA to /account/connect), reconnect-required, generic error, populated table. Table adds PA column vs. embedded widget. `LeagueStandings.jsx` widget retained as-is for Football tab embed. Nav item "Standings" added to League section in Header.
+**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Standings.jsx` built at `/standings`, auth-required via `ProtectedRoute`. Calls `GET /api/league/standings`, handles 5 states: loading, disconnected (CTA to /account/connect), reconnect-required, generic error, populated table. Table adds PA column vs. embedded widget. `LeagueStandings.jsx` widget retained as-is for Football tab embed. Nav item "Standings" added to League section in Header. Backend built locally in worktree: canonical `GET /api/league/standings` supports Yahoo, Sleeper, and ESPN provider paths; old `410` compat behavior removed. **Pending:** worktree merge + deploy. After deploy, QA with live connected Yahoo/Sleeper account to confirm `is_current_user` flag and PA field populate correctly.
 
 **What it shows:**
 
