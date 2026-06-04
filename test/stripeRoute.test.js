@@ -25,6 +25,8 @@ function loadStripeRouter({
       metadata: { userId: "user-1", plan: "monthly" },
     },
   ],
+  checkoutSessionsListError = null,
+  subscriptionRetrieveError = null,
   priceLookupFailures = [],
 } = {}) {
   const routePath = require.resolve("../src/routes/stripe");
@@ -46,7 +48,10 @@ function loadStripeRouter({
             state.checkoutPayload = payload;
             return { url: "https://stripe.example/checkout" };
           },
-          list: async () => ({ data: checkoutSessions }),
+          list: async () => {
+            if (checkoutSessionsListError) throw new Error(checkoutSessionsListError);
+            return { data: checkoutSessions };
+          },
         },
       };
       this.billingPortal = {
@@ -61,13 +66,16 @@ function loadStripeRouter({
         constructEvent: () => webhookEvent,
       };
       this.subscriptions = {
-        retrieve: async () => ({
-          customer: "cus_test",
-          status: "trialing",
-          trial_end: 1780272000,
-          current_period_end: 1782864000,
-          metadata: { userId: "user-1", plan: "monthly" },
-        }),
+        retrieve: async () => {
+          if (subscriptionRetrieveError) throw new Error(subscriptionRetrieveError);
+          return {
+            customer: "cus_test",
+            status: "trialing",
+            trial_end: 1780272000,
+            current_period_end: 1782864000,
+            metadata: { userId: "user-1", plan: "monthly" },
+          };
+        },
       };
       this.prices = {
         retrieve: async (priceId) => {
@@ -392,6 +400,81 @@ test("POST /api/stripe/webhook recovers subscription metadata from checkout sess
     expiresAt: 1782864000,
     canceledAt: null,
   });
+});
+
+test("POST /api/stripe/webhook acknowledges subscription event when fallback checkout lookup fails", async () => {
+  const { app, state } = buildWebhookApp({
+    checkoutSessionsListError: "lookup not available",
+    webhookEvent: {
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_test",
+          customer: "cus_test",
+          status: "trialing",
+          metadata: {},
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.equal(state.activations.length, 0);
+});
+
+test("POST /api/stripe/webhook falls back to checkout session metadata when subscription retrieve fails", async () => {
+  const { app, state } = buildWebhookApp({
+    subscriptionRetrieveError: "subscription retrieve failed",
+    webhookEvent: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_test",
+          customer: "cus_test",
+          subscription: "sub_test",
+          metadata: { userId: "user-1", plan: "monthly" },
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(state.activations[0], {
+    userId: "user-1",
+    plan: "monthly",
+    stripeCustomerId: "cus_test",
+    status: "active",
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    expiresAt: null,
+    canceledAt: null,
+  });
+});
+
+test("POST /api/stripe/webhook acknowledges checkout completion without user mapping", async () => {
+  const { app, state } = buildWebhookApp({
+    subscriptionRetrieveError: "subscription retrieve failed",
+    webhookEvent: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_orphan",
+          customer: "cus_orphan",
+          subscription: "sub_orphan",
+          metadata: {},
+        },
+      },
+    },
+  });
+
+  const res = await postRaw(app, "/api/stripe/webhook");
+
+  assert.equal(res.status, 200);
+  assert.equal(state.activations.length, 0);
 });
 
 test("POST /api/stripe/webhook recovers subscription metadata from existing customer record", async () => {

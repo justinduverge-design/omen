@@ -6,6 +6,39 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Stripe Webhook Recovery Follow-Up — 2026-06-04
+
+Date: 2026-06-04
+Owner: Codex/backend
+Feature: Tomorrow-ready Stripe webhook resend hardening
+Status: Prepared locally. Not deployed.
+
+Context:
+- Stripe resend still showed `500 ERR` with response body `{ "error": "handler failure" }`.
+- Account UI already showed `Corvus Pro · Active`, so the user state appears to have been persisted by another successful event. The remaining failed delivery is likely an older retry/event shape that cannot safely mutate subscription state.
+
+Patch prepared:
+- `checkout.session.completed` now acknowledges safely if neither subscription lookup nor Checkout Session metadata can map the event to a Corvus `userId`.
+- Subscription-created/updated fallback lookups are wrapped so Stripe API lookup failures do not turn old unmapped events into webhook `500`s.
+- If a webhook is acknowledged without subscription mutation, logs include safe event diagnostics: Stripe event id, object id, customer id, event type, and reason. No secrets or raw payloads are logged.
+- True persistence failures still return `500` so Stripe can retry real database errors.
+
+Tomorrow deploy/validation:
+- Deploy the prepared patch.
+- Resend the failed Stripe event.
+- Expected result for already-accounted old event: `200` with no Account state regression.
+- If it still returns `500`, inspect `corvus_api` logs for `eventId`, `objectId`, `stripeCustomerId`, and the persistence error.
+
+Verification:
+- `node --check src\routes\stripe.js`
+- `node --test test\stripeRoute.test.js` passed 14/14.
+- `node --test` passed 260/260.
+
+Frontend action needed:
+- None.
+
+---
+
 ## Omen Live Fast Default — 2026-06-03
 
 Date: 2026-06-03

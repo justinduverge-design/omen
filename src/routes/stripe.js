@@ -51,14 +51,40 @@ function subscriptionSnapshot(subscription, fallback = {}) {
   };
 }
 
+function safeStripeObjectId(object) {
+  return typeof object?.id === "string" ? object.id : null;
+}
+
+function safeStripeCustomerId(object) {
+  return typeof object?.customer === "string" ? object.customer : null;
+}
+
+function logWebhookSkip(event, reason, object = {}) {
+  logger.warn("Stripe webhook event acknowledged without subscription mutation", {
+    reason,
+    type: event.type,
+    eventId: safeStripeObjectId(event),
+    objectId: safeStripeObjectId(object),
+    stripeCustomerId: safeStripeCustomerId(object),
+  });
+}
+
 async function subscriptionForCheckoutSession(session) {
   if (session.subscription && stripe?.subscriptions?.retrieve) {
-    const subscription = await stripe.subscriptions.retrieve(session.subscription);
-    return subscriptionSnapshot(subscription, {
-      userId: session.metadata?.userId,
-      plan: session.metadata?.plan,
-      stripeCustomerId: session.customer,
-    });
+    try {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription);
+      return subscriptionSnapshot(subscription, {
+        userId: session.metadata?.userId,
+        plan: session.metadata?.plan,
+        stripeCustomerId: session.customer,
+      });
+    } catch (err) {
+      logger.warn("Stripe subscription lookup failed for checkout session", {
+        err: err.message,
+        checkoutSessionId: session.id,
+        subscriptionId: session.subscription,
+      });
+    }
   }
 
   return subscriptionSnapshot(null, {
@@ -73,28 +99,44 @@ async function subscriptionForSubscriptionEvent(subscription) {
   const snapshot = subscriptionSnapshot(subscription);
   if (snapshot.userId) return snapshot;
 
-  const existing = await subscriptionSvc.getByStripeCustomerId?.(subscription.customer);
-  if (existing?.user_id) {
-    return {
-      ...snapshot,
-      userId: existing.user_id,
-      plan: snapshot.plan || existing.plan,
-    };
+  try {
+    const existing = await subscriptionSvc.getByStripeCustomerId?.(subscription.customer);
+    if (existing?.user_id) {
+      return {
+        ...snapshot,
+        userId: existing.user_id,
+        plan: snapshot.plan || existing.plan,
+      };
+    }
+  } catch (err) {
+    logger.warn("Stripe customer subscription lookup failed", {
+      err: err.message,
+      subscriptionId: subscription.id,
+      stripeCustomerId: subscription.customer,
+    });
   }
 
   if (subscription.id && stripe?.checkout?.sessions?.list) {
-    const sessions = await stripe.checkout.sessions.list({
-      subscription: subscription.id,
-      limit: 1,
-    });
-    const session = sessions?.data?.[0];
-    if (session?.metadata?.userId) {
-      return {
-        ...snapshot,
-        userId: session.metadata.userId,
-        plan: snapshot.plan || session.metadata.plan,
-        stripeCustomerId: snapshot.stripeCustomerId || session.customer,
-      };
+    try {
+      const sessions = await stripe.checkout.sessions.list({
+        subscription: subscription.id,
+        limit: 1,
+      });
+      const session = sessions?.data?.[0];
+      if (session?.metadata?.userId) {
+        return {
+          ...snapshot,
+          userId: session.metadata.userId,
+          plan: snapshot.plan || session.metadata.plan,
+          stripeCustomerId: snapshot.stripeCustomerId || session.customer,
+        };
+      }
+    } catch (err) {
+      logger.warn("Stripe checkout session lookup failed for subscription event", {
+        err: err.message,
+        subscriptionId: subscription.id,
+        stripeCustomerId: subscription.customer,
+      });
     }
   }
 
@@ -129,7 +171,12 @@ webhookRouter.post(
       switch (event.type) {
         case "checkout.session.completed": {
           const s = event.data.object;
-          await subscriptionSvc.activate(await subscriptionForCheckoutSession(s));
+          const snapshot = await subscriptionForCheckoutSession(s);
+          if (!snapshot.userId) {
+            logWebhookSkip(event, "checkout_session_missing_user_mapping", s);
+            break;
+          }
+          await subscriptionSvc.activate(snapshot);
           break;
         }
         case "customer.subscription.created":
@@ -137,11 +184,7 @@ webhookRouter.post(
           const subscription = event.data.object;
           const snapshot = await subscriptionForSubscriptionEvent(subscription);
           if (!snapshot.userId) {
-            logger.warn("Stripe subscription event missing user mapping", {
-              type: event.type,
-              subscriptionId: subscription.id,
-              stripeCustomerId: subscription.customer,
-            });
+            logWebhookSkip(event, "subscription_event_missing_user_mapping", subscription);
             break;
           }
           await subscriptionSvc.activate(snapshot);
@@ -172,7 +215,11 @@ webhookRouter.post(
       // Return 500 so Stripe retries. Idempotency in subscription service
       // means duplicate retries are safe.
       logger.error("Stripe webhook handler error", {
-        err: e.message, type: event.type,
+        err: e.message,
+        type: event.type,
+        eventId: safeStripeObjectId(event),
+        objectId: safeStripeObjectId(event.data?.object),
+        stripeCustomerId: safeStripeCustomerId(event.data?.object),
       });
       res.status(500).json({ error: "handler failure" });
     }
