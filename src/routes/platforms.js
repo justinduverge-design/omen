@@ -253,6 +253,11 @@ async function sleeperLeagueSummary(league, sleeperUserId) {
 
 async function validateEspnConnection({ leagueId, espn_s2, swid, espnTeamId }) {
   try {
+    if (typeof espnAdapter.verifyLeagueAccess === "function") {
+      await espnAdapter.verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId || null);
+      return { valid: true };
+    }
+
     const roster = await espnAdapter.buildNormalizedRoster(leagueId, espn_s2, swid, 1, {
       teamId: espnTeamId,
     });

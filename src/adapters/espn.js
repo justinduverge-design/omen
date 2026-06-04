@@ -13,6 +13,7 @@
  */
 
 const https = require("https");
+const { logger } = require("../middleware/logging");
 
 const LINEUP_SLOT_MAP = {
   0: "QB",
@@ -45,8 +46,10 @@ const INJURY_STATUS_MAP = {
   SUSPENDED: "SUSP",
 };
 
-function currentSeason() {
-  return new Date().getFullYear();
+function activeSeason() {
+  const now = new Date();
+  // ESPN seasons are named for the NFL year. New season data begins in August.
+  return now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
 }
 
 function normalizeSwid(swid) {
@@ -104,8 +107,7 @@ function findUserTeam(teams, swid, opts = {}) {
   }
 
   const targetSwid = normalizeSwid(swid);
-  return teams.find((team) => possibleOwnerIds(team).includes(targetSwid))
-    || (teams.length === 1 ? teams[0] : null);
+  return teams.find((team) => possibleOwnerIds(team).includes(targetSwid)) || null;
 }
 
 function rosterEntries(team) {
@@ -275,6 +277,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
         res.on("data", (chunk) => chunks.push(chunk));
         res.on("end", () => {
           const body = Buffer.concat(chunks).toString("utf8");
+          logger.info(`[espn] ${hostname}${path.split("?")[0]} -> HTTP ${res.statusCode}`);
           if (res.statusCode === 401 || res.statusCode === 403) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;
@@ -304,7 +307,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
 }
 
 function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId) {
-  const season = currentSeason();
+  const season = activeSeason();
   const viewParams = (Array.isArray(views) ? views : [views]).map((v) => `view=${v}`).join("&");
   const periodParam = scoringPeriodId != null ? `&scoringPeriodId=${scoringPeriodId}` : "";
   const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?${viewParams}${periodParam}`;
@@ -338,6 +341,19 @@ async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
+async function verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId) {
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam"]);
+  const teams = data?.teams || [];
+  const opts = espnTeamId != null ? { teamId: espnTeamId } : {};
+  const team = findUserTeam(teams, swid, opts);
+  if (!team) {
+    const err = new Error("ESPN team not found in this league");
+    err.status = 404;
+    throw err;
+  }
+  return { team_id: teamId(team), team_name: teamName(team) };
+}
+
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
   const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId);
@@ -369,4 +385,5 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
+  verifyLeagueAccess,
 };

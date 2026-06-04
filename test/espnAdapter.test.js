@@ -1,5 +1,9 @@
 "use strict";
 
+process.env.SUPABASE_URL ||= "https://example.supabase.co";
+process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
+process.env.LOG_LEVEL ||= "error";
+
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const test = require("node:test");
@@ -201,4 +205,25 @@ test("buildLeagueStandings maps ESPN teams without exposing cookies", async () =
     },
   ]);
   assert.equal(JSON.stringify(standings).includes("espn-cookie"), false);
+});
+
+test("verifyLeagueAccess returns team_id and team_name for a known team", async () => {
+  const adapter = loadEspnAdapterWithTeams([
+    { id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" },
+  ]);
+  const result = await adapter.verifyLeagueAccess(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null
+  );
+  assert.equal(result.team_id, "9");
+  assert.equal(result.team_name, "Current Team");
+});
+
+test("verifyLeagueAccess throws 404 when team not found", async () => {
+  const adapter = loadEspnAdapterWithTeams([
+    { id: 99, ownerId: "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz", name: "Other Team" },
+  ]);
+  await assert.rejects(
+    () => adapter.verifyLeagueAccess("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null),
+    (err) => err.status === 404
+  );
 });
