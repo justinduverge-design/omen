@@ -30,7 +30,7 @@ export default function EmptyState({ eyebrow, title, message, cta }) {
       )}
       {cta && (
         <a
-          className="mt-6 inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-amber-400/20"
+          className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-amber-400/20"
           style={{ background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}
           href={cta.href}
         >

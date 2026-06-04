@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import ProtectedRoute from '../components/layout/ProtectedRoute.jsx';
@@ -12,6 +13,14 @@ import NotFound from '../pages/NotFound.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
 import TeamTheme from '../pages/TeamTheme.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
+import Ledger from '../pages/Ledger.jsx';
+import Standings from '../pages/Standings.jsx';
+
+// Dev-only harness — Vite replaces import.meta.env.DEV with `false` at build time,
+// making the dynamic import unreachable and tree-shaking Omen.jsx out of the prod bundle.
+const OmenHarness = import.meta.env.DEV
+  ? lazy(() => import('../pages/Omen.jsx'))
+  : null;
 
 export default function AppRoutes() {
   return (
@@ -61,6 +70,35 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/ledger"
+        element={
+          <ProtectedRoute>
+            <Ledger />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/standings"
+        element={
+          <ProtectedRoute>
+            <Standings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Dev-only harness — available at /dev/omen in local Vite, stripped from prod */}
+      {import.meta.env.DEV && OmenHarness && (
+        <Route
+          path="/dev/omen"
+          element={
+            <Suspense fallback={null}>
+              <AppLayout><OmenHarness /></AppLayout>
+            </Suspense>
+          }
+        />
+      )}
 
       <Route path="*" element={<NotFound />} />
     </Routes>

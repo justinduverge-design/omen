@@ -5,7 +5,7 @@ export default function ErrorState({ title = 'Something went wrong', message, on
       {message && <p className="mt-1 text-sm text-red-200/70">{message}</p>}
       {onRetry && (
         <button
-          className="mt-4 inline-flex items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
+          className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
           type="button"
           onClick={onRetry}
         >

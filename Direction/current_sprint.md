@@ -1,6 +1,6 @@
 # Corvus Current Sprint
 
-Last updated: 2026-05-31 (session 7 — League Standings backend)
+Last updated: 2026-06-03 (session 8 — UI/UX audit + Ledger + Standings pages)
 
 ## Current State
 
@@ -36,24 +36,27 @@ Corvus is live on the renamed route.
 - **Move History backend:** `GET /api/moves` built locally. Auth required. Returns `moves-history.v1` with season/limit filters, user-only rows, W/L/pending summary, and backend-to-frontend column mapping.
 - **League Standings backend:** canonical `GET /api/league/standings` built locally. Auth required. Supports Yahoo, Sleeper, and ESPN provider paths; old retired `410` behavior for this route was removed from the legacy router.
 - **SQL readiness:** `sql/corvus_rls_security.sql` updated for `moves` feedback idempotence and `profiles.favorite_team`; `moves` repair has been applied, while `profiles.favorite_team` still needs Justin approval before Supabase application.
+- **UI/UX audit (session 8 — 2026-06-03):** Full pass across all 15 routed pages + shared components. 44px touch targets, `motion-reduce` sweep, ARIA patterns, CSS token consistency, guided Sleeper flow on Account, hamburger/NavDrawer ARIA fix. 25 files, 256 insertions, 126 deletions.
+- **`Omen.jsx` dev route:** Gated to `/dev/omen` (local Vite only) via `React.lazy` + `import.meta.env.DEV`. Stripped from production bundle at build time.
+- **The Ledger (`/ledger`):** Auth-required page at `frontend/src/pages/Ledger.jsx`. Calls `GET /api/moves`. Loading/error/empty/populated states. Nav item under Dashboard. Brand name "The Ledger" approved; "Hall of Records" retired.
+- **Standings (`/standings`):** Auth-required page at `frontend/src/pages/Standings.jsx`. Calls `GET /api/league/standings`. 5 states including disconnected CTA. PA column added vs. embedded widget. Nav item "Standings" in League section.
+- **Trade Analyzer rework prep:** `Blueprints/handoffs/trade-analyzer-rework.md` written. Phase 1 confirmed already shipped. Remaining improvements queued for next session.
 
 ## Now
 
 - Keep backend/frontend contracts aligned with tested app behavior.
 - Treat `POST /api/omen/mvp-move` as paid live Omen for subscribed users.
 - Keep prepared Supabase SQL distinct from applied database state unless Justin approves migration/application.
-- Let frontend build Hall of Records and League Standings against the documented canonical contracts.
 - Logo placeholder (`[C]` circle in header/drawer) is intentional — swap with SVG inline component when logo is ready.
 
 ## Next
 
 1. Get Justin approval to apply `profiles.favorite_team`, then verify `PATCH /api/account/preferences` and `GET /api/dashboard/summary.user.favorite_team` against Supabase.
 2. QA real Yahoo/Sleeper/ESPN League Standings with connected accounts, especially ESPN reconnect behavior.
-3. Run `/ui-ux-pro-max-skill` on Account page + ConnectLeague page — next UX gate.
-4. Build Trade Analyzer form rework: position-first, autocomplete via `nflPlayers.js`, Trade Room column. No backend dep.
-5. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
-6. Run Stripe test-mode checkout and webhook validation before paid-launch confidence.
-7. QA ESPN cookie recovery without logging or displaying cookie values.
+3. Trade Analyzer improvements: scoring format selector, ⇄ glyph, VORP tooltip, MockBanner swap. See `Blueprints/handoffs/trade-analyzer-rework.md` for exact prompt.
+4. When logo SVG is ready: replace `[C]` circle in `Header.jsx` and `NavDrawer` with inline SVG component.
+5. Run Stripe test-mode checkout and webhook validation before paid-launch confidence (Codex).
+6. QA ESPN cookie recovery without logging or displaying cookie values.
 
 ## Guardrails
 

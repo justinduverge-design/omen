@@ -99,13 +99,14 @@ function MagicLinkForm({ onSent }) {
       />
       <button
         className="w-full min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        aria-busy={loading}
         disabled={loading}
         type="submit"
       >
         {loading ? 'Sending link…' : 'Continue with Email'}
       </button>
       {error && (
-        <p className="text-xs text-[var(--color-risk-high)]" role="alert">{error}</p>
+        <p className="text-xs text-red-400" role="alert">{error}</p>
       )}
     </form>
   );
@@ -225,7 +226,7 @@ export default function Login() {
           <p className="font-serif text-2xl tracking-[0.22em] text-[var(--color-text-primary)]">
             CORVUS
           </p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
+          <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
             Fantasy Intelligence
           </p>
         </div>
@@ -263,7 +264,7 @@ export default function Login() {
             <MagicLinkForm onSent={setSentEmail} />
 
             {oauthError && (
-              <p className="text-xs text-[var(--color-risk-high)]" role="alert">{oauthError}</p>
+              <p className="text-xs text-red-400" role="alert">{oauthError}</p>
             )}
           </div>
         )}

@@ -48,7 +48,7 @@ function TeamTile({ team, selected, onClick, animDelay }) {
       aria-pressed={selected}
       onClick={onClick}
       className={[
-        'relative grid h-[72px] w-full place-items-center rounded-[5px] transition-all duration-150',
+        'relative grid h-[72px] w-full place-items-center rounded-[5px] transition-all duration-150 motion-reduce:transition-none',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]',
         'hover:brightness-110',
         selected ? 'scale-[1.06]' : 'active:scale-[0.97]',
@@ -354,7 +354,7 @@ export default function TeamTheme() {
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
-                className="text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
+                className="inline-flex min-h-[44px] items-center text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
                 style={{
                   color: 'var(--color-text-secondary)',
                   borderBottom: '1px solid transparent',
@@ -503,7 +503,7 @@ export default function TeamTheme() {
                   type="button"
                   aria-pressed={selectedAbbr === null}
                   onClick={handleDefault}
-                  className="inline-flex items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
+                  className="inline-flex min-h-[44px] items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
                 >
                   <span
                     className="inline-block h-3.5 w-3.5 rounded-[3px]"

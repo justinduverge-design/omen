@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { apiFetch } from '../lib/api.js';
@@ -81,6 +81,8 @@ function PlanCard({ option, selected, onSelect, price }) {
   const isSelected = selected === option.id;
   return (
     <button
+      role="radio"
+      aria-checked={isSelected}
       className={[
         'w-full rounded-xl border p-4 text-left transition-colors',
         isSelected
@@ -128,13 +130,13 @@ function PlanPicker({ onCheckout, loading, error }) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
+      <div role="radiogroup" aria-label="Select a plan" className="space-y-2">
         {PLAN_OPTIONS.map((opt) => (
           <PlanCard key={opt.id} option={opt} selected={selected} onSelect={setSelected} price={prices[opt.id]} />
         ))}
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
 
       <button
         className="w-full rounded-xl bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60"
@@ -189,7 +191,7 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
         )}
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
 
       {subscription?.can_manage_billing && (
         <button
@@ -256,7 +258,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
   function renderBody() {
     if (summaryLoading) {
       return (
-        <div className="animate-pulse space-y-3">
+        <div className="animate-pulse motion-reduce:animate-none space-y-3">
           <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
           <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
           <div className="h-11 w-full rounded-xl bg-[var(--color-surface-2)]" />
@@ -447,15 +449,15 @@ export default function Account() {
           </p>
         </section>
         <div className="mt-4">
-          <a
-            href="/account/appearance"
+          <Link
+            to="/account/appearance"
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
           >
             Customize Team Colors
             <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </AppLayout>

@@ -38,7 +38,7 @@ function PlayerInput({ label, player, onChange }) {
         <label className="text-xs font-semibold text-slate-400">
           Player name
           <input
-            className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
             placeholder="e.g. Tyreek Hill"
             value={player.name}
             onChange={(event) => onChange({ name: event.target.value })}
@@ -48,7 +48,7 @@ function PlayerInput({ label, player, onChange }) {
         <label className="text-xs font-semibold text-slate-400">
           Position
           <select
-            className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
             value={player.position}
             onChange={(event) => onChange({ position: event.target.value })}
           >
@@ -61,7 +61,7 @@ function PlayerInput({ label, player, onChange }) {
         <label className="text-xs font-semibold text-slate-400">
           Projected pts
           <input
-            className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
             min="0"
             placeholder="0.0"
             step="0.1"
@@ -217,23 +217,23 @@ export default function StartSit() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitDisabled}
             type="submit"
           >
             {loading ? (
               <span
                 aria-hidden="true"
-                className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950"
+                className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
               />
             ) : null}
             {loading ? 'Comparing' : 'Compare'}
           </button>
           {hasMissingName ? (
-            <p className="text-sm text-red-300">Both players need a name.</p>
+            <p className="text-sm text-red-300" role="alert">Both players need a name.</p>
           ) : null}
           {hasInvalidProjection ? (
-            <p className="text-sm text-red-300">Projected points must be a number.</p>
+            <p className="text-sm text-red-300" role="alert">Projected points must be a number.</p>
           ) : null}
         </div>
       </form>

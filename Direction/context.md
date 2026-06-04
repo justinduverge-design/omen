@@ -55,7 +55,7 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - Backend to frontend: `Blueprints/handoffs/backend-to-frontend.md`
 - Shared engineering decisions: `Blueprints/handoffs/decisions.md`
 
-## Current Build Truth — 2026-05-31
+## Current Build Truth — 2026-06-03
 
 - Live Omen MVP route exists at `POST /api/omen/mvp-move`.
 - Live Omen requires auth, Pro subscription, and a usable Yahoo, Sleeper, or ESPN league connection.
@@ -81,4 +81,8 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 
 - Codex owns backend contracts, auth gates, subscription state, live Omen, platform integration truth, and handoff answers.
 - Claude owns frontend screens, Account subscription UI, Omen display states, and app polish.
+- `frontend/src/pages/Ledger.jsx` is the Move History page at `/ledger` (auth-required). Brand name "The Ledger" approved; "Hall of Records" retired.
+- `frontend/src/pages/Standings.jsx` is the League Standings page at `/standings` (auth-required). `LeagueStandings.jsx` widget retained for Football tab embed.
+- `Omen.jsx` dev harness is gated to `/dev/omen` (local Vite only, stripped from production bundle via `React.lazy` + `import.meta.env.DEV`).
+- Full UI/UX audit complete across all 15 routed pages and shared components (session 8, 2026-06-03).
 - If Claude reports work from `.claude/worktrees/...`, verify it is merged into the canonical repo before treating it as live.

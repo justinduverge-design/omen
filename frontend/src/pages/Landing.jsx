@@ -134,7 +134,7 @@ function TradeAnalyzerHeroCard() {
             </div>
           </div>
 
-          <div className="mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-sm text-[#F4EFE1]/35">
+          <div aria-hidden="true" className="mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-sm text-[#F4EFE1]/35">
             ⇄
           </div>
 
@@ -151,7 +151,7 @@ function TradeAnalyzerHeroCard() {
 
         {/* Verdict */}
         <div className="mb-4 flex items-start gap-3 rounded-xl border border-[#4ADE80]/22 bg-[#4ADE80]/7 px-4 py-3">
-          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4ADE80]/18">
+          <div aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4ADE80]/18">
             <span className="text-xs font-bold text-[#4ADE80]">✓</span>
           </div>
           <div>
@@ -311,7 +311,7 @@ function SignInForm() {
         Already have an account?
       </p>
       <a
-        className="mt-2 inline-flex min-h-[42px] items-center rounded-md border border-[#C9A44C]/28 px-5 text-sm font-semibold text-[#C9A44C] transition-colors hover:border-[#C9A44C]/55 hover:bg-[#C9A44C]/10"
+        className="mt-2 inline-flex min-h-[44px] items-center rounded-md border border-[#C9A44C]/28 px-5 text-sm font-semibold text-[#C9A44C] transition-colors hover:border-[#C9A44C]/55 hover:bg-[#C9A44C]/10"
         href="/login"
       >
         Sign in →
@@ -442,7 +442,7 @@ function WaitlistSection() {
 
         <div className="relative mx-auto max-w-xl text-center">
           {/* Raven detail — subtle brand personality */}
-          <p className="mb-1 text-sm text-[#C9A44C]/55">𖤍</p>
+          <p aria-hidden="true" className="mb-1 text-sm text-[#C9A44C]/55">𖤍</p>
 
           <h2 className="font-sans text-2xl font-semibold text-[#F4EFE1] md:text-3xl">
             Get the signal before launch.
@@ -466,7 +466,7 @@ function WaitlistSection() {
               {/* Email */}
               <div className="flex flex-col gap-1 text-left">
                 <label
-                  className="text-[10px] uppercase tracking-[0.22em] text-[#F4EFE1]/40"
+                  className="text-[11px] uppercase tracking-[0.22em] text-[#F4EFE1]/40"
                   htmlFor="waitlist-email"
                 >
                   Email address
@@ -484,7 +484,7 @@ function WaitlistSection() {
 
               {/* Platform */}
               <fieldset>
-                <legend className="mb-2 text-left text-[10px] uppercase tracking-[0.22em] text-[#F4EFE1]/40">
+                <legend className="mb-2 text-left text-[11px] uppercase tracking-[0.22em] text-[#F4EFE1]/40">
                   Your platform{' '}
                   <span className="normal-case text-[#F4EFE1]/28">(optional)</span>
                 </legend>
@@ -563,7 +563,7 @@ export default function Landing() {
         {/* ── Hero ── */}
         <section className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 md:py-24 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14">
           {/* Left: headline + waitlist */}
-          <div className="animate-[fadeIn_0.6s_ease-out]">
+          <div className="animate-[fadeIn_0.6s_ease-out] motion-reduce:animate-none">
             <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
               Corvus · Fantasy Intelligence
             </p>
@@ -598,7 +598,7 @@ export default function Landing() {
           </div>
 
           {/* Right: Trade Analyzer example */}
-          <div className="animate-[fadeIn_0.6s_ease-out_0.12s_both]">
+          <div className="animate-[fadeIn_0.6s_ease-out_0.12s_both] motion-reduce:animate-none">
             <TradeAnalyzerHeroCard />
           </div>
         </section>
@@ -625,7 +625,7 @@ export default function Landing() {
             <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-full bg-[#C9A44C]/7 blur-3xl" />
             <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
-                <p className="text-sm text-[#C9A44C]/55">𖤍</p>
+                <p aria-hidden="true" className="text-sm text-[#C9A44C]/55">𖤍</p>
                 <h2 className="mt-1 font-sans text-xl font-semibold text-[#F4EFE1]">
                   Ready to run a real trade?
                 </h2>

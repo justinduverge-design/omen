@@ -101,7 +101,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_32px]">
+    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_44px]">
 
       {/* ── Position ─────────────────────────────────────────────────────────── */}
       <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
@@ -121,6 +121,12 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
       <label className="relative text-xs font-semibold text-[var(--color-text-secondary)]">
         Name
         <input
+          role="combobox"
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-expanded={showSuggestions && suggestions.length > 0}
+          aria-controls={`${sectionTitle}-${index}-suggestions`}
+          aria-activedescendant={activeIdx >= 0 ? `${sectionTitle}-${index}-suggestions-${activeIdx}` : undefined}
           autoComplete="off"
           className={`mt-1 ${INPUT_CLS}`}
           value={player.name}
@@ -131,6 +137,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
         />
         {showSuggestions && suggestions.length > 0 && (
           <ul
+            id={`${sectionTitle}-${index}-suggestions`}
             aria-label="Player suggestions"
             className="absolute left-0 right-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] py-1 shadow-lg"
             role="listbox"
@@ -138,6 +145,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
             {suggestions.map((p, si) => (
               <li
                 key={p.id}
+                id={`${sectionTitle}-${index}-suggestions-${si}`}
                 aria-selected={si === activeIdx}
                 className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm transition-colors ${
                   si === activeIdx
@@ -167,7 +175,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
       <div className="flex items-end pb-0.5">
         <button
           aria-label={`Remove ${sectionTitle} player ${index + 1}`}
-          className="flex h-9 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={totalCount === 1}
           type="button"
           onClick={() => onRemove(index)}
@@ -187,7 +195,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h2>
         <button
-          className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+          className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
           type="button"
           onClick={onAdd}
         >
@@ -436,14 +444,15 @@ export default function TradeAnalyzer({ compact = false }) {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-busy={loading}
               disabled={loading}
               type="submit"
             >
               {loading ? (
                 <span
                   aria-hidden="true"
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black"
+                  className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
                 />
               ) : null}
               {loading ? 'Comparing...' : 'Compare Trade'}

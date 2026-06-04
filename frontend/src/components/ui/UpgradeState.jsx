@@ -35,7 +35,7 @@ export default function UpgradeState({
         {message ?? 'Most Valuable Play is a Corvus Pro feature. Upgrade to receive your personalized weekly move.'}
       </p>
       <Link
-        className="mt-6 inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-purple-500/25"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-purple-500/25"
         style={{ background: 'rgba(93,45,142,0.06)', color: 'var(--color-omen)' }}
         to={ctaTo}
       >

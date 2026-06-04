@@ -60,9 +60,10 @@ function ConnectedBadge() {
 function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button' }) {
   return (
     <button
-      className="inline-flex min-h-[40px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       style={{ background: 'var(--color-accent)', color: '#000' }}
       disabled={disabled || loading}
+      aria-busy={loading}
       type={type}
       onClick={onClick}
     >
@@ -74,7 +75,7 @@ function CTAButton({ children, onClick, disabled = false, loading = false, type 
 function GhostButton({ children, onClick, disabled = false }) {
   return (
     <button
-      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border px-5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-[44px] items-center justify-center rounded-lg border px-5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
       disabled={disabled}
       type="button"
@@ -88,7 +89,7 @@ function GhostButton({ children, onClick, disabled = false }) {
 function FieldInput({ id, label, value, onChange, type = 'text', autoComplete = 'off', placeholder = '' }) {
   return (
     <label className="block" htmlFor={id}>
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
         {label}
       </span>
       <input
@@ -108,7 +109,7 @@ function FieldInput({ id, label, value, onChange, type = 'text', autoComplete = 
 function ErrorMsg({ message }) {
   if (!message) return null;
   return (
-    <p className="text-xs" style={{ color: 'var(--color-risk-high)' }} role="alert">
+    <p className="text-xs text-red-400" role="alert">
       {message}
     </p>
   );
@@ -376,6 +377,7 @@ function EspnGuide({ browser, setBrowser }) {
         {ESPN_STEPS.map(g => (
           <button
             key={g.browser}
+            aria-pressed={browser === g.browser}
             className={`rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${
               browser === g.browser
                 ? 'bg-[var(--color-accent)] text-black'
@@ -630,7 +632,7 @@ export default function ConnectLeague() {
             {[0, 1, 2].map(i => (
               <div
                 key={i}
-                className="h-24 animate-pulse rounded-xl"
+                className="h-24 animate-pulse motion-reduce:animate-none rounded-xl"
                 style={{ background: 'var(--color-surface-1)' }}
               />
             ))}

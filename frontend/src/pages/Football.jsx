@@ -22,7 +22,7 @@ const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
 function PlatformStatusBar({ platforms, loading }) {
   if (loading) {
-    return <div className="h-10 animate-pulse rounded-lg" style={{ background: 'var(--color-surface-2)' }} />;
+    return <div className="h-10 animate-pulse motion-reduce:animate-none rounded-lg" style={{ background: 'var(--color-surface-2)' }} />;
   }
   if (!platforms) return null;
 
@@ -87,7 +87,7 @@ function PlatformStatusBar({ platforms, loading }) {
             </p>
             {reconnectUrl && (
               <button
-                className="ml-4 shrink-0 text-xs font-semibold transition-colors"
+                className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"
                 style={{ color: 'var(--color-accent)' }}
                 type="button"
                 onClick={() => { window.location.href = reconnectUrl; }}
@@ -126,7 +126,7 @@ export default function Football() {
 
       case 'omen':
         if (summaryLoading) {
-          return <div className="h-32 animate-pulse rounded-xl" style={{ background: 'var(--color-surface-2)' }} />;
+          return <div className="h-32 animate-pulse motion-reduce:animate-none rounded-xl" style={{ background: 'var(--color-surface-2)' }} />;
         }
         if (omenStatus === 'needs_platform') {
           return (
@@ -194,12 +194,21 @@ export default function Football() {
       <LeagueStandings />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
-      <div className="-mb-px flex overflow-x-auto border-b" style={{ borderColor: 'var(--color-border)' }}>
+      <div
+        role="tablist"
+        aria-label="Football tools"
+        className="-mb-px flex overflow-x-auto border-b"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`tab-panel-${tab.id}`}
+              id={`tab-${tab.id}`}
               className="shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={
                 isActive
@@ -215,7 +224,14 @@ export default function Football() {
         })}
       </div>
 
-      <section>{renderTab(activeTab)}</section>
+      <section
+        role="tabpanel"
+        id={`tab-panel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+        tabIndex={0}
+      >
+        {renderTab(activeTab)}
+      </section>
     </AppLayout>
   );
 }

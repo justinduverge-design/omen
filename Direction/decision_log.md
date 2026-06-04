@@ -39,6 +39,13 @@
 - **Current local backend verification**: `npm test` passes 199/199 locally.
 - **Frontend build blocker recorded**: primary `frontend/` build currently fails in `frontend/src/pages/Account.jsx`; this is assigned as a Layer 2 Claude/frontend task, not a backend blocker.
 
+## Decisions Added 2026-06-03
+
+- **"The Ledger" brand name:** Move History page named "The Ledger" (approved by Justin). "Hall of Records" retired. URL: `/ledger`. Nav label: "The Ledger".
+- **`Omen.jsx` dev-only route:** Gated to `/dev/omen` in local Vite, stripped from production via `React.lazy` + `import.meta.env.DEV`. Not deleted — retained as API test harness for local development.
+- **`Standings.jsx` vs `LeagueStandings.jsx` separation:** Two distinct components. `LeagueStandings.jsx` = collapsible embedded widget for Football tab. `Standings.jsx` = full dedicated page at `/standings` with own fetch, proper disconnected CTA, and PA column. Both retained.
+- **UI/UX audit complete:** All 15 routed pages + shared components passed `/ui-ux-pro-max` audit. 44px touch targets, `motion-reduce` sweep, ARIA patterns, CSS token consistency are now baseline across the full app.
+
 ## Open Decisions
 
 - Final UI naming between Omen of the Week, Omen, MVP Move, or a combined label.

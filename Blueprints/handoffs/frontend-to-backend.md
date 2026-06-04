@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## Active Context
 
-Last updated: 2026-05-30 (UX/UI audit complete; font system locked; CSS token sweep done across all pages; team identity schema live — cultureTag/cry/wardRoom/lore; Trade Analyzer form rework starting)
+Last updated: 2026-06-03 (Full UI/UX audit across all 15 pages + shared components complete; Ledger page at /ledger live; Standings page at /standings live; Omen.jsx gated to /dev/omen; Trade Analyzer rework prep doc written)
 
 - Corvus is the Fantasy Football MVP product.
 - Trade Analyzer is the front door (public, no auth).
@@ -607,10 +607,10 @@ Do not enable public checkout until steps 3 and 6 are done.
 ### Request 20 — Trade Analyzer form rework + player autocomplete
 
 **Date:** 2026-05-28
-**Owner:** Claude Code / frontend (planned — not yet built)
+**Owner:** Claude Code / frontend
 **Feature:** Trade Analyzer (`/trade`) — form layout + player name autocomplete
 **Priority:** Medium — UX improvement, no backend blocker for Phase 1
-**Status:** 🔨 In Progress — Phase 1 build started 2026-05-30. Phase 2 needs a backend player search endpoint.
+**Status:** ✅ Phase 1 complete as of 2026-05-30. Position-first layout, autocomplete via `nflPlayers.js`, Trade Room sidebar all shipped. Remaining improvements documented in `Blueprints/handoffs/trade-analyzer-rework.md` (scoring format selector, ⇄ glyph, VORP tooltip, MockBanner in BuyLowCard). Phase 2 backend player search endpoint is a future Codex request.
 
 **Problem:**
 
@@ -807,9 +807,9 @@ CREATE POLICY "moves_owner" ON public.moves
 
 **Date:** 2026-05-28
 **Owner:** Claude Code / frontend
-**Feature:** Account page — move history panel (new section in `/account` or route `/account/history`)
+**Feature:** The Ledger — move history page at `/ledger`
 **Priority:** High — this is the "receipts" screen; users see the AI is right more than it's wrong, which drives retention and upgrades
-**Status:** Planned. Depends on Request 21 (HITL) being live and the `moves` table existing with data.
+**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Ledger.jsx` built at `/ledger`, auth-required via `ProtectedRoute`. Calls `GET /api/moves`, handles loading/error/empty/populated states. Nav item "The Ledger" added under Dashboard section. Brand name "The Ledger" approved by Justin. "Hall of Records" name retired.
 
 **What it shows:**
 
@@ -882,9 +882,9 @@ GET /api/moves
 
 **Date:** 2026-05-28
 **Owner:** Claude Code / frontend
-**Feature:** Account page or Football dashboard — league standings table
+**Feature:** Standings page at `/standings`
 **Priority:** Medium — grounds the app in the user's real situation; Omen means more when you can see you're 3rd place and need a win
-**Status:** Planned. Partially scaffolded in backend per prior roadmap — confirm before building.
+**Status:** ✅ Frontend complete as of 2026-06-03. `frontend/src/pages/Standings.jsx` built at `/standings`, auth-required via `ProtectedRoute`. Calls `GET /api/league/standings`, handles 5 states: loading, disconnected (CTA to /account/connect), reconnect-required, generic error, populated table. Table adds PA column vs. embedded widget. `LeagueStandings.jsx` widget retained as-is for Football tab embed. Nav item "Standings" added to League section in Header.
 
 **What it shows:**
 

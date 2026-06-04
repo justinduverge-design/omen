@@ -130,7 +130,7 @@ function SkeletonRows() {
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="h-16 animate-pulse rounded-lg"
+          className="h-16 animate-pulse motion-reduce:animate-none rounded-lg"
           style={{ background: 'var(--color-surface-2)' }}
         />
       ))}
@@ -157,7 +157,7 @@ export default function MoveHistory() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-20 animate-pulse rounded-xl" style={{ background: 'var(--color-surface-2)' }} />
+        <div className="h-20 animate-pulse motion-reduce:animate-none rounded-xl" style={{ background: 'var(--color-surface-2)' }} />
         <SkeletonRows />
       </div>
     );

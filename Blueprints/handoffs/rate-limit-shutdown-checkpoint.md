@@ -1,102 +1,137 @@
 # Rate-Limit Shutdown Checkpoint
 
-Date: 2026-05-24
-Agent: Claude Code (frontend)
-Worktree: `corvus/.claude/worktrees/dreamy-ride-ab2778` → branch `claude/dreamy-ride-ab2778`
+Date: 2026-06-03
+Session: 8 — UI/UX audit + Ledger + Standings + context cleanup
+Layer: Layer 2 — Corvus product frontend
+Worktree: `.claude/worktrees/ecstatic-newton-f05326`
 
 ---
 
 ## Current Project State
 
-- Corvus app backbone is substantially complete: routing, auth gate, dashboard shell, Draft Assistant, Trade Analyzer, Omen gate, and Account subscription section are all wired.
-- Live Omen backend is active (Codex shipped Yahoo-backed MVP Move route). Frontend gate is correct: `status === "ready"` → live call; all other states show locked/disconnected/upgrade UI.
-- Stripe checkout and portal flows are fully wired from the Account page. Redirect URLs confirmed: `/account?subscribed=true` / `/account?cancelled=true` / `/account`.
-- Dashboard summary now exposes a safe `subscription` block — Account page consumes it directly with no separate endpoint needed.
-- All changes committed in the worktree (7 commits ahead of origin/main) and synced to canonical `corvus/`.
+- Full UI/UX audit complete across all 15 routed pages and shared components. Baseline is now 44px touch targets, `motion-reduce` on all animations, ARIA patterns, CSS tokens throughout.
+- `Omen.jsx` dev harness gated to `/dev/omen` (Vite local only, tree-shaken from production bundle).
+- "The Ledger" page live at `/ledger` — Move History frontend complete, wired to `GET /api/moves`.
+- "Standings" page live at `/standings` — League Standings frontend complete, wired to `GET /api/league/standings`.
+- Trade Analyzer rework Phase 1 confirmed already shipped. Remaining improvements prepped in handoff doc.
 
 ---
 
 ## Work Completed This Session
 
-1. **Handoff Requests 9 + 10 written** (`frontend-to-backend.md`) — Stripe contract, `success_url` mismatch bug report, Account subscription section scope.
-2. **`OmenOfTheWeek.jsx` hardened for live route** — 401 → `navigate('/login')` with `corvus.auth.next` preservation; 402 → `UpgradeState` inline; `pending_live_engine` explicit branch.
-3. **Handoff Request 11 written** — live Omen frontend wiring complete, no Codex action needed.
-4. **`Account.jsx` rebuilt** — full subscription section:
-   - Plan picker: Monthly (7-day trial) / Season Pass (one-time) → Stripe checkout
-   - Active state: Pro badge, plan label, renewal date, Manage Subscription → portal
-   - `?subscribed=true` success banner, `?cancelled=true` soft banner, `?upgrade=true` scroll-to
-   - Per-status Stripe error handling (400/404/503)
-   - Loading skeleton, error/retry state, `status: "unknown"` handling
-5. **`backend-to-frontend.md` committed** with Codex's Stripe/subscription update.
+| Item | Status |
+|---|---|
+| UI/UX audit Pass 1: Landing, CorvusLanding, Login | ✅ |
+| UI/UX audit Pass 2: OmenPage, Football, TradeAnalyzer | ✅ |
+| UI/UX audit Pass 3: TeamTheme, DraftAssistant, Omen sub-components | ✅ |
+| UI/UX audit Pass 4: StartSit, WaiverWire, NotFound, Header/NavDrawer/Footer | ✅ |
+| Sleeper guided flow upgraded on Account/PlatformConnections | ✅ |
+| `Omen.jsx` gated to `/dev/omen` via React.lazy + import.meta.env.DEV | ✅ |
+| `Ledger.jsx` page + `/ledger` route + "The Ledger" nav item | ✅ |
+| `Standings.jsx` page + `/standings` route + "Standings" nav item | ✅ |
+| Trade Analyzer rework prep doc written | ✅ |
+| All context files updated | ✅ |
 
 ---
 
 ## Files Changed
 
-| File | Status |
-|------|--------|
-| `frontend/src/pages/OmenOfTheWeek.jsx` | Updated — 401/402 handling, pending_live_engine branch |
-| `frontend/src/pages/Account.jsx` | Rebuilt — full subscription section |
-| `Blueprints/handoffs/frontend-to-backend.md` | Updated — Requests 9, 10, 11 |
-| `Blueprints/handoffs/backend-to-frontend.md` | Updated — Codex Stripe + subscription block |
+### New files
+- `frontend/src/pages/Ledger.jsx`
+- `frontend/src/pages/Standings.jsx`
+- `Blueprints/handoffs/trade-analyzer-rework.md`
+- `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md` (this file)
 
-All files synced to canonical `corvus/` and committed in worktree.
+### Updated app files (UI/UX audit + new pages)
+- `frontend/src/routes/index.jsx`
+- `frontend/src/components/layout/Header.jsx`
+- `frontend/src/components/platforms/PlatformConnections.jsx`
+- `frontend/src/pages/Landing.jsx`
+- `frontend/src/pages/Login.jsx`
+- `frontend/src/pages/OmenPage.jsx`
+- `frontend/src/pages/Football.jsx`
+- `frontend/src/pages/TradeAnalyzer.jsx`
+- `frontend/src/pages/TeamTheme.jsx`
+- `frontend/src/pages/DraftAssistant.jsx`
+- `frontend/src/pages/StartSit.jsx`
+- `frontend/src/pages/WaiverWire.jsx`
+- `frontend/src/pages/NotFound.jsx`
+- `frontend/src/pages/Account.jsx`
+- `frontend/src/pages/ConnectLeague.jsx`
+- `frontend/src/components/ui/MockBanner.jsx`
+- `frontend/src/components/ui/DisconnectedState.jsx`
+- `frontend/src/components/ui/UpgradeState.jsx`
+- `frontend/src/components/ui/EmptyState.jsx`
+- `frontend/src/components/ui/ErrorState.jsx`
+- `frontend/src/components/ui/Spinner.jsx`
+- `frontend/src/components/omen/OmenFeedback.jsx`
+- `frontend/src/components/layout/ProtectedRoute.jsx`
+- `frontend/src/components/league/LeagueStandings.jsx`
+- `frontend/src/components/moves/MoveHistory.jsx`
+
+### Updated context files
+- `Blueprints/handoffs/frontend-to-backend.md`
+- `Direction/current_sprint.md`
+- `Direction/context.md`
+- `Direction/decision_log.md`
 
 ---
 
-## Files Not Found / Not Checked
+## Files Not Found / Not Touched
 
-- `Direction/current_sprint.md` — not read this session; may need updating to reflect subscription UI completion.
-- `frontend/dist/` — build not run; `npm run build` in `frontend/` not verified.
-- `frontend/src/components/platforms/PlatformConnections.jsx` — not touched; uses legacy `GET /api/platforms/status` (known inconsistency, not blocking).
+- `Direction/roadmap.md` — not present in worktree.
+- `Direction/agent_inbox.md` — not present.
+- `Blueprints/specs/app-ui-plan.md` — not present.
+- `Blueprints/handoffs/decisions.md` — no new cross-boundary decisions this session.
+- `Blueprints/security-privacy.md` — no security-relevant changes.
+- `probo.yaml` — not touched.
+- All backend files — not touched.
 
 ---
 
 ## What Was Not Done
 
-- **`npm run build`** — not run; build output not verified.
-- **Browser visual test** — no UI inspection this session.
-- **`trial_ends_at` UI** — always `null` from backend; not shown. Needs Stripe webhook update.
-- **Waiver Wire UI** — not built.
-- **Start/Sit UI** — not built.
-- **Worktree merge** — `claude/dreamy-ride-ab2778` not pushed or merged.
+- No git commit, push, or merge.
+- No backend code, Supabase migrations, Stripe changes, or production actions.
+- Trade Analyzer improvements prepped but not built (scoring format, ⇄, VORP tooltip, MockBanner swap).
+- `profiles.favorite_team` Supabase migration still approval-gated by Justin.
+- Stripe test-mode QA still pending (Codex).
+- ESPN cookie QA still pending.
+- Logo SVG placeholder still in place.
 
 ---
 
 ## Current Risks / Open Questions
 
-1. **`trial_ends_at` always null** — backend Stripe webhook does not yet persist `trial_end`. UI cannot show trial expiry until fixed.
-2. **Worktree not merged** — 7 commits ahead of origin/main. Needs review and merge before changes are live.
-3. **Build not verified** — `npm install && npm run build` not run in worktree. May surface import errors.
-4. **Stripe plan pricing** — no prices in the UI (correct — Stripe checkout shows price). Justin should confirm pricing is set in the Stripe dashboard.
-5. **`PlatformConnections.jsx` uses legacy endpoint** — `GET /api/platforms/status` vs `GET /api/platforms`. Both exist; inconsistency only, not blocking.
+- Worktree `ecstatic-newton-f05326` not merged to `main`. All session work lives here. Merge before treating any of this as live.
+- `profiles.favorite_team` not applied to Supabase — team theme persistence won't work until Justin approves.
+- Stripe checkout not QA'd in test mode — do not enable paid checkout until Codex validates.
 
 ---
 
 ## Recommended Next Step
 
-Build and browser-test the Account page, then merge the worktree branch.
+**Option A — Trade Analyzer improvements** (~30 min, no backend dep):
+Use the exact prompt in `Blueprints/handoffs/trade-analyzer-rework.md`.
 
-1. `cd corvus/frontend && npm install && npm run build` — verify build passes
-2. Start dev server, visually test `/account` for all 3 subscription states
-3. Verify `?subscribed=true`, `?cancelled=true`, `?upgrade=true` flows
-4. Merge `claude/dreamy-ride-ab2778` → main once verified
-
-After merge: Waiver Wire UI (Pro-gated), then Start/Sit UI (free).
+**Option B — Merge worktree to main**:
+Review diff and merge session 8 work into canonical repo.
 
 ---
 
 ## Exact Next Prompt
 
+### Trade Analyzer improvements (Option A)
+
 ```
-Read backend-to-frontend.md and the rate-limit-shutdown-checkpoint.md in
-Blueprints/handoffs/, then build and visually verify the Account page
-subscription section in the browser. Test:
-1. Not-subscribed state — plan picker, both plan options, checkout CTA
-2. Subscribed state — Pro badge, Manage Subscription button
-3. ?upgrade=true scroll from UpgradeState CTA on the Omen tab
-4. ?subscribed=true success banner on return from Stripe
-5. Stripe 503 graceful fallback message
-Fix any issues found, confirm npm run build passes, then confirm the
-page is ready for Justin to review before merging the worktree branch.
+Open frontend/src/pages/TradeAnalyzer.jsx.
+
+Add three improvements:
+1. Scoring format toggle (PPR / Half PPR / Standard) as pill buttons above the Send/Receive columns. Default PPR. Include the value in the POST /api/trade/compare body as scoring_format.
+2. A centered ⇄ trade direction glyph between Send and Receive panels on xl screens (aria-hidden="true", hidden on mobile).
+3. Wrap the VORP label in the ResultPanel in <abbr title="Value Over Replacement Player — how much better this side is than a replacement-level option.">VORP</abbr>.
+
+Also replace the plain-text mock disclaimer in BuyLowCard with <MockBanner message="Mock buy-low targets · updated each preseason." /> (import MockBanner from '../components/ui/MockBanner.jsx').
+
+No other changes. No backend. No new files.
 ```

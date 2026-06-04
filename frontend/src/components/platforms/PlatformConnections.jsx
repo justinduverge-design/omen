@@ -140,7 +140,11 @@ export default function PlatformConnections({ recoveryState = null }) {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [action, setAction] = useState(null);
   const [errors, setErrors] = useState({});
-  const [sleeperForm, setSleeperForm] = useState({ username: '', league_id: '' });
+  // Sleeper guided flow
+  const [sleeperUsername, setSleeperUsername] = useState('');
+  const [sleeperStep, setSleeperStep] = useState('idle'); // idle | resolving | selecting | connecting
+  const [sleeperResolvedData, setSleeperResolvedData] = useState(null);
+  const [sleeperSelectedLeagueId, setSleeperSelectedLeagueId] = useState('');
   const [espnForm, setEspnForm] = useState({ espn_s2: '', swid: '', league_id: '' });
   // showEspnReconnectForm: true when the user clicks "Reconnect ESPN" while already connected.
   const [showEspnReconnectForm, setShowEspnReconnectForm] = useState(false);
@@ -181,21 +185,40 @@ export default function PlatformConnections({ recoveryState = null }) {
     }
   }
 
-  async function connectSleeper(event) {
+  async function resolveSleeper(event) {
     event.preventDefault();
-    setAction('sleeper');
     setErrors((current) => ({ ...current, sleeper: null }));
+    setSleeperStep('resolving');
+    try {
+      const data = await apiFetch('/api/platforms/sleeper/resolve', {
+        method: 'POST',
+        body: { sleeper_username: sleeperUsername, season: new Date().getFullYear() },
+      });
+      setSleeperResolvedData(data);
+      setSleeperSelectedLeagueId(data.leagues?.[0]?.id || '');
+      setSleeperStep('selecting');
+    } catch (error) {
+      setErrors((current) => ({ ...current, sleeper: errorMessage(error) }));
+      setSleeperStep('idle');
+    }
+  }
+
+  async function connectSleeperLeague() {
+    if (!sleeperSelectedLeagueId) return;
+    setErrors((current) => ({ ...current, sleeper: null }));
+    setSleeperStep('connecting');
     try {
       await apiFetch('/api/platforms/sleeper/connect', {
         method: 'POST',
-        body: sleeperForm,
+        body: { sleeper_username: sleeperUsername, league_id: sleeperSelectedLeagueId },
       });
-      setSleeperForm({ username: '', league_id: '' });
+      setSleeperUsername('');
+      setSleeperResolvedData(null);
+      setSleeperStep('idle');
       await refreshStatus();
     } catch (error) {
       setErrors((current) => ({ ...current, sleeper: errorMessage(error) }));
-    } finally {
-      setAction(null);
+      setSleeperStep('selecting');
     }
   }
 
@@ -224,7 +247,7 @@ export default function PlatformConnections({ recoveryState = null }) {
   const disabled = loadingStatus || Boolean(action);
 
   return (
-    <section className="grid gap-4 lg:grid-cols-3">
+    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {errors.status ? (
         <div className="rounded-lg border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200 lg:col-span-3">
           {errors.status}
@@ -241,7 +264,7 @@ export default function PlatformConnections({ recoveryState = null }) {
         ) : status.yahoo.connected ? (
           <div className="space-y-3">
             <button
-              className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
               style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               disabled={disabled}
               type="button"
@@ -249,12 +272,12 @@ export default function PlatformConnections({ recoveryState = null }) {
             >
               {action === 'disconnect-yahoo' ? 'Disconnecting...' : 'Disconnect'}
             </button>
-            {errors.yahoo ? <p className="text-sm text-red-300">{errors.yahoo}</p> : null}
+            {errors.yahoo ? <p className="text-sm text-red-300" role="alert">{errors.yahoo}</p> : null}
           </div>
         ) : (
           <div className="space-y-3">
             <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
               type="button"
               onClick={() => {
                 window.location.href = '/api/yahoo/auth';
@@ -268,7 +291,7 @@ export default function PlatformConnections({ recoveryState = null }) {
 
       <Card
         title="Sleeper"
-        description="Connect with your public Sleeper username."
+        description="Enter your username — Corvus finds your leagues automatically."
         connected={status.sleeper.connected}
       >
         {loadingStatus ? (
@@ -279,7 +302,7 @@ export default function PlatformConnections({ recoveryState = null }) {
               <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>Username: {status.sleeper.username}</p>
             ) : null}
             <button
-              className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
               style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               disabled={disabled}
               type="button"
@@ -287,31 +310,95 @@ export default function PlatformConnections({ recoveryState = null }) {
             >
               {action === 'disconnect-sleeper' ? 'Disconnecting...' : 'Disconnect'}
             </button>
-            {errors.sleeper ? <p className="text-sm text-red-300">{errors.sleeper}</p> : null}
+            {errors.sleeper ? <p className="text-sm text-red-300" role="alert">{errors.sleeper}</p> : null}
           </div>
-        ) : (
-          <form className="space-y-4" onSubmit={connectSleeper}>
+        ) : sleeperStep === 'idle' || sleeperStep === 'resolving' ? (
+          <form className="space-y-4" onSubmit={resolveSleeper}>
             <Field
-              id="sleeper-username"
+              id="sleeper-username-pc"
               label="Sleeper Username"
-              value={sleeperForm.username}
-              onChange={(username) => setSleeperForm((current) => ({ ...current, username }))}
-            />
-            <Field
-              id="sleeper-league-id"
-              label="League ID"
-              value={sleeperForm.league_id}
-              onChange={(league_id) => setSleeperForm((current) => ({ ...current, league_id }))}
+              value={sleeperUsername}
+              onChange={setSleeperUsername}
             />
             <button
-              className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={disabled}
+              className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={loadingStatus || sleeperStep === 'resolving' || !sleeperUsername.trim()}
               type="submit"
             >
-              {action === 'sleeper' ? 'Connecting...' : 'Connect Sleeper'}
+              {sleeperStep === 'resolving' ? 'Looking up leagues…' : 'Find My Leagues'}
             </button>
-            {errors.sleeper ? <p className="text-sm text-red-300">{errors.sleeper}</p> : null}
+            {errors.sleeper ? <p className="text-sm text-red-300" role="alert">{errors.sleeper}</p> : null}
           </form>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              Found{' '}
+              <span style={{ color: 'var(--color-text-primary)' }}>{sleeperResolvedData?.leagues?.length || 0}</span>{' '}
+              league{sleeperResolvedData?.leagues?.length !== 1 ? 's' : ''} for{' '}
+              <span style={{ color: 'var(--color-text-primary)' }}>{sleeperResolvedData?.username}</span>.
+              Pick one to connect.
+            </p>
+
+            {sleeperResolvedData?.leagues?.length > 0 ? (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="sr-only">Select a league</legend>
+                {sleeperResolvedData.leagues.map((league) => (
+                  <label
+                    key={league.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                      sleeperSelectedLeagueId === league.id
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent-muted)]'
+                        : 'border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-surface-3)]'
+                    }`}
+                  >
+                    <input
+                      checked={sleeperSelectedLeagueId === league.id}
+                      className="sr-only"
+                      name="sleeper-league-pc"
+                      type="radio"
+                      value={league.id}
+                      onChange={() => setSleeperSelectedLeagueId(league.id)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                        {league.name || `League ${league.id}`}
+                      </p>
+                      {league.scoring_format && (
+                        <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+                          {league.scoring_format}
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </fieldset>
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                No active leagues found for this season.
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!sleeperSelectedLeagueId || sleeperStep === 'connecting'}
+                type="button"
+                onClick={connectSleeperLeague}
+              >
+                {sleeperStep === 'connecting' ? 'Connecting…' : 'Connect League'}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                disabled={sleeperStep === 'connecting'}
+                type="button"
+                onClick={() => { setSleeperStep('idle'); setSleeperResolvedData(null); }}
+              >
+                Change Username
+              </button>
+            </div>
+            {errors.sleeper ? <p className="text-sm text-red-300" role="alert">{errors.sleeper}</p> : null}
+          </div>
         )}
       </Card>
 
@@ -335,7 +422,7 @@ export default function PlatformConnections({ recoveryState = null }) {
             <div className="space-y-3">
               <p className="text-sm text-emerald-300">ESPN reconnected successfully.</p>
               <a
-                className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300"
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
                 href="/football"
               >
                 Return to Omen →
@@ -346,7 +433,7 @@ export default function PlatformConnections({ recoveryState = null }) {
             <div className="space-y-3">
               {recoveryState === 'espn_reauth_required' ? (
                 <button
-                  className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={disabled}
                   type="button"
                   onClick={() => setShowEspnReconnectForm(true)}
@@ -355,7 +442,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </button>
               ) : null}
               <button
-                className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 disabled={disabled}
                 type="button"
@@ -363,11 +450,12 @@ export default function PlatformConnections({ recoveryState = null }) {
               >
                 {action === 'disconnect-espn' ? 'Disconnecting...' : 'Disconnect'}
               </button>
-              {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
+              {errors.espn ? <p className="text-sm text-red-300" role="alert">{errors.espn}</p> : null}
             </div>
           ) : (
             /* Not connected, or reconnecting after reauth recovery */
             <form className="space-y-4" onSubmit={connectEspn}>
+              <EspnCookieInstructions />
               <Field
                 id="espn-s2"
                 label="espn_s2 Cookie"
@@ -390,10 +478,9 @@ export default function PlatformConnections({ recoveryState = null }) {
                 value={espnForm.league_id}
                 onChange={(league_id) => setEspnForm((current) => ({ ...current, league_id }))}
               />
-              <EspnCookieInstructions />
               <div className="flex flex-wrap gap-3">
                 <button
-                  className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={disabled}
                   type="submit"
                 >
@@ -405,7 +492,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </button>
                 {showEspnReconnectForm ? (
                   <button
-                    className="rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-semibold transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                     disabled={disabled}
                     type="button"
@@ -418,7 +505,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                   </button>
                 ) : null}
               </div>
-              {errors.espn ? <p className="text-sm text-red-300">{errors.espn}</p> : null}
+              {errors.espn ? <p className="text-sm text-red-300" role="alert">{errors.espn}</p> : null}
             </form>
           )}
         </Card>
