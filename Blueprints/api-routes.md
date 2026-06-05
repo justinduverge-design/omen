@@ -1,6 +1,6 @@
 # Corvus API Route Reference
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -20,6 +20,7 @@ This file is the quick backend reference for current canonical routes and known 
 | Method | Path | Contract | Auth | Notes |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/trade/compare` | trade comparison response | No | Free Trade Analyzer entry point. |
+| `GET` | `/api/players/search` | `players-search.v1` | No | Free Trade Analyzer autocomplete. Uses public Sleeper player data; max 10 rows. |
 | `POST` | `/api/draft-assistant/recommendations` | `draft-assistant-recommendations.v1` | No | Mock/preview recommendations until live Draft Assistant data ships. |
 | `GET` | `/api/draft-assistant/adp` | ADP response | No | Public ADP; optional Yahoo enrichment when auth is supplied. |
 | `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, and `user.favorite_team`. |

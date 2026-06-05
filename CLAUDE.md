@@ -23,11 +23,14 @@ Read these if present:
 4. `Direction/roadmap.md`
 5. `Direction/decision_log.md`
 6. `Direction/agent_inbox.md`
-7. `Blueprints/specs/app-ui-plan.md`
-8. `Blueprints/handoffs/backend-to-frontend.md`
-9. `Blueprints/handoffs/frontend-to-backend.md`
-10. `Blueprints/handoffs/decisions.md`
-11. `AGENT.md`
+7. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+8. `Blueprints/definition-of-done.md`
+9. `Brand/brand-system.md`
+10. `Blueprints/specs/app-ui-plan.md`
+11. `Blueprints/handoffs/backend-to-frontend.md`
+12. `Blueprints/handoffs/frontend-to-backend.md`
+13. `Blueprints/handoffs/decisions.md`
+14. `AGENT.md`
 
 If a file is missing, continue and mention it.
 
@@ -41,6 +44,12 @@ Before major UI edits, identify:
 4. dashboard entry point
 
 ## Handoff Rule
+
+Use `Direction/agent_inbox.md` as the active task slot. Use
+`Blueprints/prompts/kickoff-frontend-claude.md` when Justin starts a frontend
+task, usually after a backend contract exists in
+`Blueprints/handoffs/backend-to-frontend.md`. Satisfy
+`Blueprints/definition-of-done.md` before calling the task done.
 
 When backend support is needed, write to:
 

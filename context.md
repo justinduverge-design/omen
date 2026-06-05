@@ -55,8 +55,11 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 5. `Direction/current_sprint.md`
 6. `Direction/roadmap.md`
 7. `Direction/decision_log.md`
-8. `Blueprints/handoffs/frontend-to-backend.md`
-9. `Blueprints/handoffs/backend-to-frontend.md`
+8. `Direction/agent_inbox.md`
+9. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+10. `Blueprints/definition-of-done.md`
+11. `Blueprints/handoffs/frontend-to-backend.md`
+12. `Blueprints/handoffs/backend-to-frontend.md`
 
 ## Safety Boundary
 

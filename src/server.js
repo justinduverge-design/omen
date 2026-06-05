@@ -107,6 +107,14 @@ try {
   logger.error("Draft Assistant router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Player search autocomplete routes --------------------------
+try {
+  const playersRoutes = require("./routes/players");
+  app.use("/api/players", publicToolRateLimit, playersRoutes);
+} catch (e) {
+  logger.error("Players router failed to load", { err: e.message, stack: e.stack });
+}
+
 // Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
 const SPA_DIR = path.join(__dirname, "..", "frontend", "dist");
 const SPA_INDEX = path.join(SPA_DIR, "index.html");

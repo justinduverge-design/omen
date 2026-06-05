@@ -20,11 +20,14 @@ Before product work, read these files if present:
 4. `Direction/current_sprint.md`
 5. `Direction/roadmap.md`
 6. `Direction/decision_log.md`
-7. `Blueprints/handoffs/frontend-to-backend.md`
-8. `Blueprints/handoffs/backend-to-frontend.md`
-9. `Blueprints/handoffs/decisions.md`
-10. `CLAUDE.md`
-11. `AGENT.md`
+7. `Direction/agent_inbox.md`
+8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+9. `Blueprints/definition-of-done.md`
+10. `Blueprints/handoffs/frontend-to-backend.md`
+11. `Blueprints/handoffs/backend-to-frontend.md`
+12. `Blueprints/handoffs/decisions.md`
+13. `CLAUDE.md`
+14. `AGENT.md`
 
 If a file is missing, continue and mention that it was missing.
 
@@ -37,6 +40,24 @@ Claude owns frontend implementation, UX/UI structure, page polish, and frontend 
 Justin owns product decisions, deployment approval, secrets, production infrastructure, and final naming direction.
 
 ## 4. Handoff Workflow
+
+Active task pointer:
+
+```text
+Direction/agent_inbox.md
+```
+
+Build loop instructions:
+
+```text
+Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
+```
+
+Definition of Done:
+
+```text
+Blueprints/definition-of-done.md
+```
 
 Frontend requests to backend live here:
 

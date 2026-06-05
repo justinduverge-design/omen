@@ -71,19 +71,26 @@ For backend or product work:
 4. `Direction/current_sprint.md`
 5. `Direction/roadmap.md`
 6. `Direction/decision_log.md`
-7. `Blueprints/handoffs/frontend-to-backend.md`
-8. `Blueprints/handoffs/backend-to-frontend.md`
-9. `Blueprints/handoffs/decisions.md`
+7. `Direction/agent_inbox.md`
+8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+9. `Blueprints/definition-of-done.md`
+10. `Blueprints/handoffs/frontend-to-backend.md`
+11. `Blueprints/handoffs/backend-to-frontend.md`
+12. `Blueprints/handoffs/decisions.md`
 
 For frontend work:
 
 1. `context.md`
 2. `CLAUDE.md`
 3. `Direction/context.md`
-4. `Blueprints/design.md`
-5. `Blueprints/specs/app-ui-plan.md`
-6. `Blueprints/handoffs/backend-to-frontend.md`
-7. `Blueprints/handoffs/frontend-to-backend.md`
+4. `Direction/agent_inbox.md`
+5. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+6. `Blueprints/definition-of-done.md`
+7. `Brand/brand-system.md`
+8. `Blueprints/design.md`
+9. `Blueprints/specs/app-ui-plan.md`
+10. `Blueprints/handoffs/backend-to-frontend.md`
+11. `Blueprints/handoffs/frontend-to-backend.md`
 
 ## Handoffs
 

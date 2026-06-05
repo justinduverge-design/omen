@@ -90,4 +90,36 @@ without needing to re-read the full handoff and spec from scratch.
 
 ---
 
+## [routing] - 2026-06-04
+**File:** Blueprints/prompts/README.md, Blueprints/prompts/prompt_playbook.md
+**Changed by:** Codex
+**Win rate at time of change:** n/a (routing/docs change)
+
+### What changed
+Documented the active build loop prompts in the prompt README and marked the old
+prompt playbook as superseded by the kickoff templates, Definition of Done, and
+`Blueprints/handoffs/*` contract bus.
+
+### Why
+New Claude and Codex chats need one obvious route into the current loop instead
+of choosing between the old `agent_handoff.md` playbook and the new handoff files.
+
+### Expected effect
+Cleaner startup for new chats, fewer stale handoff references, and less operator
+work for Justin when moving between backend and frontend agents.
+
+## [add] — 2026-06-04
+**File:** Blueprints/prompts/kickoff-backend-codex.md, Blueprints/prompts/kickoff-frontend-claude.md
+**Changed by:** Justin (via Claude)
+**Win rate at time of change:** n/a (new templates)
+
+### What changed
+Added two copy-paste kickoff templates that make Codex (backend) and Claude (frontend) self-load context from the read-first cascade, build inside ownership boundaries, satisfy Blueprints/definition-of-done.md, write handoffs, and stop at safety gates. Added Blueprints/definition-of-done.md as the shared self-check.
+
+### Why
+To make feature builds near hands-off: one short instruction + the folder carries context, so Justin reviews outcomes and approves gates rather than relaying steps.
+
+### Expected effect
+Lower token/coordination cost per feature; consistent handoffs; fewer boundary violations; a pattern that can later be lifted to slops-saloon for new apps to inherit.
+
 <!-- Add new entries above this line, newest first -->

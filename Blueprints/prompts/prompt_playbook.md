@@ -1,5 +1,11 @@
 # Prompt Playbook
 
+> Superseded 2026-06-04: use `HOW-TO-RUN-THE-LOOP.md`,
+> `kickoff-backend-codex.md`, `kickoff-frontend-claude.md`,
+> `Blueprints/definition-of-done.md`, and `Blueprints/handoffs/*` for active
+> Corvus work. This file remains as historical context for the older
+> `Blueprints/agent_handoff.md` loop.
+
 ## When Codex Starts
 
 ```text

@@ -52,6 +52,21 @@
 - **`Standings.jsx` vs `LeagueStandings.jsx` separation:** Two distinct components. `LeagueStandings.jsx` = collapsible embedded widget for Football tab. `Standings.jsx` = full dedicated page at `/standings` with own fetch, proper disconnected CTA, and PA column. Both retained.
 - **UI/UX audit complete:** All 15 routed pages + shared components passed `/ui-ux-pro-max` audit. 44px touch targets, `motion-reduce` sweep, ARIA patterns, CSS token consistency are now baseline across the full app.
 
+## Decisions Added 2026-06-04
+
+- **Build loop source of truth:** `Direction/agent_inbox.md` is the single active-task slot. `Direction/current_sprint.md` is the queue/history view. `Blueprints/handoffs/*` remains the contract bus for frontend/backend coordination.
+- **Launch-QA sprint state:** The 2026-06-04 sprint draft was promoted into `Direction/current_sprint.md`. Current Corvus posture is launch-QA and ops validation; prepared local backend patches are not production behavior until an approved deploy.
+
+## Decisions Added 2026-06-05
+
+- **Trade Analyzer player-search source:** `GET /api/players/search` is the Phase 2 autocomplete backend contract. It is public, rate-limited, and backed by public Sleeper NFL player data with in-process caching. Successful responses are a JSON array of `{ id, name, position, team, projected_points }`, capped at 10. `projected_points` is `null` unless the source provides a numeric projection, so frontend must not present it as live advice. Existing static `frontend/src/data/nflPlayers.js` remains the fallback when the source returns `503 player_search_source_unavailable`.
+
+## Decisions Added 2026-06-04 (session 2)
+
+- **Stripe webhook recovery ops gate cleared:** Justin confirmed Stripe webhook recovery follow-up is complete. Checked off in `Direction/current_sprint.md`.
+- **Platform Connections redesign:** `PlatformConnections.jsx` rebuilt from a 3-column card grid to a compact bordered list. One row per platform; connected state shows platform name, username/description, `Connected` badge, and subtle ghost buttons for Switch/Reconnect/Disconnect. Connect and switch forms expand inline below the row (one open at a time). All API contracts, Sleeper guided flow, and ESPN recovery states preserved. Accent buttons use `--color-accent` — fully team-theme-aware. Disconnect is a danger ghost button (turns red on hover) rather than the primary CTA. Build confirmed clean.
+- **"Omen of the Week" naming confirmed** by Justin as the approved user-facing feature name for the weekly recommendation feature.
+
 ## Open Decisions
 
 - Final UI naming between Omen of the Week, Omen, MVP Move, or a combined label.

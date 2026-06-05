@@ -154,6 +154,84 @@ function PlanPicker({ onCheckout, loading, error }) {
   );
 }
 
+// ── Billing dates ─────────────────────────────────────────────────────────────
+
+function fmtDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function BillingDates({ subscription }) {
+  const plan = subscription?.plan;
+  const status = subscription?.status;
+
+  const trialEndsLabel = fmtDate(subscription?.trial_ends_at);
+
+  let billingLabel = null;
+  let billingKey = 'Next billing date';
+
+  if (plan === 'season') {
+    billingLabel = fmtDate(subscription?.expires_at) || fmtDate(subscription?.current_period_end);
+    billingKey = 'Access through';
+  } else {
+    if (subscription?.current_period_end) {
+      billingLabel = fmtDate(subscription.current_period_end);
+    } else if (status === 'trialing' && subscription?.trial_ends_at) {
+      billingLabel = fmtDate(subscription.trial_ends_at);
+    }
+  }
+
+  const rows = [];
+  if (trialEndsLabel) rows.push({ key: 'Trial ends', value: trialEndsLabel });
+  if (billingLabel) rows.push({ key: billingKey, value: billingLabel });
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: 'var(--color-border)' }}
+    >
+      <div
+        className="border-b px-4 py-2.5"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-accent)' }}
+        >
+          Billing
+        </p>
+      </div>
+      <dl style={{ background: 'var(--color-surface-1)' }}>
+        {rows.map((row, i) => (
+          <div
+            key={row.key}
+            className="flex items-center justify-between px-4 py-3"
+            style={i > 0 ? { borderTop: '1px solid var(--color-border)' } : undefined}
+          >
+            <dt
+              className="text-xs font-medium"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
+              {row.key}
+            </dt>
+            <dd
+              className="text-sm font-medium tabular-nums"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 // ── Active state ──────────────────────────────────────────────────────────────
 
 function ActiveSubscription({ subscription, onManage, loading, error }) {
@@ -163,19 +241,6 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
     ? 'Season Pass'
     : null;
 
-  const periodEnd = subscription?.current_period_end || subscription?.expires_at;
-  let periodLabel = null;
-  if (periodEnd) {
-    const d = new Date(periodEnd);
-    if (!Number.isNaN(d.getTime())) {
-      periodLabel = d.toLocaleDateString(undefined, {
-        month: 'long', day: 'numeric', year: 'numeric',
-      });
-    }
-  }
-
-  const renewsOrExpires = subscription?.plan === 'season' ? 'Access through' : 'Renews';
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-5 py-4">
@@ -184,12 +249,9 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
           Corvus Pro · Active
         </span>
         {planLabel && <span className="text-xs text-[var(--color-text-secondary)]">{planLabel}</span>}
-        {periodLabel && (
-          <span className="ml-auto text-xs text-[var(--color-text-tertiary)]">
-            {renewsOrExpires} {periodLabel}
-          </span>
-        )}
       </div>
+
+      <BillingDates subscription={subscription} />
 
       {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
 

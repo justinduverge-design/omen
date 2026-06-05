@@ -12,6 +12,18 @@ SLOPS/
     corvus/
 ```
 
+## Active Build Loop Prompts
+
+Use these prompts to start new Corvus work without re-explaining the whole repo:
+
+- `HOW-TO-RUN-THE-LOOP.md` - operator guide for loading one task, choosing the right lane, and closing the loop.
+- `kickoff-backend-codex.md` - copy-paste starter for Codex backend/API/platform tasks.
+- `kickoff-frontend-claude.md` - copy-paste starter for Claude frontend/product tasks.
+
+Any change to a prompt in this folder must be recorded in `PROMPTS_CHANGELOG.md`.
+`prompt_playbook.md` is superseded by the kickoff files above and remains only as
+historical context.
+
 ## Historical Rename Prompts
 
 Some prompts preserve the pre-rename migration path from `ssffmvp` to the current Corvus route. They are historical run records and should not be re-run without rewriting:

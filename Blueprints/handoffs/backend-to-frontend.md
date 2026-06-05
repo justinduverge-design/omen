@@ -6,6 +6,111 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Trade Analyzer Player Search - 2026-06-05
+
+Feature name: Trade Analyzer Phase 2 player autocomplete.
+
+Status: Completed locally. Not deployed.
+
+Method and path:
+
+```text
+GET /api/players/search
+```
+
+Auth: none required. The route is public and uses the same public-tool rate limiter as Trade Analyzer and Draft Assistant.
+
+Request query:
+
+```text
+q=<partial player name>
+position=<QB|RB|WR|TE|K|DEF> optional
+limit=<1-10> optional, capped at 10
+```
+
+Examples:
+
+```text
+GET /api/players/search?position=RB&q=pat
+GET /api/players/search?q=cj
+GET /api/players/search?position=D/ST&q=eagles
+```
+
+Response shape:
+
+```json
+[
+  {
+    "id": "sleeper:100",
+    "name": "Patrick Mahomes",
+    "position": "QB",
+    "team": "KC",
+    "projected_points": null
+  }
+]
+```
+
+Example response:
+
+```json
+[
+  {
+    "id": "sleeper:100",
+    "name": "Patrick Mahomes",
+    "position": "QB",
+    "team": "KC",
+    "projected_points": null
+  }
+]
+```
+
+Error responses:
+
+Invalid position returns `400`:
+
+```json
+{
+  "error": "position must be one of QB, RB, WR, TE, K, DEF",
+  "code": "player_search_invalid_position"
+}
+```
+
+Public player source unavailable returns `503`:
+
+```json
+{
+  "error": "Player search source unavailable",
+  "code": "player_search_source_unavailable"
+}
+```
+
+Files changed:
+
+- `src/services/playerSearch.js`
+- `src/routes/players.js`
+- `src/server.js`
+- `test/playerSearch.test.js`
+- `test/playersRoute.test.js`
+- `Blueprints/api-routes.md`
+- `Blueprints/handoffs/backend-to-frontend.md`
+- `Direction/current_sprint.md`
+- `Direction/decision_log.md`
+
+Limitations:
+
+- Source is the public Sleeper NFL player map, cached in process for autocomplete stability. This is not a paid dependency.
+- `projected_points` is included for frontend compatibility but returns `null` in v1 unless the source provides a numeric projection. Do not display null projections as live advice.
+- Blank `q` returns `[]` so the UI does not dump a large player list before the user types.
+- If the public player source is unavailable, keep using `frontend/src/data/nflPlayers.js` as the offline fallback.
+
+How frontend should call it:
+
+- Use it as the Phase 2 replacement for `frontend/src/data/nflPlayers.js` autocomplete.
+- Debounce user typing and call with the selected position where available.
+- Read the response as a JSON array, not an envelope.
+- Show up to the returned rows directly in the autocomplete menu.
+- On `503 player_search_source_unavailable`, fall back to the existing static `searchPlayers(position, query)` helper.
+
 ## ESPN Connect Input Normalization — 2026-06-04
 
 Date: 2026-06-04
