@@ -6,6 +6,8 @@ import { apiFetch } from '../lib/api.js';
 import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 
+const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
+
 const PLAN_OPTIONS = [
   {
     id: 'monthly',
@@ -318,6 +320,17 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
   }
 
   function renderBody() {
+    if (!BILLING_ENABLED) {
+      return (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+          <p className="text-sm font-semibold text-[var(--color-text-primary)]">All features included</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+            Every Corvus tool — Omen of the Week, Waiver Wire, and more — is available on your account. No subscription required.
+          </p>
+        </div>
+      );
+    }
+
     if (summaryLoading) {
       return (
         <div className="animate-pulse motion-reduce:animate-none space-y-3">
@@ -405,7 +418,9 @@ export default function Account() {
     }
 
     if (searchParams.get('upgrade') === 'true') {
-      scrollRequested.current = true;
+      // Billing is disabled — there's no subscription section to scroll to.
+      // Just strip the param and land on the account page normally.
+      if (BILLING_ENABLED) scrollRequested.current = true;
       const next = new URLSearchParams(searchParams);
       next.delete('upgrade');
       setSearchParams(next, { replace: true });

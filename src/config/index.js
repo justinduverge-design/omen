@@ -62,6 +62,11 @@ const config = {
     seasonPriceId:  process.env.STRIPE_SEASON_PRICE_ID,
   },
 
+  // --- Billing --------------------------------------------------
+  billing: {
+    enabled: process.env.CORVUS_BILLING_ENABLED === "true",
+  },
+
   // --- Resend (transactional email) -----------------------------
   resend: {
     apiKey: process.env.RESEND_API_KEY || null,

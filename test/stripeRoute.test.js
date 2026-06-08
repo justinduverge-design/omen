@@ -19,6 +19,7 @@ function loadStripeRouter({
     monthlyPriceId: "price_monthly",
     seasonPriceId: "price_season",
   },
+  billingEnabled = true,
   checkoutSessions = [
     {
       customer: "cus_test",
@@ -35,6 +36,8 @@ function loadStripeRouter({
   const state = {
     checkoutPayload: null,
     portalPayload: null,
+    priceLookups: [],
+    subscriptionLookups: [],
     activations: [],
     deactivations: [],
     appUsers: [],
@@ -79,6 +82,7 @@ function loadStripeRouter({
       };
       this.prices = {
         retrieve: async (priceId) => {
+          state.priceLookups.push(priceId);
           if (priceLookupFailures.includes(priceId)) {
             throw new Error("price lookup failed");
           }
@@ -113,6 +117,7 @@ function loadStripeRouter({
       return {
         appBaseUrl: "https://corvus.example",
         isProd: false,
+        billing: { enabled: billingEnabled },
         stripe: stripeConfig,
       };
     }
@@ -142,7 +147,10 @@ function loadStripeRouter({
         deactivate: async (payload) => {
           state.deactivations.push(payload);
         },
-        getByUserId: async () => subscription,
+        getByUserId: async () => {
+          state.subscriptionLookups.push("user-1");
+          return subscription;
+        },
         getByStripeCustomerId: async () => subscriptionByCustomer,
       };
     }
@@ -261,6 +269,21 @@ test("GET /api/stripe/prices returns public plan pricing from configured Stripe 
   assert.equal(res.body.plans[1].price.display, "$49");
 });
 
+test("GET /api/stripe/prices returns billing_disabled and skips Stripe when billing is disabled", async () => {
+  const { app, state } = buildApp({ billingEnabled: false });
+
+  const res = await get(app, "/api/stripe/prices");
+
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, {
+    error: "Billing is disabled",
+    code: "billing_disabled",
+  });
+  assert.deepEqual(state.priceLookups, []);
+  assert.equal(state.checkoutPayload, null);
+  assert.equal(state.portalPayload, null);
+});
+
 test("GET /api/stripe/prices reports unconfigured Stripe without side effects", async () => {
   const { app, state } = buildApp({
     stripeConfig: {
@@ -315,6 +338,20 @@ test("GET /api/stripe/prices degrades per plan when Stripe lookup fails", async 
   assert.equal(res.body.plans[1].price.display, "$49");
 });
 
+test("POST /api/stripe/checkout returns billing_disabled and skips Stripe when billing is disabled", async () => {
+  const { app, state } = buildApp({ billingEnabled: false });
+
+  const res = await post(app, "/api/stripe/checkout", { plan: "monthly" });
+
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, {
+    error: "Billing is disabled",
+    code: "billing_disabled",
+  });
+  assert.equal(state.checkoutPayload, null);
+  assert.deepEqual(state.appUsers, []);
+});
+
 test("POST /api/stripe/checkout returns users to Account after successful checkout", async () => {
   const { app, state } = buildApp();
 
@@ -329,6 +366,20 @@ test("POST /api/stripe/checkout returns users to Account after successful checko
     trial_period_days: 7,
     metadata: { userId: "user-1", plan: "monthly" },
   });
+});
+
+test("POST /api/stripe/portal returns billing_disabled and skips Stripe when billing is disabled", async () => {
+  const { app, state } = buildApp({ billingEnabled: false });
+
+  const res = await post(app, "/api/stripe/portal");
+
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, {
+    error: "Billing is disabled",
+    code: "billing_disabled",
+  });
+  assert.equal(state.portalPayload, null);
+  assert.deepEqual(state.subscriptionLookups, []);
 });
 
 test("POST /api/stripe/portal returns users to Account after billing management", async () => {

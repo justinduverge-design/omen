@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 
+const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
+
 export default function UpgradeState({
   eyebrow = 'Corvus Pro',
   title = 'Upgrade to unlock',
@@ -7,6 +9,12 @@ export default function UpgradeState({
   ctaLabel = 'Upgrade to Pro',
   ctaTo = '/account?upgrade=true',
 }) {
+  // Billing is disabled — every authenticated user gets full Pro depth, so a
+  // paywall should never render. The backend gate is a pass-through and
+  // shouldn't report `needs_subscription`, but render nothing here too in
+  // case that contract is ever violated.
+  if (!BILLING_ENABLED) return null;
+
   return (
     <div
       className="rounded-xl border p-10 text-center"

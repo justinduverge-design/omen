@@ -6,6 +6,139 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Tuesday Scoring Nflverse Adapter - 2026-06-05
+
+Feature name: Tuesday scoring / Omen calibration loop.
+
+Status: Completed locally. Not deployed. `CORVUS_CRON_SCORING_ENABLED` remains disabled.
+
+Method and path:
+
+```text
+Worker only: node src/corvus_tuesday_cron.js
+Service helper: matchupService.getPlayerActualPoints(playerName, week, season)
+```
+
+Request shape:
+
+```js
+await getPlayerActualPoints("Amon-Ra St. Brown", 7, 2026)
+await fetchNFLScores({ season: 2026, weekNum: 7, redis })
+```
+
+Response shape:
+
+`getPlayerActualPoints(playerName, week, season)` returns:
+
+```json
+{
+  "actual_points": 24.6,
+  "player_name_matched": "Amon-Ra St. Brown"
+}
+```
+
+or `null` when nflverse data is unavailable or no player row matches.
+
+`fetchNFLScores({ season, weekNum })` now returns the same scoring map shape the cron already expects:
+
+```json
+{
+  "amonra_st_brown": {
+    "name": "Amon-Ra St. Brown",
+    "rush": 0,
+    "rec_ppr": 24.6,
+    "rec_half": 22.1,
+    "rec_std": 19.6,
+    "pass": 0
+  }
+}
+```
+
+Scoring math:
+
+- Rushing: `rushing_yards * 0.1 + rushing_tds * 6`
+- Receiving PPR: `receiving_yards * 0.1 + receiving_tds * 6 + receptions`
+- Receiving Half PPR: `receiving_yards * 0.1 + receiving_tds * 6 + receptions * 0.5`
+- Receiving Standard: `receiving_yards * 0.1 + receiving_tds * 6`
+- Passing: `passing_yards * 0.04 + passing_tds * 4 - interceptions * 2`
+
+Example response:
+
+```json
+{
+  "dual_threat": {
+    "name": "Dual Threat",
+    "rush": 10,
+    "rec_ppr": 16,
+    "rec_half": 13.5,
+    "rec_std": 11,
+    "pass": 16
+  }
+}
+```
+
+Files changed:
+
+- `src/services/matchupService.js`
+- `src/corvus_tuesday_cron.js`
+- `test/matchupService.test.js`
+- `test/cronHardening.test.js`
+- `test/nflverseScoring.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+- `Direction/current_sprint.md`
+- `Direction/decision_log.md`
+- `Blueprints/handoffs/decisions.md`
+
+Limitations:
+
+- This is local code plus fixture validation only. No production cron run, deploy, Supabase mutation, or secret/config change happened.
+- `REQUIRED_SCORING_ENV` now requires only `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`; `SPORTRADAR_API_KEY` is no longer required for nflverse scoring.
+- The old Sportradar fetch body remains isolated as `fetchSportradarScores()` for future fallback/reference, but the exported `fetchNFLScores()` path is nflverse-backed.
+- `CORVUS_CRON_DRY_RUN=true` runs scoring logic without writing move outcomes or archive updates. It logs what would be scored.
+- Enablement still needs an approved dry-run against real Supabase data and confirmation that all scoreable Omen rows have reliable `target_player`, `season`, `week_num`, `scoring`, and `confidence` values.
+
+How frontend should call it:
+
+- No frontend call change.
+- Keep Move History and effectiveness UI in pending/unscored states until backend confirms a deployed dry-run passed and `CORVUS_CRON_SCORING_ENABLED=true` is intentionally enabled.
+
+## Tuesday Scoring Provider Decision - 2026-06-05
+
+Feature name: Tuesday scoring / Omen calibration loop.
+
+Status: Decision documented. Backend implementation still pending. Cron remains disabled.
+
+Provider decision:
+
+- First launch scoring should use `nflverse-data` weekly player stats.
+- The existing `src/corvus_tuesday_cron.js` Sportradar fetch path is not launch-ready for real user data.
+- Sportradar is deferred unless the backend later implements the correct schedule -> game id -> game statistics flow and validates that shape.
+
+Required scoring data shape:
+
+- `season`
+- `week`
+- stable player id where available
+- player display name
+- NFL team
+- fantasy position
+- weekly passing, rushing, receiving, and turnover stats
+- computed fantasy points for PPR, half-PPR, and standard, or enough raw stats to compute them deterministically
+
+Required backend work before enablement:
+
+- Add/rework a scoring provider adapter around `nflverse-data` weekly player outcomes.
+- Persist enough Omen recommendation metadata in `moves` to score reliably: target player id/name, recommendation type, confidence, scoring format, season, week, platform, and league/team context where safe.
+- Score by each move row's stored `season` and `week_num`, not one wall-clock computed week for all rows.
+- Keep `followed = true` as the only scoring gate. `followed = false` and `followed = null` must not be scored as wins/losses.
+- Add fixture tests for provider parsing and scoring math.
+- Add dry-run validation before any real Supabase mutation.
+
+Frontend action needed:
+
+- None yet. Keep Tuesday scoring/results UI in pending/unscored states until backend explicitly ships and validates the nflverse scoring adapter.
+- Do not present `effectiveness_pct`, wins/losses, or Tuesday scoring as live for new rows unless the backend confirms cron scoring is enabled and validated.
+
 ## Trade Analyzer Player Search - 2026-06-05
 
 Feature name: Trade Analyzer Phase 2 player autocomplete.
@@ -1704,14 +1837,14 @@ What changed:
 - Vault RPC grants are service-role only: create, decrypt, update, and delete.
 - Backend schema SQL now includes columns currently used by platform connections, Omen scoring, GDPR export/delete, and Tuesday scoring.
 - Legacy `corvus_agents.js` now parses and preserves math exports, while retired legacy HTTP routes fail closed with `410`.
-- `corvus_tuesday_cron.js` now parses and is safety-gated. It will not score data unless `CORVUS_CRON_SCORING_ENABLED=true`.
+- `corvus_tuesday_cron.js` now parses and is safety-gated. It will not score data unless `CORVUS_CRON_SCORING_ENABLED=true`; as of 2026-06-05, that flag must stay false until the nflverse-data scoring adapter replaces/reworks the unvalidated Sportradar fetch path.
 - Cron Docker wiring now points at `src/corvus_tuesday_cron.js` and writes to the crond spool path the container actually uses.
 - Deploy workflow now runs tests, audit, and both frontend builds before building/pushing deploy images.
 - Probo evidence paths now point at current Corvus files.
 
 Frontend action needed:
 
-None for UI integration. Keep using the existing Omen / MVP Move response envelope. Treat Tuesday scoring/results UI as pending until backend explicitly enables and validates production scoring.
+None for UI integration. Keep using the existing Omen / MVP Move response envelope. Treat Tuesday scoring/results UI as pending until backend explicitly ships the nflverse-data scoring adapter, validates dry-run output, and enables production scoring.
 
 ## UX/UI Build Backend Contract Audit
 
@@ -2204,6 +2337,145 @@ Waiver Wire:
 - Non-mock live calls no longer universally fail closed. They should be attempted only after dashboard status is `ready`.
 - If frontend sees `platform_disconnected`, `pending_live_engine`, `omen_auth_required`, `omen_subscription_required`, or `omen_live_generation_failed`, safest recovery is to refetch `GET /api/dashboard/summary` and `GET /api/platforms`, then route according to the dashboard Omen status above.
 - Explicit mock/dev previews remain allowed only when visibly labeled as preview/mock.
+
+## Local Authenticated Load Test Checkpoint
+
+Date: 2026-06-05
+
+Owner: Codex/backend
+
+Feature: Omen / Trade Analyzer / Dashboard local load smoke
+
+Status: Complete with Omen latency concern. No frontend contract shape changed.
+
+Endpoint / contract:
+
+- `POST /api/trade/compare`
+- `POST /api/omen/mvp-move`
+- `GET /api/dashboard/summary`
+
+Request shape:
+
+- Load script: `scripts/load-corvus-routes.js`
+- Base URL used: `http://localhost:3000`
+- Iterations: `10`
+- Auth: Supabase bearer token supplied for Omen and dashboard.
+- Trade payload:
+
+```json
+{
+  "send": [{ "name": "Player A", "projected_points": 12, "position": "WR" }],
+  "receive": [{ "name": "Player B", "projected_points": 14, "position": "RB" }],
+  "scoring_format": "ppr"
+}
+```
+
+Response shape:
+
+- No API response shape changed.
+- The script reports per-route `count`, HTTP `statuses`, `p50_ms`, and `p95_ms`.
+
+Example response:
+
+```json
+{
+  "base_url": "http://localhost:3000",
+  "iterations": 10,
+  "auth_token_supplied": true,
+  "reports": [
+    {
+      "name": "trade_compare",
+      "count": 10,
+      "statuses": { "200": 10 },
+      "p50_ms": 1,
+      "p95_ms": 34
+    },
+    {
+      "name": "omen_mvp_move",
+      "count": 10,
+      "statuses": { "200": 10 },
+      "p50_ms": 2758,
+      "p95_ms": 4999
+    },
+    {
+      "name": "dashboard_summary",
+      "count": 10,
+      "statuses": { "200": 10 },
+      "p50_ms": 156,
+      "p95_ms": 633
+    }
+  ]
+}
+```
+
+Files changed:
+
+- Documentation/status only:
+  - `Direction/current_sprint.md`
+  - `Direction/decision_log.md`
+  - `Blueprints/handoffs/backend-to-frontend.md`
+  - `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`
+
+Limitations:
+
+- This was local Docker load smoke, not production load testing.
+- Omen passed functionally but reached p95 4999ms under repeated authenticated local calls. Keep loading and duplicate-submit protection in the Omen UI.
+- Dashboard summary stayed under the investor-demo 750ms p95 threshold locally.
+- Trade Analyzer stayed very fast locally.
+- Earlier `401` failures were traced to local Docker `.env` / Supabase service-key readiness, not frontend auth behavior.
+
+How frontend should call it:
+
+- No frontend call change required.
+- Continue to call `GET /api/dashboard/summary` first and call `POST /api/omen/mvp-move` only when `tools.omen_of_the_week.status === "ready"`.
+- Keep Account/Dashboard loading states resilient because dashboard summary may take several hundred milliseconds locally.
+- Keep Omen in-flight state and duplicate-click protection because live Omen can take several seconds under load.
+
+## Billing Kill-Switch Contract
+
+Date: 2026-06-08
+
+Owner: Codex/backend
+
+Feature: Free/non-monetized Corvus billing gate
+
+Status: Completed locally. Not deployed.
+
+Endpoint / contract:
+
+- Runtime flag: `CORVUS_BILLING_ENABLED`.
+- Default: disabled unless the env value is exactly `"true"`.
+- Launch value: `false`.
+- When disabled, these routes return `403` before any Stripe method call:
+  - `GET /api/stripe/prices`
+  - `POST /api/stripe/checkout`
+  - `POST /api/stripe/portal`
+- Disabled response:
+
+```json
+{ "error": "Billing is disabled", "code": "billing_disabled" }
+```
+
+- Stripe webhook remains ungated and signature verification is unchanged.
+- `requireSubscription` passes authenticated users through when billing is disabled, so Omen/Pro-depth backend paths no longer 402 on `users.is_subscribed` in free mode.
+- When `CORVUS_BILLING_ENABLED=true`, existing Stripe prices/checkout/portal behavior and the `users.is_subscribed` subscription gate are unchanged.
+
+State handling:
+
+- Frontend should treat `billing_disabled` as the free/non-monetized mode and avoid sending users into checkout or portal.
+- Account subscription/payment surfaces can be hidden or replaced by free-access copy in the frontend lane.
+
+Mock vs live data:
+
+- Tests use mocked Stripe and Supabase only. No live Stripe or Supabase calls were made.
+
+Known limitations:
+
+- This backend change does not remove Stripe code or frontend payment UI. It only makes the billing behavior reversible behind one flag.
+
+Frontend action needed:
+
+- Hide or revise Account billing CTAs for free launch mode, using `billing_disabled` as a defensive backend signal if those CTAs are still reachable.
 
 ## Response Template
 

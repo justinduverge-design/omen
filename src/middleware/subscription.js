@@ -27,6 +27,10 @@ async function requireSubscription(req, res, next) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
+  if (!config.billing.enabled) {
+    return next();
+  }
+
   try {
     const { data, error } = await supabase
       .from("users")

@@ -305,6 +305,10 @@ function publicPriceShape(plan, stripePrice = null, error = null) {
 }
 
 router.get("/prices", async (_req, res) => {
+  if (!config.billing.enabled) {
+    return res.status(403).json({ error: "Billing is disabled", code: "billing_disabled" });
+  }
+
   const plans = [];
 
   for (const plan of VALID_PLANS) {
@@ -336,6 +340,10 @@ router.get("/prices", async (_req, res) => {
 });
 
 router.post("/checkout", requireAuth, async (req, res, next) => {
+  if (!config.billing.enabled) {
+    return res.status(403).json({ error: "Billing is disabled", code: "billing_disabled" });
+  }
+
   try {
     if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
 
@@ -378,6 +386,10 @@ router.post("/checkout", requireAuth, async (req, res, next) => {
 });
 
 router.post("/portal", requireAuth, async (req, res, next) => {
+  if (!config.billing.enabled) {
+    return res.status(403).json({ error: "Billing is disabled", code: "billing_disabled" });
+  }
+
   try {
     if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
 
