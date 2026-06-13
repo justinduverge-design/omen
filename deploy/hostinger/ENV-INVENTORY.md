@@ -21,6 +21,7 @@ public Ollama/OpenClaw address.
 | `SUPABASE_SERVICE_KEY` | Service-role key for server-side Supabase access. | Supabase | Yes |
 | `REDIS_URL` | Upstash Redis REST URL for cache-backed services. | Upstash | Treat as sensitive |
 | `REDIS_TOKEN` | Upstash Redis REST token. | Upstash | Yes |
+| `SENTRY_DSN` | Sentry project DSN for backend error capture (api + cron). Empty = SDK no-op. | Sentry | Yes |
 | `YAHOO_CLIENT_ID` | Yahoo OAuth app client id. | Yahoo | No |
 | `YAHOO_CLIENT_SECRET` | Yahoo OAuth app client secret. | Yahoo | Yes |
 | `YAHOO_REDIRECT_URI` | Yahoo OAuth callback URL. | Yahoo | No |

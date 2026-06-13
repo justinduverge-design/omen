@@ -8,6 +8,10 @@
  * no data is scored unless CORVUS_CRON_SCORING_ENABLED=true is present.
  */
 
+const { initSentry, flushSentry } = require("./middleware/sentry");
+initSentry({ component: "cron" });
+
+const Sentry = require("@sentry/node");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis } = require("@upstash/redis");
 
@@ -309,11 +313,32 @@ async function main({ env = process.env } = {}) {
   return result;
 }
 
+function installSentryProcessHandlers() {
+  const handleUncaughtException = (error) => {
+    Sentry.captureException(error);
+    flushSentry().finally(() => {
+      process.removeListener("uncaughtException", handleUncaughtException);
+      throw error;
+    });
+  };
+
+  process.on("uncaughtException", handleUncaughtException);
+  process.on("unhandledRejection", (reason) => {
+    Sentry.captureException(reason instanceof Error ? reason : new Error("Unhandled rejection"));
+  });
+}
+
 if (require.main === module) {
+  installSentryProcessHandlers();
   main()
-    .then(() => process.exit(0))
-    .catch((error) => {
+    .then(async () => {
+      await flushSentry();
+      process.exit(0);
+    })
+    .catch(async (error) => {
+      Sentry.captureException(error);
       log.error(error.stack || error.message);
+      await flushSentry();
       process.exit(1);
     });
 }
