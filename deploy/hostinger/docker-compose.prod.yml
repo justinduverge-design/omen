@@ -1,0 +1,51 @@
+# Hostinger KVM1 production compose for Corvus.
+# Run from the repo root with:
+#   docker compose -f deploy/hostinger/docker-compose.prod.yml up -d
+#
+# Secrets come from deploy/hostinger/.env.production on the VPS.
+# That file is intentionally ignored and must not be committed.
+name: corvus
+services:
+  api:
+    image: ghcr.io/justinduverge-design/corvus:main
+    container_name: corvus_api
+    command: node src/server.js
+    env_file:
+      # Relative to this compose file: deploy/hostinger/.env.production.
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      # Localhost only. Nginx is the public HTTPS front door.
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  cron:
+    image: ghcr.io/justinduverge-design/corvus-cron:main
+    container_name: corvus_cron
+    env_file:
+      # Relative to this compose file: deploy/hostinger/.env.production.
+      - .env.production
+    environment:
+      NODE_ENV: production
+      TZ: America/New_York
+    restart: unless-stopped
+    # No ports: this is a scheduled worker, not an HTTP service.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  default:
