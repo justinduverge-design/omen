@@ -1,29 +1,33 @@
 # =================================================================
-# Slops Saloon - Auto-deploy to Oracle on push to main
+# Slops Saloon - Auto-deploy to Hostinger KVM1 on push to main
 # -----------------------------------------------------------------
 # Required GitHub secrets (Settings -> Secrets and variables -> Actions):
-#   ORACLE_HOST     -  143.47.101.241
-#   ORACLE_USER     -  ubuntu
-#   ORACLE_SSH_KEY  -  full contents of oraclepr.key (-----BEGIN ... END-----)
-#   INFISICAL_TOKEN  -  Infisical service token (oracle-vps-deploy, production read)
+#   KVM1_HOST       -  KVM1 public IP (e.g. 2.25.182.1)
+#   KVM1_USER       -  SSH user on KVM1 (e.g. justin)
+#   KVM1_SSH_KEY    -  Full contents of the deploy private key
+#                      (-----BEGIN OPENSSH PRIVATE KEY----- ... END-----)
 #   VITE_SUPABASE_URL       - public Vite build-time Supabase URL
 #   VITE_SUPABASE_ANON_KEY  - public Vite build-time Supabase anon key
 #   VITE_API_BASE_URL       - optional Vite API base URL override; blank uses same-origin /api
+#   VITE_ESPN_ENABLED       - build-time flag that shows the ESPN connection UI
+#
+# Runtime env on KVM1 lives in /opt/corvus/deploy/hostinger/.env.production,
+# loaded by the compose file's env_file directive. This workflow does NOT
+# touch that file — it stays on the VPS, off git, and is managed by hand.
 #
 # Flow:
 #   1. Run backend tests, audit, and frontend build checks
 #   2. Build API and cron images on GitHub Actions
 #   3. Push images to GHCR
-#   4. SSH to Oracle, git pull, validate Infisical env, pull images
-#   5. Recreate containers with --no-build
-#   6. Wait + smoke-test /api/health
-#   7. Fail the workflow if health check fails so you get a red X on GitHub
+#   4. SSH to KVM1, pull images, restart containers via compose
+#   5. Smoke-test /api/health via the public hostname
+#   6. Fail the workflow if health check fails so you get a red X on GitHub
 #
 # SY0-701 4.7 / 4.8: change-management with audit trail (git history +
 # Actions run logs) and rollback (revert commit -> auto-redeploy old).
 # =================================================================
 
-name: Deploy to Oracle
+name: Deploy to Hostinger KVM1
 
 on:
   push:
@@ -32,7 +36,7 @@ on:
 
 # Don't run two deploys at once - serialize on main.
 concurrency:
-  group: deploy-oracle
+  group: deploy-kvm1
   cancel-in-progress: false
 
 jobs:
@@ -129,59 +133,44 @@ jobs:
       packages: read
 
     steps:
-      - name: Trust the Oracle host key
+      - name: Trust the KVM1 host key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts || true
+          ssh-keyscan -H "${{ secrets.KVM1_HOST }}" >> ~/.ssh/known_hosts || true
 
       - name: Write deploy key
         env:
-          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          SSH_KEY: ${{ secrets.KVM1_SSH_KEY }}
         run: |
-          printf '%s\n' "$SSH_KEY" > /tmp/oracle_key
-          chmod 600 /tmp/oracle_key
+          printf '%s\n' "$SSH_KEY" > /tmp/kvm1_key
+          chmod 600 /tmp/kvm1_key
 
       - name: Verify deploy key fingerprint
-        run: ssh-keygen -l -f /tmp/oracle_key
+        run: ssh-keygen -l -f /tmp/kvm1_key
 
-      - name: Pull images and restart on Oracle
+      - name: Pull images and restart on KVM1
         env:
-          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
           GHCR_TOKEN: ${{ github.token }}
           GHCR_USER: ${{ github.actor }}
         run: |
-          ssh -i /tmp/oracle_key \
+          ssh -i /tmp/kvm1_key \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=accept-new \
               -o BatchMode=yes \
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=20 \
-              ubuntu@${{ secrets.ORACLE_HOST }} \
-              "APP_DIR=\"\$HOME/corvus\" && \
-               LEGACY_APP_DIR=\"\$HOME/SlopsSaloon-Fantasy-Football-MVP\" && \
-               if [ ! -d \"\$APP_DIR/.git\" ] && [ -d \"\$LEGACY_APP_DIR/.git\" ]; then \
-                 echo '==> Moving legacy Oracle checkout to ~/corvus'; \
-                 mv \"\$LEGACY_APP_DIR\" \"\$APP_DIR\"; \
-               fi && \
-               cd \"\$APP_DIR\" && \
-               git remote set-url origin https://github.com/justinduverge-design/corvus && \
-               git pull --ff-only origin main && \
+              ${{ secrets.KVM1_USER }}@${{ secrets.KVM1_HOST }} \
+              "set -euo pipefail && \
+               cd /opt/corvus/deploy/hostinger && \
                printf '%s' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && \
-               INFISICAL_TOKEN=$INFISICAL_TOKEN infisical run --projectId=4498715c-4213-41b1-acf4-278c1451e1fe --env=prod -- bash -lc '
-                 set -euo pipefail
-                 echo \"==> Checking required production environment\"
-                 docker compose --project-name corvus config --quiet
-                 echo \"==> Pulling GHCR images from GitHub Actions build\"
-                 docker compose --project-name corvus pull api cron
-                 echo \"==> Recreating API and cron with verified environment and no VPS build\"
-                 docker rm -f corvus_api corvus_cron 2>/dev/null || true
-                 docker compose --project-name corvus up -d --no-build api cron
-               ' && \
+               echo '==> Pulling GHCR images built by this workflow' && \
+               docker compose -f docker-compose.prod.yml --project-name corvus pull api cron && \
+               echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)' && \
+               docker compose -f docker-compose.prod.yml --project-name corvus up -d --no-build api cron && \
+               echo '==> Cleaning up dangling images' && \
                docker image prune -f"
 
       - name: Smoke test /api/health (retries up to 60s)
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           for i in $(seq 1 12); do
             if curl -fsS --max-time 4 "https://slopssaloon.com/api/health" > /tmp/health.json 2>/dev/null; then
@@ -194,19 +183,16 @@ jobs:
             echo "Attempt $i: health endpoint not ready yet, retrying in 5s..."
             sleep 5
           done
-          echo "::error::Health check failed after 60s. Check Oracle logs."
+          echo "::error::Health check failed after 60s. Check KVM1 logs."
           exit 1
 
       - name: Tail recent server logs (on success or failure)
         if: always()
-        env:
-          ORACLE_USER: ${{ secrets.ORACLE_USER }}
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i /tmp/oracle_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
-              "$ORACLE_USER@$ORACLE_HOST" \
+          ssh -i /tmp/kvm1_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
+              ${{ secrets.KVM1_USER }}@${{ secrets.KVM1_HOST }} \
               'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs corvus_api 2>&1 | tail -25' || true
 
       - name: Clean up deploy key
         if: always()
-        run: rm -f /tmp/oracle_key
+        run: rm -f /tmp/kvm1_key
