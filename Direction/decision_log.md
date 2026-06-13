@@ -105,3 +105,27 @@
 - **Corvus monetization posture changed to free/non-monetized:** Justin decided Corvus should no longer be monetized because Yahoo and ESPN data cannot be monetized safely under current platform constraints. Existing Stripe/payment code was not changed as part of this decision; hiding, disabling, or removing paid surfaces is a separate follow-up task.
 - **Stripe/paid-surface posture decided — keep the plumbing, guard the server:** Resolves the open "hide / disable / remove" question. Decision: **gate, do not remove.** Introduce one reversible kill-switch `CORVUS_BILLING_ENABLED` (default `false`). Backend refuses new `/api/stripe/checkout` and `/portal` sessions when off (`403 billing_disabled`), and `requireSubscription` becomes a pass-through so every authenticated user gets Pro depth free. The Stripe **webhook stays ungated** so cancellation events keep `users.is_subscribed` truthful. Frontend hides pricing/upgrade surfaces behind `VITE_BILLING_ENABLED`. No Stripe code is deleted — re-enabling later (Sleeper-first, per the 2026-06-06 Year-2 plan) is a flag flip. Codex (backend) and Claude Code (frontend) prompts drafted 2026-06-08.
 - **Live subscriptions removed:** The only active subscription was Justin's own. Justin canceled it in the Stripe dashboard on 2026-06-08. Because the webhook is ungated, the cancellation reconciles `users.is_subscribed` to false. No other customers existed or were affected.
+
+## Decisions Added 2026-06-10 (architecture pivot)
+
+- **Four-phase launch plan adopted.** Replaces the live-engine P1–P5 backend queue. Full record at [Blueprints/handoffs/2026-06-10-product-architecture-pivot.md](../Blueprints/handoffs/2026-06-10-product-architecture-pivot.md). Phase 1 (spines, weeks 1–2), Phase 2 (core engine + trust, weeks 3–5), Phase 3 (narrative layer, weeks 6–7), Phase 4 (compliance + tracking, week 8).
+- **Triad equality.** Trade Analyzer, Omen of the Week, and Draft Assistant are equally vital pillars. No pillar is post-launch secondary.
+- **Pre-season parity is solved via explicit Demo Mode.** Pre-draft users do NOT see mocks rendered through the live Omen UI. A separate, clearly labeled Demo Mode route shows "what Corvus will do once your league drafts."
+- **Sleeper live draft tracking — Aug 15 hard deadline.** Debounced "Lazy Sync" pulls.
+- **ESPN and Yahoo live draft tracking sit behind launch readiness.** They will ship, just not before launch.
+- **Pluggable math core sequenced after its consumer.** ADP schema + per-league scoring config tables ship in Phase 1; the math engine refactor in Phase 2 consumes them. Math engine is **parameterized**, not fully versioned, for launch.
+- **Proprietary ADP weighting layer.** Three-source aggregator already exists. Add proprietary weighting tables in the DB schema.
+- **KVM topology locked.** Corvus FE + BE + DB on KVM1. Gemma 4-E4B via Ollama on KVM2. Tailscale private bridge.
+- **CPU inference mitigation strategy.** Token-constrained prompts (≤50 words / 2 sentences). KVM1 renders math instantly + frontend skeleton for narration. `AI_PROVIDER=local|cloud` toggle as relief valve.
+- **AI_PROVIDER cloud budget cap required before Phase 3 build.** Hard dollar ceiling must be logged here before the toggle is written.
+- **Tooling stack.** SaaS Sentry free tier for error monitoring. Self-hosted Umami on KVM1 for analytics. Termly + AI-drafted custom paragraphs for compliance.
+- **Account delete UI ships in Phase 2.** No mailto fallback. User's data, user's button.
+- **Trade share hashes promoted to Phase 2.** Cryptographic share link + public read route + OG image.
+- **CI/CD retarget is Phase 1, item one.** Previously SSH'd to retired Oracle host.
+
+## Decisions Added 2026-06-12
+
+- **Phase 1 ADP/scoring schema prepared, not applied:** Codex created review-only SQL for ADP snapshots and per-league scoring configuration tables in `sql/2026-06-12_phase1_adp_scoring_schema_review.sql`. ADP tables are backend/service-role only. League scoring config tables are service-role writable and authenticated self-readable through RLS. No Supabase SQL was applied, no migration history was changed, and no production action happened. This supports Phase 2 scoring/scarcity parameterization later without versioning the math engine now.
+- **Phase 1.1 complete — CI/CD retargeted to KVM1.** `.github/workflows/deploy.yml` now SSHes to `2.25.182.1` as `justin`, `cd`s into `/opt/corvus/deploy/hostinger`, and runs `docker compose -f docker-compose.prod.yml --project-name corvus pull && up -d` against GHCR images. Oracle SSH path removed. Dedicated ed25519 deploy key installed in KVM1's `authorized_keys` (one rotation already executed after the initial private key leaked to chat transcript). First green deploy verified end-to-end.
+- **KVM1 deployment layout documented (playbook to follow).** `/opt/corvus/` is **not** a git checkout — only `deploy/hostinger/` exists, containing `docker-compose.prod.yml`, `.env.production` (mode 600), `nginx-corvus.conf`, `DEPLOY-NOTES.md`, `ENV-INVENTORY.md`. App is pulled image-only from GHCR. `infisical` is **not** installed on KVM1; env injection is via the compose file's `env_file: .env.production` directive. Don't reintroduce `git pull` or `infisical` to the deploy workflow without explicitly changing the VPS first.
+- **Dead GitHub secrets to delete after two consecutive green deploys:** `ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`, `INFISICAL_TOKEN`.

@@ -54,16 +54,57 @@ Last updated: 2026-06-08 (Hostinger KVM1 cutover live; Chrome/Firefox smoke pass
 - [ ] Decide on enabling `CORVUS_CRON_SCORING_ENABLED=true` only after the nflverse scoring adapter and dry-run validation are complete.
 - [x] Stripe/payment surfaces decided (2026-06-08): keep the plumbing + guard the server via `CORVUS_BILLING_ENABLED` kill-switch (gate, don't delete). Logged in `decision_log.md`. Justin canceled his own (only) subscription in Stripe 2026-06-08; ungated webhook reconciles `is_subscribed`.
 
-### Backend / Codex
-- [x] Billing kill-switch implemented 2026-06-08: `CORVUS_BILLING_ENABLED` (default false) gates `/prices` + `/checkout` + `/portal` (`403 billing_disabled`); `requireSubscription` is a pass-through when off (auth still required); webhook untouched. `npm test` 290/290. Reviewed by Claude — guards precede all Stripe calls.
-- [x] WS1 Hostinger KVM1 prep — draft compose, Nginx, env inventory, deploy notes, and local deploy ignore file under `deploy/hostinger/`; no VPS, SSH, DNS, secrets, or deploy action touched.
-- [x] Trade Analyzer Phase 2 — backend player-search endpoint (Request 20). Query string in; matching NFL players out (name, team, position, id) for autocomplete. Reuse existing roster/player data; no paid deps.
-- [x] Webhook persists `trial_ends_at` / `current_period_end` — confirmed working 2026-06-08. Verified before billing was gated off; the persistence path is intact and retained for when billing returns (Sleeper-first). No change needed.
-- [ ] Tuesday scoring enablement follow-up — nflverse adapter, fixture tests, stored `season/week_num` scoring, and dry-run no-write mode are complete locally. Remaining: confirm scoreable Omen metadata on real rows, run an approved Supabase dry-run, then decide whether to enable `CORVUS_CRON_SCORING_ENABLED=true`.
+### Backend / Codex — Phase 1 (Spines)
+- [x] **Phase 1.1 — CI/CD retarget to KVM1 (2026-06-12).** `.github/workflows/deploy.yml` retargeted: name → `Deploy to Hostinger KVM1`, secrets → `KVM1_HOST`/`KVM1_USER`/`KVM1_SSH_KEY`, working dir → `/opt/corvus/deploy/hostinger`, compose file → `docker-compose.prod.yml`. Dropped infisical (not installed on KVM1) and `git pull` (KVM1 is not a checkout — env lives in `.env.production` on disk, app comes from GHCR images). Dedicated ed25519 deploy key installed in KVM1's `authorized_keys`. First green deploy verified.
+- [ ] **Phase 1.2 — Sentry SaaS free tier wired (backend half).** Add `@sentry/node` to `package.json`, initialize in `src/server.js` (and `src/corvus_tuesday_cron.js`), capture uncaught exceptions and unhandled rejections, scrub PII and ESPN cookie material per `Blueprints/security-privacy.md`. DSN comes from env (`SENTRY_DSN`), not committed. Add `SENTRY_DSN` to `deploy/hostinger/ENV-INVENTORY.md` so Justin knows to set it on KVM1. Backend tests must still pass.
+- [x] **Phase 1.4 — ADP schema + per-league scoring config tables (2026-06-12).** Review-only SQL written at `sql/2026-06-12_phase1_adp_scoring_schema_review.sql` with focused schema tests at `test/phase1SchemaReviewSql.test.js`. ADP tables = service-role only; league scoring config = service-role writable + authenticated self-readable via RLS. No Supabase apply, no production action.
 
-### Frontend / Claude
-- [x] Paid surfaces hidden behind `VITE_BILLING_ENABLED` (default false) 2026-06-08: `UpgradeState` returns null; Account shows "All features included" (PlanPicker/checkout unreachable); `?upgrade=true` is a no-op; Header has no upgrade link. Gated not deleted; `npm run build` clean. Reviewed by Claude. (`WaiverWire` `ProGate` left as-is — reactive to backend 402, which the pass-through no longer emits.)
+### Backend / Codex — Phase 2 (waits until Phase 1 closes)
+- [ ] **Phase 2.5 — Proprietary ADP weighting service.** Build on top of `src/services/adp.js` and the schema landed in Phase 1.4. Output: per-player score combining FFC/Yahoo/MFL with weights configurable per league scoring config row.
+- [ ] **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` + `src/services/tradeValue.js` to consume scoring config as a parameter. Inputs change; call sites stable; tests stay green at 240/240+.
+- [ ] **Phase 2.7 — Demo Mode backend.** Public route returning a populated normalized roster + Omen envelope labeled `mode:"demo"`. Distinct from `mode:"live"` and `mode:"mock"`. Drives the `/demo` frontend route.
+- [ ] **Phase 2.8 — Sleeper live draft tracking (Aug 15 deadline).** Debounced Lazy Sync against Sleeper draft endpoints. No long-polling sockets.
+- [ ] **Phase 2.10 — Trade share hash routes.** `crypto.randomUUID` + `POST /api/trade/share` (writes hash + payload) + `GET /api/trade/share/:hash` (public read).
+
+### Backend / Codex — Phase 3
+- [ ] **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge** for narration. `LLM_BASE_URL` already in env inventory.
+- [ ] **Phase 3.13 — Token-constrained prompts** (≤50 words / 2 sentences) for CPU inference mitigation.
+- [ ] **Phase 3.15 — `AI_PROVIDER=local|cloud` toggle** with hard budget cap. **DO NOT BUILD until the cap is logged in `decision_log.md` with Justin's approved dollar figure.**
+
+### Backend / Codex — Phase 4
+- [ ] **Phase 4.16 — Termly base ToS + Privacy Policy** — Codex authors AI-drafted custom paragraphs for ESPN cookie handling, Yahoo attribution, Sleeper attribution. Justin reviews.
+
+### Backend / Codex — Pre-pivot completions (evidence)
+- [x] Billing kill-switch implemented 2026-06-08: `CORVUS_BILLING_ENABLED` (default false) gates `/prices` + `/checkout` + `/portal` (`403 billing_disabled`); `requireSubscription` is a pass-through when off (auth still required); webhook untouched. `npm test` 290/290.
+- [x] WS1 Hostinger KVM1 prep — draft compose, Nginx, env inventory, deploy notes, and local deploy ignore file under `deploy/hostinger/`.
+- [x] Trade Analyzer Phase 2 — backend player-search endpoint (Request 20).
+- [x] Webhook persists `trial_ends_at` / `current_period_end` — confirmed working 2026-06-08.
+
+### Backend / Codex — Behind launch readiness (post-launch, not deferred to 2027)
+- [ ] Tuesday scoring enablement (`CORVUS_CRON_SCORING_ENABLED=true`) after approved Supabase dry-run.
+- [ ] ESPN live draft tracking (Lazy Sync, same pattern as Sleeper).
+- [ ] Yahoo live draft tracking (Lazy Sync, same pattern as Sleeper).
+
+### Frontend / Claude — Phase 1
+- [ ] **Phase 1.2 — Sentry SaaS free tier wired (frontend half).** `@sentry/react` for the Vite frontend. Source-map upload is post-launch.
+- [ ] **Phase 1.3 — iOS Safari mobile QA sweep.** Open every routed page on iOS Safari (real device or BrowserStack). Fix viewport overflows, flex overflows, touch targets <44px, focus rings, safe-area-inset issues. Single PR.
+
+### Frontend / Claude — Phase 2
+- [ ] **Phase 2.7 — Demo Mode UI.** New public route `/demo`. Populated example roster + Omen envelope with prominent "Demo Mode — your real Omen will appear after your league drafts" labeling. Reuses Omen rendering components.
+- [ ] **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: `"DELETE MY CORVUS DATA"`. Place under a "Privacy" subsection.
+- [ ] **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result. OG image rendered server-side. Card copy: brand voice, recommendation-first, no emoji-soup.
+- [ ] **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`.
+
+### Frontend / Claude — Phase 3
+- [ ] **Phase 3.14 — Skeleton states for narration zones.** Math + numbers render instantly on KVM1; narration block shows skeleton until KVM2 returns.
+
+### Frontend / Claude — Phase 4
+- [ ] **Phase 4.18 — Umami snippet** added to `frontend/index.html` once the container is live on KVM1.
+- [ ] **Phase 4.19 — FP2 Sleeper/ESPN Omen render polish.** Ensure live envelopes render correctly across all three providers.
 - [ ] When the logo SVG is ready: replace the `[C]` placeholder in `Header.jsx` and `NavDrawer` with an inline SVG component.
+
+### Frontend / Claude — Pre-pivot completions (evidence)
+- [x] Paid surfaces hidden behind `VITE_BILLING_ENABLED` (default false) 2026-06-08.
 
 ### Verify (confirm done vs open — restate findings, do not assume)
 - [x] Real-account QA of Yahoo / Sleeper / ESPN Omen + League Standings, especially ESPN reconnect, without logging cookie values. **ESPN QA completed 2026-06-05 (off-season mode).** Four fixes shipped: (1) `seasonCandidates()` retry logic for off-season year; (2) `isSeasonRetryable` handles ESPN 202 redirect; (3) CORS localhost default in `docker-compose.yml`; (4) off-season connect mode — when ESPN API returns 202 for all seasons, credentials are stored and a gold "saved" banner shown. Full in-season QA (live API returning 200) deferred until 2026 season opens (~August). All code changes in source, 13/13 tests pass, frontend build clean.
