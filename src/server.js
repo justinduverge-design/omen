@@ -5,19 +5,27 @@
  * Corvus API - entry point
  * -----------------------------------------------------------------
  * Bootstrap order is intentional:
- *   1. config (validates env, fails fast if misconfigured)
- *   2. logger (so all subsequent errors are captured structurally)
- *   3. trust proxy (req.ip + X-Forwarded-* correct behind Nginx)
- *   4. security middleware (helmet, CORS) BEFORE body parser
- *   5. Stripe WEBHOOK router  (raw body)  -- BEFORE express.json
- *   6. body parser (express.json)
- *   7. rate limits
- *   8. routes
- *   9. 404 handler
- *  10. error handler (last - catches anything thrown above)
+ *   1. Sentry init (must run before other imports)
+ *   2. config (validates env, fails fast if misconfigured)
+ *   3. logger (so all subsequent errors are captured structurally)
+ *   4. trust proxy (req.ip + X-Forwarded-* correct behind Nginx)
+ *   5. security middleware (helmet, CORS) BEFORE body parser
+ *   6. Stripe WEBHOOK router  (raw body)  -- BEFORE express.json
+ *   7. body parser (express.json)
+ *   8. rate limits
+ *   9. routes
+ *  10. 404 handler
+ *  11. Sentry error capture
+ *  12. error handler (last - catches anything thrown above)
  * =================================================================
  */
 
+// Sentry MUST be required before any module that may throw at boot
+// (including ./config), so init errors get captured.
+const { initSentry } = require("./middleware/sentry");
+initSentry({ component: "api" });
+
+const Sentry = require("@sentry/node");
 const express = require("express");
 const path    = require("path");
 const fs      = require("fs");
@@ -280,6 +288,18 @@ if (HAS_SPA) {
 app.use((req, res) => {
   res.status(404).json({ error: "Not found", path: req.path });
 });
+
+app.use((err, _req, res, next) => {
+  if (res.locals.__skipBodyLog && err && typeof err === "object") {
+    Object.defineProperty(err, "__skipBodyLog", {
+      value: true,
+      configurable: true,
+    });
+  }
+  next(err);
+});
+
+Sentry.setupExpressErrorHandler(app);
 
 // --- Error handler (last) -----------------------------------------
 // Logs full detail server-side; sends sanitized message to client in prod
