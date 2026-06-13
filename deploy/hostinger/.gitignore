@@ -1,0 +1,6 @@
+# Local secrets for this deploy. The repo root .gitignore also covers .env.*;
+# this file exists for defense-in-depth so the protection moves with the
+# directory if it is ever relocated.
+.env
+.env.*
+!.env.example
