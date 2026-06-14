@@ -325,7 +325,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">All features included</p>
           <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Every Corvus tool — Omen of the Week, Waiver Wire, and more — is available on your account. No subscription required.
+            Every Corvus tool is available on your account.
           </p>
         </div>
       );
@@ -492,7 +492,7 @@ export default function Account() {
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus</p>
         <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
         <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-          Manage your Corvus Pro subscription and fantasy platform connections.
+          Manage your fantasy platform connections and account preferences.
         </p>
       </section>
 

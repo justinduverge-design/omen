@@ -18,7 +18,7 @@ const PAGE_HELP = {
     title: 'Trade Analyzer',
     description: 'Enter the players going each way, compare, and get a plain-English verdict.',
     tips: [
-      { label: 'Free to use', body: 'No account or subscription needed.' },
+      { label: 'No account required', body: 'Use Trade Analyzer without signing in.' },
       { label: 'Both sides', body: 'Fill in Send and Receive, then hit Compare Trade.' },
       { label: 'Trade Room', body: 'Strategy tips on the right keep context in view while you build.' },
       { label: 'Player names', body: 'Start typing and use autocomplete to lock in the right player.' },
@@ -28,7 +28,7 @@ const PAGE_HELP = {
     title: 'Draft Assistant',
     description: 'Tell Corvus where you are in the draft and get your best available pick.',
     tips: [
-      { label: 'Free to use', body: 'No account or subscription needed.' },
+      { label: 'No account required', body: 'Use Draft Assistant without signing in.' },
       { label: 'Preview Mode', body: 'Live personalization activates once the season opens.' },
       { label: 'Position needs', body: 'Select what you still need to fill before each pick.' },
       { label: 'Scoring format', body: 'Switch between PPR, Half PPR, and Standard to match your league.' },
@@ -38,8 +38,7 @@ const PAGE_HELP = {
     title: 'Omen of the Week',
     description: 'Your highest-confidence move each week — one call, plain English, no noise.',
     tips: [
-      { label: 'Pro required', body: 'Omen unlocks with a Corvus Pro subscription.' },
-      { label: 'Platform required', body: 'Connect Yahoo, Sleeper, or ESPN to unlock your roster read.' },
+      { label: 'Platform required', body: 'Connect Yahoo, Sleeper, or ESPN so Corvus can read your roster.' },
       { label: 'Run it', body: 'Hit the button — Corvus reads your lineup and surfaces the move.' },
       { label: 'Lock it in', body: 'Submit feedback after the week so Corvus can learn from your results.' },
     ],
@@ -65,12 +64,11 @@ const PAGE_HELP = {
   },
   '/account': {
     title: 'Account',
-    description: 'Manage your Corvus Pro subscription and your connected fantasy platforms.',
+    description: 'Manage your fantasy platform connections and appearance preferences.',
     tips: [
-      { label: 'Subscription', body: 'Monthly ($5/mo) or Season Pass ($20 one-time). 7-day free trial on monthly.' },
-      { label: 'Manage', body: '"Manage subscription" opens the Stripe portal to cancel, update, or view invoices.' },
       { label: 'Platforms', body: 'See all connected leagues and reconnect if a token expires.' },
       { label: 'Appearance', body: 'Team colors live under Account → Appearance.' },
+      { label: 'Sign out', body: 'Use the nav drawer to sign out when you’re done.' },
     ],
   },
 };
@@ -85,7 +83,7 @@ function getPageHelp(pathname) {
     description: 'Fantasy football intelligence — less guessing, better moves.',
     tips: [
       { label: 'Trade Analyzer', body: 'Free — analyze any trade before you make it.' },
-      { label: 'Omen of the Week', body: 'Pro — your one weekly move, surfaced every Tuesday.' },
+      { label: 'Omen of the Week', body: 'Your one weekly move, surfaced every Tuesday.' },
       { label: 'Draft Assistant', body: 'Free — pick recommendations for your draft.' },
       { label: 'Connect a league', body: 'Link Yahoo, Sleeper, or ESPN to unlock the full experience.' },
     ],
@@ -250,7 +248,7 @@ function HelpPanel({ open, onClose, pathname }) {
                 { label: 'Trade Analyzer', to: '/trade' },
                 { label: 'Draft Assistant', to: '/draft' },
                 { label: 'Connect a Platform', to: '/account/connect' },
-                { label: 'Account & Subscription', to: '/account' },
+                { label: 'Account', to: '/account' },
               ].map(({ label, to }) => (
                 <Link
                   key={to}

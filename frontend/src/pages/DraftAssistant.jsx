@@ -343,9 +343,6 @@ export default function DraftAssistant({ platforms }) {
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
-          <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
-            {`Free · ${new Date().getFullYear()} Season`}
-          </span>
         </div>
         <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Tell Corvus where you are in your draft. It will surface the best available move for your roster.

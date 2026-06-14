@@ -11,7 +11,7 @@ function OmenHeader() {
   return (
     <section className="max-w-2xl">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
-        Corvus Pro
+        Omen
       </p>
       <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
         Omen of the Week
