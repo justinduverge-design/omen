@@ -185,7 +185,7 @@ function HelpPanel({ open, onClose, pathname }) {
             type="button"
             aria-label="Close help"
             onClick={onClose}
-            className="rounded-md p-2 transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             <CloseIcon />
@@ -321,11 +321,12 @@ export default function HelpButton() {
         aria-label="Open help"
         aria-expanded={open}
         onClick={openPanel}
-        className="fixed bottom-8 right-5 z-30 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="fixed right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         style={{
           background: 'var(--color-surface-1)',
           border: '1px solid var(--color-border)',
           color: 'var(--color-text-secondary)',
+          bottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))',
         }}
       >
         <QuestionIcon />

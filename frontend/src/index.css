@@ -82,6 +82,10 @@
 }
 
 @layer base {
+  html {
+    /* Kill the default gray flash iOS Safari paints over tapped elements. */
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply font-sans antialiased;
     font-family: 'Alegreya Sans', system-ui, sans-serif;
@@ -91,5 +95,16 @@
   h1, h2 {
     @apply font-display;
     font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  /* iOS Safari auto-zooms when a focused input's font-size is < 16px. Enforce 16px
+     on text-entry controls on touch devices only — desktop keeps Tailwind's text-sm
+     for visual density. Specificity (0,5,1) wins over class utilities. */
+  @media (hover: none) and (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']):not([type='submit']):not([type='button']):not([type='reset']),
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 }

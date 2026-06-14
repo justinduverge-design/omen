@@ -253,7 +253,7 @@ export default function Onboarding() {
 
   return (
     <div
-      className="flex min-h-screen flex-col"
+      className="flex min-h-[100dvh] flex-col"
       style={{ background: 'var(--color-bg)' }}
     >
       {/* Minimal header */}

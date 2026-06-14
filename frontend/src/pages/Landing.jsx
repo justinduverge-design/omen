@@ -538,7 +538,7 @@ function WaitlistSection() {
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F4EFE1]">
+    <div className="min-h-[100dvh] bg-[#050505] text-[#F4EFE1]">
       <Header />
 
       <main className="relative overflow-hidden">

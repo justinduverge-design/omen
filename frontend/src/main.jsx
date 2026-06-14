@@ -9,7 +9,7 @@ initSentry();
 
 function CrashFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg p-6">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-bg p-6">
       <div className="max-w-md rounded-xl border border-red-400/30 bg-red-400/10 p-6 text-center">
         <p className="text-sm font-semibold text-red-300">Corvus hit an error.</p>
         <p className="mt-2 text-sm text-red-200/70">
