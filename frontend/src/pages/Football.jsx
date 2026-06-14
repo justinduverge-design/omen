@@ -228,7 +228,7 @@ export default function Football() {
               aria-selected={isActive}
               aria-controls={`tab-panel-${tab.id}`}
               id={`tab-${tab.id}`}
-              className="shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+              className="min-h-[44px] shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={
                 isActive
                   ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }

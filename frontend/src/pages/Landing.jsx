@@ -32,18 +32,18 @@ function CorvusLogo() {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/88 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
         <CorvusLogo />
         <div className="flex items-center gap-6">
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="inline-flex min-h-[44px] items-center rounded-sm text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]"
             href="#waitlist"
           >
             Join Waitlist
           </a>
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="inline-flex min-h-[44px] items-center rounded-sm text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]"
             href="/login"
           >
             Sign In →

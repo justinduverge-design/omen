@@ -4,7 +4,7 @@ import TradeAnalyzer from './TradeAnalyzer.jsx';
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
         {/* Logo */}
         <div className="flex items-center gap-3">
