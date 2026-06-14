@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
-import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const ESPN_RECOVERY_STATES = new Set([
@@ -47,10 +46,7 @@ function useOmenData() {
         navigate('/login');
         return;
       }
-      if (err instanceof ApiError && err.status === 402) {
-        // Subscription lapsed between dashboard gate and live call — degrade gracefully.
-        setData({ state: 'needs_subscription' });
-      } else if (err instanceof ApiError && err.body?.state) {
+      if (err instanceof ApiError && err.body?.state) {
         setData(err.body);
       } else {
         setError(
@@ -499,16 +495,6 @@ export default function OmenOfTheWeek() {
 
   if (loading) return <LoadingState cry={cry} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
-
-  if (data?.state === 'needs_subscription') {
-    return (
-      <UpgradeState
-        eyebrow="Omen of the Week"
-        title="Corvus Pro required"
-        message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
-      />
-    );
-  }
 
   if (data?.state === 'pending_live_engine') {
     return (

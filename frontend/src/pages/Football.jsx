@@ -5,7 +5,6 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
-import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
@@ -155,15 +154,6 @@ export default function Football() {
               message="Link Yahoo, Sleeper, or ESPN to receive your personalized weekly omen."
               ctaLabel="Connect a platform"
               ctaHref="/account/connect"
-            />
-          );
-        }
-        if (omenStatus === 'needs_subscription') {
-          return (
-            <UpgradeState
-              eyebrow="Omen of the Week"
-              title="Corvus Pro required"
-              message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
             />
           );
         }

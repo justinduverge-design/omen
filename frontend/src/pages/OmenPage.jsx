@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
-import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
 import OmenOfTheWeek from './OmenOfTheWeek.jsx';
 
@@ -61,16 +60,6 @@ export default function OmenPage() {
           message="Link Yahoo, Sleeper, or ESPN so Corvus can read your roster and produce your weekly move."
           ctaLabel="Connect a platform"
           ctaHref="/account/connect"
-        />
-      );
-    }
-
-    if (omenStatus === 'needs_subscription') {
-      return (
-        <UpgradeState
-          eyebrow="Omen of the Week"
-          title="Corvus Pro required"
-          message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
         />
       );
     }

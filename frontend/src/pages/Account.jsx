@@ -486,7 +486,7 @@ export default function Account() {
 
   return (
     <AppLayout>
-      {banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
+      {BILLING_ENABLED && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus</p>
@@ -496,17 +496,18 @@ export default function Account() {
         </p>
       </section>
 
-      <SubscriptionSection
-        subscription={summary?.subscription}
-        summaryLoading={summaryLoading}
-        summaryError={summaryError}
-        onRefetch={fetchSummary}
-        sectionRef={subscriptionRef}
-      />
+      {BILLING_ENABLED && (
+        <SubscriptionSection
+          subscription={summary?.subscription}
+          summaryLoading={summaryLoading}
+          summaryError={summaryError}
+          onRefetch={fetchSummary}
+          sectionRef={subscriptionRef}
+        />
+      )}
 
       <div className="border-t border-[var(--color-border)] pt-6">
         <section className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Platforms</p>
           <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Platform Connections</h2>
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
             Connect the fantasy platforms Corvus uses to read your rosters.
