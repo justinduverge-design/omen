@@ -1,0 +1,19 @@
+{
+  "name": "Corvus",
+  "short_name": "Corvus",
+  "description": "Fantasy football intelligence. Less guessing, better moves.",
+  "start_url": "/football",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0A0A0B",
+  "background_color": "#0A0A0B",
+  "icons": [
+    {
+      "src": "/corvus-apollo-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
