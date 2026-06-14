@@ -61,6 +61,8 @@ to GitHub Actions when the images are built, not to the KVM runtime env file.
 | `VITE_SUPABASE_ANON_KEY` | Public Supabase anon key baked into the SPA bundle. | Supabase | No |
 | `VITE_API_BASE_URL` | Optional SPA API base URL override; blank means same-origin `/api`. | App | No |
 | `VITE_ESPN_ENABLED` | Build-time flag that shows the ESPN connection UI. | App | No |
+| `VITE_SENTRY_DSN` | Public Sentry DSN baked into the SPA bundle for frontend error capture. Empty = SDK no-op. | Sentry | No (public client ID) |
+| `VITE_COMMIT_SHA` | Optional commit hash baked into the SPA bundle as the Sentry release tag. | App | No |
 
 ## Cross-Check Notes
 

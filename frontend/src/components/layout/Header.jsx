@@ -148,7 +148,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
       >
         {/* Drawer header */}
         <div
-          className="flex items-center justify-between px-5 py-4"
+          className="flex items-center justify-between px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]"
           style={{ borderBottom: '1px solid var(--color-border)' }}
         >
           {/* Logo mark placeholder — swap with SVG when logo is ready */}
@@ -232,7 +232,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
 
         {/* Drawer footer */}
         <div
-          className="px-5 py-4"
+          className="px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
           style={{ borderTop: '1px solid var(--color-border)' }}
         >
           {isAuthenticated && (

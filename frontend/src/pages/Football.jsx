@@ -5,7 +5,6 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
-import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
@@ -158,15 +157,6 @@ export default function Football() {
             />
           );
         }
-        if (omenStatus === 'needs_subscription') {
-          return (
-            <UpgradeState
-              eyebrow="Omen of the Week"
-              title="Corvus Pro required"
-              message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
-            />
-          );
-        }
         if (omenStatus === 'pending_live_engine') {
           return (
             <EmptyState
@@ -228,7 +218,7 @@ export default function Football() {
               aria-selected={isActive}
               aria-controls={`tab-panel-${tab.id}`}
               id={`tab-${tab.id}`}
-              className="shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+              className="min-h-[44px] shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={
                 isActive
                   ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }

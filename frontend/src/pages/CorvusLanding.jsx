@@ -4,7 +4,7 @@ import TradeAnalyzer from './TradeAnalyzer.jsx';
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
         {/* Logo */}
         <div className="flex items-center gap-3">
@@ -37,9 +37,9 @@ function Header() {
 // ─── Feature pills ────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { label: 'Omen of the Week', desc: 'One move. Every week.', pro: true },
-  { label: 'Draft Assistant', desc: 'Know your pick before your turn.', pro: false },
-  { label: 'Team Themes', desc: 'Your colors. Your interface.', pro: false },
+  { label: 'Omen of the Week', desc: 'One move. Every week.' },
+  { label: 'Draft Assistant', desc: 'Know your pick before your turn.' },
+  { label: 'Team Themes', desc: 'Your colors. Your interface.' },
 ];
 
 function FeaturePitch() {
@@ -50,7 +50,7 @@ function FeaturePitch() {
           More from Corvus
         </p>
         <p className="mb-8 text-center text-lg font-semibold text-[#F4EFE1]">
-          The trade check is free. Everything else is Pro.
+          Every Corvus tool — built for your roster, every week.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -59,11 +59,6 @@ function FeaturePitch() {
               key={f.label}
               className="relative rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4"
             >
-              {f.pro && (
-                <span className="absolute right-3 top-3 rounded-full border border-[#C9A44C]/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#C9A44C]/70">
-                  Pro
-                </span>
-              )}
               <p className="text-sm font-semibold text-[#F4EFE1]">{f.label}</p>
               <p className="mt-1 text-xs leading-5 text-[#F4EFE1]/45">{f.desc}</p>
             </div>
@@ -86,7 +81,7 @@ function FeaturePitch() {
         </div>
 
         <p className="mt-5 text-center text-xs text-[#F4EFE1]/28">
-          No credit card required · 7-day Pro trial included
+          Try Trade Analyzer without an account · Sign in for your roster
         </p>
       </div>
     </section>
@@ -97,7 +92,7 @@ function FeaturePitch() {
 
 export default function CorvusLanding() {
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F4EFE1]">
+    <div className="min-h-[100dvh] bg-[#050505] text-[#F4EFE1]">
       <Header />
 
       <main className="relative overflow-hidden">

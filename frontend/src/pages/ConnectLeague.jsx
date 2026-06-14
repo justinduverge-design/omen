@@ -611,7 +611,7 @@ export default function ConnectLeague() {
   if (checkingAuth) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center"
+        className="flex min-h-[100dvh] items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
         <p className="text-sm text-[var(--color-text-secondary)]">Checking your account…</p>
@@ -621,7 +621,7 @@ export default function ConnectLeague() {
 
   return (
     <div
-      className="min-h-screen px-4 py-12"
+      className="min-h-[100dvh] px-4 py-12"
       style={{ background: 'var(--color-bg)' }}
     >
       <div className="mx-auto max-w-lg">

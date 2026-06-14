@@ -6,6 +6,90 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 1 ADP And League Scoring Schema - 2026-06-12
+
+Feature name: Phase 1 launch readiness / Draft Assistant data foundation.
+
+Status: Prepared locally as review-only SQL. Not applied to Supabase. Not deployed.
+
+Method and path:
+
+```text
+No HTTP endpoint changed.
+Review SQL only: sql/2026-06-12_phase1_adp_scoring_schema_review.sql
+```
+
+Request body or query:
+
+```text
+None. This is database schema preparation, not a callable frontend contract yet.
+```
+
+Response shape:
+
+Prepared tables:
+
+```text
+public.adp_sources
+public.adp_player_rankings
+public.league_scoring_configs
+public.league_scoring_rules
+public.league_roster_slots
+public.league_scarcity_weights
+```
+
+Access model:
+
+```text
+ADP tables:
+- backend/service_role read-write only
+- no anon/authenticated direct Data API access
+
+League scoring config tables:
+- service_role read-write
+- authenticated users may select only configs they own through RLS
+- no authenticated browser insert/update/delete grants yet
+```
+
+Example response:
+
+```json
+{
+  "contract_version": "phase1-adp-scoring-schema.v1",
+  "status": "prepared_not_applied",
+  "tables": [
+    "adp_sources",
+    "adp_player_rankings",
+    "league_scoring_configs",
+    "league_scoring_rules",
+    "league_roster_slots",
+    "league_scarcity_weights"
+  ]
+}
+```
+
+Files changed:
+
+- `sql/2026-06-12_phase1_adp_scoring_schema_review.sql`
+- `test/phase1SchemaReviewSql.test.js`
+- `Blueprints/handoffs/backend-to-frontend.md`
+- `Direction/current_sprint.md`
+- `Direction/decision_log.md`
+
+Limitations:
+
+- SQL has not been applied to Supabase. Justin approval is still required before any migration/apply action.
+- No ADP ingestion job or API route was added in this step.
+- No math engine refactor was performed. The schema is ready for Phase 2 parameterization but does not version the engine.
+- No Sleeper/Yahoo/ESPN live draft tracking was added.
+- No `AI_PROVIDER` toggle was added.
+
+How frontend should call it:
+
+- No frontend call change.
+- Keep using existing Draft Assistant endpoints.
+- Do not show ADP/scoring config as live platform-backed data until backend confirms the SQL was approved, applied, populated, and exposed through an API contract.
+
 ## Tuesday Scoring Nflverse Adapter - 2026-06-05
 
 Feature name: Tuesday scoring / Omen calibration loop.

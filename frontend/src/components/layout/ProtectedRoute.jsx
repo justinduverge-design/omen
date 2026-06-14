@@ -44,7 +44,7 @@ export default function ProtectedRoute({ children }) {
   if (session === undefined) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center"
+        className="flex min-h-[100dvh] items-center justify-center"
         style={{ background: 'var(--color-bg)' }}
       >
         <span

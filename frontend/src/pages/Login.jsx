@@ -237,8 +237,8 @@ export default function Login() {
             Your best call,<br />every time.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Sign in to unlock Omen of the Week — your weekly Most Valuable Play.
-            Trade Analyzer stays free without an account.
+            Sign in to get your weekly Omen — your Most Valuable Play.
+            Or try Trade Analyzer without an account.
           </p>
         </div>
 

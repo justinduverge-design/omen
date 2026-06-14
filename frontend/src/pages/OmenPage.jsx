@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
-import UpgradeState from '../components/ui/UpgradeState.jsx';
 import { apiFetch } from '../lib/api.js';
 import OmenOfTheWeek from './OmenOfTheWeek.jsx';
 
@@ -11,7 +10,7 @@ function OmenHeader() {
   return (
     <section className="max-w-2xl">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
-        Corvus Pro
+        Omen
       </p>
       <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
         Omen of the Week
@@ -65,16 +64,6 @@ export default function OmenPage() {
       );
     }
 
-    if (omenStatus === 'needs_subscription') {
-      return (
-        <UpgradeState
-          eyebrow="Omen of the Week"
-          title="Corvus Pro required"
-          message="Most Valuable Play is a Pro feature. Upgrade to unlock your personalized weekly move."
-        />
-      );
-    }
-
     if (omenStatus === 'pending_live_engine') {
       return (
         <EmptyState
@@ -97,7 +86,7 @@ export default function OmenPage() {
 
       <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          className="inline-flex min-h-[44px] items-center rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
           to="/football"
         >
           ← Back to dashboard

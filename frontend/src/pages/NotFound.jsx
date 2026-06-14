@@ -4,7 +4,7 @@ import Footer from '../components/layout/Footer.jsx';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
+    <div className="min-h-[100dvh]" style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)' }}>
       <Header />
       <main className="mx-auto max-w-3xl px-6 py-24">
         <p className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--color-accent)' }}>

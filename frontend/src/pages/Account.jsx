@@ -325,7 +325,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">All features included</p>
           <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Every Corvus tool — Omen of the Week, Waiver Wire, and more — is available on your account. No subscription required.
+            Every Corvus tool is available on your account.
           </p>
         </div>
       );
@@ -486,27 +486,28 @@ export default function Account() {
 
   return (
     <AppLayout>
-      {banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
+      {BILLING_ENABLED && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus</p>
         <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
         <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-          Manage your Corvus Pro subscription and fantasy platform connections.
+          Manage your fantasy platform connections and account preferences.
         </p>
       </section>
 
-      <SubscriptionSection
-        subscription={summary?.subscription}
-        summaryLoading={summaryLoading}
-        summaryError={summaryError}
-        onRefetch={fetchSummary}
-        sectionRef={subscriptionRef}
-      />
+      {BILLING_ENABLED && (
+        <SubscriptionSection
+          subscription={summary?.subscription}
+          summaryLoading={summaryLoading}
+          summaryError={summaryError}
+          onRefetch={fetchSummary}
+          sectionRef={subscriptionRef}
+        />
+      )}
 
       <div className="border-t border-[var(--color-border)] pt-6">
         <section className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Platforms</p>
           <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Platform Connections</h2>
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
             Connect the fantasy platforms Corvus uses to read your rosters.
