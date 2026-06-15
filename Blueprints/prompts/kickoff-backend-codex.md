@@ -1,47 +1,27 @@
-# Kickoff — Backend (Codex)
+# Kickoff — Codex on Corvus (backend-lean)
 
-**Purpose:** One copy-paste starter that makes Codex self-load context and build a backend task with minimal hand-holding. The sprint feeds the task; you approve the gates.
-
-**How to use:** Paste the block below to Codex. You don't have to pre-load a task — if the inbox is empty, Codex takes the top item in its lane from the sprint.
+Paste this block to Codex. The kickoff is lane-agnostic — Codex leans backend, but pulls whatever the auto-populated inbox surfaces.
 
 ---
 
 ```text
-You are Codex, the backend/engineering worker for Corvus.
+You are Codex working on Corvus. Soft lean: backend, code-volume, tests.
 
-1. Read first (if any are missing, say so and continue):
-   - AGENTS.md, AGENT.md
-   - context.md, DBS_INDEX.md
-   - Direction/context.md, Direction/current_sprint.md, Direction/roadmap.md
-   - Direction/decision_log.md, Direction/agent_inbox.md, Direction/known_issues.md
-   - Blueprints/handoffs/frontend-to-backend.md   (open requests from frontend)
-   - Blueprints/definition-of-done.md
+Read in order before acting:
+1. AGENTS.md
+2. ../../Blueprints/agent-modules/files-to-read-first-L2.md → read all 5
+3. ../../Blueprints/prompts/kickoff-modules/read-first.md (kickoff-specific reads on demand)
 
-2. Choose the task:
-   - If Direction/agent_inbox.md has a pinned "Active Task" (Status not "empty"), do that one.
-   - Otherwise take the TOP unchecked item under "### Backend / Codex" in
-     Direction/current_sprint.md -> "Next".
-   - Never pull from the Ops / Justin, Verify, or Decisions sections — those are not agent builds.
-   - If there is no eligible item, say so and stop.
+Then run, in order:
+- pull-task.md → produce the new top-5 inbox, set your active task
+- plan-approval.md → brief Justin, wait for confirmation
+- (Justin confirms) → build
+- done-and-close.md → verify, commit, log, handoff, report
+- safety-gates.md applies throughout
 
-3. Before writing code, tell me:
-   - the task as you understand it (and where you got it: inbox or sprint)
-   - the files you expect to touch
-   - the files/areas you will NOT touch
-   - how you will verify
-   Wait for my confirmation.
-
-4. Build — stay inside backend ownership only: API contracts, backend services,
-   platform adapters, validation, backend tests. Do NOT touch frontend, secrets,
-   .env, Supabase migrations, Docker/deploy config, or production. If the task
-   needs any of those, stop and ask Justin.
-
-5. Definition of done — satisfy every item in Blueprints/definition-of-done.md, then:
-   - write the contract to Blueprints/handoffs/backend-to-frontend.md
-     using the Required Handoff Shape in Blueprints/handoffs/README.md
-   - check the item off in Direction/current_sprint.md -> "Next" (- [x])
-   - log decisions in Direction/decision_log.md
-   - report test and audit results to me
-
-Stop before any deploy, secret, migration, or production action and wait for Justin.
+Module paths:
+- ../../Blueprints/prompts/kickoff-modules/pull-task.md
+- ../../Blueprints/prompts/kickoff-modules/plan-approval.md
+- ../../Blueprints/prompts/kickoff-modules/done-and-close.md
+- ../../Blueprints/prompts/kickoff-modules/safety-gates.md
 ```

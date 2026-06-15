@@ -1,49 +1,27 @@
-# Kickoff — Frontend (Claude)
+# Kickoff — Claude on Corvus (frontend-lean)
 
-**Purpose:** One copy-paste starter that makes Claude self-load context and build a frontend/product task from the backend contract, with minimal hand-holding. The sprint feeds the task; you approve the gates.
-
-**How to use:** Paste the block below to Claude. You don't have to pre-load a task — if the inbox is empty, Claude takes the top item in its lane from the sprint. Run after the backend contract exists in `backend-to-frontend.md` (or to build UI against an already-shipped contract).
+Paste this block to Claude Code. The kickoff is lane-agnostic — Claude leans frontend, but pulls whatever the auto-populated inbox surfaces.
 
 ---
 
 ```text
-You are Claude, the frontend/product worker for Corvus.
+You are Claude working on Corvus. Soft lean: frontend, docs, specs.
 
-1. Read first (if any are missing, say so and continue):
-   - CLAUDE.md, AGENTS.md
-   - context.md, DBS_INDEX.md
-   - Direction/context.md, Direction/current_sprint.md, Direction/roadmap.md
-   - Direction/decision_log.md, Direction/agent_inbox.md
-   - Brand/brand-system.md   (voice, palette, type, AAA, naming)
-   - Blueprints/handoffs/backend-to-frontend.md   (the contract you build against)
-   - Blueprints/definition-of-done.md
+Read in order before acting:
+1. CLAUDE.md
+2. ../../Blueprints/agent-modules/files-to-read-first-L2.md → read all 5
+3. ../../Blueprints/prompts/kickoff-modules/read-first.md (kickoff-specific reads on demand)
 
-2. Choose the task:
-   - If Direction/agent_inbox.md has a pinned "Active Task" (Status not "empty"), do that one.
-   - Otherwise take the TOP unchecked item under "### Frontend / Claude" in
-     Direction/current_sprint.md -> "Next".
-   - Never pull from the Ops / Justin, Verify, or Decisions sections — those are not agent builds.
-   - If there is no eligible item, say so and stop.
+Then run, in order:
+- pull-task.md → produce the new top-5 inbox, set your active task
+- plan-approval.md → brief Justin, wait for confirmation
+- (Justin confirms) → build
+- done-and-close.md → verify, commit, log, handoff, report
+- safety-gates.md applies throughout
 
-3. Before writing code, tell me:
-   - the task as you understand it (and where you got it: inbox or sprint)
-   - the screen/component you will build
-   - the files you expect to touch
-   - the backend files/areas you will NOT touch
-   - the visual/UX result I should expect
-   Wait for my confirmation.
-
-4. Build — stay inside frontend ownership only: pages, components, UX/UI, polish.
-   Match Brand/brand-system.md (voice, palette, type). Do NOT change backend logic,
-   API behavior, Supabase, auth, .env, or deploy config. If you need something from
-   the backend, add a request to Blueprints/handoffs/frontend-to-backend.md instead
-   of working around it.
-
-5. Definition of done — satisfy every item in Blueprints/definition-of-done.md, then:
-   - record any new backend needs in Blueprints/handoffs/frontend-to-backend.md
-   - check the item off in Direction/current_sprint.md -> "Next" (- [x])
-   - log notable decisions in Direction/decision_log.md
-   - report the frontend build result to me
-
-Stop before any deploy or production action and wait for Justin.
+Module paths:
+- ../../Blueprints/prompts/kickoff-modules/pull-task.md
+- ../../Blueprints/prompts/kickoff-modules/plan-approval.md
+- ../../Blueprints/prompts/kickoff-modules/done-and-close.md
+- ../../Blueprints/prompts/kickoff-modules/safety-gates.md
 ```

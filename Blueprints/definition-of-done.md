@@ -1,34 +1,40 @@
-# Definition of Done
+# Corvus Definition of Done
 
-**File:** `Blueprints/definition-of-done.md`
-**Scope:** Corvus feature work by Claude (frontend) or Codex (backend).
-**Why it exists:** This is the agent's self-check. When every box is true, Justin reviews the *outcome* — not every step. It is the thing that keeps building near hands-off.
+**valid-as-of:** 2026-06-15
+**Status:** v1 — pointer + per-type gate files + ledger
+**Posture:** Corvus is **free indefinitely.** No billing gates anywhere in this doc.
 
-A task is **not done** until all applicable items are satisfied. If an item cannot be met, stop and report why rather than marking done.
+## How to use
 
-## 1. Correctness
-- [ ] The task in `Direction/agent_inbox.md` (or the named task) is fully implemented — no partial features left visible.
-- [ ] No placeholder or mock output is shown as if it were real. Incomplete features are hidden, never displayed.
-- [ ] Mock vs. live data is clearly labeled where both can occur.
+Pick the Done type matching what you shipped, read that file, satisfy every gate, record in the ledger.
 
-## 2. Tests & build
-- [ ] Backend: `npm test` passes (state the count, e.g. 207/207).
-- [ ] Backend: `npm audit --audit-level=moderate` reports no new vulnerabilities.
-- [ ] Frontend: `npm --prefix frontend run build` passes (the existing Vite `NODE_ENV` warning is acceptable).
-- [ ] `git diff --check` is clean (no whitespace/conflict markers). No commit or push without Justin.
+| If you shipped... | Read |
+|---|---|
+| A new feature | `done/feature-done.md` |
+| A page edit affecting user-visible structure | `done/page-done.md` |
+| A deploy or production cut | `done/release-done.md` |
+| Anything touching auth, data, secrets, platform credentials | `done/security-done.md` (cross-cutting) |
+| A recommendation (Omen, Trade Analyzer, Draft Assistant) | `done/recommendation-done.md` (cross-cutting) |
+| Any user-visible UI | `done/design-done.md` (cross-cutting) |
+| A public-facing post / video / social / marketing artifact | `done/content-marketing-done.md` (cross-cutting, L1 work) |
 
-## 3. AAA Framework (all three — two of three is a fail)
-- [ ] **Accuracy** — output is correct and defensible; nothing guessy or misleading.
-- [ ] **Accessibility** — intuitive without instruction; WCAG AA contrast; keyboard-navigable; risk/confidence carry labels, not color alone.
-- [ ] **Aesthetic Integrity** — matches `Brand/brand-system.md` (palette, type, voice); feels intentional, not rushed.
+Run cross-cutting gates **in addition** to the primary type. A page change that adds a recommendation triggers Page Done + Recommendation Done + Design Done.
 
-## 4. Handoff & memory
-- [ ] Backend wrote the contract to `Blueprints/handoffs/backend-to-frontend.md` in the Required Handoff Shape (`handoffs/README.md`).
-- [ ] Frontend recorded any new backend needs in `Blueprints/handoffs/frontend-to-backend.md`.
-- [ ] Notable decisions logged in `Direction/decision_log.md`.
-- [ ] `Direction/agent_inbox.md` / `current_sprint.md` updated to reflect what is now complete.
+## Foundation: the AAA Framework
 
-## 5. Boundary & safety
-- [ ] Stayed inside ownership (Codex = backend, Claude = frontend) per `AGENTS.md`.
-- [ ] Did not touch secrets, `.env`, Supabase migrations, Docker/deploy, or production.
-- [ ] Stopped before any deploy, migration, secret, or paid/Stripe action and left it for Justin.
+From `Brand/brand-system.md` §11: every change must satisfy **Accuracy + Accessibility + Aesthetic Integrity. Two of three is a fail.** Each done-file marks which gates map to which A.
+
+## Evidence discipline
+
+Every gate marked done must **point to evidence** — commit hash, file path, screenshot link, test-run timestamp, skill-verdict location. Do not paste full command output. Justin will investigate from the pointer if needed.
+
+Skipping a gate without writing why = lying about done. See `Blueprints/agent-modules/hard-prohibitions.md` item 2.
+
+## The ledger
+
+Every closure is recorded in `done/LEDGER.md`. Review monthly — gates skipped often signal a prompt or skill to revisit.
+
+## Open updates
+
+- Year-2 billing gates: **N/A** — Corvus is free indefinitely (decision 2026-06-15).
+- Content & Marketing Done lives at L2 for now; promote to L1 when L1's `marketing-strategy.md` + `content-strategy.md` land.

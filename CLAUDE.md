@@ -1,110 +1,19 @@
-# Claude Code Context
+# Corvus — Claude Context
 
-## Canonical Source
+You are Claude working in the Corvus product layer. Read these modules in order before pulling a task.
 
-**Rule:** Follow `./AGENTS.md` first. This file adds Claude Code frontend/product behavior.
+1. **Identity** — see `../../Blueprints/agent-modules/identity-claude.md` (Cowork addendum: `identity-cowork.md`)
+2. **Layer in scope** — see `../../Blueprints/agent-modules/layer-2-rules.md`
+3. **Action posture** — see `../../Blueprints/agent-modules/action-posture.md`
+4. **Resources available** — see `../../Blueprints/agent-modules/resources-index.md` (points to `RESOURCES_INDEX.md`)
+5. **Files to read first** — see `../../Blueprints/agent-modules/files-to-read-first-L2.md`
+6. **Hard prohibitions** — see `../../Blueprints/agent-modules/hard-prohibitions.md`
+7. **Session handoff** — see `../../Blueprints/agent-modules/session-handoff.md`
 
-## Claude-Specific Behavior
+**Corvus-specific reads on demand:**
 
-- **Primary role:** Build and improve the user-facing Corvus app experience when implementation mode is requested.
-- **Planning role:** For unclear work, plan, critique, map files, and write Codex-ready handoff prompts.
-- **Frontend ownership:** Own screens, components, layout, navigation, interaction states, mobile experience, copy clarity, and UI polish.
-- **Backend boundary:** Do not edit backend logic, database schema, auth, payment, Docker, deployment, secrets, DNS, SSL, or VPS config unless Justin explicitly asks.
-- **Product authority:** Justin owns final product decisions.
-- **Commands:** Ask before `git push`, installs, migrations, deploys, destructive commands, or production actions.
+- `Brand/brand-system.md` (voice, palette, type, AAA framework)
+- `Blueprints/specs/page-system.md` (per-page typography / accent / palette / copy contract)
+- `Blueprints/specs/corvus-ux-ui-design-system-v1.md` (tokens + components)
 
-## Required Files To Read First
-
-Read these if present:
-
-1. `AGENTS.md`
-2. `Direction/context.md`
-3. `Direction/current_sprint.md`
-4. `Direction/roadmap.md`
-5. `Direction/decision_log.md`
-6. `Direction/agent_inbox.md`
-7. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-8. `Blueprints/definition-of-done.md`
-9. `Brand/brand-system.md`
-10. `Blueprints/specs/app-ui-plan.md`
-11. `Blueprints/handoffs/backend-to-frontend.md`
-12. `Blueprints/handoffs/frontend-to-backend.md`
-13. `Blueprints/handoffs/decisions.md`
-14. `AGENT.md`
-
-If a file is missing, continue and mention it.
-
-## UI Inspection Requirement
-
-Before major UI edits, identify:
-
-1. active frontend folder
-2. routing system
-3. main layout file
-4. dashboard entry point
-
-## Handoff Rule
-
-Use `Direction/agent_inbox.md` as the active task slot. Use
-`Blueprints/prompts/kickoff-frontend-claude.md` when Justin starts a frontend
-task, usually after a backend contract exists in
-`Blueprints/handoffs/backend-to-frontend.md`. Satisfy
-`Blueprints/definition-of-done.md` before calling the task done.
-
-When backend support is needed, write to:
-
-```text
-Blueprints/handoffs/frontend-to-backend.md
-```
-
-Use clear contracts:
-
-- feature name
-- endpoint needed
-- method
-- request shape
-- response shape
-- example response
-- frontend behavior
-- open questions
-
-## Backbone Rule
-
-Before adding feature complexity, make sure the app has:
-
-- consistent navigation
-- reusable layout
-- stable page structure
-- shared loading/error/empty states
-- platform disconnected states
-- clean mobile experience
-- clear CTA behavior
-
-## Draft Assistant Rule
-
-Draft Assistant is the first-impression tool.
-
-It should feel polished and useful, but must reuse shared Corvus patterns.
-
-Do not build it as a standalone one-off page disconnected from the rest of the app.
-
-## Session Re-Anchoring
-
-End every session with:
-
-- files changed
-- UI states added/changed
-- backend needs written to handoff
-- tests/checks run
-- limitations
-- next recommended frontend step
-
-## Compaction Priorities
-
-When context is tight, preserve:
-
-1. current task
-2. route/layer truth
-3. active handoff contract
-4. UI state requirements
-5. safety boundaries
+**Kickoff:** `Blueprints/prompts/kickoff-frontend-claude.md` (wrapper) — or just run the auto-populate flow per `../../Blueprints/prompts/kickoff-modules/pull-task.md`.

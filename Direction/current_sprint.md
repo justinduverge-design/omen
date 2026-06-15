@@ -1,14 +1,15 @@
 # Corvus Current Sprint
 
-Last updated: 2026-06-08 (Hostinger KVM1 cutover live; Chrome/Firefox smoke passed; Corvus is now non-monetized/free; billing gated behind `CORVUS_BILLING_ENABLED` kill-switch — decision logged; Justin canceled his own (only) subscription; kill-switch implemented backend+frontend — `npm test` 290/290, `npm run build` clean).
+Last updated: 2026-06-15 (DoD reality check complete; doctrine batch committed; Phase 1.4 is back on the board as the recommended next agent-buildable pull. Every unchecked agent-buildable item names its applicable Done docs.)
 
 ## How this feeds the loop
 
 `Next` below is the queue. Each item lives under a **lane** and is a checkbox.
-- Agents auto-pull the **top unchecked item in their own lane** when `Direction/agent_inbox.md` has no pinned Active Task.
+- Agents are lane-agnostic with soft lean: Claude leans frontend/docs/spec; Codex leans backend/code-volume/tests; either agent may pull any agent-buildable item.
+- When `Direction/agent_inbox.md` has no pinned Active Task, agents organize the next unchecked agent-buildable items across Backend + Frontend lanes and surface blockers.
 - `agent_inbox.md` overrides this — pin a specific or custom task there and it wins.
 - When an item is done, the agent checks it off here (`- [x]`) and logs it in `Direction/decision_log.md`.
-- Agents never pull from **Ops / Justin**, **Verify**, or **Decisions** — those are not agent builds.
+- Agents do not auto-pull from **Ops / Justin**, **Verify**, or **Decisions** unless Justin explicitly pins one.
 
 ## Current State
 
@@ -60,19 +61,19 @@ Last updated: 2026-06-08 (Hostinger KVM1 cutover live; Chrome/Firefox smoke pass
 - [x] **Phase 1.4 — ADP schema + per-league scoring config tables (2026-06-12).** Review-only SQL written at `sql/2026-06-12_phase1_adp_scoring_schema_review.sql` with focused schema tests at `test/phase1SchemaReviewSql.test.js`. ADP tables = service-role only; league scoring config = service-role writable + authenticated self-readable via RLS. No Supabase apply, no production action.
 
 ### Backend / Codex — Phase 2 (waits until Phase 1 closes)
-- [ ] **Phase 2.5 — Proprietary ADP weighting service.** Build on top of `src/services/adp.js` and the schema landed in Phase 1.4. Output: per-player score combining FFC/Yahoo/MFL with weights configurable per league scoring config row.
-- [ ] **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` + `src/services/tradeValue.js` to consume scoring config as a parameter. Inputs change; call sites stable; tests stay green at 240/240+.
-- [ ] **Phase 2.7 — Demo Mode backend.** Public route returning a populated normalized roster + Omen envelope labeled `mode:"demo"`. Distinct from `mode:"live"` and `mode:"mock"`. Drives the `/demo` frontend route.
-- [ ] **Phase 2.8 — Sleeper live draft tracking (Aug 15 deadline).** Debounced Lazy Sync against Sleeper draft endpoints. No long-polling sockets.
-- [ ] **Phase 2.10 — Trade share hash routes.** `crypto.randomUUID` + `POST /api/trade/share` (writes hash + payload) + `GET /api/trade/share/:hash` (public read).
+- [ ] **Phase 2.5 — Proprietary ADP weighting service.** Build on top of `src/services/adp.js` and the schema landed in Phase 1.4. Output: per-player score combining FFC/Yahoo/MFL with weights configurable per league scoring config row. Done docs: feature + recommendation + security if DB/service-role access changes.
+- [ ] **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` + `src/services/tradeValue.js` to consume scoring config as a parameter. Inputs change; call sites stable; tests stay green at 240/240+. Done docs: feature + recommendation.
+- [ ] **Phase 2.7 — Demo Mode backend.** Public route returning a populated normalized roster + Omen envelope labeled `mode:"demo"`. Distinct from `mode:"live"` and `mode:"mock"`. Drives the `/demo` frontend route. Done docs: feature + recommendation.
+- [ ] **Phase 2.8 — Sleeper live draft tracking (Aug 15 deadline).** Debounced Lazy Sync against Sleeper draft endpoints. No long-polling sockets. Done docs: feature + recommendation + security.
+- [ ] **Phase 2.10 — Trade share hash routes.** `crypto.randomUUID` + `POST /api/trade/share` (writes hash + payload) + `GET /api/trade/share/:hash` (public read). Done docs: feature + recommendation + security.
 
 ### Backend / Codex — Phase 3
-- [ ] **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge** for narration. `LLM_BASE_URL` already in env inventory.
-- [ ] **Phase 3.13 — Token-constrained prompts** (≤50 words / 2 sentences) for CPU inference mitigation.
-- [ ] **Phase 3.15 — `AI_PROVIDER=local|cloud` toggle** with hard budget cap. **DO NOT BUILD until the cap is logged in `decision_log.md` with Justin's approved dollar figure.**
+- [ ] **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge** for narration. `LLM_BASE_URL` already in env inventory. Done docs: feature + security.
+- [ ] **Phase 3.13 — Token-constrained prompts** (≤50 words / 2 sentences) for CPU inference mitigation. Done docs: feature + recommendation.
+- [ ] **Phase 3.15 — `AI_PROVIDER=local|cloud` toggle** with hard budget cap. **DO NOT BUILD until the cap is logged in `decision_log.md` with Justin's approved dollar figure.** Done docs: feature + security + release when deployed.
 
 ### Backend / Codex — Phase 4
-- [ ] **Phase 4.16 — Termly base ToS + Privacy Policy** — Codex authors AI-drafted custom paragraphs for ESPN cookie handling, Yahoo attribution, Sleeper attribution. Justin reviews.
+- [ ] **Phase 4.16 — Termly base ToS + Privacy Policy** — Codex authors AI-drafted custom paragraphs for ESPN cookie handling, Yahoo attribution, Sleeper attribution. Justin reviews. Done docs: security + content-marketing if public pages/posts are produced.
 
 ### Backend / Codex — Pre-pivot completions (evidence)
 - [x] Billing kill-switch implemented 2026-06-08: `CORVUS_BILLING_ENABLED` (default false) gates `/prices` + `/checkout` + `/portal` (`403 billing_disabled`); `requireSubscription` is a pass-through when off (auth still required); webhook untouched. `npm test` 290/290.
@@ -81,34 +82,50 @@ Last updated: 2026-06-08 (Hostinger KVM1 cutover live; Chrome/Firefox smoke pass
 - [x] Webhook persists `trial_ends_at` / `current_period_end` — confirmed working 2026-06-08.
 
 ### Backend / Codex — Behind launch readiness (post-launch, not deferred to 2027)
-- [ ] Tuesday scoring enablement (`CORVUS_CRON_SCORING_ENABLED=true`) after approved Supabase dry-run.
-- [ ] ESPN live draft tracking (Lazy Sync, same pattern as Sleeper).
-- [ ] Yahoo live draft tracking (Lazy Sync, same pattern as Sleeper).
+- [ ] Tuesday scoring enablement (`CORVUS_CRON_SCORING_ENABLED=true`) after approved Supabase dry-run. Done docs: feature + recommendation + security + release.
+- [ ] ESPN live draft tracking (Lazy Sync, same pattern as Sleeper). Done docs: feature + recommendation + security.
+- [ ] Yahoo live draft tracking (Lazy Sync, same pattern as Sleeper). Done docs: feature + recommendation + security.
 
 ### Frontend / Claude — Phase 1
 - [x] **Phase 1.2 — Sentry SaaS free tier wired (frontend half) (2026-06-13).** Shipped via `fa35c76` on `claude/wonderful-jepsen-afb4fd`. `@sentry/react@^8.55.2` added to `frontend/package.json` (version parity with backend). `initSentry()` runs in `frontend/src/main.jsx` before `createRoot` via new `frontend/src/lib/sentry.js`. `<App />` wrapped in `Sentry.ErrorBoundary` with Corvus-themed `CrashFallback` (≥44px reload button — meets Phase 1.3 touch-target discipline preemptively). `beforeSend`/`beforeBreadcrumb` scrubbers mirror the backend (`src/middleware/sentry.js`): ESPN-credential URL patterns (`/api/platforms/espn/connect`, `/api/auth/espn/connect`, `/api/espn/roster`) drop event entirely (also checked against `event.transaction`); sensitive headers, body keys, and URL query strings scrubbed with identical patterns to backend; stack traces truncated to last 20 frames; `__skipBodyLog` honored; fetch/xhr breadcrumbs for ESPN URLs dropped. `VITE_SENTRY_DSN` blank in `.env.example` (no-op locally); `VITE_COMMIT_SHA` added for release tagging; both rows in `deploy/hostinger/ENV-INVENTORY.md`. Source-map upload deferred to post-launch per spec. `npm --prefix frontend run build` clean (456 kB bundle, 1.67s). No frontend test runner configured; scrubber coverage is indirect via backend smoke tests.
-- [ ] **Phase 1.3 — iOS Safari mobile QA sweep.** Open every routed page on iOS Safari (real device or BrowserStack). Fix viewport overflows, flex overflows, touch targets <44px, focus rings, safe-area-inset issues. Single PR.
+- [x] **Phase 1.3 — Page-system spec (2026-06-15).** Authored `Blueprints/specs/page-system.md` v1 from QA Part 2 markdown + 17 annotated screenshots (light + dark mobile Safari). Per-route typography role, accent role, palette, copy anchor, approved/disapproved patterns, light/dark parity rules. Verified against `SKILL_ROUTING.md@2026-06-15`. Guardrails used: `design:design-system` + `ui-ux-pro-max`. Every Phase 1.4–1.12 item is "Blocked by Phase 1.3" and must reference a Page System Table row + Component Rule before shipping.
+- [ ] **Phase 1.4 — Font system propagation fix.** Sweep every page in `Blueprints/specs/page-system.md` Page System Table flagged "needs Phase 1.4". Apply Cormorant Garamond for serif headlines + card titles per design-system v1 typography rules. Fix TE1 chip "1"-vs-"TE" size parity. Fix light-mode olive-gold "Continue with Email" button token misuse. Both modes verified. Single PR. **Ready for next pull; blocked only by normal plan-approval gate.** Guardrail: `ui-ux-pro-max` typography roles; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+- [ ] **Phase 1.5 — Team accent sweep (whole-app, both modes).** Audit every page where the page-system table marks "Accent active". Verify `--color-team-accent` consumption on CTAs, focus rings, active tab, "you" row, selected tile outline, header rules, Omen accept button. Confirm reads stay neutral. Confirm no team accent on body / mock / error. 32-team contrast cross-check (each accent vs both `--color-bg` modes — flag any team below WCAG AA, define secondary accent for those teams). **Blocked by Phase 1.3 [x] + Phase 1.4 [ ].** Guardrails: `ui-ux-pro-max` accent-contrast library; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+- [ ] **Phase 1.6 — Position chip palette + selected-state styling.** RB=green, WR=blue locked. Add QB / TE / DEF / K hues (use `ui-ux-pro-max` palette library, color-blind distinguishability required). Define filled selected state in team accent (replaces broken yellow-with-X look on `/draft`). Apply to position chips + scoring-format chips. **Blocked by Phase 1.3 [x] + Phase 1.4 [ ].** Guardrails: `ui-ux-pro-max` palette + color-blind validation; verdict: `slops-ui-ux-audit`. Done docs: page + design + recommendation if recommendation cards change.
+- [ ] **Phase 1.7 — Platform brand color emphasis + button-style consistency.** Sleeper blue / Yahoo purple / ESPN red — verify exact hexes via `ui-ux-pro-max` platform-brand cross-check. Apply prominently on `/account/connect` tiles, `/account` connect-row buttons (Connect Sleeper / Yahoo / ESPN must share one button shape + size), `/standings` platform badge, league switcher. Both modes. **Blocked by Phase 1.3 [x] + Phase 1.4 [ ].** Guardrail: `ui-ux-pro-max`; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+- [ ] **Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% → rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar (current bars all gold — replace). Both modes — light-mode endpoints are darker variants, not lighter washes. **Blocked by Phase 1.3 [x] + Phase 1.4 [ ].** Guardrail: `ui-ux-pro-max` gradient interpolation; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation.
+- [ ] **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: 1=antique gold (distinct from `--color-accent`), 2=brushed silver, 3=antique bronze. Subtle gradient + bevel, not flat fills. Optional add-on: metallic on selected Appearance tile glyph per Justin QA "3D effect on selections". **Blocked by Phase 1.3 [x] + Phase 1.4 [ ].** Guardrail: `ui-ux-pro-max` metallic contrast; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation if Draft Assistant cards change.
+- [ ] **Phase 1.10A — UX copy options packet.** Invoke `slops-ux-copy` and present 3 options for each: (a) `/omen` offseason empty state ("resting / calibrating / meditating for the next Omen"); (b) `/onboarding` "You're ready" success copy rewrite; (c) landing-page Trade Analyzer Example headline replacement (current "Know the move before you make it." is brand-system-banned — replace with "Less guessing. Better moves." or "See the move before the league does."). No source changes in this item; Justin selects the final copy. **Blocked by Phase 1.3 [x].** Done docs: n/a — decision packet; evidence is the copy options/handoff.
+- [ ] **Phase 1.10B — Apply approved copy and remove preview banner.** Implement Justin-approved Phase 1.10A copy and remove the yellow "Preview Mode — example recommendations" banner from `/draft`. **Blocked by Phase 1.10A.** Guardrail: `slops-ux-copy`; verdict: `slops-ui-ux-audit`. Done docs: page + design + recommendation where Omen/Draft/Trade recommendation surfaces change.
+- [ ] **Phase 1.11A — Demo Mode frontend fixtures.** Add mock-roster fixture for Omen visual testing, mock previous-results fixture for Ledger, and mock-draft fixture for Draft Assistant. Private only — no public mock-draft route. Clearly labeled as mock, behind a dev flag, and distinct from Phase 2.7 public Demo Mode. **Blocked by Phase 1.3 [x].** Pattern guardrail: `demo-mode-pre-empty-state`. Done docs: feature + design + recommendation.
+- [ ] **Phase 1.12 — Gray contrast pass + Standings refinements.** Pass: every gray body string vs its background must clear WCAG AA in both modes. Specific sites: `/account/appearance` paragraph, `/standings` W-L / PF / PA columns, `/hall-of-records` username column, `/onboarding` success paragraph. Standings "DarthSlops · you" row gets distinct row background + team-accent left edge (replaces too-subtle cyan underline). **Blocked by Phase 1.3 [x] + Phase 1.6 [ ]** (palette reuse for gray scale). Guardrail: `ui-ux-pro-max`; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+- [ ] **Phase 1.13 — iOS Safari mobile QA sweep.** Open every routed page on iOS Safari (real device or production at https://slopssaloon.com). Fix viewport overflows, flex overflows, touch targets <44px, focus rings, safe-area-inset issues. Single PR. **Soft-blocked by Phase 1.4 [ ] + Phase 1.5 [ ]** (don't sweep what's about to be repainted). Skill: `mobile-first-qa-playbook` (use this — purpose-built for the sweep). Done docs: page + design.
 
 ### Frontend / Claude — Phase 2
-- [ ] **Phase 2.7 — Demo Mode UI.** New public route `/demo`. Populated example roster + Omen envelope with prominent "Demo Mode — your real Omen will appear after your league drafts" labeling. Reuses Omen rendering components.
-- [ ] **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: `"DELETE MY CORVUS DATA"`. Place under a "Privacy" subsection.
-- [ ] **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result. OG image rendered server-side. Card copy: brand voice, recommendation-first, no emoji-soup.
-- [ ] **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`.
+- [ ] **Phase 2.7 — Demo Mode UI.** New public route `/demo`. Populated example roster + Omen envelope with prominent "Demo Mode — your real Omen will appear after your league drafts" labeling. Reuses Omen rendering components. **Blocked by Backend Phase 2.7.** Done docs: feature + page + design + recommendation.
+- [ ] **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: `"DELETE MY CORVUS DATA"`. Place under a "Privacy" subsection. Done docs: feature + page + design + security.
+- [ ] **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result. OG image rendered server-side. Card copy: brand voice, recommendation-first, no emoji-soup. **Blocked by Backend Phase 2.10 hash routes.** Done docs: feature + page + design + recommendation.
+- [ ] **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
+- [ ] **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface (Justin QA Part 2 — X over current Send/Receive form). Multi-team trade support. Symmetry / industry-trick visual balance. Done docs: page + design + recommendation.
+- [ ] **Phase 2.13 — Trade Analyzer Strategy + Mock Buy Low content rewrite.** "Buy after one bad week" / "Sell into the schedule" / "Depth wins championships" / "TE1 is a multiplier" + Mock Buy Low target list — Justin marked "SO SO". Rewrite via `slops-ux-copy`; specifically remove "Build roster depth now" tail from Depth bullet. Done docs: page + design + recommendation.
+- [ ] **Phase 2.14 — Standings team-switching UX.** Easier inter-platform team switching per Justin QA. Pairs with Phase 1.7 platform color emphasis. Done docs: feature + page + design.
+- [ ] **Phase 2.15 — Account subscription card removal (pre-launch hygiene).** Hide the Corvus Pro "All features included" card on `/account` while Corvus is free this season. Re-show when billing kill-switch flips. Done docs: page + design.
+- [ ] **Phase 2.16 — IDP / defensive-player drafting prep.** Position chip palette (Phase 1.6) must already include DEF; this item carries the data + draft flow updates for leagues that draft defensive players. Done docs: feature + page + design + recommendation.
 
 ### Frontend / Claude — Phase 3
-- [ ] **Phase 3.14 — Skeleton states for narration zones.** Math + numbers render instantly on KVM1; narration block shows skeleton until KVM2 returns.
+- [ ] **Phase 3.14 — Skeleton states for narration zones.** Math + numbers render instantly on KVM1; narration block shows skeleton until KVM2 returns. Done docs: page + design.
 
 ### Frontend / Claude — Phase 4
-- [ ] **Phase 4.18 — Umami snippet** added to `frontend/index.html` once the container is live on KVM1.
-- [ ] **Phase 4.19 — FP2 Sleeper/ESPN Omen render polish.** Ensure live envelopes render correctly across all three providers.
-- [ ] When the logo SVG is ready: replace the `[C]` placeholder in `Header.jsx` and `NavDrawer` with an inline SVG component.
+- [ ] **Phase 4.18 — Umami snippet** added to `frontend/index.html` once the container is live on KVM1. Done docs: feature + security + release when deployed.
+- [ ] **Phase 4.19 — FP2 Sleeper/ESPN Omen render polish.** Ensure live envelopes render correctly across all three providers. Done docs: feature + page + design + recommendation.
+- [ ] When the logo SVG is ready: replace the `[C]` placeholder in `Header.jsx` and `NavDrawer` with an inline SVG component. Done docs: page + design.
 
 ### Frontend / Claude — Pre-pivot completions (evidence)
 - [x] Paid surfaces hidden behind `VITE_BILLING_ENABLED` (default false) 2026-06-08.
 
 ### Verify (confirm done vs open — restate findings, do not assume)
 - [x] Real-account QA of Yahoo / Sleeper / ESPN Omen + League Standings, especially ESPN reconnect, without logging cookie values. **ESPN QA completed 2026-06-05 (off-season mode).** Four fixes shipped: (1) `seasonCandidates()` retry logic for off-season year; (2) `isSeasonRetryable` handles ESPN 202 redirect; (3) CORS localhost default in `docker-compose.yml`; (4) off-season connect mode — when ESPN API returns 202 for all seasons, credentials are stored and a gold "saved" banner shown. Full in-season QA (live API returning 200) deferred until 2026 season opens (~August). All code changes in source, 13/13 tests pass, frontend build clean.
-- [ ] Resolve the doc conflict: does Sleeper/ESPN live Omen return `ready` or `pending_live_engine` for paid connected users? Settle to one truth and update docs.
+- [ ] Resolve the doc conflict: does Sleeper/ESPN live Omen return `ready` or `pending_live_engine` for paid connected users? Settle to one truth and update docs. Done docs: n/a — verification/doc-conflict item; evidence is updated contract path.
 
 ### Decisions (Justin / Claude — not builds)
 - [ ] `POST /api/optimizer/mvp-move` (`src/routes/optimizer.js`): merge into Omen as a Pro enrichment layer, or keep separate.
@@ -118,8 +135,8 @@ Last updated: 2026-06-08 (Hostinger KVM1 cutover live; Chrome/Firefox smoke pass
 - [x] Monetization posture changed: Corvus should be free/non-monetized because Yahoo and ESPN cannot be monetized safely under current platform constraints.
 
 ### Tech debt (later, low priority)
-- [ ] 5 code TODOs: Yahoo per-player projected stats (`adapters/yahoo.js`); `rest_days` / `back_to_back` (`services/agents.js`); weather game-time interval (`services/weatherService.js`).
-- [ ] Omen latency optimization: `POST /api/omen/mvp-move` p95 ~5s under repeated local load. Investigate LLM call caching, response streaming, or request coalescing. Not a launch blocker — route is functional.
+- [ ] 5 code TODOs: Yahoo per-player projected stats (`adapters/yahoo.js`); `rest_days` / `back_to_back` (`services/agents.js`); weather game-time interval (`services/weatherService.js`). Done docs: feature + recommendation where recommendation behavior changes.
+- [ ] Omen latency optimization: `POST /api/omen/mvp-move` p95 ~5s under repeated local load. Investigate LLM call caching, response streaming, or request coalescing. Not a launch blocker — route is functional. Done docs: feature + recommendation.
 
 ## Guardrails
 

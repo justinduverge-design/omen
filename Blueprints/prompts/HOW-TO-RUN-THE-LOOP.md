@@ -1,29 +1,38 @@
 # How to Run the Build Loop
 
-**Goal:** one short instruction per task. The folder carries the context; you approve the gates.
+One short instruction per task. The folder carries the context; you approve the gates.
 
-## The pieces (already in place)
-- **Task slot:** `Direction/agent_inbox.md` — one active task at a time.
-- **Kickoffs:** `Blueprints/prompts/kickoff-backend-codex.md` (Codex), `Blueprints/prompts/kickoff-frontend-claude.md` (Claude).
-- **Self-check:** `Blueprints/definition-of-done.md`.
-- **Contract bus:** `Blueprints/handoffs/backend-to-frontend.md` (Codex → Claude), `frontend-to-backend.md` (Claude → Codex).
-- **Memory:** `Direction/decision_log.md`. **Queue/history:** `Direction/current_sprint.md`.
+## The pieces
 
-## Each task — 5 steps
-1. **Load the task** into `Direction/agent_inbox.md` (copy the next item from `current_sprint.md` → "Next"; set Lane + Done-when).
-2. **Kick off the right lane:** paste `kickoff-backend-codex.md` to Codex *or* `kickoff-frontend-claude.md` to Claude.
-3. **Approve the plan.** The agent reports the task as understood, files it will touch, files it will avoid, and how it will verify. Confirm or correct before it edits.
-4. **It builds and closes out.** Satisfies the definition-of-done, writes its handoff, logs the decision, reports test/build results.
-5. **Full feature = both lanes.** Run backend first (it writes the contract to `backend-to-frontend.md`), then run frontend against that contract.
+- **Task slot:** `Direction/agent_inbox.md` — top-5 auto-populated by the agent + optional pin
+- **Queue:** `Direction/current_sprint.md` — full list, lanes (Frontend / Backend / Ops / Verify / Decisions / Tech debt)
+- **Kickoffs:** `Blueprints/prompts/kickoff-frontend-claude.md`, `Blueprints/prompts/kickoff-backend-codex.md`
+- **Modules:** `Blueprints/prompts/kickoff-modules/*` — pull-task, plan-approval, done-and-close, safety-gates, read-first
+- **Self-check:** `Blueprints/definition-of-done.md`
+- **Contract bus:** `Blueprints/handoffs/backend-to-frontend.md`, `frontend-to-backend.md`
+- **Memory:** `Direction/decision_log.md` + facts-of-record + session handoffs
 
-You stay in only at the **gates**: deploy, secrets, migrations, Stripe production, naming. The agent stops there and waits for you.
+## Each task — 4 steps
 
-## Buildable candidates right now
-Corvus is in launch-QA, so most `current_sprint.md` "Next" items are Justin-gated ops (deploy, authenticated smoke with real tokens, Stripe production). Clean agent-buildable items:
-- **Frontend (Claude):** run the UX pass on the Account and ConnectLeague pages (sprint item 6).
-- **Backend (Codex):** persist Stripe `trial_ends_at` / current-period dates from webhook events — *coordinate first with the in-flight, not-yet-deployed Stripe webhook recovery work so they don't collide.*
-- **Decision (Claude + Justin, not a build):** merge or retire `POST /api/optimizer/mvp-move`.
+1. **Paste the kickoff** for the agent you want to run (frontend-claude or backend-codex).
+2. **Agent self-pulls** — reads inbox, honors pin, otherwise organizes top-5 from sprint across all lanes.
+3. **Plan approval gate** — agent reports task / files / verification plan. You confirm or correct.
+4. **Agent builds, verifies, commits, closes** — satisfies DoD, writes handoff, logs decisions, reports.
 
-## Reconciliation notes
-- **Task pointer:** there used to be two (`agent_inbox.md` and `current_sprint.md`). `agent_inbox.md` is now the single *active task*; `current_sprint.md` stays the *queue + history*.
-- **Handoffs:** `Blueprints/handoffs/*` is the canonical *contract* bus; `Blueprints/agent_handoff.md` is a *historical session log*. Use `handoffs/*` for new contracts.
+## Pin override
+
+If you want a specific task no matter what the auto-pull surfaces:
+
+```text
+📌 Phase 1.10 — Offseason voice anchor
+```
+
+Place at the top of `Direction/agent_inbox.md`. The agent reads pin, skips auto-populate, works the pinned item.
+
+## Soft preference, not hard discipline
+
+Claude leans frontend / docs / spec. Codex leans backend / code-volume / tests. **Either agent can pull any item.** The agent surfaces "outside my lean + high-risk — confirm?" only when both conditions are true. Use the pin if you want a specific assignment.
+
+## Gates
+
+You stay in only at: deploy, secrets, migrations, package-file edits, Stripe production behavior, naming, cross-layer moves. The agent stops there and waits.
