@@ -193,7 +193,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
   return (
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
         <button
           className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
           type="button"
@@ -266,7 +266,7 @@ function ResultPanel({ result }) {
         ].map(([label, side]) => (
           <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4" key={label}>
             <div className="flex items-center justify-between gap-3">
-              <h3 className="font-semibold text-[var(--color-text-primary)]">{label}</h3>
+              <h3 className="font-display text-base font-semibold text-[var(--color-text-primary)]">{label}</h3>
               <span className="text-sm text-[var(--color-text-secondary)]">{side.total_value}</span>
             </div>
             <ul className="mt-3 space-y-2">
@@ -311,7 +311,7 @@ function TradeTipsCard() {
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Corvus · Strategy
       </p>
-      <h3 className="mt-1 text-base font-bold text-[var(--color-text-primary)]">Trade Room</h3>
+      <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Trade Room</h3>
       <ul className="mt-4 space-y-4">
         {TRADE_TIPS.map((tip) => (
           <li key={tip.title} className="flex gap-3">
@@ -321,7 +321,7 @@ function TradeTipsCard() {
               style={{ background: 'var(--color-accent)' }}
             />
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
+              <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
               <p className="mt-0.5 text-xs leading-5 text-[var(--color-text-secondary)]">{tip.body}</p>
             </div>
           </li>
@@ -337,7 +337,7 @@ function BuyLowCard() {
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Mock · Buy Low
       </p>
-      <h3 className="mt-1 text-base font-bold text-[var(--color-text-primary)]">Targets</h3>
+      <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Targets</h3>
       <ul className="mt-4 divide-y divide-[var(--color-border)]">
         {TRADE_PULSE.buy_low.map((target) => (
           <li key={target.id} className="py-3 first:pt-0 last:pb-0">

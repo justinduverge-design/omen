@@ -104,11 +104,11 @@ Example: user clicked Omen while logged out → signs in → connects league →
 │  ──────────────────────────────────────────   │
 │                                                │
 │  Your best call, every time.                   │
-│  [H2 — Cormorant Garamond 600, 28–32px]       │
+│  [H2 — Alegreya Sans 600, 28–32px]            │
 │                                                │
 │  Sign in to connect your league and get        │
 │  your Most Valuable Play each week.            │
-│  [Body — Alegreya Sans 16px, secondary color] │
+│  [Body — Alegreya 16px, secondary color]      │
 │                                                │
 │  ┌──────────────────────────────────────────┐ │
 │  │  [G icon]  Continue with Google          │ │
@@ -207,7 +207,7 @@ If a league is already connected, skip this step and route to dashboard or the `
 │         [Corvus mark]                          │
 │                                                │
 │  Connect your league.                          │
-│  [H2 — Cormorant Garamond 600, 28px]          │
+│  [H2 — Alegreya Sans 600, 28px]               │
 │                                                │
 │  Corvus needs your roster to find your         │
 │  Most Valuable Play. Choose your platform.     │

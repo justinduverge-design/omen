@@ -11,7 +11,7 @@ function Header() {
           <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_24px_rgba(201,164,76,0.14)]">
             <img alt="Corvus" className="h-full w-full object-cover" src="/corvus-apollo-logo.png" />
           </div>
-          <span className="font-serif text-base tracking-[0.22em] text-[#F4EFE1]">CORVUS</span>
+          <span className="font-display text-base tracking-[0.22em] text-[var(--color-text-primary)]">CORVUS</span>
         </div>
 
         {/* Nav */}
@@ -113,7 +113,7 @@ export default function CorvusLanding() {
           <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
             Corvus · Trade Analyzer
           </p>
-          <h1 className="mt-3 font-sans text-3xl font-semibold leading-tight tracking-[-0.01em] text-[#F4EFE1] md:text-4xl">
+          <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-[var(--color-text-primary)] md:text-4xl">
             Know the move before you make it.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/50">

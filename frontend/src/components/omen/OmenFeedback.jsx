@@ -71,7 +71,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
             Locked in
           </p>
           <p
-            className="mt-2 font-serif text-xl"
+            className="mt-2 font-display text-xl font-semibold"
             style={{ color: 'var(--color-text-primary)' }}
           >
             Your answer is recorded.
@@ -103,7 +103,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
 
         {/* Heading — the most prominent element */}
         <h3
-          className="mb-5 text-center font-serif text-3xl"
+          className="mb-5 text-center font-display text-3xl font-semibold"
           style={{
             color: 'var(--color-text-primary)',
             lineHeight: 1.08,
@@ -179,7 +179,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Injury, lineup change, trusted the Omen..."
-            className="w-full min-h-[44px] bg-transparent pb-3 font-serif text-base outline-none transition-colors placeholder:italic"
+            className="w-full min-h-[44px] bg-transparent pb-3 font-sans text-base outline-none transition-colors placeholder:italic"
             style={{
               color: 'var(--color-text-primary)',
               borderBottom: `1px solid ${note ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -200,7 +200,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
           aria-busy={submitting}
           disabled={submitting}
           onClick={handleSubmit}
-          className="w-full rounded-md font-serif text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-md font-sans text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           style={{
             background: 'var(--color-accent)',
             color: '#0A0A0B',
@@ -256,7 +256,7 @@ function ChoiceButton({ children, active, variant, onClick }) {
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="h-12 rounded-md border font-serif text-lg font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+      className="h-12 rounded-md border font-sans text-lg font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
       style={active ? activeStyle : idleStyle}
     >
       {children}

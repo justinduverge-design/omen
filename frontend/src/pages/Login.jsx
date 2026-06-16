@@ -223,7 +223,7 @@ export default function Login() {
       <div className="relative w-full max-w-sm">
         {/* Brand mark */}
         <div className="mb-10 text-center">
-          <p className="font-serif text-2xl tracking-[0.22em] text-[var(--color-text-primary)]">
+          <p className="font-display text-2xl tracking-[0.22em] text-[var(--color-text-primary)]">
             CORVUS
           </p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
@@ -233,7 +233,7 @@ export default function Login() {
 
         {/* Headline */}
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-3xl font-semibold text-[var(--color-text-primary)]">
+          <h1 className="font-display text-3xl font-semibold text-[var(--color-text-primary)]">
             Your best call,<br />every time.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">

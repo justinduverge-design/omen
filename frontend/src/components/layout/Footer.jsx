@@ -6,7 +6,7 @@ export default function Footer() {
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
         <span
-          className="font-serif text-sm uppercase tracking-[0.2em]"
+          className="font-display text-sm uppercase tracking-[0.2em]"
           style={{ color: 'var(--color-text-primary)' }}
         >
           Corvus

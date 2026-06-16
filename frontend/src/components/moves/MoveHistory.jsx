@@ -205,7 +205,7 @@ function EmptyHistory() {
       >
         ◈
       </p>
-      <p className="font-serif text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+      <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
         No moves yet.
       </p>
       <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '36ch', margin: '8px auto 0' }}>

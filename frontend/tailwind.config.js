@@ -26,8 +26,8 @@ export default {
       },
       fontFamily: {
         sans:    ['Alegreya Sans', 'system-ui', 'sans-serif'],
-        serif:   ['Cormorant Garamond', 'Georgia', 'serif'],
-        display: ['Cormorant Garamond', 'Georgia', 'serif'],
+        serif:   ['Alegreya', 'Georgia', 'serif'],
+        display: ['Alegreya Sans', 'system-ui', 'sans-serif'],
         mono:    ['DM Mono', 'ui-monospace', 'monospace'],
       },
     },

@@ -483,7 +483,7 @@ Track A — Font system + CSS token sweep:
 - `index.css` base layer: `h1, h2 { @apply font-display; }`.
 - Full CSS token sweep across TradeAnalyzer.jsx, DraftAssistant.jsx, Account.jsx, Football.jsx — all hardcoded `amber-*`/`slate-*` replaced with `var(--color-*)` tokens. Team theme now applies universally.
 
-**Font system corrected by PR #22:** Production stack is Cormorant Garamond (`font-display` + `font-serif`, h1/h2 + brand moments) + Alegreya Sans (`font-sans`, body/UI) + DM Mono (`font-mono`, data). See `Brand/brand-system.md` and `decisions.md` for the authoritative spec.
+**Font system update:** PR #22's Cormorant direction is superseded by the 2026-06-15 brand decision. Production stack is now Alegreya Sans (`font-display` + headings/UI) + Alegreya (`font-serif` + body text) + DM Mono (`font-mono`, data). Cormorant Garamond is rejected; see `Brand/brand-system.md` and `decisions.md` for the authoritative spec.
 
 Track B — Team identity layer:
 - `nflTeams.js`: `cultureTag` + `wardRoom` fields added for all 32 teams.

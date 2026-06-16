@@ -120,20 +120,20 @@ colors: {
 
 ### Font Pairing
 
-- **Cormorant Garamond** — Serif. Brand headlines, display moments, product identity, Omen card titles.
-- **Alegreya Sans** — Sans-serif. All UI: nav, labels, body copy, buttons, inputs.
+- **Alegreya Sans** — Headings, display moments, product identity, Omen card titles, UI labels, buttons, inputs, and navigation.
+- **Alegreya** — Body text and longer reading copy.
 
-Both are loaded in `frontend/src/index.css`.
+Do not use Cormorant Garamond. Both Alegreya faces are loaded in `frontend/src/index.css`.
 
 ### Usage Rules
 
 | Context | Font | Weight | Size |
 |---------|------|--------|------|
-| Product hero / landing headline | Cormorant Garamond | 700 | 48px+ |
-| Page title | Cormorant Garamond | 600 | 30–36px |
-| Card headline | Cormorant Garamond | 500 | 20–24px |
-| Omen recommendation title | Cormorant Garamond | 600 | 24px |
-| Body copy | Alegreya Sans | 400 | 16px |
+| Product hero / landing headline | Alegreya Sans | 700 | 48px+ |
+| Page title | Alegreya Sans | 600 | 30–36px |
+| Card headline | Alegreya Sans | 600 | 20–24px |
+| Omen recommendation title | Alegreya Sans | 600 | 24px |
+| Body copy | Alegreya | 400 | 16px |
 | UI labels | Alegreya Sans | 500 | 14px |
 | Button text | Alegreya Sans | 600 | 14–16px |
 | Confidence / risk label | Alegreya Sans | 600 | 12–14px |
@@ -146,8 +146,9 @@ Both are loaded in `frontend/src/index.css`.
 
 ```js
 fontFamily: {
-  serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+  serif: ['Alegreya', 'Georgia', 'serif'],
   sans:  ['Alegreya Sans', 'system-ui', 'sans-serif'],
+  display: ['Alegreya Sans', 'system-ui', 'sans-serif'],
 }
 ```
 
@@ -164,10 +165,10 @@ Structure:
 ┌──────────────────────────────────────────────────┐
 │ [Move Type Badge]     [Confidence: 74 — Med-High]│
 │                                                  │
-│ [Recommendation Title — Cormorant Garamond 600]  │
+│ [Recommendation Title — Alegreya Sans 600]       │
 │ Start Player A over Player B                     │
 │                                                  │
-│ [Move copy — Alegreya Sans 16]                   │
+│ [Move copy — Alegreya 16]                        │
 │ "Move Player A into your WR2 slot and bench..."  │
 │                                                  │
 │ Why it matters:                                  │

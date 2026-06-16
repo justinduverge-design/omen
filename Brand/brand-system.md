@@ -1,6 +1,6 @@
 # Corvus Brand System
 
-**Status:** Canonical | Last updated: 2026-06-01
+**Status:** Canonical | Last updated: 2026-06-15
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `corvus-ux-ui-design-system-v1.md`
 **Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
 
@@ -137,8 +137,13 @@ Plain English. No jargon without explanation. Be precise — vague language erod
 | `#5B2D8E` | Electric violet | AI signal, Omen accent moments |
 
 **Typography:**
-- Brand headlines, display, Omen card titles: Cormorant Garamond (serif)
-- All UI, body copy, labels, buttons: Alegreya Sans (sans-serif)
+- Headings, display, Omen card titles, labels, buttons: Alegreya Sans
+- Body text and long-form reading copy: Alegreya
+
+Do not use Cormorant Garamond. It has been replaced by the Alegreya family pair:
+Alegreya Sans for headings and UI, Alegreya for body text. The two faces share
+letter proportions and curves, so the interface feels harmonious instead of split
+between unrelated display and reading fonts.
 
 **Feel:** Dark, strategic, observant, premium. No clutter. No neon sports bar energy. Presentation-worthy at full scale.
 

@@ -144,7 +144,7 @@ export default function Standings() {
           className="rounded-xl border p-10 text-center"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
         >
-          <p className="font-serif text-xl" style={{ color: 'var(--color-text-primary)' }}>
+          <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             No league connected.
           </p>
           <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
@@ -215,7 +215,7 @@ export default function Standings() {
           className="rounded-xl border p-10 text-center"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
         >
-          <p className="font-serif text-xl" style={{ color: 'var(--color-text-primary)' }}>
+          <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             No standings yet.
           </p>
           <p className="mt-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
@@ -270,7 +270,7 @@ export default function Standings() {
           League
         </p>
         <h1
-          className="mt-3 font-serif text-3xl font-semibold"
+          className="mt-3 font-display text-3xl font-semibold"
           style={{ color: 'var(--color-text-primary)' }}
         >
           Standings

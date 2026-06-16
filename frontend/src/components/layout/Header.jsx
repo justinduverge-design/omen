@@ -158,14 +158,14 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
               style={{ border: '1px solid var(--color-border)' }}
             >
               <span
-                className="font-serif text-sm leading-none"
+                className="font-display text-sm leading-none"
                 style={{ color: 'var(--color-accent)' }}
               >
                 C
               </span>
             </div>
             <span
-              className="font-serif text-[15px] uppercase tracking-[0.34em]"
+              className="font-display text-[15px] uppercase tracking-[0.34em]"
               style={{ color: 'var(--color-text-primary)' }}
             >
               Corvus
@@ -311,14 +311,14 @@ export default function Header() {
               style={{ border: '1px solid var(--color-border)' }}
             >
               <span
-                className="font-serif text-sm leading-none transition-colors"
+                className="font-display text-sm leading-none transition-colors"
                 style={{ color: 'var(--color-accent)' }}
               >
                 C
               </span>
             </div>
             <span
-              className="font-serif text-[15px] uppercase tracking-[0.34em]"
+              className="font-display text-[15px] uppercase tracking-[0.34em]"
               style={{ color: 'var(--color-text-primary)' }}
             >
               Corvus

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 
 @tailwind base;
@@ -87,14 +86,22 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply font-sans antialiased;
-    font-family: 'Alegreya Sans', system-ui, sans-serif;
+    @apply font-serif antialiased;
+    font-family: 'Alegreya', Georgia, serif;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
   }
-  h1, h2 {
+  h1, h2, h3 {
     @apply font-display;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Alegreya Sans', system-ui, sans-serif;
+  }
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  nav {
+    font-family: 'Alegreya Sans', system-ui, sans-serif;
   }
 
   /* iOS Safari auto-zooms when a focused input's font-size is < 16px. Enforce 16px

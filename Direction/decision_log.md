@@ -43,7 +43,7 @@
 ## Decisions Added 2026-06-02
 
 - **Tier 2 frontend deployed**: All five Tier 2 features (Account pricing display, Omen feedback hardening, team theme hydration, Move History / Hall of Records, League Standings) built and deployed in PR #22 (run `26833528435`). See `decisions.md` for the full closed decision entry.
-- **Font system corrected**: Production font stack is Cormorant Garamond (display/brand) + Alegreya Sans (body/UI) + DM Mono (data). PR #22 corrected the prior Barlow Condensed + DM Sans spec to align with `Brand/brand-system.md`.
+- **Font system corrected, later superseded**: PR #22 corrected the prior Barlow Condensed + DM Sans spec to Cormorant Garamond (display/brand) + Alegreya Sans (body/UI) + DM Mono (data). This direction was superseded on 2026-06-15 when Justin rejected Cormorant Garamond for Corvus and replaced it with Alegreya Sans headings/UI + Alegreya body text.
 - **Production deploy confirmed**: PR #22 run `26833528435` completed successfully. Smoke: `/api/health` `status: ok`; `/api/ready` `status: ready`.
 
 ## Decisions Added 2026-06-03
@@ -129,3 +129,8 @@
 - **Phase 1.1 complete — CI/CD retargeted to KVM1.** `.github/workflows/deploy.yml` now SSHes to `2.25.182.1` as `justin`, `cd`s into `/opt/corvus/deploy/hostinger`, and runs `docker compose -f docker-compose.prod.yml --project-name corvus pull && up -d` against GHCR images. Oracle SSH path removed. Dedicated ed25519 deploy key installed in KVM1's `authorized_keys` (one rotation already executed after the initial private key leaked to chat transcript). First green deploy verified end-to-end.
 - **KVM1 deployment layout documented (playbook to follow).** `/opt/corvus/` is **not** a git checkout — only `deploy/hostinger/` exists, containing `docker-compose.prod.yml`, `.env.production` (mode 600), `nginx-corvus.conf`, `DEPLOY-NOTES.md`, `ENV-INVENTORY.md`. App is pulled image-only from GHCR. `infisical` is **not** installed on KVM1; env injection is via the compose file's `env_file: .env.production` directive. Don't reintroduce `git pull` or `infisical` to the deploy workflow without explicitly changing the VPS first.
 - **Dead GitHub secrets to delete after two consecutive green deploys:** `ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`, `INFISICAL_TOKEN`.
+
+## Decisions Added 2026-06-15
+
+- **Cormorant Garamond rejected for Corvus:** Justin rejected Cormorant as ugly/out of place. The active Corvus font stack is now Alegreya Sans for headings, card titles, labels, buttons, inputs, and navigation; Alegreya for body text and longer reading copy; DM Mono for data/numbers. This supersedes the 2026-06-02 Cormorant/Alegreya Sans direction. `Brand/brand-system.md`, `Blueprints/specs/page-system.md`, and `Blueprints/specs/corvus-ux-ui-design-system-v1.md` are the current authority.
+- **Evidence discipline correction — frontend Sentry was not reproducibly done:** The Phase 1.2 frontend/Sentry handoff claimed a clean frontend build, but the 2026-06-15 Phase 1.4 verification run failed because local `frontend/node_modules` did not contain `@sentry/react` even though `frontend/package.json` and `frontend/package-lock.json` declared it. `npm --prefix frontend install` repaired the local dependency tree, and the build then passed. Treat this as a Claude/frontend "said done but wasn't done in this checkout" moment. Future done claims need current-checkout build evidence, not only a written claim.
