@@ -120,7 +120,7 @@ function TradePreview({ accentBg, accentText, accentOn, themed }) {
       </div>
 
       <h3
-        className="mb-6 font-serif text-2xl"
+        className="mb-6 font-display text-2xl font-semibold"
         style={{ color: 'var(--color-text-primary)', lineHeight: 1.1 }}
       >
         Know the move before you make it.
@@ -185,7 +185,7 @@ function TradePreview({ accentBg, accentText, accentOn, themed }) {
 
       {/* CTA */}
       <div
-        className="w-full rounded-md py-3 text-center font-serif text-base font-semibold transition-colors duration-300"
+        className="w-full rounded-md py-3 text-center font-sans text-base font-semibold transition-colors duration-300"
         style={{ background: accentBg, color: accentOn }}
       >
         Analyze Your Trade →

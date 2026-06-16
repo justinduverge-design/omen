@@ -17,7 +17,7 @@ function WelcomeStep({ onNext }) {
         Welcome to Corvus
       </p>
       <h1
-        className="mb-6 font-serif font-bold"
+        className="mb-6 font-display font-bold"
         style={{ color: 'var(--color-text-primary)', fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', lineHeight: 1.02 }}
       >
         Less guessing.
@@ -34,7 +34,7 @@ function WelcomeStep({ onNext }) {
       <button
         type="button"
         onClick={onNext}
-        className="rounded-md px-8 py-4 font-serif text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
       >
         Get started →
@@ -53,7 +53,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         Step 1 of 1
       </p>
       <h2
-        className="mb-4 font-serif font-bold"
+        className="mb-4 font-display font-bold"
         style={{ color: 'var(--color-text-primary)', fontSize: 'clamp(2rem, 7vw, 3.5rem)', lineHeight: 1.04 }}
       >
         Connect your league.
@@ -103,7 +103,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
           to="/account/connect"
-          className="rounded-md px-6 py-3 text-center font-serif text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          className="rounded-md px-6 py-3 text-center font-sans text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
           style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
         >
           Connect a platform →
@@ -112,7 +112,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
           type="button"
           onClick={onCheck}
           disabled={checking}
-          className="rounded-md border px-6 py-3 font-serif text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         >
           {checking ? 'Checking…' : "I've connected →"}
@@ -161,7 +161,7 @@ function CompleteStep({ onDone }) {
         </svg>
       </div>
       <h2
-        className="mb-4 font-serif font-bold"
+        className="mb-4 font-display font-bold"
         style={{ color: 'var(--color-text-primary)', fontSize: 'clamp(2rem, 7vw, 3.5rem)', lineHeight: 1.04 }}
       >
         You're ready.
@@ -176,7 +176,7 @@ function CompleteStep({ onDone }) {
       <button
         type="button"
         onClick={onDone}
-        className="rounded-md px-8 py-4 font-serif text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
       >
         Go to Corvus →
@@ -267,14 +267,14 @@ export default function Onboarding() {
             style={{ border: '1px solid var(--color-border)' }}
           >
             <span
-              className="font-serif text-sm leading-none"
+              className="font-display text-sm leading-none"
               style={{ color: 'var(--color-accent)' }}
             >
               C
             </span>
           </div>
           <span
-            className="font-serif text-[15px] uppercase tracking-[0.34em]"
+            className="font-display text-[15px] uppercase tracking-[0.34em]"
             style={{ color: 'var(--color-text-primary)' }}
           >
             Corvus

@@ -12,7 +12,7 @@ function OmenHeader() {
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Omen
       </p>
-      <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
+      <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
         Omen of the Week
       </h1>
       <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>

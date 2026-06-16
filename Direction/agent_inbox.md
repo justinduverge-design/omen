@@ -26,6 +26,16 @@ Operator steps: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
 
 ---
 
+## Auto-Populated Top 5
+
+1. **Phase 1.5 — Team accent sweep (whole-app, both modes).** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` accent-contrast library; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+2. **Phase 1.6 — Position chip palette + selected-state styling.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` palette + color-blind validation; verdict: `slops-ui-ux-audit`. Done docs: page + design + recommendation if recommendation cards change.
+3. **Phase 1.7 — Platform brand color emphasis + button-style consistency.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max`; verdict: `slops-ui-ux-audit`. Done docs: page + design.
+4. **Phase 1.8 — Confidence gradient endpoints.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` gradient interpolation; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation.
+5. **Phase 1.9 — Metallic tier treatment.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` metallic contrast; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation if Draft Assistant cards change.
+
+---
+
 ## Standing Route
 
 ```text

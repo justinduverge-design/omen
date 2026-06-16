@@ -213,7 +213,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       </div>
 
       <p
-        className="text-base font-semibold"
+        className="font-display text-xl font-semibold leading-snug"
         style={isTop ? { color: 'var(--color-text-primary)' } : { color: 'var(--color-text-primary)' }}
       >
         {rec.headline}

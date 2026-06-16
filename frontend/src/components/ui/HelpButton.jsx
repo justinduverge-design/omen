@@ -196,7 +196,7 @@ function HelpPanel({ open, onClose, pathname }) {
           {/* Page section */}
           <div className="mb-7">
             <h2
-              className="mb-2 font-serif text-xl font-semibold"
+              className="mb-2 font-display text-xl font-semibold"
               style={{ color: 'var(--color-text-primary)' }}
             >
               {help.title}

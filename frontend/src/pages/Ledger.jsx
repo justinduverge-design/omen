@@ -13,7 +13,7 @@ export default function Ledger() {
           The Ledger
         </p>
         <h1
-          className="mt-3 font-serif text-3xl font-semibold"
+          className="mt-3 font-display text-3xl font-semibold"
           style={{ color: 'var(--color-text-primary)' }}
         >
           Your Season Record

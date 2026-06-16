@@ -284,7 +284,7 @@ Codex handles the theme infrastructure. Claude Code handles screen implementatio
 **Codex actions:**
 
 1. Add CSS custom properties for dark and light mode to `frontend/src/index.css`. Token values are in `corvus/Blueprints/specs/corvus-ux-ui-design-system-v1.md`.
-2. Extend `tailwind.config.js` with Corvus color tokens (`raven`, `charcoal`, `bone`, `gold`, `crimson`, `omen`) and font families (`serif: Cormorant Garamond`, `sans: Alegreya Sans`).
+2. Extend `tailwind.config.js` with Corvus color tokens (`raven`, `charcoal`, `bone`, `gold`, `crimson`, `omen`) and font families (`display/sans: Alegreya Sans`, `serif/body: Alegreya`). Do not use Cormorant Garamond.
 3. Add `data-theme` attribute switching logic (system default → user preference). Apply to the `<html>` element.
 4. Implement `localStorage` persistence using the key `slops-theme`. Valid values: `dark`, `light`, `system`.
 5. System theme: read `prefers-color-scheme` via `matchMedia`. Re-evaluate on OS theme change.

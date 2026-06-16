@@ -25,7 +25,7 @@ function CorvusLogo() {
       <div className="relative h-12 w-12 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_32px_rgba(201,164,76,0.16)]">
         <img alt="Corvus" className="h-full w-full object-cover" src="/corvus-apollo-logo.png" />
       </div>
-      <span className="font-serif text-xl tracking-[0.22em] text-[#F4EFE1]">CORVUS</span>
+      <span className="font-display text-xl tracking-[0.22em] text-[var(--color-text-primary)]">CORVUS</span>
     </div>
   );
 }
@@ -444,7 +444,7 @@ function WaitlistSection() {
           {/* Raven detail — subtle brand personality */}
           <p aria-hidden="true" className="mb-1 text-sm text-[#C9A44C]/55">𖤍</p>
 
-          <h2 className="font-sans text-2xl font-semibold text-[#F4EFE1] md:text-3xl">
+          <h2 className="font-display text-2xl font-semibold text-[var(--color-text-primary)] md:text-3xl">
             Get the signal before launch.
           </h2>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/52">
@@ -568,7 +568,7 @@ export default function Landing() {
               Corvus · Fantasy Intelligence
             </p>
 
-            <h1 className="mt-4 font-sans text-4xl font-medium leading-[1.12] tracking-[-0.01em] text-[#F4EFE1] md:text-5xl lg:text-[3.25rem]">
+            <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.12] text-[var(--color-text-primary)] md:text-5xl lg:text-[3.25rem]">
               Know the move
               <br />
               before you make it.
@@ -626,7 +626,7 @@ export default function Landing() {
             <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
                 <p aria-hidden="true" className="text-sm text-[#C9A44C]/55">𖤍</p>
-                <h2 className="mt-1 font-sans text-xl font-semibold text-[#F4EFE1]">
+                <h2 className="mt-1 font-display text-xl font-semibold text-[var(--color-text-primary)]">
                   Ready to run a real trade?
                 </h2>
                 <p className="mt-1 text-sm text-[#F4EFE1]/45">

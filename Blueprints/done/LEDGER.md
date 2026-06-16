@@ -20,6 +20,7 @@ If you skip a gate, write why. If the same gate gets skipped 3+ times across dif
 |---|---|---|---|---|
 | 2026-06-15 | Phase 1.3 — page-system spec | feature, design | n/a — spec authoring, not feature ship | — |
 | 2026-06-15 | RESOURCES_INDEX + facts-of-record at L0/L1/L2 + L1 strategy promotion | feature (doctrine) | content-marketing-done deferred to live posts | — |
+| 2026-06-15 | Phase 1.4 — font system propagation fix | page, design | repo-local run-slops driver gate skipped: driver expects stale Trade Analyzer CTA text (`Run Your Trade`); replaced with targeted browser QA for 1.4 scope | run-slops-saloon driver |
 
 ## Monthly review
 
