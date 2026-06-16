@@ -9,6 +9,7 @@ You are Codex working in the Corvus product layer. Read these modules in order b
 5. **Files to read first** — see `../../Blueprints/agent-modules/files-to-read-first-L2.md`
 6. **Hard prohibitions** — see `../../Blueprints/agent-modules/hard-prohibitions.md`
 7. **Session handoff** — see `../../Blueprints/agent-modules/session-handoff.md`
+8. **Cross-layer graph** (multi-layer tasks only) — see `../../Blueprints/agent-modules/graphify-hook.md`
 
 **Corvus-specific reads on demand:**
 
