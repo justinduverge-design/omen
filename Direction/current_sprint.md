@@ -144,6 +144,7 @@ Last updated: 2026-06-16 (Phase 1.4 actually live in production after PR #38 mer
 - Do not recreate `Corvus/`.
 - Do not touch `.env`, secrets, DNS, SSL, Nginx, Supabase migrations, Stripe production behavior, or package files without explicit approval.
 - Do not deploy unless Justin explicitly approves the deploy action.
+- Docs/doctrine-only commits must not be treated as app deploys; production deploys stay on `.github/workflows/deploy.yml`, docs-only pushes stay filtered out, and `workflow_dispatch` remains the manual replay path.
 - ESPN must never log or display cookie values.
 - Mock data must be clearly labeled and never presented as live fantasy advice.
 - Account deletion stays hidden until UX copy + Justin approval are explicit.

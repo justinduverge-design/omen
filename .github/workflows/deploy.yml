@@ -32,6 +32,12 @@ name: Deploy to Hostinger KVM1
 on:
   push:
     branches: [main]
+    paths-ignore:
+      # Doctrine/docs-only pushes should not rebuild images or restart KVM1.
+      - "**/*.md"
+      - "Blueprints/**"
+      - "Direction/**"
+      - "References/**"
   workflow_dispatch:   # manual trigger from the Actions tab
 
 # Don't run two deploys at once - serialize on main.
