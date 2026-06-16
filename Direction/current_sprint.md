@@ -131,4 +131,19 @@ Last updated: 2026-06-16 (Phase 1.4 actually live in production after PR #38 mer
 ### Decisions (Justin / Claude — not builds)
 - [ ] `POST /api/optimizer/mvp-move` (`src/routes/optimizer.js`): merge into Omen as a Pro enrichment layer, or keep separate.
 - [ ] Retire `getOmenOfTheWeekMock()` after Omen migration, or keep as a labeled fallback.
-- [x] Final user-facing naming: Omen of the Week vs Omen vs MVP Move. **Confirmed: Omen o
+- [x] Final user-facing naming: Omen of the Week vs Omen vs MVP Move. **Confirmed: Omen of the Week.**
+- [ ] Recovery analytics: ship before or after the first paid launch.
+- [x] Monetization posture changed: Corvus should be free/non-monetized because Yahoo and ESPN cannot be monetized safely under current platform constraints.
+
+### Tech debt (later, low priority)
+- [ ] 5 code TODOs: Yahoo per-player projected stats (`adapters/yahoo.js`); `rest_days` / `back_to_back` (`services/agents.js`); weather game-time interval (`services/weatherService.js`). Done docs: feature + recommendation where recommendation behavior changes.
+- [ ] Omen latency optimization: `POST /api/omen/mvp-move` p95 ~5s under repeated local load. Investigate LLM call caching, response streaming, or request coalescing. Not a launch blocker — route is functional. Done docs: feature + recommendation.
+
+## Guardrails
+
+- Do not recreate `Corvus/`.
+- Do not touch `.env`, secrets, DNS, SSL, Nginx, Supabase migrations, Stripe production behavior, or package files without explicit approval.
+- Do not deploy unless Justin explicitly approves the deploy action.
+- ESPN must never log or display cookie values.
+- Mock data must be clearly labeled and never presented as live fantasy advice.
+- Account deletion stays hidden until UX copy + Justin approval are explicit.
