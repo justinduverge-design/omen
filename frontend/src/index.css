@@ -32,6 +32,12 @@
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
+  /* Phase 1.5 team-theme tokens (default to brand accent so System/Corvus modes are visually unchanged). */
+  --color-team-primary:      #B8952A;
+  --color-team-secondary:    #D4AC30;
+  --color-team-accent:       #B8952A;
+  --color-team-surface:      #0A0A0B;
+  --color-team-surface-card: #1C1C1E;
 }
 
 :root[data-theme="dark"] {
@@ -55,6 +61,11 @@
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
+  --color-team-primary:      #B8952A;
+  --color-team-secondary:    #D4AC30;
+  --color-team-accent:       #B8952A;
+  --color-team-surface:      #0A0A0B;
+  --color-team-surface-card: #1C1C1E;
 }
 
 :root[data-theme="light"] {
@@ -78,6 +89,11 @@
   --color-data-stub:       #D97706;
   --color-data-mock:       #9CA3AF;
   --color-data-unavailable:#E5E5E3;
+  --color-team-primary:      #92740F;
+  --color-team-secondary:    #B8952A;
+  --color-team-accent:       #92740F;
+  --color-team-surface:      #FAFAF9;
+  --color-team-surface-card: #FFFFFF;
 }
 
 @layer base {

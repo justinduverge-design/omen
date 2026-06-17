@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { useTheme } from '../lib/themeMode.js';
 
 // Dedicated standings page — always expanded, full disconnected state.
 // LeagueStandings.jsx (the collapsible widget) stays embedded in /football.
@@ -44,10 +46,10 @@ function StandingsTable({ standings }) {
               className="border-b last:border-0"
               style={{
                 borderColor: row.is_current_user
-                  ? 'var(--color-accent)'
+                  ? 'var(--color-team-accent)'
                   : 'var(--color-border)',
                 background: row.is_current_user
-                  ? 'color-mix(in srgb, var(--color-accent) 6%, transparent)'
+                  ? 'color-mix(in srgb, var(--color-team-accent) 6%, transparent)'
                   : 'transparent',
               }}
             >
@@ -62,7 +64,7 @@ function StandingsTable({ standings }) {
                   className="text-sm font-medium"
                   style={{
                     color: row.is_current_user
-                      ? 'var(--color-accent)'
+                      ? 'var(--color-team-accent)'
                       : 'var(--color-text-primary)',
                   }}
                 >
@@ -116,6 +118,11 @@ export default function Standings() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorCode, setErrorCode] = useState(null);
+  const { mode, team: teamAbbr } = useTheme();
+  const wardRoom = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.wardRoom ?? null;
+  }, [mode, teamAbbr]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -152,7 +159,7 @@ export default function Standings() {
           </p>
           <Link
             to="/account/connect"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
+            className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             Connect a league →
           </Link>
@@ -177,7 +184,7 @@ export default function Standings() {
             className="mt-4 inline-flex min-h-[44px] items-center rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors"
             style={{
               borderColor: 'var(--color-border)',
-              color: 'var(--color-accent)',
+              color: 'var(--color-team-accent)',
             }}
           >
             Reconnect {label} →
@@ -198,7 +205,7 @@ export default function Standings() {
           </p>
           <button
             className="mt-4 text-sm font-semibold transition-colors"
-            style={{ color: 'var(--color-accent)' }}
+            style={{ color: 'var(--color-team-accent)' }}
             type="button"
             onClick={load}
           >
@@ -265,7 +272,7 @@ export default function Standings() {
       <div>
         <p
           className="text-xs font-semibold uppercase tracking-[0.2em]"
-          style={{ color: 'var(--color-accent)' }}
+          style={{ color: 'var(--color-team-accent)' }}
         >
           League
         </p>
@@ -281,6 +288,14 @@ export default function Standings() {
         >
           Where every manager sits after the last whistle.
         </p>
+        {wardRoom && (
+          <p
+            className="mt-3 font-serif text-base italic"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {wardRoom}
+          </p>
+        )}
       </div>
 
       {renderContent()}

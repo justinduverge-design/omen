@@ -21,6 +21,7 @@ If you skip a gate, write why. If the same gate gets skipped 3+ times across dif
 | 2026-06-15 | Phase 1.3 — page-system spec | feature, design | n/a — spec authoring, not feature ship | — |
 | 2026-06-15 | RESOURCES_INDEX + facts-of-record at L0/L1/L2 + L1 strategy promotion | feature (doctrine) | content-marketing-done deferred to live posts | — |
 | 2026-06-15 | Phase 1.4 — font system propagation fix | page, design | repo-local run-slops driver gate skipped: driver expects stale Trade Analyzer CTA text (`Run Your Trade`); replaced with targeted browser QA for 1.4 scope | run-slops-saloon driver |
+| 2026-06-16 | Phase 1.5 PR1 — team-theming system core | page, design | `slops-ui-ux-audit` + light/dark screenshot pair gated to pre-merge (Team mode is dark-only; System mode light-mode parity to be captured by Justin against the live `/account/appearance` walkthrough). Evidence: audit doc `Blueprints/audits/2026-06-16-phase1-5-team-template-assignment.md`, build log clean (664 kB / 2.04s). | `slops-ui-ux-audit` |
 
 ## Monthly review
 

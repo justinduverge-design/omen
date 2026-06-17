@@ -8,7 +8,7 @@ export default function Ledger() {
       <div>
         <p
           className="text-xs font-semibold uppercase tracking-[0.2em]"
-          style={{ color: 'var(--color-accent)' }}
+          style={{ color: 'var(--color-team-accent)' }}
         >
           The Ledger
         </p>

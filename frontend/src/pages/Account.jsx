@@ -61,7 +61,7 @@ function SubscriptionBanner({ type, onDismiss }) {
 
   if (type === 'cancelled') {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 px-5 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-[var(--color-team-accent)]/20 bg-[var(--color-team-accent)]/5 px-5 py-3">
         <p className="text-sm text-[var(--color-text-secondary)]">Checkout cancelled — no changes were made.</p>
         <button
           className="ml-4 shrink-0 text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
@@ -88,7 +88,7 @@ function PlanCard({ option, selected, onSelect, price }) {
       className={[
         'w-full rounded-xl border p-4 text-left transition-colors',
         isSelected
-          ? 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10'
+          ? 'border-[var(--color-team-accent)]/60 bg-[var(--color-team-accent)]/10'
           : 'border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-surface-3)]',
       ].join(' ')}
       type="button"
@@ -100,7 +100,7 @@ function PlanCard({ option, selected, onSelect, price }) {
             {option.label}
           </p>
           {price && (
-            <span className={`font-mono text-sm tabular-nums ${isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}>
+            <span className={`font-mono text-sm tabular-nums ${isSelected ? 'text-[var(--color-team-accent)]' : 'text-[var(--color-text-secondary)]'}`}>
               {price}
             </span>
           )}
@@ -109,7 +109,7 @@ function PlanCard({ option, selected, onSelect, price }) {
           className={[
             'rounded-full border px-2 py-0.5 text-xs font-semibold shrink-0',
             isSelected
-              ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+              ? 'border-[var(--color-team-accent)]/30 bg-[var(--color-team-accent)]/10 text-[var(--color-team-accent)]'
               : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)]',
           ].join(' ')}
         >
@@ -141,7 +141,7 @@ function PlanPicker({ onCheckout, loading, error }) {
       {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
 
       <button
-        className="w-full rounded-xl bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-60"
+        className="w-full rounded-xl bg-[var(--color-team-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:opacity-60"
         disabled={loading}
         type="button"
         onClick={() => onCheckout(selected)}
@@ -203,7 +203,7 @@ function BillingDates({ subscription }) {
       >
         <p
           className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--color-accent)' }}
+          style={{ color: 'var(--color-team-accent)' }}
         >
           Billing
         </p>
@@ -346,7 +346,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
           <p className="text-sm text-[var(--color-text-secondary)]">Could not load subscription status.</p>
           <button
-            className="mt-3 text-xs font-semibold text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+            className="mt-3 text-xs font-semibold text-[var(--color-team-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
             type="button"
             onClick={onRefetch}
           >
@@ -379,7 +379,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
   return (
     <section ref={sectionRef} className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus Pro</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Corvus Pro</p>
         <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Subscription</h2>
       </div>
       {renderBody()}
@@ -489,7 +489,7 @@ export default function Account() {
       {BILLING_ENABLED && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Corvus</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Corvus</p>
         <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
         <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
           Manage your fantasy platform connections and account preferences.
@@ -520,7 +520,7 @@ export default function Account() {
 
       <div className="border-t border-[var(--color-border)] pt-6">
         <section className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Appearance</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Appearance</p>
           <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Team Theme</h2>
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
             Choose your team. Corvus colors its entire interface to match.
@@ -529,7 +529,7 @@ export default function Account() {
         <div className="mt-4">
           <Link
             to="/account/appearance"
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-team-accent)] hover:text-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
           >
             Customize Team Colors
             <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

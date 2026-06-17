@@ -1,17 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { useTheme } from '../lib/themeMode.js';
 import OmenOfTheWeek from './OmenOfTheWeek.jsx';
 
 function OmenHeader() {
+  const { mode, team: teamAbbr } = useTheme();
+  const cry = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cry ?? null;
+  }, [mode, teamAbbr]);
+
   return (
     <section className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
         Omen
       </p>
+      {cry && (
+        <p
+          className="mt-1.5 font-sans text-[11px] font-semibold uppercase"
+          style={{ color: 'var(--color-team-accent)', letterSpacing: '0.18em', opacity: 0.7 }}
+        >
+          {cry}
+        </p>
+      )}
       <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl" style={{ color: 'var(--color-text-primary)' }}>
         Omen of the Week
       </h1>
@@ -86,7 +102,7 @@ export default function OmenPage() {
 
       <div className="border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
         <Link
-          className="inline-flex min-h-[44px] items-center rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          className="inline-flex min-h-[44px] items-center rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
           to="/football"
         >
           ← Back to dashboard

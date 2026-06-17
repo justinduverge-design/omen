@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LeagueStandings from '../components/league/LeagueStandings.jsx';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { useTheme } from '../lib/themeMode.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
@@ -44,7 +46,7 @@ function PlatformStatusBar({ platforms, loading }) {
           <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No fantasy platform connected.</p>
           <Link
             className="text-xs font-semibold transition-colors"
-            style={{ color: 'var(--color-accent)' }}
+            style={{ color: 'var(--color-team-accent)' }}
             to="/account"
           >
             Connect a platform →
@@ -83,7 +85,7 @@ function PlatformStatusBar({ platforms, loading }) {
           <div
             key={key}
             className="flex items-center justify-between rounded-lg border px-4 py-3"
-            style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)' }}
+            style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)' }}
           >
             <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
               {label} session expired — reconnect to restore your live data
@@ -91,7 +93,7 @@ function PlatformStatusBar({ platforms, loading }) {
             {canReconnect && (
               <button
                 className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"
-                style={{ color: 'var(--color-accent)' }}
+                style={{ color: 'var(--color-team-accent)' }}
                 disabled={reconnecting === key}
                 type="button"
                 onClick={async () => {
@@ -124,6 +126,11 @@ export default function Football() {
   const [activeTab, setActiveTab] = useState('trade');
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const { mode, team: teamAbbr } = useTheme();
+  const cultureTag = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cultureTag ?? null;
+  }, [mode, teamAbbr]);
 
   useEffect(() => {
     let mounted = true;
@@ -186,9 +193,22 @@ export default function Football() {
   return (
     <AppLayout>
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
-          Corvus · Hall of Records
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
+            Corvus · Hall of Records
+          </p>
+          {cultureTag && (
+            <span
+              className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+              style={{
+                color: 'var(--color-team-accent)',
+                borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
+              }}
+            >
+              {cultureTag}
+            </span>
+          )}
+        </div>
         <h1 className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl" style={{ color: 'var(--color-text-primary)' }}>
           Hall of Records
         </h1>
@@ -221,7 +241,7 @@ export default function Football() {
               className="min-h-[44px] shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={
                 isActive
-                  ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' }
+                  ? { borderColor: 'var(--color-team-accent)', color: 'var(--color-team-accent)' }
                   : { borderColor: 'transparent', color: 'var(--color-text-secondary)' }
               }
               type="button"
