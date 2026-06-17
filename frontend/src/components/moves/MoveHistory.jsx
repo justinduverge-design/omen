@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { apiFetch } from '../../lib/api.js';
+import { useTheme } from '../../lib/themeMode.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -192,6 +194,12 @@ function SkeletonRows() {
 }
 
 function EmptyHistory() {
+  const { mode, team: teamAbbr } = useTheme();
+  const wardRoom = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.wardRoom ?? null;
+  }, [mode, teamAbbr]);
+
   return (
     <div
       className="rounded-xl border px-6 py-12 text-center"
@@ -212,6 +220,14 @@ function EmptyHistory() {
         Run your first Omen, follow the move, and Corvus will start tracking
         your season record here.
       </p>
+      {wardRoom && (
+        <p
+          className="mt-3 font-serif text-base italic"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {wardRoom}
+        </p>
+      )}
       <Link
         to="/omen"
         className="mt-6 inline-block rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"

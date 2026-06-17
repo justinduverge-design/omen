@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import { searchPlayers } from '../data/nflPlayers.js';
 import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { useTheme } from '../lib/themeMode.js';
 
 const EMPTY_PLAYER = {
   name: '',
@@ -223,6 +225,12 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
 // ─── Result panel ─────────────────────────────────────────────────────────────
 
 function ResultPanel({ result }) {
+  const { mode, team: teamAbbr } = useTheme();
+  const cultureTag = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cultureTag ?? null;
+  }, [mode, teamAbbr]);
+
   if (!result) return null;
 
   const verdictStyles = {
@@ -235,9 +243,22 @@ function ResultPanel({ result }) {
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
-            Result
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+              Result
+            </p>
+            {cultureTag && (
+              <span
+                className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+                style={{
+                  color: 'var(--color-team-accent)',
+                  borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
+                }}
+              >
+                {cultureTag}
+              </span>
+            )}
+          </div>
           <h2 className="mt-2 font-mono text-3xl font-semibold text-[var(--color-text-primary)]">
             {result.net_value > 0 ? '+' : ''}{result.net_value}
           </h2>
