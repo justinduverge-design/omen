@@ -18,8 +18,8 @@ const MAX_SUGGESTIONS = 8;
 const INPUT_CLS =
   'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm ' +
   'text-[var(--color-text-primary)] outline-none transition-colors ' +
-  'focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 ' +
-  'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]';
+  'focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 ' +
+  'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]';
 
 function cleanPlayer(player) {
   const cleaned = {
@@ -149,7 +149,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
                 aria-selected={si === activeIdx}
                 className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm transition-colors ${
                   si === activeIdx
-                    ? 'bg-[var(--color-accent)]/15 text-[var(--color-text-primary)]'
+                    ? 'bg-[var(--color-team-accent)]/15 text-[var(--color-text-primary)]'
                     : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
                 }`}
                 role="option"
@@ -161,7 +161,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
                 <span>{p.name}</span>
                 <span
                   className="text-xs font-semibold"
-                  style={{ color: 'var(--color-accent)', opacity: 0.7 }}
+                  style={{ color: 'var(--color-team-accent)', opacity: 0.7 }}
                 >
                   {p.team}
                 </span>
@@ -195,7 +195,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
         <button
-          className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+          className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]"
           type="button"
           onClick={onAdd}
         >
@@ -228,14 +228,14 @@ function ResultPanel({ result }) {
   const verdictStyles = {
     accept: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
     decline: 'border-red-400/30 bg-red-400/10 text-red-300',
-    neutral: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent-hover)]',
+    neutral: 'border-[var(--color-team-accent)]/30 bg-[var(--color-team-accent)]/10 text-[var(--color-accent-hover)]',
   };
 
   return (
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
             Result
           </p>
           <h2 className="mt-2 font-mono text-3xl font-semibold text-[var(--color-text-primary)]">
@@ -254,7 +254,7 @@ function ResultPanel({ result }) {
       </div>
 
       {result.explanation ? (
-        <p className="mt-4 rounded-md border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
+        <p className="mt-4 rounded-md border border-[var(--color-team-accent)]/20 bg-[var(--color-team-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
           {result.explanation}
         </p>
       ) : null}
@@ -308,7 +308,7 @@ const TRADE_TIPS = [
 function TradeTipsCard() {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
         Corvus · Strategy
       </p>
       <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Trade Room</h3>
@@ -318,7 +318,7 @@ function TradeTipsCard() {
             <span
               aria-hidden="true"
               className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: 'var(--color-accent)' }}
+              style={{ background: 'var(--color-team-accent)' }}
             />
             <div>
               <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
@@ -334,7 +334,7 @@ function TradeTipsCard() {
 function BuyLowCard() {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
         Mock · Buy Low
       </p>
       <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Targets</h3>
@@ -349,8 +349,8 @@ function BuyLowCard() {
                 <span
                   className="inline-block rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
                   style={{
-                    color: 'var(--color-accent)',
-                    borderColor: 'color-mix(in srgb, var(--color-accent) 35%, transparent)',
+                    color: 'var(--color-team-accent)',
+                    borderColor: 'color-mix(in srgb, var(--color-team-accent) 35%, transparent)',
                   }}
                 >
                   {target.position}
@@ -444,7 +444,7 @@ export default function TradeAnalyzer({ compact = false }) {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
               aria-busy={loading}
               disabled={loading}
               type="submit"

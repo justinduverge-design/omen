@@ -12,7 +12,7 @@ import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
 import Onboarding from '../pages/Onboarding.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
-import TeamTheme from '../pages/TeamTheme.jsx';
+import Appearance from '../pages/Appearance.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
@@ -41,7 +41,7 @@ export default function AppRoutes() {
         path="/account/appearance"
         element={
           <ProtectedRoute>
-            <TeamTheme />
+            <Appearance />
           </ProtectedRoute>
         }
       />

@@ -1,43 +1,35 @@
 import { useEffect } from 'react';
-import { getTeamTheme, textSafe } from './data/nflTeams.js';
 import { apiFetch } from './lib/api.js';
 import { supabase } from './lib/supabase.js';
-import { applyTheme } from './lib/theme.js';
+import { applyThemeMode, getThemeMode, getThemeTeam, setThemeTeam } from './lib/themeMode.js';
 import AppRoutes from './routes/index.jsx';
 
-const TEAM_STORAGE_KEY = 'corvus.theme.team';
-
-function applyTeamTheme(abbr) {
-  const { accentText, accentBg } = getTeamTheme(abbr || null);
-  const root = document.documentElement;
-  root.style.setProperty('--color-accent', accentText);
-  root.style.setProperty('--color-accent-hover', textSafe(accentBg, 63));
-}
-
 export default function App() {
+  // Apply theme mode (data-theme + team tokens) on mount and whenever the OS
+  // light/dark preference changes (System mode tracks it).
   useEffect(() => {
-    applyTheme();
+    applyThemeMode();
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener('change', applyTheme);
-    return () => mq.removeEventListener('change', applyTheme);
+    const onChange = () => applyThemeMode();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  // Apply stored team theme immediately on mount, then sync from server on sign-in.
+  // On sign-in, sync the saved favorite_team from the server. We do NOT change
+  // the mode — that's the user's setting and survives across sessions.
   useEffect(() => {
-    const stored = localStorage.getItem(TEAM_STORAGE_KEY);
-    if (stored) applyTeamTheme(stored);
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') return;
       apiFetch('/api/dashboard/summary').then((data) => {
         const serverTeam = data?.user?.favorite_team;
-        if (serverTeam) {
-          localStorage.setItem(TEAM_STORAGE_KEY, serverTeam);
-          applyTeamTheme(serverTeam);
+        if (serverTeam && serverTeam !== getThemeTeam()) {
+          setThemeTeam(serverTeam);
         }
+        // applyThemeMode() runs inside setThemeTeam; if no change, refresh once
+        // to honor the saved mode picked up from localStorage.
+        if (getThemeMode()) applyThemeMode();
       }).catch(() => {});
     });
-
     return () => subscription.unsubscribe();
   }, []);
 

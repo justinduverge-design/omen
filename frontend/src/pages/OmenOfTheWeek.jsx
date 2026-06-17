@@ -4,6 +4,7 @@ import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
 
 const ESPN_RECOVERY_STATES = new Set([
   'espn_reauth_required',
@@ -70,13 +71,13 @@ function LoadingState({ cry }) {
     <div aria-busy="true" aria-label="Loading omen">
       {/* Real header — branded, not a skeleton block */}
       <div className="mb-5 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
           Omen of the Week
         </p>
         {cry && (
           <p
             className="text-sm font-semibold uppercase tracking-widest"
-            style={{ color: 'var(--color-accent)', opacity: 0.5 }}
+            style={{ color: 'var(--color-team-accent)', opacity: 0.5 }}
           >
             {cry}
           </p>
@@ -480,13 +481,11 @@ function reasoningFromExplanation(explanation) {
 }
 
 function getTeamCry() {
-  try {
-    const abbr = localStorage.getItem('corvus.theme.team');
-    if (!abbr) return null;
-    return NFL_TEAMS.find((t) => t.abbr === abbr)?.cry ?? null;
-  } catch {
-    return null;
-  }
+  // Only render team voice when the user is actively in Team mode.
+  if (getThemeMode() !== 'team') return null;
+  const abbr = getThemeTeam();
+  if (!abbr) return null;
+  return NFL_TEAMS.find((t) => t.abbr === abbr)?.cry ?? null;
 }
 
 export default function OmenOfTheWeek() {

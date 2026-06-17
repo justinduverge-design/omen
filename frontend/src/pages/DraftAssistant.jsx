@@ -49,7 +49,7 @@ function RiskBadge({ risk }) {
   };
   const colorClass = styles[risk] ?? null;
   const mediumStyle = colorClass === null
-    ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }
+    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
     : undefined;
   return (
     <span
@@ -69,7 +69,7 @@ function PositionBadge({ position }) {
   }[position] ?? null;
   const inlineStyle =
     position === 'QB'
-      ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }
+      ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
       : colorClass === null
       ? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }
       : undefined;
@@ -85,7 +85,7 @@ function PositionBadge({ position }) {
 
 function ConfidenceBar({ score }) {
   const barColor =
-    score >= 70 ? 'bg-[var(--color-accent)]' : score >= 50 ? 'bg-[var(--color-accent)]/60' : 'bg-[var(--color-surface-3)]';
+    score >= 70 ? 'bg-[var(--color-team-accent)]' : score >= 50 ? 'bg-[var(--color-team-accent)]/60' : 'bg-[var(--color-surface-3)]';
   return (
     <div className="flex items-center gap-3">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-surface-1)' }}>
@@ -135,7 +135,7 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
       <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
 
       {platformAdp != null && (
-        <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold" style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}>
+        <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
           Yahoo {platformAdp}
         </span>
       )}
@@ -179,7 +179,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
     <div
       className={`space-y-4 rounded-xl border p-5 ${
         isTop
-          ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5 shadow-lg shadow-[var(--color-accent)]/5'
+          ? 'border-[var(--color-team-accent)]/40 bg-[var(--color-team-accent)]/5 shadow-lg shadow-[var(--color-team-accent)]/5'
           : ''
       }`}
       style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
@@ -189,7 +189,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
           <span
             className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
               isTop
-                ? 'bg-[var(--color-accent)] text-black'
+                ? 'bg-[var(--color-team-accent)] text-black'
                 : 'border'
             }`}
             style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
@@ -228,7 +228,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <ol className="space-y-2">
           {rec.reasoning.map((line, i) => (
             <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: 'var(--color-text-primary)' }}>
-              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold" style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}>
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
                 {i + 1}
               </span>
               {line}
@@ -338,7 +338,7 @@ export default function DraftAssistant({ platforms }) {
       <MockBanner message={`Preview Mode — example recommendations. Live personalization activates when the season begins.${adpData?.is_mock ? ' ADP data is preview only.' : ''}`} />
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-accent)' }}>
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
           Draft Assistant
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -364,7 +364,7 @@ export default function DraftAssistant({ platforms }) {
                 key={value}
                 className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
                 style={scoringFormat === value
-                  ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }
+                  ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
                   : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
                 type="button"
                 onClick={() => setScoringFormat(value)}
@@ -379,7 +379,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Draft Position (1–12)
             <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="12"
               min="1"
@@ -392,7 +392,7 @@ export default function DraftAssistant({ platforms }) {
           <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Current Round (1–15)
             <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
               max="15"
               min="1"
@@ -418,7 +418,7 @@ export default function DraftAssistant({ platforms }) {
                   key={pos}
                   className="inline-flex min-h-[44px] items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
                   style={isSelected
-                    ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }
+                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
                     : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
                   type="button"
                   onClick={() => toggleNeed(pos)}
@@ -431,7 +431,7 @@ export default function DraftAssistant({ platforms }) {
         </fieldset>
 
         <button
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={loading}
           type="submit"
         >
