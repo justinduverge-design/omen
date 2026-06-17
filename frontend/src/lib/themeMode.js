@@ -33,6 +33,18 @@ const TEAM_TOKEN_VARS = [
   '--color-team-surface-card',
 ];
 
+const CORE_TEAM_OVERRIDE_VARS = [
+  '--color-bg',
+  '--color-surface-1',
+  '--color-surface-2',
+  '--color-surface-3',
+  '--color-border',
+  '--color-border-subtle',
+  '--color-accent',
+  '--color-accent-hover',
+  '--color-accent-muted',
+];
+
 // ── In-tab change notification ────────────────────────────────────────────
 
 const listeners = new Set();
@@ -75,7 +87,27 @@ export function setThemeTeam(abbr) {
 // ── Apply ─────────────────────────────────────────────────────────────────
 
 function clearTeamTokens(root) {
-  for (const v of TEAM_TOKEN_VARS) root.style.removeProperty(v);
+  for (const v of [...TEAM_TOKEN_VARS, ...CORE_TEAM_OVERRIDE_VARS]) {
+    root.style.removeProperty(v);
+  }
+}
+
+function applyTeamTokens(root, recipe) {
+  root.style.setProperty('--color-team-primary',      recipe.primary);
+  root.style.setProperty('--color-team-secondary',    recipe.secondary);
+  root.style.setProperty('--color-team-accent',       recipe.accent);
+  root.style.setProperty('--color-team-surface',      recipe.surface);
+  root.style.setProperty('--color-team-surface-card', recipe.surfaceCard);
+
+  root.style.setProperty('--color-bg',            recipe.surface);
+  root.style.setProperty('--color-surface-1',     recipe.surfaceCard);
+  root.style.setProperty('--color-surface-2',     `color-mix(in srgb, ${recipe.surfaceCard} 84%, white 16%)`);
+  root.style.setProperty('--color-surface-3',     `color-mix(in srgb, ${recipe.surfaceCard} 74%, white 26%)`);
+  root.style.setProperty('--color-border',        `color-mix(in srgb, ${recipe.accent} 26%, #3A3A3C 74%)`);
+  root.style.setProperty('--color-border-subtle', `color-mix(in srgb, ${recipe.accent} 12%, ${recipe.surfaceCard} 88%)`);
+  root.style.setProperty('--color-accent',        recipe.accent);
+  root.style.setProperty('--color-accent-hover',  `color-mix(in srgb, ${recipe.accent} 84%, white 16%)`);
+  root.style.setProperty('--color-accent-muted',  `color-mix(in srgb, ${recipe.accent} 18%, ${recipe.surfaceCard} 82%)`);
 }
 
 function resolveDataTheme(mode) {
@@ -106,11 +138,7 @@ export function applyThemeMode() {
     return;
   }
 
-  root.style.setProperty('--color-team-primary',      recipe.primary);
-  root.style.setProperty('--color-team-secondary',    recipe.secondary);
-  root.style.setProperty('--color-team-accent',       recipe.accent);
-  root.style.setProperty('--color-team-surface',      recipe.surface);
-  root.style.setProperty('--color-team-surface-card', recipe.surfaceCard);
+  applyTeamTokens(root, recipe);
 }
 
 // ── React hook ────────────────────────────────────────────────────────────
