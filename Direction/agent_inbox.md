@@ -14,11 +14,11 @@ Operator steps: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
 
 ## Active Task
 
-- **Status:** built — branch `claude/phase1-5-pr1-team-theming-core` ready for Justin review + merge approval (2026-06-16)
-- **Lane:** Frontend / Claude
-- **Task:** **Phase 1.5 PR1 — Team-theming system core.** Token model (`--color-team-primary/secondary/accent/surface/surface-card`) + runtime template resolver (`frontend/src/lib/teamTemplate.js` — 6 templates: Deep & Brand / Two-Tone Royal / Hot Brand / Aqua & Cool / Earth / Bred) + `TeamTheme.jsx` → `Appearance.jsx` rename with 3-button Mode picker (System / Team / Corvus, exclusive) + page sweep on the 8 "Accent active" pages + voice extension to 6 surfaces (TeamTheme, NavDrawer, Omen loading, Omen page subhead, Standings subhead, Dashboard pill) + 32-team contrast audit doc at `Blueprints/audits/2026-06-16-phase1-5-team-template-assignment.md`. Saints get a primary↔secondary flip with extra gold weight. Falcons get Template 6 "Bred" (Jordan 1 homage). Team mode is always dark; System/Corvus carry light/dark. Theme persists across signed-in sessions. PR2 (Phase 1.5b — onboarding) and PR3 (Phase 1.5c/d) follow.
-- **Source:** Templates-first design conversation 2026-06-16 (this Corvus kickoff session). Decision_log entry same day. Full handoff prompt staged in the other chat.
-- **Done when:** `Blueprints/done/page-done.md` + `Blueprints/done/design-done.md` gates pass; `npm --prefix frontend run build` clean; `slops-ui-ux-audit` verdict on the 8 swept pages; PR1 merged; `planning-pass` run to formalize 1.5b/1.5c/1.5d and Backend Phase 2.17.
+- **Status:** empty
+- **Lane:** —
+- **Task:** —
+
+**Closed 2026-06-17:** Phase 1.5 PR1 — Team-theming system core was confirmed merged into `main` via PR #41 (merged by Justin, 2026-06-17 02:58 UTC), with a same-day fix-up commit `6970a3b`. Checked off in `Direction/current_sprint.md` and logged in `Direction/decision_log.md`. This slot was left stale (still said "ready for review") across a session boundary — verify against `git log` / GitHub PR state before trusting this file's Status line.
 
 > To pin a task: set Status to `ready`, choose a Lane (Backend / Codex or Frontend / Claude),
 > and write the Task in plain English. Everything else is optional — the agent will restate it

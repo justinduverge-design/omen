@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { apiFetch } from '../lib/api.js';
 import {
-  isDark,
   MARQUEE_ABBRS,
   NFL_TEAMS,
   readableOn,
@@ -17,98 +16,7 @@ import {
   setThemeTeam,
   useTheme,
 } from '../lib/themeMode.js';
-
-// ── Mode picker ────────────────────────────────────────────────────────────
-
-const MODE_OPTIONS = [
-  { id: 'system', label: 'System', hint: 'Matches your OS theme. Corvus gold accents.' },
-  { id: 'team',   label: 'Team',   hint: 'Your team takes over. Always dark.' },
-  { id: 'corvus', label: 'Corvus', hint: 'Default dark. Gold on graphite.' },
-];
-
-function ModePicker({ mode, onChange }) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Appearance mode"
-      className="grid gap-2 sm:grid-cols-3"
-    >
-      {MODE_OPTIONS.map((opt) => {
-        const selected = mode === opt.id;
-        return (
-          <button
-            key={opt.id}
-            role="radio"
-            aria-checked={selected}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className="min-h-[44px] rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-            style={{
-              borderColor: selected ? 'var(--color-team-accent)' : 'var(--color-border)',
-              background: selected ? 'color-mix(in srgb, var(--color-team-accent) 10%, var(--color-surface-1))' : 'var(--color-surface-1)',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            <span
-              className="block text-sm font-semibold"
-              style={{ color: selected ? 'var(--color-team-accent)' : 'var(--color-text-primary)' }}
-            >
-              {opt.label}
-            </span>
-            <span className="mt-0.5 block text-xs leading-5" style={{ color: 'var(--color-text-secondary)' }}>
-              {opt.hint}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Tile ──────────────────────────────────────────────────────────────────
-
-function TeamTile({ team, selected, disabled, onClick }) {
-  const dark = isDark(team.primary);
-  const hasBadge = team.scheme !== 'standard';
-
-  return (
-    <button
-      type="button"
-      aria-label={`${team.city} ${team.name}${team.scheme === 'colorRush' ? ' (color rush)' : ''}`}
-      aria-pressed={selected}
-      onClick={onClick}
-      className={[
-        'relative grid h-[72px] w-full place-items-center rounded-[5px] transition-all duration-150 motion-reduce:transition-none',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]',
-        disabled ? 'hover:brightness-100' : 'hover:brightness-110',
-        selected ? 'scale-[1.06]' : 'active:scale-[0.97]',
-      ].join(' ')}
-      style={{
-        backgroundColor: team.primary,
-        opacity: disabled ? 0.45 : 1,
-        boxShadow: selected
-          ? `0 0 0 2px ${team.secondary}`
-          : dark
-          ? 'inset 0 0 0 1px rgba(255,255,255,0.10)'
-          : 'none',
-      }}
-    >
-      <span
-        className="font-display text-[24px] font-bold leading-none tracking-[0.02em]"
-        style={{ color: team.secondary }}
-      >
-        {team.abbr}
-      </span>
-      {hasBadge && (
-        <span
-          className="absolute bottom-[5px] right-[5px] h-[5px] w-[5px] rounded-full opacity-70"
-          style={{ background: team.secondary }}
-          aria-hidden="true"
-        />
-      )}
-    </button>
-  );
-}
+import { ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
 
 // ── Swatch ────────────────────────────────────────────────────────────────
 
