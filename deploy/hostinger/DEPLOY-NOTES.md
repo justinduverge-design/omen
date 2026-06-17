@@ -67,8 +67,8 @@ Required GitHub secrets for fallback:
 
 Required tailnet setup for fallback:
 
-- A tag such as `tag:ci` owned by an admin.
-- ACLs allowing `tag:ci` to reach KVM1 over SSH.
+- A tag such as `tag:github` owned by an admin.
+- ACLs allowing `tag:github` to reach KVM1 over SSH.
 
 Optional GitHub variable:
 
