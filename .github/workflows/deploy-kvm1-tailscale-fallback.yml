@@ -1,47 +1,35 @@
 # =================================================================
-# Slops Saloon - Auto-deploy to Hostinger KVM1 on push to main
+# Manual fallback deploy to Hostinger KVM1 over Tailscale
 # -----------------------------------------------------------------
-# Required GitHub secrets (Settings -> Secrets and variables -> Actions):
-#   VITE_SUPABASE_URL       - public Vite build-time Supabase URL
-#   VITE_SUPABASE_ANON_KEY  - public Vite build-time Supabase anon key
-#   VITE_API_BASE_URL       - optional Vite API base URL override; blank uses same-origin /api
-#   VITE_ESPN_ENABLED       - build-time flag that shows the ESPN connection UI
+# Use this only when the primary self-hosted KVM1 deploy runner is
+# unavailable. The normal path is `.github/workflows/deploy.yml`.
 #
-# Runtime env on KVM1 lives in /opt/corvus/deploy/hostinger/.env.production,
-# loaded by the compose file's env_file directive. This workflow does NOT
-# touch that file — it stays on the VPS, off git, and is managed by hand.
+# Required GitHub secrets:
+#   TS_OAUTH_CLIENT_ID    - Tailscale OAuth client id for GitHub Actions
+#   TS_OAUTH_SECRET       - Tailscale OAuth client secret for GitHub Actions
+#   KVM1_USER             - SSH user on KVM1, currently `justin`
+#   KVM1_SSH_KEY          - Deploy private key accepted by KVM1 sshd
+#   VITE_SUPABASE_URL     - public Vite build-time Supabase URL
+#   VITE_SUPABASE_ANON_KEY- public Vite build-time Supabase anon key
+#   VITE_API_BASE_URL     - optional Vite API base URL override
+#   VITE_ESPN_ENABLED     - build-time ESPN UI flag
 #
-# Flow:
-#   1. Run backend tests, audit, and frontend build checks
-#   2. Build API and cron images on GitHub Actions
-#   3. Push images to GHCR
-#   4. Run the deploy job on KVM1's self-hosted runner
-#   5. Pull images locally on KVM1 and restart containers via compose
-#   6. Smoke-test /api/health via the public hostname
-#   7. Fail the workflow if health check fails so you get a red X on GitHub
-#
-# SY0-701 4.7 / 4.8: change-management with audit trail (git history +
-# Actions run logs) and rollback (revert commit -> auto-redeploy old).
+# Optional GitHub variable:
+#   KVM1_TAILSCALE_HOST   - KVM1 MagicDNS name or 100.x address.
+#                           Defaults to the current KVM1 MagicDNS name.
 # =================================================================
 
-name: Deploy to Hostinger KVM1
+name: Deploy to Hostinger KVM1 over Tailscale
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      # Doctrine/docs/CI-config-only pushes should not rebuild images or restart KVM1.
-      - ".github/workflows/**"
-      - "**/*.md"
-      - "Blueprints/**"
-      - "Direction/**"
-      - "References/**"
-  workflow_dispatch:   # manual trigger from the Actions tab
+  workflow_dispatch:
 
-# Don't run two deploys at once - serialize on main.
 concurrency:
   group: deploy-kvm1
   cancel-in-progress: false
+
+env:
+  KVM1_TAILSCALE_HOST: ${{ vars.KVM1_TAILSCALE_HOST || 'srv1737978.tailef1902.ts.net' }}
 
 jobs:
   quality:
@@ -129,7 +117,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=corvus-cron
 
   deploy:
-    runs-on: [self-hosted, kvm1, corvus-deploy]
+    runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 15
     permissions:
@@ -137,23 +125,42 @@ jobs:
       packages: read
 
     steps:
-      - name: Log in to GHCR from KVM1
+      - name: Connect GitHub runner to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Write deploy key
+        env:
+          SSH_KEY: ${{ secrets.KVM1_SSH_KEY }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > /tmp/kvm1_key
+          chmod 600 /tmp/kvm1_key
+
+      - name: Pull images and restart on KVM1 over Tailscale
         env:
           GHCR_TOKEN: ${{ github.token }}
           GHCR_USER: ${{ github.actor }}
         run: |
-          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-      - name: Pull images and restart on KVM1
-        run: |
-          set -euo pipefail
-          cd /opt/corvus/deploy/hostinger
-          echo '==> Pulling GHCR images built by this workflow'
-          docker compose -f docker-compose.prod.yml --project-name corvus pull api cron
-          echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)'
-          docker compose -f docker-compose.prod.yml --project-name corvus up -d --no-build api cron
-          echo '==> Cleaning up dangling images'
-          docker image prune -f
+          ssh -i /tmp/kvm1_key \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=accept-new \
+              -o BatchMode=yes \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
+              "${{ secrets.KVM1_USER }}@$KVM1_TAILSCALE_HOST" \
+              "set -euo pipefail && \
+               trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT && \
+               cd /opt/corvus/deploy/hostinger && \
+               printf '%s' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && \
+               echo '==> Pulling GHCR images built by this workflow' && \
+               docker compose -f docker-compose.prod.yml --project-name corvus pull api cron && \
+               echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)' && \
+               docker compose -f docker-compose.prod.yml --project-name corvus up -d --no-build api cron && \
+               echo '==> Cleaning up dangling images' && \
+               docker image prune -f"
 
       - name: Smoke test /api/health (retries up to 60s)
         run: |
@@ -162,7 +169,7 @@ jobs:
               echo "Health response:"
               cat /tmp/health.json
               echo ""
-              echo "Deploy succeeded on attempt $i"
+              echo "Fallback deploy succeeded on attempt $i"
               exit 0
             fi
             echo "Attempt $i: health endpoint not ready yet, retrying in 5s..."
@@ -174,9 +181,10 @@ jobs:
       - name: Tail recent server logs (on success or failure)
         if: always()
         run: |
-          docker ps --format "table {{.Names}}\t{{.Status}}"
-          docker logs corvus_api 2>&1 | tail -25 || true
+          ssh -i /tmp/kvm1_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
+              "${{ secrets.KVM1_USER }}@$KVM1_TAILSCALE_HOST" \
+              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs corvus_api 2>&1 | tail -25' || true
 
-      - name: Log out of GHCR
+      - name: Clean up deploy key
         if: always()
-        run: docker logout ghcr.io || true
+        run: rm -f /tmp/kvm1_key
