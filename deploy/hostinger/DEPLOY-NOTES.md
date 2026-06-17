@@ -32,6 +32,15 @@ echo 'YOUR_GITHUB_PAT' | docker login ghcr.io -u justinduverge-design --password
 
 Use a GitHub Personal Access Token scoped to `read:packages`.
 
+## Operating Mode
+
+Use the KVM1 self-hosted GitHub runner as the normal release path. Use the
+Tailscale workflow only as the manual backup path when the self-hosted runner is
+offline, stuck, or being repaired.
+
+Do not go back to GitHub-hosted runner SSH over the public internet unless this
+operating mode is explicitly changed in `Direction/decision_log.md`.
+
 ## Primary Release Path
 
 `.github/workflows/deploy.yml` is the normal deploy path.
@@ -105,11 +114,11 @@ redirect behavior.
 - Public hostnames: `slopssaloon.com` and `www.slopssaloon.com`.
 - Off-box backup target for the VPS-only `.env.production` file: handled by Justin.
 - Tuesday scoring stays disabled for launch with `CORVUS_CRON_SCORING_ENABLED=false`.
+- Tailscale fallback OAuth secrets are configured in GitHub repo secrets.
+- Manual Tailscale fallback deploy passed end to end on 2026-06-17.
 
 ## Remaining Guided Ops
 
 - Convert the KVM1 GitHub runner from user-cron supervision to a root-managed
   systemd service when sudo/root console access is available.
-- Add Tailscale OAuth secrets in GitHub if the manual fallback workflow should
-  be runnable from Actions.
 - Private LLM link: confirm KVM2 Tailscale routing before setting `LLM_BASE_URL`.
