@@ -135,3 +135,40 @@ spot-checking `/account`, `/football`, `/omen`, `/ledger`, `/standings`, `/trade
 ## Changelog
 
 - **2026-06-16** — v1. 32-team table + Saints flip + Falcons Bred specials documented; 2 AA-large outliers (BAL, MIN) accepted for PR1 ship.
+- **2026-06-17** — Official-color-first policy. Justin flagged that 14/32 teams don't use their
+  primary jersey color for the accent. Re-ran the contrast check for `textSafe(primary)` against
+  `--color-bg` for all 14 swapped teams:
+
+  ```
+  abbr | scheme(was)   | primary-lifted | C(primary) | current accent (lifted) | C(current)
+  NE   | colorRush     | #2994ff | 6.38  PASS | #f3355a | 5.15
+  NYJ  | colorRush     | #4edaab | 11.25 PASS | #29ff9c | 14.96
+  CLE  | colorRush     | #ffa829 | 10.26 PASS | #ff5b29 | 6.39
+  TEN  | colorRush     | #4b8bdd | 5.69  PASS | #4d93db | 6.14
+  LAC  | colorRush     | #29b3ff | 8.47  PASS | #6db3e5 | 8.70
+  PIT  | secondary     | #6b94bd | 6.22  PASS | #ffbd29 | 11.84
+  HOU  | secondary     | #36b2f2 | 8.30  PASS | #e3455e | 4.97
+  LV   | secondary     | #bd6b6b | 5.16  PASS | #8ab7ca | 9.15
+  NYG  | secondary     | #3e6aea | 4.20  AA-large | #e3455e | 4.97
+  WAS  | secondary     | #d85050 | 4.88  PASS | #ffbd29 | 11.84
+  CHI  | secondary     | #5582d3 | 5.20  PASS | #fc642c | 6.60
+  GB   | secondary     | #6bbda7 | 8.92  PASS | #ffbd29 | 11.84
+  LAR  | secondary     | #2976ff | 4.83  PASS | #ffb229 | 10.98
+  SEA  | secondary     | #2994ff | 6.38  PASS | #8bda4e | 11.53
+  ```
+
+  None of the 14 swaps were actually contrast-forced — `textSafe` clears AA (or AA-large, the
+  same bar already accepted for BAL/MIN) for every one of them once lifted. The swaps were
+  curatorial "more iconic" calls recorded in each team's `note` field.
+
+  **Action taken:** flipped the 5 `colorRush` teams (NE, NYJ, CLE, TEN, LAC) to `scheme:
+  'standard'` / `accent: primary` — `colorRush` is the only scheme that reaches for a color
+  *outside* the official primary/secondary pair, so these were the clearest "synergy color
+  used before official color" cases. Removed their now-stale `colorRush`/`note` fields.
+
+  **Left as-is, flagged for Justin:** the 9 `secondary`-scheme teams (PIT, HOU, LV, NYG, WAS,
+  CHI, GB, LAR, SEA). Secondary is still an official team color, not a synergy substitution,
+  and several of these (Steelers gold, Packers gold, Seahawks action green, Raiders silver) are
+  arguably more culturally iconic than primary even though primary would pass contrast. Did not
+  unilaterally rewrite 9 already-shipped, already-audited team identities — table above is ready
+  if Justin wants any/all of them flipped too.

@@ -4,11 +4,22 @@
  * Each team has an `accent` field that is NOT always the jersey primary color.
  * The strategy:
  *
- *   scheme: 'standard'   — primary color is bright enough; use it directly.
- *   scheme: 'secondary'  — primary is near-black or too dark on Corvus dark UI;
- *                          use the secondary (which IS the visible identity anchor).
- *   scheme: 'colorRush'  — a fan-beloved Color Rush palette is more distinctive
- *                          and better-received than the standard uniform palette.
+ * Official colors (primary, secondary) come first. textSafe() lifts dark primaries
+ * to a readable lightness while preserving hue, so "near-black" is rarely a real
+ * blocker on its own — see the 2026-06-17 contrast re-audit in
+ * Blueprints/audits/2026-06-16-phase1-5-team-template-assignment.md. Reach for a
+ * non-official "synergy" color only when the official pair can't carry a coherent,
+ * recognizable identity once lifted.
+ *
+ *   scheme: 'standard'   — use primary directly (lifted via textSafe if dark).
+ *   scheme: 'secondary'  — primary doesn't carry the identity well even lifted
+ *                          (near-achromatic, or secondary is the stronger anchor);
+ *                          secondary is still an official team color.
+ *   scheme: 'colorRush'  — reserved for cases where neither official color works;
+ *                          a fan-beloved Color Rush palette substitutes as a
+ *                          synergy color. (As of 2026-06-17, no team needs this —
+ *                          all 5 former colorRush teams moved to scheme: 'standard'
+ *                          since their lifted primary clears AA contrast.)
  *
  * The `accent` value feeds directly into the CSS var override. textSafe() in
  * teamTheme.js lifts very dark accents to minimum L=58 for readability as text.
@@ -68,9 +79,7 @@ export const NFL_TEAMS = [
   {
     abbr: 'NE',  city: 'New England',  name: 'Patriots',
     div: 'AFC East',  primary: '#002244', secondary: '#C60C30',
-    accent: '#C60C30', scheme: 'colorRush', template: 1,
-    colorRush: '#C60C30',
-    note: 'Patriots Color Rush all-red is highly popular. Standard navy (#002244) is very dark and indistinguishable from other dark-navy teams. Red is the Patriots\' distinctive visible accent.',
+    accent: '#002244', scheme: 'standard', template: 1,
     cultureTag: "Pats Nation",
     cry:        "Do Your Job",
     wardRoom:   "We all we got, we all we need.",
@@ -78,9 +87,7 @@ export const NFL_TEAMS = [
   {
     abbr: 'NYJ', city: 'New York',     name: 'Jets',
     div: 'AFC East',  primary: '#125740', secondary: '#FFFFFF',
-    accent: '#00703C', scheme: 'colorRush', template: 1,
-    colorRush: '#00703C',
-    note: 'Jets fans have campaigned to bring back classic Kelly Green for decades. The current dark teal (#125740) is divisive. Kelly Green is the beloved identity.',
+    accent: '#125740', scheme: 'standard', template: 1,
     cultureTag: "Gang Green",
     cry:        "J-E-T-S",
     wardRoom:   "Gang Green don't blink.",
@@ -107,9 +114,7 @@ export const NFL_TEAMS = [
   {
     abbr: 'CLE', city: 'Cleveland',    name: 'Browns',
     div: 'AFC North', primary: '#311D00', secondary: '#FF3C00',
-    accent: '#FF3C00', scheme: 'colorRush', template: 5,
-    colorRush: '#FF3C00',
-    note: 'Browns Color Rush all-orange is iconic and fan-beloved. Standard dark brown (#311D00) would vanish on Corvus dark UI.',
+    accent: '#311D00', scheme: 'standard', template: 5,
     cultureTag: "Dawg Pound",
     cry:        "In Browns We Trust",
     wardRoom:   "Cleveland doesn't fold.",
@@ -154,9 +159,7 @@ export const NFL_TEAMS = [
   {
     abbr: 'TEN', city: 'Tennessee',    name: 'Titans',
     div: 'AFC South', primary: '#0C2340', secondary: '#4B92DB',
-    accent: '#4B92DB', scheme: 'colorRush', template: 1,
-    colorRush: '#4B92DB',
-    note: 'Titans sky blue from their Color Rush look is beloved by fans — the classic "Columbia Blue" identity. Standard dark navy (#0C2340) is indistinct.',
+    accent: '#0C2340', scheme: 'standard', template: 1,
     cultureTag: "Titan Up",
     cry:        "How Ya Feel?",
     wardRoom:   "Tennessee don't tap out.",
@@ -191,9 +194,7 @@ export const NFL_TEAMS = [
   {
     abbr: 'LAC', city: 'Los Angeles',  name: 'Chargers',
     div: 'AFC West',  primary: '#0080C6', secondary: '#FFC20E',
-    accent: '#6DB3E5', scheme: 'colorRush', template: 4,
-    colorRush: '#6DB3E5',
-    note: 'Powder Blue color rush is vastly more popular with Chargers fans than standard navy. The Chargers\' powder blue identity predates the current branding and is considered their true colors by a significant portion of the fan base.',
+    accent: '#0080C6', scheme: 'standard', template: 4,
     cultureTag: "Broltchachos",
     cry:        "Bolt Up",
     wardRoom:   "Chargers don't ask permission.",

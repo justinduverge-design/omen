@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { useTheme } from '../lib/themeMode.js';
 
 const SCORING_FORMATS = [
   { value: 'ppr', label: 'PPR' },
@@ -284,6 +286,11 @@ export default function DraftAssistant({ platforms }) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [adpData, setAdpData] = useState(null);
   const [adpLoading, setAdpLoading] = useState(false);
+  const { mode, team: teamAbbr } = useTheme();
+  const cry = useMemo(() => {
+    if (mode !== 'team' || !teamAbbr) return null;
+    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cry ?? null;
+  }, [mode, teamAbbr]);
 
   const connectedPlatform = getConnectedPlatform(platforms);
   const adpMap = adpData ? buildAdpMap(adpData.sources) : null;
@@ -347,6 +354,14 @@ export default function DraftAssistant({ platforms }) {
         <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
           Tell Corvus where you are in your draft. It will surface the best available move for your roster.
         </p>
+        {cry && (
+          <p
+            className="mt-1.5 font-sans text-[11px] font-semibold uppercase"
+            style={{ color: 'var(--color-team-accent)', letterSpacing: '0.18em', opacity: 0.7 }}
+          >
+            {cry}
+          </p>
+        )}
       </div>
 
       <form
