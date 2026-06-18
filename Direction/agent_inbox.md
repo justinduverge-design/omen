@@ -14,11 +14,9 @@ Operator steps: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
 
 ## Active Task
 
-- **Status:** empty
-- **Lane:** —
-- **Task:** —
+*(empty — no active task pinned)*
 
-**Closed 2026-06-17:** Phase 1.5 PR1 — Team-theming system core was confirmed merged into `main` via PR #41 (merged by Justin, 2026-06-17 02:58 UTC), with a same-day fix-up commit `6970a3b`. Checked off in `Direction/current_sprint.md` and logged in `Direction/decision_log.md`. This slot was left stale (still said "ready for review") across a session boundary — verify against `git log` / GitHub PR state before trusting this file's Status line.
+**Closed 2026-06-18:** Phase 1.5 visual-QA debt cleared. Real-browser light + dark screenshots captured against production (slopssaloon.com) via Claude-in-Chrome MCP for all 8 accent-active pages (×2 modes = 16 shots). `slops-ui-ux-audit` run inline — 3 P0s found and fixed in commit 9e3a58c: (1) MoveHistory off-palette hex → `var(--color-risk-*)`, (2) Onboarding error color → `var(--color-risk-high)`, (3) Appearance.jsx dev-only data (template badge, team.note, "Dot on tile" text) removed. LEDGER rows added for 1.5b and 1.5c; PR1 row updated with screenshot IDs. page-done gates 9+12 and design-done gates 3+7 satisfied for all three surfaces. Build verification blocked by missing node in agent context — Justin to confirm via CI before deploying.
 
 > To pin a task: set Status to `ready`, choose a Lane (Backend / Codex or Frontend / Claude),
 > and write the Task in plain English. Everything else is optional — the agent will restate it
