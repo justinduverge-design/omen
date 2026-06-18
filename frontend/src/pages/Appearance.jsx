@@ -8,7 +8,7 @@ import {
   readableOn,
   TEAMS_BY_DIV,
 } from '../data/nflTeams.js';
-import { getTeamTemplate, TEMPLATE_LABELS } from '../lib/teamTemplate.js';
+import { getTeamTemplate } from '../lib/teamTemplate.js';
 import {
   getThemeMode,
   getThemeTeam,
@@ -272,17 +272,6 @@ export default function Appearance() {
                             {schemeLabel}
                           </span>
                         )}
-                        {recipe && (
-                          <span
-                            className="rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider"
-                            style={{
-                              color: 'var(--color-text-secondary)',
-                              borderColor: 'var(--color-border)',
-                            }}
-                          >
-                            T{recipe.template} · {TEMPLATE_LABELS[recipe.template]}
-                          </span>
-                        )}
                       </div>
 
                       {/* Identity block — only in Team mode */}
@@ -336,9 +325,9 @@ export default function Appearance() {
                 <div className="flex flex-col gap-1.5 pb-1">
                   {selectedTeam ? (
                     <>
-                      <Swatch hex={selectedTeam.primary} label="primary" />
-                      <Swatch hex={selectedTeam.accent} label={selectedTeam.scheme !== 'standard' ? 'accent' : null} />
-                      {recipe && <Swatch hex={recipe.surface} label="surface" />}
+                      <Swatch hex={selectedTeam.primary} />
+                      <Swatch hex={selectedTeam.accent} />
+                      {recipe && <Swatch hex={recipe.surface} />}
                     </>
                   ) : (
                     <Swatch hex="#B8952A" label="brand gold" />
@@ -346,22 +335,6 @@ export default function Appearance() {
                 </div>
               </div>
 
-              {selectedTeam?.note && (
-                <p
-                  className="mt-3 text-sm leading-relaxed"
-                  style={{ color: 'var(--color-text-secondary)', maxWidth: '56ch' }}
-                >
-                  {selectedTeam.note}
-                </p>
-              )}
-
-              <p
-                className="mt-6 text-xs"
-                style={{ color: 'var(--color-text-tertiary)' }}
-              >
-                <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-                Dot on tile = color rush or secondary swap applied.
-              </p>
             </div>
           </div>
 

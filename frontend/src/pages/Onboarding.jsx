@@ -253,7 +253,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
       </div>
 
       {noConnection && (
-        <p className="mt-5 text-sm leading-relaxed" style={{ color: '#B66A6A' }}>
+        <p className="mt-5 text-sm leading-relaxed" style={{ color: 'var(--color-risk-high)' }}>
           No platform detected yet. Connect a league using the button above, then return here and
           click "I've connected."
         </p>

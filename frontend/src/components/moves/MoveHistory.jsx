@@ -8,9 +8,9 @@ import { useTheme } from '../../lib/themeMode.js';
 
 function effectivenessColor(pct) {
   if (pct == null) return 'var(--color-text-tertiary)';
-  if (pct >= 70) return '#4ade80';
+  if (pct >= 70) return 'var(--color-risk-low)';
   if (pct >= 40) return 'var(--color-accent)';
-  return '#f87171';
+  return 'var(--color-risk-high)';
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -32,8 +32,8 @@ function OutcomeBadge({ outcome }) {
       className="rounded-full border px-2 py-0.5 text-xs font-semibold"
       style={
         isWin
-          ? { borderColor: 'rgba(74,222,128,0.3)', background: 'rgba(74,222,128,0.08)', color: '#4ade80' }
-          : { borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: '#f87171' }
+          ? { borderColor: 'color-mix(in srgb, var(--color-risk-low) 30%, transparent)', background: 'color-mix(in srgb, var(--color-risk-low) 8%, transparent)', color: 'var(--color-risk-low)' }
+          : { borderColor: 'color-mix(in srgb, var(--color-risk-high) 30%, transparent)', background: 'color-mix(in srgb, var(--color-risk-high) 8%, transparent)', color: 'var(--color-risk-high)' }
       }
     >
       {isWin ? 'Win' : 'Loss'}
@@ -64,7 +64,7 @@ function FollowedLabel({ followed }) {
     return (
       <span
         className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-        style={{ borderColor: 'rgba(74,222,128,0.25)', color: '#4ade80' }}
+        style={{ borderColor: 'color-mix(in srgb, var(--color-risk-low) 25%, transparent)', color: 'var(--color-risk-low)' }}
       >
         Ran it
       </span>
