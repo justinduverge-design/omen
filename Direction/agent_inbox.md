@@ -4,20 +4,20 @@
 
 ## Active Task
 
-1. **Phase 2.5 — Proprietary ADP weighting service.** Build on `src/services/adp.js` and the Phase 1.4 schema. Produce a per-player score combining FFC, Yahoo, and MFL, with source weights configurable from each league scoring-config row. Done docs: feature + recommendation + security if DB/service-role access changes.
+*(empty — Phase 2.5 closed 2026-06-18 in implementation commit `d04c535`; next session must run plan approval before Phase 2.6.)*
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.5 — Proprietary ADP weighting service.** Active. Establish the weighted ADP service and scoring-config contract consumed by later math work.
-2. **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` and `src/services/tradeValue.js` to consume scoring config as a parameter while keeping call sites stable. Follows 2.5 so both services share one configuration shape. Done docs: feature + recommendation.
-3. **Phase 2.7 — Demo Mode backend.** Add a public route returning a populated normalized roster and Omen envelope explicitly labeled `mode:"demo"`, distinct from live and mock modes. Done docs: feature + recommendation.
-4. **Phase 2.8 — Sleeper live draft tracking.** Add debounced Lazy Sync against Sleeper draft endpoints; no long-polling sockets. Done docs: feature + recommendation + security.
-5. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
+1. **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` and `src/services/tradeValue.js` to consume scoring config as a parameter while keeping call sites stable. Phase 2.5's scoring-config convention is now available. Done docs: feature + recommendation.
+2. **Phase 2.7 — Demo Mode backend.** Add a public route returning a populated normalized roster and Omen envelope explicitly labeled `mode:"demo"`, distinct from live and mock modes. Done docs: feature + recommendation.
+3. **Phase 2.8 — Sleeper live draft tracking.** Add debounced Lazy Sync against Sleeper draft endpoints; no long-polling sockets. Done docs: feature + recommendation + security.
+4. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
+5. **Phase 2.17 — Platform `lastResult` field for post-win pulse.** Add safe last-game result metadata across Sleeper, Yahoo, and ESPN adapters; research Yahoo/ESPN first and never log ESPN cookie values. Blocks frontend Phase 1.5d. Done docs: feature + security if new ESPN scope is needed.
 
 ## Blockers Surfaced
 
-- None for active Phase 2.5. Backend Phase 1 is closed, including the Phase 1.4 schema prerequisite.
-- Phase 2.6 is intentionally sequenced after Phase 2.5 because it consumes the same league scoring configuration.
+- None for next item Phase 2.6. Phase 2.5 established the shared scoring-config convention.
+- Phase 2.17 remains ahead of frontend Phase 1.5d because it is that animation's backend dependency.
 
 ## Standing Route
 

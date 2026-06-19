@@ -2561,6 +2561,90 @@ Frontend action needed:
 
 - Hide or revise Account billing CTAs for free launch mode, using `billing_disabled` as a defensive backend signal if those CTAs are still reachable.
 
+## Phase 2.5 Weighted ADP Contract
+
+Date: 2026-06-18
+
+Owner: Codex/backend
+
+Feature: Proprietary ADP weighting service
+
+Status: Built and verified locally in commit `d04c535`. Not pushed or deployed.
+
+Endpoint / contract:
+
+- Existing `GET /api/draft-assistant/adp` response is additive; existing `sources.ffc`, `sources.yahoo`, and `sources.mfl` remain unchanged.
+- New `weighting` metadata declares the config path and normalized provider weights.
+- New `weighted_players` is the merged consensus board, ordered by `rank` ascending.
+- `score` is weighted-average ADP, so lower is better. `lower_is_better: true` and `score_basis: "weighted_average_adp"` make that explicit.
+- Each player includes `source_count` plus provider-level ADP, effective weight, and contribution evidence.
+
+Configuration:
+
+```json
+{
+  "default_scoring_rules": {
+    "adp_source_weights": {
+      "ffc": 5,
+      "yahoo": 3,
+      "mfl": 2
+    }
+  }
+}
+```
+
+- Default relative weights are equal: FFC `1`, Yahoo `1`, MFL `1`.
+- Configured values are normalized, so `5:3:2` becomes `0.5:0.3:0.2`.
+- A missing provider is reweighted over the providers available for that player.
+- An all-zero override restores defaults rather than emitting an empty board.
+- The service accepts the league scoring-config row as `scoringConfig`. The public route currently uses defaults because the Phase 1.4 schema is review-only and no production row loader is in scope.
+
+Response shape (abbreviated):
+
+```json
+{
+  "is_mock": false,
+  "weighting": {
+    "config_path": "default_scoring_rules.adp_source_weights",
+    "defaults_applied": false,
+    "weights": { "ffc": 0.5, "yahoo": 0.3, "mfl": 0.2 }
+  },
+  "weighted_players": [
+    {
+      "rank": 1,
+      "name": "Player Name",
+      "position": "RB",
+      "team": "BAL",
+      "score": 17,
+      "score_basis": "weighted_average_adp",
+      "lower_is_better": true,
+      "source_count": 3,
+      "sources": {
+        "ffc": { "adp": 10, "weight": 0.5, "contribution": 5 },
+        "yahoo": { "adp": 20, "weight": 0.3, "contribution": 6 },
+        "mfl": { "adp": 30, "weight": 0.2, "contribution": 6 }
+      }
+    }
+  ]
+}
+```
+
+Mock vs live data:
+
+- Mock responses remain `is_mock: true` with the existing mock note.
+- `weighted_players` on a mock response is derived only from the labeled mock source rows.
+- Live source attribution remains present on the raw provider objects.
+
+Known limitations:
+
+- Matching uses normalized player name plus position because provider IDs are source-specific.
+- The route does not query `league_scoring_configs`; Phase 2.6 or another authenticated consumer must pass the applicable row into the service.
+
+Frontend action needed:
+
+- None required. Existing raw-source rendering remains compatible.
+- When adopting the consensus board, render `weighted_players`, preserve mock labeling, and describe the score as consensus ADP rather than a guarantee or projection.
+
 ## Response Template
 
 ```text
