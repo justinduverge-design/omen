@@ -2676,7 +2676,7 @@ Owner: Codex/backend
 
 Feature name: Public Corvus Demo Mode
 
-Status: Built and verified locally in implementation commit `e966a0a`. Not pushed or deployed.
+Status: Deployed from PR #51, squash merge `cccc857`, in KVM1 workflow run `27842680052`.
 
 Method and path:
 

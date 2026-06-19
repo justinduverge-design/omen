@@ -1,6 +1,6 @@
 # Corvus Demo Mode
 
-**Status:** Backend contract complete; frontend `/demo` implementation pending.
+**Status:** Backend contract deployed; frontend `/demo` implementation pending.
 **Contract:** `GET /api/demo` (`corvus-demo.v1`)
 
 ## Purpose
