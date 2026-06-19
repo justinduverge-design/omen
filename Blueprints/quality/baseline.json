@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-06-19",
+  "commit": "886d32cf760b01def62258efd8fd979aabc37f2e",
+  "runtime": {
+    "node": "v24.17.0",
+    "npm": "11.13.0"
+  },
+  "signals": {
+    "backend_tests": {
+      "passing": 312,
+      "total": 312,
+      "status": "pass"
+    },
+    "npm_audit_moderate": {
+      "advisories": 0,
+      "status": "pass"
+    },
+    "npm_audit_production_high": {
+      "advisories": 0,
+      "status": "pass"
+    },
+    "frontend_build": {
+      "status": "pass"
+    },
+    "legacy_client_build": {
+      "status": "pass"
+    },
+    "git_diff_check": {
+      "status": "pass"
+    }
+  }
+}
