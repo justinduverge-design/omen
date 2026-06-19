@@ -2676,7 +2676,7 @@ Owner: Codex/backend
 
 Feature name: Parameterized optimizer and trade-value math engine
 
-Status: Built and verified locally in implementation commit `798ad4e`. Not pushed or deployed.
+Status: Deployed 2026-06-19 via squash-merged PR #49 (`93e1a7176e26c715d34b5337df66182a6a828eb0`) and successful KVM1 workflow run `27834697621`.
 
 Method and path:
 
