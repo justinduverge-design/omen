@@ -41,6 +41,69 @@ const HEALTHY = new Set([null, undefined, "", "P", "PROBABLE"]);
 const RISKY   = new Set(["Q", "QUESTIONABLE", "GTD", "DTD"]);
 const OUT     = new Set(["O", "OUT", "IR", "IR-R", "PUP", "DOUBTFUL", "SUSP"]);
 
+const DEFAULT_OPTIMIZER_CONFIG = Object.freeze({
+  lineupMinDelta: 0.5,
+  waiverMinDelta: 0,
+  waiverLimit: 5,
+});
+
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function looksLikeScoringConfig(value) {
+  return value != null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && (
+      Object.prototype.hasOwnProperty.call(value, "default_scoring_rules")
+      || Object.prototype.hasOwnProperty.call(value, "scoring_format")
+      || Object.prototype.hasOwnProperty.call(value, "league_roster_slots")
+      || Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights")
+      || Object.prototype.hasOwnProperty.call(value, "scarcity_weights")
+    );
+}
+
+function resolveScoringConfig(opts, scoringConfig) {
+  if (looksLikeScoringConfig(scoringConfig)) return scoringConfig;
+  if (looksLikeScoringConfig(opts?.scoringConfig)) return opts.scoringConfig;
+  return looksLikeScoringConfig(opts) ? opts : {};
+}
+
+function resolveOptimizerConfig(opts = {}, scoringConfig = {}) {
+  const config = resolveScoringConfig(opts, scoringConfig);
+  const rules = config?.default_scoring_rules?.optimizer;
+  const optimizerRules = rules && typeof rules === "object" && !Array.isArray(rules)
+    ? rules
+    : {};
+  const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
+  const explicitMinDelta = typeof explicitOpts.minDelta === "number"
+    && !Number.isNaN(explicitOpts.minDelta)
+    ? explicitOpts.minDelta
+    : null;
+  const configuredLineupMinDelta = finiteNumber(
+    optimizerRules.lineup_min_delta ?? optimizerRules.min_delta
+  );
+  const configuredWaiverMinDelta = finiteNumber(optimizerRules.waiver_min_delta);
+  const configuredWaiverLimit = finiteNumber(optimizerRules.waiver_limit);
+  const explicitLimit = finiteNumber(explicitOpts.limit);
+
+  return {
+    lineupMinDelta: explicitMinDelta
+      ?? configuredLineupMinDelta
+      ?? DEFAULT_OPTIMIZER_CONFIG.lineupMinDelta,
+    waiverMinDelta: finiteNumber(explicitOpts.minDelta)
+      ?? configuredWaiverMinDelta
+      ?? DEFAULT_OPTIMIZER_CONFIG.waiverMinDelta,
+    waiverLimit: Math.max(1, Math.floor(
+      explicitLimit
+      ?? configuredWaiverLimit
+      ?? DEFAULT_OPTIMIZER_CONFIG.waiverLimit
+    )),
+  };
+}
+
 function statusPenalty(status) {
   if (status == null) return 0;
   const s = String(status).toUpperCase();
@@ -87,8 +150,8 @@ function buildReasoning(from, to, delta) {
  * Returns: array of { slot, from, to, delta, confidence, reasoning }
  * Sorted by delta (biggest swing first).
  */
-function evaluateLineup(roster, opts = {}) {
-  const minDelta = opts.minDelta != null ? opts.minDelta : 0.5;
+function evaluateLineup(roster, opts = {}, scoringConfig = {}) {
+  const { lineupMinDelta: minDelta } = resolveOptimizerConfig(opts, scoringConfig);
   const recs = [];
 
   for (const starter of roster.slots.starters) {
@@ -139,8 +202,11 @@ function evaluateLineup(roster, opts = {}) {
  * waiverPool: [{ player_key, name, position, projected_points, status }]
  * Returns: array of { position, drop, add, delta, confidence }
  */
-function findWaiverMoves(roster, waiverPool, opts = {}) {
-  const limit = opts.limit || 5;
+function findWaiverMoves(roster, waiverPool, opts = {}, scoringConfig = {}) {
+  const {
+    waiverLimit: limit,
+    waiverMinDelta: minDelta,
+  } = resolveOptimizerConfig(opts, scoringConfig);
 
   // Index waiver pool by primary position, sorted by projection desc.
   const byPos = {};
@@ -175,7 +241,7 @@ function findWaiverMoves(roster, waiverPool, opts = {}) {
 
     const topProj = Number(top.projected_points) || 0;
     const delta   = topProj - adjustedProjection(weakest);
-    if (delta <= 0) continue;
+    if (delta <= minDelta) continue;
 
     recs.push({
       position: pos,
@@ -203,5 +269,7 @@ module.exports = {
   adjustedProjection,
   statusPenalty,
   compatibleSlots,
+  resolveOptimizerConfig,
+  DEFAULT_OPTIMIZER_CONFIG,
   POSITION_GROUPS,
 };
