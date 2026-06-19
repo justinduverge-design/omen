@@ -1,6 +1,6 @@
 # Corvus API Route Reference
 
-Last updated: 2026-06-05
+Last updated: 2026-06-19
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -14,6 +14,7 @@ This file is the quick backend reference for current canonical routes and known 
 | `GET` | `/api/session` | `session.v1` | Public auth shell; returns authenticated user only when a valid bearer token is supplied. |
 | `GET` | `/api/system/current-week` | `system-current-week.v1` | Public NFL season/week context. |
 | `GET` | `/api/platform-status` | `platform-status.v1` | Public platform/config status; no private LLM URL. |
+| `GET` | `/api/demo` | `corvus-demo.v1` | Public deterministic sample roster + Omen envelope. Always `mode: "demo"`; never live/mock fallback. |
 
 ## Canonical Product Routes
 

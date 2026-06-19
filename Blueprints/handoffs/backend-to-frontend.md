@@ -2668,6 +2668,125 @@ Known limitations:
 Frontend action needed:
 ```
 
+## Phase 2.7 Demo Mode Backend Contract
+
+Date: 2026-06-19
+
+Owner: Codex/backend
+
+Feature name: Public Corvus Demo Mode
+
+Status: Built and verified locally in implementation commit `e966a0a`. Not pushed or deployed.
+
+Method and path:
+
+```text
+GET /api/demo
+Auth: none
+Rate limit: public-tool limiter
+```
+
+Request body or query:
+
+```text
+None.
+```
+
+Response shape:
+
+```json
+{
+  "contract_version": "corvus-demo.v1",
+  "feature": "corvus_demo",
+  "mode": "demo",
+  "is_demo": true,
+  "is_live": false,
+  "is_mock": false,
+  "generated_at": "ISO-8601",
+  "demo_notice": {
+    "label": "Demo Mode",
+    "message": "Sample league and roster data. This is not live fantasy advice.",
+    "deterministic_fixture": true,
+    "requires_explicit_live_switch": true
+  },
+  "telemetry": {
+    "analytics_eligible": false,
+    "llm_training_eligible": false
+  },
+  "roster": {
+    "source": "demo_fixture",
+    "platform": "demo",
+    "league_key": "demo-league-corvus",
+    "team_key": "demo-team-ravens",
+    "week": 1,
+    "slots": {
+      "starters": [],
+      "bench": [],
+      "ir": []
+    }
+  },
+  "omen": {
+    "state": "success",
+    "feature": "omen_mvp_move",
+    "mode": "demo",
+    "signals": {},
+    "recommendation": {},
+    "alternatives": [],
+    "warnings": []
+  }
+}
+```
+
+Example recommendation:
+
+```json
+{
+  "title": "Start Sample RB Breakout over Sample RB Starter",
+  "move": "Move Sample RB Breakout into your RB slot and bench Sample RB Starter.",
+  "expected_value_delta": {
+    "points": 5.6,
+    "label": "major"
+  },
+  "confidence": {
+    "score": 95,
+    "label": "high",
+    "rationale": "The demo optimizer sees a 5.60 point edge in the sample lineup."
+  },
+  "risk": {
+    "level": "low",
+    "reasons": [
+      "The roster and projections are deterministic sample data, not current league information.",
+      "A real recommendation can change with injuries, matchups, scoring settings, and roster context."
+    ]
+  }
+}
+```
+
+Files changed:
+
+- `src/services/demoMode.js`
+- `src/routes/demo.js`
+- `src/server.js`
+- `test/demoMode.test.js`
+- `Blueprints/demo-mode.md`
+- `Blueprints/api-routes.md`
+
+Limitations:
+
+- Demo data is a fixed product fixture, not current NFL or user-league data.
+- `generated_at` changes per request; roster, recommendation inputs, and request id remain deterministic for `corvus-demo.v1`.
+- The backend exposes no separate loading/empty/error demo variants in v1; the success fixture is intentionally stable.
+- Demo interactions must not be sent to product analytics or LLM training. The response exposes this under `telemetry`, but the frontend owns event suppression.
+- The service performs no Supabase, provider-adapter, auth, or LLM work.
+
+How frontend should call it:
+
+- Fetch once when the public `/demo` route loads.
+- Treat `mode` as authoritative. Do not interpret `is_mock: false` as live when `mode === "demo"`.
+- Keep a persistent Demo Mode label visible and add `demo` handling to `DataSourceLabel`/signal status UI.
+- Render `roster` through normalized roster components and `omen` through the existing Omen rendering shape.
+- Require an explicit CTA/navigation action before entering platform connection or live Omen; never silently merge or replace the demo fixture.
+
 ## Phase 2.6 Parameterized Math Engine Contract
 
 Date: 2026-06-19
