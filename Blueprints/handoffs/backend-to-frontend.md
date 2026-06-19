@@ -2667,3 +2667,88 @@ Known limitations:
 
 Frontend action needed:
 ```
+
+## Phase 2.6 Parameterized Math Engine Contract
+
+Date: 2026-06-19
+
+Owner: Codex/backend
+
+Feature name: Parameterized optimizer and trade-value math engine
+
+Status: Built and verified locally in implementation commit `798ad4e`. Not pushed or deployed.
+
+Method and path:
+
+- No endpoint or route contract changed.
+- Existing Omen, optimizer, Start/Sit, waiver, and Trade Analyzer call sites continue using their current defaults.
+- This contract is an internal backend service seam for a future approved scoring-config loader.
+
+Request / service input:
+
+Services accept a whole scoring-config row directly, as `opts.scoringConfig`, or as a trailing `scoringConfig` argument. Existing options take precedence.
+
+```json
+{
+  "scoring_format": "half_ppr",
+  "default_scoring_rules": {
+    "optimizer": {
+      "lineup_min_delta": 1,
+      "waiver_min_delta": 2,
+      "waiver_limit": 3
+    },
+    "trade_value": {
+      "neutral_band": 2.5,
+      "scarcity_signal_weight": 0.7
+    }
+  },
+  "league_scarcity_weights": [
+    {
+      "position": "TE",
+      "baseline_points": 6,
+      "scarcity_weight": 1.5
+    }
+  ]
+}
+```
+
+Response shape:
+
+- Existing response envelopes are unchanged.
+- Without config, optimizer defaults remain lineup delta `0.5`, waiver delta `0`, and waiver limit `5`.
+- Without config, Trade Analyzer remains PPR with the existing replacement levels, neutral band `2.0`, and scarcity-signal weight `0.6`.
+- With config, recommendation ordering/verdict math may change, but confidence, risk, reasoning, source labels, and response field names remain unchanged.
+
+Example response:
+
+```json
+{
+  "scoring_format": "half_ppr",
+  "net_value": 7,
+  "a_score": 7,
+  "b_score": 0,
+  "combined_score": 7,
+  "verdict": "accept",
+  "confidence": "medium"
+}
+```
+
+Files changed:
+
+- `src/services/optimizer.js`
+- `src/services/tradeValue.js`
+- `test/optimizerService.test.js`
+- `test/tradeValue.test.js`
+- `Blueprints/audits/2026-06-19-phase2-6-math-engine-code-review.md`
+
+Limitations:
+
+- No production `league_scoring_configs` loader exists yet; current routes continue using defaults.
+- The Phase 1.4 schema remains review-only and was not applied or queried.
+- A `custom` scoring format inherits PPR baselines for positions without an explicit `baseline_points` row.
+- No frontend-visible behavior changes until a backend caller supplies an approved config.
+
+How frontend should call it:
+
+- No frontend change. Continue calling existing endpoints with their current request bodies.
+- Do not send raw scoring-config rows from the browser; future backend integration should load the authenticated user's owned league config server-side.

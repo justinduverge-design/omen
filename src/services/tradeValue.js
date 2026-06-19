@@ -11,7 +11,8 @@
 const { adjustedProjection } = require("./optimizer");
 const { vorpForPlayer, bScore, REPLACEMENT_LEVELS, normalizePosition } = require("./vorp");
 
-const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
+const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard", "custom"]);
+const DEFAULT_SCARCITY_SIGNAL_WEIGHT = 0.6;
 
 // Depth discount curve for uneven trades (applied symmetrically to both sides).
 // When one side has more players than the other, surplus players provide diminished
@@ -25,6 +26,107 @@ const DEFAULT_REPLACEMENT_LEVEL = Object.freeze({
   UNK: 0,
 });
 
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function looksLikeScoringConfig(value) {
+  return value != null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && (
+      Object.prototype.hasOwnProperty.call(value, "default_scoring_rules")
+      || Object.prototype.hasOwnProperty.call(value, "scoring_format")
+      || Object.prototype.hasOwnProperty.call(value, "league_roster_slots")
+      || Object.prototype.hasOwnProperty.call(value, "league_scarcity_weights")
+      || Object.prototype.hasOwnProperty.call(value, "scarcity_weights")
+    );
+}
+
+function resolveScoringConfig(opts, scoringConfig) {
+  if (looksLikeScoringConfig(scoringConfig)) return scoringConfig;
+  if (looksLikeScoringConfig(opts?.scoringConfig)) return opts.scoringConfig;
+  return looksLikeScoringConfig(opts) ? opts : {};
+}
+
+function scarcityRows(scoringConfig = {}) {
+  const rows = scoringConfig.league_scarcity_weights
+    ?? scoringConfig.scarcity_weights
+    ?? scoringConfig.default_scoring_rules?.scarcity_weights;
+  return Array.isArray(rows) ? rows : [];
+}
+
+function replacementLevelsFor(scoringFormat, rows) {
+  const defaults = REPLACEMENT_LEVELS[scoringFormat] || REPLACEMENT_LEVELS.ppr;
+  const replacementLevel = {
+    ...defaults,
+    "W/R": defaults.FLEX,
+    "W/R/T": defaults.FLEX,
+    UNK: 0,
+  };
+
+  for (const row of rows) {
+    const baseline = finiteNumber(row?.baseline_points);
+    if (baseline == null || !row?.position) continue;
+    const position = normalizePosition(row.position);
+    replacementLevel[position] = baseline;
+    if (position === "DST") {
+      replacementLevel.DEF = baseline;
+      replacementLevel["D/ST"] = baseline;
+    }
+  }
+
+  return replacementLevel;
+}
+
+function scarcityWeightsFor(rows) {
+  const weights = {};
+  for (const row of rows) {
+    const weight = finiteNumber(row?.scarcity_weight);
+    if (weight == null || weight < 0 || weight > 10 || !row?.position) continue;
+    weights[normalizePosition(row.position)] = weight;
+  }
+  return weights;
+}
+
+function resolveTradeConfig(opts = {}, scoringConfig = {}) {
+  const config = resolveScoringConfig(opts, scoringConfig);
+  const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
+  const configuredFormat = String(config.scoring_format || "").toLowerCase();
+  const scoringFormat = explicitOpts.scoringFormat
+    || (VALID_SCORING_FORMATS.has(configuredFormat) ? configuredFormat : "ppr");
+
+  if (!VALID_SCORING_FORMATS.has(scoringFormat)) {
+    throw new Error("invalid_scoring_format");
+  }
+
+  const rows = scarcityRows(config);
+  const rules = config.default_scoring_rules?.trade_value;
+  const tradeRules = rules && typeof rules === "object" && !Array.isArray(rules)
+    ? rules
+    : {};
+  const configuredNeutralBand = finiteNumber(tradeRules.neutral_band);
+  const configuredScarcitySignalWeight = finiteNumber(tradeRules.scarcity_signal_weight);
+
+  return {
+    scoringFormat,
+    replacementLevel: explicitOpts.replacementLevel
+      || replacementLevelsFor(scoringFormat, rows),
+    neutralBand: explicitOpts.neutralBand
+      ?? (configuredNeutralBand != null && configuredNeutralBand >= 0
+        ? configuredNeutralBand
+        : null)
+      ?? 2.0,
+    scarcitySignalWeight: explicitOpts.scarcitySignalWeight
+      ?? (configuredScarcitySignalWeight != null && configuredScarcitySignalWeight >= 0
+        ? configuredScarcitySignalWeight
+        : null)
+      ?? DEFAULT_SCARCITY_SIGNAL_WEIGHT,
+    scarcityWeights: scarcityWeightsFor(rows),
+  };
+}
+
 function primaryPosition(player = {}) {
   if (player.position) return normalizePosition(player.position);
   if (Array.isArray(player.eligible_positions) && player.eligible_positions.length) {
@@ -37,14 +139,16 @@ function replacementFor(position, replacementLevel = DEFAULT_REPLACEMENT_LEVEL) 
   return Number(replacementLevel[position]) || replacementLevel.UNK || 0;
 }
 
-function playerValue(player = {}, opts = {}) {
-  const scoringFormat = opts.scoringFormat || "ppr";
+function playerValue(player = {}, opts = {}, scoringConfig = {}) {
+  const resolved = resolveTradeConfig(opts, scoringConfig);
+  const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
+  const scoringFormat = resolved.scoringFormat;
   const position = primaryPosition(player);
   const projected = Number(player.projected_points);
   const hasProjection = Number.isFinite(projected);
   const vorp = vorpForPlayer(player, {
     scoringFormat,
-    replacementLevel: opts.replacementLevel || null,
+    replacementLevel: explicitOpts.replacementLevel || resolved.replacementLevel,
   });
   const adjusted = adjustedProjection(player);
   const replacement = vorp.replacement_level;
@@ -66,8 +170,8 @@ function playerValue(player = {}, opts = {}) {
   };
 }
 
-function sideValue(players = [], opts = {}) {
-  const valuedPlayers = players.map((player) => playerValue(player, opts));
+function sideValue(players = [], opts = {}, scoringConfig = {}) {
+  const valuedPlayers = players.map((player) => playerValue(player, opts, scoringConfig));
   const total = valuedPlayers.reduce((sum, player) => sum + player.value, 0);
   const missingProjectionCount = valuedPlayers.filter((player) => (
     player.notes.includes("missing_projection")
@@ -129,6 +233,16 @@ function applyDepthDiscount(valuedPlayers, primaryCount) {
   }, 0);
 }
 
+function weightedScarcityScore(sendPlayers, receivePlayers, scarcityWeights = {}) {
+  const weightedBonus = (player) => {
+    const weight = scarcityWeights[player.position] ?? 1;
+    return player.scarcity_bonus * weight;
+  };
+  const sendBonus = sendPlayers.reduce((sum, player) => sum + weightedBonus(player), 0);
+  const receiveBonus = receivePlayers.reduce((sum, player) => sum + weightedBonus(player), 0);
+  return Number((receiveBonus - sendBonus).toFixed(2));
+}
+
 function buildScarcitySummary(sendDetails, receiveDetails) {
   if (!sendDetails.length || !receiveDetails.length) return "";
   const send = highestTier(sendDetails);
@@ -137,13 +251,17 @@ function buildScarcitySummary(sendDetails, receiveDetails) {
   return `You are sending ${articleForTier(send.tier)} ${formatTier(send.tier)} ${send.position} for ${articleForTier(receive.tier)} ${formatTier(receive.tier)} ${receive.position}.`;
 }
 
-function compareTrade({ send = [], receive = [] } = {}, opts = {}) {
-  const scoringFormat = opts.scoringFormat || "ppr";
-  if (!VALID_SCORING_FORMATS.has(scoringFormat)) {
-    throw new Error("invalid_scoring_format");
-  }
-
-  const tradeOpts = { ...opts, scoringFormat };
+function compareTrade({ send = [], receive = [] } = {}, opts = {}, scoringConfig = {}) {
+  const resolved = resolveTradeConfig(opts, scoringConfig);
+  const {
+    neutralBand,
+    replacementLevel,
+    scarcitySignalWeight,
+    scarcityWeights,
+    scoringFormat,
+  } = resolved;
+  const explicitOpts = looksLikeScoringConfig(opts) ? {} : opts;
+  const tradeOpts = { ...explicitOpts, scoringFormat, replacementLevel };
   const sendSide = sideValue(send, tradeOpts);
   const receiveSide = sideValue(receive, tradeOpts);
 
@@ -157,16 +275,18 @@ function compareTrade({ send = [], receive = [] } = {}, opts = {}) {
 
   const netValue = Number((effectiveReceiveVorp - effectiveSendVorp).toFixed(2));
   const aScore   = netValue;
-  const b        = bScore(send, receive, tradeOpts);
+  const b = Object.keys(scarcityWeights).length
+    ? weightedScarcityScore(sendSide.players, receiveSide.players, scarcityWeights)
+    : bScore(send, receive, tradeOpts);
   // B weight: 0.6 — scarcity can break a near-neutral tie but cannot override
   // a substantial raw value loss. Raised from 0.4 after external calibration review.
-  const combinedScore = Number((aScore + b * 0.6).toFixed(2));
+  const combinedScore = Number((aScore + b * scarcitySignalWeight).toFixed(2));
 
   return {
     send: sendSide,
     receive: receiveSide,
     net_value: netValue,
-    verdict: verdictFor(combinedScore, opts.neutralBand),
+    verdict: verdictFor(combinedScore, neutralBand),
     confidence: confidenceFor(sendSide, receiveSide),
     generated_at: new Date().toISOString(),
     scoring_format: scoringFormat,
@@ -188,4 +308,5 @@ module.exports = {
   playerValue,
   sideValue,
   compareTrade,
+  resolveTradeConfig,
 };
