@@ -17,8 +17,8 @@
 - **Tool compatibility:** `promptfoo --version` returns `0.121.17` with exit code 0.
 - **Application compatibility:** Full backend suite passes 297/297. Primary frontend production build passes at 460.56 kB / 131.08 kB gzip, unchanged from the prior Phase 2.5 build evidence.
 - **Scope:** Diff is limited to root `package.json`, root `package-lock.json`, and this review evidence. No frontend/client package file, env, migration, deploy, or production file changed.
-- **Install reproducibility:** A fresh-clone `npm ci` run is required after the package commit under the 2026-06-16 lockfile rule; do not merge or deploy without it.
+- **Install reproducibility:** Fresh clone at commit `2acb663` completed `npm ci` successfully (941 packages, 0 vulnerabilities), left the clone clean, and passed `npm test` 297/297.
 
 ## Verdict
 
-**Merge after fresh-clone `npm ci` passes.** No P0 or P1 findings.
+**Merge.** No P0 or P1 findings.

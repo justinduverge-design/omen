@@ -14,7 +14,7 @@ Last updated: 2026-06-17 (Deploy operating mode documented: KVM1 self-hosted Git
 ## Current State
 
 - Live on the renamed route; PR #22 deployed (run `26833528435`); `/api/health` ok, `/api/ready` ready.
-- Backend tests 281/281 local (2026-06-05); frontend build clean; `npm audit --audit-level=moderate` currently reports 1 transitive `hono` advisory through `promptfoo` and needs explicit package-file approval to fix.
+- Backend tests 297/297 local (2026-06-18); frontend build clean (460.56 kB / 131.08 kB gzip); full `npm audit --audit-level=moderate` reports 0 vulnerabilities after the approved `promptfoo` 0.121.17 dev-tool remediation in commit `2acb663`. Fresh-clone `npm ci` and 297/297 tests also pass.
 - Tier 2 authenticated production smoke: 13/13 passed 2026-06-04.
 - Local authenticated load smoke completed 2026-06-05 with `scripts/load-corvus-routes.js`: Trade Analyzer 10/10 `200` p95 34ms; Omen 10/10 `200` p95 4999ms; dashboard summary 10/10 `200` p95 633ms. Omen latency is a follow-up concern, not an auth blocker.
 - `VITE_ESPN_ENABLED=true` set in corvus root `.env.local` (2026-06-05). Build confirmed clean. ESPN real-account QA complete — all three platforms connected (Sleeper ✓, Yahoo ✓, ESPN ✓).
