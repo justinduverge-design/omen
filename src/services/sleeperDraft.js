@@ -123,6 +123,11 @@ function computeOnTheClock(draft, totalPicksTaken) {
 
   if (!teams || !rounds) return null;
 
+  // Auction drafts have no ordered slots — the math below would
+  // produce a plausible-looking but meaningless draft_slot for them.
+  // Frontends should detect auction via the `type` field instead.
+  if (String(draft.type || "").toLowerCase() === "auction") return null;
+
   const status = normalizeStatus(draft.status);
   if (status === "complete") return null;
   if (totalPicksTaken >= teams * rounds) return null;

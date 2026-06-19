@@ -122,6 +122,28 @@ test("computeOnTheClock returns null when total picks reach teams * rounds", () 
   assert.equal(otc, null);
 });
 
+test("computeOnTheClock returns null for auction drafts (no ordered slots)", () => {
+  const draft = snakeDraft({ type: "auction" });
+  assert.equal(computeOnTheClock(draft, 0), null);
+  assert.equal(computeOnTheClock(draft, 5), null);
+  assert.equal(computeOnTheClock(draft, 50), null);
+});
+
+test("buildDraftStateResponse marks auction drafts with on_the_clock null and preserves raw type", () => {
+  const draft = snakeDraft({ type: "auction", status: "drafting" });
+  const res = buildDraftStateResponse({
+    draftId: "auction-1",
+    draft,
+    picks: [pick(1, 1, 1, "p100")],
+    since: 0,
+  });
+
+  assert.equal(res.on_the_clock, null);
+  assert.equal(res.type, "auction");
+  assert.equal(res.status, "drafting");
+  assert.equal(res.has_new_picks, true);
+});
+
 test("buildDraftListResponse normalizes draft entries and applies version", () => {
   const res = buildDraftListResponse({
     leagueId: "league-1",

@@ -53,6 +53,29 @@ async function writeCache(key, value, ttlSeconds) {
   await redis.set(key, JSON.stringify(value), { ex: ttlSeconds }).catch(() => {});
 }
 
+// In-flight promise map for single-flight dedupe of concurrent
+// cache-miss requests against the same Sleeper draft endpoint.
+// Keyed by cache key so each draft (and each endpoint within it) is
+// independent. Promises are cleared after settle so the next caller
+// repopulates cache or refetches as needed.
+const inFlightDraftFetches = new Map();
+
+async function singleFlight(key, fetcher) {
+  const pending = inFlightDraftFetches.get(key);
+  if (pending) return pending;
+
+  const promise = (async () => {
+    try {
+      return await fetcher();
+    } finally {
+      inFlightDraftFetches.delete(key);
+    }
+  })();
+
+  inFlightDraftFetches.set(key, promise);
+  return promise;
+}
+
 function normalizeSlot(slot) {
   if (!slot) return null;
   return STARTER_SLOT_MAP[slot] || slot;
@@ -302,14 +325,19 @@ async function fetchSleeperDraft(draftId) {
   const cached = await readCache(cacheKey);
   if (cached) return cached;
 
-  const draft = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}`);
-  if (!draft || typeof draft !== "object") {
-    const err = new Error("Sleeper draft not found");
-    err.status = 404;
-    throw err;
-  }
-  await writeCache(cacheKey, draft, DRAFT_META_TTL_S);
-  return draft;
+  return singleFlight(cacheKey, async () => {
+    const fresh = await readCache(cacheKey);
+    if (fresh) return fresh;
+
+    const draft = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}`);
+    if (!draft || typeof draft !== "object") {
+      const err = new Error("Sleeper draft not found");
+      err.status = 404;
+      throw err;
+    }
+    await writeCache(cacheKey, draft, DRAFT_META_TTL_S);
+    return draft;
+  });
 }
 
 async function fetchSleeperDraftPicks(draftId) {
@@ -317,10 +345,15 @@ async function fetchSleeperDraftPicks(draftId) {
   const cached = await readCache(cacheKey);
   if (cached) return cached;
 
-  const picks = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}/picks`);
-  const out = Array.isArray(picks) ? picks : [];
-  await writeCache(cacheKey, out, DRAFT_PICKS_TTL_S);
-  return out;
+  return singleFlight(cacheKey, async () => {
+    const fresh = await readCache(cacheKey);
+    if (fresh) return fresh;
+
+    const picks = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}/picks`);
+    const out = Array.isArray(picks) ? picks : [];
+    await writeCache(cacheKey, out, DRAFT_PICKS_TTL_S);
+    return out;
+  });
 }
 
 module.exports = {
