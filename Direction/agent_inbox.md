@@ -1,38 +1,23 @@
 # Corvus Agent Inbox
 
-**Override slot for the build loop. The sprint feeds tasks automatically; use this only to pin one.**
-
-How it works now:
-- Leave the Active Task **empty** → each agent auto-pulls the **top unchecked item in its own lane**
-  from `Direction/current_sprint.md` → "Next" (Codex = `### Backend / Codex`, Claude = `### Frontend / Claude`).
-- Fill the Active Task → that **pinned** task wins, overriding the sprint. Use it for a one-off,
-  a custom task, or to jump the queue.
-
-Operator steps: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
-
----
+**Auto-populated 2026-06-18 from `Direction/current_sprint.md`.** No pinned task was present. Agents may work across lanes; this ordering follows the first five eligible agent-buildable items and preserves their dependency order.
 
 ## Active Task
 
-*(empty — no active task pinned)*
-
-**Closed 2026-06-18:** Phase 1.5 visual-QA debt cleared. Real-browser light + dark screenshots captured against production (slopssaloon.com) via Claude-in-Chrome MCP for all 8 accent-active pages (×2 modes = 16 shots). `slops-ui-ux-audit` run inline — 3 P0s found and fixed in commit 9e3a58c: (1) MoveHistory off-palette hex → `var(--color-risk-*)`, (2) Onboarding error color → `var(--color-risk-high)`, (3) Appearance.jsx dev-only data (template badge, team.note, "Dot on tile" text) removed. LEDGER rows added for 1.5b and 1.5c; PR1 row updated with screenshot IDs. page-done gates 9+12 and design-done gates 3+7 satisfied for all three surfaces. Build verification blocked by missing node in agent context — Justin to confirm via CI before deploying.
-
-> To pin a task: set Status to `ready`, choose a Lane (Backend / Codex or Frontend / Claude),
-> and write the Task in plain English. Everything else is optional — the agent will restate it
-> and confirm before building, and Done-when defaults to `Blueprints/definition-of-done.md`.
-
----
+1. **Phase 2.5 — Proprietary ADP weighting service.** Build on `src/services/adp.js` and the Phase 1.4 schema. Produce a per-player score combining FFC, Yahoo, and MFL, with source weights configurable from each league scoring-config row. Done docs: feature + recommendation + security if DB/service-role access changes.
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.5 — Team accent sweep (whole-app, both modes).** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` accent-contrast library; verdict: `slops-ui-ux-audit`. Done docs: page + design.
-2. **Phase 1.6 — Position chip palette + selected-state styling.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` palette + color-blind validation; verdict: `slops-ui-ux-audit`. Done docs: page + design + recommendation if recommendation cards change.
-3. **Phase 1.7 — Platform brand color emphasis + button-style consistency.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max`; verdict: `slops-ui-ux-audit`. Done docs: page + design.
-4. **Phase 1.8 — Confidence gradient endpoints.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` gradient interpolation; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation.
-5. **Phase 1.9 — Metallic tier treatment.** Ready now that Phase 1.4 is closed. Guardrail: `ui-ux-pro-max` metallic contrast; verdict: `slops-ui-ux-audit`. Done docs: design + recommendation if Draft Assistant cards change.
+1. **Phase 2.5 — Proprietary ADP weighting service.** Active. Establish the weighted ADP service and scoring-config contract consumed by later math work.
+2. **Phase 2.6 — Math engine parameterized.** Refactor `src/services/optimizer.js` and `src/services/tradeValue.js` to consume scoring config as a parameter while keeping call sites stable. Follows 2.5 so both services share one configuration shape. Done docs: feature + recommendation.
+3. **Phase 2.7 — Demo Mode backend.** Add a public route returning a populated normalized roster and Omen envelope explicitly labeled `mode:"demo"`, distinct from live and mock modes. Done docs: feature + recommendation.
+4. **Phase 2.8 — Sleeper live draft tracking.** Add debounced Lazy Sync against Sleeper draft endpoints; no long-polling sockets. Done docs: feature + recommendation + security.
+5. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
 
----
+## Blockers Surfaced
+
+- None for active Phase 2.5. Backend Phase 1 is closed, including the Phase 1.4 schema prerequisite.
+- Phase 2.6 is intentionally sequenced after Phase 2.5 because it consumes the same league scoring configuration.
 
 ## Standing Route
 
@@ -47,7 +32,7 @@ SLOPS/
 - This repo is the Corvus product repo. The old nested `Corvus/` folder is retired.
 - Product handoffs live in `Blueprints/handoffs/`.
 - Product context lives in `Direction/`.
-- Division context lives one layer up in `..\`. OS context lives two layers up in `..\..`.
+- Division context lives one layer up. OS context is in the sibling `slops-os/` checkout in this workspace.
 
 ## Do Not Touch Unless Explicitly Asked
 

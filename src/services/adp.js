@@ -13,6 +13,13 @@ const YAHOO_PLAYER_PAGE_SIZE = 25;
 const YAHOO_PHASE_ONE_LIMIT = 200;
 
 const VALID_FORMATS = new Set(["ppr", "half-ppr", "standard"]);
+const ADP_SOURCE_KEYS = ["ffc", "yahoo", "mfl"];
+const DEFAULT_ADP_SOURCE_WEIGHTS = Object.freeze({
+  ffc: 1,
+  yahoo: 1,
+  mfl: 1,
+});
+const ADP_SOURCE_WEIGHT_CONFIG_PATH = "default_scoring_rules.adp_source_weights";
 
 function nowIso() {
   return new Date().toISOString();
@@ -46,6 +53,139 @@ function toFiniteNumber(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function round(value, places = 4) {
+  const factor = 10 ** places;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
+function normalizePlayerIdentity(name, position) {
+  const normalizedName = String(name || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+  const normalizedPosition = String(position || "UNKNOWN").trim().toUpperCase();
+  return normalizedName ? `${normalizedName}:${normalizedPosition}` : null;
+}
+
+function resolveAdpSourceWeights(scoringConfig = {}) {
+  const configured = scoringConfig?.default_scoring_rules?.adp_source_weights;
+  const rawWeights = { ...DEFAULT_ADP_SOURCE_WEIGHTS };
+
+  if (configured && typeof configured === "object" && !Array.isArray(configured)) {
+    for (const source of ADP_SOURCE_KEYS) {
+      const weight = toFiniteNumber(configured[source]);
+      if (weight != null && weight >= 0) rawWeights[source] = weight;
+    }
+  }
+
+  let total = ADP_SOURCE_KEYS.reduce((sum, source) => sum + rawWeights[source], 0);
+  const usedDefaults = total <= 0;
+  if (usedDefaults) {
+    Object.assign(rawWeights, DEFAULT_ADP_SOURCE_WEIGHTS);
+    total = ADP_SOURCE_KEYS.length;
+  }
+
+  return {
+    config_path: ADP_SOURCE_WEIGHT_CONFIG_PATH,
+    defaults_applied: !configured || usedDefaults,
+    weights: Object.fromEntries(
+      ADP_SOURCE_KEYS.map((source) => [source, round(rawWeights[source] / total)])
+    ),
+  };
+}
+
+function normalizeWeightedPlayer(player) {
+  const name = String(player?.name || player?.player_name || "").trim();
+  const position = String(player?.position || "UNKNOWN").trim().toUpperCase();
+  const adp = toFiniteNumber(player?.adp ?? player?.overall_adp ?? player?.average_pick);
+  const identity = normalizePlayerIdentity(name, position);
+  if (!identity || adp == null || adp <= 0) return null;
+
+  return {
+    identity,
+    name,
+    position,
+    team: String(player?.team || player?.team_abbr || "").trim().toUpperCase() || null,
+    adp,
+  };
+}
+
+function buildWeightedAdpBoard(sources = {}, scoringConfig = {}) {
+  const weighting = resolveAdpSourceWeights(scoringConfig);
+  const playersByIdentity = new Map();
+
+  for (const source of ADP_SOURCE_KEYS) {
+    const sourcePlayers = Array.isArray(sources?.[source]?.players)
+      ? sources[source].players
+      : [];
+    const seenForSource = new Set();
+
+    for (const rawPlayer of sourcePlayers) {
+      const player = normalizeWeightedPlayer(rawPlayer);
+      if (!player || seenForSource.has(player.identity)) continue;
+      seenForSource.add(player.identity);
+
+      const aggregate = playersByIdentity.get(player.identity) || {
+        name: player.name,
+        position: player.position,
+        team: player.team,
+        source_adp: {},
+      };
+      aggregate.team ||= player.team;
+      aggregate.source_adp[source] = player.adp;
+      playersByIdentity.set(player.identity, aggregate);
+    }
+  }
+
+  const weightedPlayers = [];
+  for (const player of playersByIdentity.values()) {
+    const availableSources = ADP_SOURCE_KEYS.filter(
+      (source) => player.source_adp[source] != null && weighting.weights[source] > 0
+    );
+    const availableWeight = availableSources.reduce(
+      (sum, source) => sum + weighting.weights[source],
+      0
+    );
+    if (!availableSources.length || availableWeight <= 0) continue;
+
+    const contributions = {};
+    let score = 0;
+    for (const source of availableSources) {
+      const effectiveWeight = weighting.weights[source] / availableWeight;
+      const contribution = player.source_adp[source] * effectiveWeight;
+      score += contribution;
+      contributions[source] = {
+        adp: player.source_adp[source],
+        weight: round(effectiveWeight),
+        contribution: round(contribution),
+      };
+    }
+
+    weightedPlayers.push({
+      name: player.name,
+      position: player.position,
+      team: player.team,
+      score: round(score, 2),
+      score_basis: "weighted_average_adp",
+      lower_is_better: true,
+      source_count: availableSources.length,
+      sources: contributions,
+    });
+  }
+
+  weightedPlayers.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+  return {
+    weighting,
+    players: weightedPlayers.map((player, index) => ({
+      rank: index + 1,
+      ...player,
+    })),
+  };
 }
 
 function findFirstValue(node, key) {
@@ -340,6 +480,7 @@ async function buildLiveAdpResponse({
   year,
   fetchImpl = fetch,
   yahooClient = null,
+  scoringConfig = {},
 }) {
   if (!redis) throw new Error("Redis unavailable for live ADP ingestion");
 
@@ -364,11 +505,14 @@ async function buildLiveAdpResponse({
     ),
   ]);
 
+  const weighted = buildWeightedAdpBoard({ ffc, yahoo, mfl }, scoringConfig);
   return {
     is_mock: false,
     format,
     teams,
     sources: { ffc, yahoo, mfl },
+    weighting: weighted.weighting,
+    weighted_players: weighted.players,
   };
 }
 
@@ -388,35 +532,42 @@ function mockPlayers(source) {
   }));
 }
 
-function buildMockAdpResponse({ format, teams }) {
+function buildMockAdpResponse({ format, teams, scoringConfig = {} }) {
   const fetchedAt = nowIso();
+  const sources = {
+    ffc: {
+      fetched_at: fetchedAt,
+      attribution: FFC_ATTRIBUTION,
+      attribution_url: FFC_ATTRIBUTION_URL,
+      players: mockPlayers("FFC"),
+    },
+    yahoo: {
+      fetched_at: fetchedAt,
+      attribution: YAHOO_ATTRIBUTION,
+      players: mockPlayers("Yahoo"),
+    },
+    mfl: {
+      fetched_at: fetchedAt,
+      attribution: MFL_ATTRIBUTION,
+      players: mockPlayers("MFL"),
+    },
+  };
+  const weighted = buildWeightedAdpBoard(sources, scoringConfig);
+
   return {
     is_mock: true,
     format,
     teams,
     note: "Mock ADP data - live ADP ingestion requires production Redis and source availability.",
-    sources: {
-      ffc: {
-        fetched_at: fetchedAt,
-        attribution: FFC_ATTRIBUTION,
-        attribution_url: FFC_ATTRIBUTION_URL,
-        players: mockPlayers("FFC"),
-      },
-      yahoo: {
-        fetched_at: fetchedAt,
-        attribution: YAHOO_ATTRIBUTION,
-        players: mockPlayers("Yahoo"),
-      },
-      mfl: {
-        fetched_at: fetchedAt,
-        attribution: MFL_ATTRIBUTION,
-        players: mockPlayers("MFL"),
-      },
-    },
+    sources,
+    weighting: weighted.weighting,
+    weighted_players: weighted.players,
   };
 }
 
 module.exports = {
+  ADP_SOURCE_WEIGHT_CONFIG_PATH,
+  DEFAULT_ADP_SOURCE_WEIGHTS,
   FFC_ATTRIBUTION,
   FFC_ATTRIBUTION_URL,
   FFC_TTL_SECONDS,
@@ -427,6 +578,7 @@ module.exports = {
   YAHOO_PHASE_ONE_LIMIT,
   buildLiveAdpResponse,
   buildMockAdpResponse,
+  buildWeightedAdpBoard,
   fetchFFC,
   fetchMFL,
   fetchYahoo,
@@ -436,4 +588,5 @@ module.exports = {
   normalizeAdpQuery,
   normalizeFormat,
   parseTeams,
+  resolveAdpSourceWeights,
 };

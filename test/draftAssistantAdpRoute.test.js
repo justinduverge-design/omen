@@ -73,4 +73,9 @@ test("GET /api/draft-assistant/adp returns mock ADP shape outside production Red
 
   assert.equal(res.body.sources.ffc.attribution, "Fantasy Football Calculator");
   assert.equal(res.body.sources.ffc.attribution_url, "https://fantasyfootballcalculator.com");
+  assert.equal(res.body.weighting.config_path, "default_scoring_rules.adp_source_weights");
+  assert.equal(res.body.weighting.defaults_applied, true);
+  assert.equal(res.body.weighted_players.length, expectedMockNames.length);
+  assert.equal(res.body.weighted_players[0].lower_is_better, true);
+  assert.equal(res.body.weighted_players[0].source_count, 3);
 });

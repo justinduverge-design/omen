@@ -3,9 +3,13 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  ADP_SOURCE_WEIGHT_CONFIG_PATH,
+  buildMockAdpResponse,
+  buildWeightedAdpBoard,
   fetchFFC,
   fetchMFL,
   fetchYahoo,
+  resolveAdpSourceWeights,
 } = require("../src/services/adp");
 
 function jsonResponse(body) {
@@ -143,4 +147,127 @@ test("fetchMFL coerces string ADP values to numbers and joins player details", a
   });
   assert.equal(typeof players[1].adp, "number");
   assert.equal(players[1].adp, 42);
+});
+
+test("resolveAdpSourceWeights makes equal defaults when the scoring row has no override", () => {
+  assert.deepEqual(resolveAdpSourceWeights({}), {
+    config_path: ADP_SOURCE_WEIGHT_CONFIG_PATH,
+    defaults_applied: true,
+    weights: {
+      ffc: 0.3333,
+      yahoo: 0.3333,
+      mfl: 0.3333,
+    },
+  });
+});
+
+test("resolveAdpSourceWeights reads and normalizes per-league scoring config weights", () => {
+  const resolved = resolveAdpSourceWeights({
+    default_scoring_rules: {
+      adp_source_weights: {
+        ffc: 5,
+        yahoo: 3,
+        mfl: 2,
+      },
+    },
+  });
+
+  assert.deepEqual(resolved, {
+    config_path: ADP_SOURCE_WEIGHT_CONFIG_PATH,
+    defaults_applied: false,
+    weights: {
+      ffc: 0.5,
+      yahoo: 0.3,
+      mfl: 0.2,
+    },
+  });
+});
+
+test("resolveAdpSourceWeights restores defaults when every configured source is disabled", () => {
+  const resolved = resolveAdpSourceWeights({
+    default_scoring_rules: {
+      adp_source_weights: { ffc: 0, yahoo: 0, mfl: 0 },
+    },
+  });
+
+  assert.equal(resolved.defaults_applied, true);
+  assert.deepEqual(resolved.weights, { ffc: 0.3333, yahoo: 0.3333, mfl: 0.3333 });
+});
+
+test("buildWeightedAdpBoard combines matching providers and rebalances missing sources", () => {
+  const board = buildWeightedAdpBoard({
+    ffc: {
+      players: [
+        { name: "Consensus Runner Jr.", position: "RB", team: "BAL", adp: 10 },
+        { name: "FFC Only", position: "WR", team: "BUF", adp: 18 },
+      ],
+    },
+    yahoo: {
+      players: [
+        { name: "Consensus Runner", position: "RB", team: "BAL", adp: 20 },
+      ],
+    },
+    mfl: {
+      players: [
+        { name: "Consensus Runner II", position: "RB", team: "BAL", adp: 30 },
+      ],
+    },
+  }, {
+    default_scoring_rules: {
+      adp_source_weights: { ffc: 5, yahoo: 3, mfl: 2 },
+    },
+  });
+
+  assert.equal(board.players.length, 2);
+  assert.deepEqual(board.players[0], {
+    rank: 1,
+    name: "Consensus Runner Jr.",
+    position: "RB",
+    team: "BAL",
+    score: 17,
+    score_basis: "weighted_average_adp",
+    lower_is_better: true,
+    source_count: 3,
+    sources: {
+      ffc: { adp: 10, weight: 0.5, contribution: 5 },
+      yahoo: { adp: 20, weight: 0.3, contribution: 6 },
+      mfl: { adp: 30, weight: 0.2, contribution: 6 },
+    },
+  });
+  assert.equal(board.players[1].name, "FFC Only");
+  assert.equal(board.players[1].score, 18);
+  assert.deepEqual(board.players[1].sources.ffc, {
+    adp: 18,
+    weight: 1,
+    contribution: 18,
+  });
+});
+
+test("buildWeightedAdpBoard rejects invalid rows and excludes disabled-only players", () => {
+  const board = buildWeightedAdpBoard({
+    ffc: { players: [{ name: "Disabled Player", position: "QB", adp: 12 }] },
+    yahoo: {
+      players: [
+        { name: "Valid Player", position: "WR", adp: "22.5" },
+        { name: "No ADP", position: "RB", adp: null },
+        { name: "Negative ADP", position: "TE", adp: -3 },
+      ],
+    },
+  }, {
+    default_scoring_rules: {
+      adp_source_weights: { ffc: 0, yahoo: 1, mfl: 0 },
+    },
+  });
+
+  assert.deepEqual(board.players.map((player) => player.name), ["Valid Player"]);
+});
+
+test("buildMockAdpResponse keeps weighted output explicitly mock-labeled", () => {
+  const response = buildMockAdpResponse({ format: "ppr", teams: 12 });
+
+  assert.equal(response.is_mock, true);
+  assert.match(response.note, /Mock ADP data/);
+  assert.equal(response.weighted_players.length, 5);
+  assert.equal(response.weighted_players[0].source_count, 3);
+  assert.equal(response.weighted_players[0].score_basis, "weighted_average_adp");
 });
