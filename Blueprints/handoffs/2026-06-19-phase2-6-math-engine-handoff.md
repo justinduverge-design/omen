@@ -44,6 +44,11 @@
 - 2026-06-19: `npm test` — 307/307 passed.
 - 2026-06-19: `git diff --check` — clean before implementation commit and closure review.
 - `slops-code-review` — merge verdict; no P0/P1.
+- PR #49 squash-merged as `93e1a7176e26c715d34b5337df66182a6a828eb0`.
+- KVM1 deploy workflow run `27834697621` — quality, API/cron image builds, deploy, and workflow health smoke all succeeded.
+- Independent production smoke: `/api/health` `ok`, `/api/ready` `ready`, `/api/version` `200`, homepage `200`.
+- Release gates not independently rerun: authenticated Tier-2 13/13, Sentry dashboard event visibility, and KVM disk/memory. This math-only change does not alter those surfaces; no KVM shell or Sentry dashboard access was available in-session.
+- Rollback: revert `93e1a71` through a PR; merging the revert rebuilds the previous source into the `main` GHCR tags and redeploys it through the same workflow.
 
 ## Next recommended pull
 
