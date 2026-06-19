@@ -123,6 +123,14 @@ try {
   logger.error("Players router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Deterministic public Demo Mode ------------------------------
+try {
+  const demoRoutes = require("./routes/demo");
+  app.use("/api/demo", publicToolRateLimit, demoRoutes);
+} catch (e) {
+  logger.error("Demo Mode router failed to load", { err: e.message, stack: e.stack });
+}
+
 // Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
 const SPA_DIR = path.join(__dirname, "..", "frontend", "dist");
 const SPA_INDEX = path.join(SPA_DIR, "index.html");
