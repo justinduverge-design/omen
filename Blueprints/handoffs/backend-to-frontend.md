@@ -6,6 +6,207 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 2.8 Sleeper Live Draft Tracking — 2026-06-19
+
+Feature name: Sleeper live draft tracking (debounced Lazy Sync).
+
+Status: Built locally. Tests 341/341 (29 new). `npm audit --audit-level=moderate` 0 vulnerabilities. Not deployed.
+
+Method and path:
+
+```text
+GET /api/sleeper/draft?leagueId=<id>
+GET /api/sleeper/draft/:draftId
+GET /api/sleeper/draft/:draftId/state?since=<int>
+```
+
+All three routes require auth (same pattern as `GET /api/sleeper/roster`). Subscription is not required.
+
+Request body or query:
+
+```text
+GET /api/sleeper/draft
+  Query:
+    - leagueId (required, string)  Sleeper league id
+
+GET /api/sleeper/draft/:draftId
+  Path:
+    - draftId (required, string)   Sleeper draft id
+
+GET /api/sleeper/draft/:draftId/state
+  Path:
+    - draftId (required, string)
+  Query:
+    - since   (optional, integer ≥ 0, default 0)
+              Highest pick_no the caller already has.
+              The response only returns picks with pick_no > since.
+```
+
+Response shape:
+
+```text
+contract_version: "sleeper-draft-list.v1"  | "sleeper-draft-meta.v1" | "sleeper-draft-state.v1"
+generated_at:     ISO8601 string
+```
+
+Draft list (`sleeper-draft-list.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  league_id: string,
+  drafts: [
+    {
+      draft_id, league_id, status, type, sport, season, season_type,
+      settings: { teams, rounds, pick_timer },
+      start_time, created
+    }
+  ]
+}
+```
+
+Draft meta (`sleeper-draft-meta.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  draft: {
+    draft_id, league_id, status, type, sport, season, season_type,
+    settings: { teams, rounds, pick_timer },
+    start_time, created,
+    draft_order: { [user_id]: slot } | null,
+    slot_to_roster_id: { [slot]: roster_id } | null,
+    last_picked, last_message_time
+  }
+}
+```
+
+Draft state (`sleeper-draft-state.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  status: "pre_draft" | "drafting" | "paused" | "complete" | "unknown",
+  type, season,
+  settings: { teams, rounds, pick_timer },
+  cursor: { since: int, latest: int },
+  total_picks:  int,
+  total_slots:  int,        // teams * rounds, 0 if unknown
+  current_pick: int | null, // null when status === "complete"
+  on_the_clock: {
+    pick_no, round, draft_slot, roster_id
+  } | null,
+  picks_since: [
+    {
+      pick_no, round, draft_slot, roster_id, picked_by, player_id,
+      is_keeper,
+      metadata: { first_name, last_name, team, position, status, injury_status, years_exp }
+    }
+  ],
+  has_new_picks: boolean,
+  poll_after_seconds: number, // recommended next poll
+  debounce_ms: number         // advisory client-side debounce floor (default 5000)
+}
+```
+
+Example response (`/api/sleeper/draft/draft-1/state?since=0`):
+
+```json
+{
+  "contract_version": "sleeper-draft-state.v1",
+  "generated_at": "2026-06-19T18:42:11.014Z",
+  "draft_id": "draft-1",
+  "status": "drafting",
+  "type": "snake",
+  "season": "2026",
+  "settings": { "teams": 12, "rounds": 15, "pick_timer": 60 },
+  "cursor": { "since": 0, "latest": 2 },
+  "total_picks": 2,
+  "total_slots": 180,
+  "current_pick": 3,
+  "on_the_clock": { "pick_no": 3, "round": 1, "draft_slot": 3, "roster_id": 13 },
+  "picks_since": [
+    {
+      "pick_no": 1, "round": 1, "draft_slot": 1, "roster_id": 11,
+      "picked_by": "user-1", "player_id": "100", "is_keeper": false,
+      "metadata": { "first_name": "Pat", "last_name": "Mahomes", "team": "KC", "position": "QB", "status": null, "injury_status": null, "years_exp": null }
+    },
+    {
+      "pick_no": 2, "round": 1, "draft_slot": 2, "roster_id": 12,
+      "picked_by": "user-2", "player_id": "200", "is_keeper": false,
+      "metadata": { "first_name": "Justin", "last_name": "Jefferson", "team": "MIN", "position": "WR", "status": null, "injury_status": null, "years_exp": null }
+    }
+  ],
+  "has_new_picks": true,
+  "poll_after_seconds": 8,
+  "debounce_ms": 5000
+}
+```
+
+`poll_after_seconds` defaults:
+
+```text
+pre_draft → 60s
+drafting  → 8s
+paused    → 30s
+complete  → 300s
+unknown   → 30s
+```
+
+Files changed:
+
+```text
+src/adapters/sleeper.js                       (added fetchSleeperLeagueDrafts / fetchSleeperDraft / fetchSleeperDraftPicks + Redis micro-cache)
+src/services/sleeperDraft.js                  (new — envelope shaping + snake/linear on-the-clock math)
+src/routes/sleeper.js                         (added /draft, /draft/:draftId, /draft/:draftId/state under requireAuth)
+test/sleeperDraftService.test.js              (new — 14 tests, pure shaping)
+test/sleeperDraftRoute.test.js                (new — 11 tests, route + 400/404/200)
+test/sleeperDraftAdapter.test.js              (new — 4 tests, adapter null/empty fallbacks)
+```
+
+Limitations:
+
+- Snake / linear / standard draft types are supported. Auction drafts are not modeled by `computeOnTheClock` — they get `on_the_clock: null`, and the Sleeper draft `type` field passes through unchanged for the frontend to detect.
+- `poll_after_seconds` and `debounce_ms` are advisory hints; the server still relies on a Redis micro-cache (`picks` 5s TTL, `meta` 60s TTL) plus the existing `generalRateLimit` to protect upstream Sleeper. When Redis is unset the adapter falls through to direct calls without crashing.
+- IDP / DEF positions in picks are passed through verbatim from Sleeper metadata; no Corvus-side enrichment.
+- Public Sleeper draft endpoints are unauthenticated upstream, but our routes are `requireAuth` so we can per-user rate-limit + log.
+
+How frontend should call it:
+
+```js
+// Initial load — pick a draft from the league:
+const list = await fetch(`/api/sleeper/draft?leagueId=${leagueId}`, {
+  headers: { Authorization: `Bearer ${session.access_token}` }
+}).then(r => r.json());
+
+const draftId = list.drafts.find(d => d.status === "drafting" || d.status === "pre_draft")?.draft_id;
+
+// Then poll state with a cursor:
+let since = 0;
+async function tick() {
+  const res = await fetch(`/api/sleeper/draft/${draftId}/state?since=${since}`, {
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  }).then(r => r.json());
+
+  if (res.has_new_picks) {
+    appendPicks(res.picks_since);
+    since = res.cursor.latest;
+  }
+  setOnTheClock(res.on_the_clock);
+  setStatus(res.status);
+
+  const delayMs = Math.max(res.poll_after_seconds * 1000, res.debounce_ms);
+  setTimeout(tick, delayMs);
+}
+```
+
+Always respect `Math.max(poll_after_seconds * 1000, debounce_ms)` — never spam below the debounce floor. When `status === "complete"`, stop polling and treat the cached state as final.
+
 ## Phase 1 ADP And League Scoring Schema - 2026-06-12
 
 Feature name: Phase 1 launch readiness / Draft Assistant data foundation.

@@ -16,6 +16,8 @@ const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
 const PLAYERS_CACHE_KEY = "ssff:sleeper:players";
 const PLAYERS_TTL_S = 86400;
 const PROJECTIONS_TTL_S = 3600;
+const DRAFT_META_TTL_S = 60;
+const DRAFT_PICKS_TTL_S = 5;
 const NFL_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
 const STARTER_SLOT_MAP = {
   SUPER_FLEX: "QB",
@@ -290,6 +292,37 @@ async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   };
 }
 
+async function fetchSleeperLeagueDrafts(leagueId) {
+  const drafts = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/drafts`);
+  return Array.isArray(drafts) ? drafts : [];
+}
+
+async function fetchSleeperDraft(draftId) {
+  const cacheKey = `ssff:sleeper:draft:meta:${draftId}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
+  const draft = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}`);
+  if (!draft || typeof draft !== "object") {
+    const err = new Error("Sleeper draft not found");
+    err.status = 404;
+    throw err;
+  }
+  await writeCache(cacheKey, draft, DRAFT_META_TTL_S);
+  return draft;
+}
+
+async function fetchSleeperDraftPicks(draftId) {
+  const cacheKey = `ssff:sleeper:draft:picks:${draftId}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
+  const picks = await getJson(`${BASE}/draft/${encodeURIComponent(draftId)}/picks`);
+  const out = Array.isArray(picks) ? picks : [];
+  await writeCache(cacheKey, out, DRAFT_PICKS_TTL_S);
+  return out;
+}
+
 module.exports = {
   fetchSleeperUser,
   fetchSleeperLeagues,
@@ -298,5 +331,8 @@ module.exports = {
   fetchSleeperStandings,
   fetchSleeperPlayers,
   fetchSleeperProjections,
+  fetchSleeperLeagueDrafts,
+  fetchSleeperDraft,
+  fetchSleeperDraftPicks,
   buildNormalizedRoster,
 };
