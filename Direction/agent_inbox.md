@@ -4,20 +4,20 @@
 
 ## Active Task
 
-*(empty — Phase 2.7 closed 2026-06-19 in implementation commit `e966a0a`; next session must run plan approval before Phase 2.8.)*
+*(empty — Phase 2.8 closed 2026-06-19. Contract block + dated handoff written; full backend tests 341/341; audit clean. Awaiting Justin review + PR/deploy gate.)*
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.8 — Sleeper live draft tracking.** Add debounced Lazy Sync against Sleeper draft endpoints; no long-polling sockets. Done docs: feature + recommendation + security.
-2. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
-3. **Phase 2.17 — Platform `lastResult` field for post-win pulse.** Add safe last-game result metadata across Sleeper, Yahoo, and ESPN adapters; research Yahoo/ESPN first and never log ESPN cookie values. Blocks frontend Phase 1.5d. Done docs: feature + security if new ESPN scope is needed.
-4. **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge.** Connect the existing `LLM_BASE_URL` backend lane to the KVM2 narration service. Done docs: feature + security.
-5. **Phase 3.13 — Token-constrained prompts.** Constrain narration to no more than 50 words and two sentences for CPU inference mitigation. Done docs: feature + recommendation.
+1. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
+2. **Phase 2.17 — Platform `lastResult` field for post-win pulse.** Add safe last-game result metadata across Sleeper, Yahoo, and ESPN adapters; research Yahoo/ESPN first and never log ESPN cookie values. Blocks frontend Phase 1.5d. Done docs: feature + security if new ESPN scope is needed.
+3. **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge.** Connect the existing `LLM_BASE_URL` backend lane to the KVM2 narration service. Done docs: feature + security.
+4. **Phase 3.13 — Token-constrained prompts.** Constrain narration to no more than 50 words and two sentences for CPU inference mitigation. Done docs: feature + recommendation.
+5. **Phase 4.16 — Termly base ToS + Privacy Policy** custom paragraphs for ESPN cookie handling, Yahoo attribution, Sleeper attribution. Codex authors, Justin reviews.
 
 ## Blockers Surfaced
 
-- None for next item Phase 2.8. The Sleeper draft deadline is August 15 and the approved design is debounced Lazy Sync without long-polling sockets.
 - Phase 2.17 remains ahead of frontend Phase 1.5d because it is that animation's backend dependency.
+- Phase 3.15 (`AI_PROVIDER` toggle) is explicitly gated on a `decision_log.md` dollar-cap entry and should not be pulled until Justin logs that figure.
 
 ## Standing Route
 

@@ -13,6 +13,12 @@ const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const sleeperAdapter = require("../adapters/sleeper");
+const {
+  DEFAULT_DEBOUNCE_MS,
+  buildDraftListResponse,
+  buildDraftMetaResponse,
+  buildDraftStateResponse,
+} = require("../services/sleeperDraft");
 
 const router = express.Router();
 const ROSTER_TTL_S = 300;
@@ -32,6 +38,82 @@ async function writeCache(key, value) {
   if (!redis) return;
   await redis.set(key, JSON.stringify(value), { ex: ROSTER_TTL_S }).catch(() => {});
 }
+
+function parseSinceCursor(value) {
+  if (value == null || value === "") return 0;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.floor(parsed);
+}
+
+router.get("/draft", requireAuth, async (req, res, next) => {
+  try {
+    const { leagueId } = req.query;
+    if (!leagueId) {
+      return res.status(400).json({ error: "leagueId query param required" });
+    }
+
+    const drafts = await sleeperAdapter.fetchSleeperLeagueDrafts(leagueId);
+    return res.json(buildDraftListResponse({ leagueId, drafts }));
+  } catch (e) {
+    if (e.status === 404) {
+      return res.status(404).json({ error: e.message });
+    }
+    logger.error("Sleeper draft list fetch failed", { err: e.message, stack: e.stack });
+    return next(e);
+  }
+});
+
+router.get("/draft/:draftId", requireAuth, async (req, res, next) => {
+  try {
+    const { draftId } = req.params;
+    if (!draftId) {
+      return res.status(400).json({ error: "draftId path param required" });
+    }
+
+    const draft = await sleeperAdapter.fetchSleeperDraft(draftId);
+    return res.json(buildDraftMetaResponse({ draftId, draft }));
+  } catch (e) {
+    if (e.status === 404) {
+      return res.status(404).json({ error: e.message });
+    }
+    logger.error("Sleeper draft meta fetch failed", { err: e.message, stack: e.stack });
+    return next(e);
+  }
+});
+
+router.get("/draft/:draftId/state", requireAuth, async (req, res, next) => {
+  try {
+    const { draftId } = req.params;
+    if (!draftId) {
+      return res.status(400).json({ error: "draftId path param required" });
+    }
+
+    const sinceCursor = parseSinceCursor(req.query.since);
+    if (sinceCursor === null) {
+      return res.status(400).json({ error: "since must be a non-negative integer" });
+    }
+
+    const [draft, picks] = await Promise.all([
+      sleeperAdapter.fetchSleeperDraft(draftId),
+      sleeperAdapter.fetchSleeperDraftPicks(draftId),
+    ]);
+
+    return res.json(buildDraftStateResponse({
+      draftId,
+      draft,
+      picks,
+      since: sinceCursor,
+      debounceMs: DEFAULT_DEBOUNCE_MS,
+    }));
+  } catch (e) {
+    if (e.status === 404) {
+      return res.status(404).json({ error: e.message });
+    }
+    logger.error("Sleeper draft state fetch failed", { err: e.message, stack: e.stack });
+    return next(e);
+  }
+});
 
 router.get("/roster", requireAuth, async (req, res, next) => {
   try {
