@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "impeccable": "^2.1.9",
-    "promptfoo": "0.121.9"
+    "promptfoo": "0.121.17"
   },
   "overrides": {
     "@opentelemetry/core": "2.8.0",
