@@ -39,7 +39,7 @@
 ## Blockers surfaced
 
 - None for the backend contract.
-- No deploy, production action, package change, secret, migration, Supabase query, or frontend change occurred.
+- No package, secret, migration, Supabase query, or frontend change occurred.
 
 ## Last verified build/test result
 
@@ -48,6 +48,13 @@
 - 2026-06-19: `npm audit --audit-level=moderate` — 0 vulnerabilities.
 - 2026-06-19: `git diff --check` — clean before implementation commit.
 - `slops-code-review` — merge verdict; no P0/P1.
+
+## Release evidence
+
+- PR #51 squash-merged to `main` as `cccc857f69364146125ebdd87caab7bb843f234a`.
+- `Deploy to Hostinger KVM1` run `27842680052` passed clean-runner tests, production audit, both frontend builds, API and cron image publication, KVM1 pull/restart, and workflow health smoke.
+- Independent canary passed 24/24 checks across `slopssaloon.com` and `www.slopssaloon.com`: health, readiness, homepage, and `corvus-demo.v1` all returned `200`; Demo identity, populated roster, Omen recommendation, and telemetry exclusions matched contract; HTTP redirected to HTTPS; HSTS was present. p95 latency was 242 ms, max 262 ms.
+- Rollback target: revert `cccc857` through a PR. The normal `main` workflow will rebuild and redeploy the prior API and cron images.
 
 ## Next recommended pull
 
