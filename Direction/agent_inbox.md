@@ -1,23 +1,26 @@
 # Corvus Agent Inbox
 
-**Auto-populated 2026-06-19 from `Direction/current_sprint.md`.** No pinned task was present. Agents may work across lanes; this ordering follows the first five eligible backend agent-buildable items and preserves their dependency order.
+**Auto-populated 2026-06-20 (Claude session) from `Direction/current_sprint.md`.** No pinned task was present. Previous pop (2026-06-19) was Codex-leaning; this pop is Claude-leaning (frontend / docs / specs) and still respects "Blocked by …" suffixes. Agents may work across lanes; either may pull any item.
 
 ## Active Task
 
-*(empty — Phase 2.8 closed 2026-06-19. Contract block + dated handoff written; full backend tests 341/341; audit clean. Awaiting Justin review + PR/deploy gate.)*
+*(empty — Phase 1.5e closed 2026-06-20, full-scope audit shipped. 32 teams audited with cultural anchors; 6 teams flagged for light axis; 7 defects logged; Phase 1.5f re-scoped to 11-point spike; new reusable methodology doc `Brand/entity-identity-theming.md` for next-product head-start. Awaiting Justin direction: pin **Phase 1.5f** (the spike that implements the audit) as next active, or pull #1 below.)*
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.10 — Trade share hash routes.** Add UUID-backed create/read routes for stored trade-share payloads and public hash reads. Done docs: feature + recommendation + security.
-2. **Phase 2.17 — Platform `lastResult` field for post-win pulse.** Add safe last-game result metadata across Sleeper, Yahoo, and ESPN adapters; research Yahoo/ESPN first and never log ESPN cookie values. Blocks frontend Phase 1.5d. Done docs: feature + security if new ESPN scope is needed.
-3. **Phase 3.12 — Tailscale → KVM2 Gemma 4-E4B bridge.** Connect the existing `LLM_BASE_URL` backend lane to the KVM2 narration service. Done docs: feature + security.
-4. **Phase 3.13 — Token-constrained prompts.** Constrain narration to no more than 50 words and two sentences for CPU inference mitigation. Done docs: feature + recommendation.
-5. **Phase 4.16 — Termly base ToS + Privacy Policy** custom paragraphs for ESPN cookie handling, Yahoo attribution, Sleeper attribution. Codex authors, Justin reviews.
+1. **Phase 1.5f — Theme-aware team palettes + cultural-anchor citations (12-point spike per 1.5e identity audit).** Implements the full-scope audit. 12 points: per-team `surfaceAxis` field in `nflTeams.js` (6 light: MIA/IND/LAC/DAL/CAR/ARI); two-axis `SURFACE_RECIPES`; theme-aware `getTeamTemplate()`; sat-aware `textSafe()` (clamps hue-shift for low-saturation accents — fixes LV silver); Bred template bypasses `textSafe` (preserves Falcons varsity-red); per-team accent overrides for HOU/NYG/PHI/SF; TB surface re-derives from secondary (pewter not blood); `--color-text-on-accent` token finally added; two-axis 32-team WCAG re-sweep; Mode picker copy update ("Light or dark to match your team's true colors"); `page-system.md` spec update; **NEW** — `culturalAnchor` field per team + one-line attribution UI on `/account/appearance` tile detail (Justin confirmed 2026-06-20). Audit doc: `Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md`. Methodology: `Brand/entity-identity-theming.md`. Frontend-Claude lean. Done docs: feature + page + design.
+2. **Phase 1.6 — Position chip palette + selected-state styling.** Unblocked (1.3 [x] + 1.4 [x]). Frontend. Unblocks Phase 1.12. Done docs: page + design + recommendation if recommendation cards change.
+3. **Phase 1.10A — UX copy options packet.** Unblocked (1.3 [x]). Decision packet — no source changes; Justin picks final copy. Unblocks 1.10B. Done docs: n/a (decision packet).
+4. **Phase 2.17 — Platform `lastResult` field (backend).** Backend-Codex lean, but kept on Claude's radar because it is the sole gate left on Phase 1.5d (post-win pulse). Surfaced here so Justin can decide whether to flip it to Codex or have Claude take the research-then-implement path. Done docs: feature + security if any new ESPN scope is needed.
+5. **Phase 1.11A — Demo Mode frontend fixtures.** Unblocked (1.3 [x]); Backend Phase 2.7 already complete (2026-06-19). Mock-roster / previous-results / mock-draft fixtures, clearly labeled, dev-flag-gated, distinct from public `/demo`. Done docs: feature + design + recommendation.
 
 ## Blockers Surfaced
 
-- Phase 2.17 remains ahead of frontend Phase 1.5d because it is that animation's backend dependency.
-- Phase 3.15 (`AI_PROVIDER` toggle) is explicitly gated on a `decision_log.md` dollar-cap entry and should not be pulled until Justin logs that figure.
+- **Phase 1.5d (post-win pulse animation)** still gated on Backend **Phase 2.17** (`lastResult` field across Sleeper / Yahoo / ESPN). Listed at #4 above so the dependency stays visible.
+- **Phase 1.10B (apply approved copy)** waits on Justin's selection from the **1.10A** options packet.
+- **Phase 1.12 (gray contrast + Standings refinement)** waits on **Phase 1.6** (palette reuse).
+- **Phase 3.15 (`AI_PROVIDER` toggle)** still gated on a `decision_log.md` dollar-cap entry — do not pull until logged.
+- **Frontend Phase 2.10 (Trade share card)** waits on Backend Phase 2.10 (hash routes), which is the top item in the 2026-06-19 Codex pop.
 
 ## Standing Route
 
