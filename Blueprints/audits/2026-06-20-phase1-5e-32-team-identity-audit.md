@@ -68,7 +68,7 @@ Reading order:
 | 23 | **GB Packers** | Packers green + gold, Lambeau Field, cheesehead | Lambeau Field tundra (frozen field gold sunset on green) + Vince Lombardi era | `#ffbd29` on `#161d1b` ✓ | Dark | Keep gold + green; cite Lambeau tundra sunset for the gold-on-green pairing | Strong as-is |
 | 24 | **MIN Vikings** | Vikings purple + gold + Norse longship | **Jordan 5 "Grape"** (1990) + Norse mythology + Skol chant | `#8d59cf` on `#191221` (AA-large) | Dark | Lift purple slightly for AA; cite Jordan 5 Grape as the purple+gold reference; runic mark motif | Keep dark; minor lift for AA |
 | 25 | **ATL Falcons** | Falcons red + black, Bred | **Jordan 1 "Bred"** (1985) + Atlanta hip-hop (OutKast *Aquemini* 1998) | `#e3455e` on `#080608` **DEFECT** | Dark | **Preserve `#A71930` deep varsity red (defect 1.5e-defect-2)** — Bred template should bypass textSafe lift. Cite Bred 1's deep red against pure black as the design source | Keep dark; **fix Bred accent defect** |
-| 26 | **CAR Panthers** | Carolina blue + black, Panther crouch | Carolina tobacco-road sky blue + UNC heritage | `#29b6ff` on `#0d1e26` | **LIGHT** (or hybrid) | Carolina blue `#0085CA` accent on cream surface; black secondary for borders. **OR** keep dark if Justin prefers the Panther's nocturnal-predator read | **JUSTIN'S CALL** — Carolina blue says "light", Panther says "dark" |
+| 26 | **CAR Panthers** | Carolina blue + black, Panther crouch | Carolina tobacco-road sky blue + UNC heritage | `#29b6ff` on `#0d1e26` | **LIGHT** | Carolina blue `#0085CA` accent on cream surface; black secondary for borders | **FLIP TO LIGHT** — Justin confirmed 2026-06-20 (Carolina blue + UNC heritage wins over the nocturnal-predator read) |
 | 27 | **NO Saints** | Black + gold + Mardi Gras Krewe | New Orleans Mardi Gras (gold/purple/green) + Bourbon Street brass | `#d3bc8d` on `#15191e` ✓ | Dark | Keep Saints flip (gold-on-black ✓); cite Mardi Gras heritage; could optionally add Mardi-purple `#5D2E8C` accent for one festive surface (Saints' celebration mode) | Strong as-is |
 | 28 | **TB Buccaneers** | Pewter + red + pirate skull, Gasparilla | Gasparilla pirate festival (Tampa Bay tradition) + skull-and-crossbones pewter | `#f53232` on `#1e0b0b` | Dark | Keep red; **surface should shift to pewter `#34302B`** (currently bloody-red — pirate identity is pewter helmet, not blood) | Keep dark; **swap surface from blood-red to pewter** |
 | 29 | **ARI Cardinals** | Cardinal red + white, Southwest desert | **Jordan 6 "Toro Bravo"** (2014) — red leather + white sole + black contrast (Justin's example) | `#bf2c4c` on `#221111` | **LIGHT** | Cardinal `#97233F` accent on white `#FAFAF9` surface; black accents for hairlines. Mirrors Toro Bravo upper/sole structure | **FLIP TO LIGHT** — Toro Bravo is red-on-white, not red-on-dark |
@@ -164,21 +164,23 @@ The first pass scoped Phase 1.5f as "add light recipes so user can flip light/da
 9. **Re-run 32-team WCAG sweep** against both axes. Append both columns to the 2026-06-16 contrast table.
 10. **Mode picker copy update**: "Team — Your team takes over. Light or dark to match your team's true colors." (was "Always dark.")
 11. **`page-system.md` spec update**: clarify that Team mode is per-entity light/dark, not per-user.
+12. **Cultural-anchor citation in product UI (Justin confirmed 2026-06-20).** On `/account/appearance`, surface a one-line attribution under each team tile pulling from the `culturalAnchor` field added to `nflTeams.js` (e.g., "Pine Green — Jordan 1 colorway" for NYJ, "Toro Bravo — Jordan 6" for ARI, "Miami Vice" for MIA). Reads as a fan-engagement signal AND a transparency signal. Implementation: add `culturalAnchor: { name: string, year?: number, kind: 'sneaker' | 'film' | 'music' | 'art' | 'region' | 'history' }` field to each team that has a non-trivial anchor (most teams will). Surface in tile detail / hover / expanded state on `/account/appearance` only — does NOT enter the rest of the app shell.
 
-Rough complexity: **medium-large.** Most lift is in steps 1, 2, 9 (data axis + recipe duplication + WCAG sweep). Steps 4, 5, 7, 8 are surgical. The cultural-anchor citations live in the audit doc (this file) — they don't need to enter the runtime; they're documentation for future designer understanding.
+Rough complexity: **medium-large.** Most lift is in steps 1, 2, 9 (data axis + recipe duplication + WCAG sweep). Steps 4, 5, 7, 8 are surgical. Step 12 is data-entry + one new tile component slot.
 
 ---
 
-## Out-of-scope for Phase 1.5f
+## Phase 1.5g — Motif flourishes (Justin approved 2026-06-20, in roadmap)
 
-These ideas appeared during the audit but are **not** in the Phase 1.5f spike scope:
+These were originally flagged as "out of scope for 1.5f"; Justin's 2026-06-20 directive moves them into the roadmap as **Phase 1.5g**, to ship after 1.5f's core theme-aware-axis work lands. Scope:
 
-- **Per-team motif flourishes** (CIN tiger-stripe hairlines, Saints Mardi-purple celebration mode, NE Patriot-day mode, etc.). These are nice-to-haves but require a richer template grammar. Phase 1.5g or later.
-- **Mood-shift surfaces** (DEN sunset gradient, BAL gothic surface texture). Same — visual flourishes that go beyond a single-color surface token.
-- **Per-team typography tweaks** (e.g., a Bears team-mode bold-italic for 1985-Bears throwback). Out of scope.
-- **Animated cultural moments** (NO Mardi Gras week, BUF playoff snow). Out of scope.
+- **Per-team motif hairlines / borders** — CIN tiger-stripe alternating-color borders on cards in Bengals mode; Saints Mardi-Gras-purple highlight on celebration states; NE minuteman silhouette as a section divider; DEN orange-to-navy sunset gradient as the Football page header rule; BAL gothic-texture surface (subtle parchment + raven-feather noise).
+- **Per-team typography flourishes** — Bears mode could swap heading font to a 1985-Bears bold-italic; Vikings mode to a Norse-rune-influenced display weight; Saints to a brass-band script for the welcome eyebrow.
+- **Animated cultural moments** (low-priority, opt-in) — NO Mardi Gras week colorway override (gold/purple/green for Feb week of Fat Tuesday); BUF playoff-snow ambient animation on header rule; KC Super-Bowl-week BBQ-smoke surface texture.
 
-These are flagged here so future Phase 1.5g/h can pick them up with the audit's reasoning still attached.
+These require a richer template grammar than 1.5f delivers (motif slots, alternate surface modes, time-based overrides). Plan for a separate spec doc at Phase 1.5g kickoff to design the grammar before implementation.
+
+**Out of even 1.5g scope:** WAS Mardi-style alternate surface (Justin's other open call from this audit — left undecided; can fold into 1.5g design conversation if Justin lands a verdict).
 
 ---
 
@@ -190,9 +192,12 @@ Where this audit recommends a change beyond the captured teams (e.g., MIA flip t
 
 ---
 
-## Decisions Justin owns (open in this audit)
+## Decisions Justin made 2026-06-20
 
-1. **CAR Panthers axis call.** Carolina blue says "light + UNC blue on white." Panther says "dark + nocturnal predator." Either is defensible. Audit defaults to **light** but flags for Justin's call.
-2. **Per-team motif flourishes** (CIN tiger-stripe, Saints Mardi-purple, NE minuteman). In or out of Phase 1.5g scope?
-3. **WAS Mardi-style alternate surface for Saints celebration mode.** Easter-egg nice-to-have? Or distraction?
-4. **Cultural anchor citations** — keep in audit doc only, or surface them in product (e.g., a one-line attribution under each team's tile in `/account/appearance`: "Pine Green — Jordan 1 colorway")? Could be a fan-engagement signal.
+1. **CAR Panthers axis: LIGHT.** Carolina blue + UNC heritage wins. Updated in the 32-team table above.
+2. **Per-team motif flourishes: IN.** Promoted to Phase 1.5g (see new section above).
+3. **Cultural-anchor citation in product UI: YES.** Added as Phase 1.5f scope item #12 above. Implementation: new `culturalAnchor` field in `nflTeams.js`, surfaced on `/account/appearance` tile detail.
+
+## Still open
+
+- **WAS Mardi-style alternate surface for Saints celebration mode.** Not asked about in the 2026-06-20 chat. Easter-egg nice-to-have or distraction? Can be folded into the Phase 1.5g grammar conversation if a verdict lands by then.

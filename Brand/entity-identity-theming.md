@@ -226,4 +226,4 @@ This section is a living TODO carried forward as the methodology evolves. Update
 - [ ] Promote to L0 (`slops-os/Blueprints/patterns/`) when promoted patterns prove durable across two products.
 - [ ] Add a **Cultural Anchor Index template** (CSV or YAML schema) at the methodology level so new products start with a structured citation format.
 - [ ] Capture **anti-pattern 6 enforcement** — a calendar reminder per product cycle to revisit fan-perceived identity.
-- [ ] Consider exposing **cultural-anchor citation in product UI** (e.g., a one-line attribution under each entity in the entity-picker: "Pine Green — Jordan 1 colorway"). This is a fan-engagement signal AND a transparency signal. Open Justin decision flagged in Corvus 1.5e.
+- [x] Expose **cultural-anchor citation in product UI** (e.g., a one-line attribution under each entity in the entity-picker: "Pine Green — Jordan 1 colorway"). Justin confirmed for Corvus 2026-06-20 — folded into Corvus Phase 1.5f as scope item #12. Methodology recommendation: any product adopting this pattern should surface citations in the entity-picker, both as a fan-engagement signal AND a designer-transparency signal.
