@@ -71,7 +71,9 @@
   - `https://slopssaloon.com/api/sleeper/draft/some-id` (no auth) → `401 Missing bearer token`
   - `https://slopssaloon.com/api/sleeper/draft/some-id/state?since=0` (no auth) → `401 Missing bearer token`
 - `requireAuth` confirmed gating before query/path validation across all three new routes.
-- Rollback target: revert `8c6c3bd` through a PR; the normal `main` workflow rebuilds and redeploys the prior API and cron images.
+- Hardening PR #56 squash-merged as `b1ec05d2ba0042aab93dc6ccff6d71d86ca8312a`; KVM1 run `27853988393` passed quality, API/cron builds, restart, health smoke, and log tail.
+- Independent hardening smoke 2026-06-20 00:08 UTC: apex health/ready/version and `www` health returned `200`; all three Sleeper draft routes returned `401 Missing bearer token` without auth. Authenticated connected-league behavior was not production-probed because no user bearer token was used.
+- Rollback target: revert `b1ec05d` through a PR; the normal `main` workflow rebuilds and redeploys the prior API and cron images.
 
 ## Next recommended pull
 
