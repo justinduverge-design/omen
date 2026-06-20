@@ -4,7 +4,7 @@
 
 ## Active Task
 
-*(empty — Phase 2.8 closed 2026-06-19. Contract block + dated handoff written; full backend tests 341/341; audit clean. Awaiting Justin review + PR/deploy gate.)*
+*(empty — Phase 2.8 fully closed 2026-06-19. Feature PR #53 merged as `8c6c3bd` and deployed; post-deploy `/code-review` ran with no P0/P1; both P2/P3 follow-ups fixed in PR #55 (`4d828bb`) and re-deployed; production smoke green after both deploys. Tests 346/346; audit clean.)*
 
 ## Auto-Populated Top 5
 

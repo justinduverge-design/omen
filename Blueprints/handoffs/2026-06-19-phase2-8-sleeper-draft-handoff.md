@@ -71,6 +71,29 @@
 - `requireAuth` confirmed gating before query/path validation across all three new routes.
 - Rollback target: revert `8c6c3bd` through a PR; the normal `main` workflow rebuilds and redeploys the prior API and cron images.
 
+## Post-deploy code-review + follow-up fixes (PR #55)
+
+`/code-review` was run against PR #53 after the deploy at Justin's "to be safe" request. Verdict: **Approve, safe in production.** No P0/P1. Two findings filed and fixed in PR #55:
+
+- **Fix #1 (P2) — auction `on_the_clock: null`.** `computeOnTheClock` previously returned a populated `{pick_no, round, draft_slot, roster_id}` for `type: "auction"` because the slot math ran unconditionally for any non-snake type. The handoff doc and `Blueprints/handoffs/backend-to-frontend.md` already claimed `on_the_clock: null` for auction. `computeOnTheClock` now short-circuits when `type === "auction"`, and the frontend should detect via the `type` field for differentiated rendering. Two new tests in `test/sleeperDraftService.test.js`: `computeOnTheClock returns null for auction drafts (no ordered slots)` and `buildDraftStateResponse marks auction drafts with on_the_clock null and preserves raw type`.
+- **Fix #2 (P3) — single-flight dedupe of concurrent cache-miss fetches.** `src/adapters/sleeper.js` adds an `inFlightDraftFetches` Map + `singleFlight(key, fetcher)` helper. `fetchSleeperDraft` and `fetchSleeperDraftPicks` now share one upstream axios call across concurrent cache-miss requesters keyed by their cache key. A second `readCache` inside the closure handles the race where another caller wrote between the outer miss and the inner fetch. Promises are deleted after settle. Three new tests in `test/sleeperDraftAdapter.test.js`: 5-concurrent dedupes to 1 upstream call, 3-concurrent dedupes to 1 upstream call, and sequential post-settle re-fetches still re-call upstream when the cache is a no-op (Redis-off).
+
+PR #55 release evidence:
+
+- Implementation commit `a856389`.
+- PR #55 squash-merged to `main` 2026-06-19T21:28 UTC as `4d828bb731ebcdf70589a7be44f757266ba6f880`.
+- `Deploy to Hostinger KVM1` (`.github/workflows/deploy.yml`) ran on the merge-to-main push; container restart confirmed by `/api/health` uptime drop to **173s** at the 21:38 UTC smoke window (pre-merge baselines were `1939s` and `2194s`).
+- Independent production smoke 2026-06-19 21:38 UTC:
+  - `https://slopssaloon.com/api/health` → `200 {status:"ok"}` (uptime 173s)
+  - `https://slopssaloon.com/api/ready` → `200 {status:"ready"}` (Supabase reachable; Stripe/Yahoo/Redis/LLM/OpenWeather optional all `true`)
+  - `https://www.slopssaloon.com/api/health` → `200 {status:"ok"}` (uptime 174s)
+  - `https://slopssaloon.com/api/sleeper/draft?leagueId=ping` (no auth) → `401 Missing bearer token`
+  - `https://slopssaloon.com/api/sleeper/draft/some-id` (no auth) → `401 Missing bearer token`
+  - `https://slopssaloon.com/api/sleeper/draft/some-id/state?since=0` (no auth) → `401 Missing bearer token`
+- No external behavior change at the unauthenticated probe (as intended — both fixes are internal): auction short-circuit only manifests behind auth on real auction drafts; dedupe only manifests during concurrent cache-miss windows.
+- Tests **346/346** (was 341; +5 from the fixes). `npm audit --audit-level=moderate` **0 vulnerabilities**.
+- Rollback target: revert `4d828bb` through a PR; the normal `main` workflow rebuilds and redeploys the prior API and cron images.
+
 ## Next recommended pull
 
 - Phase 2.10 — Trade share hash routes (`crypto.randomUUID` + `POST /api/trade/share` + `GET /api/trade/share/:hash`). Independent of Phase 2.8, no shared adapters.
