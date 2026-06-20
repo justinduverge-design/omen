@@ -16,8 +16,10 @@ const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
 const PLAYERS_CACHE_KEY = "ssff:sleeper:players";
 const PLAYERS_TTL_S = 86400;
 const PROJECTIONS_TTL_S = 3600;
-const DRAFT_META_TTL_S = 60;
-const DRAFT_PICKS_TTL_S = 5;
+const DRAFT_META_TTL_S = 2;
+const DRAFT_PICKS_TTL_S = 2;
+const SLEEPER_REQUEST_LIMIT = 900;
+const SLEEPER_REQUEST_WINDOW_MS = 60_000;
 const NFL_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
 const STARTER_SLOT_MAP = {
   SUPER_FLEX: "QB",
@@ -29,16 +31,60 @@ const redis = config.redisUrl
   ? new Redis({ url: config.redisUrl, token: config.redisToken })
   : null;
 
+function createWindowBudget({
+  limit = SLEEPER_REQUEST_LIMIT,
+  windowMs = SLEEPER_REQUEST_WINDOW_MS,
+  now = () => Date.now(),
+} = {}) {
+  let windowStartedAt = now();
+  let used = 0;
+
+  return {
+    take() {
+      const current = now();
+      if (current - windowStartedAt >= windowMs) {
+        windowStartedAt = current;
+        used = 0;
+      }
+      if (used >= limit) {
+        const error = new Error("Sleeper request budget exhausted");
+        error.status = 503;
+        error.code = "sleeper_request_budget_exhausted";
+        error.retryAfterMs = Math.max(1, windowMs - (current - windowStartedAt));
+        throw error;
+      }
+      used += 1;
+    },
+  };
+}
+
+const sleeperRequestBudget = createWindowBudget();
+
 function currentSeason() {
   return String(new Date().getFullYear());
 }
 
 async function getJson(url, options = {}) {
-  const res = await axios.get(url, {
-    timeout: options.timeout || 10000,
-    params: options.params,
-  });
-  return res.data;
+  sleeperRequestBudget.take();
+  try {
+    const res = await axios.get(url, {
+      timeout: options.timeout || 10000,
+      params: options.params,
+    });
+    return res.data;
+  } catch (error) {
+    if (error?.response?.status === 429) {
+      const retryAfterSeconds = Number(error.response.headers?.["retry-after"]);
+      const rateError = new Error("Sleeper temporarily rate limited draft sync");
+      rateError.status = 503;
+      rateError.code = "sleeper_rate_limited";
+      rateError.retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? retryAfterSeconds * 1000
+        : 30_000;
+      throw rateError;
+    }
+    throw error;
+  }
 }
 
 async function readCache(key) {
@@ -357,6 +403,7 @@ async function fetchSleeperDraftPicks(draftId) {
 }
 
 module.exports = {
+  createWindowBudget,
   fetchSleeperUser,
   fetchSleeperLeagues,
   fetchSleeperLeague,
