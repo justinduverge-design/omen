@@ -2,8 +2,9 @@
 
 ## Files updated
 
-- `src/adapters/sleeper.js` — added `fetchSleeperLeagueDrafts(leagueId)`, `fetchSleeperDraft(draftId)`, `fetchSleeperDraftPicks(draftId)` with Redis micro-cache (`meta` 60s, `picks` 5s).
+- `src/adapters/sleeper.js` — draft fetches use a 2-second active Redis micro-cache, single-flight dedupe, and a 900-call/minute process budget with explicit 429 backoff.
 - `src/services/sleeperDraft.js` — new pure shaping module: `sleeper-draft-list.v1`, `sleeper-draft-meta.v1`, `sleeper-draft-state.v1` envelopes, snake/linear on-the-clock math, `since` cursor delta, advisory `poll_after_seconds` + `debounce_ms`.
+- `src/services/sleeperDraftAccess.js` — validates every request against the authenticated user's active Sleeper connection using a bounded 30-second ownership cache.
 - `src/routes/sleeper.js` — added three `requireAuth` routes:
   - `GET /api/sleeper/draft?leagueId=`
   - `GET /api/sleeper/draft/:draftId`
@@ -30,8 +31,9 @@
 - Canonical endpoints are `GET /api/sleeper/draft`, `GET /api/sleeper/draft/:draftId`, `GET /api/sleeper/draft/:draftId/state`. All `requireAuth`; subscription is **not** required (Draft Assistant is free; this is the live draft surface beside it).
 - Lazy Sync is implemented as a **numeric `since` cursor** on `pick_no`, not as ETag/If-None-Match. Sleeper picks are append-only with monotonically increasing `pick_no`, so a cursor is the right shape and avoids hashing/304 semantics.
 - The server returns `200` with `picks_since: []` + `has_new_picks: false` when nothing is new. No `304`.
-- Response includes both `poll_after_seconds` (status-aware: 60 / 8 / 30 / 300 / 30) and `debounce_ms` (5000 floor). Frontends should poll at `max(poll_after_seconds * 1000, debounce_ms)`.
-- No per-user in-memory debounce middleware was added. Upstream API protection is achieved by the adapter's Redis micro-cache (`picks` 5s, `meta` 60s) plus the existing `generalRateLimit`. Adding a finer per-user debounce can be a follow-up if real load shows abuse.
+- Response includes both `poll_after_seconds` (status-aware: 30 / 2 / 30 / 30 / 30) and `debounce_ms` (2000 floor). Frontends should poll at `max(poll_after_seconds * 1000, debounce_ms)`.
+- Active mode is two seconds; all other statuses are low-frequency at 30 seconds. Upstream protection combines the global limiter, Redis micro-cache, in-flight dedupe, and the 900-call/minute process budget.
+- `draft_order` and `picked_by` are no longer returned. The contract exposes only `user_draft_slot` and per-pick `is_user_pick` so other managers' raw Sleeper user IDs stay out of the response.
 - Snake and linear/standard drafts compute `on_the_clock` server-side from `total_picks_taken`. Auction drafts pass through with `on_the_clock: null` and the raw Sleeper `type` so the frontend can detect.
 - No new dependencies. Uses `axios` + `@upstash/redis` already in the adapter.
 
@@ -39,7 +41,7 @@
 
 - Whether to add a per-user Redis-backed cooldown beyond the advisory `debounce_ms` once we have real Sleeper draft-day load numbers. Punted as launch tech debt.
 - Frontend Phase 2.8 surface (draft room UI) is not yet scoped in `current_sprint.md` — this handoff makes the backend contract stable for that scoping pass.
-- Whether to expose `picked_by` user-id resolution to display names. Today we return raw Sleeper `user_id` only.
+- Display names for other draft participants remain out of scope; no raw Sleeper user IDs are returned.
 
 ## Blockers surfaced
 
@@ -49,10 +51,10 @@
 
 ## Last verified build/test result
 
-- 2026-06-19: `npm test` — 341/341 passed (was 312; +29 from the three new test files).
+- 2026-06-19 hardening: `npm test` — 352/352 passed; focused draft/access suite 40/40.
 - 2026-06-19: `npm audit --audit-level=moderate` — 0 vulnerabilities.
 - 2026-06-19: working tree edits limited to `src/adapters/sleeper.js`, `src/routes/sleeper.js`, `src/services/sleeperDraft.js`, and the three new `test/sleeperDraft*.test.js` files plus docs.
-- `slops-code-review` — not run. Justin's "merge and deploy" directive bypassed the soft-review step; the gating CI checks (`quality` and `build` in `.github/workflows/deploy.yml`) ran on the merge-to-main push, passed, and the deploy job completed. No 2026-06-16 "never merge with the gating CI check red" rule was violated because the gating checks ran post-merge as part of `deploy.yml` and went green.
+- `slops-code-review` hardening verdict: merge; no P0/P1 remain. Review: `Blueprints/audits/2026-06-19-phase2-8-live-hardening-code-review.md`.
 
 ## Release evidence
 

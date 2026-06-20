@@ -56,6 +56,7 @@ function defaultAdapterStub() {
       type: "snake",
       season: "2026",
       settings: { teams: 12, rounds: 15, pick_timer: 60 },
+      draft_order: { "user-1": 1, "user-2": 2 },
       slot_to_roster_id: { 1: 11, 2: 12, 3: 13 },
     }),
     fetchSleeperDraftPicks: async () => PICKS_SAMPLE,
@@ -63,11 +64,25 @@ function defaultAdapterStub() {
   };
 }
 
-function loadSleeperRouter(adapterOverrides = {}) {
+function defaultAccessStub() {
+  return {
+    assertLeagueAccess: async (_userId, leagueId) => ({
+      league_id: leagueId,
+      platform_user_id: "user-1",
+    }),
+    assertDraftAccess: async () => ({
+      league_id: "league-1",
+      platform_user_id: "user-1",
+    }),
+  };
+}
+
+function loadSleeperRouter(adapterOverrides = {}, accessOverrides = {}) {
   const routePath = require.resolve("../src/routes/sleeper");
   delete require.cache[routePath];
 
   const stub = { ...defaultAdapterStub(), ...adapterOverrides };
+  const accessStub = { ...defaultAccessStub(), ...accessOverrides };
 
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -82,6 +97,9 @@ function loadSleeperRouter(adapterOverrides = {}) {
     if (request === "../adapters/sleeper" && parent?.filename === routePath) {
       return stub;
     }
+    if (request === "../services/sleeperDraftAccess" && parent?.filename === routePath) {
+      return accessStub;
+    }
     return originalLoad.call(this, request, parent, isMain);
   };
 
@@ -92,10 +110,10 @@ function loadSleeperRouter(adapterOverrides = {}) {
   }
 }
 
-function buildApp(adapterOverrides) {
+function buildApp(adapterOverrides, accessOverrides) {
   const app = express();
   app.use(express.json());
-  app.use("/api/sleeper", loadSleeperRouter(adapterOverrides));
+  app.use("/api/sleeper", loadSleeperRouter(adapterOverrides, accessOverrides));
   app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ error: err.message });
   });
@@ -132,6 +150,22 @@ test("GET /api/sleeper/draft returns normalized draft list", async () => {
   assert.equal(res.body.drafts[0].settings.teams, 12);
 });
 
+test("GET /api/sleeper/draft rejects a league outside the authenticated connection", async () => {
+  const res = await request(
+    buildApp({}, {
+      assertLeagueAccess: async () => {
+        const error = new Error("Draft not found for the connected Sleeper league");
+        error.status = 404;
+        error.code = "sleeper_draft_not_found";
+        throw error;
+      },
+    }),
+    "/api/sleeper/draft?leagueId=other-league",
+  );
+  assert.equal(res.status, 404);
+  assert.equal(res.body.code, "sleeper_draft_not_found");
+});
+
 test("GET /api/sleeper/draft/:draftId returns draft meta", async () => {
   const res = await request(buildApp(), "/api/sleeper/draft/draft-1");
   assert.equal(res.status, 200);
@@ -139,6 +173,8 @@ test("GET /api/sleeper/draft/:draftId returns draft meta", async () => {
   assert.equal(res.body.draft_id, "draft-1");
   assert.equal(res.body.draft.settings.rounds, 15);
   assert.equal(res.body.draft.slot_to_roster_id["1"], 11);
+  assert.equal(res.body.draft.user_draft_slot, 1);
+  assert.equal("draft_order" in res.body.draft, false);
 });
 
 test("GET /api/sleeper/draft/:draftId surfaces 404 from adapter", async () => {
@@ -166,10 +202,13 @@ test("GET /api/sleeper/draft/:draftId/state returns full state from since=0", as
   assert.equal(res.body.has_new_picks, true);
   assert.equal(res.body.picks_since.length, 2);
   assert.equal(res.body.current_pick, 3);
-  assert.equal(res.body.poll_after_seconds, 8);
-  assert.equal(res.body.debounce_ms, 5000);
+  assert.equal(res.body.poll_after_seconds, 2);
+  assert.equal(res.body.debounce_ms, 2000);
   assert.equal(res.body.cursor.since, 0);
   assert.equal(res.body.cursor.latest, 2);
+  assert.equal(res.body.picks_since[0].is_user_pick, true);
+  assert.equal(res.body.picks_since[1].is_user_pick, false);
+  assert.equal(JSON.stringify(res.body).includes("picked_by"), false);
 });
 
 test("GET /api/sleeper/draft/:draftId/state respects since cursor", async () => {
@@ -215,7 +254,7 @@ test("GET /api/sleeper/draft/:draftId/state surfaces 404 from adapter", async ()
   assert.equal(res.body.error, "Sleeper draft not found");
 });
 
-test("GET /api/sleeper/draft/:draftId/state poll_after long-polls when complete", async () => {
+test("GET /api/sleeper/draft/:draftId/state uses low-frequency hint when complete", async () => {
   const res = await request(
     buildApp({
       fetchSleeperDraft: async () => ({
@@ -238,5 +277,5 @@ test("GET /api/sleeper/draft/:draftId/state poll_after long-polls when complete"
   assert.equal(res.body.status, "complete");
   assert.equal(res.body.current_pick, null);
   assert.equal(res.body.on_the_clock, null);
-  assert.equal(res.body.poll_after_seconds, 300);
+  assert.equal(res.body.poll_after_seconds, 30);
 });

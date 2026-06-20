@@ -24,6 +24,9 @@ This file is the quick backend reference for current canonical routes and known 
 | `GET` | `/api/players/search` | `players-search.v1` | No | Free Trade Analyzer autocomplete. Uses public Sleeper player data; max 10 rows. |
 | `POST` | `/api/draft-assistant/recommendations` | `draft-assistant-recommendations.v1` | No | Mock/preview recommendations until live Draft Assistant data ships. |
 | `GET` | `/api/draft-assistant/adp` | ADP response | No | Public ADP; optional Yahoo enrichment when auth is supplied. |
+| `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
+| `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
+| `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
 | `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, and `user.favorite_team`. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |

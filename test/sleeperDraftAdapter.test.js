@@ -175,3 +175,23 @@ test("fetchSleeperDraft re-fetches after the in-flight promise settles", async (
   // The dedupe only fires within a single in-flight window.
   assert.equal(calls.length, 2);
 });
+
+test("Sleeper request budget fails closed and resets with its window", () => {
+  let now = 100;
+  const { adapter } = loadAdapterWithAxiosStub(() => ({}));
+  const budget = adapter.createWindowBudget({
+    limit: 2,
+    windowMs: 1_000,
+    now: () => now,
+  });
+
+  budget.take();
+  budget.take();
+  assert.throws(
+    () => budget.take(),
+    (error) => error.code === "sleeper_request_budget_exhausted"
+      && error.retryAfterMs === 1_000,
+  );
+  now += 1_000;
+  assert.doesNotThrow(() => budget.take());
+});

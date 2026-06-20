@@ -19,14 +19,14 @@ const SLEEPER_DRAFT_META_VERSION = "sleeper-draft-meta.v1";
 const SLEEPER_DRAFT_STATE_VERSION = "sleeper-draft-state.v1";
 
 const POLL_AFTER_SECONDS = {
-  pre_draft: 60,
-  drafting: 8,
+  pre_draft: 30,
+  drafting: 2,
   paused: 30,
-  complete: 300,
+  complete: 30,
   unknown: 30,
 };
 
-const DEFAULT_DEBOUNCE_MS = 5000;
+const DEFAULT_DEBOUNCE_MS = 2000;
 
 function nowIso() {
   return new Date().toISOString();
@@ -72,12 +72,13 @@ function normalizeDraftListEntry(draft = {}) {
   };
 }
 
-function normalizeDraftMeta(draft = {}) {
+function normalizeDraftMeta(draft = {}, platformUserId = null) {
+  const userDraftSlot = platformUserId && draft.draft_order
+    ? (draft.draft_order[String(platformUserId)] ?? null)
+    : null;
   return {
     ...normalizeDraftListEntry(draft),
-    draft_order: draft.draft_order && typeof draft.draft_order === "object"
-      ? { ...draft.draft_order }
-      : null,
+    user_draft_slot: userDraftSlot,
     slot_to_roster_id: draft.slot_to_roster_id && typeof draft.slot_to_roster_id === "object"
       ? { ...draft.slot_to_roster_id }
       : null,
@@ -98,13 +99,14 @@ function safeMetadata(metadata = {}) {
   };
 }
 
-function normalizePick(pick = {}) {
+function normalizePick(pick = {}, platformUserId = null) {
   return {
     pick_no: intOr(pick.pick_no, 0),
     round: intOr(pick.round, 0),
     draft_slot: intOr(pick.draft_slot, 0),
     roster_id: pick.roster_id ?? null,
-    picked_by: pick.picked_by ? String(pick.picked_by) : null,
+    is_user_pick: Boolean(platformUserId)
+      && String(pick.picked_by || "") === String(platformUserId),
     player_id: pick.player_id ? String(pick.player_id) : null,
     is_keeper: pick.is_keeper === true,
     metadata: safeMetadata(pick.metadata),
@@ -162,17 +164,26 @@ function buildDraftListResponse({ leagueId, drafts }) {
   };
 }
 
-function buildDraftMetaResponse({ draftId, draft }) {
+function buildDraftMetaResponse({ draftId, draft, platformUserId = null }) {
   return {
     contract_version: SLEEPER_DRAFT_META_VERSION,
     generated_at: nowIso(),
     draft_id: String(draftId),
-    draft: normalizeDraftMeta(draft || {}),
+    draft: normalizeDraftMeta(draft || {}, platformUserId),
   };
 }
 
-function buildDraftStateResponse({ draftId, draft, picks, since = 0, debounceMs = DEFAULT_DEBOUNCE_MS }) {
-  const allPicks = Array.isArray(picks) ? picks.map(normalizePick) : [];
+function buildDraftStateResponse({
+  draftId,
+  draft,
+  picks,
+  since = 0,
+  debounceMs = DEFAULT_DEBOUNCE_MS,
+  platformUserId = null,
+}) {
+  const allPicks = Array.isArray(picks)
+    ? picks.map((pick) => normalizePick(pick, platformUserId))
+    : [];
   allPicks.sort((a, b) => a.pick_no - b.pick_no);
 
   const sinceCursor = intOr(since, 0);

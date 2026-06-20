@@ -70,13 +70,14 @@ test("normalizePick coerces malformed numbers and metadata safely", () => {
     player_id: 12345,
     is_keeper: true,
     metadata: { first_name: "X", last_name: "Y", position: "WR", team: "BUF", junk: "drop" },
-  });
+  }, "99");
 
   assert.equal(normalized.pick_no, 12);
   assert.equal(normalized.round, 2);
   assert.equal(normalized.draft_slot, 3);
   assert.equal(normalized.roster_id, 14);
-  assert.equal(normalized.picked_by, "99");
+  assert.equal(normalized.is_user_pick, true);
+  assert.equal("picked_by" in normalized, false);
   assert.equal(normalized.player_id, "12345");
   assert.equal(normalized.is_keeper, true);
   assert.deepEqual(normalized.metadata, {
@@ -158,14 +159,23 @@ test("buildDraftListResponse normalizes draft entries and applies version", () =
   assert.equal(res.drafts[0].settings.teams, 10);
 });
 
-test("buildDraftMetaResponse keeps slot_to_roster_id and draft_order", () => {
-  const draft = snakeDraft();
-  const res = buildDraftMetaResponse({ draftId: "draft-1", draft });
+test("buildDraftMetaResponse keeps roster slots but exposes only the user's draft slot", () => {
+  const draft = {
+    ...snakeDraft(),
+    draft_order: { "user-1": 1, "user-2": 2 },
+  };
+  const res = buildDraftMetaResponse({
+    draftId: "draft-1",
+    draft,
+    platformUserId: "user-1",
+  });
 
   assert.equal(res.contract_version, SLEEPER_DRAFT_META_VERSION);
   assert.equal(res.draft_id, "draft-1");
   assert.equal(res.draft.settings.teams, 12);
   assert.equal(res.draft.slot_to_roster_id["1"], 11);
+  assert.equal(res.draft.user_draft_slot, 1);
+  assert.equal("draft_order" in res.draft, false);
 });
 
 test("buildDraftStateResponse returns full envelope with no picks (pre-draft)", () => {
@@ -200,6 +210,7 @@ test("buildDraftStateResponse returns only picks after since cursor", () => {
     draft: snakeDraft(),
     picks,
     since: 2,
+    platformUserId: "user-3",
   });
 
   assert.equal(res.total_picks, 4);
@@ -210,6 +221,9 @@ test("buildDraftStateResponse returns only picks after since cursor", () => {
   assert.deepEqual(res.picks_since.map((p) => p.pick_no), [3, 4]);
   assert.equal(res.current_pick, 5);
   assert.equal(res.poll_after_seconds, POLL_AFTER_SECONDS.drafting);
+  assert.equal(res.picks_since[0].is_user_pick, true);
+  assert.equal(res.picks_since[1].is_user_pick, false);
+  assert.equal(JSON.stringify(res).includes("picked_by"), false);
 });
 
 test("buildDraftStateResponse returns empty delta and short poll when caller is current", () => {

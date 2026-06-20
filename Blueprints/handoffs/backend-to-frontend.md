@@ -10,7 +10,7 @@ Claude/frontend reads this file before wiring UI to backend behavior.
 
 Feature name: Sleeper live draft tracking (debounced Lazy Sync).
 
-Status: Built locally. Tests 341/341 (29 new). `npm audit --audit-level=moderate` 0 vulnerabilities. Not deployed.
+Status: Baseline deployed via PR #53. High-frequency ownership/privacy hardening is ready to merge with 352/352 tests and 0 audit vulnerabilities; deployment evidence will be appended after the authorized release.
 
 Method and path:
 
@@ -77,7 +77,7 @@ Draft meta (`sleeper-draft-meta.v1`):
     draft_id, league_id, status, type, sport, season, season_type,
     settings: { teams, rounds, pick_timer },
     start_time, created,
-    draft_order: { [user_id]: slot } | null,
+    user_draft_slot: number | null,
     slot_to_roster_id: { [slot]: roster_id } | null,
     last_picked, last_message_time
   }
@@ -103,14 +103,14 @@ Draft state (`sleeper-draft-state.v1`):
   } | null,
   picks_since: [
     {
-      pick_no, round, draft_slot, roster_id, picked_by, player_id,
-      is_keeper,
+      pick_no, round, draft_slot, roster_id, player_id,
+      is_user_pick, is_keeper,
       metadata: { first_name, last_name, team, position, status, injury_status, years_exp }
     }
   ],
   has_new_picks: boolean,
   poll_after_seconds: number, // recommended next poll
-  debounce_ms: number         // advisory client-side debounce floor (default 5000)
+  debounce_ms: number         // advisory client-side debounce floor (default 2000)
 }
 ```
 
@@ -133,28 +133,28 @@ Example response (`/api/sleeper/draft/draft-1/state?since=0`):
   "picks_since": [
     {
       "pick_no": 1, "round": 1, "draft_slot": 1, "roster_id": 11,
-      "picked_by": "user-1", "player_id": "100", "is_keeper": false,
+      "player_id": "100", "is_user_pick": true, "is_keeper": false,
       "metadata": { "first_name": "Pat", "last_name": "Mahomes", "team": "KC", "position": "QB", "status": null, "injury_status": null, "years_exp": null }
     },
     {
       "pick_no": 2, "round": 1, "draft_slot": 2, "roster_id": 12,
-      "picked_by": "user-2", "player_id": "200", "is_keeper": false,
+      "player_id": "200", "is_user_pick": false, "is_keeper": false,
       "metadata": { "first_name": "Justin", "last_name": "Jefferson", "team": "MIN", "position": "WR", "status": null, "injury_status": null, "years_exp": null }
     }
   ],
   "has_new_picks": true,
-  "poll_after_seconds": 8,
-  "debounce_ms": 5000
+  "poll_after_seconds": 2,
+  "debounce_ms": 2000
 }
 ```
 
 `poll_after_seconds` defaults:
 
 ```text
-pre_draft → 60s
-drafting  → 8s
+pre_draft → 30s
+drafting  → 2s
 paused    → 30s
-complete  → 300s
+complete  → 30s
 unknown   → 30s
 ```
 
@@ -163,6 +163,7 @@ Files changed:
 ```text
 src/adapters/sleeper.js                       (added fetchSleeperLeagueDrafts / fetchSleeperDraft / fetchSleeperDraftPicks + Redis micro-cache)
 src/services/sleeperDraft.js                  (new — envelope shaping + snake/linear on-the-clock math)
+src/services/sleeperDraftAccess.js            (authenticated connection ownership lookup + bounded 30s cache)
 src/routes/sleeper.js                         (added /draft, /draft/:draftId, /draft/:draftId/state under requireAuth)
 test/sleeperDraftService.test.js              (new — 14 tests, pure shaping)
 test/sleeperDraftRoute.test.js                (new — 11 tests, route + 400/404/200)
@@ -172,9 +173,9 @@ test/sleeperDraftAdapter.test.js              (new — 4 tests, adapter null/emp
 Limitations:
 
 - Snake / linear / standard draft types are supported. Auction drafts are not modeled by `computeOnTheClock` — they get `on_the_clock: null`, and the Sleeper draft `type` field passes through unchanged for the frontend to detect.
-- `poll_after_seconds` and `debounce_ms` are advisory hints; the server still relies on a Redis micro-cache (`picks` 5s TTL, `meta` 60s TTL) plus the existing `generalRateLimit` to protect upstream Sleeper. When Redis is unset the adapter falls through to direct calls without crashing.
+- `poll_after_seconds` and `debounce_ms` are advisory hints. Active metadata/picks use a 2-second Redis cache; low-mode callers wait 30 seconds. The global limiter, single-flight dedupe, and 900-call/minute process budget protect upstream Sleeper when Redis is unavailable.
 - IDP / DEF positions in picks are passed through verbatim from Sleeper metadata; no Corvus-side enrichment.
-- Public Sleeper draft endpoints are unauthenticated upstream, but our routes are `requireAuth` so we can per-user rate-limit + log.
+- Each route requires auth and verifies the requested league/draft against the user's active Sleeper connection. Other managers' raw Sleeper user IDs are not returned.
 
 How frontend should call it:
 

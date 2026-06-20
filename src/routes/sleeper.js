@@ -13,6 +13,7 @@ const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const sleeperAdapter = require("../adapters/sleeper");
+const sleeperDraftAccess = require("../services/sleeperDraftAccess");
 const {
   DEFAULT_DEBOUNCE_MS,
   buildDraftListResponse,
@@ -46,6 +47,40 @@ function parseSinceCursor(value) {
   return Math.floor(parsed);
 }
 
+function draftError(res, error, operation) {
+  const safeCode = new Set([
+    "sleeper_connection_lookup_failed",
+    "sleeper_connection_not_found",
+    "sleeper_draft_not_found",
+    "sleeper_rate_limited",
+    "sleeper_request_budget_exhausted",
+  ]).has(error?.code);
+  const notFound = error?.status === 404;
+  const status = notFound ? 404 : 503;
+  const code = safeCode
+    ? error.code
+    : notFound
+      ? "sleeper_draft_not_found"
+      : "sleeper_draft_unavailable";
+  const message = safeCode || notFound
+    ? error.message
+    : "Sleeper draft data is temporarily unavailable";
+
+  logger.warn("Sleeper draft request failed", {
+    operation,
+    code,
+    status,
+  });
+  if (safeCode && error?.retryAfterMs) {
+    res.set("Retry-After", String(Math.ceil(error.retryAfterMs / 1000)));
+  }
+  return res.status(status).json({
+    error: message,
+    code,
+    ...(safeCode && error?.retryAfterMs ? { retry_after_ms: error.retryAfterMs } : {}),
+  });
+}
+
 router.get("/draft", requireAuth, async (req, res, next) => {
   try {
     const { leagueId } = req.query;
@@ -53,14 +88,11 @@ router.get("/draft", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "leagueId query param required" });
     }
 
+    await sleeperDraftAccess.assertLeagueAccess(req.user.id, leagueId);
     const drafts = await sleeperAdapter.fetchSleeperLeagueDrafts(leagueId);
     return res.json(buildDraftListResponse({ leagueId, drafts }));
   } catch (e) {
-    if (e.status === 404) {
-      return res.status(404).json({ error: e.message });
-    }
-    logger.error("Sleeper draft list fetch failed", { err: e.message, stack: e.stack });
-    return next(e);
+    return draftError(res, e, "list");
   }
 });
 
@@ -72,13 +104,14 @@ router.get("/draft/:draftId", requireAuth, async (req, res, next) => {
     }
 
     const draft = await sleeperAdapter.fetchSleeperDraft(draftId);
-    return res.json(buildDraftMetaResponse({ draftId, draft }));
+    const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
+    return res.json(buildDraftMetaResponse({
+      draftId,
+      draft,
+      platformUserId: connection.platform_user_id,
+    }));
   } catch (e) {
-    if (e.status === 404) {
-      return res.status(404).json({ error: e.message });
-    }
-    logger.error("Sleeper draft meta fetch failed", { err: e.message, stack: e.stack });
-    return next(e);
+    return draftError(res, e, "meta");
   }
 });
 
@@ -98,6 +131,7 @@ router.get("/draft/:draftId/state", requireAuth, async (req, res, next) => {
       sleeperAdapter.fetchSleeperDraft(draftId),
       sleeperAdapter.fetchSleeperDraftPicks(draftId),
     ]);
+    const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
 
     return res.json(buildDraftStateResponse({
       draftId,
@@ -105,13 +139,10 @@ router.get("/draft/:draftId/state", requireAuth, async (req, res, next) => {
       picks,
       since: sinceCursor,
       debounceMs: DEFAULT_DEBOUNCE_MS,
+      platformUserId: connection.platform_user_id,
     }));
   } catch (e) {
-    if (e.status === 404) {
-      return res.status(404).json({ error: e.message });
-    }
-    logger.error("Sleeper draft state fetch failed", { err: e.message, stack: e.stack });
-    return next(e);
+    return draftError(res, e, "state");
   }
 });
 

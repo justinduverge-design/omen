@@ -24,6 +24,7 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 - ESPN request bodies are scrubbed from logs.
 - User deletion work includes platform connection and Vault secret cleanup.
 - `probo.yaml` tracks GDPR/SOC2-style control evidence.
+- Sleeper draft routes verify every requested league/draft against the authenticated user's active connection and omit other managers' raw Sleeper user IDs.
 
 ## Safe Defaults
 
@@ -64,6 +65,7 @@ This is useful as a compliance checklist, but it is not a complete security prog
 - ESPN league selection uses an Account section for MVP.
 - Omen preserves safe request context only and waits for the user to click "Run Omen again."
 - `espn_import_blocked` remains broad for MVP; later backend work may add safe `reason_code` values.
+- Sleeper live draft sync uses documented public REST only, with two-second active caching, 30-second low mode, no socket/scraping/token, and an upstream request budget. Justin explicitly accepted the unresolved third-party-use terms risk; this is not legal clearance.
 
 ## Open Security And Privacy Follow-Ups
 
