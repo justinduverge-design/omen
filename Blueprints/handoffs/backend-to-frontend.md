@@ -10,7 +10,7 @@ Claude/frontend reads this file before wiring UI to backend behavior.
 
 Feature name: Sleeper live draft tracking (debounced Lazy Sync).
 
-Status: Baseline deployed via PR #53. High-frequency ownership/privacy hardening is ready to merge with 352/352 tests and 0 audit vulnerabilities; deployment evidence will be appended after the authorized release.
+Status: Deployed. Baseline PR #53 is superseded by the audited high-frequency ownership/privacy hardening in PR #56 (`b1ec05d`), deployed through KVM1 run `27853988393`.
 
 Method and path:
 
