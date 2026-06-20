@@ -4,15 +4,15 @@
 
 ## Active Task
 
-*(empty — Phase 1.5e closed 2026-06-20. Verdict-only audit shipped; secondary-scheme verdict = all 9 stay on secondary; three defects filed; "Team mode = always dark" rule flagged for removal with Phase 1.5f scoped in the audit doc. Awaiting Justin direction: either pull #1 below as next active, or pin Phase 1.5f as a higher-priority spike based on the audit's policy recommendation.)*
+*(empty — Phase 1.5e closed 2026-06-20, full-scope audit shipped. 32 teams audited with cultural anchors; 6 teams flagged for light axis; 7 defects logged; Phase 1.5f re-scoped to 11-point spike; new reusable methodology doc `Brand/entity-identity-theming.md` for next-product head-start. Awaiting Justin direction: pin **Phase 1.5f** (the spike that implements the audit) as next active, or pull #1 below.)*
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.6 — Position chip palette + selected-state styling.** Unblocked (1.3 [x] + 1.4 [x]). Frontend. Unblocks Phase 1.12. Done docs: page + design + recommendation if recommendation cards change.
-2. **Phase 1.10A — UX copy options packet.** Unblocked (1.3 [x]). Decision packet — no source changes; Justin picks final copy. Unblocks 1.10B. Done docs: n/a (decision packet).
-3. **Phase 2.17 — Platform `lastResult` field (backend).** Backend-Codex lean, but kept on Claude's radar because it is the sole gate left on Phase 1.5d (post-win pulse). Surfaced here so Justin can decide whether to flip it to Codex or have Claude take the research-then-implement path. Done docs: feature + security if any new ESPN scope is needed.
-4. **Phase 1.11A — Demo Mode frontend fixtures.** Unblocked (1.3 [x]); Backend Phase 2.7 already complete (2026-06-19). Mock-roster / previous-results / mock-draft fixtures, clearly labeled, dev-flag-gated, distinct from public `/demo`. Done docs: feature + design + recommendation.
-5. **Phase 1.5f — Theme-aware team palettes (new — sized by 1.5e audit).** Remove the "Team mode is always dark" rule by extending `SURFACE_RECIPES` to a light/dark 2-axis map, making `getTeamTemplate()` theme-aware, deciding Bred light-mode fallback, splitting `textSafe` for light canvas, re-running the 32-team WCAG sweep against light bg, and bundling the `--color-text-on-accent` token fix. Audit doc: `Blueprints/audits/2026-06-20-phase1-5e-32-team-visual-qa.md`. Done docs: design + page.
+1. **Phase 1.5f — Theme-aware team palettes (re-scoped to 11-point spike by 1.5e identity audit).** Implements the full-scope audit: per-team `surfaceAxis` field in `nflTeams.js`; two-axis `SURFACE_RECIPES`; theme-aware `getTeamTemplate()`; sat-aware `textSafe()` (clamps hue-shift for low-saturation accents — fixes LV silver); Bred template bypasses `textSafe` (preserves Falcons varsity-red); per-team accent overrides for HOU/NYG/PHI/SF; TB surface re-derives from secondary (pewter not blood); `--color-text-on-accent` token finally added; 32-team WCAG re-sweep against both axes; Mode picker copy update; `page-system.md` spec update. Audit doc: `Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md`. Methodology: `Brand/entity-identity-theming.md`. Frontend-Claude lean. Done docs: feature + page + design.
+2. **Phase 1.6 — Position chip palette + selected-state styling.** Unblocked (1.3 [x] + 1.4 [x]). Frontend. Unblocks Phase 1.12. Done docs: page + design + recommendation if recommendation cards change.
+3. **Phase 1.10A — UX copy options packet.** Unblocked (1.3 [x]). Decision packet — no source changes; Justin picks final copy. Unblocks 1.10B. Done docs: n/a (decision packet).
+4. **Phase 2.17 — Platform `lastResult` field (backend).** Backend-Codex lean, but kept on Claude's radar because it is the sole gate left on Phase 1.5d (post-win pulse). Surfaced here so Justin can decide whether to flip it to Codex or have Claude take the research-then-implement path. Done docs: feature + security if any new ESPN scope is needed.
+5. **Phase 1.11A — Demo Mode frontend fixtures.** Unblocked (1.3 [x]); Backend Phase 2.7 already complete (2026-06-19). Mock-roster / previous-results / mock-draft fixtures, clearly labeled, dev-flag-gated, distinct from public `/demo`. Done docs: feature + design + recommendation.
 
 ## Blockers Surfaced
 

@@ -1,5 +1,15 @@
 # Phase 1.5e — 32-Team Visual QA + "Team mode = always dark" Policy Evidence
 
+> **SUPERSEDED 2026-06-20 by [2026-06-20-phase1-5e-32-team-identity-audit.md](2026-06-20-phase1-5e-32-team-identity-audit.md).**
+>
+> This first-pass audit answered the wrong question. Justin's "maybe teams shouldn't always be in dark mode" comment was about *per-team fan-perceived identity* (some teams have inherently light visual identity — Dolphins/Vice, Chargers/beach, Cowboys/silver), not "user toggles light/dark." This audit also covered only 9 secondary-scheme teams + 2 specials, not all 32 as Justin originally asked.
+>
+> The three defects filed here (LV silver hue-shift, Bred Falcons accent collapse, HOU/NYG/ATL hue-collision) and the WAS cross-page propagation evidence remain valid and are referenced by the superseding audit. The "Phase 1.5f scope" recommendation here is also superseded — the corrected scope is much larger (per-team light/dark axis decisions + cultural-reference accent overrides + a methodology spike).
+>
+> Kept on disk as the audit-trail of how the scope was corrected mid-session.
+>
+> ---
+
 **Date:** 2026-06-20
 **Phase:** 1.5e — 32-team visual QA pass
 **Author:** Claude
