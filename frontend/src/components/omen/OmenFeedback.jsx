@@ -203,7 +203,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
           className="w-full rounded-md font-sans text-base font-semibold transition-all active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           style={{
             background: 'var(--color-accent)',
-            color: '#0A0A0B',
+            color: 'var(--color-text-on-accent)',
             padding: '13px',
           }}
         >
@@ -244,7 +244,7 @@ function ChoiceButton({ children, active, variant, onClick }) {
   const isYes = variant === 'yes';
 
   const activeStyle = isYes
-    ? { background: 'var(--color-accent)', color: '#0A0A0B', borderColor: 'var(--color-accent)' }
+    ? { background: 'var(--color-accent)', color: 'var(--color-text-on-accent)', borderColor: 'var(--color-accent)' }
     : { background: 'rgba(182, 106, 106, 0.12)', color: '#B66A6A', borderColor: '#B66A6A' };
 
   const idleStyle = isYes

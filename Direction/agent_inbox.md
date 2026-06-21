@@ -1,10 +1,10 @@
 # Corvus Agent Inbox
 
-**Auto-populated 2026-06-20 (Claude session) from `Direction/current_sprint.md`.** No pinned task was present. Previous pop (2026-06-19) was Codex-leaning; this pop is Claude-leaning (frontend / docs / specs) and still respects "Blocked by …" suffixes. Agents may work across lanes; either may pull any item.
+**Auto-populated 2026-06-21 (Claude session) from `Direction/current_sprint.md`.** No pinned task was present. Same top 5 as the 2026-06-20 Claude pop carries over — no sprint items have closed since, and item #1 (Phase 1.5f) is still the highest-leverage unblocked Claude-lean item. Respects "Blocked by …" suffixes. Agents may work across lanes; either may pull any item.
 
 ## Active Task
 
-*(empty — Phase 1.5e closed 2026-06-20, full-scope audit shipped. 32 teams audited with cultural anchors; 6 teams flagged for light axis; 7 defects logged; Phase 1.5f re-scoped to 11-point spike; new reusable methodology doc `Brand/entity-identity-theming.md` for next-product head-start. Awaiting Justin direction: pin **Phase 1.5f** (the spike that implements the audit) as next active, or pull #1 below.)*
+**Phase 1.5f — Theme-aware team palettes + cultural-anchor citations** (auto-pulled as #1; spec says "Blocked by: nothing — ready to pull"). Awaiting plan-approval brief acceptance from Justin before build.
 
 ## Auto-Populated Top 5
 

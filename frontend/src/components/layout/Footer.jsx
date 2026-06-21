@@ -1,3 +1,34 @@
+import { useTheme } from '../../lib/themeMode.js';
+import { getTeamPalette } from '../../data/nflTeams.js';
+
+/**
+ * Footer with optional cultural-anchor citation (Phase 1.5h).
+ *
+ * When the user is in Team mode and the active palette (Official or
+ * Special) has a `culturalAnchor`, render a quiet italic line beside the
+ * copyright. Doesn't render in System / Corvus mode, doesn't render when
+ * the palette has no anchor (e.g., most Official palettes are null,
+ * Specials carry the cultural reference). Justin doctrine 2026-06-21:
+ * cultural anchor citation extends to all pages, "in the background or
+ * part of the text in the pages."
+ */
+function CulturalAnchorLine() {
+  const { mode, team, variant } = useTheme();
+  if (mode !== 'team' || !team) return null;
+  const palette = getTeamPalette(team, variant);
+  const anchor = palette?.culturalAnchor;
+  if (!anchor?.name) return null;
+  const yearPart = anchor.year ? ` (${anchor.year})` : '';
+  return (
+    <span
+      className="font-serif text-xs italic"
+      style={{ color: 'var(--color-text-tertiary)' }}
+    >
+      Painted in the spirit of {anchor.name}{yearPart}.
+    </span>
+  );
+}
+
 export default function Footer() {
   return (
     <footer
@@ -11,6 +42,7 @@ export default function Footer() {
         >
           Corvus
         </span>
+        <CulturalAnchorLine />
         <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
           &copy; {new Date().getFullYear()} Slops Saloon. All rights reserved.
         </span>

@@ -77,7 +77,7 @@ Each row is the contract for that route. "Typography role" = primary serif treat
 | `/onboarding` | `Onboarding.jsx` | Alegreya Sans success headline. Body in Alegreya. | **Accent active on the new "Pick your look" first step only** (Mode picker + 32-team grid + Continue/Skip CTAs consume `--color-team-accent`, same as `/account/appearance`) — Welcome / Connect / Complete steps remain accent inert pending the Phase 1.5 whole-app sweep | **Rewrite "You're ready" via `slops-ux-copy`** (Phase 1.10) — current copy is functional but voice-flat and font-misapplied | **Phase 1.5b shipped (2026-06-17)** — "Pick your look" step added. Still **Needs Phase 1.4** + **Phase 1.10** for the remaining steps |
 | `/account/connect` | `ConnectLeague.jsx` | Alegreya Sans "Connect Your League" headline. Body in Alegreya. | Accent inert (pre-team) | "Corvus needs your league to find your Most Valuable Play." (current — approved) | **Needs Phase 1.4** (font drift) + **Phase 1.7** (platform tiles must use Sleeper blue / Yahoo purple / ESPN red prominently — currently tinted, must be louder) |
 | `/account` | `Account.jsx` | Alegreya Sans page title "Account". Section headers Alegreya Sans. Body in Alegreya. | **Accent active** — header underline / focus rings should reflect team color | Alegreya Sans "Account" + section labels — TE1 sizing rule applies to any pill text | **Needs Phase 1.4** (Account + Team Theme in wrong font) + **Phase 1.5** (team accent missing) + **Phase 1.7** (Connect Sleeper/Yahoo/ESPN button-style inconsistency) + Phase 2 backlog (subscription card removal for free era) |
-| `/account/appearance` | `TeamTheme.jsx` | Alegreya Sans "Your team." headline. Tile glyphs in Alegreya Sans at parity sizes. | **Accent active** — selected tile shows outline in team accent, "Selected: Miami Dolphins" footer in team accent | "Corvus borrows your team's colors for accents — recommendations, confidence, the call to act. Nothing more. The reads stay neutral." (current — approved) | **Needs Phase 1.4** (Your team. + team name in wrong font) + **Phase 1.5** (32-team accent contrast sweep) + **Phase 1.9** (tile glyph treatment — add subtle 3D / metallic per Justin QA) |
+| `/account/appearance` | `Appearance.jsx` | Alegreya Sans "Your look." headline. Tile glyphs in Alegreya Sans at parity sizes. | **Accent active** — selected tile shows outline in team accent, identity copy block (cultureTag pill, cry, wardRoom, lore) and one-line cultural-anchor attribution all in team accent / `--color-text-tertiary`. Mode is per-entity light/dark — surface and `data-theme` flip when a light-axis team (MIA/IND/LAC/DAL/CAR/ARI) is selected. | "Corvus borrows your team's colors for accents — recommendations, confidence, the call to act. Nothing more. The reads stay neutral." (current — approved) | **Phase 1.5f shipped (2026-06-21)** — two-axis Team mode, cultural-anchor attribution UI, `--color-text-on-accent` token. Still **needs Phase 1.9** (tile glyph treatment — subtle 3D / metallic per Justin QA) |
 | `/football` | `Football.jsx` | Alegreya Sans page section headers. Body/content blocks in Alegreya. Dashboard summary labels in Alegreya Sans. | **Accent active** — section accents + active tab underline | Alegreya Sans section headers; subhead "Your dashboard. Your call." TBD via `slops-ux-copy` if needed | **Needs Phase 1.4** + **Phase 1.5** + **Phase 1.10** (kill "Preview Mode — example recommendations" yellow banner — see Disapproved Patterns) |
 | `/omen` | `OmenPage.jsx` | Alegreya Sans "Omen of the Week" headline. Alegreya Sans recommendation title. Body in Alegreya. | **Accent active** — header rule, CTA, confidence-fill use team accent in confidence range high | **Offseason voice anchor** (Phase 1.10) — current "No move clears the threshold" is too flat; rewrite to "resting / calibrating / meditating for the next Omen." 3 options to Justin via `slops-ux-copy`. | **Needs Phase 1.4** + **Phase 1.5** + **Phase 1.8** (confidence gradient endpoints) + **Phase 1.10** (offseason copy) + **Phase 1.11** (mock-roster fixtures so visuals can be tested) |
 | `/ledger` | `Ledger.jsx` | Alegreya Sans "Your Season Record" headline. Empty-state phrase "No moves yet." in Alegreya Sans. Body in Alegreya. | **Accent active** — header rule + "Go to Omen" CTA | "Every move Corvus called. Whether you followed it. Whether it worked." (current — approved) | **Needs Phase 1.4** + **Phase 1.5** + **Phase 1.11** (mock previous-results fixtures) |
@@ -92,15 +92,51 @@ Each row is the contract for that route. "Typography role" = primary serif treat
 
 ## Component Rules
 
-### Team Accent Token (Phase 1.5)
+### Team palette tokens — Phase 1.5h (supersedes 1.5/1.5f single-accent model)
 
-The user's selected team theme exposes `--color-team-accent` and (where defined) `--color-team-accent-secondary`. Every page in the Page System Table flagged "Accent active" consumes the token. Rules:
+Justin doctrine 2026-06-21: **every team must surface its full official palette on every themed page; no team page should be in stylistic "dark mode."** The page may *appear* dark because the team's canonical world color is dark (PIT black, BAL purple, ATL Stankonia, LV black), but Corvus never imposes dark mode on top of a team's accent — the team's palette IS the surface.
 
-- The accent appears on: primary CTAs, focus rings, active tab underline, "you" row highlight in standings, selected-tile outline in `/account/appearance`, header rule on page titles, and the Omen recommendation accept-button background.
-- The accent never appears on: body text, risk red, confidence red endpoint, mock data labels, error states, or platform brand badges (those carry their platform colors, not the user's team accent).
-- **Reads stay neutral** (per Justin's approved Appearance page copy). When in doubt, the reads (data / numbers / recommendation explanation) stay in `--color-text-primary`, not the accent.
-- The sweep is whole-app (Phase 1.5 scope is the *entire app*, not just QA-flagged surfaces — locked in prior planning chat).
-- 32-team contrast sweep: each team's accent vs `--color-bg` (dark) and `--color-bg` (light) must clear WCAG AA. The team-themes table will mark any team with <AA contrast and require a secondary accent for that team. Guardrail: `ui-ux-pro-max` accent-contrast pattern library.
+#### Multi-role data model
+
+Each team in `nflTeams.js` carries a `palettes` array with at least one Official entry and, where applicable, a Special cultural variant (Stankonia, Calle Ocho, Paisley Park, Lambeau Tundra, etc.). Each palette has 3-5 named colors with explicit UI roles:
+
+| Role | Used for |
+|---|---|
+| `primary` | Dominant brand color — CTA fills (when surface ≠ primary), headline accents |
+| `secondary` | Second brand color — section headers, focus rings, fall-through CTA when surface == primary |
+| `tertiary` | Optional third — chip bg, secondary flourish |
+| `neutral` | White/cream/parchment — body text on dark surface, frame on light surface |
+| `mute` | Black or near-black — hairlines, depth, text on light surface |
+| `accent-pop` | Optional hover/active flourish |
+
+Plus a per-palette `surfaceRole` naming which role IS the page surface. Surface choice drives whether the page reads light or dark — a consequence of the team's canonical world color, not a stylistic toggle.
+
+#### Tokens written to `:root` in Team mode
+
+`themeMode.js applyTeamTokens()` writes the full role map:
+
+- `--color-team-primary` / `--color-team-secondary` / `--color-team-tertiary` / `--color-team-neutral` / `--color-team-mute` / `--color-team-pop`
+- `--color-team-text-on-primary` / `--color-team-text-on-secondary` / `--color-team-text-on-tertiary` / `--color-team-text-on-pop` (WCAG-picked foreground for each role used as a fill)
+- `--color-team-surface` / `--color-team-surface-card`
+- `--color-team-accent` — derived CTA color (primary by default, falls through to secondary when `surfaceRole === 'primary'` so GB green-on-green and PIT black-on-black CTAs remain visible)
+- `--color-team-anchor-name` — CSS string of the active palette's cultural-anchor name (used by `Footer` to render the attribution)
+- Plus overrides on the core Corvus tokens: `--color-bg`, `--color-surface-1/2/3`, `--color-border`, `--color-border-subtle`, `--color-accent`, `--color-accent-hover`, `--color-accent-muted`, `--color-text-on-accent`, `--color-text-primary`, `--color-text-secondary`, `--color-text-tertiary`. This means pages that consume the standard Corvus tokens (most of them) inherit the team look without per-page changes.
+
+#### Variants — Official vs Special
+
+The Mode picker on `/account/appearance` exposes an Official / Special toggle (`VariantPicker`) when the selected team has a special variant. 30 of 32 teams have a Special as of Phase 1.5h ship; CLE and LAR are official-only. Variant persists at `localStorage['corvus.theme.variant']` and survives across sessions. Identity copy (cultureTag/cry/wardRoom/lore) stays constant across modes — the fan voice doesn't change with the visual chrome.
+
+#### Cultural anchor extends to all pages (Phase 1.5h)
+
+When the user is in Team mode and the active palette has a `culturalAnchor`, `Footer` renders a quiet italic citation alongside the copyright: *"Painted in the spirit of [anchor name] ([year])."* Does not render in System / Corvus mode or when no anchor is defined (most Official palettes are anchor-less; Specials carry the cultural reference). Justin doctrine 2026-06-21: "cultural anchor citation extends to all pages, in the background or part of the text in the pages."
+
+#### Retired Phase 1.5e/f fields
+
+`primary`, `secondary`, `accent`, `scheme`, `template`, `surfaceAxis`, `surfaceFrom`, `accentLifted`, `colorRush`, `note`, `SURFACE_RECIPES`, `textSafe()` — all replaced by the `palettes` array + role tokens. Do not reintroduce.
+
+#### Sweep + audit
+
+Programmatic sweep at `frontend/scripts/contrast-sweep.mjs` runs WCAG against all 62 palettes (32 official + 30 special) × required cells (body/surface + CTA text/accent). Output: `Blueprints/audits/2026-06-21-phase1-5h-multi-color-wcag-sweep.md`. Five known marginals are baked into the script with explicit rationale (KC red CTA, DET Honolulu blue surface ×2, DET Lions blue CTA, BUF Wing Sauce CTA — all pass AA-large 3.0, fall short of AA-normal 4.5 by a small margin where identity preservation wins).
 
 ### Position Chip Palette (Phase 1.6)
 
