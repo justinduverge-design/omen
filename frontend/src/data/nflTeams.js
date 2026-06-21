@@ -1,564 +1,986 @@
 /**
- * nflTeams.js — NFL team roster with strategic accent color selection.
+ * nflTeams.js — NFL team multi-color palettes (Phase 1.5h).
  *
- * Each team has an `accent` field that is NOT always the jersey primary color.
- * The strategy:
+ * Each team has a `palettes` array with at least one Official entry, plus
+ * optional Special cultural variants (Stankonia, Calle Ocho, Paisley Park,
+ * etc.). Every palette carries 3-5 named colors with explicit UI roles, and
+ * an explicit `surfaceRole` that names which role lives at the page surface.
  *
- * Official colors (primary, secondary) come first. textSafe() lifts dark
- * primaries to a readable lightness while preserving hue; it now also clamps
- * hue-shift for near-achromatic accents (LV silver) and decays saturation as
- * lightness rises so deep brand colors don't coral-out (HOU/SF/PHI/ATL — see
- * Phase 1.5e identity audit). Reach for a non-official "synergy" color only
- * when the official pair can't carry a coherent identity even after textSafe.
+ * Doctrine reversal from Phase 1.5e–1.5f:
  *
- *   scheme: 'standard'   — use primary directly (lifted via textSafe if dark).
- *   scheme: 'secondary'  — primary can't carry the identity even lifted
- *                          (near-achromatic, or secondary is the stronger anchor);
- *                          secondary is still an official team color.
- *   scheme: 'colorRush'  — reserved; currently unused (all former colorRush
- *                          teams moved to scheme: 'standard' once their lifted
- *                          primary cleared AA).
+ *   - No stylistic dark-mode-on-team-accent. The page is dark when the
+ *     team's surface color is dark (PIT black, BAL purple, ATL Stankonia),
+ *     light when the team's surface color is light (KC white, MIA Calle
+ *     pastel, IND horseshoe white). Justin doctrine 2026-06-21.
  *
- * ── Phase 1.5f additions ───────────────────────────────────────────────────
+ *   - Every team must surface its full official palette on every themed
+ *     page (no more single-accent rendering). Identity copy, swatches,
+ *     CTAs, hairlines, and motif flourishes all draw from different palette
+ *     roles. Designer license to add 1-2 utility colors per palette for
+ *     legibility where the official palette can't carry it.
  *
- *   surfaceAxis: 'light' | 'dark'  (required)
- *     Per-entity (not per-user) light/dark axis decision. Fan-perceived
- *     identity drives the call — Dolphins read Miami Vice (light), Steelers
- *     read steel-mill night (dark). 6 teams flip to light per the 2026-06-20
- *     identity audit: MIA, IND, LAC, DAL, CAR, ARI.
+ *   - Special cultural variants tied to the team's region/music/food/
+ *     history — no Nike/Jordan trademarks. Examples: ATL "Stankonia"
+ *     (OutKast 2000 album), MIA "Calle Ocho" (Little Havana street),
+ *     MIN "Paisley Park" (Prince's estate), DET "8 Mile" (Eminem / Motor
+ *     City), NO "Mardi Gras" (Krewe palette), TB "Gasparilla" (annual
+ *     pirate festival), etc.
  *
- *   culturalAnchor: { name, year?, kind, hex? }  (optional but most teams have it)
- *     Cited cultural reference that explains the color choice (sneaker
- *     colorway, film, music era, region, history). Surfaced as a one-line
- *     attribution under the selected team on /account/appearance.
- *     `kind` ∈ 'sneaker' | 'film' | 'music' | 'art' | 'region' | 'history' | 'tradition'.
+ * ── Schema ─────────────────────────────────────────────────────────────────
  *
- *   surfaceFrom: 'primary' | 'secondary'  (optional; default 'primary')
- *     Re-derive the team surface from `secondary` instead of `primary`. Used
- *     for NO (gold primary, black secondary → black world with gold accents)
- *     and TB (red primary, pewter-ish secondary → pewter surface, not blood).
+ *   team.palettes: [{ mode, name, surfaceRole, colors[], culturalAnchor? }]
  *
- *   accentLifted: { dark?: string, light?: string }  (optional)
- *     Per-team override for the textSafe-lifted accent used as text/border
- *     color. Used when the algorithm would lose brand identity:
- *       HOU — preserves deep Battle Red (don't coral it)
- *       PHI — preserves true midnight green (don't cyan it)
- *       SF  — preserves 49ers red (don't coral it)
- *     ATL is handled via the template-6 Bred bypass, not this field.
+ *     mode: 'official' | 'special'       (every team has 'official'; 30/32
+ *                                          also have a 'special')
+ *     name: string                       display name on Appearance picker
+ *     surfaceRole: 'primary'|'secondary'|'tertiary'|'neutral'|'mute'
+ *                                        which palette role IS the page
+ *                                        surface (--color-bg). Drives whether
+ *                                        the page reads light or dark, as a
+ *                                        consequence of the team's actual
+ *                                        canonical world color.
+ *     colors: [{ hex, name, role }]
+ *       hex: '#RRGGBB'
+ *       name: friendly name surfaced in swatch labels ('Chiefs Red',
+ *             'Paisley Purple', 'Sin City Red', etc.)
+ *       role: 'primary'    — dominant brand color (CTA fills, headline accents)
+ *             'secondary'  — second brand color (section headers, focus rings)
+ *             'tertiary'   — optional third (chip bg, optional flourish)
+ *             'neutral'    — white/cream/parchment (text on dark surface, frame on light)
+ *             'mute'       — black or near-black (hairlines, depth, text on light)
+ *             'accent-pop' — optional hover/active flourish
+ *     culturalAnchor: { name, year?, kind } | null
+ *       kind ∈ 'film' | 'music' | 'art' | 'region' | 'history' | 'tradition'
  *
- * ── Existing identity copy fields (unchanged) ──────────────────────────────
+ * ── Existing identity copy (unchanged) ────────────────────────────────────
  *
  *   cultureTag  — 1–3 word fan identity label (pill/badge)
  *   cry         — the chant; short, punchy, what they yell in the stadium
  *   wardRoom    — one-liner war room statement; harder, what the GM says
- *   lore?       — optional deeper fan culture line
+ *   lore?       — optional deeper fan culture line for teams with more to say
  *
- * Placement guide:
- *   cultureTag → Appearance pill, NavDrawer team label, Dashboard header pill
- *   cry        → Omen loading state, Omen page subhead, Appearance above wardRoom
- *   wardRoom   → Appearance selection moment (bold), Standings page subhead
- *   lore       → Appearance secondary line (muted, fan deep-cut)
+ *   These remain constant across palette modes — the fan voice doesn't change
+ *   when the visual chrome changes.
  *
- * Templates (1-6) name the role-recipe used to derive the team's surface
- * tint, CTA, and accent on accent-active surfaces. See `lib/teamTemplate.js`
- * for the recipe table; see `Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md`
- * for the full per-team rationale.
+ * ── Retired fields (don't reintroduce) ────────────────────────────────────
  *
- *   1 — Deep & Brand    (primary CTA on hue-of-primary surface — most of NFL)
- *   2 — Two-Tone Royal  (metallic secondary CTA on deep primary surface)
- *   3 — Hot Brand       (red-dominant; warm-yellow accent to defuse danger)
- *   4 — Aqua / Cool     (teal/cyan CTA, warm-pop accent)
- *   5 — Earth           (deep brown surface, vivid accent-color CTA)
- *   6 — Bred            (black canvas + varsity-red CTA — Falcons only,
- *                        Jordan 1 homage; bypasses textSafe to preserve red)
- *
- * Format: { abbr, city, name, div, primary, secondary, accent, scheme,
- *           template, surfaceAxis, culturalAnchor?, surfaceFrom?, accentLifted?,
- *           colorRush?, note?, cultureTag, cry, wardRoom, lore? }
+ *   primary, secondary, accent, scheme, template, surfaceAxis, surfaceFrom,
+ *   accentLifted, colorRush, note — all replaced by the `palettes` array.
  */
 
 export const NFL_TEAMS = [
   // ─── AFC East ─────────────────────────────────────────────────────────────
   {
-    abbr: 'BUF', city: 'Buffalo',      name: 'Bills',
-    div: 'AFC East',  primary: '#00338D', secondary: '#C60C30',
-    accent: '#00338D', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Bills Mafia', kind: 'tradition' },
-    cultureTag: "Bills Mafia",
-    cry:        "Everybody Eats",
+    abbr: 'BUF', city: 'Buffalo', name: 'Bills', div: 'AFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Bills', surfaceRole: 'primary',
+        colors: [
+          { hex: '#00338D', name: 'Royal Blue',  role: 'primary' },
+          { hex: '#C60C30', name: 'Bills Red',   role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Game-Day White', role: 'neutral' },
+          { hex: '#0A1426', name: 'Stadium Night', role: 'mute' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Wing Sauce', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#D62828', name: "Frank's Red",   role: 'primary' },
+          { hex: '#0B3E92', name: 'Blue Cheese',   role: 'secondary' },
+          { hex: '#FAF6E8', name: 'Ranch Cream',   role: 'neutral' },
+          { hex: '#3D2A1C', name: 'Charred Wing',  role: 'mute' },
+          { hex: '#7B8A4E', name: 'Celery Side',   role: 'accent-pop' },
+        ],
+        culturalAnchor: { name: 'Buffalo wings', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Bills Mafia',
+    cry:        'Everybody Eats',
     wardRoom:   "Mafia don't leave their own.",
   },
   {
-    abbr: 'MIA', city: 'Miami',        name: 'Dolphins',
-    div: 'AFC East',  primary: '#008E97', secondary: '#FC4C02',
-    accent: '#008E97', scheme: 'standard', template: 4,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: 'Miami Vice', year: 1984, kind: 'film' },
-    cultureTag: "The 305",
-    cry:        "Fins Up",
-    wardRoom:   "305 never sleeps.",
+    abbr: 'MIA', city: 'Miami', name: 'Dolphins', div: 'AFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Dolphins', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#008E97', name: 'Aqua',          role: 'primary' },
+          { hex: '#FC4C02', name: 'Coral Orange',  role: 'secondary' },
+          { hex: '#005778', name: 'Atlantic Blue', role: 'tertiary' },
+          { hex: '#FDF8F2', name: 'Beach Sand',    role: 'neutral' },
+          { hex: '#0A1F25', name: 'Reef Black',    role: 'mute' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Calle Ocho', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#E91E63', name: 'Tropico Pink',  role: 'primary' },
+          { hex: '#00ACA6', name: 'Calle Aqua',    role: 'secondary' },
+          { hex: '#FAEFD6', name: 'Pastel Cream',  role: 'neutral' },
+          { hex: '#3E2723', name: 'Cuban Cigar',   role: 'mute' },
+          { hex: '#F9A825', name: 'Mango Stand',   role: 'accent-pop' },
+        ],
+        culturalAnchor: { name: 'Calle Ocho / Little Havana', kind: 'region' },
+      },
+    ],
+    cultureTag: 'The 305',
+    cry:        'Fins Up',
+    wardRoom:   '305 never sleeps.',
   },
   {
-    abbr: 'NE',  city: 'New England',  name: 'Patriots',
-    div: 'AFC East',  primary: '#002244', secondary: '#C60C30',
-    accent: '#002244', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'American Revolution', year: 1775, kind: 'history' },
-    cultureTag: "Pats Nation",
-    cry:        "Do Your Job",
-    wardRoom:   "We all we got, we all we need.",
+    abbr: 'NE', city: 'New England', name: 'Patriots', div: 'AFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Patriots', surfaceRole: 'primary',
+        colors: [
+          { hex: '#002244', name: 'Patriot Navy',  role: 'primary' },
+          { hex: '#C60C30', name: 'Patriot Red',   role: 'secondary' },
+          { hex: '#B0B7BC', name: 'Silver',        role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Game White',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Bunker Hill', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#1A2B4F', name: 'Continental Navy', role: 'primary' },
+          { hex: '#9C2A28', name: 'Brick Crimson',    role: 'secondary' },
+          { hex: '#F0E9D6', name: 'Parchment',        role: 'neutral' },
+          { hex: '#7A7E83', name: 'Musket Steel',     role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Battle of Bunker Hill', year: 1775, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Pats Nation',
+    cry:        'Do Your Job',
+    wardRoom:   'We all we got, we all we need.',
   },
   {
-    abbr: 'NYJ', city: 'New York',     name: 'Jets',
-    div: 'AFC East',  primary: '#125740', secondary: '#FFFFFF',
-    accent: '#125740', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Jordan 1 'Pine Green'", year: 2020, kind: 'sneaker' },
-    cultureTag: "Gang Green",
-    cry:        "J-E-T-S",
+    abbr: 'NYJ', city: 'New York', name: 'Jets', div: 'AFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Jets', surfaceRole: 'primary',
+        colors: [
+          { hex: '#125740', name: 'Pine Green',    role: 'primary' },
+          { hex: '#F5F0E8', name: 'Jets White',    role: 'neutral' },
+          { hex: '#0A1A14', name: 'Hangar Black',  role: 'mute' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Hempstead Green', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0F4A35', name: 'Hempstead Pine', role: 'primary' },
+          { hex: '#7A8488', name: 'Runway Grey',    role: 'secondary' },
+          { hex: '#F5F1E8', name: 'Long Beach Cream', role: 'neutral' },
+          { hex: '#0A1A2A', name: 'Atlantic Navy',  role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Hempstead / Long Island', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Gang Green',
+    cry:        'J-E-T-S',
     wardRoom:   "Gang Green don't blink.",
   },
 
   // ─── AFC North ────────────────────────────────────────────────────────────
   {
-    abbr: 'BAL', city: 'Baltimore',    name: 'Ravens',
-    div: 'AFC North', primary: '#241773', secondary: '#9E7C0C',
-    accent: '#241773', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Poe's 'The Raven'", year: 1845, kind: 'art' },
-    cultureTag: "The Flock",
-    cry:        "Big Truzz",
-    wardRoom:   "Play like a Raven.",
+    abbr: 'BAL', city: 'Baltimore', name: 'Ravens', div: 'AFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Ravens', surfaceRole: 'primary',
+        colors: [
+          { hex: '#241773', name: 'Ravens Purple', role: 'primary' },
+          { hex: '#9E7C0C', name: 'Battle Gold',   role: 'secondary' },
+          { hex: '#0A0A0B', name: 'Raven Black',   role: 'mute' },
+          { hex: '#F0EDDC', name: 'Stadium Cream', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: "Poe's Raven", surfaceRole: 'mute',
+        colors: [
+          { hex: '#3D2899', name: 'Concord Violet', role: 'primary' },
+          { hex: '#B89F37', name: 'Brass Cup',      role: 'secondary' },
+          { hex: '#080608', name: 'Raven Black',    role: 'mute' },
+          { hex: '#F2EDDA', name: 'Old Parchment',  role: 'neutral' },
+        ],
+        culturalAnchor: { name: "Edgar Allan Poe's 'The Raven'", year: 1845, kind: 'art' },
+      },
+    ],
+    cultureTag: 'The Flock',
+    cry:        'Big Truzz',
+    wardRoom:   'Play like a Raven.',
   },
   {
-    abbr: 'CIN', city: 'Cincinnati',   name: 'Bengals',
-    div: 'AFC North', primary: '#FB4F14', secondary: '#000000',
-    accent: '#FB4F14', scheme: 'standard', template: 5,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Bengal tiger fur', kind: 'art' },
-    cultureTag: "The Jungle",
-    cry:        "Who Dey",
-    wardRoom:   "They gotta play us.",
+    abbr: 'CIN', city: 'Cincinnati', name: 'Bengals', div: 'AFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Bengals', surfaceRole: 'mute',
+        colors: [
+          { hex: '#FB4F14', name: 'Bengal Orange', role: 'primary' },
+          { hex: '#0A0A0B', name: 'Tiger Black',   role: 'mute' },
+          { hex: '#F5F0E8', name: 'Tooth White',   role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Skyline Chili', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#C2410C', name: 'Chili Red',     role: 'primary' },
+          { hex: '#E9A23B', name: 'Cheddar Gold',  role: 'secondary' },
+          { hex: '#FAF6E8', name: 'Onion Cream',   role: 'neutral' },
+          { hex: '#2A1810', name: 'Cocoa Brown',   role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Cincinnati Chili / Skyline', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'The Jungle',
+    cry:        'Who Dey',
+    wardRoom:   'They gotta play us.',
   },
   {
-    abbr: 'CLE', city: 'Cleveland',    name: 'Browns',
-    div: 'AFC North', primary: '#311D00', secondary: '#FF3C00',
-    accent: '#311D00', scheme: 'standard', template: 5,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Otto Graham era leather', year: 1950, kind: 'history' },
-    cultureTag: "Dawg Pound",
-    cry:        "In Browns We Trust",
+    abbr: 'CLE', city: 'Cleveland', name: 'Browns', div: 'AFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Browns', surfaceRole: 'primary',
+        colors: [
+          { hex: '#311D00', name: 'Dawg Brown',    role: 'primary' },
+          { hex: '#FF3C00', name: 'Browns Orange', role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Game White',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+    ],
+    cultureTag: 'Dawg Pound',
+    cry:        'In Browns We Trust',
     wardRoom:   "Cleveland doesn't fold.",
   },
   {
-    abbr: 'PIT', city: 'Pittsburgh',   name: 'Steelers',
-    div: 'AFC North', primary: '#101820', secondary: '#FFB612',
-    accent: '#FFB612', scheme: 'secondary', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'US Steel logo origin', year: 1962, kind: 'history' },
-    note: 'Steelers gold (#FFB612) is one of the most iconic colors in the NFL. Standard primary (#101820) is near-black and invisible on dark UI. Diamond logo = literal US Steel mark (coal=yellow, ore=orange, steel=blue).',
-    cultureTag: "Steeler Nation",
-    cry:        "Here We Go",
-    wardRoom:   "Redd up the war room.",
-    lore:       "Stillers Nation.",
+    abbr: 'PIT', city: 'Pittsburgh', name: 'Steelers', div: 'AFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Steelers', surfaceRole: 'primary',
+        colors: [
+          { hex: '#101820', name: 'Steeler Black', role: 'primary' },
+          { hex: '#FFB612', name: 'Steeler Gold',  role: 'secondary' },
+          { hex: '#C60C30', name: 'Logo Red',      role: 'tertiary' },
+          { hex: '#003087', name: 'Steel Blue',    role: 'accent-pop' },
+          { hex: '#F5F0E8', name: 'Locker White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'US Steel', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0D0F12', name: 'Coal Black',    role: 'primary' },
+          { hex: '#FFB612', name: 'Molten Gold',   role: 'secondary' },
+          { hex: '#1F5BA8', name: 'Steel-Mill Blue', role: 'tertiary' },
+          { hex: '#B85C1F', name: 'Iron Ore',      role: 'accent-pop' },
+          { hex: '#E5E2D8', name: 'Slag White',    role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'US Steel logo origin', year: 1962, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Steeler Nation',
+    cry:        'Here We Go',
+    wardRoom:   'Redd up the war room.',
+    lore:       'Stillers Nation.',
   },
 
   // ─── AFC South ────────────────────────────────────────────────────────────
   {
-    abbr: 'HOU', city: 'Houston',      name: 'Texans',
-    div: 'AFC South', primary: '#03202F', secondary: '#A71930',
-    accent: '#A71930', scheme: 'secondary', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'NASA Mission Control', year: 1965, kind: 'history' },
-    accentLifted: { dark: '#D04250' }, // Battle Red preserved deeper than textSafe coral (defect 1.5e-defect-2 carryover)
-    note: 'Standard Texans primary (#03202F) is near-black. Texans red (#A71930) is the visible identity anchor; accentLifted preserves deep Battle Red — avoids coral collision with NYG/ATL.',
-    cultureTag: "Bull Pen",
-    cry:        "Swarm",
-    wardRoom:   "Texas does it bigger.",
+    abbr: 'HOU', city: 'Houston', name: 'Texans', div: 'AFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Texans', surfaceRole: 'primary',
+        colors: [
+          { hex: '#03202F', name: 'Deep Steel Blue', role: 'primary' },
+          { hex: '#A71930', name: 'Battle Red',      role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Lone Star White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Mission Control', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0A2540', name: 'Mission Control Blue', role: 'primary' },
+          { hex: '#C8102E', name: 'Console Red',          role: 'secondary' },
+          { hex: '#F0EBE0', name: 'Readout Cream',        role: 'neutral' },
+          { hex: '#E9A23B', name: 'Indicator Amber',      role: 'accent-pop' },
+        ],
+        culturalAnchor: { name: 'NASA Johnson Space Center', year: 1961, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Bull Pen',
+    cry:        'Swarm',
+    wardRoom:   'Texas does it bigger.',
   },
   {
-    abbr: 'IND', city: 'Indianapolis', name: 'Colts',
-    div: 'AFC South', primary: '#002C5F', secondary: '#A2AAAD',
-    accent: '#002C5F', scheme: 'standard', template: 1,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: 'White-helmet horseshoe', year: 1957, kind: 'tradition' },
-    cultureTag: "Horseshoe",
-    cry:        "For The Shoe",
-    wardRoom:   "The Loud House is calling.",
+    abbr: 'IND', city: 'Indianapolis', name: 'Colts', div: 'AFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Colts', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#002C5F', name: 'Speed Blue',  role: 'primary' },
+          { hex: '#A2AAAD', name: 'Horseshoe Silver', role: 'secondary' },
+          { hex: '#FAFAFA', name: 'Helmet White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Loud House', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#002C5F', name: 'Speed Blue',     role: 'primary' },
+          { hex: '#C0C5C8', name: 'Lucas Chrome',   role: 'secondary' },
+          { hex: '#FAFAFA', name: 'Spotlight White', role: 'neutral' },
+          { hex: '#1A1A1A', name: 'Checker Black',  role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Lucas Oil Stadium / "The Loud House"', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Horseshoe',
+    cry:        'For The Shoe',
+    wardRoom:   'The Loud House is calling.',
   },
   {
-    abbr: 'JAX', city: 'Jacksonville', name: 'Jaguars',
-    div: 'AFC South', primary: '#006778', secondary: '#D7A22A',
-    accent: '#006778', scheme: 'standard', template: 4,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Nike SB Dunk 'Tiffany'", year: 2005, kind: 'sneaker' },
-    cultureTag: "Duval",
-    cry:        "DUUUVAL",
+    abbr: 'JAX', city: 'Jacksonville', name: 'Jaguars', div: 'AFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Jaguars', surfaceRole: 'primary',
+        colors: [
+          { hex: '#006778', name: 'Jaguar Teal', role: 'primary' },
+          { hex: '#D7A22A', name: 'Coastal Gold', role: 'secondary' },
+          { hex: '#0F1A1F', name: 'Cypress Black', role: 'mute' },
+          { hex: '#F0EBDA', name: 'Marsh Cream', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Marsh Teal', surfaceRole: 'primary',
+        colors: [
+          { hex: '#005D6E', name: 'Marsh Teal',    role: 'primary' },
+          { hex: '#D7A22A', name: 'Sunset Gold',   role: 'secondary' },
+          { hex: '#0F1A1F', name: 'Cypress Black', role: 'mute' },
+          { hex: '#EFE6CC', name: 'Reed Cream',    role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'NE Florida marsh / St. Johns River', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Duval',
+    cry:        'DUUUVAL',
     wardRoom:   "Get it right, this isn't Miami.",
   },
   {
-    abbr: 'TEN', city: 'Tennessee',    name: 'Titans',
-    div: 'AFC South', primary: '#0C2340', secondary: '#4B92DB',
-    accent: '#0C2340', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Greek Titan / Prometheus fire', kind: 'art' },
-    cultureTag: "Titan Up",
-    cry:        "How Ya Feel?",
+    abbr: 'TEN', city: 'Tennessee', name: 'Titans', div: 'AFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Titans', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0C2340', name: 'Titan Navy',    role: 'primary' },
+          { hex: '#4B92DB', name: 'Columbia Blue', role: 'secondary' },
+          { hex: '#C8102E', name: 'Titan Flame',   role: 'accent-pop' },
+          { hex: '#B0B7BC', name: 'Greek Silver',  role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Toga White',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Music Row', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0C2340', name: 'Nashville Navy', role: 'primary' },
+          { hex: '#4B92DB', name: 'Honky-Tonk Blue', role: 'secondary' },
+          { hex: '#D4A24C', name: 'Whiskey Amber', role: 'accent-pop' },
+          { hex: '#0A0A0B', name: 'Stage Black',   role: 'mute' },
+          { hex: '#F0EBE0', name: 'Cotton Cream',  role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Nashville Music Row', kind: 'music' },
+      },
+    ],
+    cultureTag: 'Titan Up',
+    cry:        'How Ya Feel?',
     wardRoom:   "Tennessee don't tap out.",
   },
 
   // ─── AFC West ─────────────────────────────────────────────────────────────
   {
-    abbr: 'DEN', city: 'Denver',       name: 'Broncos',
-    div: 'AFC West',  primary: '#FB4F14', secondary: '#002244',
-    accent: '#FB4F14', scheme: 'standard', template: 3,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Rocky Mountain sunset', kind: 'region' },
-    cultureTag: "Broncos Country",
-    cry:        "Mile High Magic",
-    wardRoom:   "The altitude changes things.",
+    abbr: 'DEN', city: 'Denver', name: 'Broncos', div: 'AFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Broncos', surfaceRole: 'primary',
+        colors: [
+          { hex: '#FB4F14', name: 'Broncos Orange', role: 'primary' },
+          { hex: '#002244', name: 'Mountain Navy',  role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Snowcap White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Mile High Sunset', surfaceRole: 'primary',
+        colors: [
+          { hex: '#FB4F14', name: 'Sunset Orange',  role: 'primary' },
+          { hex: '#002244', name: 'Mountain Navy',  role: 'secondary' },
+          { hex: '#1F1A2C', name: 'Twilight Indigo', role: 'mute' },
+          { hex: '#FCE5D0', name: 'Altitude Cream', role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Rocky Mountain sunset', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Broncos Country',
+    cry:        'Mile High Magic',
+    wardRoom:   'The altitude changes things.',
   },
   {
-    abbr: 'KC',  city: 'Kansas City',  name: 'Chiefs',
-    div: 'AFC West',  primary: '#E31837', secondary: '#FFB81C',
-    accent: '#E31837', scheme: 'standard', template: 3,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'KC BBQ smokehouse', kind: 'region' },
-    cultureTag: "Chiefs Kingdom",
-    cry:        "Never a Doubt",
+    abbr: 'KC', city: 'Kansas City', name: 'Chiefs', div: 'AFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Chiefs', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#E31837', name: 'Chiefs Red',   role: 'primary' },
+          { hex: '#FFB81C', name: 'Kingdom Gold', role: 'secondary' },
+          { hex: '#FFFFFF', name: 'Kingdom White', role: 'neutral' },
+          { hex: '#1A1A1A', name: 'Arrowhead Night', role: 'mute' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Arrowhead BBQ', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#7A1119', name: 'Smokehouse Red', role: 'primary' },
+          { hex: '#FFB81C', name: 'Glaze Gold',     role: 'secondary' },
+          { hex: '#2A1810', name: 'Smoke Char',     role: 'mute' },
+          { hex: '#F5E6C8', name: 'Pit Paper',      role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'KC barbecue smokehouse', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Chiefs Kingdom',
+    cry:        'Never a Doubt',
     wardRoom:   "Kingdom don't fold.",
   },
   {
-    abbr: 'LV',  city: 'Las Vegas',    name: 'Raiders',
-    div: 'AFC West',  primary: '#0B0B0B', secondary: '#A5ACAF',
-    accent: '#A5ACAF', scheme: 'secondary', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Air Max 97 'Silver Bullet'", year: 1997, kind: 'sneaker' },
-    note: 'Raiders silver (#A5ACAF). Standard black primary is invisible on dark UI. textSafe now clamps hue-shift for near-achromatic accents so silver stays silver (was washing blue — defect 1.5e-defect-1 fix).',
-    cultureTag: "Raider Nation",
-    cry:        "Just Win Baby",
+    abbr: 'LV', city: 'Las Vegas', name: 'Raiders', div: 'AFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Raiders', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0A0A0B', name: 'Raider Black', role: 'primary' },
+          { hex: '#A5ACAF', name: 'Raider Silver', role: 'secondary' },
+          { hex: '#FAFAFA', name: 'Helmet White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Black Hole', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0A0A0B', name: 'Black Hole',    role: 'primary' },
+          { hex: '#C8CDCF', name: 'Strip Chrome',  role: 'secondary' },
+          { hex: '#C8102E', name: 'Sin City Red',  role: 'accent-pop' },
+          { hex: '#FAFAFA', name: 'Spotlight White', role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'The Black Hole (Raiders fan section)', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Raider Nation',
+    cry:        'Just Win Baby',
     wardRoom:   "The Autumn Wind don't stop.",
   },
   {
-    abbr: 'LAC', city: 'Los Angeles',  name: 'Chargers',
-    div: 'AFC West',  primary: '#0080C6', secondary: '#FFC20E',
-    accent: '#0080C6', scheme: 'standard', template: 4,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: '1960s San Diego beach Chargers', kind: 'tradition' },
-    cultureTag: "Broltchachos",
-    cry:        "Bolt Up",
+    abbr: 'LAC', city: 'Los Angeles', name: 'Chargers', div: 'AFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Chargers', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#0080C6', name: 'Powder Blue',  role: 'primary' },
+          { hex: '#FFC20E', name: 'Sunshine Gold', role: 'secondary' },
+          { hex: '#002A5E', name: 'Pacific Navy',  role: 'tertiary' },
+          { hex: '#FBF1D4', name: 'Sand Cream',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Pacific Beach', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#0080C6', name: 'Beach Blue',   role: 'primary' },
+          { hex: '#FFC20E', name: 'Bolt Yellow',  role: 'secondary' },
+          { hex: '#FBF1D4', name: 'Sand Cream',   role: 'neutral' },
+          { hex: '#002A5E', name: 'Pacific Navy', role: 'mute' },
+        ],
+        culturalAnchor: { name: '1960s San Diego beach Chargers', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Broltchachos',
+    cry:        'Bolt Up',
     wardRoom:   "Chargers don't ask permission.",
   },
 
   // ─── NFC East ─────────────────────────────────────────────────────────────
   {
-    abbr: 'DAL', city: 'Dallas',       name: 'Cowboys',
-    div: 'NFC East',  primary: '#003594', secondary: '#869397',
-    accent: '#003594', scheme: 'standard', template: 1,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: 'Tom Landry silver-and-white era', kind: 'history' },
+    abbr: 'DAL', city: 'Dallas', name: 'Cowboys', div: 'NFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Cowboys', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#003594', name: 'Cowboys Royal', role: 'primary' },
+          { hex: '#869397', name: 'Helmet Silver', role: 'secondary' },
+          { hex: '#041E42', name: 'Sideline Navy', role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Lone Star White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Tom Landry', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#869397', name: 'Fedora Silver',  role: 'primary' },
+          { hex: '#003594', name: 'Sideline Navy',  role: 'secondary' },
+          { hex: '#F0F0F0', name: 'Stadium Cream',  role: 'neutral' },
+          { hex: '#1A1F2E', name: 'Coach Suit',     role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Tom Landry sideline era', year: 1960, kind: 'history' },
+      },
+    ],
     cultureTag: "America's Team",
-    cry:        "We Dem Boyz",
+    cry:        'We Dem Boyz',
     wardRoom:   "How 'Bout Them Cowboys.",
   },
   {
-    abbr: 'NYG', city: 'New York',     name: 'Giants',
-    div: 'NFC East',  primary: '#0B2265', secondary: '#A71930',
-    accent: '#0B2265', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Big Blue / NY borough navy', kind: 'tradition' },
-    note: 'Giants accent flipped to primary royal blue #0B2265 in Phase 1.5f (was secondary red, which collided with HOU/ATL after textSafe lift — defect 1.5e-defect-3 resolution). "Big Blue" identity wins.',
-    cultureTag: "Big Blue",
-    cry:        "GO Big Blue",
-    wardRoom:   "Fe-Fi-Fo-Fum.",
+    abbr: 'NYG', city: 'New York', name: 'Giants', div: 'NFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Giants', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0B2265', name: 'Big Blue',    role: 'primary' },
+          { hex: '#A71930', name: 'Giants Red',  role: 'secondary' },
+          { hex: '#8C9094', name: 'Empire Gray', role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Game White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Empire State', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0B2265', name: 'Empire Blue',  role: 'primary' },
+          { hex: '#A71930', name: 'Top-Tier Red', role: 'secondary' },
+          { hex: '#8C9094', name: 'Steel Gray',   role: 'mute' },
+          { hex: '#EFEAE0', name: 'Limestone Cream', role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Empire State Building floodlights', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Big Blue',
+    cry:        'GO Big Blue',
+    wardRoom:   'Fe-Fi-Fo-Fum.',
     lore:       "Giants don't sleep.",
   },
   {
-    abbr: 'PHI', city: 'Philadelphia', name: 'Eagles',
-    div: 'NFC East',  primary: '#004C54', secondary: '#A5ACAF',
-    accent: '#004C54', scheme: 'standard', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Liberty Bell + Rocky underdog', kind: 'region' },
-    accentLifted: { dark: '#5DAB9F' }, // Midnight green at altitude — preserves identity vs textSafe cyan (defect 1.5e-defect-4)
-    note: 'Midnight Green IS the Eagles identity. accentLifted holds a hand-tuned muted-teal-green so it reads as "midnight green at altitude" rather than the fluorescent cyan the raw textSafe lift produces.',
-    cultureTag: "Birds Gang",
-    cry:        "Fly Eagles Fly",
+    abbr: 'PHI', city: 'Philadelphia', name: 'Eagles', div: 'NFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Eagles', surfaceRole: 'primary',
+        colors: [
+          { hex: '#004C54', name: 'Midnight Green', role: 'primary' },
+          { hex: '#A5ACAF', name: 'Eagles Silver',  role: 'secondary' },
+          { hex: '#000000', name: 'Eagles Black',   role: 'mute' },
+          { hex: '#F5F0E8', name: 'Game White',     role: 'neutral' },
+          { hex: '#565A5C', name: 'Stadium Charcoal', role: 'tertiary' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Liberty Bell', surfaceRole: 'primary',
+        colors: [
+          { hex: '#004C54', name: 'Liberty Green',  role: 'primary' },
+          { hex: '#C8A44A', name: 'Bell Brass',     role: 'secondary' },
+          { hex: '#F0E9D6', name: 'Independence Cream', role: 'neutral' },
+          { hex: '#4A4F52', name: 'Hall Stone',     role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Liberty Bell / Independence Hall', year: 1751, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Birds Gang',
+    cry:        'Fly Eagles Fly',
     wardRoom:   "No one likes us, we don't care.",
   },
   {
-    abbr: 'WAS', city: 'Washington',   name: 'Commanders',
-    div: 'NFC East',  primary: '#5A1414', secondary: '#FFB612',
-    accent: '#FFB612', scheme: 'secondary', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Jordan 7 'Bordeaux'", year: 1992, kind: 'sneaker' },
-    note: 'Commanders gold (#FFB612) pops on dark UI. Bordeaux + gold pairing mirrors Jordan 7 directly.',
-    cultureTag: "District",
-    cry:        "Hail Victory",
+    abbr: 'WAS', city: 'Washington', name: 'Commanders', div: 'NFC East',
+    palettes: [
+      {
+        mode: 'official', name: 'Commanders', surfaceRole: 'primary',
+        colors: [
+          { hex: '#5A1414', name: 'Commanders Burgundy', role: 'primary' },
+          { hex: '#FFB612', name: 'Commanders Gold',     role: 'secondary' },
+          { hex: '#0A0A0B', name: 'Embassy Black',       role: 'mute' },
+          { hex: '#F5F0E8', name: 'Capitol White',       role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Go-Go Burgundy', surfaceRole: 'primary',
+        colors: [
+          { hex: '#5A1414', name: 'Go-Go Burgundy', role: 'primary' },
+          { hex: '#FFB612', name: 'Cymbal Gold',    role: 'secondary' },
+          { hex: '#0F0F12', name: 'Night Show',     role: 'mute' },
+          { hex: '#E8DCC6', name: 'Conga Tan',      role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'DC Go-Go music', year: 1976, kind: 'music' },
+      },
+    ],
+    cultureTag: 'District',
+    cry:        'Hail Victory',
     wardRoom:   "The District doesn't kneel.",
   },
 
   // ─── NFC North ────────────────────────────────────────────────────────────
   {
-    abbr: 'CHI', city: 'Chicago',      name: 'Bears',
-    div: 'NFC North', primary: '#0B162A', secondary: '#C83803',
-    accent: '#C83803', scheme: 'secondary', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: '1985 Bears / Walter Payton', year: 1985, kind: 'history' },
-    note: 'Bears orange (#C83803) is the real visible identity. Standard primary (#0B162A) is near-black and would vanish on Corvus dark UI.',
-    cultureTag: "Da Bears",
-    cry:        "Bear Down",
-    wardRoom:   "Good, better, best. Never rest.",
+    abbr: 'CHI', city: 'Chicago', name: 'Bears', div: 'NFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Bears', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0B162A', name: 'Bears Navy',  role: 'primary' },
+          { hex: '#C83803', name: 'Bears Orange', role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Game White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: "'85 Bears", surfaceRole: 'primary',
+        colors: [
+          { hex: '#0B162A', name: 'Sweetness Navy',  role: 'primary' },
+          { hex: '#C83803', name: 'Payton Orange',   role: 'secondary' },
+          { hex: '#1F2A1A', name: 'Soldier Field Grass', role: 'mute' },
+          { hex: '#EAE2C9', name: 'Chalkboard Cream', role: 'neutral' },
+        ],
+        culturalAnchor: { name: '1985 Bears / Walter Payton', year: 1985, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Da Bears',
+    cry:        'Bear Down',
+    wardRoom:   'Good, better, best. Never rest.',
   },
   {
-    abbr: 'DET', city: 'Detroit',      name: 'Lions',
-    div: 'NFC North', primary: '#0076B6', secondary: '#B0B7BC',
-    accent: '#0076B6', scheme: 'standard', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Motown / Barry Sanders era', kind: 'music' },
-    cultureTag: "One Pride",
-    cry:        "Detroit vs. Everybody",
-    wardRoom:   "The city always shows up.",
+    abbr: 'DET', city: 'Detroit', name: 'Lions', div: 'NFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Lions', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0076B6', name: 'Honolulu Blue', role: 'primary' },
+          { hex: '#B0B7BC', name: 'Lions Silver',  role: 'secondary' },
+          { hex: '#0A0A0B', name: 'Lions Black',   role: 'mute' },
+          { hex: '#F5F0E8', name: 'Game White',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: '8 Mile', surfaceRole: 'primary',
+        colors: [
+          { hex: '#0076B6', name: 'Honolulu Blue', role: 'primary' },
+          { hex: '#A8AFB4', name: 'Mill Silver',   role: 'secondary' },
+          { hex: '#1A1A1A', name: 'Concrete Black', role: 'mute' },
+          { hex: '#EFEAE0', name: 'Diner Cream',   role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Motor City / 8 Mile', kind: 'region' },
+      },
+    ],
+    cultureTag: 'One Pride',
+    cry:        'Detroit vs. Everybody',
+    wardRoom:   'The city always shows up.',
   },
   {
-    abbr: 'GB',  city: 'Green Bay',    name: 'Packers',
-    div: 'NFC North', primary: '#203731', secondary: '#FFB612',
-    accent: '#FFB612', scheme: 'secondary', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Lambeau Field tundra sunset', kind: 'region' },
-    note: 'Packers gold (#FFB612) is equally iconic as the green and more vibrant on a dark UI. Frozen-field gold sunset on dark green = the canonical Lambeau pairing.',
-    cultureTag: "Cheesehead Nation",
-    cry:        "Go You Packers Go",
-    wardRoom:   "Titletown.",
-    lore:       "The Bears still suck.",
+    abbr: 'GB', city: 'Green Bay', name: 'Packers', div: 'NFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Packers', surfaceRole: 'primary',
+        colors: [
+          { hex: '#203731', name: 'Packers Green', role: 'primary' },
+          { hex: '#FFB612', name: 'Packers Gold',  role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Locker White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Lambeau Tundra', surfaceRole: 'primary',
+        colors: [
+          { hex: '#1A2E27', name: 'Tundra Green',  role: 'primary' },
+          { hex: '#FFB612', name: 'Sunset Gold',   role: 'secondary' },
+          { hex: '#F0F4F4', name: 'Ice White',     role: 'neutral' },
+          { hex: '#3A4642', name: 'Pole Steel',    role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Lambeau Field tundra', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Cheesehead Nation',
+    cry:        'Go You Packers Go',
+    wardRoom:   'Titletown.',
+    lore:       'The Bears still suck.',
   },
   {
-    abbr: 'MIN', city: 'Minnesota',    name: 'Vikings',
-    div: 'NFC North', primary: '#4F2683', secondary: '#FFC62F',
-    accent: '#4F2683', scheme: 'standard', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Jordan 5 'Grape'", year: 1990, kind: 'sneaker' },
-    cultureTag: "Skol Vikings",
-    cry:        "Skol",
+    abbr: 'MIN', city: 'Minnesota', name: 'Vikings', div: 'NFC North',
+    palettes: [
+      {
+        mode: 'official', name: 'Vikings', surfaceRole: 'primary',
+        colors: [
+          { hex: '#4F2683', name: 'Vikings Purple', role: 'primary' },
+          { hex: '#FFC62F', name: 'Vikings Gold',   role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Skol White',     role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Paisley Park', surfaceRole: 'primary',
+        colors: [
+          { hex: '#4F2683', name: 'Paisley Purple', role: 'primary' },
+          { hex: '#FFC62F', name: 'Cymbal Gold',    role: 'secondary' },
+          { hex: '#1F0A2C', name: 'Sign of the Times', role: 'mute' },
+          { hex: '#EDE6F5', name: 'Pure Cream',     role: 'neutral' },
+        ],
+        culturalAnchor: { name: "Prince's Paisley Park / Minneapolis", kind: 'music' },
+      },
+    ],
+    cultureTag: 'Skol Vikings',
+    cry:        'Skol',
     wardRoom:   "The Bold North doesn't forget.",
   },
 
   // ─── NFC South ────────────────────────────────────────────────────────────
   {
-    abbr: 'ATL', city: 'Atlanta',      name: 'Falcons',
-    div: 'NFC South', primary: '#A71930', secondary: '#000000',
-    accent: '#A71930', scheme: 'standard', template: 6,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: "Jordan 1 'Bred'", year: 1985, kind: 'sneaker' },
-    note: 'Bred template (6) bypasses textSafe entirely so the raw varsity red preserves identity against pure black canvas (defect 1.5e-defect-2 fix). Jordan 1 Bred is the explicit visual reference.',
-    cultureTag: "Rise Up",
-    cry:        "Rise Up",
-    wardRoom:   "The City Too Busy to Hate.",
-    lore:       "F.I.L.A.",
+    abbr: 'ATL', city: 'Atlanta', name: 'Falcons', div: 'NFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Falcons', surfaceRole: 'mute',
+        colors: [
+          { hex: '#A71930', name: 'Falcon Red',    role: 'primary' },
+          { hex: '#0A0A0B', name: 'Falcon Black',  role: 'mute' },
+          { hex: '#A5ACAF', name: 'Falcon Silver', role: 'secondary' },
+          { hex: '#F5F0E8', name: 'Game White',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Stankonia', surfaceRole: 'mute',
+        colors: [
+          { hex: '#A71930', name: 'Hartsfield Red', role: 'primary' },
+          { hex: '#1A1A1A', name: 'A-Town Black',   role: 'mute' },
+          { hex: '#C8A44A', name: 'Aquemini Gold',  role: 'secondary' },
+          { hex: '#F0EBE0', name: 'Peach Cream',    role: 'neutral' },
+        ],
+        culturalAnchor: { name: "OutKast 'Stankonia'", year: 2000, kind: 'music' },
+      },
+    ],
+    cultureTag: 'Rise Up',
+    cry:        'Rise Up',
+    wardRoom:   'The City Too Busy to Hate.',
+    lore:       'F.I.L.A.',
   },
   {
-    abbr: 'CAR', city: 'Carolina',     name: 'Panthers',
-    div: 'NFC South', primary: '#0085CA', secondary: '#101820',
-    accent: '#0085CA', scheme: 'standard', template: 1,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: 'Carolina blue / UNC heritage', kind: 'region' },
-    cultureTag: "Keep Pounding",
-    cry:        "Keep Pounding",
-    wardRoom:   "Carolina never stops running.",
+    abbr: 'CAR', city: 'Carolina', name: 'Panthers', div: 'NFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Panthers', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#0085CA', name: 'Carolina Blue', role: 'primary' },
+          { hex: '#101820', name: 'Panther Black', role: 'mute' },
+          { hex: '#BFC0BF', name: 'Panther Silver', role: 'secondary' },
+          { hex: '#FAFAF9', name: 'Carolina White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Tobacco Road', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#0085CA', name: 'Carolina Blue', role: 'primary' },
+          { hex: '#7B4F2E', name: 'Tobacco Brown', role: 'secondary' },
+          { hex: '#FAF5E8', name: 'Cotton Cream',  role: 'neutral' },
+          { hex: '#0F1A20', name: 'Tar Black',     role: 'mute' },
+        ],
+        culturalAnchor: { name: 'Tobacco Road / UNC heritage', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Keep Pounding',
+    cry:        'Keep Pounding',
+    wardRoom:   'Carolina never stops running.',
   },
   {
-    abbr: 'NO',  city: 'New Orleans',  name: 'Saints',
-    div: 'NFC South', primary: '#D3BC8D', secondary: '#101820',
-    accent: '#D3BC8D', scheme: 'standard', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Mardi Gras Krewes / Bourbon Street brass', kind: 'tradition' },
-    surfaceFrom: 'secondary', // gold primary, black secondary → world is black, accents are gold
-    cultureTag: "Who Dat Nation",
-    cry:        "Who Dat",
-    wardRoom:   "Laissez les bons temps rouler.",
+    abbr: 'NO', city: 'New Orleans', name: 'Saints', div: 'NFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Saints', surfaceRole: 'mute',
+        colors: [
+          { hex: '#D3BC8D', name: 'Saints Gold', role: 'primary' },
+          { hex: '#101820', name: 'Saints Black', role: 'mute' },
+          { hex: '#F5F0E8', name: 'Game White',  role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Mardi Gras', surfaceRole: 'mute',
+        colors: [
+          { hex: '#5D2E8C', name: 'Krewe Purple', role: 'primary' },
+          { hex: '#D3BC8D', name: 'Bourbon Gold', role: 'secondary' },
+          { hex: '#3D8159', name: 'Bayou Green',  role: 'tertiary' },
+          { hex: '#0F0F12', name: 'Bourbon Black', role: 'mute' },
+          { hex: '#F5EFE0', name: 'Beignet Cream', role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Mardi Gras Krewe traditions', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Who Dat Nation',
+    cry:        'Who Dat',
+    wardRoom:   'Laissez les bons temps rouler.',
   },
   {
-    abbr: 'TB',  city: 'Tampa Bay',    name: 'Buccaneers',
-    div: 'NFC South', primary: '#D50A0A', secondary: '#FF7900',
-    accent: '#D50A0A', scheme: 'standard', template: 3,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Gasparilla pirate festival', kind: 'tradition' },
-    surfaceFrom: 'secondary', // red primary would tint the world blood-red; pewter-ish secondary keeps pirate identity (defect 1.5e-defect-5)
-    note: 'Surface derives from secondary (orange) instead of primary (red) so the world reads pewter-warm rather than blood — matches Gasparilla pirate-helmet identity. Accent stays cannon-red.',
-    cultureTag: "Krewe",
-    cry:        "Fire the Cannons",
-    wardRoom:   "No Risk It, No Biscuit.",
+    abbr: 'TB', city: 'Tampa Bay', name: 'Buccaneers', div: 'NFC South',
+    palettes: [
+      {
+        mode: 'official', name: 'Buccaneers', surfaceRole: 'mute',
+        colors: [
+          { hex: '#D50A0A', name: 'Buccaneer Red', role: 'primary' },
+          { hex: '#34302B', name: 'Pirate Pewter', role: 'mute' },
+          { hex: '#FF7900', name: 'Bay Orange',    role: 'secondary' },
+          { hex: '#0A0A0B', name: 'Cannon Black',  role: 'tertiary' },
+          { hex: '#FCE5C8', name: 'Sail Cream',    role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Gasparilla', surfaceRole: 'mute',
+        colors: [
+          { hex: '#34302B', name: 'Pirate Pewter', role: 'mute' },
+          { hex: '#D50A0A', name: 'Cannon Red',    role: 'primary' },
+          { hex: '#FF7900', name: 'Bay Orange',    role: 'secondary' },
+          { hex: '#FCE5C8', name: 'Sail Cream',    role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Gasparilla pirate festival', kind: 'tradition' },
+      },
+    ],
+    cultureTag: 'Krewe',
+    cry:        'Fire the Cannons',
+    wardRoom:   'No Risk It, No Biscuit.',
   },
 
   // ─── NFC West ─────────────────────────────────────────────────────────────
   {
-    abbr: 'ARI', city: 'Arizona',      name: 'Cardinals',
-    div: 'NFC West',  primary: '#97233F', secondary: '#FFB612',
-    accent: '#97233F', scheme: 'standard', template: 3,
-    surfaceAxis: 'light',
-    culturalAnchor: { name: "Jordan 6 'Toro Bravo'", year: 2014, kind: 'sneaker' },
-    cultureTag: "Red Sea",
-    cry:        "Be Water",
-    wardRoom:   "Red Sea rising.",
+    abbr: 'ARI', city: 'Arizona', name: 'Cardinals', div: 'NFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Cardinals', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#97233F', name: 'Cardinal Red', role: 'primary' },
+          { hex: '#000000', name: 'Cardinals Black', role: 'mute' },
+          { hex: '#FFB612', name: 'Cardinals Yellow', role: 'secondary' },
+          { hex: '#FAFAF9', name: 'Cardinals White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Sonoran Sunset', surfaceRole: 'neutral',
+        colors: [
+          { hex: '#97233F', name: 'Sedona Red',    role: 'primary' },
+          { hex: '#1A1A1A', name: 'Mesa Silhouette', role: 'mute' },
+          { hex: '#F0E0CC', name: 'Sandstone Cream', role: 'neutral' },
+          { hex: '#4A6A3C', name: 'Saguaro Green', role: 'accent-pop' },
+        ],
+        culturalAnchor: { name: 'Sonoran Desert / Toro Bravo tradition', kind: 'region' },
+      },
+    ],
+    cultureTag: 'Red Sea',
+    cry:        'Be Water',
+    wardRoom:   'Red Sea rising.',
   },
   {
-    abbr: 'LAR', city: 'Los Angeles',  name: 'Rams',
-    div: 'NFC West',  primary: '#003594', secondary: '#FFA300',
-    accent: '#FFA300', scheme: 'secondary', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Hollywood Walk of Fame gold', year: 1958, kind: 'region' },
-    note: 'Rams gold/bone (#FFA300) is the distinctive modern Rams color. Walk-of-Fame gold-on-blue is the LA throughline.',
-    cultureTag: "Rams House",
-    cry:        "Whose House",
-    wardRoom:   "Whose House? Rams House.",
-    lore:       "Horns Up.",
+    abbr: 'LAR', city: 'Los Angeles', name: 'Rams', div: 'NFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Rams', surfaceRole: 'primary',
+        colors: [
+          { hex: '#003594', name: 'Rams Royal',   role: 'primary' },
+          { hex: '#FFA300', name: 'Rams Sol',     role: 'secondary' },
+          { hex: '#FFD100', name: 'Rams Bone',    role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Hollywood White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+    ],
+    cultureTag: 'Rams House',
+    cry:        'Whose House',
+    wardRoom:   'Whose House? Rams House.',
+    lore:       'Horns Up.',
   },
   {
-    abbr: 'SF',  city: 'San Francisco', name: '49ers',
-    div: 'NFC West',  primary: '#AA0000', secondary: '#B3995D',
-    accent: '#AA0000', scheme: 'standard', template: 2,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'California Gold Rush', year: 1849, kind: 'history' },
-    accentLifted: { dark: '#D72020' }, // Preserves 49ers red, avoids textSafe coral-lift (defect 1.5e-defect-6)
-    cultureTag: "Gold Rush",
-    cry:        "Bang Bang Niner Gang",
-    wardRoom:   "Faithful to The Bay.",
+    abbr: 'SF', city: 'San Francisco', name: '49ers', div: 'NFC West',
+    palettes: [
+      {
+        mode: 'official', name: '49ers', surfaceRole: 'primary',
+        colors: [
+          { hex: '#AA0000', name: '49ers Red',  role: 'primary' },
+          { hex: '#B3995D', name: '49ers Gold', role: 'secondary' },
+          { hex: '#0A0A0B', name: '49ers Black', role: 'mute' },
+          { hex: '#F5F0E8', name: 'Faithful White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Gold Rush', surfaceRole: 'primary',
+        colors: [
+          { hex: '#AA0000', name: 'Miner Red',    role: 'primary' },
+          { hex: '#B3995D', name: 'Placer Gold',  role: 'secondary' },
+          { hex: '#3A2818', name: 'Slate Pickaxe', role: 'mute' },
+          { hex: '#F0E6D2', name: 'Canvas Cream',  role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'California Gold Rush', year: 1849, kind: 'history' },
+      },
+    ],
+    cultureTag: 'Gold Rush',
+    cry:        'Bang Bang Niner Gang',
+    wardRoom:   'Faithful to The Bay.',
   },
   {
-    abbr: 'SEA', city: 'Seattle',      name: 'Seahawks',
-    div: 'NFC West',  primary: '#002244', secondary: '#69BE28',
-    accent: '#69BE28', scheme: 'secondary', template: 1,
-    surfaceAxis: 'dark',
-    culturalAnchor: { name: 'Pike Place grunge / PNW forest', year: 1990, kind: 'music' },
-    note: "Seahawks Action Green (#69BE28) is their most distinctive color. With the new --color-text-on-accent token, the dark-text-on-action-green CTA finally clears AA.",
-    cultureTag: "The 12s",
-    cry:        "SEA HAWKS",
+    abbr: 'SEA', city: 'Seattle', name: 'Seahawks', div: 'NFC West',
+    palettes: [
+      {
+        mode: 'official', name: 'Seahawks', surfaceRole: 'primary',
+        colors: [
+          { hex: '#002244', name: 'College Navy', role: 'primary' },
+          { hex: '#69BE28', name: 'Action Green', role: 'secondary' },
+          { hex: '#A5A8AB', name: 'Wolf Grey',    role: 'tertiary' },
+          { hex: '#F5F0E8', name: 'Sea Foam White', role: 'neutral' },
+        ],
+        culturalAnchor: null,
+      },
+      {
+        mode: 'special', name: 'Pike Place Grunge', surfaceRole: 'primary',
+        colors: [
+          { hex: '#001F3F', name: 'Pike Navy',    role: 'primary' },
+          { hex: '#69BE28', name: 'Action Green', role: 'secondary' },
+          { hex: '#7A828A', name: 'Flannel Grey', role: 'tertiary' },
+          { hex: '#0A0A0B', name: 'Sub Pop Black', role: 'mute' },
+          { hex: '#F0EBE0', name: 'Espresso Foam', role: 'neutral' },
+        ],
+        culturalAnchor: { name: 'Pike Place Market / 1990s Seattle grunge', year: 1990, kind: 'music' },
+      },
+    ],
+    cultureTag: 'The 12s',
+    cry:        'SEA HAWKS',
     wardRoom:   "12s don't leave.",
   },
 ];
 
 // ── Color math utilities ───────────────────────────────────────────────────
 
-function hexToRgb(hex) {
+export function hexToRgb(hex) {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
-function relLum([r, g, b]) {
+export function relLum([r, g, b]) {
   return [r, g, b]
     .map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
     .reduce((acc, v, i) => acc + v * [0.2126, 0.7152, 0.0722][i], 0);
 }
 
-function rgbToHsl(r, g, b) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
-  return [h * 360, s * 100, l * 100];
-}
-
-function hslToHex(h, s, l) {
-  h /= 360; s /= 100; l /= 100;
-  let r, g, b;
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const hue2rgb = (p, q, t) => {
-      if (t < 0) t += 1; if (t > 1) t -= 1;
-      if (t < 1 / 6) return p + (q - p) * 6 * t;
-      if (t < 1 / 2) return q;
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-      return p;
-    };
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1 / 3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1 / 3);
-  }
-  const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, '0');
-  return '#' + toHex(r) + toHex(g) + toHex(b);
-}
-
-/**
- * Lift a color to be readable as text/border on the given surface axis.
- *
- * Two behaviors:
- *
- *   1. **Near-achromatic accents (HSL saturation < 10%)** preserve hue and
- *      saturation exactly — only lightness moves. Fixes the LV Raiders
- *      silver hue-shift (defect 1.5e-defect-1): the prior algorithm bumped
- *      S from 6% to 38%, which painted the silver cool-blue. Silver now
- *      stays silver.
- *
- *   2. **Colored accents** lift L toward the readable target (58 on dark,
- *      ≤42 on light) and decay S as L moves, so deep brand reds don't
- *      coral-out into fluorescent pink as they brighten. The decay is mild
- *      enough that vivid teams (KC red, GB gold, CIN orange) keep their
- *      punch.
- *
- * Per-team `accentLifted: { dark|light }` overrides this function for the
- * handful of teams whose identity the algorithm can't preserve (HOU, PHI,
- * SF). Bred template-6 bypasses textSafe entirely (ATL) — that bypass lives
- * in teamTemplate.js, not here.
- *
- * @param hex   The brand accent hex.
- * @param axis  'dark' | 'light' — surface the accent will appear on.
- *              Default 'dark' for back-compat with pre-1.5f callers.
- */
-export function textSafe(hex, axis = 'dark') {
-  const [h, s, l] = rgbToHsl(...hexToRgb(hex));
-
-  // Near-achromatic: lock hue + saturation, only nudge L.
-  if (s < 10) {
-    if (axis === 'dark') return hslToHex(h, s, Math.max(l, 58));
-    return hslToHex(h, s, Math.min(l, 42));
-  }
-
-  if (axis === 'dark') {
-    const targetL = Math.max(l, 58);
-    // S decay: as L rises, drop S proportionally to avoid the fluorescent lift.
-    // At lift = 0 → S preserved. At lift = 40 (e.g. #004C54 → L58), S keeps ~60%.
-    const lift = targetL - l;
-    const sScaled = Math.max(28, s * (1 - lift / 100));
-    return hslToHex(h, sScaled, targetL);
-  }
-
-  // axis === 'light'
-  const targetL = Math.min(l, 42);
-  // Light axis: vivid is fine on cream; only drop S a little if we had to drop L hard.
-  const drop = l - targetL;
-  const sScaled = Math.max(28, s * (1 - drop / 200));
-  return hslToHex(h, sScaled, targetL);
-}
-
-/**
- * Return the per-team lifted accent for the given axis. Honors the
- * team-level `accentLifted` override if present, otherwise falls through to
- * textSafe(team.accent, axis).
- */
-export function teamAccentOn(team, axis = 'dark') {
-  if (!team) return null;
-  const override = team.accentLifted?.[axis];
-  if (override) return override;
-  return textSafe(team.accent, axis);
-}
-
-/**
- * WCAG contrast ratio between two hex colors.
- */
-function contrastRatio(hexA, hexB) {
+export function contrastRatio(hexA, hexB) {
   const la = relLum(hexToRgb(hexA));
   const lb = relLum(hexToRgb(hexB));
   const [lighter, darker] = la > lb ? [la, lb] : [lb, la];
@@ -566,11 +988,8 @@ function contrastRatio(hexA, hexB) {
 }
 
 /**
- * Return the best foreground color (#0A0A0B dark or #F5F0E8 light) for text
- * printed ON TOP of the given background hex, chosen by actual WCAG contrast
- * rather than a luminance heuristic. Picking by contrast correctly handles
- * mid-luminance teals, oranges, and silvers where the visual-luminance
- * threshold misjudges the better polarity.
+ * Pick the best foreground (dark or light cream) for text printed ON TOP
+ * of the given background hex, by actual WCAG contrast comparison.
  */
 export function readableOn(hex) {
   return contrastRatio('#0A0A0B', hex) >= contrastRatio('#F5F0E8', hex)
@@ -579,35 +998,83 @@ export function readableOn(hex) {
 }
 
 /**
- * Returns true when the color is dark enough to need the hairline-inset tile border.
+ * True when the color is dark enough to need the hairline-inset tile border.
  */
 export function isDark(hex) {
   return relLum(hexToRgb(hex)) < 0.12;
 }
 
+// ── Palette lookups ───────────────────────────────────────────────────────
+
 /**
- * Given a team abbreviation (or null for Corvus default), return the three
- * CSS values needed to fully theme the app:
- *   accentBg   — raw accent color (for tile rings, fills, vivid elements)
- *   accentText — textSafe-lifted accent (for text labels, borders on dark bg)
- *   accentOn   — foreground color on top of accentBg (for CTA button text)
+ * Return the palette bundle for a team + variant. Falls back to 'official'
+ * if the requested variant doesn't exist on the team. Returns null if the
+ * team isn't found.
  *
- * Retained for back-compat with pre-Phase-1.5 callers. New code should use
- * getTeamTemplate() in lib/teamTemplate.js which returns the full token
- * bundle including axis + textOnAccent.
+ * Output shape:
+ *   {
+ *     mode, name, colors, byRole, surfaceRole, surface, culturalAnchor
+ *   }
+ *
+ *   - `byRole` is { primary: color, secondary: color, ... } for O(1) lookup
+ *   - `surface` is the color object assigned to surfaceRole
+ *   - `culturalAnchor` is `{ name, year?, kind }` or null
+ */
+export function getTeamPalette(abbr, variant = 'official') {
+  if (!abbr) return null;
+  const team = NFL_TEAMS.find((t) => t.abbr === abbr);
+  if (!team) return null;
+
+  const palette =
+    team.palettes.find((p) => p.mode === variant) ??
+    team.palettes.find((p) => p.mode === 'official');
+  if (!palette) return null;
+
+  const byRole = {};
+  for (const c of palette.colors) byRole[c.role] = c;
+
+  return {
+    mode: palette.mode,
+    name: palette.name,
+    colors: palette.colors,
+    byRole,
+    surfaceRole: palette.surfaceRole,
+    surface: byRole[palette.surfaceRole] ?? palette.colors[0],
+    culturalAnchor: palette.culturalAnchor,
+  };
+}
+
+/**
+ * Whether a team has a 'special' variant available (used to decide whether
+ * to render the Official / Special sub-mode picker on /account/appearance).
+ */
+export function hasSpecialVariant(abbr) {
+  if (!abbr) return false;
+  const team = NFL_TEAMS.find((t) => t.abbr === abbr);
+  return team?.palettes?.some((p) => p.mode === 'special') ?? false;
+}
+
+/**
+ * Legacy compatibility shim — pre-1.5h code expected `team.primary` etc.
+ * Returns the official-palette role mapping as a flat object. New code
+ * should use getTeamPalette() directly.
  */
 export function getTeamTheme(abbr) {
   if (!abbr) {
     return { accentBg: '#B8952A', accentText: '#B8952A', accentOn: '#0A0A0B' };
   }
-  const team = NFL_TEAMS.find((t) => t.abbr === abbr);
-  if (!team) return getTeamTheme(null);
+  const palette = getTeamPalette(abbr, 'official');
+  if (!palette) return getTeamTheme(null);
 
-  const accentBg = team.accent;
-  const accentText = teamAccentOn(team, team.surfaceAxis ?? 'dark');
-  const accentOn = readableOn(accentBg);
-  return { accentBg, accentText, accentOn };
+  const primary = palette.byRole.primary?.hex ?? '#B8952A';
+  return {
+    accentBg: primary,
+    accentText: primary,
+    accentOn: readableOn(primary),
+  };
 }
+
+// ── Display lists ─────────────────────────────────────────────────────────
 
 // Sorted by division for the "Show all 32" expand view
 export const TEAMS_BY_DIV = [

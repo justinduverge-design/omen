@@ -92,36 +92,51 @@ Each row is the contract for that route. "Typography role" = primary serif treat
 
 ## Component Rules
 
-### Team Accent Token (Phase 1.5)
+### Team palette tokens — Phase 1.5h (supersedes 1.5/1.5f single-accent model)
 
-The user's selected team theme exposes `--color-team-accent` and (where defined) `--color-team-accent-secondary`. Every page in the Page System Table flagged "Accent active" consumes the token. Rules:
+Justin doctrine 2026-06-21: **every team must surface its full official palette on every themed page; no team page should be in stylistic "dark mode."** The page may *appear* dark because the team's canonical world color is dark (PIT black, BAL purple, ATL Stankonia, LV black), but Corvus never imposes dark mode on top of a team's accent — the team's palette IS the surface.
 
-- The accent appears on: primary CTAs, focus rings, active tab underline, "you" row highlight in standings, selected-tile outline in `/account/appearance`, header rule on page titles, and the Omen recommendation accept-button background.
-- The accent never appears on: body text, risk red, confidence red endpoint, mock data labels, error states, or platform brand badges (those carry their platform colors, not the user's team accent).
-- **Reads stay neutral** (per Justin's approved Appearance page copy). When in doubt, the reads (data / numbers / recommendation explanation) stay in `--color-text-primary`, not the accent.
-- The sweep is whole-app (Phase 1.5 scope is the *entire app*, not just QA-flagged surfaces — locked in prior planning chat).
-- 32-team contrast sweep: each team's accent vs `--color-bg` (dark) and `--color-bg` (light) must clear WCAG AA. The team-themes table will mark any team with <AA contrast and require a secondary accent for that team. Guardrail: `ui-ux-pro-max` accent-contrast pattern library.
+#### Multi-role data model
 
-### Team mode is per-entity light/dark, NOT per-user (Phase 1.5f)
+Each team in `nflTeams.js` carries a `palettes` array with at least one Official entry and, where applicable, a Special cultural variant (Stankonia, Calle Ocho, Paisley Park, Lambeau Tundra, etc.). Each palette has 3-5 named colors with explicit UI roles:
 
-Team mode is two-axis, but the axis is decided **per team**, not as a user preference. The team's fan-perceived identity drives the call:
+| Role | Used for |
+|---|---|
+| `primary` | Dominant brand color — CTA fills (when surface ≠ primary), headline accents |
+| `secondary` | Second brand color — section headers, focus rings, fall-through CTA when surface == primary |
+| `tertiary` | Optional third — chip bg, secondary flourish |
+| `neutral` | White/cream/parchment — body text on dark surface, frame on light surface |
+| `mute` | Black or near-black — hairlines, depth, text on light surface |
+| `accent-pop` | Optional hover/active flourish |
 
-- **Dark-axis teams (26)** keep the existing dark recipe (LV silver-on-black night-stadium, KC Chiefs Kingdom, GB Lambeau tundra at dusk, ATL Bred, etc.).
-- **Light-axis teams (6)** flip to a cream surface (`L≈93–95`, faint team-hue tint) with dark body text: MIA (Miami Vice / South Beach), IND (white-helmet horseshoe), LAC (1960s San Diego beach Chargers), DAL (silver-and-white Lone Star), CAR (Carolina blue + UNC heritage), ARI (Jordan 6 "Toro Bravo" red-on-white).
+Plus a per-palette `surfaceRole` naming which role IS the page surface. Surface choice drives whether the page reads light or dark — a consequence of the team's canonical world color, not a stylistic toggle.
 
-Implementation lives in `frontend/src/data/nflTeams.js` (per-team `surfaceAxis` field), `frontend/src/lib/teamTemplate.js` (two-axis `SURFACE_RECIPES`), and `frontend/src/lib/themeMode.js` (`resolveDataTheme(mode, team)` flips `data-theme` based on the selected team's axis). Reference: `Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md` (rationale per team) and `Blueprints/audits/2026-06-21-phase1-5f-two-axis-wcag-sweep.md` (two-axis WCAG verification).
+#### Tokens written to `:root` in Team mode
 
-The `--color-text-on-accent` token (added in Phase 1.5f) is the foreground color for any element using `--color-team-accent` (or brand `--color-accent`) as a fill. Always use this token for CTA text — never a hardcoded `#0A0A0B` literal — so light-axis CTAs and team-accent CTAs invert correctly without per-component logic.
+`themeMode.js applyTeamTokens()` writes the full role map:
 
-### Cultural-anchor attribution on /account/appearance (Phase 1.5f)
+- `--color-team-primary` / `--color-team-secondary` / `--color-team-tertiary` / `--color-team-neutral` / `--color-team-mute` / `--color-team-pop`
+- `--color-team-text-on-primary` / `--color-team-text-on-secondary` / `--color-team-text-on-tertiary` / `--color-team-text-on-pop` (WCAG-picked foreground for each role used as a fill)
+- `--color-team-surface` / `--color-team-surface-card`
+- `--color-team-accent` — derived CTA color (primary by default, falls through to secondary when `surfaceRole === 'primary'` so GB green-on-green and PIT black-on-black CTAs remain visible)
+- `--color-team-anchor-name` — CSS string of the active palette's cultural-anchor name (used by `Footer` to render the attribution)
+- Plus overrides on the core Corvus tokens: `--color-bg`, `--color-surface-1/2/3`, `--color-border`, `--color-border-subtle`, `--color-accent`, `--color-accent-hover`, `--color-accent-muted`, `--color-text-on-accent`, `--color-text-primary`, `--color-text-secondary`, `--color-text-tertiary`. This means pages that consume the standard Corvus tokens (most of them) inherit the team look without per-page changes.
 
-Each team in `nflTeams.js` carries an optional `culturalAnchor: { name, year?, kind }` field naming the cultural reference behind the color choice (sneaker colorway, film, music era, region, history, tradition). When a team is selected in Team mode, the `/account/appearance` selected-team meta block surfaces a one-line attribution under the identity copy block via `CulturalAnchorAttribution` (lives in `frontend/src/components/theme/AppearancePicker.jsx`).
+#### Variants — Official vs Special
 
-Rendering rules:
-- The attribution renders **only** on `/account/appearance` — not in the rest of the app shell.
-- It does **not** render when no `culturalAnchor` is defined for the team.
-- Font: serif italic, `text-xs`, `--color-text-tertiary`. Quiet — a citation, not a banner.
-- Kind drives prefix: sneaker/film/music/art → "Inspired by"; region/history/tradition → "Anchored in".
+The Mode picker on `/account/appearance` exposes an Official / Special toggle (`VariantPicker`) when the selected team has a special variant. 30 of 32 teams have a Special as of Phase 1.5h ship; CLE and LAR are official-only. Variant persists at `localStorage['corvus.theme.variant']` and survives across sessions. Identity copy (cultureTag/cry/wardRoom/lore) stays constant across modes — the fan voice doesn't change with the visual chrome.
+
+#### Cultural anchor extends to all pages (Phase 1.5h)
+
+When the user is in Team mode and the active palette has a `culturalAnchor`, `Footer` renders a quiet italic citation alongside the copyright: *"Painted in the spirit of [anchor name] ([year])."* Does not render in System / Corvus mode or when no anchor is defined (most Official palettes are anchor-less; Specials carry the cultural reference). Justin doctrine 2026-06-21: "cultural anchor citation extends to all pages, in the background or part of the text in the pages."
+
+#### Retired Phase 1.5e/f fields
+
+`primary`, `secondary`, `accent`, `scheme`, `template`, `surfaceAxis`, `surfaceFrom`, `accentLifted`, `colorRush`, `note`, `SURFACE_RECIPES`, `textSafe()` — all replaced by the `palettes` array + role tokens. Do not reintroduce.
+
+#### Sweep + audit
+
+Programmatic sweep at `frontend/scripts/contrast-sweep.mjs` runs WCAG against all 62 palettes (32 official + 30 special) × required cells (body/surface + CTA text/accent). Output: `Blueprints/audits/2026-06-21-phase1-5h-multi-color-wcag-sweep.md`. Five known marginals are baked into the script with explicit rationale (KC red CTA, DET Honolulu blue surface ×2, DET Lions blue CTA, BUF Wing Sauce CTA — all pass AA-large 3.0, fall short of AA-normal 4.5 by a small margin where identity preservation wins).
 
 ### Position Chip Palette (Phase 1.6)
 

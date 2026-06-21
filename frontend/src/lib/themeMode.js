@@ -1,38 +1,65 @@
 /**
- * themeMode.js — Phase 1.5 theme-mode store (two-axis after Phase 1.5f).
+ * themeMode.js — Phase 1.5h theme-mode store (multi-role palettes + variants).
  *
  * Modes are exclusive:
  *   - 'system' — data-theme follows OS prefers-color-scheme. Team tokens
  *                cleared (CSS falls back to brand `--color-accent`).
- *   - 'team'   — data-theme follows the selected team's surfaceAxis
- *                ('dark' for 26 teams, 'light' for MIA/IND/LAC/DAL/CAR/ARI).
- *                Team tokens applied per the team's role recipe.
+ *   - 'team'   — data-theme follows the selected team's palette surface
+ *                luminance (dark surface → data-theme=dark; light surface →
+ *                data-theme=light). Team's full role-palette applied as
+ *                CSS variables.
  *   - 'corvus' — data-theme forced 'dark'. Team tokens cleared (the
- *                current pre-Phase-1.5 look: gold on graphite).
+ *                pre-Phase-1.5 look: gold on graphite).
  *
- * Persistence: `corvus.theme.mode` (mode) and `corvus.theme.team` (NFL abbr).
- * Default for new users: 'system'.
+ * Variant (per-team sub-mode, Phase 1.5h):
+ *   - 'official' (default) — team's canonical NFL palette
+ *   - 'special'            — team's cultural variant (Stankonia, Calle Ocho,
+ *                            Paisley Park, etc.) — only available when the
+ *                            team's `palettes` array includes one
  *
- * Components that render team voice (NavDrawer label, dashboard header pill,
- * Omen subhead, Standings subhead) should subscribe via `subscribeTheme()`
- * so they re-render when the mode/team changes in the same tab without a
- * full reload.
+ * Persistence keys:
+ *   corvus.theme.mode     → 'system' | 'team' | 'corvus'
+ *   corvus.theme.team     → NFL abbr ('KC', 'MIA', etc.)
+ *   corvus.theme.variant  → 'official' | 'special'
+ *
+ * Components that render team voice subscribe via `subscribeTheme()` so they
+ * re-render when mode/team/variant change in the same tab without reload.
  */
 
 import { useEffect, useState } from 'react';
 import { getTeamTemplate } from './teamTemplate.js';
-import { NFL_TEAMS } from '../data/nflTeams.js';
 
-const MODE_KEY = 'corvus.theme.mode';
-const TEAM_KEY = 'corvus.theme.team';
-const VALID_MODES = ['system', 'team', 'corvus'];
+const MODE_KEY    = 'corvus.theme.mode';
+const TEAM_KEY    = 'corvus.theme.team';
+const VARIANT_KEY = 'corvus.theme.variant';
+const VALID_MODES    = ['system', 'team', 'corvus'];
+const VALID_VARIANTS = ['official', 'special'];
 
+// All role + surface CSS variables themeMode writes onto :root when team
+// mode is active. Cleared together when switching out of team mode.
 const TEAM_TOKEN_VARS = [
   '--color-team-primary',
+  '--color-team-primary-name',
   '--color-team-secondary',
-  '--color-team-accent',
+  '--color-team-secondary-name',
+  '--color-team-tertiary',
+  '--color-team-tertiary-name',
+  '--color-team-neutral',
+  '--color-team-neutral-name',
+  '--color-team-mute',
+  '--color-team-mute-name',
+  '--color-team-pop',
+  '--color-team-pop-name',
   '--color-team-surface',
   '--color-team-surface-card',
+  '--color-team-text-on-primary',
+  '--color-team-text-on-secondary',
+  '--color-team-text-on-tertiary',
+  '--color-team-text-on-pop',
+  '--color-team-anchor-name',
+  // Legacy 1.5f tokens still consumed by un-refactored pages; kept in the
+  // clear list so switching modes wipes them cleanly.
+  '--color-team-accent',
 ];
 
 const CORE_TEAM_OVERRIDE_VARS = [
@@ -74,6 +101,13 @@ export function getThemeTeam() {
   try { return localStorage.getItem(TEAM_KEY) || null; } catch { return null; }
 }
 
+export function getThemeVariant() {
+  try {
+    const v = localStorage.getItem(VARIANT_KEY);
+    return VALID_VARIANTS.includes(v) ? v : 'official';
+  } catch { return 'official'; }
+}
+
 export function setThemeMode(mode) {
   if (!VALID_MODES.includes(mode)) return;
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* ignore */ }
@@ -90,6 +124,13 @@ export function setThemeTeam(abbr) {
   notify();
 }
 
+export function setThemeVariant(variant) {
+  if (!VALID_VARIANTS.includes(variant)) return;
+  try { localStorage.setItem(VARIANT_KEY, variant); } catch { /* ignore */ }
+  applyThemeMode();
+  notify();
+}
+
 // ── Apply ─────────────────────────────────────────────────────────────────
 
 function clearTeamTokens(root) {
@@ -98,45 +139,113 @@ function clearTeamTokens(root) {
   }
 }
 
-function applyTeamTokens(root, recipe) {
-  root.style.setProperty('--color-team-primary',      recipe.primary);
-  root.style.setProperty('--color-team-secondary',    recipe.secondary);
-  root.style.setProperty('--color-team-accent',       recipe.accent);
-  root.style.setProperty('--color-team-surface',      recipe.surface);
-  root.style.setProperty('--color-team-surface-card', recipe.surfaceCard);
+function setRoleTokens(root, template) {
+  // Per-role hex + friendly name (the name lets future swatch labels read
+  // the color name without re-importing nflTeams.js).
+  const roles = [
+    ['primary',    template.primary],
+    ['secondary',  template.secondary],
+    ['tertiary',   template.tertiary],
+    ['neutral',    template.neutral],
+    ['mute',       template.mute],
+    ['pop',        template.accentPop],
+  ];
+  for (const [name, color] of roles) {
+    if (!color) {
+      root.style.removeProperty(`--color-team-${name}`);
+      root.style.removeProperty(`--color-team-${name}-name`);
+      continue;
+    }
+    root.style.setProperty(`--color-team-${name}`, color.hex);
+    root.style.setProperty(`--color-team-${name}-name`, `"${color.name}"`);
+  }
 
-  root.style.setProperty('--color-bg',            recipe.surface);
-  root.style.setProperty('--color-surface-1',     recipe.surfaceCard);
-  root.style.setProperty('--color-accent',        recipe.accent);
-  root.style.setProperty('--color-text-on-accent', recipe.textOnAccent);
+  // Per-role text-on overrides for filled CTAs / chips / etc.
+  if (template.textOnPrimary)   root.style.setProperty('--color-team-text-on-primary',   template.textOnPrimary);
+  if (template.textOnSecondary) root.style.setProperty('--color-team-text-on-secondary', template.textOnSecondary);
+  if (template.textOnTertiary)  root.style.setProperty('--color-team-text-on-tertiary',  template.textOnTertiary);
+  if (template.textOnAccentPop) root.style.setProperty('--color-team-text-on-pop',       template.textOnAccentPop);
 
-  if (recipe.axis === 'light') {
-    // Light-axis surfaces: elevation darkens, borders darken, text inverts.
-    root.style.setProperty('--color-surface-2',     `color-mix(in srgb, ${recipe.surfaceCard} 92%, black 8%)`);
-    root.style.setProperty('--color-surface-3',     `color-mix(in srgb, ${recipe.surfaceCard} 82%, black 18%)`);
-    root.style.setProperty('--color-border',        `color-mix(in srgb, ${recipe.accent} 30%, #C8C8C5 70%)`);
-    root.style.setProperty('--color-border-subtle', `color-mix(in srgb, ${recipe.accent} 14%, ${recipe.surfaceCard} 86%)`);
-    root.style.setProperty('--color-accent-hover',  `color-mix(in srgb, ${recipe.accent} 84%, black 16%)`);
-    root.style.setProperty('--color-accent-muted',  `color-mix(in srgb, ${recipe.accent} 16%, ${recipe.surfaceCard} 84%)`);
-    root.style.setProperty('--color-text-primary',   '#1C1C1E');
-    root.style.setProperty('--color-text-secondary', '#4A5158');
-    root.style.setProperty('--color-text-tertiary',  '#6B7280');
+  // Cultural-anchor name as a CSS string token so pages can read it from
+  // content: var() for backgrounds, watermarks, or eyebrow text.
+  if (template.culturalAnchor?.name) {
+    root.style.setProperty('--color-team-anchor-name', `"${template.culturalAnchor.name}"`);
   } else {
-    // Dark axis (existing behavior preserved).
-    root.style.setProperty('--color-surface-2',     `color-mix(in srgb, ${recipe.surfaceCard} 84%, white 16%)`);
-    root.style.setProperty('--color-surface-3',     `color-mix(in srgb, ${recipe.surfaceCard} 74%, white 26%)`);
-    root.style.setProperty('--color-border',        `color-mix(in srgb, ${recipe.accent} 26%, #3A3A3C 74%)`);
-    root.style.setProperty('--color-border-subtle', `color-mix(in srgb, ${recipe.accent} 12%, ${recipe.surfaceCard} 88%)`);
-    root.style.setProperty('--color-accent-hover',  `color-mix(in srgb, ${recipe.accent} 84%, white 16%)`);
-    root.style.setProperty('--color-accent-muted',  `color-mix(in srgb, ${recipe.accent} 18%, ${recipe.surfaceCard} 82%)`);
-    // text-* removed: dark-axis teams inherit dark-theme defaults.
+    root.style.removeProperty('--color-team-anchor-name');
+  }
+
+  // Legacy 1.5f token alias — `accent` is the derived CTA color (which
+  // falls through from primary to secondary when surface == primary). This
+  // keeps pages reading --color-team-accent visible on green-on-green teams
+  // like GB and on black-on-black like LV.
+  if (template.accent) {
+    root.style.setProperty('--color-team-accent', template.accent.hex);
   }
 }
 
-function resolveDataTheme(mode, teamAbbr) {
+function applyTeamTokens(root, template) {
+  setRoleTokens(root, template);
+
+  // Card sits a small luminance step brighter than surface (Material-style
+  // elevation) — mix toward white on both light and dark surfaces.
+  const cardMix = template.surfaceIsDark ? '92%' : '96%';
+  root.style.setProperty('--color-team-surface', template.surface);
+  root.style.setProperty(
+    '--color-team-surface-card',
+    `color-mix(in srgb, ${template.surface} ${cardMix}, white)`,
+  );
+
+  // Drive the core Corvus tokens from the team palette so every page that
+  // consumes --color-bg, --color-accent, etc. inherits the team look
+  // automatically (no per-page rewrite needed for the basic case).
+  root.style.setProperty('--color-bg',            template.surface);
+  root.style.setProperty(
+    '--color-surface-1',
+    `color-mix(in srgb, ${template.surface} ${cardMix}, white)`,
+  );
+  root.style.setProperty(
+    '--color-surface-2',
+    `color-mix(in srgb, ${template.surface} ${template.surfaceIsDark ? '84%' : '92%'}, ${template.surfaceIsDark ? 'white' : 'black'})`,
+  );
+  root.style.setProperty(
+    '--color-surface-3',
+    `color-mix(in srgb, ${template.surface} ${template.surfaceIsDark ? '74%' : '84%'}, ${template.surfaceIsDark ? 'white' : 'black'})`,
+  );
+  root.style.setProperty(
+    '--color-border',
+    `color-mix(in srgb, ${template.primary?.hex ?? template.surface} 26%, ${template.surfaceIsDark ? '#3A3A3C' : '#C8C8C5'} 74%)`,
+  );
+  root.style.setProperty(
+    '--color-border-subtle',
+    `color-mix(in srgb, ${template.primary?.hex ?? template.surface} 12%, ${template.surface} 88%)`,
+  );
+
+  // Accent semantics: `accent` is the derived CTA color (falls through to
+  // secondary when surface == primary). This keeps GB green-on-green and
+  // PIT black-on-black CTAs visible.
+  const accentHex   = template.accent?.hex ?? template.primary?.hex ?? template.surface;
+  const accentOnHex = template.textOnAccent ?? '#0A0A0B';
+  root.style.setProperty('--color-accent',       accentHex);
+  root.style.setProperty('--color-accent-hover', `color-mix(in srgb, ${accentHex} 84%, ${template.surfaceIsDark ? 'white' : 'black'})`);
+  root.style.setProperty('--color-accent-muted', `color-mix(in srgb, ${accentHex} 18%, ${template.surface})`);
+  root.style.setProperty('--color-text-on-accent', accentOnHex);
+
+  // Body text colors on the team surface.
+  root.style.setProperty('--color-text-primary',   template.textOnSurface);
+  root.style.setProperty(
+    '--color-text-secondary',
+    template.surfaceIsDark ? '#AEAEB2' : '#4A5158',
+  );
+  root.style.setProperty(
+    '--color-text-tertiary',
+    template.surfaceIsDark ? '#6D6D72' : '#6B7280',
+  );
+}
+
+function resolveDataTheme(mode, teamAbbr, variant) {
   if (mode === 'team') {
-    const team = teamAbbr ? NFL_TEAMS.find((t) => t.abbr === teamAbbr) : null;
-    return team?.surfaceAxis === 'light' ? 'light' : 'dark';
+    const template = teamAbbr ? getTeamTemplate(teamAbbr, variant) : null;
+    return template?.surfaceIsDark === false ? 'light' : 'dark';
   }
   if (mode === 'corvus') return 'dark';
   // 'system' — follow OS preference
@@ -144,40 +253,50 @@ function resolveDataTheme(mode, teamAbbr) {
 }
 
 /**
- * Read mode + team from localStorage, apply data-theme attribute and team
- * tokens to <html>. Idempotent; safe to call repeatedly.
+ * Read mode + team + variant from localStorage, apply data-theme attribute
+ * and team tokens to <html>. Idempotent; safe to call repeatedly.
  */
 export function applyThemeMode() {
   const root = document.documentElement;
-  const mode = getThemeMode();
-  const team = getThemeTeam();
+  const mode    = getThemeMode();
+  const team    = getThemeTeam();
+  const variant = getThemeVariant();
 
-  root.setAttribute('data-theme', resolveDataTheme(mode, team));
+  root.setAttribute('data-theme', resolveDataTheme(mode, team, variant));
 
   if (mode !== 'team') {
     clearTeamTokens(root);
     return;
   }
 
-  const recipe = getTeamTemplate(team);
-  if (!recipe) {
+  const template = getTeamTemplate(team, variant);
+  if (!template) {
     clearTeamTokens(root);
     return;
   }
 
-  applyTeamTokens(root, recipe);
+  applyTeamTokens(root, template);
 }
 
 // ── React hook ────────────────────────────────────────────────────────────
 
 /**
- * Live snapshot of { mode, team } that re-renders when either changes in
- * this tab. Use in components that paint team voice on accent-active pages.
+ * Live snapshot of { mode, team, variant } that re-renders when any change
+ * in this tab. Use in components that paint team voice on accent-active
+ * pages.
  */
 export function useTheme() {
-  const [snap, setSnap] = useState(() => ({ mode: getThemeMode(), team: getThemeTeam() }));
+  const [snap, setSnap] = useState(() => ({
+    mode:    getThemeMode(),
+    team:    getThemeTeam(),
+    variant: getThemeVariant(),
+  }));
   useEffect(() => {
-    const sync = () => setSnap({ mode: getThemeMode(), team: getThemeTeam() });
+    const sync = () => setSnap({
+      mode:    getThemeMode(),
+      team:    getThemeTeam(),
+      variant: getThemeVariant(),
+    });
     sync();
     return subscribeTheme(sync);
   }, []);

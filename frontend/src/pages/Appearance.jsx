@@ -6,6 +6,7 @@ import {
   MARQUEE_ABBRS,
   NFL_TEAMS,
   TEAMS_BY_DIV,
+  getTeamPalette,
 } from '../data/nflTeams.js';
 import { getTeamTemplate } from '../lib/teamTemplate.js';
 import {
@@ -13,48 +14,83 @@ import {
   getThemeTeam,
   setThemeMode,
   setThemeTeam,
+  setThemeVariant,
   useTheme,
 } from '../lib/themeMode.js';
-import { CulturalAnchorAttribution, ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
+import {
+  CulturalAnchorAttribution,
+  ModePicker,
+  TeamTile,
+  VariantPicker,
+} from '../components/theme/AppearancePicker.jsx';
 
 // ── Swatch ────────────────────────────────────────────────────────────────
 
-function Swatch({ hex, label }) {
+const ROLE_LABEL = {
+  primary:    'Primary',
+  secondary:  'Secondary',
+  tertiary:   'Tertiary',
+  neutral:    'Neutral',
+  mute:       'Mute',
+  'accent-pop': 'Accent Pop',
+};
+
+function Swatch({ color }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2.5">
       <span
-        className="inline-block h-3.5 w-3.5 rounded-[3px]"
-        style={{ background: hex, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)' }}
+        className="inline-block h-5 w-5 rounded-[3px] flex-shrink-0"
+        style={{
+          background: color.hex,
+          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10), inset 0 0 0 1px rgba(255,255,255,0.06)',
+        }}
+        aria-hidden="true"
       />
-      <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-text-tertiary)' }}>
-        {hex.toUpperCase()}
-      </span>
-      {label && (
-        <span className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
-          ({label})
+      <div className="flex flex-col leading-tight">
+        <span
+          className="text-[12px] font-semibold"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          {color.name}
         </span>
-      )}
+        <span
+          className="font-mono text-[10px] uppercase tabular-nums"
+          style={{ color: 'var(--color-text-tertiary)' }}
+        >
+          {color.hex.toUpperCase()} · {ROLE_LABEL[color.role] ?? color.role}
+        </span>
+      </div>
     </div>
   );
 }
 
 // ── Live preview ──────────────────────────────────────────────────────────
 
-function LivePreview({ team, themed }) {
+/**
+ * Multi-role preview card. Surface uses team neutral/surface; CTA uses primary
+ * with text-on-primary; section header uses secondary; hairline divider uses
+ * mute. Renders the full palette in one card so the user sees a real preview
+ * of how each role appears in production.
+ */
+function LivePreview({ template, themed }) {
   return (
     <div
       className="rounded-lg border p-6 transition-colors duration-300"
       style={{
         background: 'var(--color-team-surface-card)',
         borderColor: themed
-          ? 'color-mix(in srgb, var(--color-team-accent) 32%, var(--color-border) 68%)'
+          ? 'color-mix(in srgb, var(--color-team-primary) 32%, var(--color-border) 68%)'
           : 'var(--color-border)',
       }}
     >
       <div className="mb-5 flex items-baseline justify-between">
         <span
           className="text-xs font-semibold uppercase tracking-[0.32em] transition-colors duration-300"
-          style={{ color: themed ? 'var(--color-team-accent)' : 'var(--color-text-tertiary)' }}
+          style={{
+            color: themed && template?.secondary
+              ? template.secondary.hex
+              : 'var(--color-text-tertiary)',
+          }}
         >
           Corvus · Omen
         </span>
@@ -73,15 +109,29 @@ function LivePreview({ team, themed }) {
         Less guessing. Better moves.
       </h3>
 
-      <p className="mb-6 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
+      <p className="mb-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
         Confidence and risk both visible whenever a recommendation exists.
       </p>
+
+      {/* Hairline divider in mute */}
+      <div
+        className="mb-5 h-px"
+        style={{
+          background: themed && template?.mute
+            ? `color-mix(in srgb, ${template.mute.hex} 40%, transparent)`
+            : 'var(--color-border-subtle)',
+        }}
+      />
 
       <div
         className="w-full rounded-md py-3 text-center font-sans text-base font-semibold transition-colors duration-300"
         style={{
-          background: themed && team ? 'var(--color-team-accent)' : 'var(--color-accent)',
-          color: 'var(--color-text-on-accent)',
+          background: themed && template?.accent
+            ? template.accent.hex
+            : 'var(--color-accent)',
+          color: themed && template?.textOnAccent
+            ? template.textOnAccent
+            : 'var(--color-text-on-accent)',
         }}
       >
         Accept the call →
@@ -93,7 +143,7 @@ function LivePreview({ team, themed }) {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function Appearance() {
-  const { mode, team: teamAbbr } = useTheme();
+  const { mode, team: teamAbbr, variant } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const selectedTeam = useMemo(
@@ -101,7 +151,9 @@ export default function Appearance() {
     [teamAbbr],
   );
 
-  const recipe = useMemo(() => getTeamTemplate(teamAbbr), [teamAbbr]);
+  // Active palette + template (driven by the current variant)
+  const palette  = useMemo(() => getTeamPalette(teamAbbr, variant), [teamAbbr, variant]);
+  const template = useMemo(() => getTeamTemplate(teamAbbr, variant), [teamAbbr, variant]);
 
   const marqueeTeams = useMemo(
     () => MARQUEE_ABBRS.map((a) => NFL_TEAMS.find((t) => t.abbr === a)),
@@ -114,9 +166,14 @@ export default function Appearance() {
 
   const gridDisabled = mode !== 'team';
   const themed = mode === 'team' && Boolean(selectedTeam);
+  const showVariantPicker = themed && Boolean(selectedTeam?.palettes?.some((p) => p.mode === 'special'));
 
   function handleModeChange(next) {
     setThemeMode(next);
+  }
+
+  function handleVariantChange(next) {
+    setThemeVariant(next);
   }
 
   async function handleSelectTeam(abbr) {
@@ -130,10 +187,6 @@ export default function Appearance() {
       });
     } catch { /* silent — endpoint not yet built */ }
   }
-
-  const schemeLabel = selectedTeam
-    ? { standard: null, secondary: 'secondary swap', colorRush: 'color rush' }[selectedTeam.scheme]
-    : null;
 
   return (
     <AppLayout>
@@ -157,8 +210,9 @@ export default function Appearance() {
             className="font-serif text-lg leading-relaxed"
             style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}
           >
-            Corvus borrows your team's colors for accents — recommendations, confidence,
-            the call to act. Nothing more. The reads stay neutral.
+            Corvus paints with your team's actual colors — every one of them. Pick
+            Official for the canonical palette, or a Special variant to swap the
+            chrome for a culture-anchored alternate.
           </p>
         </div>
 
@@ -237,16 +291,18 @@ export default function Appearance() {
               className="mt-8 pt-6"
               style={{ borderTop: '1px solid var(--color-border)', maxWidth: 680 }}
             >
-              <div className="flex items-end justify-between gap-6">
-                <div>
-                  <p
-                    className="mb-2 text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: 'var(--color-text-tertiary)' }}
-                  >
-                    {themed ? 'Selected' : 'Saved team (not active)'}
-                  </p>
-                  {selectedTeam ? (
-                    <div>
+              <div className="flex flex-col gap-6">
+
+                {/* Header row: team name + division + variant picker */}
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p
+                      className="mb-2 text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    >
+                      {themed ? 'Selected' : 'Saved team (not active)'}
+                    </p>
+                    {selectedTeam ? (
                       <div className="flex flex-wrap items-baseline gap-3">
                         <span
                           className="font-display text-3xl font-bold"
@@ -260,89 +316,99 @@ export default function Appearance() {
                         >
                           {selectedTeam.div}
                         </span>
-                        {schemeLabel && (
-                          <span
-                            className="rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider"
-                            style={{
-                              color: 'var(--color-team-accent)',
-                              borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
-                            }}
-                          >
-                            {schemeLabel}
-                          </span>
-                        )}
                       </div>
+                    ) : (
+                      <span className="font-display text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                        {mode === 'system' ? 'Following your OS' : 'Corvus default'}
+                      </span>
+                    )}
+                  </div>
 
-                      {/* Identity block — only in Team mode */}
-                      {themed && (selectedTeam.cry || selectedTeam.wardRoom) && (
-                        <div className="mt-5 space-y-1.5">
-                          <div className="mb-3">
-                            <span
-                              className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-                              style={{
-                                color: 'var(--color-team-accent)',
-                                borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
-                              }}
-                            >
-                              {selectedTeam.cultureTag}
-                            </span>
-                          </div>
-                          {selectedTeam.cry && (
-                            <p
-                              className="text-sm font-semibold uppercase tracking-widest"
-                              style={{ color: 'var(--color-team-accent)', opacity: 0.65 }}
-                            >
-                              {selectedTeam.cry}
-                            </p>
-                          )}
-                          {selectedTeam.wardRoom && (
-                            <p
-                              className="text-xl font-bold leading-tight"
-                              style={{ color: 'var(--color-team-accent)' }}
-                            >
-                              {selectedTeam.wardRoom}
-                            </p>
-                          )}
-                          {selectedTeam.lore && (
-                            <p
-                              className="pt-0.5 text-xs font-medium"
-                              style={{ color: 'var(--color-team-accent)', opacity: 0.45 }}
-                            >
-                              {selectedTeam.lore}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                  {/* Variant picker — only shown when the team has a special variant
+                      AND the user is in Team mode (otherwise sub-mode has no effect). */}
+                  {showVariantPicker && (
+                    <VariantPicker
+                      team={selectedTeam}
+                      variant={variant}
+                      onChange={handleVariantChange}
+                    />
+                  )}
+                </div>
 
-                      {/* Phase 1.5f — cultural anchor attribution.
-                          Surfaces a one-line citation for the cultural
-                          reference the team palette is anchored to
-                          (sneaker colorway, film era, regional tradition,
-                          etc.) so the color choice reads as deliberate. */}
-                      {selectedTeam && (
-                        <CulturalAnchorAttribution team={selectedTeam} />
-                      )}
+                {/* Identity copy — only in Team mode, hierarchy across palette
+                    roles. Uses `identityPrimary` (the bold "punch") and
+                    `identitySecondary` (the quieter eyebrow) — both fall
+                    through to contrasting roles when primary == surface so
+                    text stays visible on green-on-green teams like GB. */}
+                {themed && selectedTeam && (selectedTeam.cry || selectedTeam.wardRoom) && template && (
+                  <div className="space-y-1.5">
+                    <div className="mb-3">
+                      <span
+                        className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+                        style={{
+                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex,
+                          borderColor: `color-mix(in srgb, ${(template.identitySecondary?.hex ?? template.identityPrimary?.hex ?? 'var(--color-team-primary)')} 40%, var(--color-border) 60%)`,
+                        }}
+                      >
+                        {selectedTeam.cultureTag}
+                      </span>
                     </div>
-                  ) : (
-                    <span className="font-display text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                      {mode === 'system' ? 'Following your OS' : 'Corvus default'}
-                    </span>
-                  )}
-                </div>
+                    {selectedTeam.cry && (
+                      <p
+                        className="text-sm font-semibold uppercase tracking-widest"
+                        style={{
+                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex,
+                          opacity: 0.8,
+                        }}
+                      >
+                        {selectedTeam.cry}
+                      </p>
+                    )}
+                    {selectedTeam.wardRoom && (
+                      <p
+                        className="text-xl font-bold leading-tight"
+                        style={{ color: template.identityPrimary?.hex ?? 'var(--color-team-accent)' }}
+                      >
+                        {selectedTeam.wardRoom}
+                      </p>
+                    )}
+                    {selectedTeam.lore && (
+                      <p
+                        className="pt-0.5 text-xs font-medium"
+                        style={{
+                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex ?? 'var(--color-team-accent)',
+                          opacity: 0.6,
+                        }}
+                      >
+                        {selectedTeam.lore}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                <div className="flex flex-col gap-1.5 pb-1">
-                  {selectedTeam ? (
-                    <>
-                      <Swatch hex={selectedTeam.primary} />
-                      <Swatch hex={selectedTeam.accent} />
-                      {recipe && <Swatch hex={recipe.surface} />}
-                    </>
-                  ) : (
-                    <Swatch hex="#B8952A" label="brand gold" />
-                  )}
-                </div>
+                {/* Cultural anchor attribution (variant-aware in 1.5h) */}
+                {palette?.culturalAnchor && (
+                  <CulturalAnchorAttribution anchor={palette.culturalAnchor} />
+                )}
+
+                {/* Full palette swatch row — Phase 1.5h N-swatch view */}
+                {palette && (
+                  <div>
+                    <p
+                      className="mb-3 text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    >
+                      Palette · {palette.name}
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {palette.colors.map((c) => (
+                        <Swatch key={c.role + c.hex} color={c} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
-
             </div>
           </div>
 
@@ -354,16 +420,16 @@ export default function Appearance() {
             >
               Live preview
             </p>
-            <LivePreview team={selectedTeam} themed={themed} />
+            <LivePreview template={template} themed={themed} />
             <p
               className="mt-3 font-serif text-sm italic"
               style={{ color: 'var(--color-text-tertiary)' }}
             >
               {themed
-                ? "The accent updates everywhere Corvus draws attention."
+                ? `Every Corvus surface uses ${selectedTeam.name} colors. Switch variants to see the special palette.`
                 : mode === 'system'
-                ? "System mode tracks your OS. Switch to Team to paint Corvus."
-                : "Corvus mode keeps the brand gold. Switch to Team to paint Corvus."}
+                ? 'System mode tracks your OS. Switch to Team to paint Corvus.'
+                : 'Corvus mode keeps the brand gold. Switch to Team to paint Corvus.'}
             </p>
           </div>
         </div>
