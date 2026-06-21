@@ -1,57 +1,67 @@
 /**
- * teamTemplate.js — Phase 1.5 PR1 role recipes.
+ * teamTemplate.js — Phase 1.5 role recipes (two-axis after Phase 1.5f).
  *
  * Maps an NFL team abbr to a runtime token bundle for the team-theming
- * system: surface tint (HSL-derived from primary), surface card, accent
- * (the curated team identity color from nflTeams.js, textSafe-lifted for
- * AA contrast on text/borders), plus pass-through primary/secondary for
- * components that consume the raw hexes (Falcons Bred hero band etc.).
+ * system: surface tint, surface card, accent (the curated team identity
+ * color from nflTeams.js, lifted via teamAccentOn() so the text/border
+ * rendering is readable on the chosen axis), text-on-accent for CTAs, plus
+ * pass-through primary/secondary for components that consume raw hexes
+ * (Falcons Bred hero band etc.).
  *
- * Six templates (see audit doc):
- *   1 — Deep & Brand      hue(primary), S/2, L=10%
- *   2 — Two-Tone Royal    hue(primary), S/2, L=10%
- *   3 — Hot Brand         hue(primary), S/2, L=8%
- *   4 — Aqua / Cool       hue(primary), S/2, L=8%
- *   5 — Earth             hue(primary), S*0.7, L=8%
- *   6 — Bred (Falcons)    pure #080608, no team-hue derivation
+ * Six templates (audit: 2026-06-16-phase1-5-team-template-assignment.md):
+ *   1 — Deep & Brand    hue(primary), S/2, L=10% (dark) / L=94% (light)
+ *   2 — Two-Tone Royal  hue(primary), S/2, L=10% (dark) / L=94% (light)
+ *   3 — Hot Brand       hue(primary), S/2, L=8%  (dark) / L=95% (light)
+ *   4 — Aqua / Cool     hue(primary), S/2, L=8%  (dark) / L=95% (light)
+ *   5 — Earth           hue(primary), S*0.7, L=8%  (dark) / L=93% (light)
+ *   6 — Bred (Falcons)  pure #080608 (dark only — Bred is dark by definition)
  *
- * Saints special case: template 2 but primary is gold (light) and secondary
- * is black (dark). Naive template-2 logic would tint the world gold. We
- * detect the flip and derive surface from secondary, so the visual world is
- * black with gold accents.
+ * The light recipes apply ~15% of the team's saturation so the cream
+ * surface carries a faint tint of team identity without becoming garish.
+ * Dark recipes preserve the existing ~50% saturation.
+ *
+ * Per-team `surfaceFrom: 'secondary'` (set in nflTeams.js) re-derives the
+ * surface from the team's secondary color instead of primary. Used for:
+ *   - NO Saints  (gold primary, black secondary → black world, gold CTA)
+ *   - TB Bucs    (red primary, orange-ish secondary → pewter-warm world,
+ *                 cannon-red CTA; defect 1.5e-defect-5 fix)
  *
  * The single `--color-team-accent` token (consumed by the Phase 1.5 sweep)
- * resolves to textSafe(team.accent). `team.accent` is already curated per
- * team in nflTeams.js to be the team's distinctive identity color (often
- * secondary or color-rush rather than primary). Templates control SURFACE
- * derivation; accent is per-team.
+ * resolves to teamAccentOn(team, axis). `team.accent` is curated per team
+ * in nflTeams.js to be the team's distinctive identity color (often
+ * secondary or color-rush rather than primary). `team.accentLifted` lets
+ * specific teams (HOU/PHI/SF) hand-tune the lifted output when the
+ * algorithm would lose identity.
  */
 
-import { NFL_TEAMS, textSafe } from '../data/nflTeams.js';
+import { NFL_TEAMS, teamAccentOn, readableOn } from '../data/nflTeams.js';
 
 const BRED_SURFACE      = '#080608';
 const BRED_SURFACE_CARD = '#0F0E10';
 
 const SURFACE_RECIPES = {
-  1: { sMul: 0.5, l: 10 },
-  2: { sMul: 0.5, l: 10 },
-  3: { sMul: 0.5, l:  8 },
-  4: { sMul: 0.5, l:  8 },
-  5: { sMul: 0.7, l:  8 },
+  dark: {
+    1: { sMul: 0.5,  l: 10 },
+    2: { sMul: 0.5,  l: 10 },
+    3: { sMul: 0.5,  l:  8 },
+    4: { sMul: 0.5,  l:  8 },
+    5: { sMul: 0.7,  l:  8 },
+  },
+  light: {
+    1: { sMul: 0.15, l: 94 },
+    2: { sMul: 0.15, l: 94 },
+    3: { sMul: 0.15, l: 95 },
+    4: { sMul: 0.15, l: 95 },
+    5: { sMul: 0.20, l: 93 },
+  },
 };
 
 // ── Local color math (mirrors nflTeams.js helpers; intentionally inlined to
-//    keep this file standalone and avoid circular import surface). ─────────
+//    keep this file standalone and avoid a circular import surface). ───────
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
-function relLum([r, g, b]) {
-  return [r, g, b]
-    .map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
-    .reduce((acc, v, i) => acc + v * [0.2126, 0.7152, 0.0722][i], 0);
 }
 
 function rgbToHsl(r, g, b) {
@@ -95,31 +105,23 @@ function hslToHex(h, s, l) {
   return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
-function isLight(hex) { return relLum(hexToRgb(hex)) > 0.45; }
-function isDark(hex)  { return relLum(hexToRgb(hex)) < 0.12; }
-
 // ── Recipes ───────────────────────────────────────────────────────────────
 
-function deriveSurface(sourceHex, template) {
-  if (template === 6) return BRED_SURFACE;
-  const recipe = SURFACE_RECIPES[template] ?? SURFACE_RECIPES[1];
+function deriveSurface(sourceHex, template, axis) {
+  if (template === 6) return BRED_SURFACE; // Bred is dark by definition
+  const recipeSet = SURFACE_RECIPES[axis] ?? SURFACE_RECIPES.dark;
+  const recipe = recipeSet[template] ?? recipeSet[1];
   const [h, s] = rgbToHsl(...hexToRgb(sourceHex));
   return hslToHex(h, s * recipe.sMul, recipe.l);
 }
 
-function deriveSurfaceCard(surfaceHex, template) {
+function deriveSurfaceCard(surfaceHex, template, axis) {
   if (template === 6) return BRED_SURFACE_CARD;
   const [h, s, l] = rgbToHsl(...hexToRgb(surfaceHex));
+  // Dark: card is slightly lighter (elevation toward white).
+  // Light: card is slightly more saturated/whiter (elevation toward pure white).
+  if (axis === 'light') return hslToHex(h, s, Math.min(l + 3, 99));
   return hslToHex(h, s, Math.min(l + 2, 98));
-}
-
-/**
- * Saints heuristic: their primary is gold (light) and secondary is near-black.
- * Detect either by abbr ('NO') or by the structural pattern, so future teams
- * with the same shape stay correct.
- */
-function needsSurfaceFlip(team) {
-  return team.abbr === 'NO' || (team.template === 2 && isLight(team.primary) && isDark(team.secondary));
 }
 
 /**
@@ -132,21 +134,28 @@ export function getTeamTemplate(abbr) {
   if (!team) return null;
 
   const template       = team.template ?? 1;
-  const isSaintsFlip   = needsSurfaceFlip(team);
-  const surfaceSource  = isSaintsFlip ? team.secondary : team.primary;
-  const surface        = deriveSurface(surfaceSource, template);
-  const surfaceCard    = deriveSurfaceCard(surface, template);
-  const accent         = textSafe(team.accent);
+  const axis           = team.surfaceAxis ?? 'dark';
+  const surfaceSource  = team.surfaceFrom === 'secondary' ? team.secondary : team.primary;
+  const surface        = deriveSurface(surfaceSource, template, axis);
+  const surfaceCard    = deriveSurfaceCard(surface, template, axis);
+
+  // Bred (template 6) bypasses textSafe so varsity red stays varsity red.
+  const accent         = template === 6 ? team.accent : teamAccentOn(team, axis);
+  const accentBg       = team.accent;
+  const textOnAccent   = readableOn(accentBg);
 
   return {
     template,
+    axis,
     primary:    team.primary,
     secondary:  team.secondary,
-    accent,
+    accent,        // lifted/safe — for text, borders
+    accentBg,      // raw — for filled CTA backgrounds
+    textOnAccent,  // foreground color on filled CTAs
     surface,
     surfaceCard,
-    isSaintsFlip,
-    isBred:     template === 6,
+    isSaintsFlip: team.surfaceFrom === 'secondary' && team.abbr === 'NO',
+    isBred:       template === 6,
   };
 }
 

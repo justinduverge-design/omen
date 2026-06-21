@@ -24,6 +24,7 @@
   --color-accent:          #B8952A;
   --color-accent-hover:    #D4AC30;
   --color-accent-muted:    #3D2F0D;
+  --color-text-on-accent:  #0A0A0B;
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
   --color-risk-high:       #8B1A1A;
@@ -53,6 +54,7 @@
   --color-accent:          #B8952A;
   --color-accent-hover:    #D4AC30;
   --color-accent-muted:    #3D2F0D;
+  --color-text-on-accent:  #0A0A0B;
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
   --color-risk-high:       #8B1A1A;
@@ -81,6 +83,7 @@
   --color-accent:          #92740F;
   --color-accent-hover:    #B8952A;
   --color-accent-muted:    #FEF3C7;
+  --color-text-on-accent:  #FAFAF9;
   --color-risk-low:        #16A34A;
   --color-risk-medium:     #D97706;
   --color-risk-high:       #991B1B;

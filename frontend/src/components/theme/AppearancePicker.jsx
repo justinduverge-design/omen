@@ -4,9 +4,41 @@ import { isDark } from '../../data/nflTeams.js';
 
 export const MODE_OPTIONS = [
   { id: 'system', label: 'System', hint: 'Matches your OS theme. Corvus gold accents.' },
-  { id: 'team',   label: 'Team',   hint: 'Your team takes over. Always dark.' },
+  { id: 'team',   label: 'Team',   hint: "Light or dark to match your team's true colors." },
   { id: 'corvus', label: 'Corvus', hint: 'Default dark. Gold on graphite.' },
 ];
+
+// ── Cultural anchor attribution (Phase 1.5f) ──────────────────────────────
+
+const KIND_PREFIX = {
+  sneaker:   'Inspired by',
+  film:      'Inspired by',
+  music:     'Inspired by',
+  art:       'Inspired by',
+  region:    'Anchored in',
+  history:   'Anchored in',
+  tradition: 'Anchored in',
+};
+
+/**
+ * One-line attribution line surfaced under the selected team on
+ * /account/appearance. Pulls from team.culturalAnchor (Phase 1.5f data
+ * field). Renders nothing when no anchor is defined.
+ */
+export function CulturalAnchorAttribution({ team }) {
+  if (!team?.culturalAnchor?.name) return null;
+  const { name, year, kind } = team.culturalAnchor;
+  const prefix = KIND_PREFIX[kind] ?? 'Anchored in';
+  const yearPart = year ? ` (${year})` : '';
+  return (
+    <p
+      className="mt-3 font-serif text-xs italic leading-relaxed"
+      style={{ color: 'var(--color-text-tertiary)', maxWidth: '52ch' }}
+    >
+      {prefix} {name}{yearPart}.
+    </p>
+  );
+}
 
 export function ModePicker({ mode, onChange }) {
   return (

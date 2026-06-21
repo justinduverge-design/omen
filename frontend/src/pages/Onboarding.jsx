@@ -123,7 +123,7 @@ function PickLookStep({ onSkip, onContinue }) {
           type="button"
           onClick={onContinue}
           className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          style={{ background: 'var(--color-team-accent)', color: '#0A0A0B' }}
+          style={{ background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }}
         >
           Continue →
         </button>
@@ -168,7 +168,7 @@ function WelcomeStep({ onNext }) {
         type="button"
         onClick={onNext}
         className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-        style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
+        style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
       >
         Get started →
       </button>
@@ -237,7 +237,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         <Link
           to="/account/connect"
           className="rounded-md px-6 py-3 text-center font-sans text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-          style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
+          style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
         >
           Connect a platform →
         </Link>
@@ -310,7 +310,7 @@ function CompleteStep({ onDone }) {
         type="button"
         onClick={onDone}
         className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-        style={{ background: 'var(--color-accent)', color: '#0A0A0B' }}
+        style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
       >
         Go to Corvus →
       </button>

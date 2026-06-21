@@ -5,7 +5,6 @@ import { apiFetch } from '../lib/api.js';
 import {
   MARQUEE_ABBRS,
   NFL_TEAMS,
-  readableOn,
   TEAMS_BY_DIV,
 } from '../data/nflTeams.js';
 import { getTeamTemplate } from '../lib/teamTemplate.js';
@@ -16,7 +15,7 @@ import {
   setThemeTeam,
   useTheme,
 } from '../lib/themeMode.js';
-import { ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
+import { CulturalAnchorAttribution, ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
 
 // ── Swatch ────────────────────────────────────────────────────────────────
 
@@ -82,7 +81,7 @@ function LivePreview({ team, themed }) {
         className="w-full rounded-md py-3 text-center font-sans text-base font-semibold transition-colors duration-300"
         style={{
           background: themed && team ? 'var(--color-team-accent)' : 'var(--color-accent)',
-          color: themed && team ? readableOn(team.accent) : '#0A0A0B',
+          color: 'var(--color-text-on-accent)',
         }}
       >
         Accept the call →
@@ -313,6 +312,15 @@ export default function Appearance() {
                             </p>
                           )}
                         </div>
+                      )}
+
+                      {/* Phase 1.5f — cultural anchor attribution.
+                          Surfaces a one-line citation for the cultural
+                          reference the team palette is anchored to
+                          (sneaker colorway, film era, regional tradition,
+                          etc.) so the color choice reads as deliberate. */}
+                      {selectedTeam && (
+                        <CulturalAnchorAttribution team={selectedTeam} />
                       )}
                     </div>
                   ) : (
