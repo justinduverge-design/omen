@@ -259,6 +259,37 @@ Stop and ask Justin if you encounter:
 
 ---
 
+## Phase 1.5g addendum — Motif / Moment posture (2026-06-22)
+
+Add a sixth column to the Page System Table: **Motif / Moment posture**. Canonical grammar at `Blueprints/specs/team-motif-grammar.md`. Posture per route:
+
+| Route | Motif / Moment posture |
+|---|---|
+| `/` | inert (no team context) |
+| `/corvus` | inert |
+| `/login` | inert |
+| `/account/connect` | inert |
+| `/onboarding` (Pick your look) | inert — motifs preview after team commit on `/account/appearance` (motif preview would render 32 motifs simultaneously, breaking the per-team identity-budget rule) |
+| `/onboarding` (Welcome / Connect / Complete) | inert pending Phase 1.5 whole-app sweep |
+| `/account` | motif: `page-edge` + `section-divider`; moment: eyebrow + tint |
+| `/account/appearance` | motif: `page-edge` + `card`; moment: eyebrow only (preview surfaces stay neutral) |
+| `/football` | motif: `section-divider`; moment: eyebrow + tint |
+| `/omen` | motif: `page-edge` only (Omen card excluded by schema `excludesOmenCard: true`); moment: **never** |
+| `/ledger` | motif: `section-divider`; moment: eyebrow + tint |
+| `/standings` | motif: `section-divider`; moment: eyebrow only |
+| `/trade` | motif: none; moment: **never** (trade result is a recommendation surface) |
+| `/draft` | motif: `card`; moment: eyebrow only |
+| `*` | inert |
+
+Hard rules carried into Page System:
+- The Omen card never carries a motif (Trust pillar — recommendation reads identically across teams).
+- `/trade` and `/omen` never carry a culturalMoment overlay.
+- Footer cultural-anchor citation is preserved; moment citation is **appended**, never substituted.
+- Mock/live: a culturalMoment with `mockBadge.required: true` never renders against live data; the moment is suppressed entirely, the badge is not shown alone.
+
+---
+
 ## Changelog
 
+- **2026-06-22** — Phase 1.5g.0 addendum landed (Motif / Moment posture column). Canonical grammar at `Blueprints/specs/team-motif-grammar.md`.
 - **2026-06-15** — v1 landed (Phase 1.3). Derived from QA Part 2 markdown + 17 screenshots (light + dark mobile Safari). Stamped against `SKILL_ROUTING.md@2026-06-15` and `current_sprint.md@2026-06-15`.
