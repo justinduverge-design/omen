@@ -5,6 +5,7 @@ import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
 
 const EMPTY_PLAYER = {
@@ -369,10 +370,7 @@ function BuyLowCard() {
               <div className="flex shrink-0 items-center gap-1.5">
                 <span
                   className="inline-block rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
-                  style={{
-                    color: 'var(--color-team-accent)',
-                    borderColor: 'color-mix(in srgb, var(--color-team-accent) 35%, transparent)',
-                  }}
+                  style={positionChipStyle(target.position)}
                 >
                   {target.position}
                 </span>

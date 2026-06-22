@@ -3,6 +3,7 @@ import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
 
 const SCORING_FORMATS = [
@@ -64,21 +65,10 @@ function RiskBadge({ risk }) {
 }
 
 function PositionBadge({ position }) {
-  const colorClass = {
-    RB: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    WR: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
-    TE: 'border-purple-400/30 bg-purple-400/10 text-purple-300',
-  }[position] ?? null;
-  const inlineStyle =
-    position === 'QB'
-      ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
-      : colorClass === null
-      ? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }
-      : undefined;
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold${colorClass ? ` ${colorClass}` : ''}`}
-      style={inlineStyle}
+      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
+      style={positionChipStyle(position)}
     >
       {position}
     </span>
@@ -374,19 +364,23 @@ export default function DraftAssistant({ platforms }) {
             Scoring Format
           </legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {SCORING_FORMATS.map(({ value, label }) => (
-              <button
-                key={value}
-                className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
-                style={scoringFormat === value
-                  ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
-                  : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-                type="button"
-                onClick={() => setScoringFormat(value)}
-              >
-                {label}
-              </button>
-            ))}
+            {SCORING_FORMATS.map(({ value, label }) => {
+              const isSelected = scoringFormat === value;
+              return (
+                <button
+                  key={value}
+                  aria-pressed={isSelected}
+                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
+                  style={isSelected
+                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
+                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
+                  type="button"
+                  onClick={() => setScoringFormat(value)}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </fieldset>
 
@@ -431,9 +425,10 @@ export default function DraftAssistant({ platforms }) {
               return (
                 <button
                   key={pos}
+                  aria-pressed={isSelected}
                   className="inline-flex min-h-[44px] items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
                   style={isSelected
-                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
+                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
                     : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
                   type="button"
                   onClick={() => toggleNeed(pos)}
