@@ -4,19 +4,15 @@
 
 Corvus is the Fantasy Football MVP product inside the Slops Saloon division.
 
-Path:
-
-```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
-```
+Path: `<active-git-root>/slops-saloon/corvus/`
 
 It is not the SLOPS company layer and not the Slops Saloon division layer. It is the first active product under that division.
 
 ## Current Route
 
-- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
-- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
-- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Layer 0 - SLOPS OS: active Git root (`git rev-parse --show-toplevel` from L0)
+- Layer 1 - Slops Saloon division: `<active-git-root>/slops-saloon/`
+- Layer 2 - Corvus product repo: `<active-git-root>/slops-saloon/corvus/`
 
 The old nested `Corvus/` subfolder is retired. Product DBS folders now live at this repo root.
 

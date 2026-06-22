@@ -11,7 +11,7 @@ Company-level decisions belong in the SLOPS OS layer. Division decisions belong 
 - `Blueprints\handoffs\frontend-to-backend.md` is the canonical place for Claude/frontend requests to Codex/backend.
 - `Blueprints\handoffs\backend-to-frontend.md` is the canonical place for Codex/backend contract responses to Claude/frontend.
 - `Blueprints\handoffs\decisions.md` is the canonical shared engineering decision log for active app coordination.
-- The canonical Corvus repo path is `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`.
+- The canonical Corvus repo path is `<active-git-root>/slops-saloon/corvus/`.
 - The nested `Corvus/` folder is retired and must not be recreated.
 - Corvus is the active Fantasy Football MVP product.
 - Trade Analyzer is the front door.

@@ -7,7 +7,7 @@ This folder is reserved for Corvus-specific reusable skills if Justin explicitly
 All SLOPS-authored global skills live under:
 
 ```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\skills
+<active-git-root>/Blueprints/skills/
 ```
 
 See that folder's README and SKILL_ROUTING.md for the authoritative skill lookup, agent routing, and tool permission rules.

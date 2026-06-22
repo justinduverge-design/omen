@@ -21,10 +21,13 @@ A feature is done when the user can use it end-to-end, every failure path is han
 15. `slops-code-review` returns no P0 (or P0 explicitly accepted by Justin)
 16. `slops-ui-ux-audit` returns no P0 if UI changed (or P0 accepted)
 17. Notable decisions logged in `Direction/decision_log.md`
+18. Behavior-changing code includes intended RED → GREEN evidence through `slops-tdd`, or a specific reason the gate is not applicable
+19. `slops-quality-baseline` records current tests/build/audit/diff signals before merge
+20. Skill receipt appended to `Blueprints/playbooks/skill-usage-ledger.md`
 
 ## AAA mapping
 
-- **Accuracy:** 1, 2, 3, 4, 5, 9, 12, 13
+- **Accuracy:** 1, 2, 3, 4, 5, 9, 12, 13, 18, 19
 - **Accessibility:** 6
 - **Aesthetic:** 7, 15, 16
-- **Operational:** 10, 11, 14, 17 (not A/A/A — process gates)
+- **Operational:** 10, 11, 14, 17, 20 (not A/A/A — process gates)

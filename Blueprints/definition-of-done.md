@@ -1,6 +1,6 @@
 # Corvus Definition of Done
 
-**valid-as-of:** 2026-06-15
+**valid-as-of:** 2026-06-21
 **Status:** v1 — pointer + per-type gate files + ledger
 **Posture:** Corvus is **free indefinitely.** No billing gates anywhere in this doc.
 
@@ -19,6 +19,10 @@ Pick the Done type matching what you shipped, read that file, satisfy every gate
 | A public-facing post / video / social / marketing artifact | `done/content-marketing-done.md` (cross-cutting, L1 work) |
 
 Run cross-cutting gates **in addition** to the primary type. A page change that adds a recommendation triggers Page Done + Recommendation Done + Design Done.
+
+## Procedure receipt (all work)
+
+Every task also follows `playbooks/corvus-company-baseline.md` and selects applicable skills from `playbooks/skill-activation-runbook.md`. The handoff must state skills invoked, conditional skills considered but not applicable, evidence, and any procedure gap. Append invoked/skipped-required skills to `playbooks/skill-usage-ledger.md` before closing.
 
 ## Foundation: the AAA Framework
 

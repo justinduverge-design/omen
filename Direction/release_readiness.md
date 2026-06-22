@@ -10,7 +10,7 @@ This does not mean paid launch is complete. The current posture is launch-QA: Ti
 
 ## Verified
 
-- Local repo path: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Local repo path: `<active-git-root>/slops-saloon/corvus/`
 - GitHub repo: `justinduverge-design/corvus`
 - Oracle checkout path: `~/corvus`
 - Containers: `corvus_api`, `corvus_cron`
