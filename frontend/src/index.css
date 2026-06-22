@@ -39,6 +39,13 @@
   --color-team-accent:       #B8952A;
   --color-team-surface:      #0A0A0B;
   --color-team-surface-card: #1C1C1E;
+  /* Phase 1.6 position chip palette. CB-validated. */
+  --color-pos-rb:  #34D399;
+  --color-pos-wr:  #60A5FA;
+  --color-pos-qb:  #FB923C;
+  --color-pos-te:  #C084FC;
+  --color-pos-def: #F472B6;
+  --color-pos-k:   #A3A3A3;
 }
 
 :root[data-theme="dark"] {
@@ -68,6 +75,13 @@
   --color-team-accent:       #B8952A;
   --color-team-surface:      #0A0A0B;
   --color-team-surface-card: #1C1C1E;
+  /* Phase 1.6 position chip palette. CB-validated. */
+  --color-pos-rb:  #34D399;
+  --color-pos-wr:  #60A5FA;
+  --color-pos-qb:  #FB923C;
+  --color-pos-te:  #C084FC;
+  --color-pos-def: #F472B6;
+  --color-pos-k:   #A3A3A3;
 }
 
 :root[data-theme="light"] {
@@ -97,6 +111,13 @@
   --color-team-accent:       #92740F;
   --color-team-surface:      #FAFAF9;
   --color-team-surface-card: #FFFFFF;
+  /* Phase 1.6 position chip palette — light-mode variants land deeper for AA on light surfaces. */
+  --color-pos-rb:  #047857;
+  --color-pos-wr:  #1D4ED8;
+  --color-pos-qb:  #9A3412;
+  --color-pos-te:  #7E22CE;
+  --color-pos-def: #9D174D;
+  --color-pos-k:   #525252;
 }
 
 @layer base {

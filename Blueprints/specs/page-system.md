@@ -140,21 +140,23 @@ Programmatic sweep at `frontend/scripts/contrast-sweep.mjs` runs WCAG against al
 
 ### Position Chip Palette (Phase 1.6)
 
-Confirmed direction (from approved Draft Assistant + Trade Analyzer Example screenshots):
+**Resolved 2026-06-21.** Tokens live in `frontend/src/index.css` and the shared `positionChipStyle()` helper in `frontend/src/lib/positionChip.js` renders the chip pattern (30% border / 10% bg / token text via `color-mix`).
 
-| Position | Chip color | Notes |
-|---|---|---|
-| RB | Green (`--color-pos-rb`) | Confirmed in approved screenshots |
-| WR | Blue (`--color-pos-wr`) | Confirmed in approved screenshots |
-| QB | TBD via `ui-ux-pro-max` palette library | Must distinguish from team accents; suggest amber or rust |
-| TE | TBD via `ui-ux-pro-max` palette library | Suggest violet (echoes Omen) or teal |
-| DEF / DST | TBD | Distinct hue — needed for leagues that draft defensive players |
-| K | TBD | Distinct hue — desaturate to keep visual weight low |
-| FLEX | Neutral — `--color-text-secondary` | Not a position; do not assign a hue |
+| Position | Token | Dark hex | Light hex | Rationale |
+|---|---|---|---|---|
+| RB | `--color-pos-rb` | `#34D399` | `#047857` | Carry-forward of the approved Draft / Trade Analyzer screenshot direction (emerald). Light variant deeper for AA. |
+| WR | `--color-pos-wr` | `#60A5FA` | `#1D4ED8` | Truer blue than the previous `sky-400`; clearer separation from cyan / teal. |
+| QB | `--color-pos-qb` | `#FB923C` | `#9A3412` | Rust/orange — amber was rejected (collides with `--color-accent` gold). |
+| TE | `--color-pos-te` | `#C084FC` | `#7E22CE` | Brighter purple than `--color-omen` (which is deeper, more saturated blue-violet). Continuity with previous `purple-400`. |
+| DEF / DST | `--color-pos-def` | `#F472B6` | `#9D174D` | Magenta/pink — separates from QB orange and RB green under deuteranopia + protanopia. |
+| K | `--color-pos-k` | `#A3A3A3` | `#525252` | Desaturated, low visual weight per spec. Distinct from FLEX. |
+| FLEX | `--color-border` + `--color-surface-1` + `--color-text-primary` | n/a | n/a | Not a position; renders neutral via the fallback branch of `positionChipStyle()`. |
 
-Selected-state styling (currently broken — QA red-X on selected PPR + selected position-needs) must be a clear filled state distinct from unselected outline; the selected state inherits the team accent, not the position color.
+**Selected-state contract (resolved).** On `/draft` the Scoring Format chips (PPR / Half PPR / Standard) and the Position Needs chips (QB / RB / WR / TE / FLEX / K / DEF) now render a **filled** selected state using `--color-team-accent` background + `--color-text-on-accent` foreground (replaces the previous muted-tinted-outline that QA called "broken yellow-with-X"). Both buttons also expose `aria-pressed`. Selected state inherits the team accent, not the position color — that's intentional so the per-position hue stays a *category* cue and accent stays the *selection* cue.
 
-Color-blind distinguishability is a hard requirement — RB green / WR blue must remain distinguishable under deuteranopia and protanopia. Guardrail: `ui-ux-pro-max` color-blind validation patterns.
+**Color-blind survival** (deuteranopia + protanopia matrix sim):
+- Deuteranopia: RB → olive-yellow, QB → ochre, WR stays blue, TE → blue-violet, DEF → pale-rose, K gray. All distinct by hue + luminance.
+- Protanopia: TE ↔ WR are the closest pair (purple shifts toward blue). **Mitigation:** the chip's letter content (the position abbreviation) is the primary cue per page-system §Accessibility ("color is never the only differentiator") — color is supplementary.
 
 ### Platform Brand Color Emphasis (Phase 1.7)
 
