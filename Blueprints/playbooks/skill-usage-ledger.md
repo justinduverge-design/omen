@@ -58,6 +58,9 @@ Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with
 | 2026-06-23 | Phase 1.5g.1 motif schema + hairlines | `slops-quality-baseline` | PASS | `Blueprints/quality/baseline.json` ratcheted from 312/312 to 356/356 with audits/build/diff green | Baseline was old relative to current sprint; refreshed during closeout |
 | 2026-06-23 | Phase 1.5g.1 motif schema + hairlines | `run-slops-saloon` | PARTIAL | Local Vite server used and screenshots captured under `Solutions/reports/_screenshots/phase1-5g1/` | Bundled driver assertions are stale for renamed Omen landing copy; direct Playwright was used |
 | 2026-06-23 | Phase 1.5g.1 motif schema + hairlines | `slops-git-flow` | PASS | Implementation commit `e66e9d7` staged explicit source/test paths only; closeout commit stages docs/evidence explicitly | No push or deploy from this task |
+| 2026-06-23 | Phase 1.5g.1 merge + deploy | `slops-ship` | PASS | Scoped commits cherry-picked to `main` as `4efa338` + `8e5d56b`, pushed, and deployed in run `28062382244` | Branch commit `86480b4` was intentionally excluded because it contained generated graph/logo assets outside Phase 1.5g.1 scope |
+| 2026-06-23 | Phase 1.5g.1 merge + deploy | `slops-deploy-guard` | PASS | Read `.github/workflows/deploy.yml`, `Dockerfile`, `docker-compose.yml`, and `scripts/oracle-https-setup.sh`; deploy target KVM1 `/opt/omen`; rollback is revert of `4efa338` + `8e5d56b` | `scripts/oracle-https-setup.sh` remains historical Oracle material, not the active KVM1 path |
+| 2026-06-23 | Phase 1.5g.1 merge + deploy | `slops-canary` | PASS | Run `28062382244` green; independent checks passed root+www health/ready, homepage 200, Demo 200, expected 401 boundaries, HTTP->HTTPS redirect, and HSTS | Authenticated real-account smoke not run; no auth/data path changed |
 
 ## Monthly Review
 

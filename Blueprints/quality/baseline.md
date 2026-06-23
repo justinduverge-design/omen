@@ -1,6 +1,6 @@
 # Omen Quality Baseline
 
-Recorded 2026-06-23 from candidate `e66e9d7c7ae29212af36d947428991b20b45f25b`
+Recorded 2026-06-23 from candidate `8e5d56bc5f4238a66f68e4c50d3e8e43d0cbc433`
 using Node `v24.11.0` and npm `11.6.1`.
 
 | Signal | Result |

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "recorded_at": "2026-06-23",
-  "commit": "e66e9d7c7ae29212af36d947428991b20b45f25b",
+  "commit": "8e5d56bc5f4238a66f68e4c50d3e8e43d0cbc433",
   "runtime": {
     "node": "v24.11.0",
     "npm": "11.6.1"

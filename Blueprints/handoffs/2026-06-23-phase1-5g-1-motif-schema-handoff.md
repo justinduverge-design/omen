@@ -24,7 +24,8 @@
 - `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen\Blueprints\quality\baseline.json` and `baseline.md` - baseline ratcheted to 356/356.
 - `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen\Solutions\reports\_screenshots\phase1-5g1\*.png` - local screenshot evidence.
 
-Implementation commit: `e66e9d7c7ae29212af36d947428991b20b45f25b`.
+Implementation commit on task branch: `e66e9d7c7ae29212af36d947428991b20b45f25b`.
+Merged/deployed `main` commits: `4efa338` + `8e5d56b`.
 
 ## Files Discussed
 
@@ -63,6 +64,7 @@ Implementation commit: `e66e9d7c7ae29212af36d947428991b20b45f25b`.
 - `npm audit --audit-level=moderate` - 0 vulnerabilities.
 - `npm --prefix frontend run build` - pass; existing chunk-size warning remains.
 - `git diff --check` - pass.
+- Deploy run `28062382244` - pass; independent production canary passed root+`www` health/ready, homepage, Demo, expected 401 auth boundaries, HTTP->HTTPS redirect, and HSTS.
 
 ## Next Recommended Pull
 

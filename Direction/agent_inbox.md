@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`.** Phase 1.5g.1 closed locally on branch `codex/phase1-5g-1-motif-schema` in implementation commit `e66e9d7`; no push or deploy. No active task is pinned after closeout.
+**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`.** Phase 1.5g.1 is merged to `main` and deployed via Hostinger KVM1 run `28062382244` at deployed head `8e5d56b`. No active task is pinned after closeout.
 
 ## Active Task
 
