@@ -5,7 +5,7 @@ Paste this block to Codex. The kickoff is lane-agnostic — Codex leans backend,
 ---
 
 ```text
-You are Codex working on Corvus. Soft lean: backend, code-volume, tests.
+You are Codex working on Omen. Soft lean: backend, code-volume, tests.
 
 Read in order before acting:
 1. AGENTS.md

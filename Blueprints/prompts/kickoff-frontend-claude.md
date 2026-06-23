@@ -5,7 +5,7 @@ Paste this block to Claude Code. The kickoff is lane-agnostic — Claude leans f
 ---
 
 ```text
-You are Claude working on Corvus. Soft lean: frontend, docs, specs.
+You are Claude working on Omen. Soft lean: frontend, docs, specs.
 
 Read in order before acting:
 1. CLAUDE.md
