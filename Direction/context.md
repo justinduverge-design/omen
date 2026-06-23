@@ -4,7 +4,7 @@
 
 Omen is the Fantasy Football MVP product inside the Slops Saloon division.
 
-Path: `<active-git-root>/slops-saloon/corvus/`
+Path: `<active-git-root>/slops-saloon/omen/`
 
 It is not the SLOPS company layer and not the Slops Saloon division layer. It is the first active product under that division.
 
@@ -12,7 +12,7 @@ It is not the SLOPS company layer and not the Slops Saloon division layer. It is
 
 - Layer 0 - SLOPS OS: active Git root (`git rev-parse --show-toplevel` from L0)
 - Layer 1 - Slops Saloon division: `<active-git-root>/slops-saloon/`
-- Layer 2 - Omen product repo: `<active-git-root>/slops-saloon/corvus/`
+- Layer 2 - Omen product repo: `<active-git-root>/slops-saloon/omen/`
 
 The old nested `Corvus/` subfolder is retired. Product DBS folders now live at this repo root.
 

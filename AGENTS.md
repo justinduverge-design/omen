@@ -1,6 +1,6 @@
 # Omen — Codex Context
 
-**App renamed:** Corvus → Omen (2026-06-22). The repo directory remains `corvus/` as a legacy Git/deploy boundary until the external repo, checkout path, and containers are cut over. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims.
+**App renamed:** Corvus → Omen (2026-06-22). The external repo, deploy path, GHCR images, and containers are now Omen. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims, redirects, legacy env fallbacks, and rollback evidence.
 
 You are Codex working in the Omen product layer. Read these modules in order before pulling a task.
 

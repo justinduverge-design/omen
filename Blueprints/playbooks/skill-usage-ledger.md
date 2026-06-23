@@ -47,6 +47,9 @@ Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with
 | 2026-06-23 | Omen operational rename execution prep | `slops-deploy-guard` | PASS | Added the `omen-deploy` runner label while retaining `corvus-deploy`, and added a manual-only rollback-guarded cutover workflow for `/opt/omen` | Execute in sequence: seed images through the old path, run cutover, then flip regular deploy workflows to Omen-only |
 | 2026-06-23 | Omen operational rename execution prep | `slops-git-flow` | PASS | Prepared to stage explicit paths only; rollback/artifacts and generated graph/cache outputs are excluded from commit scope | If direct main push is blocked, use a branch/PR without broad staging |
 | 2026-06-23 | Omen cutover run 27995403847 | `slops-deploy-guard` | HOLD SAFE | Cutover stopped at `/opt/omen` prep because the KVM1 runner lacks passwordless sudo; health/readiness stayed green and live containers were not stopped | Workflow patched to use a short-lived Docker helper for `/opt/omen` prep through existing Docker access |
+| 2026-06-23 | Omen operational rename completion | `slops-deploy-guard` | PASS | Cutover `27995488318`, primary deploy `27995567629`, and Tailscale fallback `27996194346` all passed from `/opt/omen`; public health/ready stayed green | Corvus rollback artifacts retained until explicit cleanup approval |
+| 2026-06-23 | Omen operational rename completion | `slops-git-flow` | PASS | Commits `42a52a2`, `26a5771`, and `1ff2210` pushed; repo renamed to `justinduverge-design/omen`; local origin updated | Final docs commit still needed after path/remote evidence update |
+| 2026-06-23 | Omen operational rename completion | `graphify` | PARTIAL | Existing graph confirmed stale Corvus L2 routing before and during rename; direct file scans verified the live operational residue classification | Refresh graph output in a separate graph maintenance pass after local folder rename settles |
 
 ## Monthly Review
 

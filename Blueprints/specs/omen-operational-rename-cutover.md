@@ -1,6 +1,6 @@
 # Omen Operational Rename Cutover Spec
 
-Status: execution approved by Justin on 2026-06-23; in progress
+Status: completed on 2026-06-23
 Layer: L2 Omen operations / deploy
 Created: 2026-06-23
 Owner: Codex prepares; Justin approves and executes gated ops
@@ -269,7 +269,14 @@ Done-when:
 - Primary workflow uses `omen-deploy`.
 - GHCR deploy pulls use Omen image names.
 - Docker names are `omen_api`, `omen_cron`, and `omen_network`.
-- Residual active `corvus` references are documented or removed.
+- Residual active `corvus` references are documented as compatibility, history, or rollback artifacts.
+
+Completion note, 2026-06-23:
+
+- Cutover run `27995488318` passed and moved KVM1 from `corvus_api` / `corvus_cron` to `omen_api` / `omen_cron`.
+- Primary deploy run `27995567629` passed from `/opt/omen` using Omen-only tags.
+- Tailscale fallback deploy run `27996194346` passed from `/opt/omen` using Omen-only tags.
+- Final public health/readiness checks passed.
 
 Rollback:
 
@@ -294,6 +301,12 @@ Done-when:
 - L0/L1/L2 active routing docs point to the new folder.
 - Workflows still run from the renamed repo.
 - No old local path is required for active operations.
+
+Completion note, 2026-06-23:
+
+- GitHub repo renamed to `justinduverge-design/omen`.
+- Local `origin` remote updated to `https://github.com/justinduverge-design/omen`.
+- Active routing docs now point to `slops-saloon/omen`.
 
 Rollback:
 

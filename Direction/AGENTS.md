@@ -13,7 +13,7 @@ Omen is the active Fantasy Football MVP product inside the Slops Saloon division
 - **Payments:** Stripe
 - **AI:** Local Ollama/Gemma when configured; app must work without LLM
 - **Deploy lane:** Oracle, service `omen-api`
-- **Repo:** `justinduverge-design/corvus`
+- **Repo:** `justinduverge-design/omen`
 
 ## 3. Key Commands
 
@@ -69,7 +69,7 @@ feature, status, method/path, request, response, example, files changed, limitat
 ```text
 Layer 0: SLOPS/
 Layer 1: SLOPS/slops-saloon/
-Layer 2: SLOPS/slops-saloon/corvus/
+Layer 2: SLOPS/slops-saloon/omen/
 ```
 
 ## 7. Hard Constraints

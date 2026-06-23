@@ -16,7 +16,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 
 - Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
 - Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
-- Layer 2 - Omen product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Layer 2 - Omen product repo: `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen`
 
 ## Current Truth
 
@@ -24,7 +24,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - This repo is the product layer.
 - The old nested `Corvus/` folder is retired.
 - Product docs now live at the repo root under `Direction/`, `Blueprints/`, `Brand/`, `References/`, `Solutions/`, and `Archive/`.
-- GitHub repo: `justinduverge-design/corvus`.
+- GitHub repo: `justinduverge-design/omen`.
 - Oracle checkout path: `~/corvus`.
 - Production health currently reports `service: omen-api`.
 

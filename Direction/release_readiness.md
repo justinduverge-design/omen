@@ -10,10 +10,10 @@ This does not mean paid launch is complete. The current posture is launch-QA: Ti
 
 ## Verified
 
-- Local repo path: `<active-git-root>/slops-saloon/corvus/`
-- GitHub repo: `justinduverge-design/corvus`
-- Oracle checkout path: `~/corvus`
-- Containers: `corvus_api`, `corvus_cron`
+- Local repo path: `<active-git-root>/slops-saloon/omen/`
+- GitHub repo: `justinduverge-design/omen`
+- KVM1 deploy path: `/opt/omen/deploy/hostinger`
+- Containers: `omen_api`, `omen_cron`
 - Health endpoint: `https://slopssaloon.com/api/health`
 - Health service: `omen-api`
 - Tests: latest recorded local backend suites passed 260/260 for Stripe webhook recovery and 262/262 after ESPN connect input normalization on 2026-06-04.

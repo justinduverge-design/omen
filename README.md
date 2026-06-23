@@ -12,7 +12,7 @@ Slops Saloon is the parent company, mission site, and long-term product studio. 
 
 - Layer 0 is `SLOPS/`.
 - Layer 1 is `SLOPS/slops-saloon/`.
-- Layer 2 is this repo: `SLOPS/slops-saloon/corvus/`.
+- Layer 2 is this repo: `SLOPS/slops-saloon/omen/`.
 - If Justin says "Layer 3," treat that as this third layer in plain English.
 - Product, brand, handoff, prompt, and spec context lives at this repo root under `Direction`, `Blueprints`, `Brand`, `Solutions`, and `References`.
 - The old nested `Corvus/` folder is retired.
@@ -134,8 +134,8 @@ Verdicts: `accept` (>2.0), `neutral` (±2.0), `decline` (<−2.0).
 ### 1. Clone
 
 ```bash
-git clone https://github.com/justinduverge-design/corvus.git
-cd corvus
+git clone https://github.com/justinduverge-design/omen.git
+cd omen
 ```
 
 ### 2. Environment variables

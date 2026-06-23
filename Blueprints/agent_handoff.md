@@ -6,7 +6,7 @@ This file was recreated during a DBS integrity repair on 2026-05-21.
 
 Use this repo as the active product workspace:
 
-`<active-git-root>/slops-saloon/corvus/`
+`<active-git-root>/slops-saloon/omen/`
 
 ## Layer Rules
 

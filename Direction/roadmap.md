@@ -27,11 +27,11 @@ Last updated: 2026-06-04
 
 ## Current Infrastructure Route
 
-- GitHub: `https://github.com/justinduverge-design/corvus`
-- Local: `<active-git-root>/slops-saloon/corvus/`
-- Oracle: `~/corvus`
-- GHCR API image: `ghcr.io/justinduverge-design/corvus:main`
-- GHCR cron image: `ghcr.io/justinduverge-design/corvus-cron:main`
+- GitHub: `https://github.com/justinduverge-design/omen`
+- Local: `<active-git-root>/slops-saloon/omen/`
+- Hostinger KVM1 deploy path: `/opt/omen/deploy/hostinger`
+- GHCR API image: `ghcr.io/justinduverge-design/omen:main`
+- GHCR cron image: `ghcr.io/justinduverge-design/omen-cron:main`
 
 ## Prepared Locally, Not Deployed
 
