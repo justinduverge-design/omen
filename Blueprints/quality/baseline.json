@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "recorded_at": "2026-06-19",
-  "commit": "886d32cf760b01def62258efd8fd979aabc37f2e",
+  "recorded_at": "2026-06-23",
+  "commit": "e66e9d7c7ae29212af36d947428991b20b45f25b",
   "runtime": {
-    "node": "v24.17.0",
-    "npm": "11.13.0"
+    "node": "v24.11.0",
+    "npm": "11.6.1"
   },
   "signals": {
     "backend_tests": {
-      "passing": 312,
-      "total": 312,
+      "passing": 356,
+      "total": 356,
       "status": "pass"
     },
     "npm_audit_moderate": {
