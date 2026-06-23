@@ -1,17 +1,17 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * Slops Saloon Fantasy Football MVP (Corvus)
- * Prompt Loader — corvus_prompt_loader.js
+ * Slops Saloon Fantasy Football MVP (Omen)
+ * Prompt Loader — omen_prompt_loader.js
  * ════════════════════════════════════════════════════════════════
  * Reads prompt templates from the /Blueprints/prompts directory and injects
  * runtime values before passing them to the Anthropic API.
  *
- * This replaces the hardcoded template strings in corvus_agents.js.
+ * This replaces the hardcoded template strings in omen_agents.js.
  * Prompts are now version-controlled markdown files that can be
  * edited without touching application code.
  *
- * Usage in corvus_agents.js:
- *   const { buildManagerPrompt, buildUserPrompt } = require("./corvus_prompt_loader");
+ * Usage in omen_agents.js:
+ *   const { buildManagerPrompt, buildUserPrompt } = require("./omen_prompt_loader");
  *   const systemPrompt = buildManagerPrompt({ vorpBlock, scarcityBlock, calibText, scoring, record, dataSource });
  *   const userPrompt   = buildUserPrompt({ week, signals, scoring, record });
  * ════════════════════════════════════════════════════════════════
@@ -204,7 +204,7 @@ function getPromptMetadata() {
 /* ════════════════════════════════════════════════════════════════
    HARDCODED FALLBACKS
    Used only if the markdown files cannot be read.
-   These mirror the original prompts from corvus_agents.js exactly.
+   These mirror the original prompts from omen_agents.js exactly.
 ════════════════════════════════════════════════════════════════ */
 function buildFallbackManagerPrompt({ vorpBlock, scarcityBlock, calibText, scoring, record, dataSource }) {
   return `You are the Slops Saloon Fantasy Football MVP Manager Agent — an elite fantasy football GM AI.
@@ -267,16 +267,16 @@ module.exports = {
 
 /*
   ════════════════════════════════════════════════════════════════
-  HOW TO WIRE INTO corvus_agents.js
+  HOW TO WIRE INTO omen_agents.js
   ════════════════════════════════════════════════════════════════
 
-  1. Add at the top of corvus_agents.js:
+  1. Add at the top of omen_agents.js:
 
      const {
        buildManagerPrompt,
        buildUserPrompt,
        getPromptMetadata,
-     } = require("./corvus_prompt_loader");
+     } = require("./omen_prompt_loader");
 
   2. Replace the hardcoded systemPrompt block in runAgentPipeline():
 
@@ -312,18 +312,18 @@ module.exports = {
 
   slops-saloon/
   ├── src/
-  │   ├── corvus_agents.js
-  │   ├── corvus_api_v2.js
-  │   ├── corvus_tuesday_cron.js
-  │   ├── corvus_gdpr.js
-  │   └── corvus_prompt_loader.js    ← this file
+  │   ├── omen_agents.js
+  │   ├── omen_api_v2.js
+  │   ├── omen_tuesday_cron.js
+  │   ├── omen_gdpr.js
+  │   └── omen_prompt_loader.js    ← this file
   ├── Blueprints/
   │   └── prompts/
   │       ├── manager_agent.md        ← Manager Agent system + user prompts
   │       ├── sub_agents.md           ← All 6 sub-agent prompt templates
   │       └── PROMPTS_CHANGELOG.md    ← Required edit log
   ├── client/
-  │   └── Corvus_v2_full.jsx
+  │   └── Omen_v2_full.jsx
   └── ...
 
   ════════════════════════════════════════════════════════════════

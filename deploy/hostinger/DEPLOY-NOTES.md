@@ -8,8 +8,10 @@ file plus the compose and nginx configs as the source of truth in the meantime).
 ## How The Pieces Fit
 
 - `docker-compose.prod.yml` runs two containers from GHCR:
-  - `api` pulls `ghcr.io/justinduverge-design/corvus:main`.
-  - `cron` pulls `ghcr.io/justinduverge-design/corvus-cron:main`.
+  - `api` pulls `ghcr.io/justinduverge-design/omen:main`.
+  - `cron` pulls `ghcr.io/justinduverge-design/omen-cron:main`.
+- During the Omen operational rename transition, the workflows also keep
+  publishing the old Corvus tags for rollback until the approved cleanup phase.
 - The API binds to `127.0.0.1:3000:3000`, so it is reachable only from the VPS itself.
 - Nginx is the public front door on ports 80 and 443. It proxies public traffic to `127.0.0.1:3000`.
 - The same API container serves both `/api/*` routes and the built SPA from `frontend/dist`, so Hostinger does not need a separate static-site host.
@@ -22,6 +24,10 @@ The primary deploy workflow logs KVM1 into GHCR with the workflow-scoped
 `GITHUB_TOKEN`, pulls the just-built images, restarts containers, then logs out.
 Do not keep a long-lived GHCR token on the VPS unless the self-hosted runner is
 unavailable and a manual recovery requires it.
+
+Omen rename transition note: the build job publishes both Corvus and Omen tags
+for the same image digest until the live deploy path is cut over and stabilized.
+Corvus tags remain the rollback source during this phase.
 
 If a manual pull is needed and the GHCR images are private, the VPS must log in
 before pulling:
@@ -47,15 +53,16 @@ operating mode is explicitly changed in `Direction/decision_log.md`.
 
 - `quality` and `build` run on GitHub-hosted runners.
 - `deploy` runs on KVM1's self-hosted runner: `corvus-kvm1-deploy`.
-- Required runner labels: `self-hosted`, `Linux`, `X64`, `kvm1`, `corvus-deploy`.
-- Runner home on KVM1: `/home/justin/actions-runner/corvus`.
+- Required runner labels after the approved runner prep: `self-hosted`, `Linux`, `X64`, `kvm1`, `omen-deploy`.
+- Transition rule: keep `corvus-deploy` on the runner until the Omen deploy path is verified, so workflow rollback remains simple.
+- Runner home on KVM1 may stay `/home/justin/actions-runner/corvus` during transition; rename it only after the deploy identity is stable.
 - The runner runs as `justin`, which is in the Docker group.
 - A user crontab `@reboot` entry restarts the runner after reboot. Convert it
   to a root-managed systemd service later when sudo/root console access is
   available.
 
 The deploy job does not SSH into KVM1. It is already running on KVM1 and runs
-Docker Compose locally from `/opt/corvus/deploy/hostinger`.
+Docker Compose locally from `/opt/omen/deploy/hostinger` after the approved Omen cutover. Until that cutover, production remains on `/opt/corvus/deploy/hostinger`.
 
 ## Tailscale Fallback
 
@@ -89,10 +96,10 @@ Optional GitHub variable:
 After GitHub Actions publishes fresh `:main` images:
 
 ```bash
-cd /opt/corvus/deploy/hostinger
-docker compose -f docker-compose.prod.yml --project-name corvus pull api cron
-docker compose -f docker-compose.prod.yml --project-name corvus up -d --no-build api cron
-docker compose -f docker-compose.prod.yml --project-name corvus ps
+cd /opt/omen/deploy/hostinger
+docker compose -f docker-compose.prod.yml --project-name omen pull api cron
+docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron
+docker compose -f docker-compose.prod.yml --project-name omen ps
 ```
 
 Then verify:
@@ -104,16 +111,16 @@ curl -s https://slopssaloon.com/api/ready
 
 ## Nginx And Certbot
 
-The checked-in Nginx file is valid before certificates exist. It lets Nginx
-start and lets Certbot safely update the site. During the runbook's Certbot
-step, choose the redirect option so Certbot adds HTTPS and HTTP -> HTTPS
-redirect behavior.
+The checked-in Nginx sample is `deploy/hostinger/nginx-omen.conf`. It is valid
+before certificates exist, lets Nginx start, and lets Certbot safely update the
+site. During the runbook's Certbot step, choose the redirect option so Certbot
+adds HTTPS and HTTP -> HTTPS redirect behavior.
 
 ## Justin Confirmed
 
 - Public hostnames: `slopssaloon.com` and `www.slopssaloon.com`.
 - Off-box backup target for the VPS-only `.env.production` file: handled by Justin.
-- Tuesday scoring stays disabled for launch with `CORVUS_CRON_SCORING_ENABLED=false`.
+- Tuesday scoring stays disabled for launch with `OMEN_CRON_SCORING_ENABLED=false`.
 - Tailscale fallback OAuth secrets are configured in GitHub repo secrets.
 - Manual Tailscale fallback deploy passed end to end on 2026-06-17.
 

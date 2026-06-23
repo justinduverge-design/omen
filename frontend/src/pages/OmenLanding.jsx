@@ -9,9 +9,9 @@ function Header() {
         {/* Logo */}
         <div className="flex items-center gap-3">
           <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_24px_rgba(201,164,76,0.14)]">
-            <img alt="Corvus" className="h-full w-full object-cover" src="/corvus-apollo-logo.png" />
+            <img alt="Omen" className="h-full w-full object-cover" src="/omen-primary-emblem.png" />
           </div>
-          <span className="font-display text-base tracking-[0.22em] text-[var(--color-text-primary)]">CORVUS</span>
+          <span className="font-display text-base tracking-[0.22em] text-[var(--color-text-primary)]">OMEN</span>
         </div>
 
         {/* Nav */}
@@ -47,10 +47,10 @@ function FeaturePitch() {
     <section className="border-t border-white/8 py-14">
       <div className="mx-auto max-w-4xl px-5">
         <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[0.32em] text-[#C9A44C]/60">
-          More from Corvus
+          More from Omen
         </p>
         <p className="mb-8 text-center text-lg font-semibold text-[#F4EFE1]">
-          Every Corvus tool — built for your roster, every week.
+          Every Omen tool — built for your roster, every week.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -88,9 +88,9 @@ function FeaturePitch() {
   );
 }
 
-// ─── Corvus landing page ──────────────────────────────────────────────────────
+// ─── Omen landing page ──────────────────────────────────────────────────────
 
-export default function CorvusLanding() {
+export default function OmenLanding() {
   return (
     <div className="min-h-[100dvh] bg-[#050505] text-[#F4EFE1]">
       <Header />
@@ -111,13 +111,13 @@ export default function CorvusLanding() {
         {/* ── Hero ── */}
         <section className="relative mx-auto max-w-4xl px-5 pb-12 pt-12 md:pt-16">
           <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
-            Corvus · Trade Analyzer
+            Omen · Trade Analyzer
           </p>
           <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-[var(--color-text-primary)] md:text-4xl">
             Know the move before you make it.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/50">
-            No account required. Pick a position, type a name, hit Compare — Corvus does the rest.
+            No account required. Pick a position, type a name, hit Compare — Omen does the rest.
           </p>
 
           {/* Working Trade Analyzer — compact mode, no sidebar */}

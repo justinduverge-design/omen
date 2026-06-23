@@ -2,14 +2,14 @@
 
 const { evaluateLineup } = require("./optimizer");
 
-const DEMO_CONTRACT_VERSION = "corvus-demo.v1";
+const DEMO_CONTRACT_VERSION = "omen-demo.v1";
 const DEMO_SEASON = 2026;
 const DEMO_WEEK = 1;
 
 const DEMO_ROSTER_FIXTURE = Object.freeze({
   source: "demo_fixture",
   platform: "demo",
-  league_key: "demo-league-corvus",
+  league_key: "demo-league-omen",
   team_key: "demo-team-ravens",
   week: DEMO_WEEK,
   slots: Object.freeze({
@@ -246,7 +246,7 @@ function buildDemoOmen(roster, swap, generatedAt) {
     },
     league: {
       id: roster.league_key,
-      name: "Corvus Demo League",
+      name: "Omen Demo League",
       season: DEMO_SEASON,
       week: roster.week,
       scoring_format: "ppr",
@@ -256,8 +256,8 @@ function buildDemoOmen(roster, swap, generatedAt) {
       name: "The Sample Rookery",
     },
     signals: {
-      roster: demoSignal("demo_roster_fixture", "Roster context comes from the deterministic Corvus demo fixture."),
-      projections: demoSignal("demo_projection_fixture", "Projected points are sample values for demonstrating Corvus behavior."),
+      roster: demoSignal("demo_roster_fixture", "Roster context comes from the deterministic Omen demo fixture."),
+      projections: demoSignal("demo_projection_fixture", "Projected points are sample values for demonstrating Omen behavior."),
       matchup_dvp: demoSignal("demo_matchup_fixture", "Matchup context is illustrative and is not current NFL data."),
       llm_reasoning: demoSignal("demo_explanation_template", "Explanation is deterministic and does not call an LLM."),
     },
@@ -327,7 +327,7 @@ function buildDemoModeResponse(now = new Date()) {
 
   return {
     contract_version: DEMO_CONTRACT_VERSION,
-    feature: "corvus_demo",
+    feature: "omen_demo",
     mode: "demo",
     is_demo: true,
     is_live: false,

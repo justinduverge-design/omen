@@ -14,6 +14,8 @@ Apply to any change touching auth, data, secrets, or platform credentials.
 8. Sentry `beforeSend` scrubber active for any new error-emitting code path
 9. `slops-code-review` security pass — P0/P1 findings either fixed or explicitly accepted by Justin
 10. Dependency risks reviewed for any new npm/pip add (`npm audit` + `slops-code-review`)
+11. `security-privacy-evidence` updated for any changed data classification, credential flow, consent, retention, telemetry, or external sharing boundary
+12. Security skill receipt appended to `Blueprints/playbooks/skill-usage-ledger.md`
 
 ## AAA mapping
 

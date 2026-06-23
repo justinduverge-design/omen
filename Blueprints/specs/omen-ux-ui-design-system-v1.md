@@ -1,4 +1,4 @@
-# Corvus UX/UI Design System v1
+# Omen UX/UI Design System v1
 
 **Date:** 2026-05-24
 **Status:** v1 — planning phase, not yet fully implemented
@@ -8,15 +8,15 @@
 
 ## Purpose
 
-This is the Corvus-specific design system. It applies the Slops OS template with Corvus brand tokens, components, voice, and patterns.
+This is the Omen-specific design system. It applies the Slops OS template with Omen brand tokens, components, voice, and patterns.
 
-When building any Corvus screen, this document and the Slops OS template are the two required references.
+When building any Omen screen, this document and the Slops OS template are the two required references.
 
 ---
 
 ## Brand Character in UI Terms
 
-Corvus is a sharp, observant fantasy football analyst. Not a chatbot. Not a dashboard.
+Omen is a sharp, observant fantasy football analyst. Not a chatbot. Not a dashboard.
 It knows the answer before you ask. It explains the move. It tells you the risk. It stops.
 
 **In UI terms:**
@@ -42,7 +42,7 @@ It knows the answer before you ask. It explains the move. It tells you the risk.
 | Deep crimson | Alert, risk | Risk indicators, warnings |
 | Electric violet | Intelligence | AI signal, Omen accent moments |
 
-### Dark Mode Tokens (primary Corvus experience)
+### Dark Mode Tokens (primary Omen experience)
 
 ```css
 :root[data-theme="dark"] {
@@ -96,7 +96,7 @@ It knows the answer before you ask. It explains the move. It tells you the risk.
 }
 ```
 
-### Tailwind Config Extensions (corvus-specific)
+### Tailwind Config Extensions (omen-specific)
 
 ```js
 // tailwind.config.js additions
@@ -283,12 +283,12 @@ Bad: `"No recommendations available at this time."`
 
 ### Platform disconnected copy
 
-Good: `"Connect your Sleeper league and Corvus will find your Most Valuable Play."`
+Good: `"Connect your Sleeper league and Omen will find your Most Valuable Play."`
 Bad: `"Platform not connected. Please authenticate to continue."`
 
 ### ESPN reconnect copy
 
-Good: `"ESPN needs fresh cookies before Corvus can read this league. Takes about 2 minutes."`
+Good: `"ESPN needs fresh cookies before Omen can read this league. Takes about 2 minutes."`
 Bad: `"ESPN authentication required. Please provide ESPN_S2 and SWID credentials."`
 
 ---
@@ -298,7 +298,7 @@ Bad: `"ESPN authentication required. Please provide ESPN_S2 and SWID credentials
 ### Sidebar (desktop)
 
 ```
-[Corvus logo + wordmark]
+[Omen logo + wordmark]
 
 Dashboard
 Trade Analyzer        ← free, no badge

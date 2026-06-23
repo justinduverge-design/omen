@@ -4,16 +4,20 @@
  * Local route load smoke test.
  *
  * Usage:
- *   CORVUS_BASE_URL=http://localhost:3000 node scripts/load-corvus-routes.js
+ *   OMEN_BASE_URL=http://localhost:3000 node scripts/load-omen-routes.js
  *
- * Auth-gated routes use CORVUS_AUTH_TOKEN when provided. Without a token the
+ * Auth-gated routes use OMEN_AUTH_TOKEN when provided. Without a token the
  * script still checks public Trade Analyzer and reports Omen/Dashboard as
  * auth-blocked instead of failing the run.
  */
 
-const baseUrl = process.env.CORVUS_BASE_URL || "http://localhost:3000";
-const authToken = process.env.CORVUS_AUTH_TOKEN || "";
-const iterations = Number(process.env.CORVUS_LOAD_ITERATIONS || 10);
+function productEnv(name) {
+  return process.env[`OMEN_${name}`] ?? process.env[`CORVUS_${name}`];
+}
+
+const baseUrl = productEnv("BASE_URL") || "http://localhost:3000";
+const authToken = productEnv("AUTH_TOKEN") || "";
+const iterations = Number(productEnv("LOAD_ITERATIONS") || 10);
 
 const tradeBody = {
   send: [{ name: "Player A", projected_points: 12, position: "WR" }],

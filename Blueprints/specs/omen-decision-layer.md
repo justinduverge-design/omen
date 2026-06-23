@@ -1,4 +1,4 @@
-# Spec: Corvus Decision Layer
+# Spec: Omen Decision Layer
 
 ## Status
 
@@ -6,7 +6,7 @@ Draft
 
 ## Product Decision
 
-Corvus should be a trust-first fantasy football decision assistant.
+Omen should be a trust-first fantasy football decision assistant.
 
 The first version should prioritize explainable recommendations over complex AI reasoning.
 
@@ -49,7 +49,7 @@ Preparation / seasonal utility.
 V1 logic:
 - Value-Based Drafting
 - ADP comparison
-- Corvus rank
+- Omen rank
 - positional need
 
 V1.5 ideas:
@@ -147,7 +147,7 @@ Supporting logic path inside Omen, plus optional utility page.
 
 ### Data Quality Risk
 
-Bad data creates bad recommendations. Corvus should show confidence, risk, and source labels.
+Bad data creates bad recommendations. Omen should show confidence, risk, and source labels.
 
 ### API Stability Risk
 

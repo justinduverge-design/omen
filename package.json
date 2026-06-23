@@ -1,12 +1,12 @@
 {
-  "name": "corvus",
+  "name": "omen",
   "version": "1.0.0",
-  "description": "Slops Saloon Fantasy Football MVP",
+  "description": "Omen — Slops Saloon Fantasy Football Intelligence",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "cron": "node src/corvus_tuesday_cron.js",
+    "cron": "node src/omen_tuesday_cron.js",
     "test": "node --test"
   },
   "dependencies": {

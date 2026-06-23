@@ -68,7 +68,7 @@ function buildFakeSession() {
     user: {
       id: "qa-user-00000000-0000-0000-0000-000000000000",
       aud: "authenticated",
-      email: "qa@corvus.test",
+      email: "qa@omen.test",
       role: "authenticated",
       created_at: "2025-01-01T00:00:00.000Z",
       app_metadata: { provider: "email", providers: ["email"] },
@@ -452,7 +452,7 @@ async function main() {
       {
         id: "5_league_context_missing",
         recovery: "espn_league_context_missing",
-        bannerText: "Corvus needs your ESPN league ID",
+        bannerText: "Omen needs your ESPN league ID",
       },
       {
         id: "6_import_blocked",
@@ -462,7 +462,7 @@ async function main() {
       {
         id: "7_recovery_needed",
         recovery: "espn_recovery_needed",
-        bannerText: "Corvus lost access to your ESPN data",
+        bannerText: "Omen lost access to your ESPN data",
       },
     ];
 

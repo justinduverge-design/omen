@@ -331,7 +331,7 @@ function TradeTipsCard() {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
-        Corvus · Strategy
+        Omen · Strategy
       </p>
       <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Trade Room</h3>
       <ul className="mt-4 space-y-4">

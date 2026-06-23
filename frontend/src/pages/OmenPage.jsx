@@ -73,7 +73,7 @@ export default function OmenPage() {
         <DisconnectedState
           eyebrow="Omen of the Week"
           title="Connect a fantasy platform"
-          message="Link Yahoo, Sleeper, or ESPN so Corvus can read your roster and produce your weekly move."
+          message="Link Yahoo, Sleeper, or ESPN so Omen can read your roster and produce your weekly move."
           ctaLabel="Connect a platform"
           ctaHref="/account/connect"
         />

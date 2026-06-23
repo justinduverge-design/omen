@@ -1,0 +1,144 @@
+name: Omen Operational Cutover
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type CUTOVER_TO_OMEN to move KVM1 from /opt/corvus to /opt/omen"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-kvm1
+  cancel-in-progress: false
+
+jobs:
+  cutover:
+    name: Cut KVM1 over to Omen compose identity
+    runs-on: [self-hosted, kvm1, omen-deploy]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Require explicit confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "CUTOVER_TO_OMEN" ]; then
+            echo "::error::Confirmation did not match CUTOVER_TO_OMEN."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Log in to GHCR from KVM1
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+      - name: Prepare /opt/omen from checked-in deploy files
+        run: |
+          set -euo pipefail
+
+          OLD_DIR="/opt/corvus/deploy/hostinger"
+          NEW_DIR="/opt/omen/deploy/hostinger"
+          OLD_ENV="$OLD_DIR/.env.production"
+          NEW_ENV="$NEW_DIR/.env.production"
+
+          if [ ! -f "$OLD_ENV" ]; then
+            echo "::error::Expected KVM1 env file was not found at $OLD_ENV."
+            exit 1
+          fi
+
+          if [ -w "/opt" ] || [ -d "/opt/omen" ]; then
+            mkdir -p "$NEW_DIR"
+          else
+            sudo -n mkdir -p "$NEW_DIR"
+          fi
+
+          if [ -w "$NEW_DIR" ]; then
+            cp deploy/hostinger/docker-compose.prod.yml "$NEW_DIR/docker-compose.prod.yml"
+            cp deploy/hostinger/DEPLOY-NOTES.md "$NEW_DIR/DEPLOY-NOTES.md"
+            cp deploy/hostinger/ENV-INVENTORY.md "$NEW_DIR/ENV-INVENTORY.md"
+            cp deploy/hostinger/nginx-omen.conf "$NEW_DIR/nginx-omen.conf"
+            install -m 600 "$OLD_ENV" "$NEW_ENV"
+          else
+            sudo -n cp deploy/hostinger/docker-compose.prod.yml "$NEW_DIR/docker-compose.prod.yml"
+            sudo -n cp deploy/hostinger/DEPLOY-NOTES.md "$NEW_DIR/DEPLOY-NOTES.md"
+            sudo -n cp deploy/hostinger/ENV-INVENTORY.md "$NEW_DIR/ENV-INVENTORY.md"
+            sudo -n cp deploy/hostinger/nginx-omen.conf "$NEW_DIR/nginx-omen.conf"
+            sudo -n install -m 600 "$OLD_ENV" "$NEW_ENV"
+          fi
+
+          cd "$NEW_DIR"
+          docker compose -f docker-compose.prod.yml --project-name omen config --quiet
+          echo "Omen deploy files are installed; env file copied without printing secrets."
+
+      - name: Preflight current production state
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 6 "https://slopssaloon.com/api/health"
+          echo ""
+          curl -fsS --max-time 6 "https://slopssaloon.com/api/ready"
+          echo ""
+          docker ps --format "table {{.Names}}\t{{.Status}}"
+
+      - name: Cut over Docker Compose project
+        run: |
+          set -euo pipefail
+
+          OLD_DIR="/opt/corvus/deploy/hostinger"
+          NEW_DIR="/opt/omen/deploy/hostinger"
+          CUTOVER_STARTED=0
+
+          rollback() {
+            status=$?
+            if [ "$status" -ne 0 ] && [ "$CUTOVER_STARTED" -eq 1 ]; then
+              echo "::warning::Omen cutover failed after stopping Corvus; attempting rollback."
+              docker compose -f "$NEW_DIR/docker-compose.prod.yml" --project-name omen stop api cron || true
+              docker compose -f "$OLD_DIR/docker-compose.prod.yml" --project-name corvus up -d --no-build api cron || true
+              curl -fsS --max-time 6 "https://slopssaloon.com/api/health" || true
+              echo ""
+              curl -fsS --max-time 6 "https://slopssaloon.com/api/ready" || true
+              echo ""
+            fi
+            exit "$status"
+          }
+          trap rollback EXIT
+
+          cd "$NEW_DIR"
+          echo "Pulling Omen images before touching live containers..."
+          docker compose -f docker-compose.prod.yml --project-name omen pull api cron
+
+          echo "Stopping Corvus compose project..."
+          docker compose -f "$OLD_DIR/docker-compose.prod.yml" --project-name corvus stop api cron
+          CUTOVER_STARTED=1
+
+          echo "Starting Omen compose project..."
+          docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron
+
+          for i in $(seq 1 18); do
+            if curl -fsS --max-time 4 "https://slopssaloon.com/api/health" > /tmp/omen-health.json 2>/dev/null; then
+              echo "Health response:"
+              cat /tmp/omen-health.json
+              echo ""
+              break
+            fi
+            echo "Attempt $i: Omen health endpoint not ready yet, retrying in 5s..."
+            sleep 5
+          done
+
+          curl -fsS --max-time 6 "https://slopssaloon.com/api/ready" > /tmp/omen-ready.json
+          echo "Ready response:"
+          cat /tmp/omen-ready.json
+          echo ""
+
+          docker ps --format "table {{.Names}}\t{{.Status}}"
+          docker logs omen_api 2>&1 | tail -25 || true
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io || true

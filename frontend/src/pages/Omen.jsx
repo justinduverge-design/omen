@@ -129,7 +129,7 @@ function RecoveryPanel({ platform, state }) {
         {name}
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        {recovery?.message ?? 'Reconnect your platform before Corvus can read your roster.'}
+        {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
       </p>
       {recovery?.fields_needed?.length ? (
         <p className="mt-2 text-xs text-slate-500">
@@ -178,7 +178,7 @@ function ErrorCard({ error, onRetry }) {
     <section className="rounded-lg border border-red-400/30 bg-red-400/10 p-6">
       <p className="text-xs font-semibold uppercase tracking-widest text-red-400">Error</p>
       <p className="mt-2 text-sm text-slate-300">
-        {error?.message ?? 'Corvus could not generate an MVP Move right now.'}
+        {error?.message ?? 'Omen could not generate an MVP Move right now.'}
       </p>
       {error?.retryable !== false ? (
         <button

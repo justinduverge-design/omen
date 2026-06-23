@@ -18,7 +18,7 @@
  *     `mute` for text-on-light-surface).
  *   - The page's data-theme (light vs dark) is a CONSEQUENCE of the team's
  *     surface luminance, not a stylistic toggle. PIT, BAL, LV, ATL render
- *     dark because their canonical world is dark — not because Corvus
+ *     dark because their canonical world is dark — not because Omen
  *     imposed dark mode.
  *   - `--color-text-on-accent` per role is computed via WCAG contrast
  *     comparison against #0A0A0B vs #F5F0E8.

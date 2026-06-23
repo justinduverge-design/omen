@@ -6,7 +6,7 @@ Research queued
 
 ## Question
 
-Can nflverse-data help Corvus reduce or delay the need for SportsRadar?
+Can nflverse-data help Omen reduce or delay the need for SportsRadar?
 
 ## Current Answer
 
@@ -39,7 +39,7 @@ nflverse may help with historical/statistical NFL data, but it is not a full Spo
 4. Which datasets help Start/Sit?
 5. How fresh is the data?
 6. What formats are available?
-7. Is licensing/attribution compatible with Corvus?
+7. Is licensing/attribution compatible with Omen?
 8. What does it not solve compared with SportsRadar?
 
 ## Decision Rule

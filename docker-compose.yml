@@ -1,9 +1,9 @@
 # ════════════════════════════════════════════════════════════════
-# Slops Saloon Fantasy Football MVP — docker-compose.yml
+# Omen — docker-compose.yml
 # ════════════════════════════════════════════════════════════════
 # Two services:
 #   api  — Express server (platform_integration.js) on port 3000
-#   cron — Worker that runs corvus_tuesday_cron.js on a schedule
+#   cron — Worker that runs omen_tuesday_cron.js on a schedule
 #
 # Usage:
 #   docker-compose up --build          # start both services
@@ -19,7 +19,7 @@ services:
   # Runs platform_integration.js — handles OAuth, standings,
   # roster endpoints, and the agent pipeline route.
   api:
-    image: ghcr.io/justinduverge-design/corvus:main
+    image: ghcr.io/justinduverge-design/omen:main
     build:
       context: .
       dockerfile: Dockerfile
@@ -31,7 +31,7 @@ services:
         VITE_SUPABASE_URL:      ${VITE_SUPABASE_URL:-}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
         VITE_API_BASE_URL:      ${VITE_API_BASE_URL:-}
-    container_name: corvus_api
+    container_name: omen_api
     command: node src/server.js
     ports:
       # Bind to localhost only - nginx terminates TLS on 80/443
@@ -73,15 +73,15 @@ services:
 
   # ── CRON SERVICE ───────────────────────────────────────────────
   # Stays alive permanently using a lightweight Alpine cron daemon.
-  # The actual corvus_tuesday_cron.js runs at 6:00 AM EST every Tuesday.
-  # Logs are written to /var/log/corvus_cron.log inside container.
+  # The actual omen_tuesday_cron.js runs at 6:00 AM EST every Tuesday.
+  # Logs are written to /var/log/omen_cron.log inside container.
   cron:
-    image: ghcr.io/justinduverge-design/corvus-cron:main
+    image: ghcr.io/justinduverge-design/omen-cron:main
     build:
       context: .
       dockerfile: Dockerfile.cron     # separate cron Dockerfile below
       target: production
-    container_name: corvus_cron
+    container_name: omen_cron
     environment:
       NODE_ENV: production
       TZ: America/New_York            # ensures 6 AM EST is correct
@@ -90,7 +90,7 @@ services:
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:?SUPABASE_SERVICE_KEY is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       REDIS_TOKEN: ${REDIS_TOKEN:?REDIS_TOKEN is required}
-      CORVUS_CRON_SCORING_ENABLED: ${CORVUS_CRON_SCORING_ENABLED:-false}
+      OMEN_CRON_SCORING_ENABLED: ${OMEN_CRON_SCORING_ENABLED:-${CORVUS_CRON_SCORING_ENABLED:-false}}
       SPORTRADAR_API_KEY: ${SPORTRADAR_API_KEY}
       YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID:?YAHOO_CLIENT_ID is required}
       YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET:?YAHOO_CLIENT_SECRET is required}
@@ -117,4 +117,4 @@ services:
 # internally if needed (e.g. cron calls api endpoints)
 networks:
   default:
-    name: corvus_network
+    name: omen_network

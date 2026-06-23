@@ -60,7 +60,7 @@ router.get("/ready", async (_req, res) => {
 router.get("/version", (_req, res) => {
   res.json({
     contract_version: "system-version.v1",
-    service: "corvus-api",
+    service: "omen-api",
     package_name: packageJson.name,
     package_version: packageJson.version,
     node_env: config.nodeEnv,

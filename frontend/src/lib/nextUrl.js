@@ -1,4 +1,5 @@
-const STORAGE_KEY = 'corvus.auth.next';
+const STORAGE_KEY = 'omen.auth.next';
+const LEGACY_STORAGE_KEY = 'corvus.auth.next';
 
 const ALLOWED_DESTINATIONS = new Set([
   '/',
@@ -34,7 +35,10 @@ export function storeNextUrl(raw) {
 }
 
 export function consumeNextUrl() {
-  const stored = localStorage.getItem(STORAGE_KEY) || '/account';
+  const stored = localStorage.getItem(STORAGE_KEY)
+    || localStorage.getItem(LEGACY_STORAGE_KEY)
+    || '/account';
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
   return sanitize(stored);
 }

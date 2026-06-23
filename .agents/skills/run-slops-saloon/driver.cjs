@@ -1,5 +1,5 @@
 /**
- * Corvus / slops-saloon run driver
+ * Omen / slops-saloon run driver
  *
  * Starts the Vite frontend dev server, runs Playwright assertions against
  * the landing page, takes screenshots, then stops cleanly.
@@ -90,7 +90,7 @@ async function main() {
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
 
     const title = await page.title();
-    if (title !== 'Corvus') throw new Error(`Unexpected title: ${title}`);
+    if (title !== 'Omen') throw new Error(`Unexpected title: ${title}`);
 
     const h1 = (await page.locator('h1').textContent()) ?? '';
     if (!h1.includes('Know the move')) throw new Error(`H1 mismatch: ${h1}`);

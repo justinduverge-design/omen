@@ -1,9 +1,9 @@
 # Entity Identity Theming — Methodology
 
-**Status:** v1, authored 2026-06-20 alongside Corvus Phase 1.5e
+**Status:** v1, authored 2026-06-20 alongside Omen Phase 1.5e
 **Author:** Claude, prompted by Justin's directive: *"we need to add this type of clarification to our template so that when we make the next app we have a head start at desining"*
 **Worked example:** [Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md](../Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md)
-**Promotion candidate:** This doc is currently L2 (Corvus) but its content is product-agnostic. Surface for promotion to L0 (slops-os) or L1 (slops-saloon) when a second product adopts entity-affinity theming, so it becomes the inherited starting point.
+**Promotion candidate:** This doc is currently L2 (Omen) but its content is product-agnostic. Surface for promotion to L0 (slops-os) or L1 (slops-saloon) when a second product adopts entity-affinity theming, so it becomes the inherited starting point.
 
 ---
 
@@ -13,7 +13,7 @@ Any product where the **user self-identifies with an entity**, and that entity h
 
 Examples that qualify:
 
-- Sports teams (Corvus — NFL)
+- Sports teams (Omen — NFL)
 - Music artists / albums (a fan-listening app where users pick a favorite act)
 - Anime franchises, character rosters
 - Game franchises, esports orgs
@@ -79,7 +79,7 @@ Why: HSL lift preserves hue mathematically. But for a near-neutral color like si
 
 ### 4. Special-case templates beat universal recipes
 
-Plan for ~10–20% of entities needing per-entity special cases. Examples from Corvus 1.5e:
+Plan for ~10–20% of entities needing per-entity special cases. Examples from Omen 1.5e:
 
 - **Falcons "Bred" template** — pure black surface, no team-hue derivation, primary-color CTA (Jordan 1 Bred homage)
 - **Saints flip** — primary is gold, secondary is black, so derive surface from secondary instead of primary
@@ -91,7 +91,7 @@ A theming system built only around universal recipes will fight you on these. Bu
 
 Once you've lifted every entity's accent through `textSafe`, run a pairwise comparison on the final set. If two entities end up with accents within ΔE < 8 of each other, the user can't tell them apart at runtime — they're effectively the same color in the UI.
 
-Corvus 1.5e found three teams (HOU, NYG, ATL) collapsing to identical lifted accent `#e3455e` because all three had curated `accent: '#A71930'` (Texans Battle Red, Giants secondary red, Falcons varsity red). The fix at the audit level was: flip NYG to royal-blue primary (resolves the collision and aligns with "Big Blue" fan identity); fix Bred to bypass `textSafe` (preserves Falcons varsity red); deepen HOU lift.
+Omen 1.5e found three teams (HOU, NYG, ATL) collapsing to identical lifted accent `#e3455e` because all three had curated `accent: '#A71930'` (Texans Battle Red, Giants secondary red, Falcons varsity red). The fix at the audit level was: flip NYG to royal-blue primary (resolves the collision and aligns with "Big Blue" fan identity); fix Bred to bypass `textSafe` (preserves Falcons varsity red); deepen HOU lift.
 
 Run the hue-collision check **before** declaring the system done, not after.
 
@@ -102,7 +102,7 @@ The specific recipes (L=8 for dark surfaces, sat × 0.5 multiplier, L=92 for lig
 When a new SLOPS product adopts this methodology, it imports:
 
 - This doc (the principles)
-- A worked example (Corvus 1.5e audit)
+- A worked example (Omen 1.5e audit)
 - The audit template format (table shape, cultural-anchor index, defect catalog)
 
 Then it does its own entity research. The new product's recipes will probably be different. That's fine.
@@ -184,7 +184,7 @@ Pulling colors straight from the entity's official brand book misses fan-perceiv
 
 For fan-affinity theming, the axis is a **per-entity** fact, not a user preference. If a user picks "Miami Dolphins" as their team, they get the Vice-aqua-on-cream palette — not a choice between "Vice-aqua-on-cream" and "Vice-aqua-on-black." The entity's identity is what it is.
 
-If your product also has a "neutral product mode" (e.g., Corvus's `corvus` mode), that mode can respect user light/dark preference. But entity mode is entity-determined.
+If your product also has a "neutral product mode" (e.g., Omen's `corvus` mode), that mode can respect user light/dark preference. But entity mode is entity-determined.
 
 ### Anti-pattern 3: "Compute everything from `(primary, secondary)`"
 
@@ -196,7 +196,7 @@ The citations look like dead weight when the runtime just consumes hex values. T
 
 ### Anti-pattern 5: "Ship the recipes, skip the methodology"
 
-Recipes are product-specific. The Corvus 1.5e recipe (L=8 dark surface, L=94 light surface, sat × 0.5 multiplier) is specific to Corvus. The **methodology** — find identity, decide axis, choose accent, cite cultural anchors, watch the textSafe trap, plan for specials, check collisions — is portable. Ship the methodology to the next product. Let it derive its own recipes.
+Recipes are product-specific. The Omen 1.5e recipe (L=8 dark surface, L=94 light surface, sat × 0.5 multiplier) is specific to Omen. The **methodology** — find identity, decide axis, choose accent, cite cultural anchors, watch the textSafe trap, plan for specials, check collisions — is portable. Ship the methodology to the next product. Let it derive its own recipes.
 
 ### Anti-pattern 6: "Audit once, never revisit"
 
@@ -209,7 +209,7 @@ Fan-perceived identity drifts. A team's hot decade fades; a sneaker collab opens
 When the next SLOPS product needs entity-affinity theming:
 
 1. **Copy this doc to the new product's `Brand/` (or equivalent design-system folder).** It's product-agnostic; the principles transfer.
-2. **Read the Corvus 1.5e audit as the worked example.** See how table shape, cultural-anchor index, defect catalog, and per-entity verdicts compose.
+2. **Read the Omen 1.5e audit as the worked example.** See how table shape, cultural-anchor index, defect catalog, and per-entity verdicts compose.
 3. **Run Steps 1–10 of the audit process** for the new product's entities.
 4. **Implement the runtime support** (theme-aware template resolver, two-axis surface recipes, `textSafe` with sat-clamp, special-case templates, `--color-text-on-accent` token).
 5. **Ship the audit doc + the runtime in the same phase.** The audit is the source-of-truth design contract; the runtime implements it.
@@ -218,12 +218,12 @@ If the new product is the second adopter, **propose promoting this doc to L0 or 
 
 ---
 
-## Open work items (kept current with Corvus 1.5e)
+## Open work items (kept current with Omen 1.5e)
 
-This section is a living TODO carried forward as the methodology evolves. Update when Corvus 1.5f ships, or when a second product adopts.
+This section is a living TODO carried forward as the methodology evolves. Update when Omen 1.5f ships, or when a second product adopts.
 
 - [ ] Promote this doc to L1 (`slops-saloon/Blueprints/patterns/`) when a second product adopts.
 - [ ] Promote to L0 (`slops-os/Blueprints/patterns/`) when promoted patterns prove durable across two products.
 - [ ] Add a **Cultural Anchor Index template** (CSV or YAML schema) at the methodology level so new products start with a structured citation format.
 - [ ] Capture **anti-pattern 6 enforcement** — a calendar reminder per product cycle to revisit fan-perceived identity.
-- [x] Expose **cultural-anchor citation in product UI** (e.g., a one-line attribution under each entity in the entity-picker: "Pine Green — Jordan 1 colorway"). Justin confirmed for Corvus 2026-06-20 — folded into Corvus Phase 1.5f as scope item #12. Methodology recommendation: any product adopting this pattern should surface citations in the entity-picker, both as a fan-engagement signal AND a designer-transparency signal.
+- [x] Expose **cultural-anchor citation in product UI** (e.g., a one-line attribution under each entity in the entity-picker: "Pine Green — Jordan 1 colorway"). Justin confirmed for Omen 2026-06-20 — folded into Omen Phase 1.5f as scope item #12. Methodology recommendation: any product adopting this pattern should surface citations in the entity-picker, both as a fan-engagement signal AND a designer-transparency signal.

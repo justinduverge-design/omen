@@ -5,7 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Corvus theme tokens ─────────────────────────────────────────────────────
+/* ── Omen theme tokens ───────────────────────────────────────────────────────
    Applied via data-theme="dark" | "light" on <html>.
    System mode resolves via JS (reads prefers-color-scheme, applies data-theme).
    The :root block below is the dark fallback for SSR / before JS runs.
@@ -21,22 +21,23 @@
   --color-text-primary:    #F5F0E8;
   --color-text-secondary:  #AEAEB2;
   --color-text-tertiary:   #6D6D72;
-  --color-accent:          #B8952A;
-  --color-accent-hover:    #D4AC30;
-  --color-accent-muted:    #3D2F0D;
+  --color-accent:          #A67C2E;
+  --color-accent-hover:    #C49035;
+  --color-accent-muted:    #3A2A0A;
   --color-text-on-accent:  #0A0A0B;
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
-  --color-risk-high:       #8B1A1A;
-  --color-omen:            #5B2D8E;
+  --color-risk-high:       #7E1717;
+  --color-omen:            #2F7D5B;
+  --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
-  /* Phase 1.5 team-theme tokens (default to brand accent so System/Corvus modes are visually unchanged). */
-  --color-team-primary:      #B8952A;
-  --color-team-secondary:    #D4AC30;
-  --color-team-accent:       #B8952A;
+  /* Phase 1.5 team-theme tokens (default to brand accent so Omen modes are visually unchanged). */
+  --color-team-primary:      #A67C2E;
+  --color-team-secondary:    #C49035;
+  --color-team-accent:       #A67C2E;
   --color-team-surface:      #0A0A0B;
   --color-team-surface-card: #1C1C1E;
   /* Phase 1.6 position chip palette. CB-validated. */
@@ -58,21 +59,22 @@
   --color-text-primary:    #F5F0E8;
   --color-text-secondary:  #AEAEB2;
   --color-text-tertiary:   #6D6D72;
-  --color-accent:          #B8952A;
-  --color-accent-hover:    #D4AC30;
-  --color-accent-muted:    #3D2F0D;
+  --color-accent:          #A67C2E;
+  --color-accent-hover:    #C49035;
+  --color-accent-muted:    #3A2A0A;
   --color-text-on-accent:  #0A0A0B;
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
-  --color-risk-high:       #8B1A1A;
-  --color-omen:            #5B2D8E;
+  --color-risk-high:       #7E1717;
+  --color-omen:            #2F7D5B;
+  --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
-  --color-team-primary:      #B8952A;
-  --color-team-secondary:    #D4AC30;
-  --color-team-accent:       #B8952A;
+  --color-team-primary:      #A67C2E;
+  --color-team-secondary:    #C49035;
+  --color-team-accent:       #A67C2E;
   --color-team-surface:      #0A0A0B;
   --color-team-surface-card: #1C1C1E;
   /* Phase 1.6 position chip palette. CB-validated. */
@@ -94,21 +96,22 @@
   --color-text-primary:    #1C1C1E;
   --color-text-secondary:  #6B7280;
   --color-text-tertiary:   #9CA3AF;
-  --color-accent:          #92740F;
-  --color-accent-hover:    #B8952A;
+  --color-accent:          #7A5C1E;
+  --color-accent-hover:    #A67C2E;
   --color-accent-muted:    #FEF3C7;
   --color-text-on-accent:  #FAFAF9;
   --color-risk-low:        #16A34A;
   --color-risk-medium:     #D97706;
-  --color-risk-high:       #991B1B;
-  --color-omen:            #6D28D9;
+  --color-risk-high:       #7E1717;
+  --color-omen:            #1A5C3E;
+  --color-umber:           #5A3A25;
   --color-data-live:       #16A34A;
   --color-data-stub:       #D97706;
   --color-data-mock:       #9CA3AF;
   --color-data-unavailable:#E5E5E3;
-  --color-team-primary:      #92740F;
-  --color-team-secondary:    #B8952A;
-  --color-team-accent:       #92740F;
+  --color-team-primary:      #7A5C1E;
+  --color-team-secondary:    #A67C2E;
+  --color-team-accent:       #7A5C1E;
   --color-team-surface:      #FAFAF9;
   --color-team-surface-card: #FFFFFF;
   /* Phase 1.6 position chip palette — light-mode variants land deeper for AA on light surfaces. */

@@ -1,35 +1,31 @@
-# Corvus Context
+# Omen Context
 
 ## Product Layer
 
-Corvus is the Fantasy Football MVP product inside the Slops Saloon division.
+Omen is the Fantasy Football MVP product inside the Slops Saloon division.
 
-Path:
-
-```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
-```
+Path: `<active-git-root>/slops-saloon/corvus/`
 
 It is not the SLOPS company layer and not the Slops Saloon division layer. It is the first active product under that division.
 
 ## Current Route
 
-- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
-- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
-- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Layer 0 - SLOPS OS: active Git root (`git rev-parse --show-toplevel` from L0)
+- Layer 1 - Slops Saloon division: `<active-git-root>/slops-saloon/`
+- Layer 2 - Omen product repo: `<active-git-root>/slops-saloon/corvus/`
 
 The old nested `Corvus/` subfolder is retired. Product DBS folders now live at this repo root.
 
 ## Product Promise
 
-Corvus should help users see the best fantasy football move without forcing them to understand heavy math.
+Omen should help users see the best fantasy football move without forcing them to understand heavy math.
 
 The product should explain:
 
 - what move to make
 - why it matters
 - what the risk is
-- how confident Corvus is
+- how confident Omen is
 
 ## Tool Hierarchy
 
@@ -74,7 +70,7 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - `PATCH /api/account/preferences` is deployed for favorite NFL team preference and upserts into `profiles`; the Supabase `profiles.favorite_team` column is applied and verified. Frontend: `TeamTheme.jsx` calls the endpoint; `App.jsx` hydrates team theme from `summary.user.favorite_team` on sign-in.
 - Canonical frontend file `frontend/src/pages/OmenOfTheWeek.jsx` now handles `401`, `402`, and `pending_live_engine` defensively.
 - Legacy compat routes listed in the frontend handoff now return `410 legacy_route_retired` with canonical hints where available, except `/api/league/standings`, which has been restored as a canonical route.
-- `sql/corvus_rls_security.sql` has been applied and verified in Supabase as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, subscription date columns, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
+- `sql/omen_rls_security.sql` has been applied and verified in Supabase as migration `20260531160851_apply_omen_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, subscription date columns, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
 - Backend test baseline: 240/240.
 - Tier 2 frontend deployed (PR #22, run `26833528435`): Account pricing display, Omen feedback hardening, team theme hydration, Move History / Hall of Records, and League Standings are all live.
 

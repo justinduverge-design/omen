@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Omen of the Week / MVP Move is the main Corvus event.
+Omen of the Week / MVP Move is the main Omen event.
 
 It should identify the highest-value fantasy football action for the user right now and explain it clearly.
 
@@ -254,7 +254,7 @@ Each recommendation should explain:
 - what move to make
 - why it matters
 - what the risk is
-- how confident Corvus is
+- how confident Omen is
 - what data was used
 
 Response field:
@@ -283,7 +283,7 @@ Use this when the selected platform is not connected.
     "status": "disconnected",
     "recovery": {
       "code": "connect_platform",
-      "message": "Connect Sleeper before Corvus can read your roster.",
+      "message": "Connect Sleeper before Omen can read your roster.",
       "cta": "Connect Sleeper"
     }
   },
@@ -321,7 +321,7 @@ Response shape:
     "status": "reauth_required",
     "recovery": {
       "code": "refresh_espn_cookies",
-      "message": "Your ESPN connection needs fresh cookies before Corvus can read this league.",
+      "message": "Your ESPN connection needs fresh cookies before Omen can read this league.",
       "cta": "Reconnect ESPN",
       "fields_needed": ["ESPN_S2", "SWID"]
     }
@@ -339,7 +339,7 @@ Response shape:
 
 ## Empty State
 
-Use this when Corvus has enough data but no move clears the recommendation threshold.
+Use this when Omen has enough data but no move clears the recommendation threshold.
 
 ```json
 {
@@ -349,7 +349,7 @@ Use this when Corvus has enough data but no move clears the recommendation thres
   "recommendation": null,
   "explanation": {
     "summary": "No move clears the recommendation threshold this week.",
-    "why_it_matters": "Your current lineup is close enough to the available alternatives that Corvus should not force a move.",
+    "why_it_matters": "Your current lineup is close enough to the available alternatives that Omen should not force a move.",
     "risk": "Forcing a marginal move could create more downside than upside.",
     "confidence": "Confidence is 68 out of 100 that standing pat is reasonable.",
     "data_used": ["connected roster", "weekly projections"]
@@ -370,7 +370,7 @@ Use this when the backend fails unexpectedly after request validation.
   "recommendation": null,
   "error": {
     "code": "omen_generation_failed",
-    "message": "Corvus could not generate an MVP Move right now.",
+    "message": "Omen could not generate an MVP Move right now.",
     "retryable": true
   },
   "signals": {},

@@ -1,14 +1,14 @@
-# Corvus Root Context
+# Omen Root Context
 
 ## Purpose
 
-This is the product-layer context entry point for Corvus.
+This is the product-layer context entry point for Omen.
 
 Use this file before opening app source, backend routes, frontend files, tests, SQL, deployment files, or product handoffs.
 
 ## Canonical Layer
 
-Corvus is the third SLOPS layer in plain English and the canonical Layer 2 in DBS numbering.
+Omen is the third SLOPS layer in plain English and the canonical Layer 2 in DBS numbering.
 
 Path:
 
@@ -18,7 +18,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 
 ## Current Truth
 
-- Corvus is the active Fantasy Football MVP product.
+- Omen is the active Fantasy Football MVP product.
 - This is the active app/product git repo.
 - The old nested `Corvus/` folder is retired.
 - Product DBS folders live at this repo root.
@@ -28,9 +28,9 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 ## Latest Resume Point — 2026-06-02
 
 - PR #22 (`fix(ui): brand-spec fonts — Cormorant Garamond + Alegreya Sans`) was squash-merged into `main` and deployed as GitHub Actions run `26833528435` for `.github/workflows/deploy.yml`; it completed successfully.
-- Post-deploy smoke: `https://slopssaloon.com/api/health` returned `status: ok` / `service: corvus-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
+- Post-deploy smoke: `https://slopssaloon.com/api/health` returned `status: ok` / `service: omen-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
 - Tier 2 frontend is **built and deployed**: Account pricing display (`GET /api/stripe/prices`), Omen feedback hardening (`POST /api/omen/feedback`), team theme hydration (`GET /api/dashboard/summary.user.favorite_team`), Move History / Hall of Records (`GET /api/moves`), and League Standings (`GET /api/league/standings`) are all live.
-- Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Corvus should infer/enrich those signals during analysis rather than asking the user to supply them.
+- Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Omen should infer/enrich those signals during analysis rather than asking the user to supply them.
 - All production env gates cleared: ~~Stripe price IDs~~ ✓, ~~$5/mo and $20 season prices~~ ✓, ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓, ~~`APP_BASE_URL`~~ ✓. Remaining launch work: Stripe test-mode checkout and webhook validation, authenticated smoke tests, and QA of real Yahoo/Sleeper/ESPN Omen and League Standings flows.
 
 - Local backend tests pass 240/240.
@@ -43,7 +43,7 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 - `GET /api/league/standings` is deployed for League Standings. It is auth-required and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
 - `PATCH /api/account/preferences` is deployed for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary includes `user.favorite_team`.
 - Legacy compat routes from the frontend audit now return `410 legacy_route_retired`, except `/api/league/standings`, which has been restored as a canonical route.
-- Supabase SQL from `sql/corvus_rls_security.sql` has been applied and verified as migration `20260531160851_apply_corvus_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
+- Supabase SQL from `sql/omen_rls_security.sql` has been applied and verified as migration `20260531160851_apply_omen_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
 - Remaining launch blockers are QA/ops: confirm prod Supabase env at deploy time, validate Stripe dashboard/return URLs, run Stripe test-mode validation, smoke-test HITL/team preference in the app, and QA real provider League Standings.
 
 ## Read First

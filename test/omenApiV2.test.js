@@ -13,7 +13,7 @@ const express = require("express");
 function buildApp() {
   const app = express();
   app.use(express.json());
-  app.use("/api", require("../src/corvus_api_v2"));
+  app.use("/api", require("../src/omen_api_v2"));
   app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ error: err.message });
   });

@@ -64,7 +64,7 @@ const config = {
 
   // --- Billing --------------------------------------------------
   billing: {
-    enabled: process.env.CORVUS_BILLING_ENABLED === "true",
+    enabled: (process.env.OMEN_BILLING_ENABLED ?? process.env.CORVUS_BILLING_ENABLED) === "true",
   },
 
   // --- Resend (transactional email) -----------------------------

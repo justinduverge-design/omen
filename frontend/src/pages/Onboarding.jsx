@@ -5,7 +5,8 @@ import { MARQUEE_ABBRS, NFL_TEAMS, TEAMS_BY_DIV } from '../data/nflTeams.js';
 import { ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
 import { getThemeMode, setThemeMode, setThemeTeam, useTheme } from '../lib/themeMode.js';
 
-const DONE_KEY = 'corvus.onboarding.done';
+const DONE_KEY = 'omen.onboarding.done';
+const LEGACY_DONE_KEY = 'corvus.onboarding.done';
 const CONNECTED_STATUSES = new Set(['ready', 'needs_subscription', 'pending_live_engine']);
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ function PickLookStep({ onSkip, onContinue }) {
   }
 
   function handleSkip() {
-    setThemeMode('corvus');
+    setThemeMode('omen');
     onSkip();
   }
 
@@ -63,7 +64,7 @@ function PickLookStep({ onSkip, onContinue }) {
         className="mb-8 font-serif text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}
       >
-        Corvus borrows your team's colors for accents — recommendations, confidence,
+        Omen borrows your team's colors for accents — recommendations, confidence,
         the call to act. Nothing more. Change this anytime in Account → Appearance.
       </p>
 
@@ -133,7 +134,7 @@ function PickLookStep({ onSkip, onContinue }) {
           className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
-          Skip — use Corvus default
+          Skip — use Omen default
         </button>
       </div>
     </div>
@@ -147,7 +148,7 @@ function WelcomeStep({ onNext }) {
         className="mb-4 text-xs font-semibold uppercase tracking-widest"
         style={{ color: 'var(--color-accent)' }}
       >
-        Welcome to Corvus
+        Welcome to Omen
       </p>
       <h1
         className="mb-6 font-display font-bold"
@@ -161,7 +162,7 @@ function WelcomeStep({ onNext }) {
         className="mb-10 font-serif text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
-        Corvus watches your roster, reads the matchups, and surfaces the one
+        Omen watches your roster, reads the matchups, and surfaces the one
         move that matters most each week. Plain English. No heavy math required.
       </p>
       <button
@@ -195,7 +196,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         className="mb-8 font-serif text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
-        Corvus needs your roster and matchup data to generate your weekly move.
+        Omen needs your roster and matchup data to generate your weekly move.
         Connect one of the supported platforms to unlock Omen of the Week.
       </p>
 
@@ -303,7 +304,7 @@ function CompleteStep({ onDone }) {
         className="mb-10 font-serif text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
-        League connected. Corvus will surface your best move when the season
+        League connected. Omen will surface your best move when the season
         opens. Check back each Tuesday after your roster locks.
       </p>
       <button
@@ -312,7 +313,7 @@ function CompleteStep({ onDone }) {
         className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
       >
-        Go to Corvus →
+        Go to Omen →
       </button>
     </div>
   );
@@ -346,7 +347,7 @@ export default function Onboarding() {
   const [noConnection, setNoConnection] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(DONE_KEY)) {
+    if (localStorage.getItem(DONE_KEY) || localStorage.getItem(LEGACY_DONE_KEY)) {
       navigate('/football', { replace: true });
       return;
     }
@@ -410,7 +411,7 @@ export default function Onboarding() {
             className="font-display text-[15px] uppercase tracking-[0.34em]"
             style={{ color: 'var(--color-text-primary)' }}
           >
-            Corvus
+            Omen
           </span>
         </div>
       </div>

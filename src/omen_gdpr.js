@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * Slops Saloon Fantasy Football MVP (Corvus)
- * GDPR Compliance Module — corvus_gdpr.js
+ * Slops Saloon Fantasy Football MVP (Omen)
+ * GDPR Compliance Module — omen_gdpr.js
  * ════════════════════════════════════════════════════════════════
  *
  * Implements the four core GDPR user rights:
@@ -30,7 +30,7 @@
  *   - No data sold or used for advertising — ever
  *
  * Mount in Express app:
- *   const gdpr = require("./corvus_gdpr");
+ *   const gdpr = require("./omen_gdpr");
  *   app.use("/api", gdpr);
  * ════════════════════════════════════════════════════════════════
  */
@@ -75,7 +75,7 @@ async function requireAuth(req, res, next) {
    GET /api/user/export
 
    Returns a complete JSON record of everything stored about the
-   authenticated user across all Corvus tables. This satisfies
+   authenticated user across all Omen tables. This satisfies
    both the right of access (Article 15) and portability (Article 20).
 
    Response is a structured JSON object the user can save locally.
@@ -110,7 +110,7 @@ router.get("/user/export", requireAuth, async (req, res) => {
     const exportPackage = {
       exportGeneratedAt: new Date().toISOString(),
       exportVersion:     "1.0",
-      notice: "This is a complete export of your Corvus data under GDPR Article 15 & 20. To request deletion, use DELETE /api/user/delete.",
+      notice: "This is a complete export of your Omen data under GDPR Article 15 & 20. To request deletion, use DELETE /api/user/delete.",
 
       // ── What we store about you ──────────────────────────────
       account: {
@@ -175,7 +175,7 @@ router.get("/user/export", requireAuth, async (req, res) => {
     };
 
     // Set headers for file download in browser
-    res.setHeader("Content-Disposition", `attachment; filename="corvus-data-export-${new Date().toISOString().slice(0,10)}.json"`);
+    res.setHeader("Content-Disposition", `attachment; filename="omen-data-export-${new Date().toISOString().slice(0,10)}.json"`);
     res.setHeader("Content-Type", "application/json");
     log.ok(`Data export complete: user ${userId} — ${exportPackage.moves.length} moves exported`);
     res.json(exportPackage);
@@ -296,7 +296,7 @@ router.delete("/user/delete", requireAuth, async (req, res) => {
       ok:        true,
       message:   "Your account and all associated data have been permanently deleted.",
       deletedAt: new Date().toISOString(),
-      note:      "This action is irreversible. If you want to use Corvus again, you will need to create a new account.",
+      note:      "This action is irreversible. If you want to use Omen again, you will need to create a new account.",
     });
 
   } catch (e) {
@@ -399,7 +399,7 @@ router.post("/user/consent/withdraw", requireAuth, async (req, res) => {
   // Required consents can only be "withdrawn" by deleting the account
   if ([CONSENT_TYPES.TERMS_AND_PRIVACY, CONSENT_TYPES.FANTASY_DATA].includes(consentType)) {
     return res.status(400).json({
-      error: `${consentType} is required to use Corvus. To withdraw this consent, please delete your account using DELETE /api/user/delete.`,
+      error: `${consentType} is required to use Omen. To withdraw this consent, please delete your account using DELETE /api/user/delete.`,
     });
   }
 
@@ -494,7 +494,7 @@ module.exports = router;
   MOUNT IN EXPRESS APP (server.js or app.js)
   ════════════════════════════════════════════════════════════════
 
-  const gdprRoutes = require("./corvus_gdpr");
+  const gdprRoutes = require("./omen_gdpr");
   app.use("/api", gdprRoutes);
 
   ════════════════════════════════════════════════════════════════

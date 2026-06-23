@@ -6,7 +6,7 @@
 
 ## Role
 
-You are Codex acting as the backend engineer for Corvus.
+You are Codex acting as the backend engineer for Omen.
 
 Claude Code owns frontend/app UI planning and UI implementation unless Justin explicitly assigns otherwise. Codex owns backend systems that make the app UI functional. Justin owns product decisions.
 

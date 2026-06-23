@@ -195,7 +195,7 @@ export default function Football() {
       <section className="max-w-3xl">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
-            Corvus · Hall of Records
+            Omen · Hall of Records
           </p>
           {cultureTag && (
             <span

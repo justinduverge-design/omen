@@ -276,7 +276,7 @@ function espnValidationError(result) {
     return {
       status: "error",
       code: "espn_league_or_team_not_found",
-      message: "ESPN accepted the request, but Corvus could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
+      message: "ESPN accepted the request, but Omen could not find your team in that league. Confirm the League ID belongs to the same ESPN account and that the league has a fantasy team for you.",
     };
   }
 

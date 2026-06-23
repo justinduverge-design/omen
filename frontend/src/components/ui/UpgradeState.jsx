@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
 
 export default function UpgradeState({
-  eyebrow = 'Corvus Pro',
+  eyebrow = 'Omen Pro',
   title = 'Upgrade to unlock',
   message,
   ctaLabel = 'Upgrade to Pro',
@@ -40,7 +40,7 @@ export default function UpgradeState({
         className="mt-2 text-sm leading-6"
         style={{ color: 'var(--color-text-secondary)' }}
       >
-        {message ?? 'Most Valuable Play is a Corvus Pro feature. Upgrade to receive your personalized weekly move.'}
+        {message ?? 'Most Valuable Play is a Omen Pro feature. Upgrade to receive your personalized weekly move.'}
       </p>
       <Link
         className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-purple-500/25"

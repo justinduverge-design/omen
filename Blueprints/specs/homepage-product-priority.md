@@ -6,7 +6,7 @@ Active product direction
 
 ## Decision
 
-The Trade Analyzer is the front door of Corvus and should be the primary homepage feature.
+The Trade Analyzer is the front door of Omen and should be the primary homepage feature.
 
 The Draft Assistant is the seasonal preparation feature.
 
@@ -46,7 +46,7 @@ Breece Hall + Chris Olave
 You give:
 Deebo Samuel + James Conner
 
-Corvus says:
+Omen says:
 Accept — your weekly upside improves, and you gain a stronger long-term starter.
 ```
 
@@ -75,7 +75,7 @@ Use plain English:
 
 Potential UI terms:
 
-- Corvus Edge: Strong
+- Omen Edge: Strong
 - Risk: Medium
 - Why it matters
 - Best move

@@ -6,7 +6,7 @@
 
 ## Claude-Specific Behavior
 
-- **Primary role:** Build and improve the user-facing Corvus app experience when implementation mode is requested.
+- **Primary role:** Build and improve the user-facing Omen app experience when implementation mode is requested.
 - **Planning role:** For unclear work, plan, critique, map files, and write Codex-ready handoff prompts.
 - **Frontend ownership:** Own screens, components, layout, navigation, interaction states, mobile experience, copy clarity, and UI polish.
 - **Backend boundary:** Do not edit backend logic, database schema, auth, payment, Docker, deployment, secrets, DNS, SSL, or VPS config unless Justin explicitly asks.
@@ -75,7 +75,7 @@ Before adding feature complexity, make sure the app has:
 
 Draft Assistant is the first-impression tool.
 
-It should feel polished and useful, but must reuse shared Corvus patterns.
+It should feel polished and useful, but must reuse shared Omen patterns.
 
 Do not build it as a standalone one-off page disconnected from the rest of the app.
 

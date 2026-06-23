@@ -1,4 +1,4 @@
-# Corvus Brand
+# Omen Brand
 
 Canonical active brand system:
 

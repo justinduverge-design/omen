@@ -1,16 +1,18 @@
-# Corvus Brand System
+# Omen Brand System
 
-**Status:** Canonical | Last updated: 2026-06-15
-**Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `corvus-ux-ui-design-system-v1.md`
+**Status:** Canonical | Last updated: 2026-06-22
+**Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
+**Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
+**Logos:** `logos/` — primary emblem, standalone wordmark, horizontal lockup, app icon (1024px), favicon set (16/32/48/64/180/256/512px), full brand board. All PNGs, solid black backgrounds.
 **Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
 
 ---
 
 ## 1. Identity
 
-Corvus is a fantasy football decision tool from Slops Saloon. It helps managers check their next move before it costs them — not by validating gut feelings, but by testing them.
+Omen is a fantasy football decision tool from Slops Saloon. It helps managers see the result before it happens — not by validating gut feelings, but by testing them against real data.
 
-Slops Saloon is the parent company and product studio. Corvus is its first product. Future products live alongside Corvus under Slops Saloon, not inside it.
+Slops Saloon is the parent company and product studio. Omen is its first product. Future products live alongside Omen under Slops Saloon, not inside it.
 
 ---
 
@@ -18,26 +20,24 @@ Slops Saloon is the parent company and product studio. Corvus is its first produ
 
 These are not standalone taglines. They are placed lines — each has a specific job in context.
 
-**Internal Latin mark:** `Deus pascit corvos.`
-Use for wordmark, lore, and brand context. Not a public marketing line.
-
-**Primary marketing line:** `Less guessing. Better moves.`
-Homepage hero, ads, short public-facing copy.
+**Primary marketing line:** `See the result before it happens.`
+Homepage hero, ads, short public-facing copy. Core brand promise.
 
 **Secondary line:** `The edge is in what you almost missed.`
-Subheads, feature sections, product explainers, and moments where Corvus is positioned as catching hidden risk or overlooked opportunity.
+Subheads, feature sections, product explainers, and moments where Omen is positioned as catching hidden risk or overlooked opportunity.
 
 **Approved alternate:** `See the move before the league does.`
 Use when copy needs a stronger competitive fantasy-football feel.
 
 **Do not use:**
-- `Know your move before you make it.` — implies the user already has the right answer; Corvus tests the instinct, it does not flatter it
+- `Know your move before you make it.` — implies the user already has the right answer; Omen tests the instinct, it does not flatter it
 - `See the winning move.` — too vague, too generic
+- `Less guessing. Better moves.` — retired with Omen name
 - `Where the math meets the legend.` — retired
 
 ---
 
-## 3. What Corvus Is / Is Not
+## 3. What Omen Is / Is Not
 
 **Is:**
 - A decision layer for weekly fantasy football
@@ -53,24 +53,26 @@ Use when copy needs a stronger competitive fantasy-football feel.
 
 The user leaves with a decision, not a spreadsheet assignment.
 
+**Note on the name:** "Omen" was formerly the name of the core paid recommendation feature inside Corvus. The app is now called Omen. The weekly recommendation feature retains the display name "Omen of the Week" — unchanged.
+
 ---
 
 ## 4. Audience
 
 Fantasy football managers who want confident weekly decisions without needing to become data scientists.
 
-They believe they already know the right move. Corvus tests that belief, surfaces the risk they almost missed, and either confirms the call or changes it.
+They believe they already know the right move. Omen tests that belief, surfaces the risk they almost missed, and either confirms the call or changes it.
 
 ---
 
 ## 5. Positioning
 
-**One-line:** Corvus helps fantasy football players see their best move with clear, platform-aware reasoning.
+**One-line:** Omen helps fantasy football players see their best move with clear, platform-aware reasoning.
 
 **Product ladder:**
 1. Trade Analyzer — builds trust as the free front door
 2. Draft Assistant — helps users prepare for the season
-3. Omen — the core weekly decision moment (paid)
+3. Omen of the Week — the core weekly decision moment (paid)
 
 **Differentiation:** Platform context combined with plain-English explanation. Not just data — a recommendation with a reason. No spreadsheet homework required.
 
@@ -84,10 +86,10 @@ They believe they already know the right move. Corvus tests that belief, surface
 - Institutional but approachable
 - Confident without being arrogant
 - Warm — the platform exists to bring people together through sports
-- Mythological undertones: raven, oracle, omen, high vantage, judgment
+- Mythological undertones: oracle, prophecy, omen, high vantage, judgment
 - Data-serious, not spreadsheet-cold
 
-Corvus knows the answer before you ask. It explains the move. It tells you the risk. Then it stops.
+Omen knows the answer before you ask. It explains the move. It tells you the risk. Then it stops.
 
 ---
 
@@ -118,7 +120,7 @@ Plain English. No jargon without explanation. Be precise — vague language erod
 - Bad: `"Loading…"`
 
 **Platform disconnected:**
-- Good: `"Connect your Sleeper league and Corvus will find your Most Valuable Play."`
+- Good: `"Connect your Sleeper league and Omen will find your Most Valuable Play."`
 - Bad: `"Platform not connected. Please authenticate to continue."`
 
 ---
@@ -127,14 +129,18 @@ Plain English. No jargon without explanation. Be precise — vague language erod
 
 **Palette:**
 
-| Color | Name | Role |
-|-------|------|------|
-| `#0A0A0B` | Raven black | Primary background |
-| `#1C1C1E` | Charcoal | Card and panel surfaces |
-| `#F5F0E8` | Bone white | Primary text, light surfaces |
-| `#B8952A` | Antique gold | Accent, CTA, premium moments |
-| `#8B1A1A` | Deep crimson | Risk indicators, warnings |
-| `#5B2D8E` | Electric violet | AI signal, Omen accent moments |
+| Color | Name | Hex | Role |
+|-------|------|-----|------|
+| ██ | Raven Black | `#0A0A0B` | Primary background |
+| ██ | Charcoal | `#1C1C1E` | Card and panel surfaces |
+| ██ | Bone White | `#F5F0E8` | Primary text, light surfaces |
+| ██ | Aged Brass | `#A67C2E` | CTA, premium edges, logo metal |
+| ██ | Verdigris Green | `#2F7D5B` | Omen glow, intelligence, active signal |
+| ██ | Deep Crimson | `#7E1717` | Risk indicators, warnings, danger |
+| ██ | Weathered Umber | `#5A3A25` | Shadow accent, brown-metal depth |
+
+**Removed:** Electric Violet `#5B2D8E` — retired with rebrand. Verdigris Green replaces it as the intelligence/signal color.
+**Updated:** Aged Brass `#A67C2E` replaces Antique Gold `#B8952A` for a more weathered, premium feel.
 
 **Typography:**
 - Headings, display, Omen card titles, labels, buttons: Alegreya Sans
@@ -157,15 +163,16 @@ between unrelated display and reading fonts.
 
 | Name | Status | Use |
 |------|--------|-----|
-| `Omen` | Confirmed | Paid core recommendation feature. User-facing. |
+| `Omen` | Confirmed | **App name.** Public-facing. |
+| `Omen of the Week` | Confirmed | Paid core weekly recommendation feature. User-facing. Unchanged. |
 | `Trade Analyzer` | Confirmed | Free tool. Plain name. User-facing. |
 | `The Scale` | Internal only | Nickname for trade analysis logic. Never shown to users. |
 | `Talon` | Hold / provisional | Do not ship or use in copy until confirmed. |
 | `Aerie` | Hold / provisional | Do not ship or use in copy until confirmed. |
-| `Corvus Black` | Hold | Do not ship or use in copy until confirmed. |
 | `Rookery` | Hold | Do not ship or use in copy until confirmed. |
 | `The Prophecy` | Hold | Do not ship or use in copy until confirmed. |
-| `Munin / Hugin` | Internal only | Norse raven reference. Not user-facing. |
+| `Omen Black` | Retired | Do not use — name retired with rebrand. |
+| `Munin / Hugin` | Retired | Norse raven references retired with raven theme. |
 
 ---
 
@@ -198,6 +205,8 @@ Every feature must serve at least one. A feature that serves none does not belon
 - Paid tier name (TBD)
 - League hosting tier name (TBD)
 - Icon library: Heroicons or Lucide — confirm before build
-- `Talon`, `Aerie`, `Corvus Black`, `Rookery`, `The Prophecy` — confirm or retire each before use
-- Raven/omen brand asset — design not started
-- `Deus pascit corvos.` — confirm scope: wordmark only, or broader brand presence?
+- `Talon`, `Aerie`, `Omen Black`, `Rookery`, `The Prophecy` — confirm or retire each before use
+- Logo assets finalized 2026-06-22 in `logos/` — PNG set complete
+- `Deus pascit corvos.` — retired with Omen name
+- Custom wordmark font — Alegreya Sans Bold used in SVGs; finalize with a type designer if budget allows
+- Confirm paid tier name (was going to be "Omen" — now needs a new name since Omen is the app)

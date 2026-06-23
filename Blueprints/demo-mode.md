@@ -1,15 +1,15 @@
-# Corvus Demo Mode
+# Omen Demo Mode
 
 **Status:** Backend contract deployed; frontend `/demo` implementation pending.
-**Contract:** `GET /api/demo` (`corvus-demo.v1`)
+**Contract:** `GET /api/demo` (`omen-demo.v1`)
 
 ## Purpose
 
-Demo Mode gives a visitor a deterministic example of Corvus before they connect a real fantasy league. It is a separate product state, not a fallback for live Omen and not the development-only mock mode.
+Demo Mode gives a visitor a deterministic example of Omen before they connect a real fantasy league. It is a separate product state, not a fallback for live Omen and not the development-only mock mode.
 
 ## Sample fixture
 
-The backend returns one fixed Corvus demo league containing:
+The backend returns one fixed Omen demo league containing:
 
 - a normalized roster with populated `starters`, `bench`, and `ir` arrays;
 - sample player identity, slot, opponent, status, and projected-point fields;
@@ -48,7 +48,7 @@ Demo Mode never auto-merges with a connected league. Moving to real data require
 Recommended conversion direction:
 
 - Primary action: connect a league.
-- Secondary action: return to the public Corvus tools.
+- Secondary action: return to the public Omen tools.
 - Do not silently replace the demo fixture after authentication or platform connection.
 
 ## Analytics and model boundary
@@ -60,4 +60,4 @@ Recommended conversion direction:
 
 ## Determinism
 
-Roster membership, projections, recommendation input, request id, and recommendation content stay fixed for `corvus-demo.v1`. `generated_at` is request-time metadata only. A fixture change requires a contract-version review and updated tests.
+Roster membership, projections, recommendation input, request id, and recommendation content stay fixed for `omen-demo.v1`. `generated_at` is request-time metadata only. A fixture change requires a contract-version review and updated tests.

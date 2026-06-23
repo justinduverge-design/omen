@@ -79,7 +79,7 @@ console.log({
 
 If the error is `TypeError: fetch failed` with `ENOTFOUND`, verify the Supabase URL host.
 
-Known Corvus pitfall: `.supabase.com` is wrong for the project API URL. Use `.supabase.co`.
+Known Omen pitfall: `.supabase.com` is wrong for the project API URL. Use `.supabase.co`.
 
 ## Vite Env Checks
 

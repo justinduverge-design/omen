@@ -517,7 +517,7 @@ async function fetchStandings(platform, leagueId, teamName) {
    so the Anthropic API key is never exposed client-side.
 ══════════════════════════════════════════════════════════════════ */
 async function callManagerAgent(context) {
-  const sys = `You are Corvus — an elite fantasy football oracle AI.
+  const sys = `You are Omen — an elite fantasy football oracle AI.
 You receive structured intelligence from 6 sub-agents and synthesize ONE perfect weekly move.
 Rules:
 - Output ONLY valid JSON. No markdown, no preamble.
@@ -647,12 +647,12 @@ function Landing({ onStart, onSub, onPrivacy }) {
         <span className="tag tag-gold">🦅 The Oracle Speaks</span>
       </div>
       <div className="land-logo" style={{display:"flex", flexDirection:"column", alignItems:"center"}}>
-        <img src="/corvus-apollo-logo.png" alt="Corvus Logo" style={{height: 120, filter:"drop-shadow(0 0 16px rgba(124,92,255,0.25))", marginBottom: 12}} />
-        CORVUS
+        <img src="/omen-primary-emblem.png" alt="Omen Logo" style={{height: 120, filter:"drop-shadow(0 0 16px rgba(124,92,255,0.25))", marginBottom: 12}} />
+        OMEN
       </div>
       <div className="land-name">Mythic Fantasy Football Intelligence</div>
       <p className="land-h"><strong>See the winning move.</strong><br/>The raven sees first.</p>
-      <p className="land-p">Corvus is your fantasy football raven: it watches every roster, every matchup, and every injury signal. Then it brings you the one move that matters most. No noise. No panic. Just the omen.</p>
+      <p className="land-p">Omen is your fantasy football raven: it watches every roster, every matchup, and every injury signal. Then it brings you the one move that matters most. No noise. No panic. Just the omen.</p>
       <div className="land-btns">
         <button className="btn btn-primary" onClick={onStart}>Connect My League →</button>
         <button className="btn btn-ghost" onClick={onSub}>View Plans</button>
@@ -1359,7 +1359,7 @@ function SubModal({ onClose, onSubscribe }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <button className="modal-x" onClick={onClose}>✕</button>
-        <div className="modal-eyebrow"><span className="tag tag-gold">🦅 Corvus Black</span></div>
+        <div className="modal-eyebrow"><span className="tag tag-gold">🦅 Omen Black</span></div>
         <div className="modal-h">Go MVP</div>
         <div className="modal-p">One AI-crafted move every week from the Saloon's best analysts. Self-improving. Real data. Vault-secured. Cancel anytime.</div>
         <div className="plan-grid">
@@ -1403,14 +1403,14 @@ function SubGate({ onSub }) {
     <div className="gate">
       <div className="gate-lock">🍺</div>
       <div className="gate-h">Saloon Members Only</div>
-      <div className="gate-p">Subscribe to unlock your weekly AI move from Corvus. One perfect omen, every single week. Vault-secured. Tuesday-scored.</div>
+      <div className="gate-p">Subscribe to unlock your weekly AI move from Omen. One perfect omen, every single week. Vault-secured. Tuesday-scored.</div>
       <div className="gate-features">
         <div className="gate-feat">6 AI Agents + Manager</div>
         <div className="gate-feat">Self-Improving Model</div>
         <div className="gate-feat">🔐 Vault Encrypted</div>
         <div className="gate-feat">⚡ Redis Cached</div>
       </div>
-      <button className="btn btn-primary" onClick={onSub}>Join Corvus Black — $9/mo →</button>
+      <button className="btn btn-primary" onClick={onSub}>Join Omen Black — $9/mo →</button>
     </div>
   );
 }
@@ -1465,8 +1465,8 @@ function Dashboard({ user, onSub, onPrivacy }) {
     <div className="dash">
       <div className="topbar">
         <div className="tb-logo">
-          <img src="/corvus-apollo-logo.png" alt="Corvus" style={{height: 32, filter:"drop-shadow(0 0 8px rgba(124,92,255,0.3))"}} />
-          CORVUS
+          <img src="/omen-primary-emblem.png" alt="Omen" style={{height: 32, filter:"drop-shadow(0 0 8px rgba(124,92,255,0.3))"}} />
+          OMEN
           <span style={{fontSize:10, fontFamily:"var(--font-b)", fontWeight:500, color:"var(--gold)",
             letterSpacing:"2px", textTransform:"uppercase",
             background:"rgba(201,164,76,.1)", border:"1px solid rgba(201,164,76,.2)",
@@ -1532,9 +1532,9 @@ function PrivacyPolicy({ onBack }) {
   return (
     <div style={{position:"relative", zIndex:1}}>
       <div className="privacy-wrap">
-        <button className="privacy-back" onClick={onBack}>← Back to Corvus</button>
+        <button className="privacy-back" onClick={onBack}>← Back to Omen</button>
         <div className="privacy-title">Privacy Policy</div>
-        <div className="privacy-sub">Last updated: {new Date().getFullYear()} · Corvus Fantasy Football Oracle</div>
+        <div className="privacy-sub">Last updated: {new Date().getFullYear()} · Omen Fantasy Football Oracle</div>
 
         <div className="probo-badge">
           🛡️ Probo Verified Compliance — GDPR · CCPA · Data Transparency

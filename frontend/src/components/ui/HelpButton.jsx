@@ -26,7 +26,7 @@ const PAGE_HELP = {
   },
   '/draft': {
     title: 'Draft Assistant',
-    description: 'Tell Corvus where you are in the draft and get your best available pick.',
+    description: 'Tell Omen where you are in the draft and get your best available pick.',
     tips: [
       { label: 'No account required', body: 'Use Draft Assistant without signing in.' },
       { label: 'Preview Mode', body: 'Live personalization activates once the season opens.' },
@@ -38,14 +38,14 @@ const PAGE_HELP = {
     title: 'Omen of the Week',
     description: 'Your highest-confidence move each week — one call, plain English, no noise.',
     tips: [
-      { label: 'Platform required', body: 'Connect Yahoo, Sleeper, or ESPN so Corvus can read your roster.' },
-      { label: 'Run it', body: 'Hit the button — Corvus reads your lineup and surfaces the move.' },
-      { label: 'Lock it in', body: 'Submit feedback after the week so Corvus can learn from your results.' },
+      { label: 'Platform required', body: 'Connect Yahoo, Sleeper, or ESPN so Omen can read your roster.' },
+      { label: 'Run it', body: 'Hit the button — Omen reads your lineup and surfaces the move.' },
+      { label: 'Lock it in', body: 'Submit feedback after the week so Omen can learn from your results.' },
     ],
   },
   '/account/connect': {
     title: 'Connect a Platform',
-    description: 'Link your fantasy league so Corvus can read your roster and matchups.',
+    description: 'Link your fantasy league so Omen can read your roster and matchups.',
     tips: [
       { label: 'Yahoo', body: 'Click Connect and sign in with your Yahoo account. OAuth — no password stored.' },
       { label: 'Sleeper', body: 'Enter your Sleeper username to connect.' },
@@ -55,11 +55,11 @@ const PAGE_HELP = {
   },
   '/account/appearance': {
     title: 'Appearance',
-    description: 'Pick your NFL team and Corvus borrows their colors for accents across the app.',
+    description: 'Pick your NFL team and Omen borrows their colors for accents across the app.',
     tips: [
       { label: 'Live preview', body: 'The Trade Analyzer card on the right updates as you browse.' },
       { label: 'Accent only', body: 'Colors apply to recommendations and CTAs — reads stay neutral.' },
-      { label: 'Corvus default', body: 'Use the gold default if you want to stay platform-neutral.' },
+      { label: 'Omen default', body: 'Use the gold default if you want to stay platform-neutral.' },
     ],
   },
   '/account': {
@@ -79,7 +79,7 @@ function getPageHelp(pathname) {
   const key = Object.keys(PAGE_HELP).find((k) => k !== '/' && pathname.startsWith(k));
   if (key) return PAGE_HELP[key];
   return {
-    title: 'Corvus Help',
+    title: 'Omen Help',
     description: 'Fantasy football intelligence — less guessing, better moves.',
     tips: [
       { label: 'Trade Analyzer', body: 'Free — analyze any trade before you make it.' },
@@ -121,7 +121,8 @@ function HelpPanel({ open, onClose, pathname }) {
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const help = getPageHelp(pathname);
-  const showOnboardingLink = !localStorage.getItem('corvus.onboarding.done');
+  const showOnboardingLink = !localStorage.getItem('omen.onboarding.done')
+    && !localStorage.getItem('corvus.onboarding.done');
 
   useEffect(() => {
     if (open) {
@@ -296,7 +297,7 @@ function HelpPanel({ open, onClose, pathname }) {
           className="px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-xs"
           style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-tertiary)' }}
         >
-          Corvus · Less guessing. Better moves.
+          Omen · Less guessing. Better moves.
         </div>
       </div>
     </>

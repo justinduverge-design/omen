@@ -1,4 +1,4 @@
-# Corvus Quality Baseline
+# Omen Quality Baseline
 
 Recorded 2026-06-19 from candidate `886d32cf760b01def62258efd8fd979aabc37f2e`
 using Node `v24.17.0` and npm `11.13.0`.

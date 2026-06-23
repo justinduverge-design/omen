@@ -1,22 +1,22 @@
-# Corvus Skills
+# Omen Skills
 
-This folder is reserved for Corvus-specific reusable skills if Justin explicitly approves product-local skills.
+This folder is reserved for Omen-specific reusable skills if Justin explicitly approves product-local skills.
 
 ## Canonical Skill Location
 
 All SLOPS-authored global skills live under:
 
 ```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\skills
+<active-git-root>/Blueprints/skills/
 ```
 
 See that folder's README and SKILL_ROUTING.md for the authoritative skill lookup, agent routing, and tool permission rules.
 
 ## App-Specific Skills
 
-If Corvus requires skills not in the global library, they may be created here:
+If Omen requires skills not in the global library, they may be created here:
 
-- Keep them scoped to Corvus concerns only.
+- Keep them scoped to Omen concerns only.
 - Global reusable skills belong in `Blueprints\skills`, not here.
 - Name them consistently: kebab-case folder names, snake_case for divided categories.
 - Each skill should have a `SKILL.md` following the global template.

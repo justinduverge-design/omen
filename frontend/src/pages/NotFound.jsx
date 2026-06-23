@@ -11,7 +11,7 @@ export default function NotFound() {
           Page not found
         </p>
         <h1 className="mt-5 text-4xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          This route is not in Corvus yet.
+          This route is not in Omen yet.
         </h1>
         <p className="mt-6" style={{ color: 'var(--color-text-secondary)' }}>
           Return to the app shell while the platform map is still being built.
@@ -21,7 +21,7 @@ export default function NotFound() {
           style={{ color: 'var(--color-accent)' }}
           to="/"
         >
-          Back to Corvus
+          Back to Omen
         </Link>
       </main>
       <Footer />

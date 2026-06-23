@@ -306,7 +306,7 @@ async function liveOmenResult(req) {
         warnings: [],
         error: {
           code: "omen_live_generation_failed",
-          message: "Corvus could not generate a live Most Valuable Play right now.",
+          message: "Omen could not generate a live Most Valuable Play right now.",
           retryable: true,
         },
       },

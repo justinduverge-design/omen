@@ -45,7 +45,7 @@ function SubscriptionBanner({ type, onDismiss }) {
     return (
       <div className="flex items-center justify-between rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-3">
         <div>
-          <p className="text-sm font-semibold text-emerald-300">Welcome to Corvus Pro.</p>
+          <p className="text-sm font-semibold text-emerald-300">Welcome to Omen Pro.</p>
           <p className="mt-0.5 text-xs text-emerald-200/70">Your subscription is active. You're all set.</p>
         </div>
         <button
@@ -248,7 +248,7 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-5 py-4">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          Corvus Pro · Active
+          Omen Pro · Active
         </span>
         {planLabel && <span className="text-xs text-[var(--color-text-secondary)]">{planLabel}</span>}
       </div>
@@ -325,7 +325,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">All features included</p>
           <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Every Corvus tool is available on your account.
+            Every Omen tool is available on your account.
           </p>
         </div>
       );
@@ -379,7 +379,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
   return (
     <section ref={sectionRef} className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Corvus Pro</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen Pro</p>
         <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Subscription</h2>
       </div>
       {renderBody()}
@@ -489,7 +489,7 @@ export default function Account() {
       {BILLING_ENABLED && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Corvus</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen</p>
         <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
         <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
           Manage your fantasy platform connections and account preferences.
@@ -510,7 +510,7 @@ export default function Account() {
         <section className="space-y-1">
           <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Platform Connections</h2>
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-            Connect the fantasy platforms Corvus uses to read your rosters.
+            Connect the fantasy platforms Omen uses to read your rosters.
           </p>
         </section>
         <div className="mt-4">
@@ -523,7 +523,7 @@ export default function Account() {
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Appearance</p>
           <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Team Theme</h2>
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-            Choose your team. Corvus colors its entire interface to match.
+            Choose your team. Omen colors its entire interface to match.
           </p>
         </section>
         <div className="mt-4">

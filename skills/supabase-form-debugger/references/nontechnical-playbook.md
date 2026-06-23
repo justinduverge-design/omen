@@ -2,7 +2,7 @@
 
 Use this when a form says it joined, gets stuck, or shows an error.
 
-This checklist is written for the Corvus waitlist, but the same idea works for other Supabase forms.
+This checklist is written for the Omen waitlist, but the same idea works for other Supabase forms.
 
 ## What Should Happen
 

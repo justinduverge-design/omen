@@ -1,14 +1,14 @@
-# Hostinger KVM1 production compose for Corvus.
+# Hostinger KVM1 production compose for Omen.
 # Run from the repo root with:
 #   docker compose -f deploy/hostinger/docker-compose.prod.yml up -d
 #
 # Secrets come from deploy/hostinger/.env.production on the VPS.
 # That file is intentionally ignored and must not be committed.
-name: corvus
+name: omen
 services:
   api:
-    image: ghcr.io/justinduverge-design/corvus:main
-    container_name: corvus_api
+    image: ghcr.io/justinduverge-design/omen:main
+    container_name: omen_api
     command: node src/server.js
     env_file:
       # Relative to this compose file: deploy/hostinger/.env.production.
@@ -32,8 +32,8 @@ services:
         max-size: "10m"
         max-file: "3"
   cron:
-    image: ghcr.io/justinduverge-design/corvus-cron:main
-    container_name: corvus_cron
+    image: ghcr.io/justinduverge-design/omen-cron:main
+    container_name: omen_cron
     env_file:
       # Relative to this compose file: deploy/hostinger/.env.production.
       - .env.production
@@ -49,3 +49,4 @@ services:
         max-file: "3"
 networks:
   default:
+    name: omen_network

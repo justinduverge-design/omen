@@ -217,7 +217,7 @@ function EmptyHistory() {
         No moves yet.
       </p>
       <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '36ch', margin: '8px auto 0' }}>
-        Run your first Omen, follow the move, and Corvus will start tracking
+        Run your first Omen, follow the move, and Omen will start tracking
         your season record here.
       </p>
       {wardRoom && (

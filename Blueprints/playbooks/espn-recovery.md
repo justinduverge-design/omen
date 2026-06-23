@@ -2,7 +2,7 @@
 
 ## Purpose
 
-ESPN is essential to the paid Corvus experience, but it is also the riskiest platform connection.
+ESPN is essential to the paid Omen experience, but it is also the riskiest platform connection.
 
 This playbook defines how the app should explain and recover from ESPN auth, import, and league context failures.
 
@@ -21,7 +21,7 @@ Primary surfaces:
 
 - Account page ESPN connection flow.
 - Omen / MVP Move recommendation flow.
-- Any future Corvus feature that depends on ESPN league, team, or roster data.
+- Any future Omen feature that depends on ESPN league, team, or roster data.
 
 Do not show a generic crash or generic "something went wrong" message when the backend can classify the failure.
 
@@ -48,7 +48,7 @@ Use one of these states:
 What the user should see:
 
 - Title: "Reconnect ESPN"
-- Body: "Your ESPN connection needs a fresh sign-in before Corvus can read this league."
+- Body: "Your ESPN connection needs a fresh sign-in before Omen can read this league."
 - CTA: "Reconnect ESPN"
 - Secondary copy: "After reconnecting, return to Omen and run the move check again."
 
@@ -63,7 +63,7 @@ Avoid:
 What the user should see:
 
 - Title: "Choose your ESPN league"
-- Body: "Corvus can reach ESPN, but it does not know which league or team to use for this recommendation."
+- Body: "Omen can reach ESPN, but it does not know which league or team to use for this recommendation."
 - CTA: "Select league"
 - Secondary copy: "If the league is missing, re-import ESPN from Account."
 
@@ -77,7 +77,7 @@ Avoid:
 What the user should see:
 
 - Title: "ESPN import needs attention"
-- Body: "Corvus could not import this ESPN league. ESPN may be blocking access, the league may not be visible to this account, or the connection may need to be refreshed."
+- Body: "Omen could not import this ESPN league. ESPN may be blocking access, the league may not be visible to this account, or the connection may need to be refreshed."
 - CTA: "Retry import"
 - Secondary CTA when available: "Reconnect ESPN"
 - Secondary copy: "If retry does not work, confirm the ESPN account can view the league and reconnect ESPN."
@@ -92,7 +92,7 @@ Avoid:
 What the user should see:
 
 - Title: "ESPN needs recovery"
-- Body: "Corvus could not safely finish the ESPN check. This is usually recoverable."
+- Body: "Omen could not safely finish the ESPN check. This is usually recoverable."
 - CTA: "Try again"
 - Secondary CTA when available: "Review ESPN connection"
 - Secondary copy: "If it keeps happening, reconnect ESPN or re-import the league from Account."
@@ -430,8 +430,8 @@ Scope:
 Read first:
 - DBS_INDEX.md
 - README.md
-- Corvus/Blueprints/playbooks/espn-recovery.md
-- Corvus/Blueprints/specs/omen-mvp-move.md
+- Omen/Blueprints/playbooks/espn-recovery.md
+- Omen/Blueprints/specs/omen-mvp-move.md
 - Blueprints/handoffs/backend-to-frontend.md
 - frontend/src/pages/Account.jsx
 - frontend/src/pages/Omen.jsx

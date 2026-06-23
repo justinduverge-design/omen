@@ -409,7 +409,7 @@ function EspnGuide({ browser, setBrowser }) {
         ))}
       </ol>
       <p className="mt-3 text-[10px] text-[var(--color-text-tertiary)]">
-        ESPN cookies expire when you sign out or after long inactivity. If Corvus loses access, return here with fresh values.
+        ESPN cookies expire when you sign out or after long inactivity. If Omen loses access, return here with fresh values.
         Your credentials are encrypted and stored securely.
       </p>
     </div>
@@ -634,7 +634,7 @@ export default function ConnectLeague() {
             Connect Your League
           </h1>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Corvus needs your league to find your Most Valuable Play.
+            Omen needs your league to find your Most Valuable Play.
             Connect the platform your league runs on.
           </p>
         </div>

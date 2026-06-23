@@ -1,11 +1,12 @@
 "use strict";
 
 /**
- * Corvus Tuesday scoring worker.
+ * Omen Tuesday scoring worker.
  *
  * The previous generated worker was not valid JavaScript and the cron image was
  * pointing at an old ssffmvp filename. This worker now fails closed by default:
- * no data is scored unless CORVUS_CRON_SCORING_ENABLED=true is present.
+ * no data is scored unless OMEN_CRON_SCORING_ENABLED=true is present. The
+ * former CORVUS_* flag remains a compatibility fallback during deployment.
  */
 
 const { initSentry, flushSentry } = require("./middleware/sentry");
@@ -29,13 +30,13 @@ function timestamp() {
 }
 
 const log = {
-  info: (...args) => console.log(`[${timestamp()}] [corvus-cron]`, ...args),
-  warn: (...args) => console.warn(`[${timestamp()}] [corvus-cron] WARN`, ...args),
-  error: (...args) => console.error(`[${timestamp()}] [corvus-cron] ERROR`, ...args),
+  info: (...args) => console.log(`[${timestamp()}] [omen-cron]`, ...args),
+  warn: (...args) => console.warn(`[${timestamp()}] [omen-cron] WARN`, ...args),
+  error: (...args) => console.error(`[${timestamp()}] [omen-cron] ERROR`, ...args),
 };
 
 function isScoringEnabled(env = process.env) {
-  return env.CORVUS_CRON_SCORING_ENABLED === "true";
+  return (env.OMEN_CRON_SCORING_ENABLED ?? env.CORVUS_CRON_SCORING_ENABLED) === "true";
 }
 
 function missingScoringEnv(env = process.env) {
@@ -304,7 +305,7 @@ async function runScoring({ env = process.env, now = new Date() } = {}) {
 
 async function main({ env = process.env } = {}) {
   if (!isScoringEnabled(env)) {
-    log.info("Tuesday scoring disabled. Set CORVUS_CRON_SCORING_ENABLED=true after scoring/provider validation.");
+    log.info("Tuesday scoring disabled. Set OMEN_CRON_SCORING_ENABLED=true after scoring/provider validation.");
     return { disabled: true };
   }
 

@@ -315,7 +315,7 @@ test("GET /api/league/standings returns reconnect error for ESPN auth failures",
   assert.equal(res.status, 401);
   assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "espn_reconnect_required");
-  assert.equal(res.body.message, "Corvus needs a fresh connection before it can load these standings.");
+  assert.equal(res.body.message, "Omen needs a fresh connection before it can load these standings.");
   assert.equal(res.body.action, "reconnect_platform");
 });
 
@@ -343,6 +343,6 @@ test("GET /api/league/standings returns safe provider failure", async () => {
   assert.equal(res.body.contract_version, "league-standings-error.v1");
   assert.equal(res.body.code, "league_standings_provider_failed");
   assert.equal(res.body.platform, "sleeper");
-  assert.equal(res.body.message, "Corvus could not load standings from the league provider right now.");
+  assert.equal(res.body.message, "Omen could not load standings from the league provider right now.");
   assert.equal(res.body.action, "retry_later");
 });

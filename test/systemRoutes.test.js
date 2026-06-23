@@ -118,7 +118,7 @@ test("GET /api/health returns stable public health shape", async () => {
 
   assert.equal(res.status, 200);
   assert.equal(res.body.status, "ok");
-  assert.equal(res.body.service, "corvus-api");
+  assert.equal(res.body.service, "omen-api");
   assert.equal(res.body.contract_version, "system-health.v1");
   assert.equal(typeof res.body.uptime, "number");
 });
@@ -147,8 +147,8 @@ test("GET /api/version returns safe deploy metadata", async () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.contract_version, "system-version.v1");
-    assert.equal(res.body.service, "corvus-api");
-    assert.equal(res.body.package_name, "corvus");
+    assert.equal(res.body.service, "omen-api");
+    assert.equal(res.body.package_name, "omen");
     assert.equal(res.body.package_version, "1.0.0");
     assert.equal(res.body.git_sha, "abc123");
     assert.equal(res.body.build_id, "98765");

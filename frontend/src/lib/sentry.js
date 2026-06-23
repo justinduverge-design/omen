@@ -41,7 +41,7 @@ function scrubHeaders(headers) {
 function parseRequestUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
   try {
-    const base = typeof window !== 'undefined' && window.location ? window.location.origin : 'http://corvus.local';
+    const base = typeof window !== 'undefined' && window.location ? window.location.origin : 'http://omen.local';
     return new URL(rawUrl, base);
   } catch (_error) {
     return null;

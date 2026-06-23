@@ -1,9 +1,9 @@
 -- =================================================================
--- Corvus Phase 1 Launch Readiness
+-- Omen Phase 1 Launch Readiness
 -- ADP + per-league scoring configuration schema
 -- -----------------------------------------------------------------
 -- REVIEW ONLY. Do not apply to Supabase until Justin approves.
--- This is intentionally separate from corvus_rls_security.sql because
+-- This is intentionally separate from omen_rls_security.sql because
 -- production migration application is a manual approval gate.
 -- =================================================================
 

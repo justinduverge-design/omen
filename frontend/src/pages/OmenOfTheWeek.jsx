@@ -43,7 +43,7 @@ function useOmenData() {
       setData(result);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        try { localStorage.setItem('corvus.auth.next', '/omen'); } catch (_) {}
+        try { localStorage.setItem('omen.auth.next', '/omen'); } catch (_) {}
         navigate('/login');
         return;
       }
@@ -130,7 +130,7 @@ function EmptyState({ explanation }) {
       </p>
       <p className="mt-3 text-lg font-semibold text-white">No move clears the threshold</p>
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        {explanation?.summary ?? 'Corvus does not see a weekly move worth forcing right now.'}
+        {explanation?.summary ?? 'Omen does not see a weekly move worth forcing right now.'}
       </p>
       {explanation?.why_it_matters ? (
         <p className="mt-3 text-sm leading-6 text-slate-500">
@@ -185,7 +185,7 @@ function RecoveryPanel({ platform, state }) {
         {platformLabel(name) || name}
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        {recovery?.message ?? 'Reconnect your platform before Corvus can read your roster.'}
+        {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
       </p>
       {recovery?.fields_needed?.length ? (
         <p className="mt-2 text-xs text-slate-500">
@@ -530,7 +530,7 @@ export default function OmenOfTheWeek() {
   if (data?.state === 'error') {
     return (
       <ErrorState
-        message={data.error?.message ?? 'Corvus could not generate an MVP Move right now.'}
+        message={data.error?.message ?? 'Omen could not generate an MVP Move right now.'}
         onRetry={retry}
       />
     );
@@ -581,7 +581,7 @@ export default function OmenOfTheWeek() {
           {rec.explanation?.summary ?? rec.move}
         </p>
         <p className="mt-2 text-xs text-gray-400">
-          Powered by Corvus · Week {league?.week ?? '—'}
+          Powered by Omen · Week {league?.week ?? '—'}
           {league?.scoring_format ? ` · ${league.scoring_format.toUpperCase()}` : ''}
         </p>
       </div>

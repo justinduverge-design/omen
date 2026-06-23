@@ -12,11 +12,11 @@ const ESPN_RECOVERY_COPY = {
   espn_reauth_required:
     'Your ESPN session has expired. Re-enter your cookies below to reconnect.',
   espn_league_context_missing:
-    'Corvus needs your ESPN league ID. Enter it below to continue.',
+    'Omen needs your ESPN league ID. Enter it below to continue.',
   espn_import_blocked:
     'Your ESPN league may be private or the season may be inactive. Try refreshing your credentials below.',
   espn_recovery_needed:
-    'Corvus lost access to your ESPN data. Reconnect below to continue.',
+    'Omen lost access to your ESPN data. Reconnect below to continue.',
 };
 
 function errorMessage(error) {
@@ -116,12 +116,12 @@ function EspnCookieInstructions() {
 
       <p className="mt-4">
         These cookies expire when you sign out of ESPN or after a long period of inactivity.
-        If Corvus loses access to your ESPN data, return here and paste fresh values.
+        If Omen loses access to your ESPN data, return here and paste fresh values.
       </p>
 
       <p className="mt-3" style={{ color: 'var(--color-text-secondary)' }}>
         Your credentials are encrypted and stored securely. Disconnect at any time to remove
-        Corvus&apos;s access to your ESPN account.
+        Omen&apos;s access to your ESPN account.
       </p>
     </section>
   );
@@ -380,7 +380,7 @@ export default function PlatformConnections({ recoveryState = null }) {
               <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                 {status.sleeper.connected && status.sleeper.username
                   ? `@${status.sleeper.username}`
-                  : 'Enter your username — Corvus finds your leagues.'}
+                  : 'Enter your username — Omen finds your leagues.'}
               </p>
             </div>
 

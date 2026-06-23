@@ -224,7 +224,7 @@ export default function Login() {
         {/* Brand mark */}
         <div className="mb-10 text-center">
           <p className="font-display text-2xl tracking-[0.22em] text-[var(--color-text-primary)]">
-            CORVUS
+            OMEN
           </p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
             Fantasy Intelligence

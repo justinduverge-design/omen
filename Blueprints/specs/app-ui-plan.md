@@ -1,10 +1,10 @@
-# Corvus App UI Plan
+# Omen App UI Plan
 
 This file makes app UI and product experience explicit for Claude Code and Codex.
 
 ## Active Build Focus
 
-Corvus is the active product. Claude Code and Codex are expected to help build the full app, not only documentation or isolated prompts.
+Omen is the active product. Claude Code and Codex are expected to help build the full app, not only documentation or isolated prompts.
 
 The current product priority is:
 
@@ -16,7 +16,7 @@ The current product priority is:
 
 ## App Experience Goal
 
-Corvus should feel like a polished fantasy football product, not a loose collection of pages.
+Omen should feel like a polished fantasy football product, not a loose collection of pages.
 
 The app must have:
 
@@ -41,19 +41,19 @@ Purpose: lightweight umbrella doorway.
 This page should:
 
 - introduce Slops Saloon as the umbrella brand
-- present Corvus as the active flagship product
-- link users into Corvus
+- present Omen as the active flagship product
+- link users into Omen
 - avoid building a full media hub
 
 Do not build a blog, CMS, podcast archive, art gallery, or broad content platform during the current phase.
 
-### 2. Corvus Marketing / Entry Page
+### 2. Omen Marketing / Entry Page
 
-Purpose: explain Corvus quickly and move users into the app.
+Purpose: explain Omen quickly and move users into the app.
 
 Must include:
 
-- what Corvus does
+- what Omen does
 - Draft Assistant free-this-year positioning if public
 - MVP Move / Omen of the Week as the premium direction
 - trust-building language
@@ -61,7 +61,7 @@ Must include:
 
 ### 3. App Shell / Dashboard
 
-Purpose: shared home for all Corvus tools.
+Purpose: shared home for all Omen tools.
 
 Must include:
 
@@ -86,7 +86,7 @@ Must include:
 - clear next action
 - mobile-friendly layout
 
-Important: Draft Assistant must reuse shared Corvus patterns. Do not build it as a disconnected one-off page.
+Important: Draft Assistant must reuse shared Omen patterns. Do not build it as a disconnected one-off page.
 
 ### 5. MVP Move / Omen of the Week
 
@@ -172,11 +172,11 @@ Codex should:
 
 ## Definition Of Good App UI
 
-A Corvus screen is good when a user can answer:
+A Omen screen is good when a user can answer:
 
 1. What is this tool for?
 2. What do I do next?
 3. Is my data connected?
 4. Is this mock, pending, or live?
-5. Why did Corvus recommend this?
+5. Why did Omen recommend this?
 6. Can I use this c

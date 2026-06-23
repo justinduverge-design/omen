@@ -39,7 +39,7 @@ test("buildDemoModeResponse returns deterministic sample data with explicit demo
   const second = buildDemoModeResponse(now);
 
   assert.deepEqual(first, second);
-  assert.equal(first.contract_version, "corvus-demo.v1");
+  assert.equal(first.contract_version, "omen-demo.v1");
   assert.equal(first.mode, "demo");
   assert.equal(first.is_demo, true);
   assert.equal(first.is_live, false);
@@ -97,7 +97,7 @@ test("GET /api/demo is public and returns the demo contract", async () => {
   const res = await request(app);
 
   assert.equal(res.status, 200);
-  assert.equal(res.body.contract_version, "corvus-demo.v1");
+  assert.equal(res.body.contract_version, "omen-demo.v1");
   assert.equal(res.body.mode, "demo");
   assert.equal(res.body.omen.mode, "demo");
 });

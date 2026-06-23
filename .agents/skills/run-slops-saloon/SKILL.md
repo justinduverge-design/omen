@@ -1,11 +1,11 @@
 ---
 name: run-slops-saloon
-description: Run, screenshot, and QA-test the Corvus / slops-saloon app. Use when asked to run the app, start the dev server, take a screenshot, verify the landing page, check a UI change, or dogfood the Trade Analyzer or Waitlist form.
+description: Run, screenshot, and QA-test the Omen / slops-saloon app. Use when asked to run the app, start the dev server, take a screenshot, verify the landing page, check a UI change, or dogfood the Trade Analyzer or Waitlist form.
 ---
 
 # run-slops-saloon
 
-Corvus is a Node.js/Express backend + Vite/React frontend. This skill drives the
+Omen is a Node.js/Express backend + Vite/React frontend. This skill drives the
 **frontend dev server** using `playwright-core` (already in `node_modules`) with no
 extra installs. The backend requires `.env` secrets and cannot be started without them;
 frontend-only QA (landing page, routing, UI changes) does not need the backend.
@@ -64,7 +64,7 @@ Screenshots land in `.Codex/skills/run-slops-saloon/screenshots/` by default:
 - `football-route.png` — /football route (redirects to landing when unauthenticated)
 
 The driver asserts (and fails with exit code 1 if any are missing):
-- Page title: `Corvus`
+- Page title: `Omen`
 - H1 contains: `Know the move`
 - `Run Your Trade` CTA present
 - `Join the Waitlist` CTA present

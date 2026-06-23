@@ -1,8 +1,8 @@
-# Corvus DBS Index
+# Omen DBS Index
 
-This is the product repo navigation map for Corvus.
+This is the product repo navigation map for Omen.
 
-Corvus is Layer 2 inside SLOPS OS.
+Omen is Layer 2 inside SLOPS OS.
 
 When Justin says "Layer 3," treat that as this third layer in plain English.
 
@@ -16,24 +16,24 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 
 - Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
 - Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
-- Layer 2 - Corvus product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+- Layer 2 - Omen product repo: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
 
 ## Current Truth
 
-- Corvus is the Fantasy Football MVP.
+- Omen is the Fantasy Football MVP.
 - This repo is the product layer.
 - The old nested `Corvus/` folder is retired.
 - Product docs now live at the repo root under `Direction/`, `Blueprints/`, `Brand/`, `References/`, `Solutions/`, and `Archive/`.
 - GitHub repo: `justinduverge-design/corvus`.
 - Oracle checkout path: `~/corvus`.
-- Production health currently reports `service: corvus-api`.
+- Production health currently reports `service: omen-api`.
 
 ## Product Folders
 
 ```text
 Direction/      Current product context, roadmap, sprint, decisions, risks
 Blueprints/     Product prompts, specs, handoffs, playbooks, and design/security docs
-Brand/          Corvus brand system; `brand-system.md` is canonical, older drafts live in `Brand/archive/`
+Brand/          Omen brand system; `brand-system.md` is canonical, older drafts live in `Brand/archive/`
 References/     Research and historical context
 Solutions/      Finished product outputs and reports
 Archive/        Superseded product history

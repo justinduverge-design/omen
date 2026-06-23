@@ -6,7 +6,7 @@ import { getTeamPalette } from '../../data/nflTeams.js';
  *
  * When the user is in Team mode and the active palette (Official or
  * Special) has a `culturalAnchor`, render a quiet italic line beside the
- * copyright. Doesn't render in System / Corvus mode, doesn't render when
+ * copyright. Doesn't render in System / Omen mode, doesn't render when
  * the palette has no anchor (e.g., most Official palettes are null,
  * Specials carry the cultural reference). Justin doctrine 2026-06-21:
  * cultural anchor citation extends to all pages, "in the background or
@@ -40,7 +40,7 @@ export default function Footer() {
           className="font-display text-sm uppercase tracking-[0.2em]"
           style={{ color: 'var(--color-text-primary)' }}
         >
-          Corvus
+          Omen
         </span>
         <CulturalAnchorLine />
         <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>

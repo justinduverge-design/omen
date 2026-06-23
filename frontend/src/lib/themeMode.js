@@ -8,7 +8,7 @@
  *                luminance (dark surface → data-theme=dark; light surface →
  *                data-theme=light). Team's full role-palette applied as
  *                CSS variables.
- *   - 'corvus' — data-theme forced 'dark'. Team tokens cleared (the
+ *   - 'omen'   — data-theme forced 'dark'. Team tokens cleared (the
  *                pre-Phase-1.5 look: gold on graphite).
  *
  * Variant (per-team sub-mode, Phase 1.5h):
@@ -18,9 +18,12 @@
  *                            team's `palettes` array includes one
  *
  * Persistence keys:
- *   corvus.theme.mode     → 'system' | 'team' | 'corvus'
- *   corvus.theme.team     → NFL abbr ('KC', 'MIA', etc.)
- *   corvus.theme.variant  → 'official' | 'special'
+ *   omen.theme.mode     → 'system' | 'team' | 'omen'
+ *   omen.theme.team     → NFL abbr ('KC', 'MIA', etc.)
+ *   omen.theme.variant  → 'official' | 'special'
+ *
+ * Legacy `corvus.theme.*` values are read and migrated in place so the
+ * product rename does not reset an existing user's appearance preference.
  *
  * Components that render team voice subscribe via `subscribeTheme()` so they
  * re-render when mode/team/variant change in the same tab without reload.
@@ -29,10 +32,13 @@
 import { useEffect, useState } from 'react';
 import { getTeamTemplate } from './teamTemplate.js';
 
-const MODE_KEY    = 'corvus.theme.mode';
-const TEAM_KEY    = 'corvus.theme.team';
-const VARIANT_KEY = 'corvus.theme.variant';
-const VALID_MODES    = ['system', 'team', 'corvus'];
+const MODE_KEY    = 'omen.theme.mode';
+const TEAM_KEY    = 'omen.theme.team';
+const VARIANT_KEY = 'omen.theme.variant';
+const LEGACY_MODE_KEY    = 'corvus.theme.mode';
+const LEGACY_TEAM_KEY    = 'corvus.theme.team';
+const LEGACY_VARIANT_KEY = 'corvus.theme.variant';
+const VALID_MODES    = ['system', 'team', 'omen'];
 const VALID_VARIANTS = ['official', 'special'];
 
 // All role + surface CSS variables themeMode writes onto :root when team
@@ -92,18 +98,25 @@ export function subscribeTheme(cb) {
 
 export function getThemeMode() {
   try {
-    const v = localStorage.getItem(MODE_KEY);
+    const stored = localStorage.getItem(MODE_KEY) ?? localStorage.getItem(LEGACY_MODE_KEY);
+    const v = stored === 'corvus' ? 'omen' : stored;
+    if (v && !localStorage.getItem(MODE_KEY)) localStorage.setItem(MODE_KEY, v);
     return VALID_MODES.includes(v) ? v : 'system';
   } catch { return 'system'; }
 }
 
 export function getThemeTeam() {
-  try { return localStorage.getItem(TEAM_KEY) || null; } catch { return null; }
+  try {
+    const value = localStorage.getItem(TEAM_KEY) ?? localStorage.getItem(LEGACY_TEAM_KEY);
+    if (value && !localStorage.getItem(TEAM_KEY)) localStorage.setItem(TEAM_KEY, value);
+    return value || null;
+  } catch { return null; }
 }
 
 export function getThemeVariant() {
   try {
-    const v = localStorage.getItem(VARIANT_KEY);
+    const v = localStorage.getItem(VARIANT_KEY) ?? localStorage.getItem(LEGACY_VARIANT_KEY);
+    if (v && !localStorage.getItem(VARIANT_KEY)) localStorage.setItem(VARIANT_KEY, v);
     return VALID_VARIANTS.includes(v) ? v : 'official';
   } catch { return 'official'; }
 }
@@ -195,7 +208,7 @@ function applyTeamTokens(root, template) {
     `color-mix(in srgb, ${template.surface} ${cardMix}, white)`,
   );
 
-  // Drive the core Corvus tokens from the team palette so every page that
+  // Drive the core Omen tokens from the team palette so every page that
   // consumes --color-bg, --color-accent, etc. inherits the team look
   // automatically (no per-page rewrite needed for the basic case).
   root.style.setProperty('--color-bg',            template.surface);
@@ -247,7 +260,7 @@ function resolveDataTheme(mode, teamAbbr, variant) {
     const template = teamAbbr ? getTeamTemplate(teamAbbr, variant) : null;
     return template?.surfaceIsDark === false ? 'light' : 'dark';
   }
-  if (mode === 'corvus') return 'dark';
+  if (mode === 'omen') return 'dark';
   // 'system' — follow OS preference
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }

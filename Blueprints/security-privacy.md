@@ -12,7 +12,7 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 - Security summary: `README.md`
 - Supabase RLS and Vault setup: `sql\slops-saloon_rls_security.sql`
 - GDPR/delete flow notes: `src\slops-saloon_gdpr.js`
-- ESPN recovery privacy rules: `Corvus\Blueprints\playbooks\espn-recovery.md`
+- ESPN recovery privacy rules: `Omen\Blueprints\playbooks\espn-recovery.md`
 - Shared engineering decisions: `Blueprints\handoffs\decisions.md`
 
 ## Current Controls

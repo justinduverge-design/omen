@@ -19,8 +19,8 @@ const https = require("https");
 const RESEND_API_KEY    = process.env.RESEND_API_KEY;
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_KEY      = process.env.SUPABASE_SERVICE_KEY;
-const FROM              = "Corvus <hello@slopssaloon.com>";
-const SUBJECT           = "You're on the Corvus waitlist";
+const FROM              = "Omen <hello@slopssaloon.com>";
+const SUBJECT           = "You're on the Omen waitlist";
 const DELAY_MS          = 500; // be polite to Resend rate limits
 
 if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
@@ -73,16 +73,16 @@ function emailHtml() {
     <tr><td align="center">
       <table width="100%" style="max-width:520px;background:#0c0c0c;border:1px solid rgba(201,164,76,0.2);border-radius:12px;padding:40px;">
         <tr><td>
-          <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:#C9A44C;">CORVUS</p>
+          <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:#C9A44C;">OMEN</p>
           <h1 style="margin:0 0 20px;font-size:24px;font-weight:600;color:#F4EFE1;line-height:1.3;">You're on the list.</h1>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:rgba(244,239,225,0.7);">
-            We'll reach out as soon as Corvus is ready for you.
+            We'll reach out as soon as Omen is ready for you.
           </p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:rgba(244,239,225,0.7);">
-            Corvus is your weekly fantasy football edge — personalized picks, plain-English reasoning, no spreadsheets.
+            Omen is your weekly fantasy football edge — personalized picks, plain-English reasoning, no spreadsheets.
             Your Omen of the Week tells you the one move that matters most before kickoff.
           </p>
-          <p style="margin:32px 0 0;font-size:13px;color:rgba(244,239,225,0.35);">— The Corvus Team</p>
+          <p style="margin:32px 0 0;font-size:13px;color:rgba(244,239,225,0.35);">— The Omen Team</p>
         </td></tr>
       </table>
     </td></tr>

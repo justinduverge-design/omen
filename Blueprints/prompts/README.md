@@ -1,6 +1,6 @@
-# Corvus Prompts
+# Omen Prompts
 
-This folder holds Corvus product prompts.
+This folder holds Omen product prompts.
 
 ## Current Use
 
@@ -14,7 +14,7 @@ SLOPS/
 
 ## Active Build Loop Prompts
 
-Use these prompts to start new Corvus work without re-explaining the whole repo:
+Use these prompts to start new Omen work without re-explaining the whole repo:
 
 - `HOW-TO-RUN-THE-LOOP.md` - operator guide for loading one task, choosing the right lane, and closing the loop.
 - `kickoff-backend-codex.md` - copy-paste starter for Codex backend/API/platform tasks.
@@ -26,7 +26,7 @@ historical context.
 
 ## Historical Rename Prompts
 
-Some prompts preserve the pre-rename migration path from `ssffmvp` to the current Corvus route. They are historical run records and should not be re-run without rewriting:
+Some prompts preserve the pre-rename migration path from `ssffmvp` to the current Omen route. They are historical run records and should not be re-run without rewriting:
 
 - `codex-docs-commit.md`
 - `codex-slops-saloon-rename.md`

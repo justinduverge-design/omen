@@ -9,7 +9,7 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const DELETE_CONFIRMATION = "DELETE MY CORVUS DATA";
+const DELETE_CONFIRMATION = "DELETE MY OMEN DATA";
 
 function userHash(userId) {
   return crypto.createHash("sha256").update(String(userId)).digest("hex");

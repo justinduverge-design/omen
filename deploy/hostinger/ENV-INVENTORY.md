@@ -29,15 +29,15 @@ public Ollama/OpenClaw address.
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret. | Stripe | Yes |
 | `STRIPE_MONTHLY_PRICE_ID` | Stripe monthly plan price id. | Stripe | No |
 | `STRIPE_SEASON_PRICE_ID` | Stripe season pass price id. | Stripe | No |
-| `CORVUS_BILLING_ENABLED` | Master billing kill-switch for checkout/portal/prices and Pro gate; launch value `false`. | App | No |
+| `OMEN_BILLING_ENABLED` | Master billing kill-switch for checkout/portal/prices and Pro gate; launch value `false`. Legacy `CORVUS_BILLING_ENABLED` is still accepted as a fallback. | App | No |
 | `LLM_BASE_URL` | Private KVM2 Ollama/OpenClaw model base URL for narration. | LLM | Private-only endpoint |
 | `LLM_MODEL` | Model name sent to the LLM service. | LLM | No |
 | `LLM_TIMEOUT` | LLM request timeout in milliseconds. | LLM | No |
 | `OPENWEATHER_API_KEY` | Optional OpenWeather key for weather-aware Omen signals. | OpenWeather | Yes |
 | `RESEND_API_KEY` | Optional transactional email key for waitlist email. | Resend | Yes |
 | `ANTHROPIC_API_KEY` | Optional Anthropic key read by config/legacy surfaces. | App | Yes |
-| `CORVUS_CRON_SCORING_ENABLED` | Enables real Tuesday scoring when set to `true`. Keep false until approved. | App | No |
-| `CORVUS_CRON_DRY_RUN` | Runs Tuesday scoring without writes when set to `true`. | App | No |
+| `OMEN_CRON_SCORING_ENABLED` | Enables real Tuesday scoring when set to `true`. Keep false until approved. Legacy `CORVUS_CRON_SCORING_ENABLED` is still accepted as a fallback. | App | No |
+| `OMEN_CRON_DRY_RUN` | Runs Tuesday scoring without writes when set to `true`. | App | No |
 | `SPORTRADAR_API_KEY` | Legacy/deferred scoring provider key; not required by current nflverse scoring path. | Sports data | Yes |
 | `PROMPT_HOT_RELOAD` | Optional local prompt-loader hot reload flag. | App | No |
 | `GITHUB_SHA` | Optional build metadata returned by `/api/version`. | App | No |
@@ -69,4 +69,4 @@ to GitHub Actions when the images are built, not to the KVM runtime env file.
 - `src/config/index.js` requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` at boot.
 - `src/server.js` listens on `config.port`, which defaults to `3000`.
 - `/api/ready` reports Supabase reachability plus optional Stripe, Yahoo, Redis, LLM, and OpenWeather configuration.
-- `src/corvus_tuesday_cron.js` requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` for scoring, optionally uses Upstash, and has no inbound HTTP listener.
+- `src/omen_tuesday_cron.js` requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` for scoring, optionally uses Upstash, and has no inbound HTTP listener.

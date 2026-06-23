@@ -115,7 +115,7 @@ function loadStripeRouter({
     }
     if (request === "../config" && parent?.filename === routePath) {
       return {
-        appBaseUrl: "https://corvus.example",
+        appBaseUrl: "https://omen.example",
         isProd: false,
         billing: { enabled: billingEnabled },
         stripe: stripeConfig,
@@ -360,8 +360,8 @@ test("POST /api/stripe/checkout returns users to Account after successful checko
   assert.equal(res.status, 200);
   assert.equal(res.body.url, "https://stripe.example/checkout");
   assert.deepEqual(state.appUsers, [{ id: "user-1", email: "user@example.com" }]);
-  assert.equal(state.checkoutPayload.success_url, "https://corvus.example/account?subscribed=true");
-  assert.equal(state.checkoutPayload.cancel_url, "https://corvus.example/account?cancelled=true");
+  assert.equal(state.checkoutPayload.success_url, "https://omen.example/account?subscribed=true");
+  assert.equal(state.checkoutPayload.cancel_url, "https://omen.example/account?cancelled=true");
   assert.deepEqual(state.checkoutPayload.subscription_data, {
     trial_period_days: 7,
     metadata: { userId: "user-1", plan: "monthly" },
@@ -389,7 +389,7 @@ test("POST /api/stripe/portal returns users to Account after billing management"
 
   assert.equal(res.status, 200);
   assert.equal(res.body.url, "https://stripe.example/portal");
-  assert.equal(state.portalPayload.return_url, "https://corvus.example/account");
+  assert.equal(state.portalPayload.return_url, "https://omen.example/account");
 });
 
 test("POST /api/stripe/webhook persists checkout subscription trial metadata", async () => {

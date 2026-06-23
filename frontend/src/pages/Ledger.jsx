@@ -22,7 +22,7 @@ export default function Ledger() {
           className="mt-2 max-w-xl text-sm leading-6"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          Every move Corvus called. Whether you followed it. Whether it worked.
+          Every move Omen called. Whether you followed it. Whether it worked.
         </p>
       </div>
 

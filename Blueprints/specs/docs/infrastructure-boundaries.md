@@ -6,18 +6,18 @@ Active
 
 ## Decision
 
-Oracle remains the Corvus web app hosting lane for now.
+Oracle remains the Omen web app hosting lane for now.
 
 Hostinger KVM 2 remains the Ollama/Gemma private AI engine lane for now.
 
-Do not move the Corvus web app to Hostinger unless Justin explicitly approves a future infrastructure change.
+Do not move the Omen web app to Hostinger unless Justin explicitly approves a future infrastructure change.
 
 ## Current Infrastructure Roles
 
 ### Oracle VPS
 
 Role:
-- Corvus web app / API hosting lane
+- Omen web app / API hosting lane
 - Existing deployment lane
 
 ### Hostinger KVM 2
@@ -27,7 +27,7 @@ Role:
 - AI engine experimentation
 
 Not current role:
-- Corvus production app host
+- Omen production app host
 - DNS cutover target
 - all-in-one app + LLM box
 
@@ -37,7 +37,7 @@ Hostinger KVM 2 has limited resources for both the production web app and local 
 
 Ollama/Gemma can spike CPU/RAM and may affect app stability if hosted together.
 
-The app should remain stable while Corvus is still being finished locally.
+The app should remain stable while Omen is still being finished locally.
 
 ## Future Option
 

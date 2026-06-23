@@ -12,7 +12,7 @@ function readRepoFile(...parts) {
 }
 
 test("Supabase Vault RPCs are service-role only", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const vaultGrantLines = sql
     .split(/\r?\n/)
     .filter((line) => /grant execute on function public\.vault_/i.test(line));
@@ -29,7 +29,7 @@ test("Supabase Vault RPCs are service-role only", () => {
 });
 
 test("platform_connections client grant excludes Vault secret identifiers", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const grantMatch = sql.match(
     /grant select\s*\(([\s\S]*?)\)\s*on table public\.platform_connections to authenticated;/i
   );
@@ -52,7 +52,7 @@ test("platform_connections client grant excludes Vault secret identifiers", () =
 });
 
 test("schema includes backend-owned columns used by active routes and workers", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
 
   for (const column of [
     "swid_secret_id",
@@ -74,7 +74,7 @@ test("schema includes backend-owned columns used by active routes and workers", 
 });
 
 test("waitlist_signups allows browser insert without exposing reads", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
   assert.match(sql, /create table if not exists public\.waitlist_signups/i);
@@ -86,14 +86,14 @@ test("waitlist_signups allows browser insert without exposing reads", () => {
 });
 
 test("subscriptions migration repairs Stripe date columns on existing tables", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
   assert.match(compactSql, /alter table public\.subscriptions add column if not exists trial_ends_at timestamptz, add column if not exists current_period_end timestamptz;/i);
 });
 
 test("profiles table supports self-only favorite_team preference", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
   assert.match(sql, /create table if not exists public\.profiles/i);
@@ -108,7 +108,7 @@ test("profiles table supports self-only favorite_team preference", () => {
 });
 
 test("moves table supports idempotent HITL feedback upsert", () => {
-  const sql = readRepoFile("sql", "corvus_rls_security.sql");
+  const sql = readRepoFile("sql", "omen_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
   assert.match(compactSql, /alter table public\.moves add column if not exists followed boolean, add column if not exists user_stars integer, add column if not exists user_note text, add column if not exists outcome text default 'pending', add column if not exists eff integer;/i);
@@ -116,11 +116,11 @@ test("moves table supports idempotent HITL feedback upsert", () => {
   assert.match(sql, /grant select, insert, update on table public\.moves to service_role;/i);
 });
 
-test("compliance evidence manifest points at current Corvus files", () => {
+test("compliance evidence manifest points at current Omen files", () => {
   const manifest = readRepoFile("probo.yaml");
 
-  assert.match(manifest, /project:\s*"Corvus"/);
-  assert.match(manifest, /sql\/corvus_rls_security\.sql/);
-  assert.match(manifest, /src\/corvus_gdpr\.js/);
+  assert.match(manifest, /project:\s*"Omen"/);
+  assert.match(manifest, /sql\/omen_rls_security\.sql/);
+  assert.match(manifest, /src\/omen_gdpr\.js/);
   assert.doesNotMatch(manifest, /ssffmvp_(rls_security|gdpr)\.js|ssffmvp_rls_security\.sql/);
 });

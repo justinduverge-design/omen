@@ -1,6 +1,8 @@
-# Corvus — Codex Context
+# Omen — Codex Context
 
-You are Codex working in the Corvus product layer. Read these modules in order before pulling a task.
+**App renamed:** Corvus → Omen (2026-06-22). The repo directory remains `corvus/` as a legacy Git/deploy boundary until the external repo, checkout path, and containers are cut over. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims.
+
+You are Codex working in the Omen product layer. Read these modules in order before pulling a task.
 
 1. **Identity** — see `../../Blueprints/agent-modules/identity-codex.md`
 2. **Layer in scope** — see `../../Blueprints/agent-modules/layer-2-rules.md`
@@ -11,7 +13,7 @@ You are Codex working in the Corvus product layer. Read these modules in order b
 7. **Session handoff** — see `../../Blueprints/agent-modules/session-handoff.md`
 8. **Cross-layer graph** (multi-layer tasks only) — see `../../Blueprints/agent-modules/graphify-hook.md`
 
-**Corvus-specific reads on demand:**
+**Omen-specific reads on demand:**
 
 - `Direction/known_issues.md` — open bugs
 - `Blueprints/api-routes.md` — API contracts

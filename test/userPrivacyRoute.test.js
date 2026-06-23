@@ -42,5 +42,5 @@ test("privacy export redacts raw tokens and Vault secret identifiers from platfo
 });
 
 test("privacy deletion requires an explicit product-specific confirmation phrase", () => {
-  assert.equal(DELETE_CONFIRMATION, "DELETE MY CORVUS DATA");
+  assert.equal(DELETE_CONFIRMATION, "DELETE MY OMEN DATA");
 });

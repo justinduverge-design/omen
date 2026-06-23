@@ -1,5 +1,5 @@
-# Corvus Draft Assistant — Product Spec
-**Feature:** Draft Assistant (Corvus v1)
+# Omen Draft Assistant — Product Spec
+**Feature:** Draft Assistant (Omen v1)
 **Author:** Claude (Front-End Engineer, Slops Saloon)
 **Date:** 2026-05-17
 **Status:** Draft — Pending Justin approval
@@ -45,15 +45,15 @@ Draft Assistant solves this by giving the drafter a single, disciplined recommen
 - "Who to pick" cards with positional projections.
 - Weakness: Recommendations are rank-based, not VORP-adjusted. No tier break detection. No roster construction signal. Sleeper's own projections can lag third-party consensus.
 
-### The Gaps Corvus Can Exploit
+### The Gaps Omen Can Exploit
 
-| Gap | Corvus Advantage |
+| Gap | Omen Advantage |
 |---|---|
-| No tool adjusts recommendations to *your roster shape in real time* | Corvus tracks live roster state and weights need by position |
-| ADP is shown as static context, not a live signal | Corvus computes ADP deviation against actual pick position in this draft |
-| Tier breaks are invisible in most UIs | Corvus surfaces explicit tier break alerts when a player is the last of their tier |
-| LLM narration is generic and disconnected from math | Corvus LLM narrates *the VORP output* — it explains the number, not a ranking list |
-| Platform adapters are fragmented — users need separate tools per platform | Corvus runs on Yahoo, Sleeper, and ESPN through unified adapters |
+| No tool adjusts recommendations to *your roster shape in real time* | Omen tracks live roster state and weights need by position |
+| ADP is shown as static context, not a live signal | Omen computes ADP deviation against actual pick position in this draft |
+| Tier breaks are invisible in most UIs | Omen surfaces explicit tier break alerts when a player is the last of their tier |
+| LLM narration is generic and disconnected from math | Omen LLM narrates *the VORP output* — it explains the number, not a ranking list |
+| Platform adapters are fragmented — users need separate tools per platform | Omen runs on Yahoo, Sleeper, and ESPN through unified adapters |
 
 ---
 
@@ -116,7 +116,7 @@ For each pick opportunity, Draft Assistant surfaces three output components:
 ### 5.1 Primary Recommendation Card
 
 ```
-[ CORVUS RECOMMENDS ]
+[ OMEN RECOMMENDS ]
 
 Justin Jefferson — WR, MIN
 VORP Score: 84.2   |   ADP Deviation: +3.1 picks (falling)
@@ -165,9 +165,9 @@ Up to 2 alternative picks ranked by adjusted VORP, presented in a collapsed acco
 
 ---
 
-## 6. Mapping to Existing Corvus Infrastructure
+## 6. Mapping to Existing Omen Infrastructure
 
-| Draft Assistant Need | Existing Corvus Asset | Notes |
+| Draft Assistant Need | Existing Omen Asset | Notes |
 |---|---|---|
 | Scoring-format-adjusted player value | VORP model | Already built. Draft Assistant passes scoring format at session init; VORP returns adjusted scores. No model changes needed. |
 | Position scarcity signal | Position scarcity scoring model | Already built. Wire to available player pool snapshot updated after each pick. |
@@ -182,7 +182,7 @@ Up to 2 alternative picks ranked by adjusted VORP, presented in a collapsed acco
 ### 7.1 ADP Data Source
 **Owner: Codex**
 
-Corvus does not currently ingest ADP data. Draft Assistant requires consensus ADP for each player to compute deviation signals.
+Omen does not currently ingest ADP data. Draft Assistant requires consensus ADP for each player to compute deviation signals.
 
 Requirements:
 - Pre-season ADP snapshot sourced from at least 2 of: FantasyPros consensus, Underdog ADP, NFFC ADP
@@ -222,7 +222,7 @@ Requirements:
 A new API endpoint that the front end polls (or subscribes to) during the draft.
 
 ```
-POST /api/corvus/draft/recommend
+POST /api/omen/draft/recommend
 
 Request body:
 {
@@ -318,7 +318,7 @@ Each existing platform adapter (Yahoo, Sleeper, ESPN) needs to be extended to st
 - Superflex support with QB premium modeling
 - Real-time injury news ingestion mid-draft
 - Shareable post-draft card with roster grade
-- Draft recap: pick-by-pick replay with Corvus retrospective assessment
+- Draft recap: pick-by-pick replay with Omen retrospective assessment
 - Mobile app push notification: "Your pick is in 3 selections"
 
 ---
@@ -329,7 +329,7 @@ Each existing platform adapter (Yahoo, Sleeper, ESPN) needs to be extended to st
 
 | Metric | Target |
 |---|---|
-| Percentage of Corvus users who activate Draft Assistant for at least one draft | 40% |
+| Percentage of Omen users who activate Draft Assistant for at least one draft | 40% |
 | Average picks per Draft Assistant session (proxy for completion rate) | 14+ out of 15 rounds |
 | Platform coverage: % of Draft Assistant sessions on each platform (Yahoo / Sleeper / ESPN) | Baseline — no target; used to prioritize v2 adapter work |
 
@@ -363,7 +363,7 @@ Each existing platform adapter (Yahoo, Sleeper, ESPN) needs to be extended to st
 1. **Pricing / gating:** Is Draft Assistant a free feature (acquisition play) or a paid-tier feature (monetization play)? This affects how we gate the session start flow.
 2. **Platform priority:** If adapter extensions run behind schedule, which platform ships first? Recommendation: Sleeper (cleanest WebSocket API), then Yahoo, then ESPN.
 3. **Mock draft support:** Should Draft Assistant work in mock drafts (not just live drafts)? Sleeper and ESPN both support mock draft rooms. This dramatically expands testability and user onboarding.
-4. **Brand voice for narration:** The LLM narration needs a prompt template that matches Corvus / Slops Saloon's omen-inspired voice. This is front-end copywriting territory — Claude to own the narration prompt framing; Codex owns the prompt engineering and LLM wiring.
+4. **Brand voice for narration:** The LLM narration needs a prompt template that matches Omen / Slops Saloon's omen-inspired voice. This is front-end copywriting territory — Claude to own the narration prompt framing; Codex owns the prompt engineering and LLM wiring.
 5. **ADP source licensing:** Some ADP aggregators (FantasyPros) have terms of service restrictions on bulk data use. Codex to confirm which ADP sources are legally usable before implementation begins.
 
 ---
@@ -375,7 +375,7 @@ This spec is the triggering handoff document. Codex needs to begin work on the f
 
 1. ADP data source ingestion pipeline (blocks tier break and deviation signals)
 2. Draft state tracker (blocks all live recommendation work)
-3. `/api/corvus/draft/recommend` endpoint (blocks front-end integration)
+3. `/api/omen/draft/recommend` endpoint (blocks front-end integration)
 4. Platform adapter extensions (Yahoo and Sleeper first)
 5. Tier clustering on VORP model output
 

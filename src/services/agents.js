@@ -28,12 +28,12 @@ const { getDvpContext } = require("./matchupService");
 // Each is a short system prompt string extracted from sub_agents.md.
 // We define them inline here to keep the service self-contained.
 const SUB_AGENT_PROMPTS = Object.freeze({
-  weather:  "You are the Corvus Weather Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Condition summary] — [fantasy impact]\"",
-  travel:   "You are the Corvus Travel Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Game situation] — [fantasy impact]\"",
-  gametime: "You are the Corvus Game Time Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Kickoff context] — [fantasy impact]\"",
-  roster:   "You are the Corvus Roster Agent. Reply with exactly one sentence summarizing the roster situation and fantasy impact. Format: \"[Roster situation] — [fantasy impact]\"",
-  perf:     "You are the Corvus Performance Agent. Reply with exactly one sentence summarizing performance trend and VORP context. You MUST reference the VORP grade. Format: \"[Trend summary with VORP grade] — [projection implication]\"",
-  matchup:  "You are the Corvus Matchup Agent. Reply with exactly one sentence summarizing matchup quality. You MUST include the DvP rank. Format: \"[Defense rank vs position] — [scheme insight]\"",
+  weather:  "You are the Omen Weather Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Condition summary] — [fantasy impact]\"",
+  travel:   "You are the Omen Travel Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Game situation] — [fantasy impact]\"",
+  gametime: "You are the Omen Game Time Agent. Reply with exactly one sentence summarizing fantasy football impact. Format: \"[Kickoff context] — [fantasy impact]\"",
+  roster:   "You are the Omen Roster Agent. Reply with exactly one sentence summarizing the roster situation and fantasy impact. Format: \"[Roster situation] — [fantasy impact]\"",
+  perf:     "You are the Omen Performance Agent. Reply with exactly one sentence summarizing performance trend and VORP context. You MUST reference the VORP grade. Format: \"[Trend summary with VORP grade] — [projection implication]\"",
+  matchup:  "You are the Omen Matchup Agent. Reply with exactly one sentence summarizing matchup quality. You MUST include the DvP rank. Format: \"[Defense rank vs position] — [scheme insight]\"",
 });
 
 // ── VORP grade mapping ───────────────────────────────────────────────────────
@@ -349,7 +349,7 @@ async function runManagerAgent({ signals, vorpBlock, scarcityBlock, context }) {
   } catch {
     // Fallback: inline condensed version if file read fails
     systemTemplate =
-      "You are the Corvus Manager Agent. " +
+      "You are the Omen Manager Agent. " +
       "Synthesize the agent signals and math facts into ONE weekly move. " +
       "Return ONLY valid JSON with: moveType, headline, targetPlayer, targetPosition, " +
       "confidence, vorpGrade, scarcityBonus, reasoning, shortVerdict, dataSource.";

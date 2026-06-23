@@ -51,7 +51,7 @@ function loadMiddleware({
     }
     if (request === "../config" && parent?.filename === middlewarePath) {
       return {
-        appBaseUrl: "https://corvus.example",
+        appBaseUrl: "https://omen.example",
         billing: { enabled: billingEnabled },
         supabaseUrl: "https://example.supabase.co",
         supabaseServiceKey: "test-service-key",
@@ -123,7 +123,7 @@ test("requireSubscription returns 402 for non-subscribed users when billing is e
   assert.equal(res.statusCode, 402);
   assert.deepEqual(res.body, {
     error: "Pro subscription required",
-    upgrade: "https://corvus.example/?upgrade=true",
+    upgrade: "https://omen.example/?upgrade=true",
   });
   assert.deepEqual(state.tables, ["users"]);
   assert.deepEqual(state.selects, ["is_subscribed"]);

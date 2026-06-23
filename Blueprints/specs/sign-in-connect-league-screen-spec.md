@@ -16,7 +16,7 @@ The following questions from v1 are now closed:
 | Auth providers at v1 | Google, Apple, Email magic link, Discord — all four |
 | Generic Omen without league | No. League connection is mandatory for Omen. |
 | ESPN UX approach | Full guided in-product walkthrough every time. No hiding the friction. |
-| Launch routing | `/` serves Corvus at launch. Slops Saloon parent routing is future. |
+| Launch routing | `/` serves Omen at launch. Slops Saloon parent routing is future. |
 | Headline copy | Provisional final: **"Your best call, every time."** |
 
 ---
@@ -35,7 +35,7 @@ The following questions from v1 are now closed:
 ## Purpose
 
 This spec covers the full Sign In / Connect Your League flow.
-This is the most important first impression for any paying Corvus customer.
+This is the most important first impression for any paying Omen customer.
 It must feel premium, trustworthy, and guided — not like a generic auth wall.
 
 ---
@@ -53,7 +53,7 @@ It must feel premium, trustworthy, and guided — not like a generic auth wall.
 ## Flow Overview
 
 ```
-[Anonymous user arrives at Corvus]
+[Anonymous user arrives at Omen]
         │
         ▼
 [Uses Trade Analyzer — no auth required, always accessible]
@@ -98,8 +98,8 @@ Example: user clicked Omen while logged out → signs in → connects league →
 ```
 ┌────────────────────────────────────────────────┐
 │                                                │
-│         [Corvus raven mark — centered]         │
-│         CORVUS                                 │
+│         [Omen raven mark — centered]         │
+│         OMEN                                 │
 │                                                │
 │  ──────────────────────────────────────────   │
 │                                                │
@@ -142,7 +142,7 @@ Example: user clicked Omen while logged out → signs in → connects league →
 ### Desktop layout
 
 Centered card on a dark background. Card is `max-w-md`, `rounded-xl`, subtle border and shadow.
-Corvus brand mark at top. Background: raven black. Card: charcoal.
+Omen brand mark at top. Background: raven black. Card: charcoal.
 Optional: faint constellation or raven silhouette pattern in the background (dark-on-dark, very subtle). Not required for v1.
 
 ### Auth Options (all four required at launch)
@@ -204,12 +204,12 @@ If a league is already connected, skip this step and route to dashboard or the `
 ```
 ┌────────────────────────────────────────────────┐
 │                                                │
-│         [Corvus mark]                          │
+│         [Omen mark]                          │
 │                                                │
 │  Connect your league.                          │
 │  [H2 — Alegreya Sans 600, 28px]               │
 │                                                │
-│  Corvus needs your roster to find your         │
+│  Omen needs your roster to find your         │
 │  Most Valuable Play. Choose your platform.     │
 │                                                │
 │  ┌──────────────────────────────────────────┐ │
@@ -269,8 +269,8 @@ The ESPN connection flow (when "Connect →" is tapped) should open a step-by-st
 - Step 1: Open ESPN Fantasy in your browser
 - Step 2: Open DevTools (keyboard shortcut shown for their browser)
 - Step 3: Find the two specific cookies (ESPN_S2 and SWID) with screenshots
-- Step 4: Paste each into Corvus
-- Step 5: Corvus validates and imports your league
+- Step 4: Paste each into Omen
+- Step 5: Omen validates and imports your league
 
 Progress indicator visible throughout. Each step has confirmation before moving to the next. If a step fails, show exactly what went wrong in plain English and offer retry or go-back.
 
@@ -393,7 +393,7 @@ Preserve `?next=` through all redirect hops. See Codex handoff for implementatio
 
 ## Theme Behavior
 
-- Screen respects OS system theme on first visit (no Corvus preference set yet)
+- Screen respects OS system theme on first visit (no Omen preference set yet)
 - No theme toggle shown on this screen
 - Dark mode: raven `#0A0A0B` background, charcoal `#1C1C1E` card, gold CTA
 - Light mode: `#FAFAF9` background, `#FFFFFF` card, standard shadows
@@ -434,4 +434,4 @@ The following are backend implementation questions for Codex, not product decisi
 3. **`?next=` through OAuth:** How is the redirect destination preserved through the Supabase OAuth cycle? See Codex handoff.
 4. **Sleeper endpoint:** No backend contract exists. Must be built before this screen goes live.
 5. **Manual entry feasibility:** Pending Codex audit. Codex must report what data the form can collect, which Omen decision types are feasible, and propose the required checklist. Justin decides after seeing the report. Do not build the manual entry form until this is resolved.
-6. **Session duration:** How long do Supabase sessions last for Corvus users by default?
+6. **Session duration:** How long do Supabase sessions last for Omen users by default?

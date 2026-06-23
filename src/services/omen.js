@@ -456,14 +456,14 @@ function baseEnvelope(body = {}, state = "success") {
     },
     league: {
       id: body.league_id || "mock-league-1",
-      name: "Mock Corvus League",
+      name: "Mock Omen League",
       season: Number.isInteger(Number(body.season)) ? Number(body.season) : new Date().getFullYear(),
       week: Number.isInteger(Number(body.week)) ? Number(body.week) : 1,
       scoring_format: normalizeScoringFormat(body.scoring_format),
     },
     team: {
       id: body.team_id || "mock-team-1",
-      name: "Mock Corvus Team",
+      name: "Mock Omen Team",
     },
     signals: buildSignals({ connected: true, useMockData: Boolean(body.use_mock_data || body.mock_state) }),
     recommendation: null,
@@ -583,7 +583,7 @@ function platformDisconnectedMvpResponse() {
     platformStatus: "disconnected",
     recovery: {
       code: "connect_platform",
-      message: "Connect Yahoo before Corvus can produce a live Most Valuable Play.",
+      message: "Connect Yahoo before Omen can produce a live Most Valuable Play.",
       cta: "Connect League",
     },
     state: "platform_disconnected",
@@ -614,7 +614,7 @@ function pendingLiveEngineMvpResponse(connections = []) {
   response.signals = {
     roster: unavailableSignal(
       `${platform}_adapter`,
-      "A platform connection exists, but Corvus cannot safely build a live roster from it yet."
+      "A platform connection exists, but Omen cannot safely build a live roster from it yet."
     ),
   };
   response.warnings.push("Live MVP Move requires a usable Yahoo, Sleeper, or ESPN league connection.");
@@ -895,7 +895,7 @@ function incompleteConnectionResponse(connections = []) {
       platform: "yahoo",
       state: "yahoo_reauth_required",
       code: "yahoo_reauth_required",
-      message: "Reconnect Yahoo so Corvus can refresh the league roster.",
+      message: "Reconnect Yahoo so Omen can refresh the league roster.",
       cta: "Reconnect Yahoo",
       fieldsNeeded: ["Yahoo OAuth token"],
       leagueId: yahoo.league_id || null,
@@ -908,7 +908,7 @@ function incompleteConnectionResponse(connections = []) {
       platform: "sleeper",
       state: "sleeper_league_context_missing",
       code: "sleeper_league_context_missing",
-      message: "Sleeper needs a username and league id before Corvus can produce a live Most Valuable Play.",
+      message: "Sleeper needs a username and league id before Omen can produce a live Most Valuable Play.",
       cta: "Reconnect Sleeper",
       fieldsNeeded: ["Sleeper username", "league id"],
       leagueId: sleeper.league_id || null,
@@ -921,7 +921,7 @@ function incompleteConnectionResponse(connections = []) {
       platform: "espn",
       state: "espn_reauth_required",
       code: "espn_reauth_required",
-      message: "ESPN needs fresh cookie credentials and a league id before Corvus can produce a live Most Valuable Play.",
+      message: "ESPN needs fresh cookie credentials and a league id before Omen can produce a live Most Valuable Play.",
       cta: "Reconnect ESPN",
       fieldsNeeded: ["ESPN_S2", "SWID", "league id"],
       leagueId: espn.league_id || null,
@@ -945,7 +945,7 @@ function espnRecoveryFromError(connection, err) {
       platform: "espn",
       state: "espn_reauth_required",
       code: "espn_reauth_required",
-      message: "Your ESPN connection needs fresh cookies before Corvus can read this league.",
+      message: "Your ESPN connection needs fresh cookies before Omen can read this league.",
       cta: "Reconnect ESPN",
       fieldsNeeded: ["ESPN_S2", "SWID"],
       leagueId: connection.league_id,
@@ -957,7 +957,7 @@ function espnRecoveryFromError(connection, err) {
       platform: "espn",
       state: "espn_league_context_missing",
       code: "espn_league_context_missing",
-      message: "Corvus could not find that ESPN league or team. Select the league again or re-import ESPN.",
+      message: "Omen could not find that ESPN league or team. Select the league again or re-import ESPN.",
       cta: "Select ESPN League",
       leagueId: connection.league_id,
     });
@@ -1085,7 +1085,7 @@ function emptyResponse(body = {}) {
   response.recommendation = null;
   response.explanation = {
     summary: "No move clears the recommendation threshold this week.",
-    why_it_matters: "Your current lineup is close enough to the available alternatives that Corvus should not force a move.",
+    why_it_matters: "Your current lineup is close enough to the available alternatives that Omen should not force a move.",
     risk: "Forcing a marginal move could create more downside than upside.",
     confidence: "Confidence is 68 out of 100 that standing pat is reasonable.",
     data_used: ["connected roster", "weekly projections"],
@@ -1104,7 +1104,7 @@ function platformDisconnectedResponse(body = {}) {
   response.platform.status = "disconnected";
   response.platform.recovery = {
     code: "connect_platform",
-    message: `Connect ${response.platform.name} before Corvus can read your roster.`,
+    message: `Connect ${response.platform.name} before Omen can read your roster.`,
     cta: `Connect ${response.platform.name}`,
   };
   response.signals = {
@@ -1124,14 +1124,14 @@ function espnRecoveryResponse(body = {}, state) {
     espn_reauth_required: {
       status: "reauth_required",
       code: "refresh_espn_cookies",
-      message: "Your ESPN connection needs fresh cookies before Corvus can read this league.",
+      message: "Your ESPN connection needs fresh cookies before Omen can read this league.",
       cta: "Reconnect ESPN",
       fields_needed: ["ESPN_S2", "SWID"],
     },
     espn_league_context_missing: {
       status: "league_context_missing",
       code: "select_or_reimport_espn_league",
-      message: "Corvus could not find that ESPN league or team. Select the league again or re-import ESPN.",
+      message: "Omen could not find that ESPN league or team. Select the league again or re-import ESPN.",
       cta: "Select ESPN League",
     },
     espn_import_blocked: {
@@ -1143,7 +1143,7 @@ function espnRecoveryResponse(body = {}, state) {
     espn_recovery_needed: {
       status: "recovery_needed",
       code: "recover_espn_connection",
-      message: "Corvus cannot tell whether ESPN needs reauth, league selection, or a retry. Start ESPN recovery.",
+      message: "Omen cannot tell whether ESPN needs reauth, league selection, or a retry. Start ESPN recovery.",
       cta: "Recover ESPN",
     },
   };
@@ -1162,7 +1162,7 @@ function espnRecoveryResponse(body = {}, state) {
   return response;
 }
 
-function errorResponse(body = {}, message = "Corvus could not generate an MVP Move right now.") {
+function errorResponse(body = {}, message = "Omen could not generate an MVP Move right now.") {
   const response = baseEnvelope(body, "error");
   response.recommendation = null;
   response.signals = {};

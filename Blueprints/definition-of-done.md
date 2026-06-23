@@ -1,8 +1,8 @@
-# Corvus Definition of Done
+# Omen Definition of Done
 
-**valid-as-of:** 2026-06-15
+**valid-as-of:** 2026-06-21
 **Status:** v1 — pointer + per-type gate files + ledger
-**Posture:** Corvus is **free indefinitely.** No billing gates anywhere in this doc.
+**Posture:** Omen is **free indefinitely.** No billing gates anywhere in this doc.
 
 ## How to use
 
@@ -20,6 +20,10 @@ Pick the Done type matching what you shipped, read that file, satisfy every gate
 
 Run cross-cutting gates **in addition** to the primary type. A page change that adds a recommendation triggers Page Done + Recommendation Done + Design Done.
 
+## Procedure receipt (all work)
+
+Every task also follows `playbooks/omen-company-baseline.md` and selects applicable skills from `playbooks/skill-activation-runbook.md`. The handoff must state skills invoked, conditional skills considered but not applicable, evidence, and any procedure gap. Append invoked/skipped-required skills to `playbooks/skill-usage-ledger.md` before closing.
+
 ## Foundation: the AAA Framework
 
 From `Brand/brand-system.md` §11: every change must satisfy **Accuracy + Accessibility + Aesthetic Integrity. Two of three is a fail.** Each done-file marks which gates map to which A.
@@ -36,5 +40,5 @@ Every closure is recorded in `done/LEDGER.md`. Review monthly — gates skipped 
 
 ## Open updates
 
-- Year-2 billing gates: **N/A** — Corvus is free indefinitely (decision 2026-06-15).
+- Year-2 billing gates: **N/A** — Omen is free indefinitely (decision 2026-06-15).
 - Content & Marketing Done lives at L2 for now; promote to L1 when L1's `marketing-strategy.md` + `content-strategy.md` land.

@@ -3,9 +3,9 @@ import { getTeamPalette, isDark } from '../../data/nflTeams.js';
 // ── Mode picker ────────────────────────────────────────────────────────────
 
 export const MODE_OPTIONS = [
-  { id: 'system', label: 'System', hint: 'Matches your OS theme. Corvus gold accents.' },
+  { id: 'system', label: 'System', hint: 'Matches your OS theme. Omen gold accents.' },
   { id: 'team',   label: 'Team',   hint: "Your team's actual colors paint the app." },
-  { id: 'corvus', label: 'Corvus', hint: 'Default dark. Gold on graphite.' },
+  { id: 'omen', label: 'Omen', hint: 'Default dark. Gold on graphite.' },
 ];
 
 export function ModePicker({ mode, onChange }) {

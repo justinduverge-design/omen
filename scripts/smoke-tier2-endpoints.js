@@ -4,16 +4,16 @@
  * Tier-2 endpoint smoke test.
  *
  * Usage:
- *   CORVUS_BASE_URL=https://slopssaloon.com `
- *   CORVUS_AUTH_TOKEN=<supabase-access-token> `
- *   CORVUS_TIER2_WRITE=1 `
- *   CORVUS_TIER2_CLEANUP=1 `
+ *   OMEN_BASE_URL=https://slopssaloon.com `
+ *   OMEN_AUTH_TOKEN=<supabase-access-token> `
+ *   OMEN_TIER2_WRITE=1 `
+ *   OMEN_TIER2_CLEANUP=1 `
  *   node scripts/smoke-tier2-endpoints.js
  *
  * Notes:
  * - The token is only read from the current process environment.
  * - The token is never printed.
- * - Write checks are opt-in with CORVUS_TIER2_WRITE=1.
+ * - Write checks are opt-in with OMEN_TIER2_WRITE=1.
  * - Preference writes are restored to the prior dashboard value.
  * - Feedback writes are idempotent for user + season + week. Use a test
  *   account when running against production.
@@ -21,14 +21,18 @@
  *   and a cleanup note after Move History has verified the row.
  */
 
-const baseUrl = (process.env.CORVUS_BASE_URL || "https://slopssaloon.com").replace(/\/$/, "");
-const authToken = process.env.CORVUS_AUTH_TOKEN || "";
-const writeMode = process.env.CORVUS_TIER2_WRITE === "1";
-const cleanupMode = process.env.CORVUS_TIER2_CLEANUP === "1";
-const allowAuthSkips = process.env.CORVUS_ALLOW_AUTH_SKIPS === "1";
-const expectConnectedLeague = process.env.CORVUS_EXPECT_CONNECTED_LEAGUE !== "0";
-const feedbackSeason = parseInt(process.env.CORVUS_TIER2_FEEDBACK_SEASON || "2099", 10);
-const feedbackWeek = parseInt(process.env.CORVUS_TIER2_FEEDBACK_WEEK || "1", 10);
+function productEnv(name) {
+  return process.env[`OMEN_${name}`] ?? process.env[`CORVUS_${name}`];
+}
+
+const baseUrl = (productEnv("BASE_URL") || "https://slopssaloon.com").replace(/\/$/, "");
+const authToken = productEnv("AUTH_TOKEN") || "";
+const writeMode = productEnv("TIER2_WRITE") === "1";
+const cleanupMode = productEnv("TIER2_CLEANUP") === "1";
+const allowAuthSkips = productEnv("ALLOW_AUTH_SKIPS") === "1";
+const expectConnectedLeague = productEnv("EXPECT_CONNECTED_LEAGUE") !== "0";
+const feedbackSeason = parseInt(productEnv("TIER2_FEEDBACK_SEASON") || "2099", 10);
+const feedbackWeek = parseInt(productEnv("TIER2_FEEDBACK_WEEK") || "1", 10);
 
 const results = [];
 
@@ -88,7 +92,7 @@ async function request(name, method, path, { body, auth = false } = {}) {
 
 function requireToken(name) {
   if (authToken) return true;
-  skip(name, "CORVUS_AUTH_TOKEN missing");
+  skip(name, "OMEN_AUTH_TOKEN missing");
   return false;
 }
 
@@ -198,7 +202,7 @@ async function smokePreferences() {
   const name = "account_preferences";
   if (!requireToken(name)) return;
   if (!writeMode) {
-    skip(name, "CORVUS_TIER2_WRITE not set; skipping production write");
+    skip(name, "OMEN_TIER2_WRITE not set; skipping production write");
     return;
   }
 
@@ -234,12 +238,12 @@ async function smokeFeedback() {
   const name = "omen_feedback";
   if (!requireToken(name)) return;
   if (!writeMode) {
-    skip(name, "CORVUS_TIER2_WRITE not set; skipping production write");
+    skip(name, "OMEN_TIER2_WRITE not set; skipping production write");
     return;
   }
   if (!Number.isInteger(feedbackSeason) || !Number.isInteger(feedbackWeek)) {
     fail(name, {
-      message: "CORVUS_TIER2_FEEDBACK_SEASON and CORVUS_TIER2_FEEDBACK_WEEK must be integers",
+      message: "OMEN_TIER2_FEEDBACK_SEASON and OMEN_TIER2_FEEDBACK_WEEK must be integers",
     });
     return;
   }
@@ -249,7 +253,7 @@ async function smokeFeedback() {
     body: {
       followed: true,
       stars: 5,
-      note: `Corvus Tier-2 smoke ${new Date().toISOString()}`,
+      note: `Omen Tier-2 smoke ${new Date().toISOString()}`,
       week: feedbackWeek,
       season: feedbackSeason,
     },
@@ -281,7 +285,7 @@ async function cleanupFeedback({ expectedMoveId } = {}) {
     return;
   }
   if (!cleanupMode) {
-    skip(name, "CORVUS_TIER2_CLEANUP not set; leaving idempotent season/week smoke row");
+    skip(name, "OMEN_TIER2_CLEANUP not set; leaving idempotent season/week smoke row");
     return;
   }
 
@@ -290,7 +294,7 @@ async function cleanupFeedback({ expectedMoveId } = {}) {
     body: {
       followed: false,
       stars: null,
-      note: `Corvus Tier-2 smoke cleanup ${new Date().toISOString()}`,
+      note: `Omen Tier-2 smoke cleanup ${new Date().toISOString()}`,
       week: feedbackWeek,
       season: feedbackSeason,
     },
@@ -400,7 +404,7 @@ async function main() {
 
   if (!authToken && !allowAuthSkips) {
     fail("authenticated_smoke_blocked", {
-      message: "Set CORVUS_AUTH_TOKEN or CORVUS_ALLOW_AUTH_SKIPS=1.",
+      message: "Set OMEN_AUTH_TOKEN or OMEN_ALLOW_AUTH_SKIPS=1.",
     });
   }
 

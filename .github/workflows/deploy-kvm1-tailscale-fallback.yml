@@ -96,7 +96,9 @@ jobs:
           file: ./Dockerfile
           target: production
           push: true
-          tags: ghcr.io/justinduverge-design/corvus:main
+          tags: |
+            ghcr.io/justinduverge-design/corvus:main
+            ghcr.io/justinduverge-design/omen:main
           cache-from: type=gha,scope=corvus-api
           cache-to: type=gha,mode=max,scope=corvus-api
           build-args: |
@@ -112,7 +114,9 @@ jobs:
           file: ./Dockerfile.cron
           target: production
           push: true
-          tags: ghcr.io/justinduverge-design/corvus-cron:main
+          tags: |
+            ghcr.io/justinduverge-design/corvus-cron:main
+            ghcr.io/justinduverge-design/omen-cron:main
           cache-from: type=gha,scope=corvus-cron
           cache-to: type=gha,mode=max,scope=corvus-cron
 

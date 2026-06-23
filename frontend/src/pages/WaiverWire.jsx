@@ -61,7 +61,7 @@ function ProGate() {
       <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Pro Feature</p>
       <p className="mt-3 text-lg font-semibold text-white">Waiver Wire Optimizer</p>
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        Waiver wire rankings require a Corvus Pro subscription. Upgrade to access VORP-ranked pickups for your roster.
+        Waiver wire rankings require a Omen Pro subscription. Upgrade to access VORP-ranked pickups for your roster.
       </p>
       <a
         className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"

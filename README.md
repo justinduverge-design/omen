@@ -1,10 +1,10 @@
-# Corvus — Fantasy Football Decision Layer
+# Omen — Fantasy Football Decision Layer
 
 > See the winning move.
 
-Corvus is a multi-platform fantasy football decision layer from Slops Saloon. It connects to Yahoo, Sleeper, and ESPN, normalizes roster data across all three, and surfaces the highest-value action for your team each week — with math you can follow and reasoning you can trust.
+Omen is a multi-platform fantasy football decision layer from Slops Saloon. It connects to Yahoo, Sleeper, and ESPN, normalizes roster data across all three, and surfaces the highest-value action for your team each week — with math you can follow and reasoning you can trust.
 
-Slops Saloon is the parent company, mission site, and long-term product studio. Corvus is the fantasy football product inside that ecosystem.
+Slops Saloon is the parent company, mission site, and long-term product studio. Omen is the fantasy football product inside that ecosystem.
 
 ---
 
@@ -338,4 +338,4 @@ MIT — see [LICENSE](LICENSE) for details.
 
 Built by [@justinduverge-design](https://github.com/justinduverge-design)
 
-*Corvus — See the winning move.*
+*Omen — See the winning move.*

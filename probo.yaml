@@ -1,31 +1,31 @@
 framework: "gdpr_soc2_hybrid"
-project: "Corvus"
+project: "Omen"
 
 # 1. Encryption at Rest (Vault Verification)
 controls:
   - id: "CC6.1"
     name: "Encryption of Sensitive Credentials"
     description: "Verify Yahoo/ESPN tokens are stored in Supabase Vault"
-    evidence_path: "sql/corvus_rls_security.sql"
+    evidence_path: "sql/omen_rls_security.sql"
     check: "contains('vault.secrets')"
 
 # 2. Right to Erasure (Article 17)
   - id: "GDPR_ART_17"
     name: "User Data Erasure"
     description: "Automated purge of user data, secrets, and cache"
-    evidence_path: "src/corvus_gdpr.js"
+    evidence_path: "src/omen_gdpr.js"
     check: "contains('supabase.auth.admin.deleteUser')"
 
 # 3. Data Minimization (Article 5)
   - id: "GDPR_ART_5"
     name: "Data Inventory Control"
     description: "Ensures only authorized data points are collected"
-    evidence_path: "src/corvus_gdpr.js"
+    evidence_path: "src/omen_gdpr.js"
     check: "contains('dataInventory')"
 
 # 4. Audit Logging (Non-PII)
   - id: "CC7.2"
     name: "Compliance Audit Trail"
     description: "Hashed user IDs for deletion logs"
-    evidence_path: "src/corvus_gdpr.js"
+    evidence_path: "src/omen_gdpr.js"
     check: "contains('hashUserId')"

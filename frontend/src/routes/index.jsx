@@ -1,12 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import ProtectedRoute from '../components/layout/ProtectedRoute.jsx';
 import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
 import DraftAssistant from '../pages/DraftAssistant.jsx';
 import Football from '../pages/Football';
-import CorvusLanding from '../pages/CorvusLanding.jsx';
+import OmenLanding from '../pages/OmenLanding.jsx';
 import Landing from '../pages/Landing.jsx';
 import Login from '../pages/Login.jsx';
 import NotFound from '../pages/NotFound.jsx';
@@ -28,7 +28,8 @@ export default function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
-      <Route path="/corvus" element={<CorvusLanding />} />
+      <Route path="/about" element={<OmenLanding />} />
+      <Route path="/corvus" element={<Navigate to="/about" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
       <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />

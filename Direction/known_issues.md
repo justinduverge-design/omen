@@ -1,4 +1,4 @@
-# Corvus Known Issues
+# Omen Known Issues
 
 Last updated: 2026-06-04
 
@@ -24,7 +24,7 @@ Last updated: 2026-06-04
 - Docs still need one final truth pass on exactly when Sleeper and ESPN Omen reach `ready` versus `pending_live_engine`.
 - ADP and provider-backed data should be verified before launch claims.
 - Legacy API files remain mounted and should be handled carefully.
-- Tuesday scoring is executable but intentionally gated behind `CORVUS_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.
+- Tuesday scoring is executable but intentionally gated behind `OMEN_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.
 - Privacy routes are mounted under `/api/user`, but frontend settings should wait for UX copy and final delete-flow approval before exposing account deletion broadly.
 
 ## Documentation Risks

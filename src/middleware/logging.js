@@ -39,7 +39,7 @@ const devFormat = winston.format.combine(
 
 const logger = winston.createLogger({
   level:        config.logLevel,
-  defaultMeta:  { service: "corvus-api" },
+  defaultMeta:  { service: "omen-api" },
   transports:   [
     new winston.transports.Console({
       format: config.isProd ? prodFormat : devFormat,

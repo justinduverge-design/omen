@@ -63,6 +63,7 @@ export default function ProtectedRoute({ children }) {
   // Onboarding gate — redirect new users until setup is complete.
   // Exempt /onboarding itself to avoid a redirect loop.
   if (
+    !localStorage.getItem('omen.onboarding.done') &&
     !localStorage.getItem('corvus.onboarding.done') &&
     location.pathname !== '/onboarding'
   ) {

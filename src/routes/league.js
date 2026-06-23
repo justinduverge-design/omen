@@ -29,12 +29,12 @@ const ERROR_COPY = Object.freeze({
   },
   reconnect_required: {
     error: "League provider reconnect required",
-    message: "Corvus needs a fresh connection before it can load these standings.",
+    message: "Omen needs a fresh connection before it can load these standings.",
     action: "reconnect_platform",
   },
   provider_failed: {
     error: "League standings provider failed",
-    message: "Corvus could not load standings from the league provider right now.",
+    message: "Omen could not load standings from the league provider right now.",
     action: "retry_later",
   },
 });

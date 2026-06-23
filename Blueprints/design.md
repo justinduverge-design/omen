@@ -1,7 +1,7 @@
-# Redirect: Corvus Design
+# Redirect: Omen Design
 
-Canonical Corvus design notes now live here:
+Canonical Omen design notes now live here:
 
-`slops-saloon\Corvus\Blueprints\design.md`
+`slops-saloon\Omen\Blueprints\design.md`
 
-Earlier DBS copies may also exist under `slops-saloon\Corvus\Blueprints\specs\design.md`; review before consolidating.
+Earlier DBS copies may also exist under `slops-saloon\Omen\Blueprints\specs\design.md`; review before consolidating.

@@ -54,7 +54,7 @@ function parseRequestUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== "string") return null;
 
   try {
-    return new URL(rawUrl, "http://corvus.local");
+    return new URL(rawUrl, "http://omen.local");
   } catch (_error) {
     return null;
   }
@@ -172,7 +172,7 @@ function initSentry({ component }) {
     enabled: Boolean(process.env.SENTRY_DSN),
     environment: process.env.NODE_ENV || "development",
     release: process.env.GITHUB_SHA || process.env.COMMIT_SHA || undefined,
-    serverName: `corvus-${component}`,
+    serverName: `omen-${component}`,
     tracesSampleRate: 0,
     sendDefaultPii: false,
     beforeSend: scrubSentryEvent,

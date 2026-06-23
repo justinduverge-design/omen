@@ -19,13 +19,13 @@ function Arrow() {
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-function CorvusLogo() {
+function OmenLogo() {
   return (
     <div className="flex items-center gap-3">
       <div className="relative h-12 w-12 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_32px_rgba(201,164,76,0.16)]">
-        <img alt="Corvus" className="h-full w-full object-cover" src="/corvus-apollo-logo.png" />
+        <img alt="Omen" className="h-full w-full object-cover" src="/omen-primary-emblem.png" />
       </div>
-      <span className="font-display text-xl tracking-[0.22em] text-[var(--color-text-primary)]">CORVUS</span>
+      <span className="font-display text-xl tracking-[0.22em] text-[var(--color-text-primary)]">OMEN</span>
     </div>
   );
 }
@@ -34,7 +34,7 @@ function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-        <CorvusLogo />
+        <OmenLogo />
         <div className="flex items-center gap-6">
           <a
             className="inline-flex min-h-[44px] items-center rounded-sm text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]"
@@ -58,7 +58,7 @@ function Header() {
 
 const storySteps = [
   'Every trade carries risk.',
-  'Corvus reads the full picture.',
+  'Omen reads the full picture.',
   'You get a clear signal.',
 ];
 
@@ -168,7 +168,7 @@ function TradeAnalyzerHeroCard() {
         <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-lg border border-white/8 bg-white/[0.025] px-3 py-2.5">
             <p className="text-[10px] uppercase tracking-[0.18em] text-[#F4EFE1]/38">
-              Corvus Edge
+              Omen Edge
             </p>
             <p className="mt-1 text-sm font-semibold text-[#C9A44C]">Strong</p>
           </div>
@@ -195,7 +195,7 @@ function TradeAnalyzerHeroCard() {
           </p>
           <Button
             className="w-full bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-            href="/corvus"
+            href="/about"
           >
             Analyze Your Trade <Arrow />
           </Button>
@@ -448,7 +448,7 @@ function WaitlistSection() {
             Get the signal before launch.
           </h2>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/52">
-            Join the Corvus waitlist for early access, product updates, and fantasy
+            Join the Omen waitlist for early access, product updates, and fantasy
             football tools as they go live.
           </p>
 
@@ -565,7 +565,7 @@ export default function Landing() {
           {/* Left: headline + waitlist */}
           <div className="animate-[fadeIn_0.6s_ease-out] motion-reduce:animate-none">
             <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#C9A44C]">
-              Corvus · Fantasy Intelligence
+              Omen · Fantasy Intelligence
             </p>
 
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.12] text-[var(--color-text-primary)] md:text-5xl lg:text-[3.25rem]">
@@ -575,7 +575,7 @@ export default function Landing() {
             </h1>
 
             <p className="mt-5 max-w-md text-[0.9375rem] leading-7 text-[#F4EFE1]/58">
-              Corvus weighs your roster, matchup, player value, and season context
+              Omen weighs your roster, matchup, player value, and season context
               — then gives you a plain-English accept, decline, or hold recommendation.
             </p>
 
@@ -590,7 +590,7 @@ export default function Landing() {
               <SignInForm />
               <a
                 className="mt-3 inline-flex items-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/38 transition-colors hover:text-[#F4EFE1]/65"
-                href="/corvus"
+                href="/about"
               >
                 Try the live tool →
               </a>
@@ -610,7 +610,7 @@ export default function Landing() {
         >
           <div className="mb-8 border-t border-white/8 pt-10">
             <p className="text-xs uppercase tracking-[0.32em] text-[#F4EFE1]/32">
-              More from Corvus
+              More from Omen
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -630,12 +630,12 @@ export default function Landing() {
                   Ready to run a real trade?
                 </h2>
                 <p className="mt-1 text-sm text-[#F4EFE1]/45">
-                  No account required. Corvus analyzes any trade in seconds.
+                  No account required. Omen analyzes any trade in seconds.
                 </p>
               </div>
               <a
                 className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-md bg-[#C9A44C] px-7 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] active:scale-[0.97]"
-                href="/corvus"
+                href="/about"
               >
                 Try the live tool →
               </a>

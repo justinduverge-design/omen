@@ -9,15 +9,19 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Kickoffs:** `Blueprints/prompts/kickoff-frontend-claude.md`, `Blueprints/prompts/kickoff-backend-codex.md`
 - **Modules:** `Blueprints/prompts/kickoff-modules/*` — pull-task, plan-approval, done-and-close, safety-gates, read-first
 - **Self-check:** `Blueprints/definition-of-done.md`
+- **Company baseline:** `Blueprints/playbooks/omen-company-baseline.md`
+- **Skill routing:** `Blueprints/playbooks/skill-activation-runbook.md`
+- **Skill evidence:** `Blueprints/playbooks/skill-usage-ledger.md`
 - **Contract bus:** `Blueprints/handoffs/backend-to-frontend.md`, `frontend-to-backend.md`
 - **Memory:** `Direction/decision_log.md` + facts-of-record + session handoffs
 
-## Each task — 4 steps
+## Each task — 5 steps
 
 1. **Paste the kickoff** for the agent you want to run (frontend-claude or backend-codex).
 2. **Agent self-pulls** — reads inbox, honors pin, otherwise organizes top-5 from sprint across all lanes.
-3. **Plan approval gate** — agent reports task / files / verification plan. You confirm or correct.
-4. **Agent builds, verifies, commits, closes** — satisfies DoD, writes handoff, logs decisions, reports.
+3. **Plan approval gate** — agent reports task / files / verification plan / selected skills and conditional-skill N/A reasons. You confirm or correct.
+4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions.
+5. **Agent leaves a skill receipt** — records evidence in `Blueprints/playbooks/skill-usage-ledger.md` and routes any procedure gap through the retro/backlog.
 
 ## Pin override
 

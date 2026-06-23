@@ -6,7 +6,7 @@ This file was recreated during a DBS integrity repair on 2026-05-21.
 
 Use this repo as the active product workspace:
 
-`C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus`
+`<active-git-root>/slops-saloon/corvus/`
 
 ## Layer Rules
 
@@ -41,19 +41,19 @@ Do not touch `Archive\quarantine`.
 ### What was completed
 
 **Documentation (canonical paths fixed):**
-- `corvus/Blueprints/specs/corvus-ux-ui-design-system-v1.md` — written to canonical path (was worktree-only)
+- `corvus/Blueprints/specs/omen-ux-ui-design-system-v1.md` — written to canonical path (was worktree-only)
 
 **Frontend — theme system:**
-- `frontend/tailwind.config.js` — added Corvus brand color tokens (raven, charcoal, bone, gold, crimson, omen)
+- `frontend/tailwind.config.js` — added Omen brand color tokens (raven, charcoal, bone, gold, crimson, omen)
 - `frontend/src/index.css` — full CSS custom property token system for dark/light modes with system fallback
 - `frontend/src/lib/theme.js` — `applyTheme()`, `getThemeSetting()`, `setTheme()` — reads `localStorage.slops-theme`
 - `frontend/src/App.jsx` — initializes theme on load, updates on OS preference change
 
 **Frontend — auth routing:**
-- `frontend/src/lib/nextUrl.js` — `corvus.auth.next` localStorage strategy per Codex contract. `storeNextUrl()` sanitizes and stores; `consumeNextUrl()` reads and clears. Only allows same-origin paths from an explicit allowlist.
+- `frontend/src/lib/nextUrl.js` — `omen.auth.next` localStorage strategy per Codex contract. `storeNextUrl()` sanitizes and stores; `consumeNextUrl()` reads and clears. Only allows same-origin paths from an explicit allowlist.
 - `frontend/src/pages/Login.jsx` — P0 screen. Google/Apple/Discord OAuth buttons + email magic link. `?next=` param stored on load. Auth callback (`onAuthStateChange`) detects session and routes to stored destination. `/omen` destination routes through `/account/connect?next=/omen` for league-gate check. Sent-confirmation state. Footer link to `/trade` (no sign-in required).
 - `frontend/src/pages/ConnectLeague.jsx` — Step 2 screen. Auth-gated (redirects to `/login` if not signed in). Sleeper resolve → league select → connect flow (against new `/api/platforms/sleeper/resolve` contract). Yahoo OAuth button + returns to `/account/connect?connected=yahoo` after auth. ESPN guided walkthrough with per-browser tab instructions and structured error codes. Manual card locked with "Coming soon" copy (build-gate respected). Skip option with honest Omen-locked copy. Continue button appears after any platform connects.
-- `frontend/src/components/layout/ProtectedRoute.jsx` — redirects to `/login` (was `/`), stores current path as `corvus.auth.next` before redirect.
+- `frontend/src/components/layout/ProtectedRoute.jsx` — redirects to `/login` (was `/`), stores current path as `omen.auth.next` before redirect.
 - `frontend/src/pages/Account.jsx` — redirects to `/login` on unauthenticated (was `/`).
 - `frontend/src/pages/Landing.jsx` — all CTAs updated to correct routes (`/trade`, `/draft`, `/login`, `/login?next=/omen`). Inline sign-in form replaced with a link to `/login`. `supabase` import removed (no longer needed here).
 - `frontend/src/routes/index.jsx` — added `/login`, `/trade`, `/draft`, `/account/connect`, `/omen` routes. Trade Analyzer and Draft Assistant are public (no ProtectedRoute wrapper). Omen is auth-gated.
@@ -99,7 +99,7 @@ Do not touch `Archive\quarantine`.
 
 **Frontend — canonical Omen state hardening:**
 - Canonical `frontend/src/pages/OmenOfTheWeek.jsx` now sends `{}` to live Omen.
-- `401` live Omen response routes to `/login` with `corvus.auth.next=/omen`.
+- `401` live Omen response routes to `/login` with `omen.auth.next=/omen`.
 - `402` live Omen response renders `UpgradeState`.
 - `pending_live_engine` renders connected-but-not-ready copy instead of falling through to the empty state.
 - Important: this was first found only in `.claude/worktrees/dreamy-ride-ab2778`; canonical file has now been patched.
@@ -145,10 +145,10 @@ Do not touch `Archive\quarantine`.
 - `/api/user/export`, `/api/user/consent`, and `/api/user/delete` are mounted privacy routes.
 - `/api/ready` now separates dependency/config readiness from `/api/health`.
 - Trade Analyzer and Draft Assistant have a stricter public tool rate limit.
-- `scripts/load-corvus-routes.js` was added for local/staging smoke-load checks.
+- `scripts/load-omen-routes.js` was added for local/staging smoke-load checks.
 
 **Documentation / reporting:**
-- Corvus Layer 2 docs were updated with the 2026-05-26 backend truth.
+- Omen Layer 2 docs were updated with the 2026-05-26 backend truth.
 - `Blueprints/handoffs/backend-to-frontend.md` now has the current contract section Claude should read first.
 - Layer 1 Slops Saloon status/report files were prepared for HQ visibility.
 
@@ -166,11 +166,11 @@ Do not touch `Archive\quarantine`.
 - Supabase Auth provider confirmation for Google, Apple, and Discord.
 - Real-account Yahoo/Sleeper/ESPN Omen QA before public “all platforms live” claims.
 - Production deploy.
-- Cron scoring enablement with `CORVUS_CRON_SCORING_ENABLED=true`.
+- Cron scoring enablement with `OMEN_CRON_SCORING_ENABLED=true`.
 
 ### Next recommended work
 
 1. Run Stripe test-mode validation and record evidence.
-2. Run `scripts/load-corvus-routes.js` against local/staging with an auth token.
+2. Run `scripts/load-omen-routes.js` against local/staging with an auth token.
 3. Claude updates Account/Omen UI from the 2026-05-26 backend-to-frontend contract.
 4. Decide whether to merge or retire `POST /api/optimizer/mvp-move` now that `POST /api/omen/mvp-move` is canonical.

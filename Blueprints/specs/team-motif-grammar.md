@@ -6,12 +6,12 @@ depends-on:
   - Brand/brand-system.md
   - Brand/entity-identity-theming.md
   - Blueprints/specs/page-system.md (Phase 1.5h)
-  - Blueprints/specs/corvus-ux-ui-design-system-v1.md
+  - Blueprints/specs/omen-ux-ui-design-system-v1.md
   - Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md
   - Blueprints/audits/2026-06-21-phase1-5h-multi-color-wcag-sweep.md
 ---
 
-# Corvus Team Motif Grammar
+# Omen Team Motif Grammar
 
 ## Purpose
 
@@ -125,7 +125,7 @@ type CulturalMoment = {
   activation:
     | { rule: 'date-range'; startMonthDay: string; endMonthDay: string }
     | { rule: 'date-list'; dates: string[] /* 'YYYY-MM-DD' */ }
-    | { rule: 'manual-flag'; storageKey: string /* 'corvus.theme.moments' map key */ };
+    | { rule: 'manual-flag'; storageKey: string /* 'omen.theme.moments' map key */ };
   overlay: {
     eyebrow: string;                             // brand-voice copy, slops-ux-copy reviewed
     eyebrowColorRole: 'primary' | 'secondary' | 'tertiary' | 'neutral' | 'mute' | 'accent-pop';
@@ -291,7 +291,7 @@ Add a sixth column to the Page System Table: **Motif / Moment posture**. Canonic
 | Route | Motif / Moment posture |
 |---|---|
 | `/` | inert (no team context) |
-| `/corvus` | inert |
+| `/about` | inert |
 | `/login` | inert |
 | `/account/connect` | inert |
 | `/onboarding` (Pick your look) | inert — picker shows 32 tiles; motifs preview only after selection on `/account/appearance` (motif preview would render 32 motifs simultaneously, breaking the per-team identity-budget rule) |
@@ -313,7 +313,7 @@ Bound v1 to 6 teams. No trademark-adjacent shapes ship in 1.5g.1 — only hairli
 | Team | Category fields in v1 | Shape idea | Trademark posture |
 |---|---|---|---|
 | PIT | motif | Gold hairline (`secondary`), `page-edge` + `section-divider`, 1px solid | `self-assessed` (pure geometry, no three-diamond) |
-| GB | motif + culturalMoment | Tundra hairline section-divider (`secondary` gold, 1px); Lambeau Tundra moment (`manual-flag`, `corvus.theme.moments['gb-lambeau-tundra']`); eyebrow string TBD — working draft: "Lambeau, manually painted." (no weather claim), subject to `slops-ux-copy` review in 1.5g.3 | `self-assessed`; moment is manual-only, no automated weather claim |
+| GB | motif + culturalMoment | Tundra hairline section-divider (`secondary` gold, 1px); Lambeau Tundra moment (`manual-flag`, `omen.theme.moments['gb-lambeau-tundra']`); eyebrow string TBD — working draft: "Lambeau, manually painted." (no weather claim), subject to `slops-ux-copy` review in 1.5g.3 | `self-assessed`; moment is manual-only, no automated weather claim |
 | DET | culturalMoment | Thanksgiving Classic moment (`date-list`, 4th Thursday of Nov 2026 and 2027 hand-curated), eyebrow "Thanksgiving Classic.", scope: `['app','account','ledger','standings','football']` | n/a |
 | NO | motif + culturalMoment | Hairline `page-edge` in `tertiary` (purple) 1px; Mardi Gras moment (`date-range` 02-08 → 02-25), eyebrow "Mardi Gras week." scope: `['app','account']` only, tint at `surfaceTintAlpha: 0.12` from `tertiary` | `self-assessed`; eyebrow color is palette-sourced; tint only paints on chrome routes |
 | MIA | motif | Triple-line hairline `page-edge` (`secondary` aqua, 1px), opacity `{ dark: 0.6, light: 0.45 }` | `self-assessed`; light-axis motif test |
@@ -329,7 +329,7 @@ Cultural moments activate from data the app already has. Do **not** introduce a 
 |---|---|---|
 | `date-range` | JS `new Date()` in user's local timezone, compared against `MM-DD` strings annually | No |
 | `date-list` | JS `new Date()`, compared against `'YYYY-MM-DD'` ISO strings hand-curated per season in `frontend/src/data/nflCalendar.js` | No — calendar JSON is hand-maintained, audited annually per `entity-identity-theming.md:201-203` |
-| `manual-flag` | `localStorage['corvus.theme.moments']` — a single JSON object map keyed by moment `id` to boolean | No |
+| `manual-flag` | `localStorage['omen.theme.moments']` — a single JSON object map keyed by moment `id` to boolean | No |
 
 Sleeper draft state is **not** used as a moment activation source in v1. If a future moment needs draft-week activation, it reads from the existing Sleeper draft hook (`useSleeperDraft`) which is already in the app. Flag as a Phase 1.5g.4 backend dependency only if the calendar JSON is not enough.
 
@@ -384,7 +384,7 @@ AAA framework gates:
 
 - Animated motifs (`kind: 'shimmer' | 'parallax'`): explicitly out of v1; revisit 1.5g.4 with new schema fields + reduced-motion default flip.
 - Per-mode motif color override: defer to 1.5g.4 if the sweep flags a light-vs-dark marginal we cannot fix via `opacity: { dark, light }`.
-- Cross-tab sync for `corvus.theme.moments` flags: storage event listener deferred to 1.5g.4. Documented as known limitation.
+- Cross-tab sync for `omen.theme.moments` flags: storage event listener deferred to 1.5g.4. Documented as known limitation.
 - Animated moment overlays (shimmer, parallax): out of v1, see schema constraint `reducedMotion: 'static-only'`.
 - Multi-window moments (Mardi Gras week + Mardi Gras Day with different eyebrows): out of v1; ship as separate moment ids if needed.
 - Light-axis surface tint inversion (MIA/IND/LAC/DAL/CAR/ARI): no inversion in v1 — tint role is palette-relative; sweep is the gate.
@@ -395,7 +395,7 @@ AAA framework gates:
 - **Audio cues, scroll-linked motion, and time-of-day surface shifts are explicitly out of Phase 1.5g grammar.** Any future addition re-enters via a new category-axis array (e.g., `audioCues[]`, `scrollMotions[]`), not as a field on `motif` / `typeFlourish` / `culturalMoment`.
 - Haptic feedback on mobile: out of v1; `mobile-first-qa-playbook` has no haptic chapter today.
 - Localization of cultural moment eyebrows (e.g., NO French / Cajun overlay): out of v1; English-only baseline.
-- Per-user moment opt-out (a Saints fan who dislikes Mardi Gras chrome): out of v1; `localStorage['corvus.theme.moments']['no-mardi-gras']` flipped to `false` already suppresses manual-flag moments, but `date-range` moments have no per-user kill-switch in v1.
+- Per-user moment opt-out (a Saints fan who dislikes Mardi Gras chrome): out of v1; `localStorage['omen.theme.moments']['no-mardi-gras']` flipped to `false` already suppresses manual-flag moments, but `date-range` moments have no per-user kill-switch in v1.
 - `nflCalendar.js` annual audit owner: Justin. Cadence: pre-season (August). Skill: `slops-context-markdown` for the audit memo. Doctrine: `entity-identity-theming.md:201-203` covers the why.
 
 ## Cross-references
@@ -403,7 +403,7 @@ AAA framework gates:
 - `Brand/brand-system.md` (Pillars, AAA, voice, typography lock).
 - `Brand/entity-identity-theming.md` (find-don't-derive methodology, cultural-anchor citations).
 - `Blueprints/specs/page-system.md` (Phase 1.5h palette doctrine; Motif/Moment posture column added per this spec).
-- `Blueprints/specs/corvus-ux-ui-design-system-v1.md` (tokens, components).
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` (tokens, components).
 - `Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md` (cultural anchors per team).
 - `Blueprints/audits/2026-06-21-phase1-5f-two-axis-wcag-sweep.md` (axis decisions, known marginals — superseded in code by 1.5h).
 - `Blueprints/audits/2026-06-21-phase1-5h-multi-color-wcag-sweep.md` (62-palette sweep baseline).

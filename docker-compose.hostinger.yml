@@ -1,10 +1,10 @@
 # ════════════════════════════════════════════════════════════════
-# Corvus Hostinger deploy override
+# Omen Hostinger deploy override
 # ----------------------------------------------------------------
 # Use with the base compose file:
 #
 #   docker compose \
-#     --env-file "$CORVUS_ENV_FILE" \
+#     --env-file "$OMEN_ENV_FILE" \
 #     -f docker-compose.yml \
 #     -f docker-compose.hostinger.yml \
 #     up -d --no-deps api
@@ -15,9 +15,9 @@
 
 services:
   api:
-    image: corvus-api:${RELEASE_ID:-hostinger-local}
+    image: omen-api:${RELEASE_ID:-hostinger-local}
     env_file:
-      - ${CORVUS_ENV_FILE:-/opt/corvus/shared/.env}
+      - ${OMEN_ENV_FILE:-${CORVUS_ENV_FILE:-/opt/omen/shared/.env}}
     build:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
@@ -35,9 +35,9 @@ services:
   cron:
     profiles:
       - cron
-    image: corvus-cron:${RELEASE_ID:-hostinger-local}
+    image: omen-cron:${RELEASE_ID:-hostinger-local}
     env_file:
-      - ${CORVUS_ENV_FILE:-/opt/corvus/shared/.env}
+      - ${OMEN_ENV_FILE:-${CORVUS_ENV_FILE:-/opt/omen/shared/.env}}
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}

@@ -51,8 +51,8 @@ const SUCCESS_RESPONSE = {
   state: "success",
   request_id: "omen_req_qa_success",
   platform: { name: "yahoo", status: "connected", recovery: null },
-  league: { id: "414.l.12345", name: "Mock Corvus League", season: 2026, week: 1, scoring_format: "ppr" },
-  team: { id: "7", name: "Mock Corvus Team" },
+  league: { id: "414.l.12345", name: "Mock Omen League", season: 2026, week: 1, scoring_format: "ppr" },
+  team: { id: "7", name: "Mock Omen Team" },
   signals: {
     roster:          { status: "mock",  used: true,  source: "platform_adapter",       message: "Roster imported from deterministic mock fixture." },
     projections:     { status: "stub",  used: true,  source: "internal_stub",           message: "Projection provider is not finalized yet." },
@@ -99,13 +99,13 @@ const EMPTY_RESPONSE = {
   state: "empty",
   request_id: "omen_req_qa_empty",
   platform: { name: "yahoo", status: "connected", recovery: null },
-  league: { id: "mock-league-1", name: "Mock Corvus League", season: 2026, week: 1, scoring_format: "ppr" },
-  team: { id: "mock-team-1", name: "Mock Corvus Team" },
+  league: { id: "mock-league-1", name: "Mock Omen League", season: 2026, week: 1, scoring_format: "ppr" },
+  team: { id: "mock-team-1", name: "Mock Omen Team" },
   signals: {},
   recommendation: null,
   explanation: {
     summary:        "No move clears the recommendation threshold this week.",
-    why_it_matters: "Your lineup is close enough to available alternatives that Corvus should not force a move.",
+    why_it_matters: "Your lineup is close enough to available alternatives that Omen should not force a move.",
     risk:           "Forcing a marginal move could create more downside than upside.",
     confidence:     "Confidence is 68 out of 100 that standing pat is reasonable.",
     data_used:      ["connected roster", "weekly projections"],
@@ -121,7 +121,7 @@ const PLATFORM_DISCONNECTED_RESPONSE = {
     status: "disconnected",
     recovery: {
       code: "connect_platform",
-      message: "Connect Sleeper before Corvus can read your roster.",
+      message: "Connect Sleeper before Omen can read your roster.",
       cta: "Connect Sleeper",
     },
   },
@@ -137,7 +137,7 @@ function espnRecovery(state) {
       httpStatus: 200,
       platformStatus: "reauth_required",
       code: "refresh_espn_cookies",
-      message: "Your ESPN connection needs fresh cookies before Corvus can read this league.",
+      message: "Your ESPN connection needs fresh cookies before Omen can read this league.",
       cta: "Reconnect ESPN",
       fields_needed: ["ESPN_S2", "SWID"],
     },
@@ -145,7 +145,7 @@ function espnRecovery(state) {
       httpStatus: 200,
       platformStatus: "league_context_missing",
       code: "select_or_reimport_espn_league",
-      message: "Corvus could not find that ESPN league or team. Select the league again or re-import ESPN.",
+      message: "Omen could not find that ESPN league or team. Select the league again or re-import ESPN.",
       cta: "Select ESPN League",
     },
     espn_import_blocked: {
@@ -159,7 +159,7 @@ function espnRecovery(state) {
       httpStatus: 200,
       platformStatus: "recovery_needed",
       code: "recover_espn_connection",
-      message: "Corvus cannot tell whether ESPN needs reauth, league selection, or a retry. Start ESPN recovery.",
+      message: "Omen cannot tell whether ESPN needs reauth, league selection, or a retry. Start ESPN recovery.",
       cta: "Recover ESPN",
     },
   };
@@ -193,7 +193,7 @@ const ERROR_RESPONSE = {
   signals: {},
   error: {
     code: "omen_generation_failed",
-    message: "Corvus could not generate an MVP Move right now.",
+    message: "Omen could not generate an MVP Move right now.",
     retryable: true,
   },
 };
@@ -278,7 +278,7 @@ const STATES = [
     response: ERROR_RESPONSE,
     assertions: [
       { text: "Error",               label: "error label" },
-      { text: "Corvus could not generate", label: "error message" },
+      { text: "Omen could not generate", label: "error message" },
       { text: "Try again",           label: "retry button" },
     ],
   },

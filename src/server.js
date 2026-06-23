@@ -2,7 +2,7 @@
 
 /**
  * =================================================================
- * Corvus API - entry point
+ * Omen API - entry point
  * -----------------------------------------------------------------
  * Bootstrap order is intentional:
  *   1. Sentry init (must run before other imports)
@@ -264,7 +264,7 @@ try {
 // migrate them to src/routes/*.js, this will shrink and eventually
 // be removed.
 try {
-  const apiRoutes = require("./corvus_api_v2");
+  const apiRoutes = require("./omen_api_v2");
   app.use("/api", apiRoutes);
 } catch (e) {
   logger.error("API routes failed to load", { err: e.message, stack: e.stack });
@@ -331,7 +331,7 @@ app.use((err, req, res, _next) => {
 
 // --- Listen -------------------------------------------------------
 const server = app.listen(config.port, () => {
-  logger.info("Corvus API listening", {
+  logger.info("Omen API listening", {
     port: config.port,
     env:  config.nodeEnv,
   });

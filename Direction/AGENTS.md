@@ -1,8 +1,8 @@
-# Corvus
+# Omen
 
 ## 1. Identity & Scope
 
-Corvus is the active Fantasy Football MVP product inside the Slops Saloon division. It helps users see the best fantasy football move without forcing them to understand heavy math.
+Omen is the active Fantasy Football MVP product inside the Slops Saloon division. It helps users see the best fantasy football move without forcing them to understand heavy math.
 
 ## 2. Tech Stack
 
@@ -12,7 +12,7 @@ Corvus is the active Fantasy Football MVP product inside the Slops Saloon divisi
 - **Cache:** Upstash Redis
 - **Payments:** Stripe
 - **AI:** Local Ollama/Gemma when configured; app must work without LLM
-- **Deploy lane:** Oracle, service `corvus-api`
+- **Deploy lane:** Oracle, service `omen-api`
 - **Repo:** `justinduverge-design/corvus`
 
 ## 3. Key Commands
@@ -20,7 +20,7 @@ Corvus is the active Fantasy Football MVP product inside the Slops Saloon divisi
 ```bash
 npm start          # node src/server.js
 npm run dev        # same as start
-npm run cron       # node src/corvus_tuesday_cron.js
+npm run cron       # node src/omen_tuesday_cron.js
 node --test        # Node built-in test runner
 ```
 
@@ -36,8 +36,8 @@ Do not run deploys, migrations, package installs, Docker, Stripe live actions, o
 - `src/adapters/`: platform adapter normalization.
 - `src/services/`: subscription, LLM, VORP, agent support.
 - `frontend/`: active UI/app shell.
-- `src/corvus_api_v2.js`: legacy monolith; avoid adding new work here.
-- `src/corvus_agents.js`: legacy active agent pipeline; do not remove casually.
+- `src/omen_api_v2.js`: legacy monolith; avoid adding new work here.
+- `src/omen_agents.js`: legacy active agent pipeline; do not remove casually.
 
 ## 5. Decision Tables
 

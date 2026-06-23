@@ -92,7 +92,7 @@ function LivePreview({ template, themed }) {
               : 'var(--color-text-tertiary)',
           }}
         >
-          Corvus · Omen
+          Omen · Omen
         </span>
         <span
           className="rounded border px-2 py-0.5 text-xs"
@@ -210,7 +210,7 @@ export default function Appearance() {
             className="font-serif text-lg leading-relaxed"
             style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}
           >
-            Corvus paints with your team's actual colors — every one of them. Pick
+            Omen paints with your team's actual colors — every one of them. Pick
             Official for the canonical palette, or a Special variant to swap the
             chrome for a culture-anchored alternate.
           </p>
@@ -319,7 +319,7 @@ export default function Appearance() {
                       </div>
                     ) : (
                       <span className="font-display text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                        {mode === 'system' ? 'Following your OS' : 'Corvus default'}
+                        {mode === 'system' ? 'Following your OS' : 'Omen default'}
                       </span>
                     )}
                   </div>
@@ -426,10 +426,10 @@ export default function Appearance() {
               style={{ color: 'var(--color-text-tertiary)' }}
             >
               {themed
-                ? `Every Corvus surface uses ${selectedTeam.name} colors. Switch variants to see the special palette.`
+                ? `Every Omen surface uses ${selectedTeam.name} colors. Switch variants to see the special palette.`
                 : mode === 'system'
-                ? 'System mode tracks your OS. Switch to Team to paint Corvus.'
-                : 'Corvus mode keeps the brand gold. Switch to Team to paint Corvus.'}
+                ? 'System mode tracks your OS. Switch to Team to paint Omen.'
+                : 'Omen mode keeps the brand gold. Switch to Team to paint Omen.'}
             </p>
           </div>
         </div>

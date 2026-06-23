@@ -133,7 +133,7 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
       )}
 
       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}>
-        Corvus #{rec.rank}
+        Omen #{rec.rank}
       </span>
 
       {otherSources.length > 0 && (
@@ -342,7 +342,7 @@ export default function DraftAssistant({ platforms }) {
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
         </div>
         <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-          Tell Corvus where you are in your draft. It will surface the best available move for your roster.
+          Tell Omen where you are in your draft. It will surface the best available move for your roster.
         </p>
         {cry && (
           <p

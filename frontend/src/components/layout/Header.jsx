@@ -157,7 +157,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
       {/* Drawer panel */}
       <div
         ref={drawerRef}
-        id="corvus-nav-drawer"
+        id="omen-nav-drawer"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
@@ -190,7 +190,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
               className="font-display text-[15px] uppercase tracking-[0.34em]"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              Corvus
+              Omen
             </span>
           </div>
 
@@ -314,7 +314,7 @@ export default function Header() {
             type="button"
             aria-label="Open navigation"
             aria-expanded={drawerOpen}
-            aria-controls="corvus-nav-drawer"
+            aria-controls="omen-nav-drawer"
             onClick={openDrawer}
             className="inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-[var(--color-surface-1)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
             style={{ color: 'var(--color-text-secondary)' }}
@@ -343,7 +343,7 @@ export default function Header() {
               className="font-display text-[15px] uppercase tracking-[0.34em]"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              Corvus
+              Omen
             </span>
           </Link>
 

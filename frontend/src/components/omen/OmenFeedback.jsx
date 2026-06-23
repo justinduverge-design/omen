@@ -77,7 +77,7 @@ export default function OmenFeedback({ week, season, moveTitle, moveSubtext }) {
             Your answer is recorded.
           </p>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Corvus factors this in when Tuesday's scoring runs.
+            Omen factors this in when Tuesday's scoring runs.
           </p>
         </div>
       </div>

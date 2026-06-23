@@ -1,4 +1,4 @@
-# Corvus API Route Reference
+# Omen API Route Reference
 
 Last updated: 2026-06-19
 
@@ -14,7 +14,7 @@ This file is the quick backend reference for current canonical routes and known 
 | `GET` | `/api/session` | `session.v1` | Public auth shell; returns authenticated user only when a valid bearer token is supplied. |
 | `GET` | `/api/system/current-week` | `system-current-week.v1` | Public NFL season/week context. |
 | `GET` | `/api/platform-status` | `platform-status.v1` | Public platform/config status; no private LLM URL. |
-| `GET` | `/api/demo` | `corvus-demo.v1` | Public deterministic sample roster + Omen envelope. Always `mode: "demo"`; never live/mock fallback. |
+| `GET` | `/api/demo` | `omen-demo.v1` | Public deterministic sample roster + Omen envelope. Always `mode: "demo"`; never live/mock fallback. |
 
 ## Canonical Product Routes
 
@@ -65,5 +65,5 @@ Use `scripts/smoke-tier2-endpoints.js` for Tier 2 launch smoke.
 
 - Default feedback smoke target: season `2099`, week `1`.
 - This keeps smoke evidence away from current-season user history by default.
-- Add `CORVUS_TIER2_CLEANUP=1` to rewrite the same idempotent smoke row to `followed=false`, `stars=null`, and a cleanup note after Move History has verified it.
-- The script reads `CORVUS_AUTH_TOKEN` only from the current process environment and never prints it.
+- Add `OMEN_TIER2_CLEANUP=1` to rewrite the same idempotent smoke row to `followed=false`, `stars=null`, and a cleanup note after Move History has verified it.
+- The script reads `OMEN_AUTH_TOKEN` only from the current process environment and never prints it.
