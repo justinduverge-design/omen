@@ -46,6 +46,7 @@ Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with
 | 2026-06-23 | Omen operational rename execution prep | `slops-repo-inspector` | PASS | Confirmed branch, dirty state, runner status, runner labels, and latest deploy workflow runs before preparing the cutover workflow | Repo still needs explicit-path staging; do not stage `graphify-out/` or logo source scratch files |
 | 2026-06-23 | Omen operational rename execution prep | `slops-deploy-guard` | PASS | Added the `omen-deploy` runner label while retaining `corvus-deploy`, and added a manual-only rollback-guarded cutover workflow for `/opt/omen` | Execute in sequence: seed images through the old path, run cutover, then flip regular deploy workflows to Omen-only |
 | 2026-06-23 | Omen operational rename execution prep | `slops-git-flow` | PASS | Prepared to stage explicit paths only; rollback/artifacts and generated graph/cache outputs are excluded from commit scope | If direct main push is blocked, use a branch/PR without broad staging |
+| 2026-06-23 | Omen cutover run 27995403847 | `slops-deploy-guard` | HOLD SAFE | Cutover stopped at `/opt/omen` prep because the KVM1 runner lacks passwordless sudo; health/readiness stayed green and live containers were not stopped | Workflow patched to use a short-lived Docker helper for `/opt/omen` prep through existing Docker access |
 
 ## Monthly Review
 

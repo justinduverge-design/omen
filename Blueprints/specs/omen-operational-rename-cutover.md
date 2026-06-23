@@ -194,6 +194,7 @@ Implementation note, 2026-06-23:
 - Follow-up execution note, 2026-06-23:
   - The existing KVM1 self-hosted runner `corvus-kvm1-deploy` now carries both `corvus-deploy` and `omen-deploy` labels.
   - `.github/workflows/omen-operational-cutover.yml` was added as a manual-only guarded workflow. It requires the `CUTOVER_TO_OMEN` confirmation input, copies `/opt/corvus/deploy/hostinger/.env.production` to `/opt/omen/deploy/hostinger/.env.production` without printing secrets, renders Omen compose config, pre-pulls Omen images, stops the Corvus compose project, starts the Omen compose project, verifies health/readiness, and attempts rollback if the Omen start fails after the Corvus stop.
+  - First cutover run `27995403847` stopped before any live container change because the runner can use Docker but cannot create `/opt/omen` through passwordless sudo. The workflow now falls back to a short-lived Docker helper for `/opt/omen` file preparation and preserves the source env file permissions with `cp -p`.
 
 Done-when:
 
