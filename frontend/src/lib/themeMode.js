@@ -84,6 +84,23 @@ const CORE_TEAM_OVERRIDE_VARS = [
   '--color-text-tertiary',
 ];
 
+export const MOTIF_VARS = [
+  '--motif-shape',
+  '--motif-color',
+  '--motif-thickness',
+  '--motif-opacity',
+  '--motif-svg-url',
+];
+
+const MOTIF_ATTRS = [
+  'data-motif-kind',
+  'data-motif-shape',
+  'data-motif-page-edge',
+  'data-motif-card',
+  'data-motif-section-divider',
+  'data-motif-eyebrow',
+];
+
 // ── In-tab change notification ────────────────────────────────────────────
 
 const listeners = new Set();
@@ -150,6 +167,39 @@ function clearTeamTokens(root) {
   for (const v of [...TEAM_TOKEN_VARS, ...CORE_TEAM_OVERRIDE_VARS]) {
     root.style.removeProperty(v);
   }
+  clearMotifTokens(root);
+}
+
+function clearMotifTokens(root) {
+  for (const v of MOTIF_VARS) root.style.removeProperty(v);
+  for (const attr of MOTIF_ATTRS) root.removeAttribute(attr);
+}
+
+export function applyMotifTokens(root, motifs) {
+  const active = Array.isArray(motifs) ? motifs : (motifs?.active ?? []);
+  const motif = active[0];
+  if (!motif) {
+    clearMotifTokens(root);
+    return;
+  }
+
+  root.style.setProperty('--motif-shape', motif.shape);
+  root.style.setProperty('--motif-color', motif.color);
+  root.style.setProperty('--motif-thickness', `${motif.thicknessPx}px`);
+  root.style.setProperty('--motif-opacity', String(motif.opacityValue ?? 1));
+
+  if (motif.ornamentSvgPath) {
+    root.style.setProperty('--motif-svg-url', `url('${motif.ornamentSvgPath}')`);
+  } else {
+    root.style.removeProperty('--motif-svg-url');
+  }
+
+  root.setAttribute('data-motif-kind', motif.kind);
+  root.setAttribute('data-motif-shape', motif.shape);
+  root.setAttribute('data-motif-page-edge', motif.appliesTo.includes('page-edge') ? 'true' : 'false');
+  root.setAttribute('data-motif-card', motif.appliesTo.includes('card') ? 'true' : 'false');
+  root.setAttribute('data-motif-section-divider', motif.appliesTo.includes('section-divider') ? 'true' : 'false');
+  root.setAttribute('data-motif-eyebrow', motif.appliesTo.includes('eyebrow') ? 'true' : 'false');
 }
 
 function setRoleTokens(root, template) {
@@ -253,6 +303,8 @@ function applyTeamTokens(root, template) {
     '--color-text-tertiary',
     template.surfaceIsDark ? '#6D6D72' : '#6B7280',
   );
+
+  applyMotifTokens(root, template.motifs);
 }
 
 function resolveDataTheme(mode, teamAbbr, variant) {
