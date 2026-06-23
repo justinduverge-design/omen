@@ -10,8 +10,8 @@ file plus the compose and nginx configs as the source of truth in the meantime).
 - `docker-compose.prod.yml` runs two containers from GHCR:
   - `api` pulls `ghcr.io/justinduverge-design/omen:main`.
   - `cron` pulls `ghcr.io/justinduverge-design/omen-cron:main`.
-- During the Omen operational rename transition, the workflows also keep
-  publishing the old Corvus tags for rollback until the approved cleanup phase.
+- Old Corvus GHCR tags are retained as rollback artifacts, but normal workflows
+  now publish and pull Omen image names only.
 - The API binds to `127.0.0.1:3000:3000`, so it is reachable only from the VPS itself.
 - Nginx is the public front door on ports 80 and 443. It proxies public traffic to `127.0.0.1:3000`.
 - The same API container serves both `/api/*` routes and the built SPA from `frontend/dist`, so Hostinger does not need a separate static-site host.
@@ -25,9 +25,9 @@ The primary deploy workflow logs KVM1 into GHCR with the workflow-scoped
 Do not keep a long-lived GHCR token on the VPS unless the self-hosted runner is
 unavailable and a manual recovery requires it.
 
-Omen rename transition note: the build job publishes both Corvus and Omen tags
-for the same image digest until the live deploy path is cut over and stabilized.
-Corvus tags remain the rollback source during this phase.
+Omen rename note: the live deploy path is `/opt/omen/deploy/hostinger`, and
+normal workflows publish Omen tags only. Corvus image tags and `/opt/corvus`
+remain retained rollback artifacts until Justin approves cleanup.
 
 If a manual pull is needed and the GHCR images are private, the VPS must log in
 before pulling:
@@ -53,8 +53,8 @@ operating mode is explicitly changed in `Direction/decision_log.md`.
 
 - `quality` and `build` run on GitHub-hosted runners.
 - `deploy` runs on KVM1's self-hosted runner: `corvus-kvm1-deploy`.
-- Required runner labels after the approved runner prep: `self-hosted`, `Linux`, `X64`, `kvm1`, `omen-deploy`.
-- Transition rule: keep `corvus-deploy` on the runner until the Omen deploy path is verified, so workflow rollback remains simple.
+- Required runner labels: `self-hosted`, `Linux`, `X64`, `kvm1`, `omen-deploy`.
+- Temporary rollback rule: keep `corvus-deploy` on the runner until Justin approves removal.
 - Runner home on KVM1 may stay `/home/justin/actions-runner/corvus` during transition; rename it only after the deploy identity is stable.
 - The runner runs as `justin`, which is in the Docker group.
 - A user crontab `@reboot` entry restarts the runner after reboot. Convert it
@@ -62,7 +62,7 @@ operating mode is explicitly changed in `Direction/decision_log.md`.
   available.
 
 The deploy job does not SSH into KVM1. It is already running on KVM1 and runs
-Docker Compose locally from `/opt/omen/deploy/hostinger` after the approved Omen cutover. Until that cutover, production remains on `/opt/corvus/deploy/hostinger`.
+Docker Compose locally from `/opt/omen/deploy/hostinger`.
 
 ## Tailscale Fallback
 

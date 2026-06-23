@@ -97,10 +97,9 @@ jobs:
           target: production
           push: true
           tags: |
-            ghcr.io/justinduverge-design/corvus:main
             ghcr.io/justinduverge-design/omen:main
-          cache-from: type=gha,scope=corvus-api
-          cache-to: type=gha,mode=max,scope=corvus-api
+          cache-from: type=gha,scope=omen-api
+          cache-to: type=gha,mode=max,scope=omen-api
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -115,10 +114,9 @@ jobs:
           target: production
           push: true
           tags: |
-            ghcr.io/justinduverge-design/corvus-cron:main
             ghcr.io/justinduverge-design/omen-cron:main
-          cache-from: type=gha,scope=corvus-cron
-          cache-to: type=gha,mode=max,scope=corvus-cron
+          cache-from: type=gha,scope=omen-cron
+          cache-to: type=gha,mode=max,scope=omen-cron
 
   deploy:
     runs-on: ubuntu-latest
@@ -157,12 +155,12 @@ jobs:
               "${{ secrets.KVM1_USER }}@$KVM1_TAILSCALE_HOST" \
               "set -euo pipefail && \
                trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT && \
-               cd /opt/corvus/deploy/hostinger && \
+               cd /opt/omen/deploy/hostinger && \
                printf '%s' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USER' --password-stdin && \
                echo '==> Pulling GHCR images built by this workflow' && \
-               docker compose -f docker-compose.prod.yml --project-name corvus pull api cron && \
+               docker compose -f docker-compose.prod.yml --project-name omen pull api cron && \
                echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)' && \
-               docker compose -f docker-compose.prod.yml --project-name corvus up -d --no-build api cron && \
+               docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron && \
                echo '==> Cleaning up dangling images' && \
                docker image prune -f"
 
@@ -187,7 +185,7 @@ jobs:
         run: |
           ssh -i /tmp/kvm1_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o BatchMode=yes \
               "${{ secrets.KVM1_USER }}@$KVM1_TAILSCALE_HOST" \
-              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs corvus_api 2>&1 | tail -25' || true
+              'docker ps --format "table {{.Names}}\t{{.Status}}" && docker logs omen_api 2>&1 | tail -25' || true
 
       - name: Clean up deploy key
         if: always()
