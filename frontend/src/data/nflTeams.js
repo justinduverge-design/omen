@@ -1,3 +1,5 @@
+import { assertCategoryShape } from '../lib/assertCategoryShape.js';
+
 /**
  * nflTeams.js — NFL team multi-color palettes (Phase 1.5h).
  *
@@ -128,6 +130,20 @@ export const NFL_TEAMS = [
     cultureTag: 'The 305',
     cry:        'Fins Up',
     wardRoom:   '305 never sleeps.',
+    motifs: [
+      {
+        id: 'mia-aqua-hairline',
+        kind: 'hairline',
+        shape: 'double',
+        thicknessPx: 1,
+        colorRole: 'primary',
+        opacity: { dark: 0.6, light: 0.45 },
+        appliesTo: ['page-edge'],
+        excludesOmenCard: true,
+        reducedMotionFallback: 'identical',
+        trademarkReview: 'self-assessed',
+      },
+    ],
   },
   {
     abbr: 'NE', city: 'New England', name: 'Patriots', div: 'AFC East',
@@ -288,6 +304,20 @@ export const NFL_TEAMS = [
     cry:        'Here We Go',
     wardRoom:   'Redd up the war room.',
     lore:       'Stillers Nation.',
+    motifs: [
+      {
+        id: 'pit-gold-hairline',
+        kind: 'hairline',
+        shape: 'solid',
+        thicknessPx: 1,
+        colorRole: 'secondary',
+        opacity: { dark: 1, light: 1 },
+        appliesTo: ['page-edge', 'section-divider'],
+        excludesOmenCard: true,
+        reducedMotionFallback: 'identical',
+        trademarkReview: 'self-assessed',
+      },
+    ],
   },
 
   // ─── AFC South ────────────────────────────────────────────────────────────
@@ -715,6 +745,20 @@ export const NFL_TEAMS = [
     cry:        'Go You Packers Go',
     wardRoom:   'Titletown.',
     lore:       'The Bears still suck.',
+    motifs: [
+      {
+        id: 'gb-gold-tundra-hairline',
+        kind: 'hairline',
+        shape: 'solid',
+        thicknessPx: 1,
+        colorRole: 'secondary',
+        opacity: { dark: 0.92, light: 0.92 },
+        appliesTo: ['section-divider'],
+        excludesOmenCard: true,
+        reducedMotionFallback: 'identical',
+        trademarkReview: 'self-assessed',
+      },
+    ],
   },
   {
     abbr: 'MIN', city: 'Minnesota', name: 'Vikings', div: 'NFC North',
@@ -829,6 +873,20 @@ export const NFL_TEAMS = [
     cultureTag: 'Who Dat Nation',
     cry:        'Who Dat',
     wardRoom:   'Laissez les bons temps rouler.',
+    motifs: [
+      {
+        id: 'no-cream-hairline',
+        kind: 'hairline',
+        shape: 'solid',
+        thicknessPx: 1,
+        colorRole: 'neutral',
+        opacity: { dark: 0.9, light: 0.85 },
+        appliesTo: ['page-edge'],
+        excludesOmenCard: true,
+        reducedMotionFallback: 'identical',
+        trademarkReview: 'self-assessed',
+      },
+    ],
   },
   {
     abbr: 'TB', city: 'Tampa Bay', name: 'Buccaneers', div: 'NFC South',
@@ -966,6 +1024,10 @@ export const NFL_TEAMS = [
     wardRoom:   "12s don't leave.",
   },
 ];
+
+if (!import.meta.env || import.meta.env.DEV) {
+  for (const team of NFL_TEAMS) assertCategoryShape(team);
+}
 
 // ── Color math utilities ───────────────────────────────────────────────────
 

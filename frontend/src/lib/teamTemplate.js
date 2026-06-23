@@ -25,6 +25,7 @@
  */
 
 import { NFL_TEAMS, getTeamPalette, readableOn, relLum, hexToRgb } from '../data/nflTeams.js';
+import { resolveMotifs } from './motifs.js';
 
 /**
  * Return the runtime token bundle for `abbr` + `variant`. Returns null when
@@ -49,6 +50,7 @@ import { NFL_TEAMS, getTeamPalette, readableOn, relLum, hexToRgb } from '../data
 export function getTeamTemplate(abbr, variant = 'official') {
   const palette = getTeamPalette(abbr, variant);
   if (!palette) return null;
+  const team = NFL_TEAMS.find((t) => t.abbr === abbr);
 
   const r = palette.byRole;
   const surfaceHex = palette.surface.hex;
@@ -122,6 +124,8 @@ export function getTeamTemplate(abbr, variant = 'official') {
     textOnAccentPop:  textOn(r['accent-pop']?.hex),
 
     culturalAnchor: palette.culturalAnchor,
+
+    motifs: resolveMotifs(team, palette, surfaceIsDark),
   };
 }
 
