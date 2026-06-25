@@ -57,6 +57,16 @@ function contrastRatio(hexA, hexB) {
   const [lighter, darker] = la > lb ? [la, lb] : [lb, la];
   return (lighter + 0.05) / (darker + 0.05);
 }
+// Approximate CSS `color-mix(in srgb, base, tint <alpha>%)` by mixing the
+// gamma-encoded sRGB channels (the default srgb color-mix space is gamma sRGB).
+function mixHex(baseHex, tintHex, alpha) {
+  const a = Math.max(0, Math.min(1, alpha));
+  const base = hexToRgb(baseHex);
+  const tint = hexToRgb(tintHex);
+  const mix = base.map((c, i) => Math.round(c * (1 - a) + tint[i] * a));
+  return `#${mix.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
 function fmt(r) { return r.toFixed(2); }
 function verdict(ratio, type = 'normal') {
   const aa  = type === 'large' ? 3.0 : 4.5;
@@ -111,6 +121,36 @@ function runSweep() {
         };
       }
 
+      // Phase 1.5g.3 cultural moments — evaluated force-active (ignore the
+      // calendar/dataMode gate; this is a static AAA audit). Eyebrow color is
+      // decorative chrome (AA-large ≥ 3.0). Surface-tint moments must keep body
+      // text legible on the tinted surface (AA-normal ≥ 4.5).
+      const roleHex = {
+        primary: template.primary?.hex,
+        secondary: template.secondary?.hex,
+        tertiary: template.tertiary?.hex,
+        neutral: template.neutral?.hex,
+        mute: template.mute?.hex,
+        'accent-pop': template.accentPop?.hex,
+      };
+      for (const moment of team.culturalMoments ?? []) {
+        const eyebrowHex = roleHex[moment.overlay.eyebrowColorRole];
+        if (eyebrowHex) {
+          cells[`moment:${moment.id}/eyebrow`] = {
+            ratio: contrastRatio(eyebrowHex, template.surface),
+            threshold: 'large',
+          };
+        }
+        const tintHex = moment.overlay.surfaceTintRole ? roleHex[moment.overlay.surfaceTintRole] : null;
+        if (tintHex) {
+          const tinted = mixHex(template.surface, tintHex, moment.overlay.surfaceTintAlpha ?? 0);
+          cells[`moment:${moment.id}/post-tint-body`] = {
+            ratio: contrastRatio(template.textOnSurface, tinted),
+            threshold: 'normal',
+          };
+        }
+      }
+
       rows.push({
         abbr: team.abbr,
         name: `${team.city} ${team.name}`,
@@ -144,10 +184,10 @@ function toMarkdown(rows) {
   };
 
   const out = [];
-  out.push('# Phase 1.5h/1.5g — Multi-Color Palette + Motif WCAG Sweep');
+  out.push('# Phase 1.5h/1.5g — Multi-Color Palette + Motif + Moment WCAG Sweep');
   out.push('');
-  out.push(`**Date:** 2026-06-23`);
-  out.push(`**Phase:** 1.5h multi-role palettes + 1.5g motif hairline guard`);
+  out.push(`**Date:** 2026-06-25`);
+  out.push(`**Phase:** 1.5h multi-role palettes + 1.5g motif hairline guard + 1.5g.3 cultural-moment eyebrow/tint guard`);
   out.push(`**Generator:** \`frontend/scripts/contrast-sweep.mjs\``);
   out.push(`**Source data:** [nflTeams.js](../../frontend/src/data/nflTeams.js), [teamTemplate.js](../../frontend/src/lib/teamTemplate.js)`);
   out.push(`**Predecessors:** Phase 1.5f single-axis sweep (2026-06-21), Phase 1.5e identity audit (2026-06-20)`);
@@ -160,6 +200,8 @@ function toMarkdown(rows) {
   out.push('- **accent/surface** — the derived CTA color (which falls through from primary to secondary when surface == primary) used as bold text/border on the surface. AA-large ≥ 3.0.');
   out.push('- **CTA text/accent** — text-on-accent foreground on the filled accent CTA. AA ≥ 4.5.');
   out.push('- **motif:<id>/surface** — active motif color on the team surface. Decorative threshold ≥ 3.0.');
+  out.push('- **moment:<id>/eyebrow** — cultural-moment eyebrow color on the team surface. Decorative chrome label (paired with a mock badge that carries the message), so AA-large ≥ 3.0.');
+  out.push('- **moment:<id>/post-tint-body** — body text on the moment-tinted surface (`color-mix` ≤0.18 alpha). Load-bearing legibility — AA-normal ≥ 4.5.');
   out.push('- **\\<role\\>/surface** — every other palette role used as text on the surface. Informational; some roles are intentionally chosen as fills not text (mute, neutral) and are scored against AA-normal; others are accent-like and scored AA-large.');
   out.push('');
 
@@ -174,7 +216,7 @@ function toMarkdown(rows) {
   const failures = [];
   for (const r of rows) {
     for (const [name, cell] of Object.entries(r.cells)) {
-      if (!REQUIRED_CELLS.has(name) && !name.startsWith('motif:')) continue;
+      if (!REQUIRED_CELLS.has(name) && !name.startsWith('motif:') && !name.startsWith('moment:')) continue;
       const v = verdict(cell.ratio, cell.threshold);
       const key = `${r.abbr}|${r.variant}|${name}`;
       if (v === 'FAIL' && !KNOWN_MARGINALS[key]) {
@@ -208,8 +250,8 @@ function toMarkdown(rows) {
   // Per-team table
   out.push('## Per-palette detail');
   out.push('');
-  out.push('| Team | Variant | Surface | Accent | Anchor | body/surf | accent/surf | CTA/acc | motif/surf |');
-  out.push('|---|---|---|---|---|---|---|---|---|');
+  out.push('| Team | Variant | Surface | Accent | Anchor | body/surf | accent/surf | CTA/acc | motif/surf | moment |');
+  out.push('|---|---|---|---|---|---|---|---|---|---|');
   for (const r of rows) {
     const c = r.cells;
     const bs = c['body/surface'] ? `${fmt(c['body/surface'].ratio)} ${verdict(c['body/surface'].ratio, c['body/surface'].threshold)}` : '—';
@@ -219,7 +261,11 @@ function toMarkdown(rows) {
       .filter(([name]) => name.startsWith('motif:'))
       .map(([name, cell]) => `${name.replace('motif:', '').replace('/surface', '')}: ${fmt(cell.ratio)} ${verdict(cell.ratio, cell.threshold)}`);
     const motifSummary = motifCells.length ? motifCells.join('<br>') : '—';
-    out.push(`| **${r.abbr}** ${r.name} | ${r.variant} (${r.variantName}) | \`${r.surface}\` | \`${r.accentHex}\` | ${r.anchor ?? '—'} | ${bs} | ${as} | ${ca} | ${motifSummary} |`);
+    const momentCells = Object.entries(c)
+      .filter(([name]) => name.startsWith('moment:'))
+      .map(([name, cell]) => `${name.replace('moment:', '')}: ${fmt(cell.ratio)} ${verdict(cell.ratio, cell.threshold)}`);
+    const momentSummary = momentCells.length ? momentCells.join('<br>') : '—';
+    out.push(`| **${r.abbr}** ${r.name} | ${r.variant} (${r.variantName}) | \`${r.surface}\` | \`${r.accentHex}\` | ${r.anchor ?? '—'} | ${bs} | ${as} | ${ca} | ${motifSummary} | ${momentSummary} |`);
   }
   out.push('');
 

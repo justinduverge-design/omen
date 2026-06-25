@@ -101,6 +101,16 @@ export const TYPE_FLOURISH_VARS = [
   '--type-flourish-features',
 ];
 
+export const MOMENT_VARS = [
+  '--moment-eyebrow',
+  '--moment-eyebrow-color',
+  '--moment-surface-tint',
+  '--moment-surface-tint-alpha',
+  '--moment-citation',
+];
+
+const MOMENT_ATTRS = ['data-moment-active'];
+
 const MOTIF_ATTRS = [
   'data-motif-kind',
   'data-motif-shape',
@@ -178,6 +188,7 @@ function clearTeamTokens(root) {
   }
   clearMotifTokens(root);
   clearTypeFlourishTokens(root);
+  clearMomentTokens(root);
 }
 
 function clearMotifTokens(root) {
@@ -187,6 +198,63 @@ function clearMotifTokens(root) {
 
 function clearTypeFlourishTokens(root) {
   for (const v of TYPE_FLOURISH_VARS) root.style.removeProperty(v);
+}
+
+export function clearMomentTokens(root) {
+  for (const v of MOMENT_VARS) root.style.removeProperty(v);
+  for (const attr of MOMENT_ATTRS) root.removeAttribute(attr);
+}
+
+/** Escape a JS string for safe use as a CSS quoted string value. */
+function cssString(value) {
+  return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Paint the active cultural moment (Phase 1.5g.3) onto :root. Eyebrow + mock
+ * badge are rendered as real DOM by <MomentChrome>; this writes the shared
+ * CSS vars (so the eyebrow color and the surface-tint color-mix rule resolve)
+ * and toggles `data-moment-active` which gates the page-surface tint.
+ *
+ * No-op-to-clear when `moments` is empty. v1 moments are static-only, so
+ * reduced-motion is a documented no-op (there are no transitions to suppress);
+ * we still consult it as defense-in-depth so a future animated moment can't
+ * slip past without revisiting this guard.
+ */
+export function applyMomentOverlay(root, moments) {
+  const active = Array.isArray(moments) ? moments : (moments?.active ?? []);
+  const moment = active[0];
+  if (!moment) {
+    clearMomentTokens(root);
+    return;
+  }
+
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // v1 chrome is static (eyebrow + flat tint), so it renders identically under
+  // reduced motion. The flag is read so the contract is explicit, not silent.
+  void reducedMotion;
+
+  root.style.setProperty('--moment-eyebrow', cssString(moment.overlay.eyebrow));
+  root.style.setProperty('--moment-eyebrow-color', moment.eyebrowColor);
+
+  if (moment.surfaceTint) {
+    root.style.setProperty('--moment-surface-tint', moment.surfaceTint);
+    root.style.setProperty('--moment-surface-tint-alpha', String(moment.surfaceTintAlpha ?? 0));
+    root.setAttribute('data-moment-active', 'true');
+  } else {
+    root.style.removeProperty('--moment-surface-tint');
+    root.style.removeProperty('--moment-surface-tint-alpha');
+    root.removeAttribute('data-moment-active');
+  }
+
+  if (moment.overlay.citation) {
+    root.style.setProperty('--moment-citation', cssString(moment.overlay.citation));
+  } else {
+    root.style.removeProperty('--moment-citation');
+  }
 }
 
 export function applyMotifTokens(root, motifs) {

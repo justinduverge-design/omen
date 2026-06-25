@@ -1,5 +1,6 @@
 import { useTheme } from '../../lib/themeMode.js';
 import { getTeamPalette } from '../../data/nflTeams.js';
+import { useActiveMoment } from '../../lib/useActiveMoment.js';
 
 /**
  * Footer with optional cultural-anchor citation (Phase 1.5h).
@@ -29,6 +30,26 @@ function CulturalAnchorLine() {
   );
 }
 
+/**
+ * Moment citation (Phase 1.5g.3). When a cultural moment is active in mock
+ * mode, append its citation line alongside the anchor — it never replaces the
+ * cultural-anchor citation (Justin doctrine: the anchor always shows; the
+ * moment is additive).
+ */
+function MomentCitationLine() {
+  const moment = useActiveMoment();
+  const citation = moment?.overlay?.citation;
+  if (!citation) return null;
+  return (
+    <span
+      className="font-serif text-xs italic"
+      style={{ color: 'var(--color-text-tertiary)' }}
+    >
+      {citation}
+    </span>
+  );
+}
+
 export default function Footer() {
   return (
     <footer
@@ -43,6 +64,7 @@ export default function Footer() {
           Omen
         </span>
         <CulturalAnchorLine />
+        <MomentCitationLine />
         <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
           &copy; {new Date().getFullYear()} Slops Saloon. All rights reserved.
         </span>
