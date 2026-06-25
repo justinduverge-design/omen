@@ -10,7 +10,7 @@ Claude/frontend reads this file before wiring UI to backend behavior.
 
 Feature name: Trade Analyzer share hash routes.
 
-Status: Implemented locally on branch `backend/phase2-10-trade-share-routes` in commit `1d98332`; not pushed or deployed.
+Status: Deployed. PR #68 merged to `main` as merge commit `bfefbf1`; KVM1 deploy run `28192331330` passed quality, image build/push, restart, and workflow health smoke.
 
 Method and path:
 

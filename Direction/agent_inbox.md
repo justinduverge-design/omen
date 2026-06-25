@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-25 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 2.10 closeout.** Phase 2.10 is complete locally on branch `backend/phase2-10-trade-share-routes` in commit `1d98332`; not pushed or deployed. Next pull should start from the refreshed top-5 below unless Justin pins another item.
+**Auto-populated 2026-06-25 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 2.10 closeout and deploy.** Phase 2.10 is merged via PR #68 (`bfefbf1`) and deployed via Hostinger KVM1 run `28192331330`. Next pull should start from the refreshed top-5 below unless Justin pins another item.
 
 ## Active Task
 
@@ -19,7 +19,7 @@ None pinned after Phase 2.10 local closeout.
 - **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.
 - **Phase 1.5d (post-win pulse animation)** remains blocked by Backend **Phase 2.17** (`lastResult` contract).
-- **Frontend Phase 2.10 (Trade share card)** is now unblocked by local Backend Phase 2.10, but it should wait for Justin to push/merge/deploy the backend branch before assuming the routes are live.
+- **Frontend Phase 2.10 (Trade share card)** is now unblocked by deployed Backend Phase 2.10 hash routes.
 
 ## Standing Route
 

@@ -16,6 +16,9 @@
 - `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen\Blueprints\playbooks\skill-usage-ledger.md` — skill receipt rows.
 
 Implementation commit: `1d98332`.
+Docs/evidence commit: `910079e`.
+Merge commit: `bfefbf1` via PR #68.
+Deploy run: `28192331330`.
 
 ## Files Discussed
 
@@ -48,13 +51,13 @@ Implementation commit: `1d98332`.
 ## Unresolved Questions
 
 - No revoke/delete route exists for public hashes in v1.
-- No public frontend share page or OG image route exists yet; frontend Phase 2.10 owns that surface after backend routes are merged/deployed.
+- No public frontend share page or OG image route exists yet; frontend Phase 2.10 owns that surface now that the backend routes are deployed.
 - TTL is 30 days for v1; any different retention policy needs a separate decision.
 
 ## Blockers Surfaced
 
-- Push, PR, merge, and deploy are Justin-gated. The branch is local only.
-- Production behavior depends on existing `REDIS_URL` + `REDIS_TOKEN`; no production Redis smoke was run.
+- Production behavior depends on existing `REDIS_URL` + `REDIS_TOKEN`.
+- No production POST share was run during canary because `slops-canary` is read-only; GET boundary checks verified the deployed route is loaded.
 
 ## Last Verified Build/Test Result
 
@@ -65,6 +68,8 @@ Implementation commit: `1d98332`.
 - Audit: `npm audit --audit-level=moderate` found 0 vulnerabilities.
 - Production audit: `npm audit --omit=dev --audit-level=high` found 0 vulnerabilities.
 - Frontend build: `npm --prefix frontend run build` passed with the existing Vite chunk-size warning.
+- Merge/deploy: PR #68 merged as `bfefbf1`; `Deploy to Hostinger KVM1` run `28192331330` passed quality, build, and deploy.
+- Canary: apex health/ready/homepage/Demo, `www` health, HTTP->HTTPS 301, HSTS, malformed share hash 400, and missing UUID share 404 all passed.
 
 ## Next Recommended Pull
 
