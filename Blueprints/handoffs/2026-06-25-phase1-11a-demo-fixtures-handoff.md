@@ -18,6 +18,15 @@
 - `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen\Blueprints\done\LEDGER.md` — done-doc row.
 - `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen\Blueprints\playbooks\skill-usage-ledger.md` — skill receipt.
 
+## Release evidence
+
+- PR #67: `https://github.com/justinduverge-design/omen/pull/67`
+- Squash merge commit: `44f99d20bd609fa32dd704a61c5a936a754eee81`
+- Deploy run: `https://github.com/justinduverge-design/omen/actions/runs/28172865389`
+- Deploy result: quality/build/deploy all passed on `main`.
+- Post-deploy canary: apex and www homepage 200; apex/www `/api/health` 200 `status: ok`; apex/www `/api/ready` 200 `status: ready`; `/api/demo` remains `omen-demo.v1`; HTTP redirects to HTTPS; HSTS present.
+- Live bundle check: `assets/index-CoI_lqSx.js` contains no private fixture labels or sample player names. The three fixture query keys remain present as allowlist metadata in the dev-gate helper, not as fixture payload.
+
 ## Files discussed
 
 - `Blueprints/demo-mode.md`, `Blueprints/specs/page-system.md`, `Blueprints/handoffs/backend-to-frontend.md`, `Blueprints/handoffs/frontend-to-backend.md`.
@@ -51,7 +60,9 @@
 - Audit: `npm audit --audit-level=moderate` found 0 vulnerabilities.
 - Runtime smoke: dev `/draft?fixture=mock-draft` renders fixture; production preview ignores the same query; `/omen` and `/ledger` fixture URLs remain auth-gated.
 - Phone-width spot-check: public `/draft?fixture=mock-draft` at 375/390/430px had no JS errors, no horizontal overflow, and visible fixture labeling.
-- `git diff --check` clean before closeout docs; rerun once docs are final.
+- PR #67 merged and deployed: run `28172865389` passed quality/build/deploy.
+- Post-deploy canary: apex/www homepage 200, `/api/health` ok, `/api/ready` ready, `/api/demo` still public Demo Mode, HTTP->HTTPS redirects, HSTS present.
+- Live production bundle grep found no private fixture labels or sample player names; only the three fixture query keys are present as allowlist metadata.
 
 ## Next recommended pull
 

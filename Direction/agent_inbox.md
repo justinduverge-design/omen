@@ -1,10 +1,10 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`; refreshed 2026-06-25 (Claude session) after Phase 1.10B (partial) closeout; refreshed 2026-06-25 (Codex session) after Phase 1.11A closeout.** Phase 1.5g.1 is merged to `main` and deployed via Hostinger KVM1 run `28062382244` at deployed head `8e5d56b`. **Correction to the prior refresh:** Phase 1.5g.2 (PR #65) and Phase 1.5g.3 (PR #66) are no longer draft/unmerged — `git log` on `main` shows both already squash-merged (`68f2d21`, `cdae3bc`). Phase 1.10A shipped (`Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md`) and Justin's picks (A1/B1/C1+C2) were applied as Phase 1.10B (partial) — hero headlines on `Landing.jsx` + `OmenLanding.jsx` and the `Onboarding.jsx` success step. Phase 1.11A is built and closed on branch `frontend/phase1-11a-demo-fixtures`; no push/deploy performed.
+**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`; refreshed 2026-06-25 (Claude session) after Phase 1.10B (partial) closeout; refreshed 2026-06-25 (Codex session) after Phase 1.11A closeout.** Phase 1.5g.1 is merged to `main` and deployed via Hostinger KVM1 run `28062382244` at deployed head `8e5d56b`. **Correction to the prior refresh:** Phase 1.5g.2 (PR #65) and Phase 1.5g.3 (PR #66) are no longer draft/unmerged — `git log` on `main` shows both already squash-merged (`68f2d21`, `cdae3bc`). Phase 1.10A shipped (`Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md`) and Justin's picks (A1/B1/C1+C2) were applied as Phase 1.10B (partial) — hero headlines on `Landing.jsx` + `OmenLanding.jsx` and the `Onboarding.jsx` success step. Phase 1.11A is merged to `main` via PR #67 (squash commit `44f99d2`) and deployed via Hostinger KVM1 run `28172865389`.
 
 ## Active Task
 
-None pinned after Phase 1.11A closeout. Next pull should start from the refreshed top-5 below.
+None pinned after Phase 1.11A merge/deploy closeout. Next pull should start from the refreshed top-5 below.
 
 ## Auto-Populated Top 5
 
