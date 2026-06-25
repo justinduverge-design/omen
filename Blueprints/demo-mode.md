@@ -7,6 +7,16 @@
 
 Demo Mode gives a visitor a deterministic example of Omen before they connect a real fantasy league. It is a separate product state, not a fallback for live Omen and not the development-only mock mode.
 
+## Private frontend fixtures
+
+Phase 1.11A added private, dev-only frontend fixtures for visual testing:
+
+- `?fixture=omen-roster` on `/omen` loads an Omen-shaped mock roster/recommendation.
+- `?fixture=previous-results` on `/ledger` loads mock Ledger history rows.
+- `?fixture=mock-draft` on `/draft` loads a mock draft board and recommendations.
+
+These fixtures use `mode: "mock"`, `is_mock: true`, `is_demo: false`, and `is_live: false`. They are gated by `import.meta.env.DEV`, dynamically imported so the payload is absent from the production bundle, and must never become a public `/demo` or mock-draft route. They exist only for local visual testing and stay labeled with the standard mock banner.
+
 ## Sample fixture
 
 The backend returns one fixed Omen demo league containing:
