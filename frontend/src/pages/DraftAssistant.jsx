@@ -3,6 +3,7 @@ import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
 
@@ -266,6 +267,7 @@ function LoadingRecommendations() {
 }
 
 export default function DraftAssistant({ platforms }) {
+  const fixtureActive = isPrivateFixtureEnabled(PRIVATE_FIXTURE_KEYS.MOCK_DRAFT);
   const [scoringFormat, setScoringFormat] = useState('ppr');
   const [draftPosition, setDraftPosition] = useState('5');
   const [round, setRound] = useState('1');
@@ -276,6 +278,7 @@ export default function DraftAssistant({ platforms }) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [adpData, setAdpData] = useState(null);
   const [adpLoading, setAdpLoading] = useState(false);
+  const [fixture, setFixture] = useState(null);
   const { mode, team: teamAbbr } = useTheme();
   const cry = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -286,6 +289,46 @@ export default function DraftAssistant({ platforms }) {
   const adpMap = adpData ? buildAdpMap(adpData.sources) : null;
 
   useEffect(() => {
+    if (!fixtureActive) {
+      setFixture(null);
+      return undefined;
+    }
+
+    let mounted = true;
+    if (import.meta.env.DEV) {
+      import('../data/privateDemoFixtures.js')
+        .then(({ DRAFT_ASSISTANT_FIXTURE }) => {
+          if (mounted) setFixture(DRAFT_ASSISTANT_FIXTURE);
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [fixtureActive]);
+
+  useEffect(() => {
+    if (!fixtureActive || !fixture) return;
+
+    const { form, result, adp } = fixture;
+    setScoringFormat(form.scoring_format);
+    setDraftPosition(String(form.draft_position));
+    setRound(String(form.round));
+    setNeeds(new Set(form.position_needs));
+    setResult(result);
+    setAdpData(adp);
+    setAdpLoading(false);
+    setLoading(false);
+    setError(null);
+    setHasSubmitted(true);
+  }, [fixtureActive, fixture]);
+
+  useEffect(() => {
+    if (fixtureActive) {
+      setAdpData(fixture?.adp ?? null);
+      setAdpLoading(!fixture);
+      return undefined;
+    }
+
     let mounted = true;
     setAdpLoading(true);
     apiFetch(`/api/draft-assistant/adp?format=${scoringFormat}&teams=12`)
@@ -311,6 +354,17 @@ export default function DraftAssistant({ platforms }) {
     setHasSubmitted(true);
 
     try {
+      if (fixtureActive) {
+        if (!fixture) return;
+        setResult({
+          ...fixture.result,
+          scoring_format: scoringFormat,
+          draft_position: Number(draftPosition) || 5,
+          round: Number(round) || 1,
+          position_needs: [...needs],
+        });
+        return;
+      }
       const data = await apiFetch('/api/draft-assistant/recommendations', {
         method: 'POST',
         body: {
@@ -329,10 +383,13 @@ export default function DraftAssistant({ platforms }) {
   }
 
   const scoringLabel = SCORING_FORMATS.find((f) => f.value === scoringFormat)?.label ?? '';
+  const bannerMessage = fixtureActive
+    ? `${fixture?.fixture_label ?? 'Preview Mode - fixture loading.'} Draft board and recommendations are mock.`
+    : `Preview Mode — example recommendations. Live personalization activates when the season begins.${adpData?.is_mock ? ' ADP data is preview only.' : ''}`;
 
   return (
     <div className="space-y-6">
-      <MockBanner message={`Preview Mode — example recommendations. Live personalization activates when the season begins.${adpData?.is_mock ? ' ADP data is preview only.' : ''}`} />
+      <MockBanner message={bannerMessage} />
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
@@ -442,7 +499,7 @@ export default function DraftAssistant({ platforms }) {
 
         <button
           className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={loading}
+          disabled={loading || (fixtureActive && !fixture)}
           type="submit"
         >
           {loading && (
