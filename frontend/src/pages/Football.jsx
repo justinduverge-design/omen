@@ -7,6 +7,7 @@ import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { setDataMode } from '../lib/dataMode.js';
 import { useTheme } from '../lib/themeMode.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
@@ -143,6 +144,21 @@ export default function Football() {
 
   const tools = summary?.tools;
   const omenStatus = tools?.omen_of_the_week?.status;
+
+  // Phase 1.5g.3: a connected platform means real league data is on screen →
+  // 'live' (moment chrome suppressed). No connection / off-season → 'mock'.
+  // Stays unset (fail closed) until the summary resolves.
+  const connectedCount = useMemo(() => {
+    const p = summary?.platforms;
+    if (!p) return 0;
+    return Object.entries(p).filter(([key, v]) => key !== 'connections' && v?.connected).length;
+  }, [summary]);
+
+  useEffect(() => {
+    if (summaryLoading) return undefined;
+    setDataMode(connectedCount > 0 ? 'live' : 'mock');
+    return () => setDataMode(null);
+  }, [summaryLoading, connectedCount]);
 
   function renderTab(id) {
     switch (id) {

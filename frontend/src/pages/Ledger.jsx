@@ -1,7 +1,12 @@
+import { useEffect } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
+import { setDataMode } from '../lib/dataMode.js';
 
 export default function Ledger() {
+  // Reset to fail-closed when leaving the page; MoveHistory drives live/mock
+  // while mounted via onDataState.
+  useEffect(() => () => setDataMode(null), []);
   return (
     <AppLayout>
       {/* Page header */}
@@ -27,7 +32,7 @@ export default function Ledger() {
       </div>
 
       {/* Move history — handles loading, error, empty, and populated states */}
-      <MoveHistory />
+      <MoveHistory onDataState={setDataMode} />
     </AppLayout>
   );
 }

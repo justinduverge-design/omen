@@ -241,7 +241,7 @@ function EmptyHistory() {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function MoveHistory() {
+export default function MoveHistory({ onDataState }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -256,6 +256,17 @@ export default function MoveHistory() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Phase 1.5g.3: surface live-vs-mock so the host page (Ledger) can gate
+  // cultural-moment chrome. Populated history is real user data → 'live';
+  // empty/error is mock-safe; loading stays null (fail closed). Only fires
+  // when the host opts in (Football's history tab leaves this unset and keeps
+  // ownership of its own data mode).
+  useEffect(() => {
+    if (!onDataState) return;
+    if (loading) { onDataState(null); return; }
+    onDataState(error || !data?.moves?.length ? 'mock' : 'live');
+  }, [onDataState, loading, error, data]);
 
   if (loading) {
     return (

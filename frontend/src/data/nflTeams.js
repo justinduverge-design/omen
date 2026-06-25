@@ -1,4 +1,5 @@
 import { assertCategoryShape } from '../lib/assertCategoryShape.js';
+import { MOMENT_DATES } from './nflCalendar.js';
 
 /**
  * nflTeams.js — NFL team multi-color palettes (Phase 1.5h).
@@ -731,6 +732,26 @@ export const NFL_TEAMS = [
     cultureTag: 'One Pride',
     cry:        'Detroit vs. Everybody',
     wardRoom:   'The city always shows up.',
+    // Thanksgiving Classic — the Lions have hosted on Thanksgiving since 1934.
+    // Eyebrow uses `neutral` (Game White / Diner Cream): Lions Silver fails the
+    // decorative contrast gate on the Honolulu Blue surface; the neutral clears
+    // AA-large and the moment reads as a typographic label, not a hue swap.
+    culturalMoments: [
+      {
+        id: 'det-thanksgiving-classic',
+        label: 'Thanksgiving Classic',
+        kind: 'calendar',
+        activation: { rule: 'date-list', dates: MOMENT_DATES['det-thanksgiving-classic'] },
+        overlay: {
+          eyebrow: 'Thanksgiving Classic.',
+          eyebrowColorRole: 'neutral',
+          citation: 'Painted for the Thanksgiving Classic.',
+        },
+        scope: ['app', 'account', 'ledger', 'standings', 'football'],
+        mockBadge: { required: true, copy: 'Thanksgiving chrome — decoration only, recommendations unchanged.' },
+        reducedMotion: 'static-only',
+      },
+    ],
   },
   {
     abbr: 'GB', city: 'Green Bay', name: 'Packers', div: 'NFC North',
@@ -771,6 +792,25 @@ export const NFL_TEAMS = [
         excludesOmenCard: true,
         reducedMotionFallback: 'identical',
         trademarkReview: 'self-assessed',
+      },
+    ],
+    // Lambeau Tundra — manual-flag only (no weather claim; activation is the
+    // user flipping localStorage['omen.theme.moments']['gb-lambeau-tundra']).
+    // Eyebrow copy is honest about manual activation per spec §v1 assignments.
+    culturalMoments: [
+      {
+        id: 'gb-lambeau-tundra',
+        label: 'Lambeau Tundra',
+        kind: 'milestone',
+        activation: { rule: 'manual-flag', storageKey: 'omen.theme.moments' },
+        overlay: {
+          eyebrow: 'Lambeau, manually painted.',
+          eyebrowColorRole: 'secondary',
+          citation: 'Painted for Lambeau.',
+        },
+        scope: ['app', 'account', 'football'],
+        mockBadge: { required: true, copy: 'Lambeau chrome — decoration only, recommendations unchanged.' },
+        reducedMotion: 'static-only',
       },
     ],
   },
@@ -899,6 +939,29 @@ export const NFL_TEAMS = [
         excludesOmenCard: true,
         reducedMotionFallback: 'identical',
         trademarkReview: 'self-assessed',
+      },
+    ],
+    // Mardi Gras Week — date-range 02-08 → 02-25, scope app + account only.
+    // Eyebrow (`secondary`) + surface tint (`tertiary`) are roles present on
+    // the Mardi Gras Special palette; on the Official palette those roles are
+    // absent, so the moment gracefully suppresses (resolver no-op) — the
+    // celebration chrome rides with the Mardi Gras variant by design.
+    culturalMoments: [
+      {
+        id: 'no-mardi-gras',
+        label: 'Mardi Gras Week',
+        kind: 'calendar',
+        activation: { rule: 'date-range', startMonthDay: '02-08', endMonthDay: '02-25' },
+        overlay: {
+          eyebrow: 'Mardi Gras week.',
+          eyebrowColorRole: 'secondary',
+          surfaceTintRole: 'tertiary',
+          surfaceTintAlpha: 0.12,
+          citation: 'Painted for Mardi Gras week.',
+        },
+        scope: ['app', 'account'],
+        mockBadge: { required: true, copy: 'Mardi Gras chrome — chrome only, recommendations unchanged.' },
+        reducedMotion: 'static-only',
       },
     ],
   },

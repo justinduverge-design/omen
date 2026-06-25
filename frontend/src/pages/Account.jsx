@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { apiFetch } from '../lib/api.js';
+import { setDataMode } from '../lib/dataMode.js';
 import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -467,6 +468,13 @@ export default function Account() {
   useEffect(() => {
     if (!checkingSession) fetchSummary();
   }, [checkingSession, fetchSummary]);
+
+  // Phase 1.5g.3: Account is settings-only — no live fantasy recommendation
+  // data on the page — so cultural-moment chrome is mock-safe here.
+  useEffect(() => {
+    setDataMode('mock');
+    return () => setDataMode(null);
+  }, []);
 
   // Scroll to subscription section once rendered (from ?upgrade=true).
   useEffect(() => {

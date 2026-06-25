@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { setDataMode } from '../lib/dataMode.js';
 import { useTheme } from '../lib/themeMode.js';
 
 // Dedicated standings page — always expanded, full disconnected state.
@@ -140,6 +141,16 @@ export default function Standings() {
 
   const isDisconnected = errorCode === 'league_not_connected';
   const isReconnect    = errorCode?.endsWith('_reconnect_required');
+
+  // Phase 1.5g.3: populated standings are live league data → 'live' (moment
+  // chrome suppressed); disconnected / reconnect / error / empty are mock-safe.
+  // Unset (fail closed) while loading.
+  useEffect(() => {
+    if (loading) return undefined;
+    const hasLiveStandings = !errorCode && Boolean(data?.standings?.length);
+    setDataMode(hasLiveStandings ? 'live' : 'mock');
+    return () => setDataMode(null);
+  }, [loading, errorCode, data]);
 
   function renderContent() {
     if (loading) return <Skeleton />;

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { apiFetch } from '../lib/api.js';
+import { setDataMode } from '../lib/dataMode.js';
 import {
   MARQUEE_ABBRS,
   NFL_TEAMS,
@@ -145,6 +146,14 @@ function LivePreview({ template, themed }) {
 export default function Appearance() {
   const { mode, team: teamAbbr, variant } = useTheme();
   const [expanded, setExpanded] = useState(false);
+
+  // Phase 1.5g.3: the appearance picker carries no live fantasy data, so it is
+  // mock-safe and is the natural surface to preview cultural-moment chrome
+  // (e.g. flip the GB manual flag and see the eyebrow here).
+  useEffect(() => {
+    setDataMode('mock');
+    return () => setDataMode(null);
+  }, []);
 
   const selectedTeam = useMemo(
     () => NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? null,
