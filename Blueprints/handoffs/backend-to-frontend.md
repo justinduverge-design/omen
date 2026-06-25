@@ -6,6 +6,140 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 2.10 Trade Share Hash Routes — 2026-06-25
+
+Feature name: Trade Analyzer share hash routes.
+
+Status: Implemented locally on branch `backend/phase2-10-trade-share-routes` in commit `1d98332`; not pushed or deployed.
+
+Method and path:
+
+```text
+POST /api/trade/share
+GET /api/trade/share/:hash
+```
+
+Both routes are public and use the existing `/api/trade` public-tool rate limit. No auth, subscription, provider connection, Supabase query, ESPN cookie, LLM call, or frontend route is required.
+
+Storage behavior:
+
+- Production uses existing Upstash Redis env (`REDIS_URL` + `REDIS_TOKEN`) with a 30-day TTL.
+- Test/dev falls back to in-process memory so local tests do not need Redis.
+- Production without Redis returns `503 trade_share_storage_unavailable`; it does not silently store public shares in memory.
+
+Create request:
+
+```json
+{
+  "send": [
+    {
+      "name": "Bench RB",
+      "position": "RB",
+      "team": "SEA",
+      "projected_points": 10,
+      "status": null
+    }
+  ],
+  "receive": [
+    {
+      "name": "Starter WR",
+      "position": "WR",
+      "team": "DET",
+      "projected_points": 14
+    }
+  ],
+  "scoring_format": "ppr"
+}
+```
+
+Request rules:
+
+- `send` and `receive` are the same public Trade Analyzer player arrays used by `POST /api/trade/compare`.
+- Each side must contain 1-10 player objects.
+- `scoring_format` is optional and defaults to `ppr`; allowed values are `ppr`, `half_ppr`, `standard`.
+- The route recomputes the public trade snapshot server-side from allowed player fields (`name`, `position`, `team`, `status`, `player_key`, `projected_points`). It does not store arbitrary client-supplied result objects.
+- Payloads over 16 KB are rejected.
+- Credential-like keys anywhere in the request body are rejected before storage: `cookie`, `espn_s2`, `swid`, `token`, `secret`, `authorization`, `password`.
+
+Create response:
+
+```json
+{
+  "contract_version": "trade-share.v1",
+  "hash": "36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30",
+  "api_path": "/api/trade/share/36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30",
+  "expires_at": "2026-07-25T18:28:00.000Z"
+}
+```
+
+Read response:
+
+```json
+{
+  "contract_version": "trade-share.v1",
+  "hash": "36f4c8af-7f8d-4f76-9cc2-3cbf5dca9f30",
+  "is_public": true,
+  "source": "trade_analyzer",
+  "created_at": "2026-06-25T18:28:00.000Z",
+  "expires_at": "2026-07-25T18:28:00.000Z",
+  "trade": {
+    "send": [
+      {
+        "name": "Bench RB",
+        "position": "RB",
+        "team": "SEA",
+        "projected_points": 10
+      }
+    ],
+    "receive": [
+      {
+        "name": "Starter WR",
+        "position": "WR",
+        "team": "DET",
+        "projected_points": 14
+      }
+    ],
+    "scoring_format": "ppr"
+  },
+  "result": {
+    "net_value": 2.5,
+    "verdict": "accept",
+    "confidence": "medium",
+    "scoring_format": "ppr"
+  }
+}
+```
+
+The actual `result` object also includes the existing Trade Analyzer math fields (`send`, `receive`, `a_score`, `b_score`, `combined_score`, `depth_discounted`, `scarcity_analysis`, `generated_at`). It intentionally does not include LLM `explanation`, because the share route should not invoke narration or trust client-supplied free text.
+
+Error responses:
+
+```text
+400 invalid_trade_share_hash
+400 trade_share_body_required
+400 trade_share_sensitive_field
+400 send must be a non-empty array
+400 receive must be a non-empty array
+400 scoring_format must be one of ppr, half_ppr, standard
+413 trade_share_payload_too_large
+404 trade_share_not_found
+503 trade_share_storage_unavailable
+```
+
+Frontend guidance:
+
+- Call `POST /api/trade/share` after a Trade Analyzer result exists, using the same `send`, `receive`, and `scoring_format` values that produced that result.
+- Use `api_path` for API reads. A public frontend page such as `/trade/share/:hash` can map to the same hash later.
+- Treat read responses as public, deterministic snapshots. They are not live platform data and should not be labeled as Sleeper/Yahoo/ESPN-backed.
+- If Redis is unavailable and the create call returns `503`, show a retryable share-error state rather than hiding the failure.
+
+Files changed:
+
+- `src/routes/trade.js`
+- `src/services/tradeShareStore.js`
+- `test/tradeShareRoute.test.js`
+- `Blueprints/api-routes.md`
+
 ## Phase 2.8 Sleeper Live Draft Tracking — 2026-06-19
 
 Feature name: Sleeper live draft tracking (debounced Lazy Sync).
