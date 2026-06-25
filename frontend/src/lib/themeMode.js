@@ -92,6 +92,15 @@ export const MOTIF_VARS = [
   '--motif-svg-url',
 ];
 
+export const TYPE_FLOURISH_VARS = [
+  '--type-flourish-family',
+  '--type-flourish-weight',
+  '--type-flourish-style',
+  '--type-flourish-caps',
+  '--type-flourish-tracking',
+  '--type-flourish-features',
+];
+
 const MOTIF_ATTRS = [
   'data-motif-kind',
   'data-motif-shape',
@@ -168,11 +177,16 @@ function clearTeamTokens(root) {
     root.style.removeProperty(v);
   }
   clearMotifTokens(root);
+  clearTypeFlourishTokens(root);
 }
 
 function clearMotifTokens(root) {
   for (const v of MOTIF_VARS) root.style.removeProperty(v);
   for (const attr of MOTIF_ATTRS) root.removeAttribute(attr);
+}
+
+function clearTypeFlourishTokens(root) {
+  for (const v of TYPE_FLOURISH_VARS) root.style.removeProperty(v);
 }
 
 export function applyMotifTokens(root, motifs) {
@@ -200,6 +214,22 @@ export function applyMotifTokens(root, motifs) {
   root.setAttribute('data-motif-card', motif.appliesTo.includes('card') ? 'true' : 'false');
   root.setAttribute('data-motif-section-divider', motif.appliesTo.includes('section-divider') ? 'true' : 'false');
   root.setAttribute('data-motif-eyebrow', motif.appliesTo.includes('eyebrow') ? 'true' : 'false');
+}
+
+export function applyTypeFlourishTokens(root, flourishes) {
+  const active = Array.isArray(flourishes) ? flourishes : (flourishes?.active ?? []);
+  const flourish = active[0];
+  if (!flourish) {
+    clearTypeFlourishTokens(root);
+    return;
+  }
+
+  root.style.setProperty('--type-flourish-family', `"${flourish.family}"`);
+  root.style.setProperty('--type-flourish-weight', String(flourish.weight ?? 'inherit'));
+  root.style.setProperty('--type-flourish-style', flourish.style ?? 'normal');
+  root.style.setProperty('--type-flourish-caps', flourish.variantCaps ?? 'normal');
+  root.style.setProperty('--type-flourish-tracking', flourish.tracking ?? 'normal');
+  root.style.setProperty('--type-flourish-features', flourish.fontFeatures ?? 'normal');
 }
 
 function setRoleTokens(root, template) {
@@ -305,6 +335,7 @@ function applyTeamTokens(root, template) {
   );
 
   applyMotifTokens(root, template.motifs);
+  applyTypeFlourishTokens(root, template.typeFlourishes);
 }
 
 function resolveDataTheme(mode, teamAbbr, variant) {

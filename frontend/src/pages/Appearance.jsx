@@ -167,6 +167,9 @@ export default function Appearance() {
   const gridDisabled = mode !== 'team';
   const themed = mode === 'team' && Boolean(selectedTeam);
   const showVariantPicker = themed && Boolean(selectedTeam?.palettes?.some((p) => p.mode === 'special'));
+  const hasEyebrowFlourish = Boolean(
+    template?.typeFlourishes?.active?.some((f) => f.scope === 'eyebrow'),
+  );
 
   function handleModeChange(next) {
     setThemeMode(next);
@@ -344,7 +347,11 @@ export default function Appearance() {
                   <div className="space-y-1.5">
                     <div className="mb-3">
                       <span
-                        className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+                        className={
+                          hasEyebrowFlourish
+                            ? 'type-flourish-eyebrow inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-widest'
+                            : 'inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest'
+                        }
                         style={{
                           color: template.identitySecondary?.hex ?? template.identityPrimary?.hex,
                           borderColor: `color-mix(in srgb, ${(template.identitySecondary?.hex ?? template.identityPrimary?.hex ?? 'var(--color-team-primary)')} 40%, var(--color-border) 60%)`,

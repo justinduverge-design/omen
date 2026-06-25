@@ -45,6 +45,12 @@
   --motif-thickness:         0px;
   --motif-opacity:           0;
   --motif-svg-url:           none;
+  --type-flourish-family:    inherit;
+  --type-flourish-weight:    inherit;
+  --type-flourish-style:     normal;
+  --type-flourish-caps:      normal;
+  --type-flourish-tracking:  normal;
+  --type-flourish-features:  normal;
   /* Phase 1.6 position chip palette. CB-validated. */
   --color-pos-rb:  #34D399;
   --color-pos-wr:  #60A5FA;
@@ -106,6 +112,15 @@
 
   :root[data-motif-eyebrow='true'] [data-motif-target='eyebrow'] {
     border-bottom: var(--motif-thickness, 1px) solid var(--motif-color, transparent);
+  }
+
+  .type-flourish-eyebrow {
+    font-family: var(--type-flourish-family);
+    font-weight: var(--type-flourish-weight);
+    font-style: var(--type-flourish-style);
+    font-variant-caps: var(--type-flourish-caps);
+    letter-spacing: var(--type-flourish-tracking);
+    font-feature-settings: var(--type-flourish-features);
   }
 }
 
