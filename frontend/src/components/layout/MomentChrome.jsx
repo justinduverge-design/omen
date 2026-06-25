@@ -33,7 +33,7 @@ export default function MomentChrome() {
       aria-label={`${moment.label} — seasonal chrome`}
       className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-6 pt-6"
     >
-      <p className="moment-eyebrow" style={{ color: 'var(--moment-eyebrow-color)' }}>
+      <p className="moment-eyebrow text-xs" style={{ color: 'var(--moment-eyebrow-color)' }}>
         {moment.overlay.eyebrow}
       </p>
       <MockBanner message={moment.mockBadge.copy} />

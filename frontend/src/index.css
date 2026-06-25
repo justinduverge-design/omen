@@ -144,11 +144,12 @@
   }
 
   /* Quiet eyebrow label for the moment chrome. Colour is palette-sourced via
-     the runtime var; typography (uppercase, tracked) carries the distinction. */
+     the runtime var; typography (uppercase, tracked) carries the distinction.
+     Font size is set with a Tailwind class on the element so this rule adds no
+     new size step to the CSS type hierarchy. */
   .moment-eyebrow {
     font-family: 'Alegreya Sans', system-ui, sans-serif;
     font-weight: 600;
-    font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     color: var(--moment-eyebrow-color);
