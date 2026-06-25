@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { apiFetch } from '../../lib/api.js';
 import { useTheme } from '../../lib/themeMode.js';
+import MockBanner from '../ui/MockBanner.jsx';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -241,19 +242,25 @@ function EmptyHistory() {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function MoveHistory({ onDataState }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function MoveHistory({ onDataState, fixture = null }) {
+  const [data, setData] = useState(fixture);
+  const [loading, setLoading] = useState(!fixture);
   const [error, setError] = useState(false);
+  const isFixture = Boolean(fixture?.is_mock);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(false);
+    if (fixture) {
+      setData(fixture);
+      setLoading(false);
+      return;
+    }
     apiFetch('/api/moves')
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [fixture]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -265,6 +272,10 @@ export default function MoveHistory({ onDataState }) {
   useEffect(() => {
     if (!onDataState) return;
     if (loading) { onDataState(null); return; }
+    if (data?.is_mock || data?.mode === 'mock') {
+      onDataState('mock');
+      return;
+    }
     onDataState(error || !data?.moves?.length ? 'mock' : 'live');
   }, [onDataState, loading, error, data]);
 
@@ -304,6 +315,9 @@ export default function MoveHistory({ onDataState }) {
 
   return (
     <div className="space-y-3">
+      {isFixture && (
+        <MockBanner message={`${data.fixture_label} Ledger previous results are mock.`} />
+      )}
       <SummaryStats summary={data.summary} season={data.season} />
       <div className="space-y-2">
         {data.moves.map((move) => (

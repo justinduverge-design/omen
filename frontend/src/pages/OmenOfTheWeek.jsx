@@ -4,6 +4,7 @@ import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
 import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
 
 const ESPN_RECOVERY_STATES = new Set([
@@ -27,6 +28,8 @@ const SIGNAL_STYLES = {
 };
 
 function useOmenData() {
+  const fixtureKey = getPrivateFixtureKey();
+  const fixtureActive = fixtureKey === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,6 +38,12 @@ function useOmenData() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (fixtureActive && import.meta.env.DEV) {
+      const { OMEN_VISUAL_FIXTURE } = await import('../data/privateDemoFixtures.js');
+      setData(OMEN_VISUAL_FIXTURE);
+      setLoading(false);
+      return;
+    }
     try {
       const result = await apiFetch('/api/omen/mvp-move', {
         method: 'POST',
@@ -59,7 +68,7 @@ function useOmenData() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, fixtureActive]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -542,12 +551,16 @@ export default function OmenOfTheWeek() {
 
   const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
   const mockMode = isMockMode(data);
+  const privateFixtureMode = data?.fixture_key === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
   const livePlatformLabel = !mockMode && platform?.name ? platformLabel(platform.name) : '';
 
   return (
     <div className="space-y-6">
       {mockMode && (
-        <MockBanner message="Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins." />
+        <MockBanner message={privateFixtureMode
+          ? `${data.fixture_label} Omen roster and recommendation are mock.`
+          : 'Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins.'}
+        />
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">

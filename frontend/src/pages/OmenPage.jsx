@@ -5,6 +5,7 @@ import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
+import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
 import { useTheme } from '../lib/themeMode.js';
 import OmenOfTheWeek from './OmenOfTheWeek.jsx';
 
@@ -50,22 +51,31 @@ function LoadingGate() {
 }
 
 export default function OmenPage() {
+  const fixtureKey = getPrivateFixtureKey();
+  const omenFixtureActive = fixtureKey === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!omenFixtureActive);
   const [fetchFailed, setFetchFailed] = useState(false);
 
   useEffect(() => {
+    if (omenFixtureActive) {
+      setLoading(false);
+      setFetchFailed(false);
+      return undefined;
+    }
     let mounted = true;
     apiFetch('/api/dashboard/summary')
       .then((data) => { if (mounted) setSummary(data); })
       .catch(() => { if (mounted) setFetchFailed(true); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [omenFixtureActive]);
 
   const omenStatus = summary?.tools?.omen_of_the_week?.status;
 
   function renderContent() {
+    if (omenFixtureActive) return <OmenOfTheWeek />;
+
     if (loading) return <LoadingGate />;
 
     if (omenStatus === 'needs_platform') {
