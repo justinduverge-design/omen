@@ -1,10 +1,10 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`; refreshed 2026-06-25 (Claude session) after Phase 1.10A closeout.** Phase 1.5g.1 is merged to `main` and deployed via Hostinger KVM1 run `28062382244` at deployed head `8e5d56b`. **Correction to the prior refresh:** Phase 1.5g.2 (PR #65) and Phase 1.5g.3 (PR #66) are no longer draft/unmerged — `git log` on `main` shows both already squash-merged (`68f2d21`, `cdae3bc`). Phase 1.10A — UX copy options packet shipped this session: `Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md`. No active task is pinned after closeout.
+**Auto-populated 2026-06-23 (Codex session) from `Direction/current_sprint.md`; refreshed 2026-06-25 (Claude session) after Phase 1.10B (partial) closeout.** Phase 1.5g.1 is merged to `main` and deployed via Hostinger KVM1 run `28062382244` at deployed head `8e5d56b`. **Correction to the prior refresh:** Phase 1.5g.2 (PR #65) and Phase 1.5g.3 (PR #66) are no longer draft/unmerged — `git log` on `main` shows both already squash-merged (`68f2d21`, `cdae3bc`). Phase 1.10A shipped (`Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md`) and Justin's picks (A1/B1/C1+C2) were applied as Phase 1.10B (partial) — hero headlines on `Landing.jsx` + `OmenLanding.jsx` and the `Onboarding.jsx` success step. No active task is pinned after closeout.
 
 ## Active Task
 
-None pinned. Phase 1.10B (apply approved copy) is the natural follow-on but waits on Justin's picks from the 1.10A packet — do not pull until he selects.
+None pinned. Two decisions are open from this session, surfaced below — neither is pulled until Justin responds.
 
 ## Auto-Populated Top 5
 
@@ -17,7 +17,7 @@ None pinned. Phase 1.10B (apply approved copy) is the natural follow-on but wait
 ## Blockers Surfaced
 
 - **Phase 1.5d (post-win pulse animation)** remains gated on Backend **Phase 2.17** (`lastResult` field across Sleeper / Yahoo / ESPN). Not in top 5; kept visible because it blocks the next motion polish.
-- **Phase 1.10B (apply approved copy)** waits on Justin's selection from the Phase 1.10A packet (`Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md`). The packet also surfaced that the same banned headline lives in two files (`Landing.jsx` + `OmenLanding.jsx`), not just the one the sprint item named — 1.10B should cover both once Justin picks.
+- **Phase 1.10B headline + onboarding copy is done** (Justin picked A1/B1/C1+C2, applied 2026-06-25). Two pieces of the original Phase 1.10B sprint wording remain open and need a Justin decision, not a pull: (1) the `/omen` offseason empty-state copy has no backend status to attach to yet — see the `frontend-to-backend.md` request filed 2026-06-25; (2) removing the `/draft` "Preview Mode" banner touches mock/live disclosure and wasn't covered by the copy-pick approval — needs explicit go-ahead before any agent removes it.
 - **Phase 3.15 (`AI_PROVIDER` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until logged.
 - **Frontend Phase 2.10 (Trade share card)** waits on Backend Phase 2.10 hash routes.
 - **Phase 1.5g.3 deferred verification** (not a blocker for the next pull): Safari 16/17/18 `color-mix` tint smoke + authed light/dark moment screenshots still owed — folded into the Phase 1.13 mobile sweep above. If Safari regresses, the pre-resolved-hex fallback is documented in `team-motif-grammar.md` §index.css.

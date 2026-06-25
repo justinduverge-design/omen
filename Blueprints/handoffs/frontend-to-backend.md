@@ -989,6 +989,27 @@ No backend request needed. No migration needed. No approval needed — Claude ca
 
 ---
 
+---
+
+### Request — Offseason status for Omen of the Week
+
+**Date:** 2026-06-25
+**Owner:** Claude Code / frontend
+**Feature:** Phase 1.10A/B — `/omen` offseason empty state
+**Needed by:** Whenever Phase 1.10B-offseason picks up; not blocking the rest of 1.10B (hero headlines + onboarding copy already shipped without this).
+
+**Frontend need:** `OmenPage.jsx` currently branches on `summary.tools.omen_of_the_week.status` with only `needs_platform`, `pending_live_engine`, and the default `ready`-or-fetch-failed path (see `src/routes/dashboard.js`). There is no status value today that distinguishes "it's the NFL offseason, there's nothing to recommend" from those. Frontend has copy ready (`Blueprints/handoffs/2026-06-25-phase1-10a-ux-copy-options.md` option A1: title "Omen is resting.", message "No games on the board right now. Omen wakes up again once your season opens.") but nothing to wire it to.
+
+**Expected endpoint or contract:** Add a new status value, e.g. `off_season`, returned by `GET /api/dashboard/summary` at `tools.omen_of_the_week.status` when there's no active/upcoming game to evaluate for the user's team — even though the user is connected and subscribed. Exact detection logic (schedule lookup vs. a date-range check vs. reusing whatever `nflSchedule.js` / `matchupService.js` already use to return `null` for "offseason, bye week") is a backend call.
+
+**Required states:** This is additive — existing `needs_platform` / `pending_live_engine` / `ready` states are unaffected. New: `off_season`.
+
+**Plain-English output needed:** Just the status string; no new data payload needed since the empty-state copy is static.
+
+**Notes / risks:** Low risk — purely additive status, no behavior change to existing states. Don't conflate with bye-week-for-this-specific-user (that's a "no good recommendation, lineup is set" case Omen likely already handles via its existing recommendation logic) — this is specifically "the whole league isn't playing right now."
+
+---
+
 ## Request Template
 
 ```text

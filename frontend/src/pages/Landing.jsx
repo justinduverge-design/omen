@@ -569,9 +569,9 @@ export default function Landing() {
             </p>
 
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.12] text-[var(--color-text-primary)] md:text-5xl lg:text-[3.25rem]">
-              Know the move
+              See the result
               <br />
-              before you make it.
+              before it happens.
             </h1>
 
             <p className="mt-5 max-w-md text-[0.9375rem] leading-7 text-[#F4EFE1]/58">

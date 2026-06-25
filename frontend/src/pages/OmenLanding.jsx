@@ -114,7 +114,7 @@ export default function OmenLanding() {
             Omen · Trade Analyzer
           </p>
           <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-[var(--color-text-primary)] md:text-4xl">
-            Know the move before you make it.
+            See the move before the league does.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#F4EFE1]/50">
             No account required. Pick a position, type a name, hit Compare — Omen does the rest.

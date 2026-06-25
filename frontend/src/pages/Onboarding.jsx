@@ -298,14 +298,14 @@ function CompleteStep({ onDone }) {
         className="mb-4 font-display font-bold"
         style={{ color: 'var(--color-text-primary)', fontSize: 'clamp(2rem, 7vw, 3.5rem)', lineHeight: 1.04 }}
       >
-        You're ready.
+        You're set.
       </h2>
       <p
         className="mb-10 font-serif text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
-        League connected. Omen will surface your best move when the season
-        opens. Check back each Tuesday after your roster locks.
+        League connected. Omen reads the matchup the moment your roster locks
+        — your first call lands Tuesday.
       </p>
       <button
         type="button"
