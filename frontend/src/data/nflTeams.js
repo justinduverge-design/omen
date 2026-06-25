@@ -172,6 +172,20 @@ export const NFL_TEAMS = [
     cultureTag: 'Pats Nation',
     cry:        'Do Your Job',
     wardRoom:   'We all we got, we all we need.',
+    typeFlourishes: [
+      {
+        id: 'ne-engraved-eyebrow',
+        scope: 'eyebrow',
+        family: 'Alegreya Sans',
+        weight: 600,
+        style: 'normal',
+        variantCaps: 'small-caps',
+        tracking: '0.12em',
+        fontFeatures: '"smcp" 1',
+        enabledInVariant: ['official', 'special'],
+        reducedMotion: 'no-change',
+      },
+    ],
   },
   {
     abbr: 'NYJ', city: 'New York', name: 'Jets', div: 'AFC East',

@@ -13,10 +13,35 @@
  *   node frontend/scripts/contrast-sweep.mjs --out Blueprints/audits/2026-06-23-phase1-5g-motif-contrast-sweep.md
  */
 
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { writeFileSync, readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { NFL_TEAMS } from '../src/data/nflTeams.js';
 import { getTeamTemplate } from '../src/lib/teamTemplate.js';
+
+// Phase 1.5g.2 font-loading grep gate — index.css is pinned to 2 @import
+// lines (Alegreya/Alegreya Sans, DM Mono) and 0 @font-face lines. A new
+// font load (e.g. self-hosting) must be a deliberate, reviewed change, not
+// a silent drift — bump the baseline here if that change is intentional.
+const FONT_IMPORT_BASELINE = 2;
+const FONT_FACE_BASELINE = 0;
+
+function assertFontImportBaseline() {
+  const cssPath = resolve(dirname(fileURLToPath(import.meta.url)), '../src/index.css');
+  const css = readFileSync(cssPath, 'utf8');
+  const importCount = (css.match(/^@import\b/gm) ?? []).length;
+  const fontFaceCount = (css.match(/^@font-face\b/gm) ?? []).length;
+
+  if (importCount > FONT_IMPORT_BASELINE || fontFaceCount > FONT_FACE_BASELINE) {
+    console.error(
+      `Font-loading grep gate failed: index.css has ${importCount} @import ` +
+      `(baseline ${FONT_IMPORT_BASELINE}) and ${fontFaceCount} @font-face ` +
+      `(baseline ${FONT_FACE_BASELINE}). New font loads need deliberate review ` +
+      `— bump FONT_IMPORT_BASELINE/FONT_FACE_BASELINE in contrast-sweep.mjs if intentional.`,
+    );
+    process.exit(1);
+  }
+}
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
@@ -217,6 +242,8 @@ function toMarkdown(rows) {
 const args = process.argv.slice(2);
 const outIdx = args.indexOf('--out');
 const outPath = outIdx >= 0 ? args[outIdx + 1] : null;
+
+assertFontImportBaseline();
 
 const rows = runSweep();
 const md = toMarkdown(rows);

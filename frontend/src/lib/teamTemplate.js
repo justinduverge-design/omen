@@ -26,6 +26,7 @@
 
 import { NFL_TEAMS, getTeamPalette, readableOn, relLum, hexToRgb } from '../data/nflTeams.js';
 import { resolveMotifs } from './motifs.js';
+import { resolveTypeFlourishes } from './typeFlourishes.js';
 
 /**
  * Return the runtime token bundle for `abbr` + `variant`. Returns null when
@@ -126,6 +127,7 @@ export function getTeamTemplate(abbr, variant = 'official') {
     culturalAnchor: palette.culturalAnchor,
 
     motifs: resolveMotifs(team, palette, surfaceIsDark),
+    typeFlourishes: resolveTypeFlourishes(team, palette.mode),
   };
 }
 
