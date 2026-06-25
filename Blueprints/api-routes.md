@@ -21,6 +21,8 @@ This file is the quick backend reference for current canonical routes and known 
 | Method | Path | Contract | Auth | Notes |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/trade/compare` | trade comparison response | No | Free Trade Analyzer entry point. |
+| `POST` | `/api/trade/share` | `trade-share.v1` | No | Creates a 30-day public share hash from bounded Trade Analyzer input. Uses Redis in production; no auth or provider data. |
+| `GET` | `/api/trade/share/:hash` | `trade-share.v1` | No | Public read of a shared trade snapshot by UUID hash. Returns `404 trade_share_not_found` when missing/expired. |
 | `GET` | `/api/players/search` | `players-search.v1` | No | Free Trade Analyzer autocomplete. Uses public Sleeper player data; max 10 rows. |
 | `POST` | `/api/draft-assistant/recommendations` | `draft-assistant-recommendations.v1` | No | Mock/preview recommendations until live Draft Assistant data ships. |
 | `GET` | `/api/draft-assistant/adp` | ADP response | No | Public ADP; optional Yahoo enrichment when auth is supplied. |
