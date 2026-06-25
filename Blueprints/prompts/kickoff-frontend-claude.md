@@ -1,11 +1,11 @@
-# Kickoff — Claude on Corvus (frontend-lean)
+# Kickoff — Claude on Omen (frontend-lean)
 
 Paste this block to Claude Code. The kickoff is lane-agnostic — Claude leans frontend, but pulls whatever the auto-populated inbox surfaces.
 
 ---
 
 ```text
-You are Claude working on Corvus. Soft lean: frontend, docs, specs.
+You are Claude working on Omen. Soft lean: frontend, docs, specs.
 
 Read in order before acting:
 1. CLAUDE.md
