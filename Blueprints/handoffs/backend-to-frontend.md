@@ -6,6 +6,106 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 2.17 Platform Last-Result Fields — 2026-06-27
+
+Feature name: Platform last-result fields for post-win pulse.
+
+Status: Built locally on branch `codex/phase2-17-platform-last-result`. Not deployed.
+
+Method and path:
+
+```text
+GET /api/dashboard/summary
+```
+
+Auth remains required. No new route, package, SQL, env, migration, deploy, or production config was added.
+
+Response shape change:
+
+Each platform entry in `platforms` now includes the additive fields below:
+
+```json
+{
+  "lastResult": "W",
+  "lastGameId": "sleeper-league-1:7:3",
+  "lastGameKickoff": null
+}
+```
+
+Types:
+
+```text
+lastResult: "W" | "L" | null
+lastGameId: string | null
+lastGameKickoff: ISO8601 string | null
+```
+
+Example response excerpt:
+
+```json
+{
+  "platforms": {
+    "sleeper": {
+      "connected": true,
+      "username": "sleepy",
+      "lastResult": "W",
+      "lastGameId": "sleeper-league-1:7:3",
+      "lastGameKickoff": null
+    },
+    "yahoo": {
+      "connected": true,
+      "league_id": "449.l.123",
+      "lastResult": null,
+      "lastGameId": null,
+      "lastGameKickoff": null
+    },
+    "espn": {
+      "connected": false,
+      "lastResult": null,
+      "lastGameId": null,
+      "lastGameKickoff": null
+    }
+  }
+}
+```
+
+State handling:
+
+- Omen uses the previous regular-season week only. Week 1 has no prior matchup, so all fields remain `null`.
+- Missing, tied, unavailable, or unsafe provider results return `lastResult: null`.
+- Provider lookup failures do not fail the dashboard summary; the fields stay null.
+- `lastGameKickoff` is present for contract stability but remains `null` in v1 because the fantasy matchup sources used here do not expose a real kickoff timestamp. Do not fake this on the frontend.
+
+Mock vs live data:
+
+- These fields are derived from connected provider data when available.
+- They are not mock data and should not be used when `connected` is false.
+- Null means "no safe result available," not "loss."
+
+Known limitations:
+
+- ESPN uses the existing private v3 API adapter and remains fragile.
+- Raw ESPN cookies, Vault ids, auth headers, and raw ESPN responses are never returned.
+- This is a fantasy matchup result, not an NFL favorite-team result.
+
+Frontend action needed:
+
+- Phase 1.5d may trigger the post-win pulse when any selected/active platform row has `lastResult === "W"`.
+- Use `lastGameId` for localStorage "already seen" suppression.
+- Ignore `null` fields. Do not infer a win/loss from standings, points, or missing data client-side.
+
+Files changed:
+
+- `src/routes/dashboard.js`
+- `src/adapters/sleeper.js`
+- `src/adapters/yahoo.js`
+- `src/adapters/espn.js`
+- `src/services/yahoo.js`
+- `test/dashboardSummary.test.js`
+- `test/sleeperAdapter.test.js`
+- `test/yahooAdapter.test.js`
+- `test/espnAdapter.test.js`
+
 ## Phase 2.10 Trade Share Hash Routes — 2026-06-25
 
 Feature name: Trade Analyzer share hash routes.
