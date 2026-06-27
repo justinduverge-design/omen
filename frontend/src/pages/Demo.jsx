@@ -26,12 +26,18 @@ function DemoBanner({ notice }) {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-start gap-2.5 rounded-md border border-sky-400/30 bg-sky-400/5 px-3.5 py-3 text-xs text-sky-300"
+      className="flex items-start gap-2.5 rounded-md border border-sky-400/30 bg-sky-400/5 px-3.5 py-3 text-xs"
+      style={{ color: 'var(--color-demo-text)' }}
     >
       <span aria-hidden="true" className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-400" />
       <div>
         <p className="font-semibold uppercase tracking-widest">{label}</p>
-        <p className="mt-0.5 leading-5 text-sky-200/80">{message}</p>
+        <p
+          className="mt-0.5 leading-5"
+          style={{ color: 'var(--color-demo-text-secondary)' }}
+        >
+          {message}
+        </p>
       </div>
     </div>
   );
@@ -40,7 +46,10 @@ function DemoBanner({ notice }) {
 function DemoHeader() {
   return (
     <section className="max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-widest text-sky-400">
+      <p
+        className="text-xs font-semibold uppercase tracking-widest"
+        style={{ color: 'var(--color-demo-text)' }}
+      >
         Omen Demo
       </p>
       <h1
@@ -99,7 +108,10 @@ function ConversionFooter() {
       }}
     >
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-sky-400">
+        <p
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: 'var(--color-demo-text)' }}
+        >
           Ready for the real call?
         </p>
         <p

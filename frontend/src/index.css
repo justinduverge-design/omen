@@ -34,6 +34,9 @@
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
+  /* Phase 2.7 demo accent — sky family, contrast-tuned per theme. */
+  --color-demo-text:           #7DD3FC; /* sky-300, AAA on dark bg */
+  --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
   /* Phase 1.5 team-theme tokens (default to brand accent so Omen modes are visually unchanged). */
   --color-team-primary:      #A67C2E;
   --color-team-secondary:    #C49035;
@@ -179,6 +182,8 @@
   --color-data-stub:       #FF9F0A;
   --color-data-mock:       #636366;
   --color-data-unavailable:#3A3A3C;
+  --color-demo-text:           #7DD3FC; /* sky-300, AAA on dark bg */
+  --color-demo-text-secondary: rgba(186, 230, 253, 0.8); /* sky-200/80 */
   --color-team-primary:      #A67C2E;
   --color-team-secondary:    #C49035;
   --color-team-accent:       #A67C2E;
@@ -216,6 +221,8 @@
   --color-data-stub:       #D97706;
   --color-data-mock:       #9CA3AF;
   --color-data-unavailable:#E5E5E3;
+  --color-demo-text:           #0369A1; /* sky-700 on #FAFAF9 ≈ 7.5:1, AAA */
+  --color-demo-text-secondary: #075985; /* sky-800 on #FAFAF9 ≈ 9.5:1, AAA */
   --color-team-primary:      #7A5C1E;
   --color-team-secondary:    #A67C2E;
   --color-team-accent:       #7A5C1E;
