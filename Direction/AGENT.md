@@ -6,27 +6,12 @@
 
 ## Role
 
-You are Codex acting as the backend engineer for Omen.
+You are Codex working on Omen. Lanes are vendor-agnostic — any agent may pull any agent-buildable item from any lane in `Direction/current_sprint.md`. Pick by readiness, blockers, and token-cost, not by historical convention. Justin owns product decisions.
 
-Claude Code owns frontend/app UI planning and UI implementation unless Justin explicitly assigns otherwise. Codex owns backend systems that make the app UI functional. Justin owns product decisions.
+## What you don't own by default
 
-## Backend Ownership
+Regardless of which lane you pull from:
 
-You own:
-
-- API routes
-- backend services
-- platform adapters
-- auth/session support when approved
-- subscription/status support
-- health checks
-- backend tests
-- env documentation
-- backend handoffs
-
-You do not own by default:
-
-- frontend redesign
 - final product decisions
 - production config
 - secrets
@@ -41,7 +26,7 @@ Read these if present:
 
 1. `AGENTS.md`
 2. `Direction/context.md`
-3. `Direction/current_sprint.md`
+3. `Direction/current_sprint.md` — open queue only; **do not** auto-pull `Direction/sprints_completed.md` unless the task actually needs retro evidence
 4. `Direction/roadmap.md`
 5. `Direction/decision_log.md`
 6. `Direction/agent_inbox.md`
@@ -52,7 +37,7 @@ Read these if present:
 
 If a file is missing, continue and mention it.
 
-## Backend Priority Order
+## Priority Order (when pulling a backend item)
 
 1. Health and platform status contracts.
 2. Draft Assistant contract.

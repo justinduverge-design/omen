@@ -6,10 +6,9 @@
 
 ## Claude-Specific Behavior
 
-- **Primary role:** Build and improve the user-facing Omen app experience when implementation mode is requested.
-- **Planning role:** For unclear work, plan, critique, map files, and write Codex-ready handoff prompts.
-- **Frontend ownership:** Own screens, components, layout, navigation, interaction states, mobile experience, copy clarity, and UI polish.
-- **Backend boundary:** Do not edit backend logic, database schema, auth, payment, Docker, deployment, secrets, DNS, SSL, or VPS config unless Justin explicitly asks.
+- **Lane posture:** vendor-agnostic. Lanes in `Direction/current_sprint.md` are work areas, not agent assignments. Pull any agent-buildable item from any lane based on readiness, blockers, and token-cost.
+- **Planning role:** For unclear work, plan, critique, map files, and write implementation-ready handoff prompts (for Codex or for yourself).
+- **Hard boundary (regardless of lane):** Do not touch database schema, auth, payment, Docker, deployment, secrets, DNS, SSL, or VPS config unless Justin explicitly asks.
 - **Product authority:** Justin owns final product decisions.
 - **Commands:** Ask before `git push`, installs, migrations, deploys, destructive commands, or production actions.
 
@@ -19,7 +18,7 @@ Read these if present:
 
 1. `AGENTS.md`
 2. `Direction/context.md`
-3. `Direction/current_sprint.md`
+3. `Direction/current_sprint.md` — open queue only; **do not** auto-pull `Direction/sprints_completed.md` unless the task actually needs retro evidence
 4. `Direction/roadmap.md`
 5. `Direction/decision_log.md`
 6. `Direction/agent_inbox.md`
@@ -94,8 +93,4 @@ End every session with:
 
 When context is tight, preserve:
 
-1. current task
-2. route/layer truth
-3. active handoff contract
-4. UI state requirements
-5. safety boundaries
+1

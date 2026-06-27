@@ -32,7 +32,7 @@ From `Brand/brand-system.md` §11: every change must satisfy **Accuracy + Access
 
 Every gate marked done must **point to evidence** — commit hash, file path, screenshot link, test-run timestamp, skill-verdict location. Do not paste full command output. Justin will investigate from the pointer if needed.
 
-Skipping a gate without writing why = lying about done. See `Blueprints/agent-modules/hard-prohibitions.md` item 2.
+Skipping a gate without writing why = lying about done. Marking a gate done with stale, fabricated, or missing evidence is a hard prohibition.
 
 ## The ledger
 

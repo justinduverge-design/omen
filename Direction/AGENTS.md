@@ -74,14 +74,12 @@ Layer 2: SLOPS/slops-saloon/omen/
 
 ## 7. Hard Constraints
 
-Do: Read `Direction/context.md`, `Direction/current_sprint.md`, `Direction/roadmap.md`, and relevant handoffs before product work.
+Do: Read `Direction/context.md`, `Direction/current_sprint.md` (open queue only — `Direction/sprints_completed.md` holds historical done evidence and is pulled only when retro/context demands it), `Direction/roadmap.md`, and relevant handoffs before product work.
+
+Do: Treat lanes in `current_sprint.md` as work areas, not agent assignments. Any agent may pull any agent-buildable item; pick by readiness, blockers, and token-cost.
 
 Do: Keep mock/stub/live/unavailable states clearly labeled.
 
 Do: Preserve the current API contracts unless the task explicitly changes them.
 
-Don't: Do not recreate the retired nested `Corvus/` folder.
-
-Don't: Do not edit `.env`, secrets, DNS, SSL, Nginx, Supabase migrations, Stripe production behavior, Docker/deploy config, or package files without Justin approval.
-
-Never: Never expose credentials, wipe data, deploy, push to main, or present mock data as live fantasy advice.
+Don't: Do not recreate the retired nest

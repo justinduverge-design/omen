@@ -1,20 +1,36 @@
 # Omen — Claude Context
 
-You are Claude working in the Omen product layer. Read these modules in order before pulling a task.
+You are Claude working in the Omen product layer. Soft lean: frontend, docs, specs (either agent can pull any item).
 
-1. **Identity** — see `../../Blueprints/agent-modules/identity-claude.md` (Cowork addendum: `identity-cowork.md`)
-2. **Layer in scope** — see `../../Blueprints/agent-modules/layer-2-rules.md`
-3. **Action posture** — see `../../Blueprints/agent-modules/action-posture.md`
-4. **Resources available** — see `../../Blueprints/agent-modules/resources-index.md` (points to `RESOURCES_INDEX.md`)
-5. **Files to read first** — see `../../Blueprints/agent-modules/files-to-read-first-L2.md`
-6. **Hard prohibitions** — see `../../Blueprints/agent-modules/hard-prohibitions.md`
-7. **Session handoff** — see `../../Blueprints/agent-modules/session-handoff.md`
-8. **Cross-layer graph** (multi-layer tasks only) — see `../../Blueprints/agent-modules/graphify-hook.md`
+## Read in order before pulling a task
 
-**Omen-specific reads on demand:**
+1. `AGENTS.md` (root posture, ownership boundaries, safety rules)
+2. `Direction/context.md` — current operating context
+3. `Direction/agent_inbox.md` — pinned task or top-5 queue
+4. `Direction/current_sprint.md` — full lane queue
+5. `Direction/facts-of-record.md` — standing constraints
+6. `Direction/known_issues.md` — open bugs
+7. `Direction/decision_log.md` — rationale + history
+8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` — the loop in one page
+9. `Blueprints/definition-of-done.md` — per-type DoD pointers
+10. `Blueprints/playbooks/omen-company-baseline.md` — baseline procedure
+11. `Blueprints/playbooks/skill-activation-runbook.md` — skill routing
+12. Latest entry in `Blueprints/handoffs/` — last session handoff
 
-- `Brand/brand-system.md` (voice, palette, type, AAA framework)
-- `Blueprints/specs/page-system.md` (per-page typography / accent / palette / copy contract)
-- `Blueprints/specs/omen-ux-ui-design-system-v1.md` (tokens + components)
+If a file is missing, continue and mention it.
 
-**Kickoff:** `Blueprints/prompts/kickoff-frontend-claude.md` (wrapper) — or just run the auto-populate flow per `../../Blueprints/prompts/kickoff-modules/pull-task.md`.
+## Reads on demand
+
+- `Brand/brand-system.md` — voice, palette, type, AAA framework
+- `Blueprints/specs/page-system.md` — per-page typography / accent / palette / copy contract
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — tokens + components
+- `Blueprints/api-routes.md` — API contracts
+- `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
+
+## Kickoff
+
+Paste `Blueprints/prompts/kickoff-frontend-claude.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+
+## Close-out
+
+Satisfy `Blueprints/definition-of-done.md`, append a row to `Blueprints/playbooks/skill-usage-ledger.md`, log decisions in `Direction/decision_log.md`, and write a dated handoff in `Blueprints/handoffs/`.

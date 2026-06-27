@@ -7,7 +7,7 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Task slot:** `Direction/agent_inbox.md` — top-5 auto-populated by the agent + optional pin
 - **Queue:** `Direction/current_sprint.md` — full list, lanes (Frontend / Backend / Ops / Verify / Decisions / Tech debt)
 - **Kickoffs:** `Blueprints/prompts/kickoff-frontend-claude.md`, `Blueprints/prompts/kickoff-backend-codex.md`
-- **Modules:** `Blueprints/prompts/kickoff-modules/*` — pull-task, plan-approval, done-and-close, safety-gates, read-first
+- **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
 - **Company baseline:** `Blueprints/playbooks/omen-company-baseline.md`
 - **Skill routing:** `Blueprints/playbooks/skill-activation-runbook.md`
