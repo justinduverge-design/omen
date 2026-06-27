@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-06-19
+Last updated: 2026-06-27
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -15,6 +15,8 @@ This file is the quick backend reference for current canonical routes and known 
 | `GET` | `/api/system/current-week` | `system-current-week.v1` | Public NFL season/week context. |
 | `GET` | `/api/platform-status` | `platform-status.v1` | Public platform/config status; no private LLM URL. |
 | `GET` | `/api/demo` | `omen-demo.v1` | Public deterministic sample roster + Omen envelope. Always `mode: "demo"`; never live/mock fallback. |
+
+LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`. Possible safe status values are `not_configured`, `configured_private`, `misconfigured_public`, and `invalid_url`. These routes never return `LLM_BASE_URL`, hostname, or port; public/invalid LLM URLs are optional-service misconfiguration states, not app readiness failures.
 
 ## Canonical Product Routes
 

@@ -6,6 +6,67 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 3.12 KVM2 Gemma Bridge Status — 2026-06-27
+
+Feature name: Private local LLM bridge status.
+
+Status: Built locally on branch `codex/phase3-12-kvm2-gemma-bridge`, commit `fbbf0c5`. Not deployed.
+
+No new route. No frontend action required unless you want to display diagnostics.
+
+Changed routes:
+
+```text
+GET /api/ready
+GET /api/platform-status
+```
+
+Additive response fields:
+
+```json
+{
+  "checks": {
+    "optional_services": {
+      "llm_private": true
+    },
+    "llm": {
+      "status": "configured_private",
+      "model": "gemma4:e2b-q4_0",
+      "timeout_ms": 30000,
+      "transport": "openai_compatible_chat_completions",
+      "private_route_required": true,
+      "public_url_exposed": false,
+      "note": "LLM_BASE_URL must resolve over a private route such as Tailscale; this status never returns the URL."
+    }
+  }
+}
+```
+
+`/api/platform-status.dependencies.llm` returns the same safe status object.
+
+Status values:
+
+```text
+not_configured
+configured_private
+misconfigured_public
+invalid_url
+```
+
+Important frontend rule:
+
+- Do not expect or display the LLM URL. The backend intentionally never returns it.
+- `misconfigured_public` and `invalid_url` are non-fatal optional-service states. Omen still falls back to deterministic/template narration.
+
+Files changed:
+
+- `src/services/llm.js`
+- `src/config/index.js`
+- `src/services/systemContracts.js`
+- `src/routes/system.js`
+- `test/llmService.test.js`
+- `test/systemRoutes.test.js`
+
 ## Phase 2.17 Platform Last-Result Fields — 2026-06-27
 
 Feature name: Platform last-result fields for post-win pulse.
