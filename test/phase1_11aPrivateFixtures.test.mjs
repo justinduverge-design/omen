@@ -79,12 +79,18 @@ test('private fixture key only resolves in dev runtime', () => {
   );
 });
 
-test('fixture wiring stays private and does not add a public demo route', () => {
+test('1.11a private fixture wiring stays dynamic-imported (no top-level imports)', () => {
+  // Phase 1.11a invariant: each private fixture is only reachable via the
+  // DEV-only query-param gate + dynamic import, so the fixture bodies never
+  // ship in the production bundle. A top-level `import { FOO_FIXTURE }` from
+  // those pages would defeat that.
+  //
+  // The public `/demo` route added in Phase 2.7 is a SEPARATE system backed by
+  // GET /api/demo; that route is not part of this invariant and is allowed.
   const omenSource = readFileSync('frontend/src/pages/OmenOfTheWeek.jsx', 'utf8');
   const ledgerSource = readFileSync('frontend/src/pages/Ledger.jsx', 'utf8');
   const moveHistorySource = readFileSync('frontend/src/components/moves/MoveHistory.jsx', 'utf8');
   const draftSource = readFileSync('frontend/src/pages/DraftAssistant.jsx', 'utf8');
-  const routerSource = readFileSync('frontend/src/routes/index.jsx', 'utf8');
 
   assert.match(omenSource, /OMEN_VISUAL_FIXTURE/);
   assert.match(ledgerSource, /LEDGER_PREVIOUS_RESULTS_FIXTURE/);
@@ -93,5 +99,4 @@ test('fixture wiring stays private and does not add a public demo route', () => 
   assert.doesNotMatch(omenSource, /import\s+\{[^}]*OMEN_VISUAL_FIXTURE/);
   assert.doesNotMatch(ledgerSource, /import\s+\{[^}]*LEDGER_PREVIOUS_RESULTS_FIXTURE/);
   assert.doesNotMatch(draftSource, /import\s+\{[^}]*DRAFT_ASSISTANT_FIXTURE/);
-  assert.doesNotMatch(routerSource, /path=["']\/demo["']/);
 });
