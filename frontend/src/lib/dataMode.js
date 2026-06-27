@@ -6,8 +6,12 @@
  * single source of truth for whether the route the user is looking at is
  * currently rendering:
  *
- *   'mock' — preview / disconnected / empty / off-season / demo fixtures.
+ *   'mock' — dev private fixtures / preview / disconnected / empty / off-season.
  *            Moment chrome is allowed (always paired with its mock badge).
+ *   'demo' — public `/demo` route backed by the deterministic `omen-demo.v1`
+ *            fixture (Phase 2.7). Distinct from 'mock' per
+ *            `Blueprints/demo-mode.md` — demo is a separate product state with
+ *            its own "Demo Mode" label, not dev mock data.
  *   'live' — real connected-league data. Moment chrome is SUPPRESSED.
  *   null   — unknown. Fail closed: treated as live, moment suppressed.
  *
@@ -25,7 +29,7 @@
 
 import { useEffect, useState } from 'react';
 
-const VALID_MODES = ['mock', 'live'];
+const VALID_MODES = ['mock', 'demo', 'live'];
 
 let current = null;
 

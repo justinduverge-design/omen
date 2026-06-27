@@ -4,6 +4,7 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import ProtectedRoute from '../components/layout/ProtectedRoute.jsx';
 import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
+import Demo from '../pages/Demo.jsx';
 import DraftAssistant from '../pages/DraftAssistant.jsx';
 import Football from '../pages/Football';
 import OmenLanding from '../pages/OmenLanding.jsx';
@@ -33,6 +34,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
       <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />
+      <Route path="/demo" element={<Demo />} />
 
       {/* ConnectLeague handles its own auth gate internally */}
       <Route path="/account/connect" element={<ConnectLeague />} />

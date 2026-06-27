@@ -473,6 +473,10 @@ function isMockMode(data) {
   return statuses.length > 0 && statuses.every((status) => status === 'mock' || status === 'stub');
 }
 
+function isDemoMode(data) {
+  return data?.mode === 'demo' || data?.is_demo === true;
+}
+
 function reasoningFromExplanation(explanation) {
   if (!explanation) return [];
 
@@ -549,14 +553,35 @@ export default function OmenOfTheWeek() {
     return <EmptyState explanation={data?.explanation} />;
   }
 
+  return <OmenRecommendationView data={data} />;
+}
+
+/**
+ * OmenRecommendationView — presentational render for a success-state Omen
+ * envelope. Shared between `/omen` (live + private fixture) and `/demo`
+ * (Phase 2.7 public demo fixture).
+ *
+ * Props:
+ *  - data: omen envelope (recommendation, league, platform, signals, alternatives)
+ *  - banner: optional ReactNode rendered above the header (e.g., Demo Mode label)
+ *  - showFeedback: gate the HITL feedback ritual. Defaults to live-only behavior.
+ */
+export function OmenRecommendationView({ data, banner = null, showFeedback }) {
   const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
   const mockMode = isMockMode(data);
+  const demoMode = isDemoMode(data);
   const privateFixtureMode = data?.fixture_key === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
-  const livePlatformLabel = !mockMode && platform?.name ? platformLabel(platform.name) : '';
+  const livePlatformLabel = !mockMode && !demoMode && platform?.name
+    ? platformLabel(platform.name)
+    : '';
+  // Default: show feedback on live, suppress on mock/demo. Explicit prop wins.
+  const feedbackVisible = showFeedback != null ? showFeedback : (!mockMode && !demoMode);
 
   return (
     <div className="space-y-6">
-      {mockMode && (
+      {banner}
+
+      {mockMode && !banner && (
         <MockBanner message={privateFixtureMode
           ? `${data.fixture_label} Omen roster and recommendation are mock.`
           : 'Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins.'}
@@ -573,6 +598,12 @@ export default function OmenOfTheWeek() {
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 Live · {livePlatformLabel}
+              </span>
+            )}
+            {demoMode && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-0.5 text-xs font-semibold text-sky-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                Demo
               </span>
             )}
           </div>
@@ -622,8 +653,7 @@ export default function OmenOfTheWeek() {
         </div>
       )}
 
-      {/* HITL Feedback — the ritual that teaches the Omen */}
-      {!mockMode && (
+      {feedbackVisible && (
         <OmenFeedback
           week={league?.week}
           season={league?.season}
