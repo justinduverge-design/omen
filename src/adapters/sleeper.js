@@ -282,6 +282,59 @@ async function fetchSleeperStandings(leagueId, currentUserId = null) {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
+async function fetchSleeperMatchups(leagueId, week) {
+  const matchups = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/matchups/${encodeURIComponent(week)}`);
+  return Array.isArray(matchups) ? matchups : [];
+}
+
+function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
+  return {
+    lastResult: result === "W" || result === "L" ? result : null,
+    lastGameId: gameId ? String(gameId) : null,
+    lastGameKickoff: kickoff || null,
+  };
+}
+
+function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
+  const rows = Array.isArray(matchups) ? matchups : [];
+  const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
+  if (!mine?.matchup_id) return normalizeLastResult();
+
+  const opponent = rows.find((row) =>
+    String(row?.matchup_id) === String(mine.matchup_id)
+    && String(row?.roster_id) !== String(rosterId)
+  );
+  if (!opponent) return normalizeLastResult();
+
+  const myPoints = Number(mine.points);
+  const opponentPoints = Number(opponent.points);
+  if (!Number.isFinite(myPoints) || !Number.isFinite(opponentPoints) || myPoints === opponentPoints) {
+    return normalizeLastResult({
+      gameId: `${leagueId}:${week}:${mine.matchup_id}`,
+    });
+  }
+
+  return normalizeLastResult({
+    result: myPoints > opponentPoints ? "W" : "L",
+    gameId: `${leagueId}:${week}:${mine.matchup_id}`,
+  });
+}
+
+async function fetchSleeperLastResult({ leagueId, userId, week, season } = {}) {
+  void season;
+  if (!leagueId || !userId || !week) return normalizeLastResult();
+  const [rosterInfo, matchups] = await Promise.all([
+    fetchSleeperRoster(leagueId, userId),
+    fetchSleeperMatchups(leagueId, week),
+  ]);
+  return lastResultFromMatchups({
+    leagueId,
+    week,
+    rosterId: rosterInfo.roster_id,
+    matchups,
+  });
+}
+
 async function fetchSleeperPlayers() {
   const cached = await readCache(PLAYERS_CACHE_KEY);
   if (cached) return cached;
@@ -409,10 +462,13 @@ module.exports = {
   fetchSleeperLeague,
   fetchSleeperRoster,
   fetchSleeperStandings,
+  fetchSleeperMatchups,
+  fetchSleeperLastResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,
   fetchSleeperLeagueDrafts,
   fetchSleeperDraft,
   fetchSleeperDraftPicks,
   buildNormalizedRoster,
+  lastResultFromMatchups,
 };

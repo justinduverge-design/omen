@@ -227,3 +227,48 @@ test("verifyLeagueAccess throws 404 when team not found", async () => {
     (err) => err.status === 404
   );
 });
+
+test("lastResultFromEspnSchedule returns W without exposing credentials", () => {
+  const adapter = loadEspnAdapterWithTeams([]);
+
+  const result = adapter.lastResultFromEspnSchedule({
+    leagueId: "12345",
+    week: 7,
+    teamId: "9",
+    schedule: [{
+      id: 77,
+      matchupPeriodId: 7,
+      winner: "HOME",
+      home: { teamId: 9, totalPoints: 112.3 },
+      away: { teamId: 4, totalPoints: 101.4 },
+    }],
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "W",
+    lastGameId: "77",
+    lastGameKickoff: null,
+  });
+  assert.equal(JSON.stringify(result).includes("espn-cookie"), false);
+});
+
+test("lastResultFromEspnSchedule falls back to points when winner is missing", () => {
+  const adapter = loadEspnAdapterWithTeams([]);
+
+  const result = adapter.lastResultFromEspnSchedule({
+    leagueId: "12345",
+    week: 7,
+    teamId: "9",
+    schedule: [{
+      matchupPeriodId: 7,
+      home: { teamId: 9, totalPoints: 88.3 },
+      away: { teamId: 4, totalPoints: 101.4 },
+    }],
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "L",
+    lastGameId: "12345:7:9:4",
+    lastGameKickoff: null,
+  });
+});

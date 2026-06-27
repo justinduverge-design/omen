@@ -181,6 +181,13 @@ class YahooClient {
         };
       });
   }
+
+  async getLeagueScoreboard(leagueKey, week) {
+    const path = week
+      ? `/league/${leagueKey}/scoreboard;week=${week}`
+      : `/league/${leagueKey}/scoreboard`;
+    return this.get(path);
+  }
 }
 
 module.exports = YahooClient;

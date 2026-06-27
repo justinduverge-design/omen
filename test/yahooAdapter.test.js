@@ -239,3 +239,63 @@ test("getProjectedStats failure degrades gracefully", async () => {
   assert.equal(roster.slots.bench[0].projected_points, null);
   assert.equal(roster.slots.ir[0].projected_points, null);
 });
+
+test("lastResultFromYahooScoreboard returns W for the user's completed matchup", () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures());
+  const scoreboard = {
+    matchups: {
+      0: {
+        matchup: {
+          matchup_id: "m-7",
+          winner_team_key: "449.l.1.t.7",
+          teams: [
+            { team_key: "449.l.1.t.7", team_points: { total: "121.4" } },
+            { team_key: "449.l.1.t.2", team_points: { total: "99.2" } },
+          ],
+        },
+      },
+    },
+  };
+
+  const result = adapter.lastResultFromYahooScoreboard({
+    leagueKey: "449.l.1",
+    week: 7,
+    teamKey: "449.l.1.t.7",
+    scoreboard,
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "W",
+    lastGameId: "m-7",
+    lastGameKickoff: null,
+  });
+});
+
+test("lastResultFromYahooScoreboard falls back to points when winner key is missing", () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures());
+  const scoreboard = {
+    matchups: {
+      0: {
+        matchup: {
+          teams: [
+            { team_key: "449.l.1.t.7", team_points: { total: "88.4" } },
+            { team_key: "449.l.1.t.2", team_points: { total: "99.2" } },
+          ],
+        },
+      },
+    },
+  };
+
+  const result = adapter.lastResultFromYahooScoreboard({
+    leagueKey: "449.l.1",
+    week: 7,
+    teamKey: "449.l.1.t.7",
+    scoreboard,
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "L",
+    lastGameId: "449.l.1:7:449.l.1.t.7",
+    lastGameKickoff: null,
+  });
+});

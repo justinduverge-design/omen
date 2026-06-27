@@ -64,6 +64,95 @@ function normalizeSlots(slots) {
   };
 }
 
+function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
+  return {
+    lastResult: result === "W" || result === "L" ? result : null,
+    lastGameId: gameId ? String(gameId) : null,
+    lastGameKickoff: kickoff || null,
+  };
+}
+
+function objectValues(value) {
+  if (!value || typeof value !== "object") return [];
+  return Object.values(value).filter((entry) => entry && typeof entry === "object");
+}
+
+function yahooTeamKey(team) {
+  if (team?.team_key) return team.team_key;
+  const info = Array.isArray(team?.team) ? team.team[0] : team;
+  if (Array.isArray(info)) {
+    return info.find((entry) => entry?.team_key)?.team_key || null;
+  }
+  return info?.team_key || null;
+}
+
+function yahooTeamPoints(team) {
+  if (Number.isFinite(Number(team?.team_points?.total))) return Number(team.team_points.total);
+  if (Number.isFinite(Number(team?.points))) return Number(team.points);
+  const details = Array.isArray(team?.team) ? team.team : [];
+  for (const detail of details) {
+    const points = detail?.team_points?.total ?? detail?.team_points?.points;
+    if (Number.isFinite(Number(points))) return Number(points);
+  }
+  return null;
+}
+
+function teamsFromYahooMatchup(matchup) {
+  if (Array.isArray(matchup?.teams)) return matchup.teams;
+  const teams = matchup?.teams?.team ? matchup.teams.team : matchup?.teams;
+  if (Array.isArray(teams)) return teams;
+  return objectValues(teams).map((entry) => entry.team || entry).filter(Boolean);
+}
+
+function yahooMatchupsFromScoreboard(scoreboard) {
+  const raw = scoreboard?.fantasy_content?.league?.[1]?.scoreboard?.[0]?.matchups
+    || scoreboard?.scoreboard?.matchups
+    || scoreboard?.matchups;
+  return objectValues(raw).map((entry) => entry.matchup || entry).filter(Boolean);
+}
+
+function lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard }) {
+  for (const matchup of yahooMatchupsFromScoreboard(scoreboard)) {
+    const teams = teamsFromYahooMatchup(matchup);
+    const mine = teams.find((team) => yahooTeamKey(team) === teamKey);
+    if (!mine) continue;
+
+    const opponent = teams.find((team) => yahooTeamKey(team) !== teamKey);
+    const gameId = matchup?.matchup_id || matchup?.week || `${leagueKey}:${week}:${teamKey}`;
+    if (!opponent) return normalizeLastResult({ gameId });
+
+    const winnerTeamKey = matchup?.winner_team_key || null;
+    if (winnerTeamKey) {
+      return normalizeLastResult({
+        result: winnerTeamKey === teamKey ? "W" : "L",
+        gameId,
+      });
+    }
+
+    const myPoints = yahooTeamPoints(mine);
+    const opponentPoints = yahooTeamPoints(opponent);
+    if (myPoints == null || opponentPoints == null || myPoints === opponentPoints) {
+      return normalizeLastResult({ gameId });
+    }
+
+    return normalizeLastResult({
+      result: myPoints > opponentPoints ? "W" : "L",
+      gameId,
+    });
+  }
+
+  return normalizeLastResult();
+}
+
+async function fetchYahooLastResult({ client, leagueKey, teamKey, week, season } = {}) {
+  void season;
+  if (!client || !leagueKey || !teamKey || !week) return normalizeLastResult();
+  const scoreboard = typeof client.getLeagueScoreboard === "function"
+    ? await client.getLeagueScoreboard(leagueKey, week)
+    : await client.get(`/league/${leagueKey}/scoreboard;week=${week}`);
+  return lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard });
+}
+
 async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
   const client = new YahooClient(accessToken);
   const teamKey = await client.getMyTeamKey(leagueKey);
@@ -95,4 +184,6 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
 
 module.exports = {
   buildNormalizedRoster,
+  fetchYahooLastResult,
+  lastResultFromYahooScoreboard,
 };

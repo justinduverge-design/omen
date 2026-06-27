@@ -306,8 +306,8 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
   });
 }
 
-function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId) {
-  const season = activeSeason();
+function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId, opts = {}) {
+  const season = opts.seasonId || activeSeason();
   const viewParams = (Array.isArray(views) ? views : [views]).map((v) => `view=${v}`).join("&");
   const periodParam = scoringPeriodId != null ? `&scoringPeriodId=${scoringPeriodId}` : "";
   const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?${viewParams}${periodParam}`;
@@ -316,7 +316,7 @@ function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId) {
 
 async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId, opts);
   const teams = data?.teams || [];
   const currentTeam = findUserTeam(teams, swid, opts);
   const currentTeamId = teamId(currentTeam);
@@ -356,7 +356,7 @@ async function verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId) {
 
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
   const teams = data?.teams || [];
   const team = findUserTeam(teams, swid, opts);
   if (!team) {
@@ -382,8 +382,87 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   };
 }
 
+function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
+  return {
+    lastResult: result === "W" || result === "L" ? result : null,
+    lastGameId: gameId ? String(gameId) : null,
+    lastGameKickoff: kickoff || null,
+  };
+}
+
+function espnMatchupTeamId(side) {
+  const source = side?.team || side;
+  const id = source?.teamId ?? source?.id ?? source?.team_id;
+  return id == null ? null : String(id);
+}
+
+function espnMatchupPoints(side) {
+  const value = side?.totalPoints
+    ?? side?.points
+    ?? side?.team?.totalPoints
+    ?? side?.team?.points;
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, schedule }) {
+  const games = Array.isArray(schedule) ? schedule : [];
+  const targetTeamId = requestedTeamId == null ? null : String(requestedTeamId);
+
+  for (const game of games) {
+    const scoringPeriod = Number(game?.matchupPeriodId ?? game?.scoringPeriodId);
+    if (Number.isFinite(Number(week)) && Number.isFinite(scoringPeriod) && scoringPeriod !== Number(week)) {
+      continue;
+    }
+
+    const home = game?.home || null;
+    const away = game?.away || null;
+    const homeId = espnMatchupTeamId(home);
+    const awayId = espnMatchupTeamId(away);
+    if (!homeId || !awayId) continue;
+
+    const mine = targetTeamId
+      ? (homeId === targetTeamId ? home : awayId === targetTeamId ? away : null)
+      : null;
+    if (!mine) continue;
+
+    const opponent = mine === home ? away : home;
+    const gameId = game?.id || `${leagueId}:${week}:${homeId}:${awayId}`;
+    const winner = game?.winner;
+    if (winner === "HOME" || winner === "AWAY") {
+      const userWon = (winner === "HOME" && mine === home) || (winner === "AWAY" && mine === away);
+      return normalizeLastResult({ result: userWon ? "W" : "L", gameId });
+    }
+
+    const myPoints = espnMatchupPoints(mine);
+    const opponentPoints = espnMatchupPoints(opponent);
+    if (myPoints == null || opponentPoints == null || myPoints === opponentPoints) {
+      return normalizeLastResult({ gameId });
+    }
+
+    return normalizeLastResult({
+      result: myPoints > opponentPoints ? "W" : "L",
+      gameId,
+    });
+  }
+
+  return normalizeLastResult();
+}
+
+async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup"], scoringPeriodId, opts);
+  return lastResultFromEspnSchedule({
+    leagueId,
+    week: scoringPeriodId,
+    teamId: opts.teamId,
+    schedule: data?.schedule,
+  });
+}
+
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
+  fetchEspnLastResult,
   verifyLeagueAccess,
+  lastResultFromEspnSchedule,
 };

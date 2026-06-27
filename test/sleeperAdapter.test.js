@@ -242,3 +242,43 @@ test("fetchSleeperStandings ranks by wins then points for", async () => {
     },
   ]);
 });
+
+test("lastResultFromMatchups returns W for the user's completed Sleeper matchup", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(fixtures());
+
+  const result = adapter.lastResultFromMatchups({
+    leagueId: "league-1",
+    week: 7,
+    rosterId: 7,
+    matchups: [
+      { roster_id: 7, matchup_id: 3, points: 118.4 },
+      { roster_id: 2, matchup_id: 3, points: 101.2 },
+    ],
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "W",
+    lastGameId: "league-1:7:3",
+    lastGameKickoff: null,
+  });
+});
+
+test("lastResultFromMatchups returns null result for tied Sleeper matchup", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(fixtures());
+
+  const result = adapter.lastResultFromMatchups({
+    leagueId: "league-1",
+    week: 7,
+    rosterId: 7,
+    matchups: [
+      { roster_id: 7, matchup_id: 3, points: 101.2 },
+      { roster_id: 2, matchup_id: 3, points: 101.2 },
+    ],
+  });
+
+  assert.deepEqual(result, {
+    lastResult: null,
+    lastGameId: "league-1:7:3",
+    lastGameKickoff: null,
+  });
+});

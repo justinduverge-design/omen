@@ -4,6 +4,13 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { logger } = require("../middleware/logging");
+const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
+const sleeperAdapter = require("../adapters/sleeper");
+const yahooAdapter = require("../adapters/yahoo");
+const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -71,6 +78,7 @@ function buildPlatformSummary(rows = [], now = new Date()) {
   const yahooSummary = {
     connected: Boolean(yahoo && !yahooTokenExpired),
     league_id: yahoo?.league_id || null,
+    ...emptyLastResult(),
   };
   if (yahooTokenExpired) {
     yahooSummary.status = "token_expired";
@@ -81,11 +89,115 @@ function buildPlatformSummary(rows = [], now = new Date()) {
     sleeper: {
       connected: Boolean(sleeper),
       username: sleeper?.platform_username || null,
+      ...emptyLastResult(),
     },
     espn: {
       connected: Boolean(espn),
+      ...emptyLastResult(),
     },
   };
+}
+
+function emptyLastResult() {
+  return {
+    lastResult: null,
+    lastGameId: null,
+    lastGameKickoff: null,
+  };
+}
+
+function previousWeekContext(context = getCurrentNflWeekContext()) {
+  const season = Number(context?.season);
+  const week = Number(context?.week);
+  if (!Number.isFinite(season) || !Number.isFinite(week) || week <= 1) return null;
+  return { season, week: week - 1 };
+}
+
+function applyLastResult(summary, platform, result) {
+  if (!summary?.[platform] || !result) return;
+  summary[platform].lastResult = result.lastResult ?? null;
+  summary[platform].lastGameId = result.lastGameId ?? null;
+  summary[platform].lastGameKickoff = result.lastGameKickoff ?? null;
+}
+
+async function getSleeperLastResult(row, context) {
+  const sleeperUserId = row.platform_user_id
+    || (row.platform_username
+      ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id
+      : null);
+  if (!sleeperUserId) return null;
+  return sleeperAdapter.fetchSleeperLastResult({
+    leagueId: row.league_id,
+    userId: sleeperUserId,
+    season: context.season,
+    week: context.week,
+  });
+}
+
+async function getYahooLastResult(row, userId, context) {
+  const { client } = await getAuthenticatedYahooClient(userId);
+  const teamKey = await client.getMyTeamKey(row.league_id);
+  if (!teamKey) return null;
+  return yahooAdapter.fetchYahooLastResult({
+    client,
+    leagueKey: row.league_id,
+    teamKey,
+    season: context.season,
+    week: context.week,
+  });
+}
+
+async function getEspnLastResult(row, userId, context) {
+  const credentials = await getAuthenticatedEspnCredentials(userId);
+  return espnAdapter.fetchEspnLastResult(
+    row.league_id,
+    credentials.espn_s2,
+    credentials.swid,
+    {
+      seasonId: context.season,
+      week: context.week,
+      teamId: row.espn_team_id,
+    }
+  );
+}
+
+async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) {
+  const summary = buildPlatformSummary(rows, now);
+  const lastResultContext = previousWeekContext(getCurrentNflWeekContext(now));
+  if (!lastResultContext) return summary;
+
+  const activeRows = rows.filter((row) => row?.is_active);
+  const lookups = [
+    {
+      platform: "sleeper",
+      row: activeRows.find(hasUsableSleeperContext),
+      run: (row) => getSleeperLastResult(row, lastResultContext),
+    },
+    {
+      platform: "yahoo",
+      row: activeRows.find((row) => hasUsableYahooToken(row, now) && hasUsableLeagueId(row)),
+      run: (row) => getYahooLastResult(row, userId, lastResultContext),
+    },
+    {
+      platform: "espn",
+      row: activeRows.find(hasUsableEspnContext),
+      run: (row) => getEspnLastResult(row, userId, lastResultContext),
+    },
+  ];
+
+  await Promise.all(lookups.map(async ({ platform, row, run }) => {
+    if (!row) return;
+    try {
+      applyLastResult(summary, platform, await run(row));
+    } catch (e) {
+      logger.warn("Dashboard platform last-result lookup failed", {
+        platform,
+        message: e?.message,
+      });
+    }
+  }));
+
+  return summary;
 }
 
 function buildOmenTool({ rows = [], isSubscribed = false } = {}) {
@@ -123,7 +235,7 @@ function buildWaiverTool({ rows = [], isSubscribed = false }) {
 async function getPlatformRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,is_active,league_id,platform_username,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id")
+    .select("platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id,espn_team_id")
     .eq("user_id", userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
@@ -208,7 +320,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       is_mock: false,
       user: userProfile,
       subscription,
-      platforms: buildPlatformSummary(rows),
+      platforms: await buildPlatformSummaryForUser(rows, req.user.id),
       tools: {
         draft_assistant: { available: true, mode: "free", status: "ready" },
         omen_of_the_week: buildOmenTool({ rows, isSubscribed }),
@@ -224,6 +336,8 @@ router.get("/summary", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.buildPlatformSummary = buildPlatformSummary;
+module.exports.buildPlatformSummaryForUser = buildPlatformSummaryForUser;
 module.exports.buildOmenTool = buildOmenTool;
 module.exports.buildWaiverTool = buildWaiverTool;
 module.exports.isExpiredYahooToken = isExpiredYahooToken;
+module.exports.emptyLastResult = emptyLastResult;
