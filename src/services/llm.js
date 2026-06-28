@@ -1,5 +1,7 @@
 "use strict";
 
+const net = require("node:net");
+
 /**
  * LLM service — wraps Ollama OpenAI-compatible API.
  * LLM_BASE_URL: private/internal Ollama URL (e.g. http://ollama.internal:11434)
@@ -10,9 +12,113 @@
  * The app must work without the LLM (it is an enhancement, not a dependency).
  */
 
-const LLM_BASE_URL = process.env.LLM_BASE_URL || "";
-const LLM_MODEL    = process.env.LLM_MODEL    || "gemma3:4b";
-const LLM_TIMEOUT  = Number(process.env.LLM_TIMEOUT) || 30000;
+const PRIVATE_HOST_SUFFIXES = Object.freeze([
+  ".internal",
+  ".lan",
+  ".local",
+  ".home.arpa",
+  ".tailnet",
+  ".ts.net",
+]);
+
+function parseTimeout(value) {
+  const timeout = Number(value);
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : 30000;
+}
+
+function normalizeBaseUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return { baseUrl: "", status: "not_configured" };
+
+  try {
+    const parsed = new URL(raw);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return { baseUrl: "", status: "invalid_url" };
+    }
+    parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+    if (parsed.pathname.toLowerCase() === "/v1") parsed.pathname = "";
+    if (parsed.pathname === "/") parsed.pathname = "";
+    parsed.search = "";
+    parsed.hash = "";
+    return {
+      baseUrl: parsed.toString().replace(/\/$/, ""),
+      hostname: parsed.hostname.toLowerCase(),
+      status: "configured",
+    };
+  } catch {
+    return { baseUrl: "", status: "invalid_url" };
+  }
+}
+
+function isPrivateIpv4(hostname) {
+  const octets = hostname.split(".").map(Number);
+  if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet))) return false;
+  const [a, b] = octets;
+  return a === 10
+    || a === 127
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 100 && b >= 64 && b <= 127);
+}
+
+function isPrivateIpv6(hostname) {
+  const normalized = hostname.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
+  return normalized === "::1"
+    || normalized.startsWith("fc")
+    || normalized.startsWith("fd")
+    || normalized.startsWith("fe8")
+    || normalized.startsWith("fe9")
+    || normalized.startsWith("fea")
+    || normalized.startsWith("feb");
+}
+
+function isPrivateLlmHost(hostname) {
+  if (!hostname) return false;
+  if (hostname === "localhost") return true;
+  if (net.isIP(hostname) === 4) return isPrivateIpv4(hostname);
+  if (net.isIP(hostname) === 6) return isPrivateIpv6(hostname);
+  return PRIVATE_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+}
+
+function buildBridgeConfig(env = process.env) {
+  const normalized = normalizeBaseUrl(env.LLM_BASE_URL);
+  const model = env.LLM_MODEL || "gemma4:e2b-q4_0";
+  const timeoutMs = parseTimeout(env.LLM_TIMEOUT);
+  const privateHost = normalized.status === "configured"
+    ? isPrivateLlmHost(normalized.hostname)
+    : false;
+
+  let status = normalized.status;
+  if (status === "configured") {
+    status = privateHost ? "configured_private" : "misconfigured_public";
+  }
+
+  return {
+    baseUrl: privateHost ? normalized.baseUrl : "",
+    model,
+    timeoutMs,
+    status,
+    privateHost,
+  };
+}
+
+const BRIDGE = buildBridgeConfig();
+const LLM_BASE_URL = BRIDGE.baseUrl;
+const LLM_MODEL    = BRIDGE.model;
+const LLM_TIMEOUT  = BRIDGE.timeoutMs;
+
+function getLlmBridgeStatus() {
+  return {
+    status: BRIDGE.status,
+    model: LLM_MODEL,
+    timeout_ms: LLM_TIMEOUT,
+    transport: "openai_compatible_chat_completions",
+    private_route_required: true,
+    public_url_exposed: false,
+    note: "LLM_BASE_URL must resolve over a private route such as Tailscale; this status never returns the URL.",
+  };
+}
 
 /**
  * Core: send messages to the LLM, return full text response.
@@ -213,4 +319,6 @@ module.exports = {
   runAgent,
   explainOmenMvpMove,
   parseOmenExplanation,
+  getLlmBridgeStatus,
+  isPrivateLlmHost,
 };

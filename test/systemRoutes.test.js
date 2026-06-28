@@ -43,8 +43,14 @@ function loadSystemRouter({
 } = {}) {
   const routePath = require.resolve("../src/routes/system");
   const omenPath = require.resolve("../src/services/omen");
+  const systemContractsPath = require.resolve("../src/services/systemContracts");
+  const llmPath = require.resolve("../src/services/llm");
+  const configPath = require.resolve("../src/config");
   delete require.cache[routePath];
   delete require.cache[omenPath];
+  delete require.cache[systemContractsPath];
+  delete require.cache[llmPath];
+  delete require.cache[configPath];
 
   const fakeSupabase = {
     auth: {
@@ -301,4 +307,29 @@ test("GET /api/platform-status reports readiness without leaking LLM URL", async
   const serialized = JSON.stringify(res.body);
   assert.equal(serialized.includes("ollama.internal"), false);
   assert.equal(serialized.includes("11434"), false);
+});
+
+test("GET /api/platform-status reports public LLM URLs as misconfigured without leaking them", async () => {
+  const oldBaseUrl = process.env.LLM_BASE_URL;
+  process.env.LLM_BASE_URL = "https://ollama.example.com:11434";
+
+  try {
+    const app = buildApp();
+    const statusRes = await request(app, "/api/platform-status");
+    const readyRes = await request(app, "/api/ready");
+
+    assert.equal(statusRes.status, 200);
+    assert.equal(statusRes.body.dependencies.llm.status, "misconfigured_public");
+    assert.equal(statusRes.body.dependencies.llm.public_url_exposed, false);
+    assert.equal(readyRes.status, 200);
+    assert.equal(readyRes.body.checks.optional_services.llm_private, false);
+    assert.equal(readyRes.body.checks.llm.status, "misconfigured_public");
+
+    const serialized = JSON.stringify({ status: statusRes.body, ready: readyRes.body });
+    assert.equal(serialized.includes("ollama.example.com"), false);
+    assert.equal(serialized.includes("11434"), false);
+  } finally {
+    if (oldBaseUrl == null) delete process.env.LLM_BASE_URL;
+    else process.env.LLM_BASE_URL = oldBaseUrl;
+  }
 });
