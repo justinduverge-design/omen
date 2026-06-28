@@ -10,7 +10,7 @@ Claude/frontend reads this file before wiring UI to backend behavior.
 
 Feature name: Private local LLM bridge status.
 
-Status: Built locally on branch `codex/phase3-12-kvm2-gemma-bridge`, commit `fbbf0c5`. Not deployed.
+Status: Deployed. PR #70 squash-merged to `main` as `a13160b`; KVM1 deploy run `28306784898` passed.
 
 No new route. No frontend action required unless you want to display diagnostics.
 
@@ -66,6 +66,10 @@ Files changed:
 - `src/routes/system.js`
 - `test/llmService.test.js`
 - `test/systemRoutes.test.js`
+
+Live note:
+
+- Production currently reports `status: "configured_private"` and `model: "gemma3:4b"` because the production `LLM_MODEL` env override wins over the new code default. That is expected.
 
 ## Phase 2.17 Platform Last-Result Fields — 2026-06-27
 

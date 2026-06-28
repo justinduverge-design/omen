@@ -115,6 +115,10 @@ Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with
 | 2026-06-27 | Phase 3.12 KVM2 Gemma bridge | `slops-code-review` | PASS | `Blueprints/audits/2026-06-27-phase3-12-kvm2-gemma-bridge-code-review.md`; no P0/P1/P2 findings | Self-review artifact; no separate reviewer in this session |
 | 2026-06-27 | Phase 3.12 KVM2 Gemma bridge | `slops-quality-baseline` | PASS | `npm test` 388/388; root audits 0; primary frontend build clean with existing chunk warning; legacy client build clean; `git diff --check` clean | Frontend/client `npm ci` reported existing advisories in those package trees; no package remediation attempted |
 | 2026-06-27 | Phase 3.12 KVM2 Gemma bridge | `slops-git-flow` | PASS | Branch `codex/phase3-12-kvm2-gemma-bridge`; implementation commit `fbbf0c5`; explicit-path staging; no push/deploy | Docs/evidence committed separately |
+| 2026-06-28 | Phase 3.12 merge + deploy | `github:yeet` | PASS | Pushed branch `codex/phase3-12-kvm2-gemma-bridge`; PR #70 opened against `main`; merged after clean merge state | PR branch had no separate PR checks; push-to-main deploy workflow was the quality gate |
+| 2026-06-28 | Phase 3.12 merge + deploy | `slops-ship` | PASS | PR #70 squash-merged as `a13160b`; deploy run `28306784898` passed quality/build/deploy | Rollback path is revert `a13160b` through PR and normal deploy workflow |
+| 2026-06-28 | Phase 3.12 merge + deploy | `slops-deploy-guard` | PASS | Inspected `.github/workflows/deploy.yml`, `Dockerfile`, `docker-compose.yml`, and `scripts/oracle-https-setup.sh`; deploy used existing KVM1 workflow and did not edit secrets/env/config | Existing Docker annotation for public Vite anon key repeated; no workflow failure |
+| 2026-06-28 | Phase 3.12 merge + deploy | `slops-canary` | PASS | Independent canary passed apex health/ready/platform-status/homepage/Demo, `www` health, HTTP->HTTPS 301, and HSTS; live ready reports LLM `configured_private` without URL | Direct authenticated route smoke not run; no auth/provider route behavior changed |
 
 ## Monthly Review
 

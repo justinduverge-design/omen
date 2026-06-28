@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-27 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 3.12 local closeout.** Phase 3.12 is built locally on branch `codex/phase3-12-kvm2-gemma-bridge` and awaits Justin push/PR/deploy decision. Next pull should start from the refreshed top-5 below unless Justin pins another item.
+**Auto-populated 2026-06-27 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 3.12 deploy closeout.** Phase 3.12 shipped via PR #70 / merge `a13160b` / deploy run `28306784898`. Next pull should start from the refreshed top-5 below unless Justin pins another item.
 
 ## Active Task
 
@@ -18,7 +18,7 @@ None pinned after Phase 3.12 local closeout.
 
 - **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.
-- **Phase 3.12 production enablement** remains gated on Justin-approved env/deploy action plus KVM2/Tailscale smoke. The local code is built; no production route was changed.
+- **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
 - **Phase 1.5d (post-win pulse animation)** is now unblocked by Backend Phase 2.17's contract, but frontend still owns visual implementation.
 - **Frontend Phase 2.10 (Trade share card)** is now unblocked by deployed Backend Phase 2.10 hash routes.
 

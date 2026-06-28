@@ -3,7 +3,7 @@
 Date: 2026-06-27
 Branch: `codex/phase3-12-kvm2-gemma-bridge`
 Implementation commit: `fbbf0c5`
-Status: Built locally, not pushed, not deployed.
+Status: Merged and deployed. PR #70 squash-merged to `main` as `a13160b`; Deploy to Hostinger KVM1 run `28306784898` passed quality, image build/push, KVM1 restart, workflow health smoke, and independent public canary.
 
 ## What Changed
 
@@ -41,10 +41,21 @@ The URL is never returned.
 - Legacy client build: `npm --prefix client run build` -> clean.
 - Whitespace: `git diff --check` -> clean.
 
+## Release Evidence
+
+- PR: https://github.com/justinduverge-design/omen/pull/70
+- Merge commit: `a13160b3b0ccaf286a6b73fb7c0b490394ca449d`
+- Deploy run: https://github.com/justinduverge-design/omen/actions/runs/28306784898
+- Workflow result: quality, build, and deploy jobs all passed.
+- Independent canary: `https://slopssaloon.com/api/health`, `/api/ready`, `/api/platform-status`, homepage, `/demo`, and `https://www.slopssaloon.com/api/health` all returned 200.
+- HTTP -> HTTPS redirect returned 301.
+- HSTS present on homepage response.
+- Live `/api/ready` reports `checks.optional_services.llm_private: true` and `checks.llm.status: "configured_private"` without exposing the URL.
+- Live model is `gemma3:4b` because production `LLM_MODEL` overrides the new code default; this is expected.
+
 ## Gates Not Run
 
-- No deploy.
-- No live KVM2/Tailscale smoke.
+- No direct KVM2 shell/Tailscale smoke beyond the live API's `configured_private` status.
 - No production `.env` edit.
 - No Supabase migration.
 - No Stripe production behavior.
@@ -54,4 +65,3 @@ The URL is never returned.
 
 - Phase 3.13 can now reduce narration token volume for CPU inference.
 - Phase 3.15 remains blocked until Justin logs a hard cloud-AI dollar cap.
-
