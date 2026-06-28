@@ -1,5 +1,7 @@
 "use strict";
 
+const { getLlmBridgeStatus } = require("./llm");
+
 const CONTRACT_VERSION = "2026-05-18.omen-mock.v1";
 const LIVE_CONTRACT_VERSION = "2026-05-18.omen-live.v1";
 const DEFAULT_SCORING_FORMAT = "PPR";
@@ -144,6 +146,8 @@ function configuredStatus(value) {
 }
 
 function getPlatformStatus(config, now = new Date()) {
+  const llmStatus = getLlmBridgeStatus();
+
   return {
     status: "ok",
     service: "omen-api",
@@ -214,11 +218,9 @@ function getPlatformStatus(config, now = new Date()) {
         required: false,
       },
       llm: {
-        status: config.llm.baseUrl ? "configured_private" : "not_configured",
-        model: config.llm.model,
-        timeout_ms: config.llm.timeoutMs,
-        public_url_exposed: false,
-        note: "Ollama must remain private or firewall-restricted; this endpoint never returns LLM_BASE_URL.",
+        ...llmStatus,
+        model: llmStatus.model || config.llm.model,
+        timeout_ms: llmStatus.timeout_ms || config.llm.timeoutMs,
       },
     },
   };

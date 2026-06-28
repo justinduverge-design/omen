@@ -43,7 +43,7 @@ const config = {
   // --- Local LLM / Ollama (optional - internal only) -------------
   llm: {
     baseUrl:   process.env.LLM_BASE_URL || "",
-    model:     process.env.LLM_MODEL || "gemma3:4b",
+    model:     process.env.LLM_MODEL || "gemma4:e2b-q4_0",
     timeoutMs: Number.isFinite(llmTimeoutMs) && llmTimeoutMs > 0 ? llmTimeoutMs : 30000,
   },
 
