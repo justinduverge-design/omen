@@ -107,6 +107,9 @@ const BRIDGE = buildBridgeConfig();
 const LLM_BASE_URL = BRIDGE.baseUrl;
 const LLM_MODEL    = BRIDGE.model;
 const LLM_TIMEOUT  = BRIDGE.timeoutMs;
+const NARRATION_MAX_WORDS = 50;
+const NARRATION_MAX_SENTENCES = 2;
+const NARRATION_MAX_TOKENS = 90;
 
 function getLlmBridgeStatus() {
   return {
@@ -120,12 +123,16 @@ function getLlmBridgeStatus() {
   };
 }
 
+function narrationLimitInstruction() {
+  return `Keep the entire narration under ${NARRATION_MAX_WORDS} words and no more than ${NARRATION_MAX_SENTENCES} sentences.`;
+}
+
 /**
  * Core: send messages to the LLM, return full text response.
  * Uses the OpenAI-compatible /v1/chat/completions endpoint.
  * Returns null if LLM is unavailable or times out.
  */
-async function chat(messages) {
+async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS } = {}) {
   if (!LLM_BASE_URL) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT);
@@ -138,7 +145,7 @@ async function chat(messages) {
         model:    LLM_MODEL,
         messages,
         stream:   false,
-        max_tokens: 200,
+        max_tokens: maxTokens,
       }),
     });
     if (!res.ok) return null;
@@ -152,7 +159,7 @@ async function chat(messages) {
 }
 
 /**
- * Explain a trade comparison result in 2-3 plain English sentences.
+ * Explain a trade comparison result in concise plain English.
  * send/receive: arrays of { name, position, projected_points }
  * net_value: number, verdict: "accept" | "decline" | "neutral"
  */
@@ -164,7 +171,8 @@ async function explainTrade({ send, receive, net_value, verdict }) {
       role: "system",
       content:
         "You are a concise fantasy football analyst. " +
-        "Give plain English advice in 2-3 sentences. No markdown. No bullet points.",
+        "Give plain English advice. " +
+        `${narrationLimitInstruction()} No markdown. No bullet points.`,
     },
     {
       role: "user",
@@ -189,7 +197,7 @@ async function explainStartSit({ from, to, delta, slot }) {
       role: "system",
       content:
         "You are a concise fantasy football analyst. " +
-        "Give plain English advice in 1-2 sentences. No markdown.",
+        `Give plain English advice. ${narrationLimitInstruction()} No markdown.`,
     },
     {
       role: "user",
@@ -253,6 +261,24 @@ function shortUserString(value) {
   return cleaned.slice(0, 240);
 }
 
+function countWords(text) {
+  return String(text || "").match(/\b[\w'-]+\b/g)?.length || 0;
+}
+
+function countSentences(text) {
+  const value = String(text || "").trim();
+  if (!value) return 0;
+  const matches = value.match(/[.!?]+(?=\s|$)/g);
+  return matches?.length || 1;
+}
+
+function isWithinNarrationLimits(parts) {
+  const text = parts.filter(Boolean).join(" ").trim();
+  if (!text) return false;
+  return countWords(text) <= NARRATION_MAX_WORDS
+    && countSentences(text) <= NARRATION_MAX_SENTENCES;
+}
+
 function parseOmenExplanation(raw) {
   if (!raw) return null;
 
@@ -279,6 +305,10 @@ function parseOmenExplanation(raw) {
     return null;
   }
 
+  if (!isWithinNarrationLimits([summary, whyItMatters, riskText, confidenceText])) {
+    return null;
+  }
+
   return {
     summary,
     why_it_matters: whyItMatters,
@@ -299,8 +329,9 @@ async function explainOmenMvpMove(payload) {
     "Explain only the already-selected MVP Move using plain English.",
     "Do not change the recommendation, players, confidence score, risk level, expected value, or response state.",
     "Use only the provided sanitized facts.",
+    narrationLimitInstruction(),
     "Return strict JSON only, with no markdown.",
-    'Required shape: {"summary":"string","why_it_matters":"string","risk":"string","confidence":"string","data_used":["string"]}',
+    'Required shape: {"summary":"short string","why_it_matters":"short string","risk":"short string","confidence":"short string","data_used":["string"]}',
   ].join(" ");
 
   const userPrompt = [
@@ -308,7 +339,7 @@ async function explainOmenMvpMove(payload) {
     JSON.stringify(payload),
   ].join("\n\n");
 
-  const raw = await runAgent(systemPrompt, userPrompt, { maxTokens: 360 });
+  const raw = await runAgent(systemPrompt, userPrompt, { maxTokens: NARRATION_MAX_TOKENS });
   return parseOmenExplanation(raw);
 }
 
@@ -319,6 +350,9 @@ module.exports = {
   runAgent,
   explainOmenMvpMove,
   parseOmenExplanation,
+  NARRATION_MAX_WORDS,
+  NARRATION_MAX_SENTENCES,
+  NARRATION_MAX_TOKENS,
   getLlmBridgeStatus,
   isPrivateLlmHost,
 };

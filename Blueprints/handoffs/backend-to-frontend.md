@@ -6,6 +6,38 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 3.13 Token-Constrained Narration — 2026-06-28
+
+Feature name: Token-constrained LLM narration prompts.
+
+Status: Built on branch `codex/phase3-13-token-constrained-prompts`; push/merge/deploy approved by Justin.
+
+Endpoint / contract:
+
+No HTTP endpoint, request body, response envelope, or frontend call changed.
+
+Backend behavior change:
+
+- Trade Analyzer LLM explanation prompts now instruct the model to keep the full narration under 50 words and no more than 2 sentences.
+- Start/sit LLM explanation prompts use the same limit.
+- Omen MVP Move LLM strict-JSON explanation prompts use the same limit and a 90-token generation cap.
+- If Omen LLM JSON output exceeds 50 words or 2 sentences across its prose fields, the parser rejects it and the existing deterministic explanation stays in place.
+
+Frontend action needed:
+
+- None. Continue rendering existing explanation fields.
+- Treat this as latency/CPU mitigation only, not a new display contract.
+
+Files changed:
+
+- `src/services/llm.js`
+- `test/llmService.test.js`
+
+Limitations:
+
+- Live Omen still skips LLM narration by default unless `include_signals.llm_reasoning: true` is explicitly sent.
+- No KVM2 live model smoke was run in this task.
+
 ## Phase 3.12 KVM2 Gemma Bridge Status — 2026-06-27
 
 Feature name: Private local LLM bridge status.
