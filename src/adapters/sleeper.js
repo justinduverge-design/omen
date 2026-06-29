@@ -282,9 +282,17 @@ async function fetchSleeperStandings(leagueId, currentUserId = null) {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
+const MATCHUPS_TTL_S = 21600; // 6h - a completed week's matchup result never changes
+
 async function fetchSleeperMatchups(leagueId, week) {
+  const cacheKey = `ssff:sleeper:matchups:${leagueId}:${week}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
   const matchups = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/matchups/${encodeURIComponent(week)}`);
-  return Array.isArray(matchups) ? matchups : [];
+  const out = Array.isArray(matchups) ? matchups : [];
+  await writeCache(cacheKey, out, MATCHUPS_TTL_S);
+  return out;
 }
 
 function normalizeLastResult({ result, gameId, kickoff = null } = {}) {

@@ -144,13 +144,22 @@ function lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard })
   return normalizeLastResult();
 }
 
+const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
+
 async function fetchYahooLastResult({ client, leagueKey, teamKey, week, season } = {}) {
   void season;
   if (!client || !leagueKey || !teamKey || !week) return normalizeLastResult();
+
+  const cacheKey = `ssff:yahoo:lastresult:${teamKey}:${week}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
   const scoreboard = typeof client.getLeagueScoreboard === "function"
     ? await client.getLeagueScoreboard(leagueKey, week)
     : await client.get(`/league/${leagueKey}/scoreboard;week=${week}`);
-  return lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard });
+  const result = lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard });
+  await writeCache(cacheKey, result, LAST_RESULT_TTL_S);
+  return result;
 }
 
 async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {

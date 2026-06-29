@@ -161,6 +161,23 @@ async function getEspnLastResult(row, userId, context) {
   );
 }
 
+const LAST_RESULT_TIMEOUT_MS = 4000;
+
+/**
+ * Bounds a platform lookup to LAST_RESULT_TIMEOUT_MS. Yahoo's client uses
+ * plain fetch with no timeout and ESPN's https.request has none either
+ * (Sleeper's axios call does) - without this, a hung upstream call would
+ * stall the whole dashboard summary response indefinitely.
+ */
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_resolve, reject) => {
+      setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
 async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) {
   const summary = buildPlatformSummary(rows, now);
   const lastResultContext = previousWeekContext(getCurrentNflWeekContext(now));
@@ -188,7 +205,7 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) 
   await Promise.all(lookups.map(async ({ platform, row, run }) => {
     if (!row) return;
     try {
-      applyLastResult(summary, platform, await run(row));
+      applyLastResult(summary, platform, await withTimeout(run(row), LAST_RESULT_TIMEOUT_MS));
     } catch (e) {
       logger.warn("Dashboard platform last-result lookup failed", {
         platform,

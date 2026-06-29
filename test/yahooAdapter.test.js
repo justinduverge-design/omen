@@ -110,6 +110,7 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
     getCurrentWeek: [],
     getRoster: [],
     getProjectedStats: [],
+    getLeagueScoreboard: [],
     redisGet: [],
     redisSet: [],
   };
@@ -141,6 +142,11 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
           calls.getProjectedStats.push({ teamKey, week });
           if (fixture.projectedStatsError) throw new Error("Projected stats unavailable");
           return fixture.projectedStats;
+        }
+
+        async getLeagueScoreboard(leagueKey, week) {
+          calls.getLeagueScoreboard.push({ leagueKey, week });
+          return fixture.scoreboard;
         }
       };
     }
@@ -298,4 +304,39 @@ test("lastResultFromYahooScoreboard falls back to points when winner key is miss
     lastGameId: "449.l.1:7:449.l.1.t.7",
     lastGameKickoff: null,
   });
+});
+
+test("fetchYahooLastResult caches by teamKey/week (6h) so a second call doesn't refetch", async () => {
+  const data = fixtures();
+  data.scoreboard = {
+    matchups: {
+      0: {
+        matchup: {
+          matchup_id: "m-7",
+          winner_team_key: "399.l.123.t.7",
+          teams: [
+            { team_key: "399.l.123.t.7", team_points: { total: "121.4" } },
+            { team_key: "399.l.123.t.2", team_points: { total: "99.2" } },
+          ],
+        },
+      },
+    },
+  };
+  const { adapter, calls, store } = loadYahooAdapterWithFixtures(data, { redis: true });
+  const client = { getLeagueScoreboard: async (leagueKey, week) => {
+    calls.getLeagueScoreboard.push({ leagueKey, week });
+    return data.scoreboard;
+  } };
+
+  const first = await adapter.fetchYahooLastResult({
+    client, leagueKey: "399.l.123", teamKey: "399.l.123.t.7", week: 7,
+  });
+  const second = await adapter.fetchYahooLastResult({
+    client, leagueKey: "399.l.123", teamKey: "399.l.123.t.7", week: 7,
+  });
+
+  assert.deepEqual(second, first);
+  assert.deepEqual(first, { lastResult: "W", lastGameId: "m-7", lastGameKickoff: null });
+  assert.equal(calls.getLeagueScoreboard.length, 1, "second call should be served from cache, not a live Yahoo request");
+  assert.equal(store.size, 1);
 });
