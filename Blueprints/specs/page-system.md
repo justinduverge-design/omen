@@ -92,6 +92,41 @@ Each row is the contract for that route. "Typography role" = primary serif treat
 
 ## Component Rules
 
+### Post-Win Pulse + Streak Ladder (Phase 1.5d)
+
+Phase 1.5d ships a single-win pulse only. It consumes the existing
+`GET /api/dashboard/summary.platforms.{sleeper,yahoo,espn}` fields:
+`lastResult`, `lastGameId`, and `lastGameKickoff`.
+
+Current live-safe behavior:
+
+- If any connected platform reports `lastResult === 'W'` with a usable
+  `lastGameId`, `/football` may show a compact win chip near the page eyebrow.
+- The first app open for a new `lastGameId` may trigger one 800ms header-rule
+  accent wash. Store seen ids in `localStorage` so the same win does not replay
+  every visit.
+- The current-user standings row may lift from a 14% team-accent tint to 22%.
+- `prefers-reduced-motion` suppresses the moving wash and preserves the settled
+  visual state.
+- This is not a recommendation surface and must not imply live advice beyond
+  the factual last-result signal.
+
+Future hybrid streak ladder:
+
+| Streak | Label | Icon direction | Reward |
+|---|---|---|---|
+| 1 | Bright today | sparkle/glint | Single accent wash + brighter current-user row |
+| 2 | Heating up | flame | Stronger chip treatment |
+| 3 | On a streak | flame | Row glow + persistent momentum chip |
+| 4 | The omen favors you | sparkle/glint | Slight animated accent line |
+| 5+ | Crowned run | crown | Premium crown chip + strongest tasteful glow |
+
+Do not ship the ladder from browser-local inference. A real streak needs a
+backend-backed `currentWinStreak` style field on `GET /api/dashboard/summary`
+that is computed from provider matchup history. Until that contract exists,
+the frontend may demo the ladder in development notes, but production behavior
+stays single-win.
+
 ### Team palette tokens — Phase 1.5h (supersedes 1.5/1.5f single-accent model)
 
 Justin doctrine 2026-06-21: **every team must surface its full official palette on every themed page; no team page should be in stylistic "dark mode."** The page may *appear* dark because the team's canonical world color is dark (PIT black, BAL purple, ATL Stankonia, LV black), but Omen never imposes dark mode on top of a team's accent — the team's palette IS the surface.
