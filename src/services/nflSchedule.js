@@ -210,8 +210,85 @@ function _getTvSlate(isoString, eventName) {
   }
 }
 
+/**
+ * Fetch the real ESPN scoreboard for one specific NFL week (not just "now").
+ * Returns the raw events array or null on failure.
+ */
+async function _fetchWeekScoreboard(season, week) {
+  const cacheKey = `weekscore:${season}:${week}`;
+  const cached = _cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const url = `${ESPN_SCOREBOARD_URL}?week=${week}&seasontype=2&dates=${season}`;
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      _logger().warn("nflSchedule: week scoreboard returned non-OK", { status: res.status, season, week });
+      return null;
+    }
+    const data = await res.json();
+    const events = Array.isArray(data?.events) ? data.events : [];
+    _cacheSet(cacheKey, events);
+    return events;
+  } catch (err) {
+    _logger().warn("nflSchedule: week scoreboard unavailable", { message: err?.message, season, week });
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function _isWeekComplete(events) {
+  if (!Array.isArray(events) || !events.length) return false;
+  return events.every((event) => Boolean(event?.competitions?.[0]?.status?.type?.completed));
+}
+
+function _earliestKickoff(events) {
+  const dates = (Array.isArray(events) ? events : [])
+    .map((event) => event?.date)
+    .filter(Boolean)
+    .sort();
+  return dates[0] || null;
+}
+
+/**
+ * Determine the most recently *completed* NFL week (every game final),
+ * confirmed against the real ESPN schedule rather than assumed from
+ * calendar math. Returns { season, week, kickoff_utc }; `week` and
+ * `kickoff_utc` are null when no week has fully completed yet
+ * (e.g. preseason, or the season's first week still in progress).
+ */
+async function getLastCompletedNflWeek(now = new Date()) {
+  const context = getCurrentNflWeekContext(now);
+
+  const currentEvents = await _fetchWeekScoreboard(context.season, context.week);
+  if (_isWeekComplete(currentEvents)) {
+    return { season: context.season, week: context.week, kickoff_utc: _earliestKickoff(currentEvents) };
+  }
+
+  const priorWeek = context.week - 1;
+  if (priorWeek < 1) {
+    return { season: context.season, week: null, kickoff_utc: null };
+  }
+
+  const priorEvents = await _fetchWeekScoreboard(context.season, priorWeek);
+  if (!_isWeekComplete(priorEvents)) {
+    return { season: context.season, week: null, kickoff_utc: null };
+  }
+
+  return { season: context.season, week: priorWeek, kickoff_utc: _earliestKickoff(priorEvents) };
+}
+
 function __clearCache() {
   _cache.clear();
 }
 
-module.exports = { getGameInfo, getCurrentNflWeekContext, __clearCache };
+module.exports = {
+  getGameInfo,
+  getCurrentNflWeekContext,
+  getLastCompletedNflWeek,
+  __clearCache,
+};

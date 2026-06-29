@@ -3,6 +3,8 @@
 process.env.SUPABASE_URL ||= "https://example.supabase.co";
 process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 process.env.LOG_LEVEL ||= "error";
+delete process.env.REDIS_URL;
+delete process.env.REDIS_TOKEN;
 
 const assert = require("node:assert/strict");
 const Module = require("node:module");
@@ -39,6 +41,74 @@ function loadEspnAdapterWithTeams(teams) {
     return require("../src/adapters/espn");
   } finally {
     Module._load = originalLoad;
+  }
+}
+
+function loadEspnAdapterWithData(data, opts = {}) {
+  const adapterPath = require.resolve("../src/adapters/espn");
+  const configPath = require.resolve("../src/config");
+  delete require.cache[adapterPath];
+  delete require.cache[configPath];
+
+  const { EventEmitter } = require("node:events");
+
+  const previousRedisUrl = process.env.REDIS_URL;
+  const previousRedisToken = process.env.REDIS_TOKEN;
+  if (opts.redis) {
+    process.env.REDIS_URL = "https://redis.example";
+    process.env.REDIS_TOKEN = "redis-token";
+  } else {
+    delete process.env.REDIS_URL;
+    delete process.env.REDIS_TOKEN;
+  }
+
+  const store = opts.store || new Map();
+  let httpCalls = 0;
+
+  const originalLoad = Module._load;
+  Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === "https" && parent?.filename === adapterPath) {
+      return {
+        request: (_options, callback) => {
+          httpCalls += 1;
+          const body = JSON.stringify(data);
+          const req = new EventEmitter();
+          req.end = () => {
+            const res = new EventEmitter();
+            res.statusCode = 200;
+            callback(res);
+            res.emit("data", Buffer.from(body));
+            res.emit("end");
+          };
+          return req;
+        },
+      };
+    }
+    if (request === "@upstash/redis" && parent?.filename === adapterPath) {
+      return {
+        Redis: class MockRedis {
+          async get(key) {
+            return store.get(key) || null;
+          }
+
+          async set(key, value, options) {
+            store.set(key, value);
+            void options;
+          }
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    return { adapter: require("../src/adapters/espn"), store, getHttpCalls: () => httpCalls };
+  } finally {
+    Module._load = originalLoad;
+    if (previousRedisUrl == null) delete process.env.REDIS_URL;
+    else process.env.REDIS_URL = previousRedisUrl;
+    if (previousRedisToken == null) delete process.env.REDIS_TOKEN;
+    else process.env.REDIS_TOKEN = previousRedisToken;
   }
 }
 
@@ -226,4 +296,144 @@ test("verifyLeagueAccess throws 404 when team not found", async () => {
     () => adapter.verifyLeagueAccess("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null),
     (err) => err.status === 404
   );
+});
+
+test("fetchEspnLastMatchupResult returns W when my team's totalPoints win", async () => {
+  const { adapter } = loadEspnAdapterWithData({
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [
+      {
+        id: 55,
+        matchupPeriodId: 4,
+        winner: "HOME",
+        home: { teamId: 9, totalPoints: 120.4 },
+        away: { teamId: 4, totalPoints: 98.2 },
+      },
+    ],
+  });
+
+  const result = await adapter.fetchEspnLastMatchupResult(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.deepEqual(result, { result: "W", matchup_id: "55" });
+});
+
+test("fetchEspnLastMatchupResult returns L when my team is away and loses", async () => {
+  const { adapter } = loadEspnAdapterWithData({
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [
+      {
+        id: 55,
+        matchupPeriodId: 4,
+        winner: "HOME",
+        home: { teamId: 4, totalPoints: 110.0 },
+        away: { teamId: 9, totalPoints: 90.5 },
+      },
+    ],
+  });
+
+  const result = await adapter.fetchEspnLastMatchupResult(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.deepEqual(result, { result: "L", matchup_id: "55" });
+});
+
+test("fetchEspnLastMatchupResult returns T on winner TIE", async () => {
+  const { adapter } = loadEspnAdapterWithData({
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [
+      {
+        id: 55,
+        matchupPeriodId: 4,
+        winner: "TIE",
+        home: { teamId: 9, totalPoints: 100.0 },
+        away: { teamId: 4, totalPoints: 100.0 },
+      },
+    ],
+  });
+
+  const result = await adapter.fetchEspnLastMatchupResult(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.deepEqual(result, { result: "T", matchup_id: "55" });
+});
+
+test("fetchEspnLastMatchupResult returns null when no matchup is found for that week", async () => {
+  const { adapter } = loadEspnAdapterWithData({
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [],
+  });
+
+  const result = await adapter.fetchEspnLastMatchupResult(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.equal(result, null);
+});
+
+test("fetchEspnLastMatchupResult returns null when the user's team isn't found", async () => {
+  const { adapter } = loadEspnAdapterWithData({
+    teams: [{ id: 99, ownerId: "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz", name: "Other Team" }],
+    schedule: [],
+  });
+
+  const result = await adapter.fetchEspnLastMatchupResult(
+    "12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.equal(result, null);
+});
+
+test("fetchEspnLastMatchupResult caches by league/week/teamId and never embeds the SWID cookie in the cache key", async () => {
+  const matchupData = {
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [
+      {
+        id: 55,
+        matchupPeriodId: 4,
+        winner: "HOME",
+        home: { teamId: 9, totalPoints: 120.4 },
+        away: { teamId: 4, totalPoints: 98.2 },
+      },
+    ],
+  };
+  const { adapter, store, getHttpCalls } = loadEspnAdapterWithData(matchupData, { redis: true });
+  const swid = "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}";
+
+  const first = await adapter.fetchEspnLastMatchupResult("12345", "espn-cookie", swid, 4, { teamId: 9 });
+  const second = await adapter.fetchEspnLastMatchupResult("12345", "espn-cookie", swid, 4, { teamId: 9 });
+
+  assert.deepEqual(second, first);
+  assert.equal(getHttpCalls(), 1, "second call should be served from cache, not a live ESPN request");
+
+  for (const key of store.keys()) {
+    assert.equal(key.includes(swid), false, `cache key must not embed the SWID cookie: ${key}`);
+    assert.equal(key.includes("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), false, `cache key must not embed the SWID cookie: ${key}`);
+  }
+});
+
+test("fetchEspnLastMatchupResult never caches when teamId is unknown (no SWID-keyed fallback)", async () => {
+  const matchupData = {
+    teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }],
+    schedule: [
+      {
+        id: 55,
+        matchupPeriodId: 4,
+        winner: "HOME",
+        home: { teamId: 9, totalPoints: 120.4 },
+        away: { teamId: 4, totalPoints: 98.2 },
+      },
+    ],
+  };
+  const { adapter, store, getHttpCalls } = loadEspnAdapterWithData(matchupData, { redis: true });
+  const swid = "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}";
+
+  await adapter.fetchEspnLastMatchupResult("12345", "espn-cookie", swid, 4);
+  await adapter.fetchEspnLastMatchupResult("12345", "espn-cookie", swid, 4);
+
+  assert.equal(store.size, 0, "no cache entry should be written without a known teamId");
+  assert.equal(getHttpCalls(), 2, "without a cache key both calls must hit ESPN live");
 });

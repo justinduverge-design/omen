@@ -93,6 +93,41 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
   return roster;
 }
 
+const MATCHUP_TTL_S = 21600; // 6h - a completed week's matchup result never changes
+
+/**
+ * Win/loss/tie for the user's team in a given week, via Yahoo's
+ * winner_team_key/is_tied fields. Returns null when the matchup for
+ * that week hasn't posted a result yet (bye week, in-progress week,
+ * or no matchup found).
+ */
+async function fetchYahooLastMatchupResult(accessToken, leagueKey, week) {
+  if (!leagueKey || !week) return null;
+
+  const client = new YahooClient(accessToken);
+  const teamKey = await client.getMyTeamKey(leagueKey);
+  if (!teamKey) return null;
+
+  const cacheKey = `ssff:yahoo:matchup:${teamKey}:${week}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
+  const matchups = await client.getTeamMatchups(teamKey, week);
+  const matchup = matchups.find((m) => Number(m.week) === Number(week));
+  if (!matchup || matchup.status !== "postevent") return null;
+
+  let result;
+  if (matchup.is_tied) result = "T";
+  else if (matchup.winner_team_key === teamKey) result = "W";
+  else if (matchup.winner_team_key) result = "L";
+  else return null;
+
+  const out = { result, matchup_id: `${leagueKey}:${week}:${teamKey}` };
+  await writeCache(cacheKey, out, MATCHUP_TTL_S);
+  return out;
+}
+
 module.exports = {
   buildNormalizedRoster,
+  fetchYahooLastMatchupResult,
 };

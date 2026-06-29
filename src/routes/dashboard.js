@@ -4,6 +4,13 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { logger } = require("../middleware/logging");
+const { getLastCompletedNflWeek } = require("../services/nflSchedule");
+const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
+const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
+const sleeperAdapter = require("../adapters/sleeper");
+const yahooAdapter = require("../adapters/yahoo");
+const espnAdapter = require("../adapters/espn");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -77,15 +84,122 @@ function buildPlatformSummary(rows = [], now = new Date()) {
   }
 
   return {
-    yahoo: yahooSummary,
+    yahoo: { ...yahooSummary, lastResult: null, lastGameId: null, lastGameKickoff: null },
     sleeper: {
       connected: Boolean(sleeper),
       username: sleeper?.platform_username || null,
+      lastResult: null,
+      lastGameId: null,
+      lastGameKickoff: null,
     },
     espn: {
       connected: Boolean(espn),
+      lastResult: null,
+      lastGameId: null,
+      lastGameKickoff: null,
     },
   };
+}
+
+const LAST_RESULT_TIMEOUT_MS = 4000;
+
+/**
+ * Bounds a platform lookup to LAST_RESULT_TIMEOUT_MS. Yahoo's client uses
+ * plain fetch with no timeout and ESPN's https.request has none either
+ * (Sleeper's axios call does) - without this, a hung upstream call would
+ * stall the whole dashboard summary response indefinitely.
+ */
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_resolve, reject) => {
+      setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
+/**
+ * Mutates `platforms` in place, filling lastResult/lastGameId/lastGameKickoff
+ * for whichever single platform is actually connected and usable. Never
+ * throws - any adapter/credential failure leaves the null defaults in
+ * place so a flaky upstream platform never breaks the dashboard summary.
+ */
+async function attachLastResult(platforms, rows, userId) {
+  const activeRows = rows.filter((row) => row?.is_active);
+  const yahoo = activeRows.find((row) => row.platform === "yahoo" && row.token_secret_id);
+  const sleeper = activeRows.find((row) => row.platform === "sleeper" && row.platform_username);
+  const espn = activeRows.find((row) =>
+    row.platform === "espn" && row.espn_secret_id && row.swid_secret_id
+  );
+
+  if (!platforms.yahoo.connected && !platforms.sleeper.connected && !platforms.espn.connected) {
+    return;
+  }
+
+  let lastWeek;
+  try {
+    lastWeek = await withTimeout(getLastCompletedNflWeek(), LAST_RESULT_TIMEOUT_MS);
+  } catch (e) {
+    logger.warn("dashboard: getLastCompletedNflWeek failed", { err: e?.message });
+    return;
+  }
+  if (!lastWeek?.week) return;
+
+  if (platforms.yahoo.connected && yahoo) {
+    try {
+      const match = await withTimeout((async () => {
+        const { accessToken } = await getAuthenticatedYahooClient(userId);
+        return yahooAdapter.fetchYahooLastMatchupResult(accessToken, yahoo.league_id, lastWeek.week);
+      })(), LAST_RESULT_TIMEOUT_MS);
+      if (match) {
+        platforms.yahoo.lastResult = match.result;
+        platforms.yahoo.lastGameId = `yahoo:${match.matchup_id}`;
+        platforms.yahoo.lastGameKickoff = lastWeek.kickoff_utc;
+      }
+    } catch (e) {
+      logger.warn("dashboard: yahoo lastResult lookup failed", { err: e?.message });
+    }
+  }
+
+  if (platforms.sleeper.connected && sleeper) {
+    try {
+      const match = await withTimeout((async () => {
+        const sleeperUserId = sleeper.platform_user_id
+          || (await sleeperAdapter.fetchSleeperUser(sleeper.platform_username)).user_id;
+        const { roster_id } = await sleeperAdapter.fetchSleeperRoster(sleeper.league_id, sleeperUserId);
+        return sleeperAdapter.fetchSleeperLastMatchupResult(sleeper.league_id, roster_id, lastWeek.week);
+      })(), LAST_RESULT_TIMEOUT_MS);
+      if (match) {
+        platforms.sleeper.lastResult = match.result;
+        platforms.sleeper.lastGameId = `sleeper:${match.matchup_id}`;
+        platforms.sleeper.lastGameKickoff = lastWeek.kickoff_utc;
+      }
+    } catch (e) {
+      logger.warn("dashboard: sleeper lastResult lookup failed", { err: e?.message });
+    }
+  }
+
+  if (platforms.espn.connected && espn) {
+    try {
+      const match = await withTimeout((async () => {
+        const credentials = await getAuthenticatedEspnCredentials(userId);
+        return espnAdapter.fetchEspnLastMatchupResult(
+          espn.league_id,
+          credentials.espn_s2,
+          credentials.swid,
+          lastWeek.week,
+          { teamId: espn.espn_team_id }
+        );
+      })(), LAST_RESULT_TIMEOUT_MS);
+      if (match) {
+        platforms.espn.lastResult = match.result;
+        platforms.espn.lastGameId = `espn:${match.matchup_id}`;
+        platforms.espn.lastGameKickoff = lastWeek.kickoff_utc;
+      }
+    } catch (e) {
+      logger.warn("dashboard: espn lastResult lookup failed", { err: e?.message });
+    }
+  }
 }
 
 function buildOmenTool({ rows = [], isSubscribed = false } = {}) {
@@ -123,7 +237,7 @@ function buildWaiverTool({ rows = [], isSubscribed = false }) {
 async function getPlatformRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,is_active,league_id,platform_username,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id")
+    .select("platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,token_expires_at,espn_secret_id,swid_secret_id,espn_team_id")
     .eq("user_id", userId);
 
   if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
@@ -201,6 +315,8 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       getUserProfile(req.user.id),
     ]);
     const isSubscribed = subscription.is_subscribed;
+    const platforms = buildPlatformSummary(rows);
+    await attachLastResult(platforms, rows, req.user.id);
 
     return res.json({
       contract_version: "dashboard-summary.v1",
@@ -208,7 +324,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       is_mock: false,
       user: userProfile,
       subscription,
-      platforms: buildPlatformSummary(rows),
+      platforms,
       tools: {
         draft_assistant: { available: true, mode: "free", status: "ready" },
         omen_of_the_week: buildOmenTool({ rows, isSubscribed }),
@@ -224,6 +340,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.buildPlatformSummary = buildPlatformSummary;
+module.exports.attachLastResult = attachLastResult;
 module.exports.buildOmenTool = buildOmenTool;
 module.exports.buildWaiverTool = buildWaiverTool;
 module.exports.isExpiredYahooToken = isExpiredYahooToken;

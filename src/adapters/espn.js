@@ -4,8 +4,10 @@
  * ESPN platform adapter.
  *
  * Normalizes ESPN roster data into the platform-agnostic roster shape used by
- * src/services/roster.js. ESPN data is cookie/session scoped, so caching is
- * intentionally deferred.
+ * src/services/roster.js. Per-user roster/standings data is cookie/session
+ * scoped, so caching is intentionally deferred for those. League-public,
+ * immutable data (a completed week's matchup result) is cached - see
+ * fetchEspnLastMatchupResult.
  *
  * Uses Node's built-in https module with browser-like headers instead of the
  * espn-fantasy-football-api library, which bundles its own axios and sends
@@ -13,7 +15,29 @@
  */
 
 const https = require("https");
+const { Redis } = require("@upstash/redis");
+const config = require("../config");
 const { logger } = require("../middleware/logging");
+
+// Matchup *results* for a completed week are league-public and immutable -
+// safe to cache by league/week/team, unlike roster data above which is
+// cookie/session scoped per the file header.
+const MATCHUP_TTL_S = 21600; // 6h
+const redis = config.redisUrl
+  ? new Redis({ url: config.redisUrl, token: config.redisToken })
+  : null;
+
+async function readCache(key) {
+  if (!redis) return null;
+  const cached = await redis.get(key).catch(() => null);
+  if (!cached) return null;
+  return typeof cached === "string" ? JSON.parse(cached) : cached;
+}
+
+async function writeCache(key, value, ttlSeconds) {
+  if (!redis) return;
+  await redis.set(key, JSON.stringify(value), { ex: ttlSeconds }).catch(() => {});
+}
 
 const LINEUP_SLOT_MAP = {
   0: "QB",
@@ -382,8 +406,58 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   };
 }
 
+/**
+ * Win/loss/tie for the user's team in a given scoring period, via ESPN's
+ * mScoreboard view. Returns null when no matchup is found for that team
+ * and week (bye week, team not found, or the period hasn't posted).
+ * Cached by league/week/team (the result itself, not the credentials used
+ * to fetch it) since a completed week's outcome never changes. Only
+ * cached when opts.teamId is known - never key a cache entry off the
+ * SWID cookie, which would persist an ESPN credential in plaintext.
+ */
+async function fetchEspnLastMatchupResult(leagueId, espn_s2, swid, week, opts = {}) {
+  const scoringPeriodId = Number(week);
+  const cacheKey = opts.teamId != null
+    ? `ssff:espn:matchup:${leagueId}:${Number(week)}:${opts.teamId}`
+    : null;
+  const cached = cacheKey ? await readCache(cacheKey) : null;
+  if (cached) return cached;
+
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mScoreboard", "mTeam"], scoringPeriodId);
+  const teams = data?.teams || [];
+  const team = findUserTeam(teams, swid, opts);
+  if (!team) return null;
+  const myTeamId = teamId(team);
+
+  const schedule = Array.isArray(data?.schedule) ? data.schedule : [];
+  const matchup = schedule.find((m) =>
+    Number(m?.matchupPeriodId) === scoringPeriodId
+    && (teamId(m?.home) === myTeamId || teamId(m?.away) === myTeamId)
+  );
+  if (!matchup) return null;
+
+  const isHome = teamId(matchup.home) === myTeamId;
+  const myScore = Number(isHome ? matchup.home?.totalPoints : matchup.away?.totalPoints);
+  const oppScore = Number(isHome ? matchup.away?.totalPoints : matchup.home?.totalPoints);
+  if (!Number.isFinite(myScore) || !Number.isFinite(oppScore)) return null;
+
+  let result;
+  if (matchup.winner === "TIE") result = "T";
+  else if (myScore > oppScore) result = "W";
+  else if (myScore < oppScore) result = "L";
+  else result = "T";
+
+  const out = {
+    result,
+    matchup_id: matchup.id != null ? String(matchup.id) : `${leagueId}:${scoringPeriodId}:${myTeamId}`,
+  };
+  if (cacheKey) await writeCache(cacheKey, out, MATCHUP_TTL_S);
+  return out;
+}
+
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
   verifyLeagueAccess,
+  fetchEspnLastMatchupResult,
 };

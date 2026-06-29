@@ -23,6 +23,7 @@ function loadSleeperAdapterWithFixtures(fixtures) {
           if (url.includes("/user/testuser")) return { data: fixtures.user };
           if (url.includes("/league/league-1/rosters")) return { data: fixtures.rosters };
           if (url.includes("/league/league-1/users")) return { data: fixtures.users };
+          if (url.includes("/league/league-1/matchups/")) return { data: fixtures.matchups };
           if (url.includes("/league/league-1")) return { data: fixtures.league };
           if (url.includes("/players/nfl") && !url.includes("/projections/")) return { data: fixtures.players };
           if (url.includes("/projections/nfl/2026/1")) return { data: fixtures.projections };
@@ -241,4 +242,56 @@ test("fetchSleeperStandings ranks by wins then points for", async () => {
       points_against: 980.6,
     },
   ]);
+});
+
+test("fetchSleeperLastMatchupResult returns W when my points beat my opponent's", async () => {
+  const data = fixtures();
+  data.matchups = [
+    { roster_id: 7, matchup_id: 1, points: 120.4 },
+    { roster_id: 2, matchup_id: 1, points: 98.2 },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperLastMatchupResult("league-1", 7, 4);
+
+  assert.deepEqual(result, { result: "W", matchup_id: "league-1:4:1" });
+});
+
+test("fetchSleeperLastMatchupResult returns L when my points trail my opponent's", async () => {
+  const data = fixtures();
+  data.matchups = [
+    { roster_id: 7, matchup_id: 1, points: 90.0 },
+    { roster_id: 2, matchup_id: 1, points: 110.5 },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperLastMatchupResult("league-1", 7, 4);
+
+  assert.deepEqual(result, { result: "L", matchup_id: "league-1:4:1" });
+});
+
+test("fetchSleeperLastMatchupResult returns T on an exact tie", async () => {
+  const data = fixtures();
+  data.matchups = [
+    { roster_id: 7, matchup_id: 1, points: 100.0 },
+    { roster_id: 2, matchup_id: 1, points: 100.0 },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperLastMatchupResult("league-1", 7, 4);
+
+  assert.deepEqual(result, { result: "T", matchup_id: "league-1:4:1" });
+});
+
+test("fetchSleeperLastMatchupResult returns null when the roster has no matchup that week", async () => {
+  const data = fixtures();
+  data.matchups = [
+    { roster_id: 2, matchup_id: 1, points: 98.2 },
+    { roster_id: 3, matchup_id: 1, points: 88.2 },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperLastMatchupResult("league-1", 7, 4);
+
+  assert.equal(result, null);
 });

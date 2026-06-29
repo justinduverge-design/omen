@@ -148,6 +148,21 @@ class YahooClient {
     return this.get(`/players;player_keys=${keys.join(",")}/draft_analysis`);
   }
 
+  /** Win/loss/tie status for a team's matchup in a given week. */
+  async getTeamMatchups(teamKey, week) {
+    const d = await this.get(`/team/${teamKey}/matchups;weeks=${week}`);
+    const matchups = d?.fantasy_content?.team?.[1]?.matchups;
+    if (!matchups) return [];
+    return Object.values(matchups)
+      .filter((m) => m?.matchup)
+      .map((m) => ({
+        week: Number(m.matchup?.week ?? week),
+        status: m.matchup?.status || null,
+        is_tied: m.matchup?.is_tied === "1" || m.matchup?.is_tied === 1,
+        winner_team_key: m.matchup?.winner_team_key || null,
+      }));
+  }
+
   /** Standings. Includes legacy fields for old internal callers. */
   async getLeagueStandings(leagueKey, myTeamKey = null) {
     const d = await this.get(`/league/${leagueKey}/standings`);

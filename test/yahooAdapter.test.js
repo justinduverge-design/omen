@@ -83,6 +83,7 @@ function fixtures(overrides = {}) {
     rawRoster: rawRosterFixture(),
     projectedStats: 101.5,
     projectedStatsError: false,
+    matchups: [],
     ...overrides,
   };
 }
@@ -110,6 +111,7 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
     getCurrentWeek: [],
     getRoster: [],
     getProjectedStats: [],
+    getTeamMatchups: [],
     redisGet: [],
     redisSet: [],
   };
@@ -141,6 +143,11 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
           calls.getProjectedStats.push({ teamKey, week });
           if (fixture.projectedStatsError) throw new Error("Projected stats unavailable");
           return fixture.projectedStats;
+        }
+
+        async getTeamMatchups(teamKey, week) {
+          calls.getTeamMatchups.push({ teamKey, week });
+          return fixture.matchups;
         }
       };
     }
@@ -238,4 +245,52 @@ test("getProjectedStats failure degrades gracefully", async () => {
   assert.equal(roster.slots.starters[0].projected_points, null);
   assert.equal(roster.slots.bench[0].projected_points, null);
   assert.equal(roster.slots.ir[0].projected_points, null);
+});
+
+test("fetchYahooLastMatchupResult returns W when winner_team_key matches my team", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({
+    matchups: [{ week: 4, status: "postevent", is_tied: false, winner_team_key: "399.l.123.t.7" }],
+  }));
+
+  const result = await adapter.fetchYahooLastMatchupResult("access-token", "nfl.l.123", 4);
+
+  assert.deepEqual(result, { result: "W", matchup_id: "nfl.l.123:4:399.l.123.t.7" });
+});
+
+test("fetchYahooLastMatchupResult returns L when winner_team_key is the opponent", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({
+    matchups: [{ week: 4, status: "postevent", is_tied: false, winner_team_key: "399.l.123.t.9" }],
+  }));
+
+  const result = await adapter.fetchYahooLastMatchupResult("access-token", "nfl.l.123", 4);
+
+  assert.deepEqual(result, { result: "L", matchup_id: "nfl.l.123:4:399.l.123.t.7" });
+});
+
+test("fetchYahooLastMatchupResult returns T when is_tied", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({
+    matchups: [{ week: 4, status: "postevent", is_tied: true, winner_team_key: null }],
+  }));
+
+  const result = await adapter.fetchYahooLastMatchupResult("access-token", "nfl.l.123", 4);
+
+  assert.deepEqual(result, { result: "T", matchup_id: "nfl.l.123:4:399.l.123.t.7" });
+});
+
+test("fetchYahooLastMatchupResult returns null when the matchup hasn't posted yet", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({
+    matchups: [{ week: 4, status: "midevent", is_tied: false, winner_team_key: null }],
+  }));
+
+  const result = await adapter.fetchYahooLastMatchupResult("access-token", "nfl.l.123", 4);
+
+  assert.equal(result, null);
+});
+
+test("fetchYahooLastMatchupResult returns null when no Yahoo team exists in the league", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({ teamKey: null }));
+
+  const result = await adapter.fetchYahooLastMatchupResult("access-token", "nfl.l.123", 4);
+
+  assert.equal(result, null);
 });

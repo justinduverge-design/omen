@@ -20,8 +20,26 @@ installMockFetch();
 const {
   getGameInfo,
   getCurrentNflWeekContext,
+  getLastCompletedNflWeek,
   __clearCache,
 } = require("../src/services/nflSchedule");
+
+function completedEvent(date) {
+  return { date, competitions: [{ status: { type: { completed: true } } }] };
+}
+
+function inProgressEvent(date) {
+  return { date, competitions: [{ status: { type: { completed: false } } }] };
+}
+
+function installUrlMockFetch(responsesByWeek) {
+  global.fetch = async (url) => {
+    const match = /[?&]week=(\d+)/.exec(url);
+    const week = match ? Number(match[1]) : null;
+    const events = responsesByWeek[week] || [];
+    return { ok: true, json: async () => ({ events }) };
+  };
+}
 
 const MOCK_SCOREBOARD = {
   events: [
@@ -96,5 +114,58 @@ describe("nflSchedule.getCurrentNflWeekContext", () => {
       week: 18,
       season_type: "postseason",
     });
+  });
+});
+
+describe("nflSchedule.getLastCompletedNflWeek", () => {
+  beforeEach(() => {
+    __clearCache();
+  });
+
+  after(() => {
+    if (_originalFetch) global.fetch = _originalFetch;
+    else delete global.fetch;
+  });
+
+  it("returns the current week when every game has finished", async () => {
+    installUrlMockFetch({
+      4: [completedEvent("2026-09-28T17:00:00Z"), completedEvent("2026-09-24T00:15:00Z")],
+    });
+
+    const result = await getLastCompletedNflWeek(new Date("2026-09-29T12:00:00Z"));
+
+    assert.deepEqual(result, { season: 2026, week: 4, kickoff_utc: "2026-09-24T00:15:00Z" });
+  });
+
+  it("falls back to the prior week when the current week is still in progress", async () => {
+    installUrlMockFetch({
+      4: [inProgressEvent("2026-09-28T17:00:00Z")],
+      3: [completedEvent("2026-09-17T00:15:00Z")],
+    });
+
+    const result = await getLastCompletedNflWeek(new Date("2026-09-29T12:00:00Z"));
+
+    assert.deepEqual(result, { season: 2026, week: 3, kickoff_utc: "2026-09-17T00:15:00Z" });
+  });
+
+  it("returns null week when neither the current nor prior week has fully completed", async () => {
+    installUrlMockFetch({
+      4: [inProgressEvent("2026-09-28T17:00:00Z")],
+      3: [],
+    });
+
+    const result = await getLastCompletedNflWeek(new Date("2026-09-29T12:00:00Z"));
+
+    assert.deepEqual(result, { season: 2026, week: null, kickoff_utc: null });
+  });
+
+  it("returns null week during week 1 with nothing to fall back to", async () => {
+    installUrlMockFetch({
+      1: [inProgressEvent("2026-09-10T17:00:00Z")],
+    });
+
+    const result = await getLastCompletedNflWeek(new Date("2026-09-06T12:00:00Z"));
+
+    assert.deepEqual(result, { season: 2026, week: null, kickoff_utc: null });
   });
 });

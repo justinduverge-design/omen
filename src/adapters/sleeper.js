@@ -282,6 +282,47 @@ async function fetchSleeperStandings(leagueId, currentUserId = null) {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
+const MATCHUPS_TTL_S = 21600; // 6h - a completed week's matchup result never changes
+
+async function fetchSleeperMatchups(leagueId, week) {
+  const cacheKey = `ssff:sleeper:matchups:${leagueId}:${week}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return cached;
+
+  const matchups = await getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/matchups/${week}`);
+  const out = Array.isArray(matchups) ? matchups : [];
+  await writeCache(cacheKey, out, MATCHUPS_TTL_S);
+  return out;
+}
+
+/**
+ * Win/loss/tie for one roster's most recently completed matchup.
+ * Returns null when the roster has no matchup recorded for that week
+ * (bye week in some league formats, or the roster isn't in this league).
+ */
+async function fetchSleeperLastMatchupResult(leagueId, rosterId, week) {
+  if (!leagueId || rosterId == null || !week) return null;
+
+  const matchups = await fetchSleeperMatchups(leagueId, week);
+  const mine = matchups.find((entry) => String(entry?.roster_id) === String(rosterId));
+  if (!mine || mine.matchup_id == null) return null;
+
+  const opponent = matchups.find((entry) =>
+    entry?.matchup_id === mine.matchup_id && String(entry?.roster_id) !== String(rosterId)
+  );
+  if (!opponent) return null;
+
+  const myPoints = Number(mine.points);
+  const oppPoints = Number(opponent.points);
+  if (!Number.isFinite(myPoints) || !Number.isFinite(oppPoints)) return null;
+
+  const result = myPoints > oppPoints ? "W" : myPoints < oppPoints ? "L" : "T";
+  return {
+    result,
+    matchup_id: `${leagueId}:${week}:${mine.matchup_id}`,
+  };
+}
+
 async function fetchSleeperPlayers() {
   const cached = await readCache(PLAYERS_CACHE_KEY);
   if (cached) return cached;
@@ -409,6 +450,8 @@ module.exports = {
   fetchSleeperLeague,
   fetchSleeperRoster,
   fetchSleeperStandings,
+  fetchSleeperMatchups,
+  fetchSleeperLastMatchupResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,
   fetchSleeperLeagueDrafts,
