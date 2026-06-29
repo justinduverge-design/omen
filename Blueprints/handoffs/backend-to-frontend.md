@@ -3207,3 +3207,54 @@ How frontend should call it:
 
 - No frontend change. Continue calling existing endpoints with their current request bodies.
 - Do not send raw scoring-config rows from the browser; future backend integration should load the authenticated user's owned league config server-side.
+
+## Phase 2.17 — Platform `lastResult` field for post-win pulse (2026-06-29)
+
+`GET /api/dashboard/summary` (`dashboard-summary.v1`) — each entry under `platforms.yahoo` / `platforms.sleeper` / `platforms.espn` now always carries three additional keys, present on every response regardless of connection state:
+
+```json
+{
+  "platforms": {
+    "sleeper": {
+      "connected": true,
+      "username": "sleepy",
+      "lastResult": "W",
+      "lastGameId": "sleeper:sleeper-league-1:4:7",
+      "lastGameKickoff": "2026-09-25T00:15:00Z"
+    }
+  }
+}
+```
+
+- `lastResult` — `"W"`, `"L"`, `"T"`, or `null`. The connected platform's most recently **completed fantasy matchup** result (not a real NFL team's result). `null` until a full NFL week has completed, or if the lookup fails/times out for any reason.
+- `lastGameId` — a stable synthesized string (`"{platform}:{leagueId}:{week}:{matchupId}"`), not a literal platform game ID. Use it only to detect "this is a new result since I last showed the pulse" — store the last-seen value in localStorage and compare.
+- `lastGameKickoff` — ISO8601 timestamp of the earliest real NFL kickoff in that completed week (confirmed against ESPN's public scoreboard, not calendar math). Same value across all three platforms for a given response, since "last completed week" is one NFL-wide answer.
+- All three fields stay `null` together (never partially populated) for a given platform.
+
+Response shape / behavior notes:
+
+- Only the platform that is actually `connected` gets a live lookup; the other two stay `null`.
+- Sleeper/Yahoo results are Redis-cached 6h per league+team+week. ESPN results are cached the same way only when `espn_team_id` is on file for the connection; if not, ESPN is looked up live every call (matches existing ESPN-credential-scoped caching posture).
+- Every platform lookup is bounded to 4s and wrapped in try/catch — a hung or erroring Yahoo/Sleeper/ESPN call **never** breaks or blocks `/api/dashboard/summary`; it just leaves `lastResult`/`lastGameId`/`lastGameKickoff` as `null` for that response.
+- "Last completed week" is one NFL-wide value (current week if every game this week shows `completed: true` on ESPN's public scoreboard, else the prior week). It is **not** computed per-platform.
+
+Files changed:
+
+- `src/routes/dashboard.js` (`attachLastResult`, `withTimeout`)
+- `src/services/nflSchedule.js` (`getLastCompletedNflWeek`)
+- `src/adapters/sleeper.js` (`fetchSleeperMatchups`, `fetchSleeperLastMatchupResult`)
+- `src/adapters/yahoo.js` (`fetchYahooLastMatchupResult`)
+- `src/services/yahoo.js` (`YahooClient.getTeamMatchups`)
+- `src/adapters/espn.js` (`fetchEspnLastMatchupResult`)
+- `test/dashboardSummary.test.js`, `test/nflSchedule.test.js`, `test/sleeperAdapter.test.js`, `test/yahooAdapter.test.js`, `test/espnAdapter.test.js`
+
+Limitations:
+
+- "Last completed week" assumes fantasy weeks line up with the standard NFL week boundary across all three platforms; leagues running a non-standard week schedule are not specifically handled.
+- No frontend consumer exists yet — this unblocks the separately queued Frontend Phase 1.5d (post-win pulse animation), which is still blocked on its own UI work.
+- ESPN caching is skipped (always live) for connections without a stored `espn_team_id` — by design, to avoid ever keying a cache entry off the SWID cookie.
+
+How frontend should call it:
+
+- No new endpoint or request shape. Continue calling `GET /api/dashboard/summary` exactly as today; the three new keys simply appear inside each existing `platforms.*` object.
+- Treat `lastResult: null` as "no pulse to show" — do not distinguish "never connected," "no week completed yet," and "lookup failed" cases; the contract intentionally collapses them to the same null state.
