@@ -6,6 +6,78 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 1.5d Post-Win Pulse — 2026-06-29
+
+Feature name: Post-win pulse animation.
+
+Status: Built locally as frontend behavior consuming the existing dashboard summary contract.
+
+Endpoint / contract:
+
+No HTTP endpoint, request body, response envelope, frontend call, package, SQL, env, provider credential, auth, Stripe, Supabase, or deploy behavior changed.
+
+Existing frontend-consumed fields:
+
+- `GET /api/dashboard/summary.platforms.{sleeper,yahoo,espn}.lastResult`
+- `GET /api/dashboard/summary.platforms.{sleeper,yahoo,espn}.lastGameId`
+- `GET /api/dashboard/summary.user.favorite_team`
+
+Frontend behavior:
+
+- Show `<Team> W - bright today` on `/football` when a connected platform has `lastResult === "W"` and `lastGameId`.
+- Play the header-rule wash once per `lastGameId`, tracked in localStorage.
+- Brighten the embedded current-user standings row while the latest result is a win.
+- Do not display win streak tiers until the backend exposes a real streak field.
+
+Future backend request:
+
+Add a provider-safe `currentWinStreak`-style field to `GET /api/dashboard/summary` when ready. It should be computed from provider matchup history, return a safe integer or `null`, and avoid exposing raw provider ids, credentials, or ESPN cookie material.
+
+Files changed:
+
+- `frontend/src/lib/postWinPulse.js`
+- `frontend/src/pages/Football.jsx`
+- `frontend/src/components/league/LeagueStandings.jsx`
+- `frontend/src/index.css`
+- `test/postWinPulse.test.mjs`
+- `Blueprints/specs/page-system.md`
+
+Limitations:
+
+- Current production behavior is single-win only.
+- `lastGameKickoff` is still usually `null`; next-game-day auto-clear remains limited to the backend's latest `lastResult` changing away from `W` or to a new `lastGameId`.
+- Authenticated visual screenshot/mobile smoke was not captured in this session.
+
+## Phase 4.16 Open-Agreements Provider Paragraphs — 2026-06-28
+
+Feature name: Provider-specific ToS / Privacy Policy paragraph packet.
+
+Status: Drafted locally for Justin/counsel review. Not published.
+
+Endpoint / contract:
+
+No HTTP endpoint, request body, response envelope, frontend call, package, SQL, env, provider credential, auth, Stripe, Supabase, or deploy behavior changed.
+
+Frontend action needed:
+
+- None for app wiring.
+- Do not publish `/terms` or `/privacy` from this packet without Justin/counsel review.
+- If future frontend pages use this copy, keep platform attribution factual and never imply ESPN, Yahoo, Sleeper, Disney, or NFL endorsement.
+
+Files changed:
+
+- `Legal/2026-06-28-open-agreements-provider-paragraphs.md`
+- `Direction/reviews/2026-06-28-phase4-16-provider-terms-research.md`
+- `Direction/reviews/2026-06-28-phase4-16-security-privacy-evidence.md`
+- `Direction/reviews/2026-06-28-phase4-16-legal-spot-check.md`
+
+Limitations:
+
+- Not legal advice.
+- Not a public policy page.
+- No open-agreements DOCX/template output generated because the local template checkout is missing.
+- ESPN/Yahoo/Sleeper provider-terms risks remain open for founder/counsel review.
+
 ## Phase 3.13 Token-Constrained Narration — 2026-06-28
 
 Feature name: Token-constrained LLM narration prompts.
