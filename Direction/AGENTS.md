@@ -74,7 +74,9 @@ Layer 2: SLOPS/slops-saloon/omen/
 
 ## 7. Hard Constraints
 
-Do: Read `Direction/context.md`, `Direction/current_sprint.md`, `Direction/roadmap.md`, and relevant handoffs before product work.
+Do: Read `Direction/context.md`, `Direction/current_sprint.md` (open queue only — `Direction/sprints_completed.md` holds historical done evidence and is pulled only when retro/context demands it), `Direction/roadmap.md`, and relevant handoffs before product work.
+
+Do: Treat lanes in `current_sprint.md` as work areas, not agent assignments. Any agent may pull any agent-buildable item; pick by readiness, blockers, and token-cost.
 
 Do: Keep mock/stub/live/unavailable states clearly labeled.
 
