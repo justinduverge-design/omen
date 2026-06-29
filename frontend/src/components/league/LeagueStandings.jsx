@@ -16,7 +16,7 @@ function PlatformBadge({ platform }) {
   );
 }
 
-function StandingsTable({ standings }) {
+function StandingsTable({ standings, postWinActive = false }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -40,7 +40,9 @@ function StandingsTable({ standings }) {
               className="border-b last:border-0"
               style={{
                 borderColor: row.is_current_user ? 'var(--color-accent)' : 'var(--color-border)',
-                background: row.is_current_user ? 'color-mix(in srgb, var(--color-accent) 6%, transparent)' : 'transparent',
+                background: row.is_current_user
+                  ? `color-mix(in srgb, var(--color-accent) ${postWinActive ? '22%' : '14%'}, transparent)`
+                  : 'transparent',
               }}
             >
               <td
@@ -94,7 +96,7 @@ function SkeletonTable() {
   );
 }
 
-export default function LeagueStandings() {
+export default function LeagueStandings({ postWinActive = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorCode, setErrorCode] = useState(null);
@@ -159,7 +161,7 @@ export default function LeagueStandings() {
 
     if (!data?.standings?.length) return null;
 
-    return <StandingsTable standings={data.standings} />;
+    return <StandingsTable standings={data.standings} postWinActive={postWinActive} />;
   }
 
   if (!loading && isDisconnected && !data) {

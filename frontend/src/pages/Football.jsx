@@ -8,6 +8,12 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
+import {
+  getPostWinSignal,
+  hasSeenPostWinGameId,
+  markPostWinGameIdSeen,
+  teamWinLabel,
+} from '../lib/postWinPulse.js';
 import { useTheme } from '../lib/themeMode.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
@@ -127,11 +133,20 @@ export default function Football() {
   const [activeTab, setActiveTab] = useState('trade');
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [postWinWashActive, setPostWinWashActive] = useState(false);
   const { mode, team: teamAbbr } = useTheme();
+  const themedTeam = useMemo(() => (
+    teamAbbr ? NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? null : null
+  ), [teamAbbr]);
+  const postWinTeam = useMemo(() => {
+    const favoriteTeam = summary?.user?.favorite_team;
+    const abbr = favoriteTeam || teamAbbr;
+    return abbr ? NFL_TEAMS.find((t) => t.abbr === abbr) ?? null : null;
+  }, [summary?.user?.favorite_team, teamAbbr]);
   const cultureTag = useMemo(() => {
-    if (mode !== 'team' || !teamAbbr) return null;
-    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cultureTag ?? null;
-  }, [mode, teamAbbr]);
+    if (mode !== 'team' || !themedTeam) return null;
+    return themedTeam.cultureTag ?? null;
+  }, [mode, themedTeam]);
 
   useEffect(() => {
     let mounted = true;
@@ -144,6 +159,30 @@ export default function Football() {
 
   const tools = summary?.tools;
   const omenStatus = tools?.omen_of_the_week?.status;
+  const postWinSignal = useMemo(
+    () => getPostWinSignal(summary?.platforms),
+    [summary?.platforms],
+  );
+
+  useEffect(() => {
+    if (summaryLoading || !postWinSignal?.lastGameId) return undefined;
+    if (hasSeenPostWinGameId(postWinSignal.lastGameId)) return undefined;
+
+    markPostWinGameIdSeen(postWinSignal.lastGameId);
+    setPostWinWashActive(true);
+    const timeoutId = window.setTimeout(() => setPostWinWashActive(false), 850);
+    return () => window.clearTimeout(timeoutId);
+  }, [postWinSignal?.lastGameId, summaryLoading]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!postWinWashActive) {
+      root.removeAttribute('data-post-win-wash');
+      return undefined;
+    }
+    root.setAttribute('data-post-win-wash', 'true');
+    return () => root.removeAttribute('data-post-win-wash');
+  }, [postWinWashActive]);
 
   // Phase 1.5g.3: a connected platform means real league data is on screen →
   // 'live' (moment chrome suppressed). No connection / off-season → 'mock'.
@@ -224,6 +263,15 @@ export default function Football() {
               {cultureTag}
             </span>
           )}
+          {postWinSignal && (
+            <span
+              className="post-win-chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
+              aria-label={teamWinLabel(postWinTeam)}
+            >
+              <span aria-hidden="true">✦</span>
+              <span>{teamWinLabel(postWinTeam)}</span>
+            </span>
+          )}
         </div>
         <h1 className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl" style={{ color: 'var(--color-text-primary)' }}>
           Hall of Records
@@ -236,7 +284,7 @@ export default function Football() {
 
       <PlatformStatusBar platforms={summary?.platforms} loading={summaryLoading} />
 
-      <LeagueStandings />
+      <LeagueStandings postWinActive={Boolean(postWinSignal)} />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
       <div

@@ -157,6 +157,56 @@
     letter-spacing: 0.16em;
     color: var(--moment-eyebrow-color);
   }
+
+  .post-win-chip {
+    color: color-mix(in srgb, var(--color-team-accent) 94%, white 6%);
+    border-color: color-mix(in srgb, var(--color-team-accent) 44%, var(--color-border) 56%);
+    background: color-mix(in srgb, var(--color-team-accent) 14%, transparent);
+  }
+
+  :root[data-post-win-wash='true'] header::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    z-index: 1;
+    height: 2px;
+    background:
+      linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in srgb, var(--color-team-accent) 94%, white 6%) 48%,
+        transparent 100%
+      );
+    animation: post-win-header-wash 800ms ease-in-out both;
+  }
+
+  @keyframes post-win-header-wash {
+    0% {
+      opacity: 0;
+      transform: translateX(-82%);
+    }
+    18% {
+      opacity: 1;
+    }
+    72% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(82%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-post-win-wash='true'] header::after {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 :root[data-theme="dark"] {
