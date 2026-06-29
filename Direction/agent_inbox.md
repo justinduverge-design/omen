@@ -1,10 +1,10 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-25 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 2.10 closeout and deploy.** Phase 2.10 is merged via PR #68 (`bfefbf1`) and deployed via Hostinger KVM1 run `28192331330`. Next pull should start from the refreshed top-5 below unless Justin pins another item.
+**Auto-populated 2026-06-29 (Claude session) from `Direction/current_sprint.md` post-2026-06-27 sprint-split.** Lane labels are now vendor-agnostic (see `Blueprints/playbooks/sprint-synergy.md`); done-item evidence moved to `Direction/sprints_completed.md`. Item set is unchanged from the 2026-06-25 pull — re-verified against the open queue, still the next 5 unblocked agent-buildable items. Next pull should start from the refreshed top-5 below unless Justin pins another item.
 
 ## Active Task
 
-None pinned after Phase 2.10 local closeout.
+📌 **Phase 2.17 — Platform `lastResult` field for post-win pulse.**
 
 ## Auto-Populated Top 5
 
