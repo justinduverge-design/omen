@@ -454,6 +454,41 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with
   });
 });
 
+test("GET /api/dashboard/summary doesn't hang when a platform last-result lookup never resolves", async () => {
+  const app = buildApp({
+    context: { season: 2026, week: 8, season_type: "regular" },
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+        platform_user_id: "sleeper-user-1",
+      },
+    ],
+    userRows: [
+      { id: "test-user", is_subscribed: true },
+    ],
+    sleeperAdapter: {
+      fetchSleeperLastResult: () => new Promise(() => {}),
+    },
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.platforms.sleeper, {
+    connected: true,
+    username: "sleepy",
+    lastResult: null,
+    lastGameId: null,
+    lastGameKickoff: null,
+  });
+});
+
 test("GET /api/dashboard/summary marks Omen pro-gated when platform exists but user is not subscribed", async () => {
   const app = buildApp({
     platformRows: [

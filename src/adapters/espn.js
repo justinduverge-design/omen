@@ -4,8 +4,10 @@
  * ESPN platform adapter.
  *
  * Normalizes ESPN roster data into the platform-agnostic roster shape used by
- * src/services/roster.js. ESPN data is cookie/session scoped, so caching is
- * intentionally deferred.
+ * src/services/roster.js. Per-user roster/standings data is cookie/session
+ * scoped, so caching is intentionally deferred for those. League-public,
+ * immutable data (a completed week's matchup result) is cached - see
+ * fetchEspnLastResult.
  *
  * Uses Node's built-in https module with browser-like headers instead of the
  * espn-fantasy-football-api library, which bundles its own axios and sends
@@ -13,7 +15,26 @@
  */
 
 const https = require("https");
+const { Redis } = require("@upstash/redis");
+const config = require("../config");
 const { logger } = require("../middleware/logging");
+
+const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
+const redis = config.redisUrl
+  ? new Redis({ url: config.redisUrl, token: config.redisToken })
+  : null;
+
+async function readCache(key) {
+  if (!redis) return null;
+  const cached = await redis.get(key).catch(() => null);
+  if (!cached) return null;
+  return typeof cached === "string" ? JSON.parse(cached) : cached;
+}
+
+async function writeCache(key, value, ttlSeconds) {
+  if (!redis) return;
+  await redis.set(key, JSON.stringify(value), { ex: ttlSeconds }).catch(() => {});
+}
 
 const LINEUP_SLOT_MAP = {
   0: "QB",
@@ -450,13 +471,25 @@ function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, s
 
 async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+
+  // Only cache when teamId is known - never key a cache entry off the SWID
+  // cookie, which would persist an ESPN credential in plaintext. Without a
+  // teamId, lastResultFromEspnSchedule can't resolve a result anyway.
+  const cacheKey = opts.teamId != null
+    ? `ssff:espn:lastresult:${leagueId}:${scoringPeriodId}:${opts.teamId}`
+    : null;
+  const cached = cacheKey ? await readCache(cacheKey) : null;
+  if (cached) return cached;
+
   const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup"], scoringPeriodId, opts);
-  return lastResultFromEspnSchedule({
+  const result = lastResultFromEspnSchedule({
     leagueId,
     week: scoringPeriodId,
     teamId: opts.teamId,
     schedule: data?.schedule,
   });
+  if (cacheKey) await writeCache(cacheKey, result, LAST_RESULT_TTL_S);
+  return result;
 }
 
 module.exports = {

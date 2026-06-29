@@ -9,10 +9,23 @@ const assert = require("node:assert/strict");
 const Module = require("node:module");
 const test = require("node:test");
 
-function loadSleeperAdapterWithFixtures(fixtures) {
+function loadSleeperAdapterWithFixtures(fixtures, opts = {}) {
   const adapterPath = require.resolve("../src/adapters/sleeper");
+  const configPath = require.resolve("../src/config");
   delete require.cache[adapterPath];
+  delete require.cache[configPath];
 
+  const previousRedisUrl = process.env.REDIS_URL;
+  const previousRedisToken = process.env.REDIS_TOKEN;
+  if (opts.redis) {
+    process.env.REDIS_URL = "https://redis.example";
+    process.env.REDIS_TOKEN = "redis-token";
+  } else {
+    delete process.env.REDIS_URL;
+    delete process.env.REDIS_TOKEN;
+  }
+
+  const store = opts.store || new Map();
   const calls = [];
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -21,12 +34,26 @@ function loadSleeperAdapterWithFixtures(fixtures) {
         get: async (url, options = {}) => {
           calls.push({ url, options });
           if (url.includes("/user/testuser")) return { data: fixtures.user };
+          if (url.includes("/league/league-1/matchups/")) return { data: fixtures.matchups };
           if (url.includes("/league/league-1/rosters")) return { data: fixtures.rosters };
           if (url.includes("/league/league-1/users")) return { data: fixtures.users };
           if (url.includes("/league/league-1")) return { data: fixtures.league };
           if (url.includes("/players/nfl") && !url.includes("/projections/")) return { data: fixtures.players };
           if (url.includes("/projections/nfl/2026/1")) return { data: fixtures.projections };
           throw new Error(`Unexpected URL ${url}`);
+        },
+      };
+    }
+    if (request === "@upstash/redis" && parent?.filename === adapterPath) {
+      return {
+        Redis: class MockRedis {
+          async get(key) {
+            return store.get(key) || null;
+          }
+
+          async set(key, value) {
+            store.set(key, value);
+          }
         },
       };
     }
@@ -37,9 +64,14 @@ function loadSleeperAdapterWithFixtures(fixtures) {
     return {
       adapter: require("../src/adapters/sleeper"),
       calls,
+      store,
     };
   } finally {
     Module._load = originalLoad;
+    if (previousRedisUrl == null) delete process.env.REDIS_URL;
+    else process.env.REDIS_URL = previousRedisUrl;
+    if (previousRedisToken == null) delete process.env.REDIS_TOKEN;
+    else process.env.REDIS_TOKEN = previousRedisToken;
   }
 }
 
@@ -281,4 +313,21 @@ test("lastResultFromMatchups returns null result for tied Sleeper matchup", () =
     lastGameId: "league-1:7:3",
     lastGameKickoff: null,
   });
+});
+
+test("fetchSleeperMatchups caches by league/week (6h) so a second call doesn't refetch", async () => {
+  const data = fixtures();
+  data.matchups = [
+    { roster_id: 7, matchup_id: 3, points: 118.4 },
+    { roster_id: 2, matchup_id: 3, points: 101.2 },
+  ];
+  const { adapter, calls, store } = loadSleeperAdapterWithFixtures(data, { redis: true });
+
+  const first = await adapter.fetchSleeperMatchups("league-1", 7);
+  const second = await adapter.fetchSleeperMatchups("league-1", 7);
+
+  assert.deepEqual(second, first);
+  const matchupCalls = calls.filter((c) => c.url.includes("/matchups/"));
+  assert.equal(matchupCalls.length, 1, "second call should be served from cache, not a live Sleeper request");
+  assert.equal(store.size, 1);
 });
