@@ -6,6 +6,7 @@ import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
 import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
+import { confidenceBarStyle } from '../lib/confidenceGradient.js';
 
 const ESPN_RECOVERY_STATES = new Set([
   'espn_reauth_required',
@@ -247,8 +248,6 @@ function ConfidenceBar({ confidence }) {
   if (!confidence) return null;
 
   const score = Math.min(100, Math.max(0, Number(confidence.score) || 0));
-  const barColor =
-    score >= 70 ? 'bg-amber-400' : score >= 50 ? 'bg-amber-400/60' : 'bg-slate-600';
 
   return (
     <div>
@@ -260,8 +259,8 @@ function ConfidenceBar({ confidence }) {
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
         <div
-          className={`h-full rounded-full transition-all duration-500 motion-reduce:transition-none ${barColor}`}
-          style={{ width: `${score}%` }}
+          className="h-full rounded-full transition-all duration-500 motion-reduce:transition-none"
+          style={confidenceBarStyle(score)}
         />
       </div>
       {confidence.rationale ? (

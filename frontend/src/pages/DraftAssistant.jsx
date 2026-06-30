@@ -5,6 +5,7 @@ import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
 import { positionChipStyle } from '../lib/positionChip.js';
+import { confidenceBarStyle } from '../lib/confidenceGradient.js';
 import { useTheme } from '../lib/themeMode.js';
 
 const SCORING_FORMATS = [
@@ -77,14 +78,12 @@ function PositionBadge({ position }) {
 }
 
 function ConfidenceBar({ score }) {
-  const barColor =
-    score >= 70 ? 'bg-[var(--color-team-accent)]' : score >= 50 ? 'bg-[var(--color-team-accent)]/60' : 'bg-[var(--color-surface-3)]';
   return (
     <div className="flex items-center gap-3">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-surface-1)' }}>
         <div
-          className={`h-full rounded-full transition-all duration-500 motion-reduce:transition-none ${barColor}`}
-          style={{ width: `${score}%` }}
+          className="h-full rounded-full transition-all duration-500 motion-reduce:transition-none"
+          style={confidenceBarStyle(score)}
         />
       </div>
       <span className="w-10 text-right text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>

@@ -209,15 +209,21 @@ Applied via `platformChipStyle(platform)` (tinted badge/icon: border + 14% tint 
 
 Button shape/size were already unified pre-Phase-1.7 via shared `CTAButton`/`AccentButton` components — this phase changed color only, not shape.
 
-### Confidence Gradient (Phase 1.8)
+### Confidence Gradient (Phase 1.8) — Resolved 2026-06-30
 
-Rich dark red at 0% → rich dark green at 100%. Linear interpolation in HSL, not RGB. Endpoints:
+Rich dark red at 0% → rich dark green at 100%. CSS tokens live in `frontend/src/index.css` (`:root`, `[data-theme="dark"]`, `[data-theme="light"]` — all three share identical values, same pattern as the Phase 1.7 Yahoo/ESPN tokens); JS helper is `frontend/src/lib/confidenceGradient.js`.
 
-- 0%: `--color-confidence-floor` — rich dark crimson (deeper than `--color-risk-high`)
-- 50%: amber midpoint via `ui-ux-pro-max` gradient interpolation
-- 100%: rich dark green (deeper than `--color-risk-low`)
+| Stop | Token / value | Source |
+|---|---|---|
+| 0% | `--color-confidence-floor` `#701020` | Deep crimson, deliberately brightened from an initial `#5B1010` draft — the first pick measured 1.24:1 luminance contrast against the dark `--color-surface-1` track (`#1C1C1E`), effectively invisible at low scores. `#701020` improves that to 1.45:1. |
+| 50% | (no fixed token) | Not a separate stop — emerges automatically from HSL interpolation between the floor and ceiling. |
+| 100% | `--color-confidence-ceiling` `#206F3A` | Deep green, deeper than `--color-risk-low` in both themes. 2.75:1 against the dark track. |
 
-The bar must read at all three example confidence levels seen in approved Draft Assistant screenshots (84%, 77%, 66% — all currently gold; fix to gradient). Both modes — light mode endpoints are darker variants of the same hues, not lighter washes.
+**Implementation:** `color-mix(in hsl, var(--color-confidence-ceiling) <score>%, var(--color-confidence-floor))`, wrapped in `confidenceBarStyle(score)`. CSS `color-mix()`'s default hue interpolation takes the shorter arc — crimson (~350°) to green (~140°) passes through ~65° (amber/gold), so the 50% midpoint reliably renders amber (`#697018`-ish, verified via browser `color-mix` evaluation) without a manually-tuned token, satisfying the "amber midpoint via gradient interpolation" requirement.
+
+**Known contrast tradeoff:** the floor color's 1.45:1 ratio against the darkest track (`--color-surface-1` in dark mode) is below the WCAG 1.4.11 non-text 3:1 guideline — pushing it brighter to clear 3:1 would require abandoning "deeper than risk-high," which the spec states explicitly. Mitigated by brand-system's "color is never the only differentiator" principle: both confidence bars always print the numeric score and label as text alongside the bar, so the bar itself is a supplementary, not sole, signal. The 50% amber midpoint and 100% green ceiling both clear or approach 3:1 (3.19:1 and 2.75:1 respectively); only the low-score crimson end is below threshold, and a low score is inherently a thin/near-empty bar regardless of color. Both modes use identical token values — already dark/saturated enough that light-mode contrast against white tracks is comfortably AA+ (5.3–11.8:1 measured).
+
+Applied to the live Omen confidence bar (`OmenOfTheWeek.jsx` `ConfidenceBar`, replacing a 3-step `bg-amber-400`/`/60`/`bg-slate-600` hardcoded fill) and the Draft Assistant card confidence bar (`DraftAssistant.jsx` `ConfidenceBar`, replacing a 3-step `--color-team-accent` fill). `Omen.jsx`'s `ConfidenceMeter`/`bg-amber-400` bar was left untouched — confirmed dead code, not imported by any route.
 
 ### Metallic Tier (Phase 1.9)
 

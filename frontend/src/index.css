@@ -28,6 +28,10 @@
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
   --color-risk-high:       #7E1717;
+  /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
+     so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
+  --color-confidence-floor:   #701020;
+  --color-confidence-ceiling: #206F3A;
   --color-omen:            #2F7D5B;
   --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
@@ -239,6 +243,10 @@
   --color-risk-low:        #34C759;
   --color-risk-medium:     #FF9F0A;
   --color-risk-high:       #7E1717;
+  /* Phase 1.8 confidence gradient endpoints — deeper than risk-low/risk-high
+     so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
+  --color-confidence-floor:   #701020;
+  --color-confidence-ceiling: #206F3A;
   --color-omen:            #2F7D5B;
   --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
@@ -288,6 +296,10 @@
   --color-risk-low:        #16A34A;
   --color-risk-medium:     #D97706;
   --color-risk-high:       #7E1717;
+  /* Phase 1.8 confidence gradient endpoints — same deep hues as dark theme
+     (darker variants, not lighter washes per page-system.md). */
+  --color-confidence-floor:   #701020;
+  --color-confidence-ceiling: #206F3A;
   --color-omen:            #1A5C3E;
   --color-umber:           #5A3A25;
   --color-data-live:       #16A34A;
