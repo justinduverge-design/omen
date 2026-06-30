@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
+import { platformButtonStyle } from '../../lib/platformChip.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -129,14 +130,18 @@ function EspnCookieInstructions() {
 
 // ── Shared button style helpers ───────────────────────────────────────────────
 
-function AccentButton({ children, disabled, onClick, type = 'button', as: Tag = 'button', href }) {
+function AccentButton({ children, disabled, onClick, type = 'button', as: Tag = 'button', href, platform = null }) {
   const base =
-    'inline-flex min-h-[36px] items-center rounded-lg px-4 py-2 text-sm font-semibold text-black transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex min-h-[36px] items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50' +
+    (platform ? ' hover:brightness-110' : '');
+  const restingStyle = platform
+    ? platformButtonStyle(platform)
+    : { background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' };
   const props = {
     className: base,
-    style: { background: 'var(--color-accent)' },
-    onMouseEnter: (e) => { e.currentTarget.style.background = 'var(--color-accent-hover)'; },
-    onMouseLeave: (e) => { e.currentTarget.style.background = 'var(--color-accent)'; },
+    style: restingStyle,
+    onMouseEnter: (e) => { if (!platform) e.currentTarget.style.background = 'var(--color-accent-hover)'; },
+    onMouseLeave: (e) => { if (!platform) e.currentTarget.style.background = restingStyle.background; },
   };
 
   if (Tag === 'a') return <a href={href} {...props}>{children}</a>;
@@ -360,7 +365,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </GhostButton>
               </div>
             ) : (
-              <AccentButton onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
+              <AccentButton platform="yahoo" onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
                 Connect Yahoo
               </AccentButton>
             )}
@@ -410,7 +415,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 )}
               </div>
             ) : (
-              <AccentButton disabled={disabled} onClick={() => toggleForm('sleeper')}>
+              <AccentButton platform="sleeper" disabled={disabled} onClick={() => toggleForm('sleeper')}>
                 {activeForm === 'sleeper' ? 'Cancel' : 'Connect Sleeper'}
               </AccentButton>
             )}
@@ -428,6 +433,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                     onChange={setSleeperUsername}
                   />
                   <AccentButton
+                    platform="sleeper"
                     type="submit"
                     disabled={loadingStatus || sleeperStep === 'resolving' || !sleeperUsername.trim()}
                   >
@@ -504,6 +510,7 @@ export default function PlatformConnections({ recoveryState = null }) {
 
                   <div className="flex flex-wrap gap-3">
                     <AccentButton
+                      platform="sleeper"
                       disabled={!sleeperSelectedLeagueId || sleeperStep === 'connecting'}
                       onClick={connectSleeperLeague}
                     >
@@ -578,7 +585,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                   )}
                 </div>
               ) : (
-                <AccentButton disabled={disabled} onClick={() => toggleForm('espn')}>
+                <AccentButton platform="espn" disabled={disabled} onClick={() => toggleForm('espn')}>
                   {activeForm === 'espn' ? 'Cancel' : 'Connect ESPN'}
                 </AccentButton>
               )}
@@ -623,7 +630,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                     value={espnForm.league_id}
                     onChange={(league_id) => setEspnForm((c) => ({ ...c, league_id }))}
                   />
-                  <AccentButton type="submit" disabled={disabled}>
+                  <AccentButton platform="espn" type="submit" disabled={disabled}>
                     {action === 'espn'
                       ? 'Connecting…'
                       : status.espn.connected

@@ -2,27 +2,25 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
+import { platformButtonStyle, platformChipStyle } from '../lib/platformChip.js';
 import { supabase } from '../lib/supabase.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
-const PLATFORM_ICONS = {
-  Sleeper:        { letter: 'S', bg: 'rgba(99,102,241,0.15)',  color: '#818cf8' },
-  Yahoo:          { letter: 'Y', bg: 'rgba(147,51,234,0.15)', color: '#c084fc' },
-  ESPN:           { letter: 'E', bg: 'rgba(239,68,68,0.15)',  color: '#f87171' },
-  'Manual Entry': { letter: 'M', bg: 'rgba(100,116,139,0.15)', color: 'var(--color-text-secondary)' },
-};
+const PLATFORM_ICON_LETTER = { Sleeper: 'S', Yahoo: 'Y', ESPN: 'E', 'Manual Entry': 'M' };
+const PLATFORM_ID = { Sleeper: 'sleeper', Yahoo: 'yahoo', ESPN: 'espn' };
 
 function PlatformIcon({ title }) {
-  const s = PLATFORM_ICONS[title] ?? { letter: title[0], bg: 'var(--color-surface-2)', color: 'var(--color-accent)' };
+  const letter = PLATFORM_ICON_LETTER[title] ?? title[0];
+  const chipStyle = platformChipStyle(PLATFORM_ID[title]);
   return (
     <span
       aria-hidden="true"
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-      style={{ background: s.bg, color: s.color }}
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-bold"
+      style={{ background: chipStyle.background, borderColor: chipStyle.borderColor, color: chipStyle.color }}
     >
-      {s.letter}
+      {letter}
     </span>
   );
 }
@@ -58,11 +56,17 @@ function ConnectedBadge() {
   );
 }
 
-function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button' }) {
+function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button', platform = null }) {
+  const style = platform
+    ? platformButtonStyle(platform)
+    : { background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' };
+  const className =
+    'inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50' +
+    (platform ? ' hover:brightness-110' : '');
   return (
     <button
-      className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-      style={{ background: 'var(--color-accent)', color: '#000' }}
+      className={className}
+      style={style}
       disabled={disabled || loading}
       aria-busy={loading}
       type={type}
@@ -207,7 +211,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
             value={username}
             onChange={setUsername}
           />
-          <CTAButton type="submit" loading={false} disabled={disabled || !username.trim()}>
+          <CTAButton type="submit" platform="sleeper" loading={false} disabled={disabled || !username.trim()}>
             Find My Leagues
           </CTAButton>
           <ErrorMsg message={error} />
@@ -268,6 +272,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
 
           <div className="flex gap-2">
             <CTAButton
+              platform="sleeper"
               disabled={!selectedLeagueId}
               loading={step === 'connecting'}
               onClick={handleConnect}
@@ -322,6 +327,7 @@ function YahooCard({ connected, disabled, onRefresh }) {
       description="Connect via Yahoo OAuth. You'll be redirected to Yahoo to authorize access."
     >
       <CTAButton
+        platform="yahoo"
         disabled={disabled}
         loading={loading}
         onClick={async () => {
@@ -513,7 +519,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
             onChange={(v) => setForm(f => ({ ...f, league_id: v }))}
           />
           <div className="flex gap-2">
-            <CTAButton loading={loading} type="submit" disabled={disabled}>
+            <CTAButton platform="espn" loading={loading} type="submit" disabled={disabled}>
               {connected ? 'Reconnect ESPN' : 'Connect ESPN'}
             </CTAButton>
             {showForm && (

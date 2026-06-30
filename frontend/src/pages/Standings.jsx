@@ -4,6 +4,7 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
+import { platformChipStyle } from '../lib/platformChip.js';
 import { useTheme } from '../lib/themeMode.js';
 
 // Dedicated standings page — always expanded, full disconnected state.
@@ -16,7 +17,7 @@ function PlatformBadge({ platform }) {
   return (
     <span
       className="rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
-      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-tertiary)' }}
+      style={platformChipStyle(platform)}
     >
       {label}
     </span>

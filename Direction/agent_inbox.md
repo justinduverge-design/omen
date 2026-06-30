@@ -1,18 +1,18 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-29 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 1.5d local closeout.** Phase 1.5d is complete locally as single-win pulse behavior. The win-streak ladder is documented but remains blocked on a backend-computed streak contract.
+**Auto-populated 2026-06-30 (Claude session); refreshed after Phase 1.7 local closeout.** Phase 1.7 (platform brand color emphasis) is complete locally — see `Direction/sprints_completed.md`. Phase 1.5d remains complete locally as single-win pulse behavior; the win-streak ladder is still blocked on a backend-computed streak contract.
 
 ## Active Task
 
-None pinned after Phase 1.5d local closeout.
+None pinned after Phase 1.7 local closeout.
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.7 — Platform brand color emphasis + button-style consistency.** Sleeper blue / Yahoo purple / ESPN red; apply consistently across `/account/connect`, `/account` connect-row, `/standings` platform badge, and league switcher. Done docs: page + design.
-2. **Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% -> rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar. Done docs: design + recommendation.
-3. **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: 1=antique gold, 2=brushed silver, 3=antique bronze. Done docs: design + recommendation if Draft Assistant cards change.
-4. **Phase 1.12 — Gray contrast pass + Standings refinements.** WCAG AA gray body string pass across `/account/appearance`, `/standings`, `/hall-of-records`, and `/onboarding`, plus stronger Standings "you" row treatment. Done docs: page + design.
-5. **Phase 1.13 — iOS Safari mobile QA sweep.** Routed-page iOS Safari sweep plus radiogroup semantics for mutually exclusive chips. Done docs: page + design.
+1. **Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% -> rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar. Done docs: design + recommendation.
+2. **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: 1=antique gold, 2=brushed silver, 3=antique bronze. Done docs: design + recommendation if Draft Assistant cards change.
+3. **Phase 1.12 — Gray contrast pass + Standings refinements.** WCAG AA gray body string pass across `/account/appearance`, `/standings`, `/hall-of-records`, and `/onboarding`, plus stronger Standings "you" row treatment. Done docs: page + design.
+4. **Phase 1.13 — iOS Safari mobile QA sweep.** Routed-page iOS Safari sweep plus radiogroup semantics for mutually exclusive chips. Done docs: page + design.
+5. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
 
 ## Blockers Surfaced
 
@@ -23,6 +23,8 @@ None pinned after Phase 1.5d local closeout.
 - **Win-streak reward ladder** is documented but blocked on the new backend win-streak summary contract.
 - **Frontend Phase 2.10 (Trade share card)** is now unblocked by deployed Backend Phase 2.10 hash routes.
 - **Phase 4.16 provider legal packet** is complete as review-only open-agreements source material; counsel/Justin review still gates publication.
+- **Phase 1.7 (platform brand color emphasis)** is complete locally — not pushed/merged/deployed. Sleeper's brand hex has no confirmed public source; flagged for Justin if he has Sleeper's actual brand kit.
+- **`test/deployHardening.test.js` has 1 pre-existing CRLF line-ending failure** (unrelated to recent feature work; confirmed present since at least the 2026-06-29 Phase 2.17-follow-up entry in `decision_log.md`). Spun off as its own background-task suggestion rather than fixed inline.
 
 ## Standing Route
 
