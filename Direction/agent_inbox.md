@@ -1,26 +1,32 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-28 (Codex session) from `Direction/current_sprint.md`; refreshed after Phase 3.13 local closeout.** Phase 3.12 shipped via PR #70 / merge `a13160b` / deploy run `28306784898`. Phase 3.13 is built on branch `codex/phase3-13-token-constrained-prompts` and is in the push/merge/deploy lane per Justin's approval.
+**Auto-populated 2026-07-01 (Codex session) from `Direction/current_sprint.md`; no `📌` pin was present.** Phase 1.7 is now complete locally, so the queue rolls forward to the next unblocked frontend polish item.
 
 ## Active Task
 
-None pinned after Phase 3.13 local closeout.
+**Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% -> rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar. Cost: small. Done docs: design + recommendation.
 
 ## Auto-Populated Top 5
 
-1. **Phase 4.16 — Termly base ToS + Privacy Policy.** Draft AI-authored custom paragraphs for ESPN cookie handling, Yahoo attribution, and Sleeper attribution for Justin review. Done docs: security + content-marketing if public pages/posts are produced.
-2. **Phase 1.5d — Post-win pulse animation.** Now unblocked by Backend Phase 2.17; build the visual pulse from `lastResult` / `lastGameId`. Done docs: feature + page + design.
-3. **Phase 1.7 — Platform brand color emphasis + button-style consistency.** Sleeper blue / Yahoo purple / ESPN red; apply consistently across `/account/connect`, `/account` connect-row, `/standings` platform badge, and league switcher. Done docs: page + design.
-4. **Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% -> rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar. Done docs: design + recommendation.
-5. **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: 1=antique gold, 2=brushed silver, 3=antique bronze. Done docs: design + recommendation if Draft Assistant cards change.
+1. **Phase 1.8 — Confidence gradient endpoints.** Rich dark crimson at 0% -> rich dark green at 100%, HSL interpolation, amber midpoint. Apply to Omen confidence bar + Draft Assistant card confidence bar. Done docs: design + recommendation.
+2. **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: antique gold, brushed silver, antique bronze. Done docs: design + recommendation.
+3. **Phase 1.12 — Gray contrast pass + Standings refinements.** Body-gray AA sweep plus current-user standings row treatment. Done docs: page + design.
+4. **Phase 1.13 — iOS Safari mobile QA sweep.** Sweep every routed page on iOS Safari, fix overflow/touch/focus/safe-area issues, and convert single-select chip groups to radiogroup semantics. Done docs: page + design.
+5. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx` with the `"DELETE MY OMEN DATA"` confirmation phrase. Done docs: feature + page + design + security.
 
 ## Blockers Surfaced
 
 - **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
-- **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
+- **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** now has a logged decision: `cloud budget cap = $0/month` and Omen remains local-only. Do not pull/build the cloud toggle unless Justin later approves and logs a nonzero cap.
+- **Ops / Justin items** remain approval/execution gated and were not auto-selected: OP1 operational rename boundaries, production secrets/Supabase review, and cron enablement decision.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.
-- **Phase 1.5d (post-win pulse animation)** is now unblocked by Backend Phase 2.17's contract, but frontend still owns visual implementation.
+- **Phase 1.5d (post-win pulse animation)** is complete locally as single-win behavior; authenticated visual screenshot/mobile-smoke evidence remains a follow-up gap.
+- **Backend win-streak summary contract** is complete locally; `currentWinStreak` is now available for frontend Phase 2.19 when it reaches the top of queue.
+- **Backend ESPN live draft tracking** is complete locally; frontend can consume the new authenticated `/api/espn/draft*` routes when an ESPN draft surface is ready.
+- **Backend Yahoo live draft tracking** is complete locally; frontend can consume the new authenticated `/api/yahoo/draft*` routes when a Yahoo draft surface is ready.
 - **Frontend Phase 2.10 (Trade share card)** is now unblocked by deployed Backend Phase 2.10 hash routes.
+- **Phase 4.16 provider legal packet** is complete as review-only open-agreements source material; counsel/Justin review still gates publication.
+- **Phase 1.7 platform-brand pass** is complete locally; final screenshot/mobile proof remains blocked on a sanctioned authenticated browser session for the protected `/account` and `/standings` routes.
 
 ## Standing Route
 
@@ -36,7 +42,7 @@ SLOPS/
 - Product handoffs live in `Blueprints/handoffs/`.
 - Product context lives in `Direction/`.
 - Division context lives one layer up. OS context is in the sibling `slops-os/` checkout in this workspace.
-- Worktree was clean before this inbox refresh.
+- Worktree was clean at pull time; keep unrelated future edits out of this task scope.
 
 ## Do Not Touch Unless Explicitly Asked
 
