@@ -11,6 +11,7 @@ const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const YahooClient = require("../services/yahoo");
 const { normalizeYahooRoster } = require("../services/roster");
+const { buildYahooDraftId } = require("../services/yahooDraft");
 
 const ROSTER_TTL_S = 300;
 
@@ -72,6 +73,183 @@ function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
   };
 }
 
+function normalizeHistoricalSummary({ result, gameId, kickoff = null, currentWinStreak = null } = {}) {
+  return {
+    ...normalizeLastResult({ result, gameId, kickoff }),
+    currentWinStreak: Number.isInteger(currentWinStreak) && currentWinStreak >= 0
+      ? currentWinStreak
+      : null,
+  };
+}
+
+function toArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function intOr(value, fallback = null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.floor(parsed) : fallback;
+}
+
+function rosterPositions(settings = {}) {
+  return Array.isArray(settings?.roster_positions) ? settings.roster_positions : [];
+}
+
+function yahooDraftType(settings = {}, draftResults = {}) {
+  const rawValue = settings?.draft_type
+    || (settings?.is_auction_draft === "1" ? "auction" : null)
+    || draftResults?.draft_type
+    || "";
+  const raw = String(rawValue).toLowerCase();
+  if (raw.includes("auction")) return "auction";
+  return "snake";
+}
+
+function yahooDraftStatus(draftResults = {}, totalPicks = 0, totalSlots = 0) {
+  const raw = String(draftResults?.draft_status || "").toLowerCase();
+  if (raw.includes("post")) return "complete";
+  if (raw.includes("pre")) return totalPicks > 0 ? "drafting" : "pre_draft";
+  if (totalSlots > 0 && totalPicks >= totalSlots) return "complete";
+  if (totalPicks > 0) return "drafting";
+  return "pre_draft";
+}
+
+function yahooPickTimer(settings = {}) {
+  return intOr(settings?.draft_pick_time) ?? intOr(settings?.pick_time) ?? intOr(settings?.time_per_pick) ?? 0;
+}
+
+function totalRounds(settings = {}, draftResults = {}) {
+  const explicit = intOr(settings?.num_rounds) ?? intOr(settings?.rounds);
+  if (explicit) return explicit;
+
+  const positions = rosterPositions(settings);
+  if (positions.length) {
+    return positions.reduce((sum, position) => sum + (intOr(position?.count, 0) || 0), 0);
+  }
+
+  const roundsFromPicks = Array.isArray(draftResults?.draft_results)
+    ? draftResults.draft_results.reduce((max, pick) => Math.max(max, intOr(pick?.round, 0) || 0), 0)
+    : 0;
+  return roundsFromPicks || 0;
+}
+
+function draftStartTime(settings = {}) {
+  const raw = settings?.draft_time;
+  if (!raw) return null;
+  const timestamp = Date.parse(raw);
+  return Number.isFinite(timestamp) ? timestamp : raw;
+}
+
+function playerMetadata(player = {}) {
+  const eligible = toArray(player?.eligible_positions).map((entry) => entry?.position || entry).filter(Boolean);
+  return {
+    first_name: player?.name?.first || null,
+    last_name: player?.name?.last || null,
+    team: player?.editorial_team_abbr || null,
+    position: player?.display_position || eligible[0] || null,
+    status: player?.status || null,
+    injury_status: player?.status || null,
+    years_exp: null,
+  };
+}
+
+function teamKeyFromPick(pick = {}) {
+  return pick?.team_key ? String(pick.team_key) : null;
+}
+
+function playerIdentityKey(pick = {}) {
+  if (pick?.player_key) return String(pick.player_key);
+  if (pick?.player_id != null) return `player_id:${pick.player_id}`;
+  return null;
+}
+
+function slotToRosterIdFromPicks(picks, teams, type) {
+  if (!teams || String(type || "").toLowerCase() === "auction") return null;
+  const firstRound = picks
+    .filter((pick) => pick.round === 1 && pick.draft_slot > 0 && pick.roster_id)
+    .sort((a, b) => a.pick_no - b.pick_no)
+    .slice(0, teams);
+  const slotMap = {};
+  for (const pick of firstRound) {
+    if (!slotMap[String(pick.draft_slot)]) slotMap[String(pick.draft_slot)] = String(pick.roster_id);
+  }
+  return Object.keys(slotMap).length ? slotMap : null;
+}
+
+async function fetchYahooDraft({ leagueKey, client, teamKey = null } = {}) {
+  if (!client || !leagueKey) return null;
+
+  const [draftResults, settings] = await Promise.all([
+    client.getLeagueDraftResults(leagueKey),
+    client.getLeagueSettings(leagueKey),
+  ]);
+
+  const rawPicks = Array.isArray(draftResults?.draft_results) ? draftResults.draft_results : [];
+  const teams = intOr(settings?.num_teams) || intOr(draftResults?.num_teams) || 0;
+  const rounds = totalRounds(settings, draftResults);
+  const type = yahooDraftType(settings, draftResults);
+  const currentTeamKey = teamKey || await client.getMyTeamKey(leagueKey);
+  const playerKeys = [...new Set(rawPicks.map((pick) => playerIdentityKey(pick)).filter((key) => key && !key.startsWith("player_id:")))];
+  const playerDetails = await client.getPlayerDetails(playerKeys);
+  const playersByKey = new Map(
+    (Array.isArray(playerDetails) ? playerDetails : [])
+      .map((player) => [String(player.player_key || ""), player])
+      .filter(([key]) => key)
+  );
+
+  const picks = rawPicks
+    .map((pick) => {
+      const pickNo = intOr(pick?.pick, 0) || 0;
+      const round = intOr(pick?.round, 0) || 0;
+      const draftSlot = teams ? ((pickNo - 1) % teams) + 1 : intOr(pick?.draft_slot, 0) || 0;
+      const rosterId = teamKeyFromPick(pick);
+      const playerKey = pick?.player_key ? String(pick.player_key) : null;
+      const player = playerKey ? playersByKey.get(playerKey) : null;
+
+      return {
+        pick_no: pickNo,
+        round,
+        draft_slot: String(type).toLowerCase() === "auction"
+          ? draftSlot
+          : (teams && round % 2 === 0 ? teams - draftSlot + 1 : draftSlot),
+        roster_id: rosterId,
+        player_id: player?.player_id || (pick?.player_id == null ? null : String(pick.player_id)),
+        is_user_pick: Boolean(currentTeamKey) && rosterId === String(currentTeamKey),
+        is_keeper: false,
+        metadata: playerMetadata(player || {}),
+      };
+    })
+    .filter((pick) => pick.pick_no > 0)
+    .sort((a, b) => a.pick_no - b.pick_no);
+
+  const slotToRosterId = slotToRosterIdFromPicks(picks, teams, type);
+  const userDraftSlot = slotToRosterId
+    ? Object.entries(slotToRosterId).find(([, rosterId]) => currentTeamKey && String(rosterId) === String(currentTeamKey))?.[0] ?? null
+    : null;
+  const totalSlots = teams * rounds;
+
+  return {
+    league_key: String(leagueKey),
+    draft_id: buildYahooDraftId(leagueKey),
+    status: yahooDraftStatus(draftResults, picks.length, totalSlots),
+    type,
+    sport: "nfl",
+    season: String(settings?.season || draftResults?.season || ""),
+    season_type: "regular",
+    settings: {
+      teams,
+      rounds,
+      pick_timer: yahooPickTimer(settings),
+    },
+    start_time: draftStartTime(settings),
+    created: null,
+    user_draft_slot: userDraftSlot == null ? null : Number(userDraftSlot),
+    slot_to_roster_id: slotToRosterId,
+    picks,
+  };
+}
+
 function objectValues(value) {
   if (!value || typeof value !== "object") return [];
   return Object.values(value).filter((entry) => entry && typeof entry === "object");
@@ -111,7 +289,7 @@ function yahooMatchupsFromScoreboard(scoreboard) {
   return objectValues(raw).map((entry) => entry.matchup || entry).filter(Boolean);
 }
 
-function lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard }) {
+function matchupOutcomeFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard }) {
   for (const matchup of yahooMatchupsFromScoreboard(scoreboard)) {
     const teams = teamsFromYahooMatchup(matchup);
     const mine = teams.find((team) => yahooTeamKey(team) === teamKey);
@@ -119,29 +297,39 @@ function lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard })
 
     const opponent = teams.find((team) => yahooTeamKey(team) !== teamKey);
     const gameId = matchup?.matchup_id || matchup?.week || `${leagueKey}:${week}:${teamKey}`;
-    if (!opponent) return normalizeLastResult({ gameId });
+    if (!opponent) return { outcome: null, gameId, kickoff: null };
 
     const winnerTeamKey = matchup?.winner_team_key || null;
     if (winnerTeamKey) {
-      return normalizeLastResult({
-        result: winnerTeamKey === teamKey ? "W" : "L",
+      return {
+        outcome: winnerTeamKey === teamKey ? "W" : "L",
         gameId,
-      });
+        kickoff: null,
+      };
     }
 
     const myPoints = yahooTeamPoints(mine);
     const opponentPoints = yahooTeamPoints(opponent);
-    if (myPoints == null || opponentPoints == null || myPoints === opponentPoints) {
-      return normalizeLastResult({ gameId });
-    }
+    if (myPoints == null || opponentPoints == null) return { outcome: null, gameId, kickoff: null };
+    if (myPoints === opponentPoints) return { outcome: "T", gameId, kickoff: null };
 
-    return normalizeLastResult({
-      result: myPoints > opponentPoints ? "W" : "L",
+    return {
+      outcome: myPoints > opponentPoints ? "W" : "L",
       gameId,
-    });
+      kickoff: null,
+    };
   }
 
-  return normalizeLastResult();
+  return { outcome: null, gameId: null, kickoff: null };
+}
+
+function lastResultFromYahooScoreboard(args) {
+  const outcome = matchupOutcomeFromYahooScoreboard(args);
+  return normalizeLastResult({
+    result: outcome.outcome,
+    gameId: outcome.gameId,
+    kickoff: outcome.kickoff,
+  });
 }
 
 async function fetchYahooLastResult({ client, leagueKey, teamKey, week, season } = {}) {
@@ -151,6 +339,58 @@ async function fetchYahooLastResult({ client, leagueKey, teamKey, week, season }
     ? await client.getLeagueScoreboard(leagueKey, week)
     : await client.get(`/league/${leagueKey}/scoreboard;week=${week}`);
   return lastResultFromYahooScoreboard({ leagueKey, week, teamKey, scoreboard });
+}
+
+async function fetchYahooHistoricalSummary({ client, leagueKey, teamKey, week, season } = {}) {
+  void season;
+  const targetWeek = Number(week);
+  if (!client || !leagueKey || !teamKey || !Number.isInteger(targetWeek) || targetWeek < 1) {
+    return normalizeHistoricalSummary();
+  }
+
+  let latestOutcome = { outcome: null, gameId: null, kickoff: null };
+  let streak = 0;
+
+  for (let currentWeek = targetWeek; currentWeek >= 1; currentWeek -= 1) {
+    const scoreboard = typeof client.getLeagueScoreboard === "function"
+      ? await client.getLeagueScoreboard(leagueKey, currentWeek)
+      : await client.get(`/league/${leagueKey}/scoreboard;week=${currentWeek}`);
+    const outcome = matchupOutcomeFromYahooScoreboard({
+      leagueKey,
+      week: currentWeek,
+      teamKey,
+      scoreboard,
+    });
+    if (currentWeek === targetWeek) latestOutcome = outcome;
+
+    if (outcome.outcome === "W") {
+      streak += 1;
+      continue;
+    }
+
+    if (outcome.outcome === "L" || outcome.outcome === "T") {
+      return normalizeHistoricalSummary({
+        result: latestOutcome.outcome,
+        gameId: latestOutcome.gameId,
+        kickoff: latestOutcome.kickoff,
+        currentWinStreak: streak,
+      });
+    }
+
+    return normalizeHistoricalSummary({
+      result: latestOutcome.outcome,
+      gameId: latestOutcome.gameId,
+      kickoff: latestOutcome.kickoff,
+      currentWinStreak: latestOutcome.outcome === "W" ? null : null,
+    });
+  }
+
+  return normalizeHistoricalSummary({
+    result: latestOutcome.outcome,
+    gameId: latestOutcome.gameId,
+    kickoff: latestOutcome.kickoff,
+    currentWinStreak: streak > 0 ? streak : null,
+  });
 }
 
 async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
@@ -184,6 +424,8 @@ async function buildNormalizedRoster(leagueKey, accessToken, week, opts = {}) {
 
 module.exports = {
   buildNormalizedRoster,
+  fetchYahooDraft,
+  fetchYahooHistoricalSummary,
   fetchYahooLastResult,
   lastResultFromYahooScoreboard,
 };

@@ -295,28 +295,47 @@ function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
   };
 }
 
-function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
+function normalizeHistoricalSummary({ result, gameId, kickoff = null, currentWinStreak = null } = {}) {
+  return {
+    ...normalizeLastResult({ result, gameId, kickoff }),
+    currentWinStreak: Number.isInteger(currentWinStreak) && currentWinStreak >= 0
+      ? currentWinStreak
+      : null,
+  };
+}
+
+function matchupOutcomeFromMatchups({ leagueId, week, rosterId, matchups }) {
   const rows = Array.isArray(matchups) ? matchups : [];
   const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
-  if (!mine?.matchup_id) return normalizeLastResult();
+  if (!mine?.matchup_id) return { outcome: null, gameId: null, kickoff: null };
 
   const opponent = rows.find((row) =>
     String(row?.matchup_id) === String(mine.matchup_id)
     && String(row?.roster_id) !== String(rosterId)
   );
-  if (!opponent) return normalizeLastResult();
+  if (!opponent) return { outcome: null, gameId: null, kickoff: null };
 
+  const gameId = `${leagueId}:${week}:${mine.matchup_id}`;
   const myPoints = Number(mine.points);
   const opponentPoints = Number(opponent.points);
-  if (!Number.isFinite(myPoints) || !Number.isFinite(opponentPoints) || myPoints === opponentPoints) {
-    return normalizeLastResult({
-      gameId: `${leagueId}:${week}:${mine.matchup_id}`,
-    });
+  if (!Number.isFinite(myPoints) || !Number.isFinite(opponentPoints)) {
+    return { outcome: null, gameId, kickoff: null };
   }
+  if (myPoints === opponentPoints) return { outcome: "T", gameId, kickoff: null };
 
+  return {
+    outcome: myPoints > opponentPoints ? "W" : "L",
+    gameId,
+    kickoff: null,
+  };
+}
+
+function lastResultFromMatchups(args) {
+  const outcome = matchupOutcomeFromMatchups(args);
   return normalizeLastResult({
-    result: myPoints > opponentPoints ? "W" : "L",
-    gameId: `${leagueId}:${week}:${mine.matchup_id}`,
+    result: outcome.outcome,
+    gameId: outcome.gameId,
+    kickoff: outcome.kickoff,
   });
 }
 
@@ -332,6 +351,56 @@ async function fetchSleeperLastResult({ leagueId, userId, week, season } = {}) {
     week,
     rosterId: rosterInfo.roster_id,
     matchups,
+  });
+}
+
+async function fetchSleeperHistoricalSummary({ leagueId, userId, week, season } = {}) {
+  void season;
+  const targetWeek = Number(week);
+  if (!leagueId || !userId || !Number.isInteger(targetWeek) || targetWeek < 1) {
+    return normalizeHistoricalSummary();
+  }
+
+  const rosterInfo = await fetchSleeperRoster(leagueId, userId);
+  let latestOutcome = { outcome: null, gameId: null, kickoff: null };
+  let streak = 0;
+
+  for (let currentWeek = targetWeek; currentWeek >= 1; currentWeek -= 1) {
+    const outcome = matchupOutcomeFromMatchups({
+      leagueId,
+      week: currentWeek,
+      rosterId: rosterInfo.roster_id,
+      matchups: await fetchSleeperMatchups(leagueId, currentWeek),
+    });
+    if (currentWeek === targetWeek) latestOutcome = outcome;
+
+    if (outcome.outcome === "W") {
+      streak += 1;
+      continue;
+    }
+
+    if (outcome.outcome === "L" || outcome.outcome === "T") {
+      return normalizeHistoricalSummary({
+        result: latestOutcome.outcome,
+        gameId: latestOutcome.gameId,
+        kickoff: latestOutcome.kickoff,
+        currentWinStreak: streak,
+      });
+    }
+
+    return normalizeHistoricalSummary({
+      result: latestOutcome.outcome,
+      gameId: latestOutcome.gameId,
+      kickoff: latestOutcome.kickoff,
+      currentWinStreak: latestOutcome.outcome === "W" ? null : null,
+    });
+  }
+
+  return normalizeHistoricalSummary({
+    result: latestOutcome.outcome,
+    gameId: latestOutcome.gameId,
+    kickoff: latestOutcome.kickoff,
+    currentWinStreak: streak > 0 ? streak : null,
   });
 }
 
@@ -463,6 +532,7 @@ module.exports = {
   fetchSleeperRoster,
   fetchSleeperStandings,
   fetchSleeperMatchups,
+  fetchSleeperHistoricalSummary,
   fetchSleeperLastResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,

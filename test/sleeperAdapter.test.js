@@ -23,6 +23,8 @@ function loadSleeperAdapterWithFixtures(fixtures) {
           if (url.includes("/user/testuser")) return { data: fixtures.user };
           if (url.includes("/league/league-1/rosters")) return { data: fixtures.rosters };
           if (url.includes("/league/league-1/users")) return { data: fixtures.users };
+          const matchupMatch = url.match(/\/league\/league-1\/matchups\/(\d+)/);
+          if (matchupMatch) return { data: fixtures.matchupsByWeek?.[Number(matchupMatch[1])] || [] };
           if (url.includes("/league/league-1")) return { data: fixtures.league };
           if (url.includes("/players/nfl") && !url.includes("/projections/")) return { data: fixtures.players };
           if (url.includes("/projections/nfl/2026/1")) return { data: fixtures.projections };
@@ -120,6 +122,7 @@ function fixtures() {
       300: { pts_ppr: 12.1 },
       500: { pts_ppr: 6.6 },
     },
+    matchupsByWeek: {},
   };
 }
 
@@ -280,5 +283,38 @@ test("lastResultFromMatchups returns null result for tied Sleeper matchup", () =
     lastResult: null,
     lastGameId: "league-1:7:3",
     lastGameKickoff: null,
+  });
+});
+
+test("fetchSleeperHistoricalSummary counts consecutive wins until a loss", async () => {
+  const data = fixtures();
+  data.matchupsByWeek = {
+    7: [
+      { roster_id: 7, matchup_id: 3, points: 118.4 },
+      { roster_id: 2, matchup_id: 3, points: 101.2 },
+    ],
+    6: [
+      { roster_id: 7, matchup_id: 5, points: 111.1 },
+      { roster_id: 2, matchup_id: 5, points: 108.7 },
+    ],
+    5: [
+      { roster_id: 7, matchup_id: 8, points: 94.2 },
+      { roster_id: 2, matchup_id: 8, points: 120.6 },
+    ],
+  };
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperHistoricalSummary({
+    leagueId: "league-1",
+    userId: "user-1",
+    season: 2026,
+    week: 7,
+  });
+
+  assert.deepEqual(result, {
+    lastResult: "W",
+    lastGameId: "league-1:7:3",
+    lastGameKickoff: null,
+    currentWinStreak: 2,
   });
 });

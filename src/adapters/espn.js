@@ -14,6 +14,7 @@
 
 const https = require("https");
 const { logger } = require("../middleware/logging");
+const { buildEspnDraftId } = require("../services/espnDraft");
 
 const LINEUP_SLOT_MAP = {
   0: "QB",
@@ -390,6 +391,274 @@ function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
   };
 }
 
+function normalizeHistoricalSummary({ result, gameId, kickoff = null, currentWinStreak = null } = {}) {
+  return {
+    ...normalizeLastResult({ result, gameId, kickoff }),
+    currentWinStreak: Number.isInteger(currentWinStreak) && currentWinStreak >= 0
+      ? currentWinStreak
+      : null,
+  };
+}
+
+function safePlayerMap(source) {
+  const map = new Map();
+  if (Array.isArray(source)) {
+    for (const player of source) {
+      const id = firstFinite(player?.id, player?.playerId, player?.player_id);
+      if (id != null) map.set(String(id), player);
+    }
+    return map;
+  }
+
+  if (!source || typeof source !== "object") return map;
+  for (const [key, value] of Object.entries(source)) {
+    if (Array.isArray(value)) {
+      for (const player of value) {
+        const id = firstFinite(player?.id, player?.playerId, player?.player_id) ?? key;
+        if (id != null) map.set(String(id), player);
+      }
+      continue;
+    }
+
+    const player = value?.player || value;
+    const id = firstFinite(player?.id, player?.playerId, player?.player_id) ?? key;
+    if (id != null) map.set(String(id), player);
+  }
+  return map;
+}
+
+function draftTypeFrom(rawType) {
+  const normalized = String(rawType || "").toLowerCase();
+  if (normalized.includes("auction")) return "auction";
+  if (normalized.includes("snake")) return "snake";
+  return "snake";
+}
+
+function normalizeDraftStatus(detail, totalPicks, totalSlots) {
+  const rawStatus = String(
+    detail?.status
+    || detail?.draftStatus
+    || detail?.state
+    || ""
+  ).toLowerCase();
+
+  if (
+    detail?.complete === true
+    || detail?.isComplete === true
+    || detail?.completeDate
+    || detail?.completeTime
+    || rawStatus.includes("complete")
+    || (totalSlots > 0 && totalPicks >= totalSlots)
+  ) {
+    return "complete";
+  }
+  if (detail?.paused === true || detail?.isPaused === true || rawStatus.includes("pause")) {
+    return "paused";
+  }
+  if (
+    detail?.inProgress === true
+    || detail?.isInProgress === true
+    || detail?.currentPickNumber != null
+    || detail?.currentRound != null
+    || rawStatus.includes("progress")
+    || rawStatus.includes("draft")
+    || totalPicks > 0
+  ) {
+    return "drafting";
+  }
+  if (detail?.drafted === false || rawStatus.includes("not_started") || rawStatus.includes("predraft")) {
+    return "pre_draft";
+  }
+  return "pre_draft";
+}
+
+function draftSettingsFromData(data) {
+  const teams = firstFinite(
+    data?.settings?.size,
+    data?.settings?.teamCount,
+    data?.settings?.draftSettings?.teamCount,
+    data?.teams?.length
+  ) ?? 0;
+  const rounds = firstFinite(
+    data?.settings?.draftSettings?.roundCount,
+    data?.settings?.draftSettings?.rounds,
+    data?.settings?.draftSettings?.roundLimit
+  ) ?? 0;
+  const pickTimer = firstFinite(
+    data?.settings?.draftSettings?.timePerSelection,
+    data?.settings?.draftSettings?.pickTimeSeconds,
+    data?.settings?.draftSettings?.timerSeconds
+  ) ?? 0;
+  return {
+    teams,
+    rounds,
+    pick_timer: pickTimer,
+  };
+}
+
+function rawDraftStartTime(data) {
+  return firstFinite(
+    data?.settings?.draftSettings?.date,
+    data?.settings?.draftSettings?.scheduledDate,
+    data?.settings?.draftSettings?.draftDate,
+    data?.draftDetail?.draftDate,
+    data?.draftDetail?.scheduledDate
+  );
+}
+
+function draftSlotFromPick(rawPick, teams, type) {
+  const direct = firstFinite(
+    rawPick?.draftSlot,
+    rawPick?.draftPosition,
+    rawPick?.slot,
+    rawPick?.teamDraftSlot
+  );
+  if (direct != null) return direct;
+
+  const round = firstFinite(rawPick?.roundId, rawPick?.round, rawPick?.roundNumber);
+  const roundPick = firstFinite(
+    rawPick?.roundPickNumber,
+    rawPick?.pickWithinRound,
+    rawPick?.roundPick
+  );
+  if (round == null || roundPick == null) return roundPick;
+  if (String(type || "").toLowerCase() === "auction") return roundPick;
+  if (!teams) return roundPick;
+  return round % 2 === 0 ? teams - roundPick + 1 : roundPick;
+}
+
+function slotToRosterIdFromOrder(rawOrder) {
+  if (!rawOrder) return null;
+  const slotMap = {};
+
+  if (Array.isArray(rawOrder)) {
+    rawOrder.forEach((entry, index) => {
+      const rosterId = entry?.teamId ?? entry?.rosterId ?? entry?.id ?? entry;
+      if (rosterId != null) slotMap[String(index + 1)] = String(rosterId);
+    });
+    return Object.keys(slotMap).length ? slotMap : null;
+  }
+
+  if (typeof rawOrder !== "object") return null;
+  for (const [slot, entry] of Object.entries(rawOrder)) {
+    const rosterId = entry?.teamId ?? entry?.rosterId ?? entry?.id ?? entry;
+    if (rosterId != null) slotMap[String(slot)] = String(rosterId);
+  }
+  return Object.keys(slotMap).length ? slotMap : null;
+}
+
+function slotToRosterIdFromPicks(picks) {
+  const slotMap = {};
+  for (const pick of picks) {
+    if (!pick?.draft_slot || !pick?.roster_id) continue;
+    const key = String(pick.draft_slot);
+    if (!slotMap[key]) slotMap[key] = String(pick.roster_id);
+  }
+  return Object.keys(slotMap).length ? slotMap : null;
+}
+
+function playerMetadataFrom(player = {}) {
+  const position = positionFrom(
+    player?.defaultPosition
+    || player?.defaultPositionId
+    || player?.position
+    || player?.player?.defaultPosition
+  );
+  return {
+    first_name: player?.firstName || player?.first_name || null,
+    last_name: player?.lastName || player?.last_name || null,
+    team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
+    position: position === "UNK" ? null : position,
+    status: statusFrom(player?.status),
+    injury_status: statusFrom(player?.injuryStatus || player?.injury_status),
+    years_exp: firstFinite(player?.yearsExp, player?.years_exp),
+  };
+}
+
+function normalizeDraftPick(rawPick, playerMap, opts = {}) {
+  const playerId = firstFinite(
+    rawPick?.playerId,
+    rawPick?.player?.id,
+    rawPick?.player?.playerId
+  );
+  const rosterId = firstFinite(
+    rawPick?.teamId,
+    rawPick?.rosterId,
+    rawPick?.team?.id,
+    rawPick?.team?.teamId
+  );
+  const round = firstFinite(rawPick?.roundId, rawPick?.round, rawPick?.roundNumber) ?? 0;
+  const pickNo = firstFinite(
+    rawPick?.overallPickNumber,
+    rawPick?.pickNumber,
+    rawPick?.overallPick,
+    rawPick?.id
+  ) ?? 0;
+  const player = playerMap.get(String(playerId)) || rawPick?.player || rawPick?.playerPoolEntry?.player || {};
+  const draftSlot = draftSlotFromPick(rawPick, opts.teams, opts.type) ?? 0;
+
+  return {
+    pick_no: pickNo,
+    round,
+    draft_slot: draftSlot,
+    roster_id: rosterId == null ? null : String(rosterId),
+    player_id: playerId == null ? null : String(playerId),
+    is_user_pick: opts.userTeamId != null && String(rosterId) === String(opts.userTeamId),
+    is_keeper: rawPick?.keeper === true || rawPick?.isKeeper === true,
+    metadata: playerMetadataFrom(player),
+  };
+}
+
+async function fetchEspnDraft(leagueId, espn_s2, swid, opts = {}) {
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mDraftDetail", "mSettings", "mTeam"], null, opts);
+  const settings = draftSettingsFromData(data);
+  const type = draftTypeFrom(data?.settings?.draftSettings?.type || data?.draftDetail?.type);
+  const teams = Array.isArray(data?.teams) ? data.teams : [];
+  const currentTeam = findUserTeam(teams, swid, opts);
+  const currentTeamId = opts.teamId != null
+    ? String(opts.teamId)
+    : teamId(currentTeam);
+  const playerMap = safePlayerMap(
+    data?.players
+    || data?.playerPool
+    || data?.draftDetail?.players
+    || data?.draftDetail?.playerPool
+  );
+  const rawPicks = Array.isArray(data?.draftDetail?.picks) ? data.draftDetail.picks : [];
+  const picks = rawPicks
+    .map((pick) => normalizeDraftPick(pick, playerMap, {
+      teams: settings.teams,
+      type,
+      userTeamId: currentTeamId,
+    }))
+    .filter((pick) => pick.pick_no > 0)
+    .sort((a, b) => a.pick_no - b.pick_no);
+  const slotToRosterId = slotToRosterIdFromOrder(
+    data?.settings?.draftSettings?.pickOrder
+    || data?.draftDetail?.pickOrder
+  ) || slotToRosterIdFromPicks(picks);
+  const userDraftSlot = slotToRosterId
+    ? Object.entries(slotToRosterId).find(([, rosterId]) => currentTeamId != null && String(rosterId) === String(currentTeamId))?.[0] ?? null
+    : null;
+  const totalSlots = settings.teams * settings.rounds;
+
+  return {
+    league_id: String(leagueId),
+    draft_id: buildEspnDraftId(leagueId),
+    status: normalizeDraftStatus(data?.draftDetail, picks.length, totalSlots),
+    type,
+    sport: "nfl",
+    season: String(opts.seasonId || activeSeason()),
+    season_type: "regular",
+    settings,
+    start_time: rawDraftStartTime(data),
+    created: null,
+    user_draft_slot: userDraftSlot == null ? null : Number(userDraftSlot),
+    slot_to_roster_id: slotToRosterId,
+    picks,
+  };
+}
+
 function espnMatchupTeamId(side) {
   const source = side?.team || side;
   const id = source?.teamId ?? source?.id ?? source?.team_id;
@@ -404,7 +673,7 @@ function espnMatchupPoints(side) {
   return Number.isFinite(Number(value)) ? Number(value) : null;
 }
 
-function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, schedule }) {
+function matchupOutcomeFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, schedule }) {
   const games = Array.isArray(schedule) ? schedule : [];
   const targetTeamId = requestedTeamId == null ? null : String(requestedTeamId);
 
@@ -430,22 +699,31 @@ function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, s
     const winner = game?.winner;
     if (winner === "HOME" || winner === "AWAY") {
       const userWon = (winner === "HOME" && mine === home) || (winner === "AWAY" && mine === away);
-      return normalizeLastResult({ result: userWon ? "W" : "L", gameId });
+      return { outcome: userWon ? "W" : "L", gameId, kickoff: null };
     }
 
     const myPoints = espnMatchupPoints(mine);
     const opponentPoints = espnMatchupPoints(opponent);
-    if (myPoints == null || opponentPoints == null || myPoints === opponentPoints) {
-      return normalizeLastResult({ gameId });
-    }
+    if (myPoints == null || opponentPoints == null) return { outcome: null, gameId, kickoff: null };
+    if (myPoints === opponentPoints) return { outcome: "T", gameId, kickoff: null };
 
-    return normalizeLastResult({
-      result: myPoints > opponentPoints ? "W" : "L",
+    return {
+      outcome: myPoints > opponentPoints ? "W" : "L",
       gameId,
-    });
+      kickoff: null,
+    };
   }
 
-  return normalizeLastResult();
+  return { outcome: null, gameId: null, kickoff: null };
+}
+
+function lastResultFromEspnSchedule(args) {
+  const outcome = matchupOutcomeFromEspnSchedule(args);
+  return normalizeLastResult({
+    result: outcome.outcome,
+    gameId: outcome.gameId,
+    kickoff: outcome.kickoff,
+  });
 }
 
 async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
@@ -459,9 +737,64 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   });
 }
 
+async function fetchEspnHistoricalSummary(leagueId, espn_s2, swid, opts = {}) {
+  const targetWeek = Number(opts.week || opts.scoringPeriodId || 1);
+  if (!leagueId || !espn_s2 || !swid || !Number.isInteger(targetWeek) || targetWeek < 1) {
+    return normalizeHistoricalSummary();
+  }
+
+  let latestOutcome = { outcome: null, gameId: null, kickoff: null };
+  let streak = 0;
+
+  for (let currentWeek = targetWeek; currentWeek >= 1; currentWeek -= 1) {
+    const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup"], currentWeek, {
+      ...opts,
+      week: currentWeek,
+      scoringPeriodId: currentWeek,
+    });
+    const outcome = matchupOutcomeFromEspnSchedule({
+      leagueId,
+      week: currentWeek,
+      teamId: opts.teamId,
+      schedule: data?.schedule,
+    });
+    if (currentWeek === targetWeek) latestOutcome = outcome;
+
+    if (outcome.outcome === "W") {
+      streak += 1;
+      continue;
+    }
+
+    if (outcome.outcome === "L" || outcome.outcome === "T") {
+      return normalizeHistoricalSummary({
+        result: latestOutcome.outcome,
+        gameId: latestOutcome.gameId,
+        kickoff: latestOutcome.kickoff,
+        currentWinStreak: streak,
+      });
+    }
+
+    return normalizeHistoricalSummary({
+      result: latestOutcome.outcome,
+      gameId: latestOutcome.gameId,
+      kickoff: latestOutcome.kickoff,
+      currentWinStreak: latestOutcome.outcome === "W" ? null : null,
+    });
+  }
+
+  return normalizeHistoricalSummary({
+    result: latestOutcome.outcome,
+    gameId: latestOutcome.gameId,
+    kickoff: latestOutcome.kickoff,
+    currentWinStreak: streak > 0 ? streak : null,
+  });
+}
+
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
+  fetchEspnDraft,
+  fetchEspnHistoricalSummary,
   fetchEspnLastResult,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,

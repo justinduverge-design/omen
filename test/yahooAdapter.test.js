@@ -83,6 +83,7 @@ function fixtures(overrides = {}) {
     rawRoster: rawRosterFixture(),
     projectedStats: 101.5,
     projectedStatsError: false,
+    scoreboardsByWeek: {},
     ...overrides,
   };
 }
@@ -110,6 +111,7 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
     getCurrentWeek: [],
     getRoster: [],
     getProjectedStats: [],
+    getLeagueScoreboard: [],
     redisGet: [],
     redisSet: [],
   };
@@ -141,6 +143,11 @@ function loadYahooAdapterWithFixtures(fixture, opts = {}) {
           calls.getProjectedStats.push({ teamKey, week });
           if (fixture.projectedStatsError) throw new Error("Projected stats unavailable");
           return fixture.projectedStats;
+        }
+
+        async getLeagueScoreboard(leagueKey, week) {
+          calls.getLeagueScoreboard.push({ leagueKey, week });
+          return fixture.scoreboardsByWeek[Number(week)] || null;
         }
       };
     }
@@ -297,5 +304,133 @@ test("lastResultFromYahooScoreboard falls back to points when winner key is miss
     lastResult: "L",
     lastGameId: "449.l.1:7:449.l.1.t.7",
     lastGameKickoff: null,
+  });
+});
+
+test("fetchYahooHistoricalSummary treats a tied latest matchup as streak zero", async () => {
+  const scoreboard = {
+    matchups: {
+      0: {
+        matchup: {
+          matchup_id: "m-7",
+          teams: [
+            { team_key: "449.l.1.t.7", team_points: { total: "101.2" } },
+            { team_key: "449.l.1.t.2", team_points: { total: "101.2" } },
+          ],
+        },
+      },
+    },
+  };
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures({
+    scoreboardsByWeek: { 7: scoreboard },
+  }));
+
+  const result = await adapter.fetchYahooHistoricalSummary({
+    client: {
+      getLeagueScoreboard: async (_leagueKey, week) => (week === 7 ? scoreboard : null),
+    },
+    leagueKey: "449.l.1",
+    teamKey: "449.l.1.t.7",
+    season: 2026,
+    week: 7,
+  });
+
+  assert.deepEqual(result, {
+    lastResult: null,
+    lastGameId: "m-7",
+    lastGameKickoff: null,
+    currentWinStreak: 0,
+  });
+});
+
+test("fetchYahooDraft normalizes Yahoo draft results into lazy-sync shape", async () => {
+  const { adapter } = loadYahooAdapterWithFixtures(fixtures());
+  const draft = await adapter.fetchYahooDraft({
+    leagueKey: "449.l.12345",
+    client: {
+      getLeagueDraftResults: async () => ({
+        league_key: "449.l.12345",
+        name: "Test League",
+        season: 2026,
+        draft_status: "predraft",
+        num_teams: 3,
+        is_finished: 0,
+        draft_results: [
+          { pick: 1, round: 1, team_key: "449.l.12345.t.7", player_key: "449.p.1001" },
+          { pick: 2, round: 1, team_key: "449.l.12345.t.2", player_key: "449.p.1002" },
+          { pick: 3, round: 1, team_key: "449.l.12345.t.9", player_key: "449.p.1003" },
+          { pick: 4, round: 2, team_key: "449.l.12345.t.9", player_key: "449.p.1004" },
+        ],
+      }),
+      getLeagueSettings: async () => ({
+        draft_time: "2026-08-24T19:00:00Z",
+        draft_type: "snake",
+        roster_positions: [
+          { position: "QB", count: 1 },
+          { position: "RB", count: 2 },
+          { position: "WR", count: 2 },
+        ],
+      }),
+      getPlayerDetails: async () => ([
+        {
+          player_key: "449.p.1001",
+          player_id: "1001",
+          name: { full: "Pat Mahomes", first: "Pat", last: "Mahomes" },
+          editorial_team_abbr: "KC",
+          display_position: "QB",
+          eligible_positions: [{ position: "QB" }],
+          status: null,
+        },
+        {
+          player_key: "449.p.1002",
+          player_id: "1002",
+          name: { full: "Ja'Marr Chase", first: "Ja'Marr", last: "Chase" },
+          editorial_team_abbr: "CIN",
+          display_position: "WR",
+          eligible_positions: [{ position: "WR" }],
+          status: null,
+        },
+        {
+          player_key: "449.p.1003",
+          player_id: "1003",
+          name: { full: "Bijan Robinson", first: "Bijan", last: "Robinson" },
+          editorial_team_abbr: "ATL",
+          display_position: "RB",
+          eligible_positions: [{ position: "RB" }],
+          status: null,
+        },
+        {
+          player_key: "449.p.1004",
+          player_id: "1004",
+          name: { full: "Amon-Ra St. Brown", first: "Amon-Ra", last: "St. Brown" },
+          editorial_team_abbr: "DET",
+          display_position: "WR",
+          eligible_positions: [{ position: "WR" }],
+          status: null,
+        },
+      ]),
+      getMyTeamKey: async () => "449.l.12345.t.7",
+    },
+  });
+
+  assert.equal(draft.draft_id, "yahoo:449.l.12345");
+  assert.equal(draft.type, "snake");
+  assert.equal(draft.user_draft_slot, 1);
+  assert.deepEqual(draft.slot_to_roster_id, {
+    1: "449.l.12345.t.7",
+    2: "449.l.12345.t.2",
+    3: "449.l.12345.t.9",
+  });
+  assert.equal(draft.picks.length, 4);
+  assert.equal(draft.picks[0].is_user_pick, true);
+  assert.equal(draft.picks[3].draft_slot, 3);
+  assert.deepEqual(draft.picks[0].metadata, {
+    first_name: "Pat",
+    last_name: "Mahomes",
+    team: "KC",
+    position: "QB",
+    status: null,
+    injury_status: null,
+    years_exp: null,
   });
 });

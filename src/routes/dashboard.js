@@ -103,6 +103,7 @@ function emptyLastResult() {
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   };
 }
 
@@ -118,15 +119,18 @@ function applyLastResult(summary, platform, result) {
   summary[platform].lastResult = result.lastResult ?? null;
   summary[platform].lastGameId = result.lastGameId ?? null;
   summary[platform].lastGameKickoff = result.lastGameKickoff ?? null;
+  summary[platform].currentWinStreak = Number.isInteger(result.currentWinStreak) && result.currentWinStreak >= 0
+    ? result.currentWinStreak
+    : null;
 }
 
-async function getSleeperLastResult(row, context) {
+async function getSleeperHistoricalSummary(row, context) {
   const sleeperUserId = row.platform_user_id
     || (row.platform_username
       ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id
       : null);
   if (!sleeperUserId) return null;
-  return sleeperAdapter.fetchSleeperLastResult({
+  return sleeperAdapter.fetchSleeperHistoricalSummary({
     leagueId: row.league_id,
     userId: sleeperUserId,
     season: context.season,
@@ -134,11 +138,11 @@ async function getSleeperLastResult(row, context) {
   });
 }
 
-async function getYahooLastResult(row, userId, context) {
+async function getYahooHistoricalSummary(row, userId, context) {
   const { client } = await getAuthenticatedYahooClient(userId);
   const teamKey = await client.getMyTeamKey(row.league_id);
   if (!teamKey) return null;
-  return yahooAdapter.fetchYahooLastResult({
+  return yahooAdapter.fetchYahooHistoricalSummary({
     client,
     leagueKey: row.league_id,
     teamKey,
@@ -147,9 +151,9 @@ async function getYahooLastResult(row, userId, context) {
   });
 }
 
-async function getEspnLastResult(row, userId, context) {
+async function getEspnHistoricalSummary(row, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  return espnAdapter.fetchEspnLastResult(
+  return espnAdapter.fetchEspnHistoricalSummary(
     row.league_id,
     credentials.espn_s2,
     credentials.swid,
@@ -171,17 +175,17 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) 
     {
       platform: "sleeper",
       row: activeRows.find(hasUsableSleeperContext),
-      run: (row) => getSleeperLastResult(row, lastResultContext),
+      run: (row) => getSleeperHistoricalSummary(row, lastResultContext),
     },
     {
       platform: "yahoo",
       row: activeRows.find((row) => hasUsableYahooToken(row, now) && hasUsableLeagueId(row)),
-      run: (row) => getYahooLastResult(row, userId, lastResultContext),
+      run: (row) => getYahooHistoricalSummary(row, userId, lastResultContext),
     },
     {
       platform: "espn",
       row: activeRows.find(hasUsableEspnContext),
-      run: (row) => getEspnLastResult(row, userId, lastResultContext),
+      run: (row) => getEspnHistoricalSummary(row, userId, lastResultContext),
     },
   ];
 

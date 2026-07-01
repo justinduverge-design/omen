@@ -116,17 +116,17 @@ function loadDashboardRouter({
     if (request === "../adapters/sleeper" && parent?.filename === routePath) {
       return sleeperAdapter || {
         fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
-        fetchSleeperLastResult: async () => null,
+        fetchSleeperHistoricalSummary: async () => null,
       };
     }
     if (request === "../adapters/yahoo" && parent?.filename === routePath) {
       return yahooAdapter || {
-        fetchYahooLastResult: async () => null,
+        fetchYahooHistoricalSummary: async () => null,
       };
     }
     if (request === "../adapters/espn" && parent?.filename === routePath) {
       return espnAdapter || {
-        fetchEspnLastResult: async () => null,
+        fetchEspnHistoricalSummary: async () => null,
       };
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -239,6 +239,7 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   });
   assert.deepEqual(res.body.platforms.sleeper, {
     connected: true,
@@ -246,12 +247,14 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   });
   assert.deepEqual(res.body.platforms.espn, {
     connected: false,
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   });
   assert.deepEqual(res.body.tools.omen_of_the_week, {
     available: true,
@@ -294,6 +297,7 @@ test("GET /api/dashboard/summary marks expired Yahoo OAuth token for reconnect U
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   });
   assert.deepEqual(res.body.tools.omen_of_the_week, {
     available: false,
@@ -389,7 +393,7 @@ test("GET /api/dashboard/summary applies Sleeper last-result enrichment", async 
       { id: "test-user", is_subscribed: true },
     ],
     sleeperAdapter: {
-      fetchSleeperLastResult: async (opts) => {
+      fetchSleeperHistoricalSummary: async (opts) => {
         assert.deepEqual(opts, {
           leagueId: "sleeper-league-1",
           userId: "sleeper-user-1",
@@ -400,6 +404,7 @@ test("GET /api/dashboard/summary applies Sleeper last-result enrichment", async 
           lastResult: "W",
           lastGameId: "sleeper-league-1:7:3",
           lastGameKickoff: null,
+          currentWinStreak: 2,
         };
       },
     },
@@ -416,6 +421,7 @@ test("GET /api/dashboard/summary applies Sleeper last-result enrichment", async 
     lastResult: "W",
     lastGameId: "sleeper-league-1:7:3",
     lastGameKickoff: null,
+    currentWinStreak: 2,
   });
 });
 
@@ -451,6 +457,7 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with
     lastResult: null,
     lastGameId: null,
     lastGameKickoff: null,
+    currentWinStreak: null,
   });
 });
 

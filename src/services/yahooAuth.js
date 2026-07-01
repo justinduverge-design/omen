@@ -124,6 +124,7 @@ async function getAuthenticatedYahooClient(userId) {
   return {
     client: new YahooClient(accessToken),
     accessToken,
+    connection: conn,
   };
 }
 

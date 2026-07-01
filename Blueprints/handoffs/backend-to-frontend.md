@@ -6,6 +6,437 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Yahoo Live Draft Tracking — 2026-06-30
+
+Feature name: Yahoo live draft tracking (Lazy Sync, same pattern as Sleeper).
+
+Status: Built locally. Not pushed, merged, or deployed.
+
+Method and path:
+
+```text
+GET /api/yahoo/draft?leagueKey=<key>
+GET /api/yahoo/draft/:draftId
+GET /api/yahoo/draft/:draftId/state?since=<int>
+```
+
+All three routes require auth and an existing Yahoo connection. The public `draftId` is synthetic and must be:
+
+```text
+yahoo:<leagueKey>
+```
+
+Request body or query:
+
+```text
+GET /api/yahoo/draft
+  Query:
+    - leagueKey (required, string)
+
+GET /api/yahoo/draft/:draftId
+  Path:
+    - draftId (required, string; must be yahoo:<leagueKey>)
+
+GET /api/yahoo/draft/:draftId/state
+  Path:
+    - draftId (required, string; must be yahoo:<leagueKey>)
+  Query:
+    - since (optional, integer >= 0, default 0)
+```
+
+Response shape:
+
+```text
+contract_version: "yahoo-draft-list.v1" | "yahoo-draft-meta.v1" | "yahoo-draft-state.v1"
+generated_at: ISO8601 string
+```
+
+Draft list (`yahoo-draft-list.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  league_key: string,
+  drafts: [
+    {
+      draft_id, league_key, status, type, sport, season, season_type,
+      settings: { teams, rounds, pick_timer },
+      start_time, created
+    }
+  ]
+}
+```
+
+Draft meta (`yahoo-draft-meta.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  draft: {
+    draft_id, league_key, status, type, sport, season, season_type,
+    settings: { teams, rounds, pick_timer },
+    start_time, created,
+    user_draft_slot: number | null,
+    slot_to_roster_id: { [slot]: roster_id } | null
+  }
+}
+```
+
+Draft state (`yahoo-draft-state.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  status: "pre_draft" | "drafting" | "paused" | "complete" | "unknown",
+  type, season,
+  settings: { teams, rounds, pick_timer },
+  cursor: { since: int, latest: int },
+  total_picks: int,
+  total_slots: int,
+  current_pick: int | null,
+  on_the_clock: {
+    pick_no, round, draft_slot, roster_id
+  } | null,
+  picks_since: [
+    {
+      pick_no, round, draft_slot, roster_id, player_id,
+      is_user_pick, is_keeper,
+      metadata: { first_name, last_name, team, position, status, injury_status, years_exp }
+    }
+  ],
+  has_new_picks: boolean,
+  poll_after_seconds: number,
+  debounce_ms: number
+}
+```
+
+State handling:
+
+- `leagueKey` / `draftId` outside the authenticated Yahoo connection returns `404 yahoo_draft_not_found`.
+- Missing Yahoo connection returns `401 yahoo_not_connected`.
+- Expired/invalid Yahoo auth returns `401 yahoo_auth_failed`.
+- `since < 0` or non-integer returns `400`.
+- `user_draft_slot` and `slot_to_roster_id` may be `null` when Yahoo does not safely expose order metadata.
+
+Mock vs live data:
+
+- Provider-backed only; no mock response path was added here.
+- Frontend should treat null slot/order metadata as unavailable Yahoo data, not as a guessed zero-value fallback.
+
+Known limitations:
+
+- `draft_id` is synthetic (`yahoo:<leagueKey>`), not a provider-issued stable public draft id.
+- Slot/order mapping is best-effort from observed first-round picks and may remain null.
+- Short debounce caching is local-process only.
+- No real-account Yahoo production smoke was run in this task.
+
+Frontend action needed:
+
+- Discover the draft through `GET /api/yahoo/draft?leagueKey=...` and then reuse the returned synthetic `draft_id`.
+- Poll `/state` with the highest `pick_no` the client already has in `since`.
+- Honor both `poll_after_seconds` and `debounce_ms`; do not hard-code a faster poll.
+- Treat nullable `user_draft_slot` / `slot_to_roster_id` as normal Yahoo uncertainty.
+
+Files changed:
+
+- `src/routes/yahoo.js`
+- `src/services/yahoo.js`
+- `src/services/yahooAuth.js`
+- `src/services/yahooDraft.js`
+- `src/adapters/yahoo.js`
+- `test/yahooDraftRoute.test.js`
+- `test/yahooDraftService.test.js`
+- `test/yahooAdapter.test.js`
+- `Blueprints/api-routes.md`
+
+## ESPN Live Draft Tracking — 2026-06-30
+
+Feature name: ESPN live draft tracking (Lazy Sync, same pattern as Sleeper).
+
+Status: Built locally. Not pushed, merged, or deployed.
+
+Method and path:
+
+```text
+GET /api/espn/draft?leagueId=<id>
+GET /api/espn/draft/:draftId
+GET /api/espn/draft/:draftId/state?since=<int>
+```
+
+All three routes require auth and an existing ESPN connection. The public `draftId` is synthetic and must be:
+
+```text
+espn:<leagueId>
+```
+
+Request body or query:
+
+```text
+GET /api/espn/draft
+  Query:
+    - leagueId (required, string)
+
+GET /api/espn/draft/:draftId
+  Path:
+    - draftId (required, string; must be espn:<leagueId>)
+
+GET /api/espn/draft/:draftId/state
+  Path:
+    - draftId (required, string; must be espn:<leagueId>)
+  Query:
+    - since (optional, integer >= 0, default 0)
+```
+
+Response shape:
+
+```text
+contract_version: "espn-draft-list.v1" | "espn-draft-meta.v1" | "espn-draft-state.v1"
+generated_at: ISO8601 string
+```
+
+Draft list (`espn-draft-list.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  league_id: string,
+  drafts: [
+    {
+      draft_id, league_id, status, type, sport, season, season_type,
+      settings: { teams, rounds, pick_timer },
+      start_time, created
+    }
+  ]
+}
+```
+
+Draft meta (`espn-draft-meta.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  draft: {
+    draft_id, league_id, status, type, sport, season, season_type,
+    settings: { teams, rounds, pick_timer },
+    start_time, created,
+    user_draft_slot: number | null,
+    slot_to_roster_id: { [slot]: roster_id } | null
+  }
+}
+```
+
+Draft state (`espn-draft-state.v1`):
+
+```text
+{
+  contract_version,
+  generated_at,
+  draft_id: string,
+  status: "pre_draft" | "drafting" | "paused" | "complete" | "unknown",
+  type, season,
+  settings: { teams, rounds, pick_timer },
+  cursor: { since: int, latest: int },
+  total_picks: int,
+  total_slots: int,
+  current_pick: int | null,
+  on_the_clock: {
+    pick_no, round, draft_slot, roster_id
+  } | null,
+  picks_since: [
+    {
+      pick_no, round, draft_slot, roster_id, player_id,
+      is_user_pick, is_keeper,
+      metadata: { first_name, last_name, team, position, status, injury_status, years_exp }
+    }
+  ],
+  has_new_picks: boolean,
+  poll_after_seconds: number,
+  debounce_ms: number
+}
+```
+
+Example response (`/api/espn/draft/espn:12345/state?since=0`):
+
+```json
+{
+  "contract_version": "espn-draft-state.v1",
+  "generated_at": "2026-06-30T00:00:00.000Z",
+  "draft_id": "espn:12345",
+  "status": "drafting",
+  "type": "snake",
+  "season": "2026",
+  "settings": { "teams": 3, "rounds": 5, "pick_timer": 45 },
+  "cursor": { "since": 0, "latest": 2 },
+  "total_picks": 2,
+  "total_slots": 15,
+  "current_pick": 3,
+  "on_the_clock": { "pick_no": 3, "round": 1, "draft_slot": 3, "roster_id": "13" },
+  "picks_since": [
+    {
+      "pick_no": 1,
+      "round": 1,
+      "draft_slot": 1,
+      "roster_id": "11",
+      "player_id": "1001",
+      "is_user_pick": true,
+      "is_keeper": false,
+      "metadata": {
+        "first_name": "Pat",
+        "last_name": "Mahomes",
+        "team": "KC",
+        "position": "QB",
+        "status": null,
+        "injury_status": null,
+        "years_exp": null
+      }
+    }
+  ],
+  "has_new_picks": true,
+  "poll_after_seconds": 2,
+  "debounce_ms": 2000
+}
+```
+
+State handling:
+
+- `leagueId` / `draftId` outside the authenticated ESPN connection returns `404 espn_draft_not_found`.
+- Missing ESPN connection returns `401 espn_not_connected`.
+- Missing Vault credentials returns `401 espn_reauth_required`.
+- Expired/invalid ESPN cookies return `401 espn_auth_failed`.
+- `since < 0` or non-integer returns `400`.
+- `user_draft_slot` and `slot_to_roster_id` may be `null` when ESPN does not safely expose order metadata.
+
+Mock vs live data:
+
+- Provider-backed only; no mock response path was added here.
+- Frontend should treat null slot/order metadata as unavailable ESPN data, not as a guessed zero-value fallback.
+
+Known limitations:
+
+- `draft_id` is synthetic (`espn:<leagueId>`), not a provider-issued stable public draft id.
+- Slot/order mapping is best-effort from explicit provider order or observed picks.
+- Short debounce caching is local-process only.
+- No real-account ESPN production smoke was run in this task.
+
+Frontend action needed:
+
+- Discover the draft through `GET /api/espn/draft?leagueId=...` and then reuse the returned synthetic `draft_id`.
+- Poll `/state` with the highest `pick_no` the client already has in `since`.
+- Honor both `poll_after_seconds` and `debounce_ms`; do not hard-code a faster poll.
+- Treat nullable `user_draft_slot` / `slot_to_roster_id` as normal ESPN uncertainty.
+
+Files changed:
+
+- `src/routes/espn.js`
+- `src/adapters/espn.js`
+- `src/services/espnDraft.js`
+- `test/espnAdapter.test.js`
+- `test/espnDraftRoute.test.js`
+- `test/espnDraftService.test.js`
+- `Blueprints/api-routes.md`
+
+## Win-Streak Summary Contract — 2026-06-30
+
+Feature name: Provider-backed `currentWinStreak` field for post-win rewards.
+
+Status: Built locally. Not pushed, merged, or deployed.
+
+Method and path:
+
+```text
+GET /api/dashboard/summary
+```
+
+Auth remains required. No new route, package, SQL, env, migration, deploy, or production config was added.
+
+Response shape change:
+
+Each platform entry in `platforms` now includes the additive field below:
+
+```json
+{
+  "currentWinStreak": 2
+}
+```
+
+Types:
+
+```text
+currentWinStreak: integer >= 0 | null
+```
+
+Example response excerpt:
+
+```json
+{
+  "platforms": {
+    "sleeper": {
+      "connected": true,
+      "username": "sleepy",
+      "lastResult": "W",
+      "lastGameId": "sleeper-league-1:7:3",
+      "currentWinStreak": 2
+    },
+    "yahoo": {
+      "connected": true,
+      "league_id": "449.l.123",
+      "lastResult": null,
+      "lastGameId": null,
+      "currentWinStreak": 0
+    },
+    "espn": {
+      "connected": true,
+      "currentWinStreak": null
+    }
+  }
+}
+```
+
+State handling:
+
+- `0` means the latest safely-determined completed fantasy matchup was not a win. In v1 that includes losses and ties.
+- Positive integers mean the user is on an active streak of that many consecutive wins ending with the latest safely-determined completed fantasy matchup.
+- `null` means the backend could not safely determine the streak length from provider history. Treat it as unavailable, not as zero.
+- Provider lookup failures do not fail dashboard summary; the field stays `null`.
+- Frontend must not infer or extend streak history client-side from standings, points, or cached browser state.
+
+Mock vs live data:
+
+- This field is derived from connected provider matchup history when available.
+- It is not mock data and should not be used when `connected` is false.
+- `null` means "no safe streak available," not "cold streak."
+
+Known limitations:
+
+- Counts are based on completed fantasy matchups only, not favorite-team NFL results.
+- ESPN still depends on the existing private adapter and can remain unavailable when older provider history is incomplete.
+- No raw provider ids, OAuth tokens, ESPN cookies, Vault ids, or provider bodies are returned.
+
+Frontend action needed:
+
+- Phase 2.19 can consume `platforms.<platform>.currentWinStreak` directly for the streak ladder.
+- Treat `0` as "no active streak," `1+` as ladder progression, and `null` as unavailable/no-reward state.
+- Do not synthesize a streak from `lastResult` or local storage once this field is present.
+
+Files changed:
+
+- `src/routes/dashboard.js`
+- `src/adapters/sleeper.js`
+- `src/adapters/yahoo.js`
+- `src/adapters/espn.js`
+- `test/dashboardSummary.test.js`
+- `test/sleeperAdapter.test.js`
+- `test/yahooAdapter.test.js`
+- `test/espnAdapter.test.js`
+
 ## Phase 1.5d Post-Win Pulse — 2026-06-29
 
 Feature name: Post-win pulse animation.
@@ -29,9 +460,9 @@ Frontend behavior:
 - Brighten the embedded current-user standings row while the latest result is a win.
 - Do not display win streak tiers until the backend exposes a real streak field.
 
-Future backend request:
+Resolved backend follow-up:
 
-Add a provider-safe `currentWinStreak`-style field to `GET /api/dashboard/summary` when ready. It should be computed from provider matchup history, return a safe integer or `null`, and avoid exposing raw provider ids, credentials, or ESPN cookie material.
+See **Win-Streak Summary Contract — 2026-06-30** above. The requested `currentWinStreak` field is now implemented locally as an additive dashboard summary field.
 
 Files changed:
 

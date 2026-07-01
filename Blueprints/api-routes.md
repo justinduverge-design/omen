@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-06-27
+Last updated: 2026-06-30
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -31,7 +31,13 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
 | `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
-| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, and additive platform `lastResult` fields. |
+| `GET` | `/api/espn/draft?leagueId=` | `espn-draft-list.v1` | Yes | Connected ESPN league only. Returns a synthetic `draft_id` of `espn:<leagueId>`. |
+| `GET` | `/api/espn/draft/:draftId` | `espn-draft-meta.v1` | Yes | Connected-league metadata; `draftId` must be synthetic `espn:<leagueId>`. |
+| `GET` | `/api/espn/draft/:draftId/state?since=` | `espn-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; nullable slot/order metadata is fail-closed by design. |
+| `GET` | `/api/yahoo/draft?leagueKey=` | `yahoo-draft-list.v1` | Yes | Connected Yahoo league only. Returns a synthetic `draft_id` of `yahoo:<leagueKey>`. |
+| `GET` | `/api/yahoo/draft/:draftId` | `yahoo-draft-meta.v1` | Yes | Connected-league metadata; `draftId` must be synthetic `yahoo:<leagueKey>`. |
+| `GET` | `/api/yahoo/draft/:draftId/state?since=` | `yahoo-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; nullable slot/order metadata is fail-closed by design. |
+| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, and additive platform `lastResult` / `currentWinStreak` fields. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |

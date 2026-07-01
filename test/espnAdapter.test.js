@@ -8,7 +8,7 @@ const assert = require("node:assert/strict");
 const Module = require("node:module");
 const test = require("node:test");
 
-function loadEspnAdapterWithTeams(teams) {
+function loadEspnAdapterWithTeams(teams, opts = {}) {
   const adapterPath = require.resolve("../src/adapters/espn");
   delete require.cache[adapterPath];
 
@@ -18,8 +18,16 @@ function loadEspnAdapterWithTeams(teams) {
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "https" && parent?.filename === adapterPath) {
       return {
-        request: (_options, callback) => {
-          const body = JSON.stringify({ teams });
+        request: (options, callback) => {
+          const scoringPeriodMatch = String(options?.path || "").match(/scoringPeriodId=(\d+)/);
+          const scoringPeriodId = scoringPeriodMatch ? Number(scoringPeriodMatch[1]) : null;
+          const body = JSON.stringify(
+            typeof opts.responseBuilder === "function"
+              ? opts.responseBuilder({ scoringPeriodId, path: String(options?.path || "") })
+              : Array.isArray(opts.scheduleByWeek?.[scoringPeriodId])
+              ? { schedule: opts.scheduleByWeek[scoringPeriodId] }
+              : { teams }
+          );
           const req = new EventEmitter();
           req.end = () => {
             const res = new EventEmitter();
@@ -270,5 +278,102 @@ test("lastResultFromEspnSchedule falls back to points when winner is missing", (
     lastResult: "L",
     lastGameId: "12345:7:9:4",
     lastGameKickoff: null,
+  });
+});
+
+test("fetchEspnHistoricalSummary returns null streak when older provider history is unavailable", async () => {
+  const adapter = loadEspnAdapterWithTeams([], {
+    scheduleByWeek: {
+      7: [{
+        id: 77,
+        matchupPeriodId: 7,
+        winner: "HOME",
+        home: { teamId: 9, totalPoints: 112.3 },
+        away: { teamId: 4, totalPoints: 101.4 },
+      }],
+      6: [],
+    },
+  });
+
+  const result = await adapter.fetchEspnHistoricalSummary(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    {
+      seasonId: 2026,
+      teamId: "9",
+      week: 7,
+    }
+  );
+
+  assert.deepEqual(result, {
+    lastResult: "W",
+    lastGameId: "77",
+    lastGameKickoff: null,
+    currentWinStreak: null,
+  });
+});
+
+test("fetchEspnDraft normalizes ESPN draft detail into lazy-sync shape", async () => {
+  const adapter = loadEspnAdapterWithTeams([], {
+    responseBuilder: () => ({
+      teams: [
+        { id: 11, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" },
+        { id: 12, name: "Second Team" },
+        { id: 13, name: "Third Team" },
+      ],
+      settings: {
+        size: 3,
+        draftSettings: {
+          type: "SNAKE",
+          roundCount: 5,
+          timePerSelection: 45,
+        },
+      },
+      draftDetail: {
+        inProgress: true,
+        picks: [
+          { overallPickNumber: 1, roundId: 1, roundPickNumber: 1, teamId: 11, playerId: 1001 },
+          { overallPickNumber: 2, roundId: 1, roundPickNumber: 2, teamId: 12, playerId: 1002 },
+          { overallPickNumber: 3, roundId: 1, roundPickNumber: 3, teamId: 13, playerId: 1003 },
+          { overallPickNumber: 4, roundId: 2, roundPickNumber: 1, teamId: 13, playerId: 1004 },
+        ],
+      },
+      players: {
+        1001: { id: 1001, firstName: "Pat", lastName: "Mahomes", defaultPosition: "QB", proTeamAbbreviation: "KC" },
+        1002: { id: 1002, firstName: "Ja'Marr", lastName: "Chase", defaultPosition: "WR", proTeamAbbreviation: "CIN" },
+        1003: { id: 1003, firstName: "Bijan", lastName: "Robinson", defaultPosition: "RB", proTeamAbbreviation: "ATL" },
+        1004: { id: 1004, firstName: "Amon-Ra", lastName: "St. Brown", defaultPosition: "WR", proTeamAbbreviation: "DET" },
+      },
+    }),
+  });
+
+  const draft = await adapter.fetchEspnDraft(
+    "12345",
+    "espn-cookie",
+    "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    { seasonId: 2026, teamId: "11" }
+  );
+
+  assert.equal(draft.draft_id, "espn:12345");
+  assert.equal(draft.status, "drafting");
+  assert.equal(draft.type, "snake");
+  assert.equal(draft.user_draft_slot, 1);
+  assert.deepEqual(draft.slot_to_roster_id, {
+    1: "11",
+    2: "12",
+    3: "13",
+  });
+  assert.equal(draft.picks.length, 4);
+  assert.equal(draft.picks[0].is_user_pick, true);
+  assert.equal(draft.picks[3].draft_slot, 3);
+  assert.deepEqual(draft.picks[0].metadata, {
+    first_name: "Pat",
+    last_name: "Mahomes",
+    team: "KC",
+    position: "QB",
+    status: null,
+    injury_status: null,
+    years_exp: null,
   });
 });

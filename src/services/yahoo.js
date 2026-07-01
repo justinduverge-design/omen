@@ -20,6 +20,134 @@ const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("../mi
 
 const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
 
+function toArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function pickField(arr, key) {
+  if (!Array.isArray(arr)) return undefined;
+  for (const entry of arr) {
+    if (entry && typeof entry === "object" && key in entry) return entry[key];
+  }
+  return undefined;
+}
+
+function objectValues(value) {
+  if (!value || typeof value !== "object") return [];
+  return Object.values(value).filter((entry) => entry && typeof entry === "object");
+}
+
+function teamCountFromSettings(settings = {}) {
+  const parsed = parseInt(
+    settings.num_teams
+    ?? settings.max_teams
+    ?? settings.teams
+    ?? 0,
+    10
+  );
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function rosterPositionsFromSettings(settings = {}) {
+  const raw = settings.roster_positions || settings.roster_position || [];
+  const positions = Array.isArray(raw) ? raw : objectValues(raw);
+  return positions
+    .map((entry) => entry?.roster_position || entry)
+    .filter(Boolean)
+    .map((entry) => ({
+      position: entry.position || entry.display_name || null,
+      count: parseInt(entry.count ?? entry.position_count ?? 0, 10) || 0,
+    }))
+    .filter((entry) => entry.count > 0);
+}
+
+function parseLeagueMetadata(response = {}) {
+  const league = response?.fantasy_content?.league;
+  const meta = Array.isArray(league?.[0]) ? league[0] : [];
+  return {
+    league_key: pickField(meta, "league_key") || null,
+    league_id: pickField(meta, "league_id") || null,
+    name: pickField(meta, "name") || null,
+    url: pickField(meta, "url") || null,
+    season: Number(pickField(meta, "season")) || null,
+    draft_status: pickField(meta, "draft_status") || null,
+    num_teams: Number(pickField(meta, "num_teams")) || 0,
+    current_week: Number(pickField(meta, "current_week")) || null,
+    is_finished: Number(pickField(meta, "is_finished")) || 0,
+    start_week: Number(pickField(meta, "start_week")) || null,
+    end_week: Number(pickField(meta, "end_week")) || null,
+  };
+}
+
+function parseDraftResults(response = {}) {
+  const raw = response?.fantasy_content?.league?.[1]?.draft_results
+    || response?.fantasy_content?.league?.draft_results
+    || response?.draft_results
+    || [];
+  const rows = Array.isArray(raw) ? raw : objectValues(raw).map((entry) => entry.draft_result || entry);
+  return rows
+    .map((entry) => ({
+      pick: parseInt(entry?.pick, 10) || 0,
+      round: parseInt(entry?.round, 10) || 0,
+      cost: entry?.cost ?? null,
+      team_key: entry?.team_key || null,
+      player_key: entry?.player_key || null,
+      player_id: entry?.player_id == null ? null : String(entry.player_id),
+    }))
+    .filter((entry) => entry.pick > 0);
+}
+
+function parseLeagueSettings(response = {}) {
+  const settingsNode = response?.fantasy_content?.league?.[1]?.settings;
+  const settingsMeta = Array.isArray(settingsNode?.[0])
+    ? settingsNode[0]
+    : Array.isArray(settingsNode)
+      ? settingsNode
+      : [];
+  const metadata = parseLeagueMetadata(response);
+  const settings = {
+    draft_time: pickField(settingsMeta, "draft_time") || null,
+    draft_type: pickField(settingsMeta, "draft_type") || null,
+    is_auction_draft: pickField(settingsMeta, "is_auction_draft") || null,
+    uses_playoff: pickField(settingsMeta, "uses_playoff") || null,
+    num_teams: metadata.num_teams || teamCountFromSettings(settingsNode),
+    roster_positions: rosterPositionsFromSettings(settingsNode),
+  };
+  return {
+    ...metadata,
+    ...settings,
+  };
+}
+
+function parsePlayerMeta(node) {
+  if (!node) return null;
+  const meta = Array.isArray(node) && Array.isArray(node[0])
+    ? node[0]
+    : Array.isArray(node)
+      ? node
+      : null;
+  if (!meta) return null;
+
+  return {
+    player_key: pickField(meta, "player_key") || null,
+    player_id: pickField(meta, "player_id") == null ? null : String(pickField(meta, "player_id")),
+    name: pickField(meta, "name") || {},
+    editorial_team_abbr: pickField(meta, "editorial_team_abbr") || null,
+    display_position: pickField(meta, "display_position") || null,
+    eligible_positions: toArray(pickField(meta, "eligible_positions")).map((entry) => entry?.position ? { position: entry.position } : entry),
+    status: pickField(meta, "status") || null,
+    image_url: pickField(meta, "image_url") || null,
+  };
+}
+
+function parsePlayerDetails(response = {}) {
+  const rawPlayers = response?.fantasy_content?.players || response?.players || {};
+  return objectValues(rawPlayers)
+    .map((entry) => parsePlayerMeta(entry.player || entry))
+    .filter(Boolean);
+}
+
 class YahooClient {
   constructor(accessToken) {
     this.accessToken = accessToken;
@@ -82,16 +210,18 @@ class YahooClient {
 
   async getLeagueMetadata(leagueKey) {
     const d = await this.get(`/league/${leagueKey}`);
-    const meta = d?.fantasy_content?.league?.[0];
-    if (!Array.isArray(meta)) return {};
-
-    const entry = (key) => meta.find(x => x?.[key])?.[key] || null;
+    const metadata = parseLeagueMetadata(d);
     return {
-      league_id: leagueKey,
-      league_name: entry("name"),
-      season: Number(entry("season")) || null,
-      week: Number(entry("current_week")) || null,
+      league_id: metadata.league_key || leagueKey,
+      league_name: metadata.name,
+      season: metadata.season,
+      week: metadata.current_week,
     };
+  }
+
+  async getLeagueSettings(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}/settings`);
+    return parseLeagueSettings(d);
   }
 
   /** Roster for a team at a given week. Returns raw Yahoo response. */
@@ -187,6 +317,22 @@ class YahooClient {
       ? `/league/${leagueKey}/scoreboard;week=${week}`
       : `/league/${leagueKey}/scoreboard`;
     return this.get(path);
+  }
+
+  async getLeagueDraftResults(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}/draftresults`);
+    const metadata = parseLeagueMetadata(d);
+    return {
+      ...metadata,
+      draft_results: parseDraftResults(d),
+    };
+  }
+
+  async getPlayerDetails(playerKeys) {
+    const keys = Array.isArray(playerKeys) ? playerKeys.filter(Boolean) : [];
+    if (!keys.length) return [];
+    const d = await this.get(`/players;player_keys=${keys.join(",")}`);
+    return parsePlayerDetails(d);
   }
 }
 
