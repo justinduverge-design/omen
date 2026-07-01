@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
-
-const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
+import { getPlatformBadgeStyle, platformLabel } from '../../lib/platformBrand.js';
 
 function PlatformBadge({ platform }) {
-  const label = PLATFORM_LABELS[platform] ?? platform;
+  const label = platformLabel(platform);
   return (
     <span
       className="rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
-      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-tertiary)' }}
+      style={getPlatformBadgeStyle(platform)}
     >
       {label}
     </span>
@@ -122,7 +121,7 @@ export default function LeagueStandings() {
 
     if (isReconnect) {
       const platform = errorCode.replace('_reconnect_required', '');
-      const label = PLATFORM_LABELS[platform] ?? platform;
+      const label = platformLabel(platform);
       return (
         <div className="flex items-center justify-between py-2">
           <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>

@@ -4,19 +4,18 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
+import { getPlatformBadgeStyle, platformLabel } from '../lib/platformBrand.js';
 import { useTheme } from '../lib/themeMode.js';
 
 // Dedicated standings page — always expanded, full disconnected state.
 // LeagueStandings.jsx (the collapsible widget) stays embedded in /football.
 
-const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
-
 function PlatformBadge({ platform }) {
-  const label = PLATFORM_LABELS[platform] ?? platform;
+  const label = platformLabel(platform);
   return (
     <span
       className="rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
-      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-tertiary)' }}
+      style={getPlatformBadgeStyle(platform)}
     >
       {label}
     </span>
@@ -181,7 +180,7 @@ export default function Standings() {
     // Platform auth expired — prompt reconnect
     if (isReconnect) {
       const platform = errorCode.replace('_reconnect_required', '');
-      const label    = PLATFORM_LABELS[platform] ?? platform;
+      const label    = platformLabel(platform);
       return (
         <div
           className="rounded-xl border p-6"

@@ -2,39 +2,42 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
+import {
+  getPlatformBadgeStyle,
+  getPlatformBrand,
+  getPlatformButtonHover,
+  getPlatformButtonStyle,
+  getPlatformCardStyle,
+  getPlatformIconStyle,
+  getPlatformSelectionStyle,
+} from '../lib/platformBrand.js';
 import { supabase } from '../lib/supabase.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
-const PLATFORM_ICONS = {
-  Sleeper:        { letter: 'S', bg: 'rgba(99,102,241,0.15)',  color: '#818cf8' },
-  Yahoo:          { letter: 'Y', bg: 'rgba(147,51,234,0.15)', color: '#c084fc' },
-  ESPN:           { letter: 'E', bg: 'rgba(239,68,68,0.15)',  color: '#f87171' },
-  'Manual Entry': { letter: 'M', bg: 'rgba(100,116,139,0.15)', color: 'var(--color-text-secondary)' },
-};
-
-function PlatformIcon({ title }) {
-  const s = PLATFORM_ICONS[title] ?? { letter: title[0], bg: 'var(--color-surface-2)', color: 'var(--color-accent)' };
+function PlatformIcon({ platform, title }) {
+  const brand = getPlatformBrand(platform || title);
   return (
     <span
       aria-hidden="true"
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-      style={{ background: s.bg, color: s.color }}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold shadow-sm"
+      style={getPlatformIconStyle(platform || title)}
     >
-      {s.letter}
+      {brand.letter}
     </span>
   );
 }
 
-function PlatformCard({ title, description, badge, children }) {
+function PlatformCard({ platform, title, description, badge, children }) {
+  const brand = getPlatformBrand(platform || title);
   return (
-    <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+    <article className="rounded-xl border p-5" style={getPlatformCardStyle(platform || title)}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <PlatformIcon title={title} />
+          <PlatformIcon platform={platform} title={title} />
           <div>
-            <h2 className="font-sans text-sm font-semibold text-[var(--color-text-primary)]">
+            <h2 className="font-sans text-sm font-semibold" style={{ color: brand.accent }}>
               {title}
             </h2>
             <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{description}</p>
@@ -47,26 +50,29 @@ function PlatformCard({ title, description, badge, children }) {
   );
 }
 
-function ConnectedBadge() {
+function ConnectedBadge({ platform }) {
   return (
     <span
-      className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-      style={{ background: 'rgba(52,199,89,0.12)', color: 'var(--color-risk-low)' }}
+      className="shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+      style={getPlatformBadgeStyle(platform)}
     >
       Connected
     </span>
   );
 }
 
-function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button' }) {
+function CTAButton({ children, onClick, disabled = false, loading = false, platform = null, type = 'button' }) {
+  const buttonStyle = getPlatformButtonStyle(platform);
   return (
     <button
       className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-      style={{ background: 'var(--color-accent)', color: '#000' }}
+      style={buttonStyle}
       disabled={disabled || loading}
       aria-busy={loading}
       type={type}
       onClick={onClick}
+      onMouseEnter={(e) => { e.currentTarget.style.background = getPlatformButtonHover(platform); }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = buttonStyle.background; }}
     >
       {loading ? 'Working…' : children}
     </button>
@@ -176,9 +182,10 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
   if (connected) {
     return (
       <PlatformCard
+        platform="sleeper"
         title="Sleeper"
         description="Connected with your Sleeper account."
-        badge={<ConnectedBadge />}
+        badge={<ConnectedBadge platform="sleeper" />}
       >
         {connectedUsername && (
           <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
@@ -195,6 +202,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
 
   return (
     <PlatformCard
+      platform="sleeper"
       title="Sleeper"
       description="Enter your Sleeper username — no password needed."
     >
@@ -207,7 +215,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
             value={username}
             onChange={setUsername}
           />
-          <CTAButton type="submit" loading={false} disabled={disabled || !username.trim()}>
+          <CTAButton platform="sleeper" type="submit" loading={false} disabled={disabled || !username.trim()}>
             Find My Leagues
           </CTAButton>
           <ErrorMsg message={error} />
@@ -233,11 +241,8 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
               {resolvedData.leagues.map((league) => (
                 <label
                   key={league.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    selectedLeagueId === league.id
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent-muted)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-border)]'
-                  }`}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors"
+                  style={getPlatformSelectionStyle('sleeper', selectedLeagueId === league.id)}
                 >
                   <input
                     checked={selectedLeagueId === league.id}
@@ -252,7 +257,10 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
                       {league.name || `League ${league.id}`}
                     </p>
                     {league.scoring_format && (
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                      <p
+                        className="text-[10px] uppercase tracking-wider"
+                        style={{ color: selectedLeagueId === league.id ? getPlatformBrand('sleeper').accent : 'var(--color-text-tertiary)' }}
+                      >
                         {league.scoring_format}
                       </p>
                     )}
@@ -268,6 +276,7 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
 
           <div className="flex gap-2">
             <CTAButton
+              platform="sleeper"
               disabled={!selectedLeagueId}
               loading={step === 'connecting'}
               onClick={handleConnect}
@@ -304,9 +313,10 @@ function YahooCard({ connected, disabled, onRefresh }) {
   if (connected) {
     return (
       <PlatformCard
+        platform="yahoo"
         title="Yahoo"
         description="Yahoo Fantasy is connected."
-        badge={<ConnectedBadge />}
+        badge={<ConnectedBadge platform="yahoo" />}
       >
         <GhostButton disabled={disabled} onClick={handleDisconnect}>
           Disconnect
@@ -318,10 +328,12 @@ function YahooCard({ connected, disabled, onRefresh }) {
 
   return (
     <PlatformCard
+      platform="yahoo"
       title="Yahoo"
       description="Connect via Yahoo OAuth. You'll be redirected to Yahoo to authorize access."
     >
       <CTAButton
+        platform="yahoo"
         disabled={disabled}
         loading={loading}
         onClick={async () => {
@@ -391,11 +403,12 @@ function EspnGuide({ browser, setBrowser }) {
           <button
             key={g.browser}
             aria-pressed={browser === g.browser}
-            className={`rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+            className="rounded px-2.5 py-1 text-[10px] font-semibold transition-colors"
+            style={
               browser === g.browser
-                ? 'bg-[var(--color-accent)] text-black'
-                : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
+                ? getPlatformButtonStyle('espn')
+                : { background: 'var(--color-surface-3)', color: 'var(--color-text-secondary)' }
+            }
             type="button"
             onClick={() => setBrowser(g.browser)}
           >
@@ -464,9 +477,10 @@ function EspnCard({ connected, disabled, onRefresh }) {
   if (connected && !showForm) {
     return (
       <PlatformCard
+        platform="espn"
         title="ESPN"
         description="ESPN Fantasy is connected."
-        badge={<ConnectedBadge />}
+        badge={<ConnectedBadge platform="espn" />}
       >
         <div className="flex gap-2 flex-wrap">
           <GhostButton disabled={disabled} onClick={() => setShowForm(true)}>
@@ -483,9 +497,10 @@ function EspnCard({ connected, disabled, onRefresh }) {
 
   return (
     <PlatformCard
+      platform="espn"
       title="ESPN"
       description="Requires two cookies from your ESPN session. Every step is shown below — takes about 2 minutes."
-      badge={connected ? <ConnectedBadge /> : undefined}
+      badge={connected ? <ConnectedBadge platform="espn" /> : undefined}
     >
       <div className="flex flex-col gap-4">
         <EspnGuide browser={browser} setBrowser={setBrowser} />
@@ -513,7 +528,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
             onChange={(v) => setForm(f => ({ ...f, league_id: v }))}
           />
           <div className="flex gap-2">
-            <CTAButton loading={loading} type="submit" disabled={disabled}>
+            <CTAButton platform="espn" loading={loading} type="submit" disabled={disabled}>
               {connected ? 'Reconnect ESPN' : 'Connect ESPN'}
             </CTAButton>
             {showForm && (
@@ -534,6 +549,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
 function ManualCard() {
   return (
     <PlatformCard
+      platform="manual-entry"
       title="Manual Entry"
       description="Enter your league details without a platform connection."
     >

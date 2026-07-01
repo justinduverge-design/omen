@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
+import {
+  getPlatformBadgeStyle,
+  getPlatformBrand,
+  getPlatformButtonHover,
+  getPlatformButtonStyle,
+  getPlatformSelectionStyle,
+} from '../../lib/platformBrand.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -24,10 +31,13 @@ function errorMessage(error) {
   return error?.message || 'Something went wrong. Try again.';
 }
 
-function ConnectedBadge() {
+function ConnectedBadge({ platform }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+      style={getPlatformBadgeStyle(platform)}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: getPlatformBrand(platform).accent }} aria-hidden="true" />
       Connected
     </span>
   );
@@ -129,14 +139,15 @@ function EspnCookieInstructions() {
 
 // ── Shared button style helpers ───────────────────────────────────────────────
 
-function AccentButton({ children, disabled, onClick, type = 'button', as: Tag = 'button', href }) {
+function AccentButton({ children, disabled, onClick, platform, type = 'button', as: Tag = 'button', href }) {
+  const brand = getPlatformBrand(platform);
   const base =
-    'inline-flex min-h-[36px] items-center rounded-lg px-4 py-2 text-sm font-semibold text-black transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex min-h-[44px] items-center rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50';
   const props = {
     className: base,
-    style: { background: 'var(--color-accent)' },
-    onMouseEnter: (e) => { e.currentTarget.style.background = 'var(--color-accent-hover)'; },
-    onMouseLeave: (e) => { e.currentTarget.style.background = 'var(--color-accent)'; },
+    style: getPlatformButtonStyle(platform),
+    onMouseEnter: (e) => { e.currentTarget.style.background = getPlatformButtonHover(platform); },
+    onMouseLeave: (e) => { e.currentTarget.style.background = brand.accent; },
   };
 
   if (Tag === 'a') return <a href={href} {...props}>{children}</a>;
@@ -149,7 +160,7 @@ function GhostButton({ children, disabled, onClick, danger = false }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="inline-flex min-h-[36px] items-center rounded-lg border px-4 py-2 text-xs font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-[44px] items-center rounded-lg border px-5 py-2.5 text-sm font-semibold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         borderColor: 'var(--color-border)',
         color: danger ? 'var(--color-text-tertiary)' : 'var(--color-text-secondary)',
@@ -336,7 +347,7 @@ export default function PlatformConnections({ recoveryState = null }) {
         <li style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex min-h-[64px] items-center justify-between gap-4 px-5 py-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              <p className="text-sm font-semibold" style={{ color: getPlatformBrand('yahoo').accent }}>
                 Yahoo
               </p>
               <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -350,7 +361,7 @@ export default function PlatformConnections({ recoveryState = null }) {
               <StatusSkeleton />
             ) : status.yahoo.connected ? (
               <div className="flex shrink-0 items-center gap-3">
-                <ConnectedBadge />
+                <ConnectedBadge platform="yahoo" />
                 <GhostButton
                   danger
                   disabled={disabled}
@@ -360,7 +371,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </GhostButton>
               </div>
             ) : (
-              <AccentButton onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
+              <AccentButton platform="yahoo" onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
                 Connect Yahoo
               </AccentButton>
             )}
@@ -374,7 +385,7 @@ export default function PlatformConnections({ recoveryState = null }) {
         <li style={{ borderBottom: showEspnRow ? '1px solid var(--color-border)' : undefined }}>
           <div className="flex min-h-[64px] items-center justify-between gap-4 px-5 py-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              <p className="text-sm font-semibold" style={{ color: getPlatformBrand('sleeper').accent }}>
                 Sleeper
               </p>
               <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -388,7 +399,7 @@ export default function PlatformConnections({ recoveryState = null }) {
               <StatusSkeleton />
             ) : status.sleeper.connected ? (
               <div className="flex shrink-0 items-center gap-3">
-                <ConnectedBadge />
+                <ConnectedBadge platform="sleeper" />
                 <GhostButton
                   disabled={disabled}
                   onClick={() => {
@@ -410,7 +421,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                 )}
               </div>
             ) : (
-              <AccentButton disabled={disabled} onClick={() => toggleForm('sleeper')}>
+              <AccentButton platform="sleeper" disabled={disabled} onClick={() => toggleForm('sleeper')}>
                 {activeForm === 'sleeper' ? 'Cancel' : 'Connect Sleeper'}
               </AccentButton>
             )}
@@ -427,10 +438,11 @@ export default function PlatformConnections({ recoveryState = null }) {
                     value={sleeperUsername}
                     onChange={setSleeperUsername}
                   />
-                  <AccentButton
-                    type="submit"
-                    disabled={loadingStatus || sleeperStep === 'resolving' || !sleeperUsername.trim()}
-                  >
+                    <AccentButton
+                      platform="sleeper"
+                      type="submit"
+                      disabled={loadingStatus || sleeperStep === 'resolving' || !sleeperUsername.trim()}
+                    >
                     {sleeperStep === 'resolving' ? 'Looking up leagues…' : 'Find My Leagues'}
                   </AccentButton>
                   {errors.sleeper && (
@@ -457,17 +469,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                         <label
                           key={league.id}
                           className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors duration-150"
-                          style={
-                            sleeperSelectedLeagueId === league.id
-                              ? {
-                                  borderColor: 'var(--color-accent)',
-                                  background: 'var(--color-accent-muted)',
-                                }
-                              : {
-                                  borderColor: 'var(--color-border)',
-                                  background: 'var(--color-surface-1)',
-                                }
-                          }
+                          style={getPlatformSelectionStyle('sleeper', sleeperSelectedLeagueId === league.id)}
                         >
                           <input
                             checked={sleeperSelectedLeagueId === league.id}
@@ -487,7 +489,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                             {league.scoring_format && (
                               <p
                                 className="text-[10px] uppercase tracking-wider"
-                                style={{ color: 'var(--color-text-tertiary)' }}
+                                style={{ color: sleeperSelectedLeagueId === league.id ? getPlatformBrand('sleeper').accent : 'var(--color-text-tertiary)' }}
                               >
                                 {league.scoring_format}
                               </p>
@@ -504,6 +506,7 @@ export default function PlatformConnections({ recoveryState = null }) {
 
                   <div className="flex flex-wrap gap-3">
                     <AccentButton
+                      platform="sleeper"
                       disabled={!sleeperSelectedLeagueId || sleeperStep === 'connecting'}
                       onClick={connectSleeperLeague}
                     >
@@ -539,7 +542,7 @@ export default function PlatformConnections({ recoveryState = null }) {
           <li>
             <div className="flex min-h-[64px] items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
-                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                <p className="text-sm font-semibold" style={{ color: getPlatformBrand('espn').accent }}>
                   ESPN
                 </p>
                 <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -554,13 +557,13 @@ export default function PlatformConnections({ recoveryState = null }) {
               ) : espnConnectSucceeded ? (
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="text-xs text-emerald-300">Reconnected</span>
-                  <AccentButton as="a" href="/football">
+                  <AccentButton platform="espn" as="a" href="/football">
                     Return to Omen →
                   </AccentButton>
                 </div>
               ) : status.espn.connected ? (
                 <div className="flex shrink-0 items-center gap-3">
-                  <ConnectedBadge />
+                  <ConnectedBadge platform="espn" />
                   <GhostButton
                     disabled={disabled}
                     onClick={() => toggleForm('espn')}
@@ -578,7 +581,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                   )}
                 </div>
               ) : (
-                <AccentButton disabled={disabled} onClick={() => toggleForm('espn')}>
+                <AccentButton platform="espn" disabled={disabled} onClick={() => toggleForm('espn')}>
                   {activeForm === 'espn' ? 'Cancel' : 'Connect ESPN'}
                 </AccentButton>
               )}
@@ -589,10 +592,11 @@ export default function PlatformConnections({ recoveryState = null }) {
               <FormPanel>
                 {espnRecovery && ESPN_RECOVERY_COPY[recoveryState] && (
                   <div
-                    className="rounded-lg px-4 py-3 text-sm text-amber-200"
+                    className="rounded-lg px-4 py-3 text-sm"
                     style={{
-                      border: '1px solid var(--color-accent)',
-                      background: 'var(--color-accent-muted)',
+                      ...getPlatformBadgeStyle('espn'),
+                      borderWidth: '1px',
+                      borderStyle: 'solid',
                     }}
                   >
                     {ESPN_RECOVERY_COPY[recoveryState]}
@@ -623,7 +627,7 @@ export default function PlatformConnections({ recoveryState = null }) {
                     value={espnForm.league_id}
                     onChange={(league_id) => setEspnForm((c) => ({ ...c, league_id }))}
                   />
-                  <AccentButton type="submit" disabled={disabled}>
+                  <AccentButton platform="espn" type="submit" disabled={disabled}>
                     {action === 'espn'
                       ? 'Connecting…'
                       : status.espn.connected
