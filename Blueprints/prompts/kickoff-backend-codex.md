@@ -49,10 +49,16 @@ Then run, in order:
    - Append to Blueprints/done/LEDGER.md.
    - Return end-of-task report per AGENT.md "End Of Task Report" section.
 
+Begin now: read the files above, then execute PULL TASK immediately. Do not
+wait for a separate task description — this message is the task.
+
 SAFETY GATES (apply throughout)
 - Stop and wait for Justin at: deploy, secrets, Supabase migrations, package-file
   edits, Stripe production behavior, naming, cross-layer moves, Docker/deploy
   changes, branch merges.
+- `git push` to a feature/worktree branch is allowed on its own — but only
+  after you've actually run verification and your report states an accurate
+  complete/incomplete verdict. Never push a "done" claim you haven't checked.
 - Mock data must be clearly labeled. Never present as live advice.
 - Don't expose ESPN cookies anywhere, ever.
 ```
