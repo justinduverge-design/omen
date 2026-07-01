@@ -32,6 +32,15 @@
      so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
   --color-confidence-floor:   #701020;
   --color-confidence-ceiling: #206F3A;
+  /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
+     Identical across themes (decorative/branded, not a surface token);
+     gold is deliberately brighter/more saturated than --color-accent. */
+  --color-tier-gold:      #D4AF37;
+  --color-tier-silver:    #C0C0C0;
+  --color-tier-bronze:    #8C5A2B;
+  --color-on-tier-gold:   #0A0A0B;
+  --color-on-tier-silver: #0A0A0B;
+  --color-on-tier-bronze: #F5F0E8;
   --color-omen:            #2F7D5B;
   --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
@@ -247,6 +256,15 @@
      so the HSL-interpolated midpoint reads as a rich amber, not a pastel. */
   --color-confidence-floor:   #701020;
   --color-confidence-ceiling: #206F3A;
+  /* Phase 1.9 metallic tier palette — Draft Assistant top-3 ordinal pill.
+     Identical across themes (decorative/branded, not a surface token);
+     gold is deliberately brighter/more saturated than --color-accent. */
+  --color-tier-gold:      #D4AF37;
+  --color-tier-silver:    #C0C0C0;
+  --color-tier-bronze:    #8C5A2B;
+  --color-on-tier-gold:   #0A0A0B;
+  --color-on-tier-silver: #0A0A0B;
+  --color-on-tier-bronze: #F5F0E8;
   --color-omen:            #2F7D5B;
   --color-umber:           #5A3A25;
   --color-data-live:       #34C759;
@@ -300,6 +318,14 @@
      (darker variants, not lighter washes per page-system.md). */
   --color-confidence-floor:   #701020;
   --color-confidence-ceiling: #206F3A;
+  /* Phase 1.9 metallic tier palette — same hexes as dark theme; see :root
+     comment. */
+  --color-tier-gold:      #D4AF37;
+  --color-tier-silver:    #C0C0C0;
+  --color-tier-bronze:    #8C5A2B;
+  --color-on-tier-gold:   #0A0A0B;
+  --color-on-tier-silver: #0A0A0B;
+  --color-on-tier-bronze: #F5F0E8;
   --color-omen:            #1A5C3E;
   --color-umber:           #5A3A25;
   --color-data-live:       #16A34A;

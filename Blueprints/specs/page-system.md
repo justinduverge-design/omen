@@ -235,6 +235,8 @@ Draft Assistant top-3 ordinal pills:
 
 These are surface treatments with subtle gradient + bevel, not flat fills. The Appearance page tile glyphs may also adopt a metallic treatment for the selected team's tile (Phase 1.9 add-on — Justin QA: "add some 3D effect or another visual treatment to those selections").
 
+Resolved 2026-07-01 for Draft Assistant only: the card-header ordinal pill (the `rec.rank` circle in `RecommendationCard`) now uses `frontend/src/lib/metallicTier.js` with dedicated tier tokens in `frontend/src/index.css`. The `Omen #N` ADP-footer pill is unchanged — it's part of the locked "ADP / Omen #N footer" structure (see Approved Patterns #1), not the ordinal pill this phase targets. The optional Appearance-page selected-tile metallic add-on stays out of scope for this pass.
+
 ### Theme parity check (every page)
 
 Before any Phase 1.4–1.12 PR lands, verify the page in both modes. Specific known drift sites from QA Part 2:

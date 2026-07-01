@@ -6,6 +6,40 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 1.9 Metallic Tier Treatment — 2026-07-01
+
+Feature name: Metallic tier treatment.
+
+Status: Built locally as a frontend-only styling pass.
+
+Endpoint / contract:
+
+No HTTP endpoint, request body, response envelope, frontend call shape, package, SQL, env, provider credential, auth, Stripe, Supabase, or deploy behavior changed.
+
+Frontend behavior:
+
+- Apply metallic gold/silver/bronze styling only to the Draft Assistant `RecommendationCard` ordinal pill for ranks `1`, `2`, and `3`.
+- Keep ranks `4+` on the existing neutral bordered treatment.
+- Leave the separate `Omen #N` ADP-footer pill unchanged per the locked footer structure in `Blueprints/specs/page-system.md`.
+
+Frontend action needed:
+
+- None beyond consuming the styling already implemented in `DraftAssistant.jsx`.
+- Do not assume any new backend field, response, or route exists for this phase.
+
+Files changed:
+
+- `frontend/src/lib/metallicTier.js`
+- `frontend/src/index.css`
+- `frontend/src/pages/DraftAssistant.jsx`
+- `test/metallicTier.test.mjs`
+- `Blueprints/specs/page-system.md`
+
+Limitations:
+
+- Optional Appearance-page metallic add-on remains out of scope.
+- No routed `/draft` screenshot was captured in this session.
+
 ## Phase 1.5d Post-Win Pulse — 2026-06-29
 
 Feature name: Post-win pulse animation.

@@ -1,21 +1,22 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-06-30 (Claude session); refreshed after Phase 1.8 local closeout.** Phase 1.8 (confidence gradient endpoints) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.7 (platform brand color emphasis) and Phase 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
+**Auto-populated 2026-07-01 (Claude session); refreshed after Phase 1.9 local closeout.** Phase 1.9 (metallic tier treatment) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
 
 ## Active Task
 
-None pinned after Phase 1.8 local closeout.
+None pinned after Phase 1.9 local closeout.
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.9 — Metallic tier treatment.** Draft Assistant top-3 ordinal pills: 1=antique gold, 2=brushed silver, 3=antique bronze. Done docs: design + recommendation if Draft Assistant cards change.
-2. **Phase 1.12 — Gray contrast pass + Standings refinements.** WCAG AA gray body string pass across `/account/appearance`, `/standings`, `/hall-of-records`, and `/onboarding`, plus stronger Standings "you" row treatment. Done docs: page + design.
-3. **Phase 1.13 — iOS Safari mobile QA sweep.** Routed-page iOS Safari sweep plus radiogroup semantics for mutually exclusive chips. Done docs: page + design.
-4. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
-5. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
+1. **Phase 1.12 — Gray contrast pass + Standings refinements.** WCAG AA gray body string pass across `/account/appearance`, `/standings`, `/hall-of-records`, and `/onboarding`, plus stronger Standings "you" row treatment. Done docs: page + design.
+2. **Phase 1.13 — iOS Safari mobile QA sweep.** Routed-page iOS Safari sweep plus radiogroup semantics for mutually exclusive chips. Done docs: page + design.
+3. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
+4. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
+5. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
 
 ## Blockers Surfaced
 
+- **Phase 1.9 (metallic tier treatment)** is complete locally — not pushed/merged/deployed. Applied only to the Draft Assistant card-header ordinal pill; the `Omen #N` ADP-footer pill was deliberately left unchanged per the locked footer structure. Appearance-tile metallic add-on stays out of scope, unbuilt.
 - **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
 - **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.

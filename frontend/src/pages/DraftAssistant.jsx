@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { confidenceBarStyle } from '../lib/confidenceGradient.js';
+import { metallicTierStyle } from '../lib/metallicTier.js';
 import { useTheme } from '../lib/themeMode.js';
 
 const SCORING_FORMATS = [
@@ -132,7 +133,10 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
         </span>
       )}
 
-      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}>
+      <span
+        className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
+      >
         Omen #{rec.rank}
       </span>
 
@@ -167,6 +171,7 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
 
 function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
   const isTop = rec.rank === 1;
+  const tierStyle = metallicTierStyle(rec.rank);
   return (
     <div
       className={`space-y-4 rounded-xl border p-5 ${
@@ -179,12 +184,8 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-              isTop
-                ? 'bg-[var(--color-team-accent)] text-black'
-                : 'border'
-            }`}
-            style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+            style={tierStyle ?? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
           >
             {rec.rank}
           </span>
