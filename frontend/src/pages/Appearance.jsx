@@ -220,7 +220,7 @@ export default function Appearance() {
           </h1>
           <p
             className="font-serif text-lg leading-relaxed"
-            style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}
+            style={{ color: 'var(--color-text-primary)', maxWidth: '52ch' }}
           >
             Omen paints with your team's actual colors — every one of them. Pick
             Official for the canonical palette, or a Special variant to swap the

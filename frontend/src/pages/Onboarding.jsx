@@ -302,7 +302,7 @@ function CompleteStep({ onDone }) {
       </h2>
       <p
         className="mb-10 font-serif text-lg leading-relaxed"
-        style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
+        style={{ color: 'var(--color-text-primary)', maxWidth: '44ch' }}
       >
         League connected. Omen reads the matchup the moment your roster locks
         — your first call lands Tuesday.

@@ -51,13 +51,22 @@ function StandingsTable({ standings }) {
                   ? 'var(--color-team-accent)'
                   : 'var(--color-border)',
                 background: row.is_current_user
-                  ? 'color-mix(in srgb, var(--color-team-accent) 6%, transparent)'
+                  ? 'color-mix(in srgb, var(--color-team-accent) 12%, transparent)'
                   : 'transparent',
               }}
             >
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
-                style={{ color: 'var(--color-text-tertiary)', width: 32 }}
+                style={{
+                  color: row.is_current_user
+                    ? 'var(--color-text-secondary)'
+                    : 'var(--color-text-tertiary)',
+                  width: 32,
+                  borderLeft: row.is_current_user
+                    ? '4px solid var(--color-team-accent)'
+                    : '4px solid transparent',
+                  paddingLeft: row.is_current_user ? 12 : 0,
+                }}
               >
                 {row.rank}
               </td>
@@ -65,32 +74,47 @@ function StandingsTable({ standings }) {
                 <span
                   className="text-sm font-medium"
                   style={{
-                    color: row.is_current_user
-                      ? 'var(--color-team-accent)'
-                      : 'var(--color-text-primary)',
+                    color: 'var(--color-text-primary)',
                   }}
                 >
                   {row.team_name}
                   {row.is_current_user && (
-                    <span className="ml-1.5 font-mono text-[10px] opacity-60">you</span>
+                    <span
+                      className="ml-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
+                      style={{ color: 'var(--color-team-accent)' }}
+                    >
+                      you
+                    </span>
                   )}
                 </span>
               </td>
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
-                style={{ color: 'var(--color-text-secondary)' }}
+                style={{
+                  color: row.is_current_user
+                    ? 'var(--color-text-primary)'
+                    : 'var(--color-text-secondary)',
+                }}
               >
                 {row.wins}–{row.losses}
               </td>
               <td
                 className="py-3 pr-4 font-mono text-xs tabular-nums"
-                style={{ color: 'var(--color-text-secondary)' }}
+                style={{
+                  color: row.is_current_user
+                    ? 'var(--color-text-primary)'
+                    : 'var(--color-text-secondary)',
+                }}
               >
                 {row.points_for != null ? row.points_for.toFixed(1) : '—'}
               </td>
               <td
                 className="py-3 font-mono text-xs tabular-nums"
-                style={{ color: 'var(--color-text-tertiary)' }}
+                style={{
+                  color: row.is_current_user
+                    ? 'var(--color-text-primary)'
+                    : 'var(--color-text-secondary)',
+                }}
               >
                 {row.points_against != null ? row.points_against.toFixed(1) : '—'}
               </td>
