@@ -17,13 +17,13 @@ function Header() {
         {/* Nav */}
         <div className="flex items-center gap-5">
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
             href="/"
           >
             ← Slops Saloon
           </a>
           <a
-            className="text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
+            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
             href="/login"
           >
             Sign In →

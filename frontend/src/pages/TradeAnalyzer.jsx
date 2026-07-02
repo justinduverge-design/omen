@@ -19,7 +19,7 @@ const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
 const MAX_SUGGESTIONS = 8;
 
 const INPUT_CLS =
-  'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm ' +
+  'w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm ' +
   'text-[var(--color-text-primary)] outline-none transition-colors ' +
   'focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 ' +
   'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]';
