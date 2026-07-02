@@ -6,6 +6,40 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Phase 1.12 Gray Contrast Pass + Standings Refinements — 2026-07-02
+
+Feature name: Gray contrast pass + Standings refinements.
+
+Status: Built locally as a frontend-only accessibility and styling pass.
+
+Endpoint / contract:
+
+No HTTP endpoint, request body, response envelope, frontend call shape, package, SQL, env, provider credential, auth, Stripe, Supabase, or deploy behavior changed.
+
+Frontend behavior:
+
+- `/account/appearance` now renders its intro paragraph at `--color-text-primary` instead of lower-contrast gray body text.
+- `/onboarding` now renders the success-step body copy at `--color-text-primary` instead of lower-contrast gray body text.
+- `/standings` now renders W-L / PF / PA values with stronger contrast, and the current-user row now uses a stronger team-accent surface tint plus a 4px team-accent left edge.
+- The older `/hall-of-records` username-column target was closed as documentation debt only: Hall of Records had already been retired to `/ledger`, and no live username column remained to update.
+
+Frontend action needed:
+
+- None beyond consuming the styling already implemented in the touched routes.
+- Do not assume any new backend field, response, or route exists for this phase.
+
+Files changed:
+
+- `frontend/src/pages/Appearance.jsx`
+- `frontend/src/pages/Onboarding.jsx`
+- `frontend/src/pages/Standings.jsx`
+- `Blueprints/specs/page-system.md`
+
+Limitations:
+
+- No authenticated routed screenshots were captured in this session because the existing Supabase session limitation still blocks those protected or flow-gated routes here.
+- Visual verification relied on the existing token set, route-source review, and the same full test/build/audit gates used for the rest of the frontend work.
+
 ## Phase 1.9 Metallic Tier Treatment — 2026-07-01
 
 Feature name: Metallic tier treatment.
