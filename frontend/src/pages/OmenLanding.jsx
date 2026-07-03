@@ -7,12 +7,7 @@ function Header() {
     <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_24px_rgba(201,164,76,0.14)]">
-            <img alt="Omen" className="h-full w-full object-cover" src="/omen-primary-emblem.png" />
-          </div>
-          <span className="font-display text-base tracking-[0.22em] text-[var(--color-text-primary)]">OMEN</span>
-        </div>
+        <img src="/omen-horizontal-lockup.png" alt="Omen" className="h-9 w-auto" />
 
         {/* Nav */}
         <div className="flex items-center gap-5">

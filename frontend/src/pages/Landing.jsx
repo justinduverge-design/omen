@@ -21,12 +21,7 @@ function Arrow() {
 
 function OmenLogo() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative h-12 w-12 overflow-hidden rounded-full border border-[#C9A44C]/40 bg-[#080604] shadow-[0_0_32px_rgba(201,164,76,0.16)]">
-        <img alt="Omen" className="h-full w-full object-cover" src="/omen-primary-emblem.png" />
-      </div>
-      <span className="font-display text-xl tracking-[0.22em] text-[var(--color-text-primary)]">OMEN</span>
-    </div>
+    <img src="/omen-horizontal-lockup.png" alt="Omen" className="h-12 w-auto" />
   );
 }
 
