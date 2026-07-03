@@ -7,7 +7,7 @@ function Header() {
     <header className="sticky top-0 z-50 border-b border-white/8 bg-[#050505]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
         {/* Logo */}
-        <img src="/omen-horizontal-lockup.png" alt="Omen" className="h-9 w-auto" />
+        <img src="/omen-horizontal-lockup-transparent.png" alt="Omen" className="h-9 w-auto" />
 
         {/* Nav */}
         <div className="flex items-center gap-5">

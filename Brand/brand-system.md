@@ -200,7 +200,55 @@ Every feature must serve at least one. A feature that serves none does not belon
 
 ---
 
-## 12. Open Questions / Later Decisions
+## 10a. Marketing Pillars (Provisional)
+
+The brand board (`logos/omen-full-brand-board.png`) names four pillars for external positioning:
+
+1. **DETECT THE SIGNAL**
+2. **ANALYZE THE DATA**
+3. **PREDICT THE OUTCOME**
+4. **WIN WITH CONFIDENCE**
+
+**Status: provisional.** The concept is right — this is the shape of what Omen does. The specific phrasing was drafted on the brand board and has not been intentionally locked by Justin as our marketing voice. Do not use on marketing pages, ads, or in-app copy until confirmed. Parked as an open decision, same posture as Decision 13 of `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md` (provisional tagline lock).
+
+**Do not confuse with §10 Product Pillars.** §10's Decision Intelligence / Engagement / Trust / Accessibility are *internal engineering principles* — every feature must serve at least one. §10a's Detect / Analyze / Predict / Win are (would be) *external marketing pillars* — how Omen tells its own story publicly. Different jobs, different scopes. Do not mix.
+
+---
+
+## 12. Logo Usage
+
+**Load-bearing rule:** the emblem is a shield. The shield is its own frame. It never sits inside a circle. It sits inside a rounded-square only when the OS demands one — that's the favicon / app-icon container from the brand board, and nowhere else.
+
+### 12.1 Asset inventory (canonical at `logos/`)
+
+- **Primary emblem** `omen-primary-emblem.png` — favicon slots, small-badge contexts, notification-icon parent. Alone in small contexts; paired with wordmark uses the horizontal lockup instead.
+- **Standalone wordmark** `omen-standalone-wordmark.png` — typography-lockup moments where the emblem would clutter (footer sign-offs, share-card headings, hero paragraphs).
+- **Horizontal lockup** `omen-horizontal-lockup.png` — **default logo for identity slots.** Header, NavDrawer, Landing hero, OmenLanding, marketing hero, share-card header, Sign-In screen. Now shipping in transparent variant `omen-horizontal-lockup-transparent.png` for light-theme safety.
+- **Favicon set** `omen-favicon-{16,32,48,64,180,256,512}.png` — browser tab, PWA manifest, apple-touch-icon, tiles.
+- **App icon** `omen-favicon-app-icon.png` — PWA install / home-screen icon slot.
+- **Brand board** `omen-full-brand-board.png` — doctrine reference only. Never as UI.
+- **Preview sheet** `omen-png-preview-sheet.png` — doctrine reference only.
+
+### 12.2 Framing rule
+
+- **In-app UI:** emblem, standalone wordmark, and horizontal lockup are presented **raw** — no border, no glow, no drop shadow, no circular mask, no square container. Each asset carries its own frame. Ambient effects around the mark (background gradient, hairline rule) are fine. Wrappers that *contain* the mark are not.
+- **App-icon slot only exception:** the rounded-square dark badge shown on the brand board is the *only* container the shield ever sits inside. OS-demanded shape for install icons. Nowhere else.
+
+### 12.3 Wordmark rule — asset, not text
+
+The wordmark **is the designed asset** (`omen-standalone-wordmark.png` or its embedded appearance inside the horizontal lockup). Alegreya-Sans-rendered "Omen" is a *text label* — `<title>`, meta tags, ARIA labels, `alt` attributes, inline body copy where the visual mark cannot render. Where visual identity is expressed, the asset is used, not the text.
+
+### 12.4 Build-serve requirement
+
+Canonical assets live at `omen/logos/`. Build-served copies must live at `omen/frontend/public/`. Vite serves from `public/`, not `logos/`. Any asset used in the app must exist in both locations. When the canonical asset is updated, the build-served copy must be re-copied in the same commit.
+
+### 12.5 Inheritance from the fan-experience doctrine
+
+Per `slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md`, the load-bearing principle is *Look Good — Play Good.* The logo-usage rules above serve that principle directly: the shield's own gold border does the framing job better than a redundant CSS ring, and the horizontal lockup expresses more identity per pixel than an emblem-plus-loose-text pattern. Rule of thumb: **presence of identity, not decoration of identity.**
+
+---
+
+## 13. Open Questions / Later Decisions
 
 - Paid tier name (TBD)
 - League hosting tier name (TBD)

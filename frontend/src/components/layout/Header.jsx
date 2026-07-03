@@ -175,7 +175,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
         >
           <div className="flex items-center">
             <img
-              src="/omen-horizontal-lockup.png"
+              src="/omen-horizontal-lockup-transparent.png"
               alt="Omen"
               className="h-7 w-auto"
             />
@@ -314,7 +314,7 @@ export default function Header() {
             className="flex min-h-[44px] items-center rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
           >
             <img
-              src="/omen-horizontal-lockup.png"
+              src="/omen-horizontal-lockup-transparent.png"
               alt="Omen"
               className="h-8 w-auto"
             />

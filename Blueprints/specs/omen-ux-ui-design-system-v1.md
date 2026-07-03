@@ -1,8 +1,18 @@
-# Omen UX/UI Design System v1
+# Omen UX/UI Design System
 
-**Date:** 2026-05-24
-**Status:** v1 — planning phase, not yet fully implemented
+**Date:** 2026-05-24 (v1) · 2026-07-03 (v2 reconciliation, in place — filename preserved for reference compatibility)
+**Status:** **v2 — reconciled 2026-07-03 against production code.** `frontend/src/index.css` had drifted ahead of this v1 spec after the 2026-06-22 palette rebrand. This spec now reflects reality: Aged Brass `#A67C2E` (was Antique Gold `#B8952A`), Verdigris Green `#2F7D5B` (was Electric Violet `#5B2D8E`), Deep Crimson `#7E1717` (was `#8B1A1A`), plus Weathered Umber `#5A3A25` and DM Mono font (new since v1). Phase 1.x subsystems (team-theming, motif overlay, cultural-moment overlay, position chips, platform brand colors, confidence gradient endpoints, metallic tiers, demo accent) are indexed inline as they land in `frontend/src/index.css`. Component + voice guidance unchanged from v1. **Follow-up rewrite pass pending** to expand the v2 palette + Phase 1.x sections in-line (a fuller v2 revision was authored in the 2026-07-03 doctrine session but was not persisted through the merge; see the L1 fan-experience doctrine handoff for tracking).
 **Extends:** `slops-saloon/Blueprints/specs/slops-os-app-template-spec.md`
+
+## Inherits from (doctrine)
+
+This spec is an **implementation reference**. Doctrine that governs it lives upstream:
+
+1. `slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md` — Look Good — Play Good, two-sided presence, three-room mapping, chant medium follows skin, data-legibility invariant.
+2. `slops-saloon/omen/Brand/brand-system.md` — canonical Omen brand (palette, typography, voice, product pillars, logo usage §12, marketing pillars provisional §10a).
+3. `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md` — Omen UX/UI direction v1 (auth posture, screen priority).
+
+When any conflicts with this document, **the upstream doctrine wins.** File issues rather than diverging silently.
 
 ---
 

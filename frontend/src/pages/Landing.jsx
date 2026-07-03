@@ -21,7 +21,7 @@ function Arrow() {
 
 function OmenLogo() {
   return (
-    <img src="/omen-horizontal-lockup.png" alt="Omen" className="h-12 w-auto" />
+    <img src="/omen-horizontal-lockup-transparent.png" alt="Omen" className="h-12 w-auto" />
   );
 }
 
