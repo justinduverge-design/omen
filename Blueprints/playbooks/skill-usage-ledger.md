@@ -169,6 +169,8 @@ Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with
 | 2026-07-02 | Phase 1.13 iOS Safari mobile QA sweep (partial) | `slops-git-flow` | Applied | Branch `frontend/phase1-13-mobile-qa-sweep` cut from local `main`, scoped commit `f826d2e`, staged-set verified exact | Local `main` was already 2 commits ahead of `origin/main` from Codex's unpushed Phase 1.12 — branched rather than compounding that drift |
 | 2026-07-02 | Phase 1.13 iOS Safari mobile QA sweep (partial) | `slops-code-review` (self-administered) | Mergeable | Verdict recorded in the handoff | N/A |
 | 2026-07-02 | Phase 1.13 iOS Safari mobile QA sweep (partial) | `slops-ui-ux-audit` (self-administered) | No P0/P1 on routes checked | AAA-framework verdict recorded in the handoff | N/A |
+| 2026-07-03 | Phase 1.13 remediation — CSP + focus trap | `mobile-first-qa-playbook` (real-device axis, Safari WebDriver) | PASS — both findings fixed and re-verified | `check3_panels` flipped False→True in `qa_suite.py` re-run; CSP fix confirmed via real Safari against `:3000` production-mode server; full writeup in `Blueprints/handoffs/2026-07-03-phase1-13-remediation-csp-and-focus-trap.md` | None |
+| 2026-07-03 | Phase 1.13 remediation — CSP + focus trap | `slops-git-flow` | N/A — no commit yet | Diff scoped to `src/middleware/security.js`, `frontend/src/lib/useFocusTrap.js`, `frontend/src/components/layout/Header.jsx`, `frontend/src/components/ui/HelpButton.jsx` on existing branch `frontend/phase1-13-mobile-qa-sweep` | Awaiting Justin's explicit go-ahead to commit per global policy |
 
 ## Monthly Review
 
