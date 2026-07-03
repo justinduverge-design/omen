@@ -18,6 +18,13 @@
 - **Doctrine inheritance made explicit at the top of the spec.** The spec is implementation reference; upstream doctrine (`brand-system.md`, fan-experience doctrine v1, corvus-ux-ui-direction-v1) wins on conflict.
 - **Marketing pillars question surfaced** — the four brand-board pillars (DETECT / ANALYZE / PREDICT / WIN) are parked as provisional per `brand-system.md` §10a. Not used anywhere in the design system spec.
 
+## Decisions Added 2026-07-03 (Transparent Lockup)
+
+- **Transparent lockup is stacked on `frontend/logo-suite-swap`, not `origin/main`.** `frontend/logo-suite-swap` contains the prior logo slot swaps (`bab6b1a`) and public asset copies, but it is not yet merged into `origin/main`. `frontend/transparent-lockup` was branched from `frontend/logo-suite-swap` so this pass stays a small follow-up instead of redoing the logo-suite work.
+- **Emblem uses a mask, wordmark uses a dark key.** The emblem's outer background and shield interior are both near-black (`#070707` outside vs. `#060505` interior), so a global chroma key would risk punching holes through the shield. The transparent asset uses an edge-connected dark-background mask for the emblem and a simple dark key for the standalone wordmark, where transparent letter counters are desired.
+- **Baked-black lockup remains as fallback.** `omen-horizontal-lockup.png` is not deleted or modified in this pass. The app references the transparent variant; retirement of the baked-black fallback should wait until the stacked logo-suite + transparent branches land together and are visually checked on the final target branch.
+- **Canonical `logos/` source gap preserved as a branch-base caveat.** The logo-suite branch has the served public copies, while the Phase 1.13 branch has the tracked `logos/` directory. This pass creates only `logos/omen-horizontal-lockup-transparent.png` on the stacked branch rather than importing the full logo source directory as unrelated scope.
+
 ## Active Decisions
 
 - Corvus is the Fantasy Football MVP product.

@@ -177,25 +177,12 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
           className="flex items-center justify-between px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]"
           style={{ borderBottom: '1px solid var(--color-border)' }}
         >
-          {/* Logo mark placeholder — swap with SVG when logo is ready */}
-          <div className="flex items-center gap-2.5">
-            <div
-              className="grid h-7 w-7 place-items-center rounded-full"
-              style={{ border: '1px solid var(--color-border)' }}
-            >
-              <span
-                className="font-display text-sm leading-none"
-                style={{ color: 'var(--color-accent)' }}
-              >
-                C
-              </span>
-            </div>
-            <span
-              className="font-display text-[15px] uppercase tracking-[0.34em]"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Omen
-            </span>
+          <div className="flex items-center">
+            <img
+              src="/omen-horizontal-lockup-transparent.png"
+              alt="Omen"
+              className="h-7 w-auto"
+            />
           </div>
 
           <button
@@ -326,29 +313,16 @@ export default function Header() {
             <HamburgerIcon />
           </button>
 
-          {/* Wordmark — logo SVG slots in here when ready */}
           <Link
             to="/"
+            className="flex min-h-[44px] items-center rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
             className="flex min-h-[44px] items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
           >
-            {/* Circle monogram — placeholder for real logo */}
-            <div
-              className="grid h-7 w-7 place-items-center rounded-full"
-              style={{ border: '1px solid var(--color-border)' }}
-            >
-              <span
-                className="font-display text-sm leading-none transition-colors"
-                style={{ color: 'var(--color-accent)' }}
-              >
-                C
-              </span>
-            </div>
-            <span
-              className="font-display text-[15px] uppercase tracking-[0.34em]"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Omen
-            </span>
+            <img
+              src="/omen-horizontal-lockup-transparent.png"
+              alt="Omen"
+              className="h-8 w-auto"
+            />
           </Link>
 
         </div>
