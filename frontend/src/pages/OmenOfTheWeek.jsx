@@ -254,7 +254,10 @@ function ConfidenceBar({ confidence }) {
       <div className="mb-1.5 flex items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-widest text-slate-400">Confidence</p>
         <p className="text-right text-xs font-semibold text-white">
-          {score}%{confidence.label ? ` - ${confidence.label.replace('_', ' ')}` : ''}
+          <span className="font-mono tabular-nums">{score}%</span>
+          {confidence.label ? (
+            <span className="font-sans"> - {confidence.label.replace('_', ' ')}</span>
+          ) : null}
         </p>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">

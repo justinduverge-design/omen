@@ -238,7 +238,7 @@ function OmenMiniCard() {
           </div>
         </div>
         <a
-          className="mt-4 block text-center text-xs uppercase tracking-[0.24em] text-[#C9A44C]/65 transition-colors hover:text-[#C9A44C]"
+          className="mt-4 flex min-h-[44px] items-center justify-center text-center text-xs uppercase tracking-[0.24em] text-[#C9A44C]/65 transition-colors hover:text-[#C9A44C]"
           href="/login?next=/omen"
         >
           See your Omen →
@@ -287,7 +287,7 @@ function DraftAssistantMiniCard() {
           ))}
         </div>
         <a
-          className="block text-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75"
+          className="flex min-h-[44px] items-center justify-center text-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75"
           href="/draft"
         >
           Open Draft Assistant →
@@ -353,7 +353,7 @@ function HeroWaitlist() {
         {PLATFORMS.map((p) => (
           <label
             key={p}
-            className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex min-h-[44px] cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               platform === p
                 ? 'border-[#C9A44C]/55 bg-[#C9A44C]/14 text-[#C9A44C]'
                 : 'border-white/14 bg-transparent text-[#F4EFE1]/40 hover:border-white/28 hover:text-[#F4EFE1]/65'
@@ -487,7 +487,7 @@ function WaitlistSection() {
                   {PLATFORMS.map((p) => (
                     <label
                       key={p}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`flex min-h-[44px] cursor-pointer items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         platform === p
                           ? 'border-[#C9A44C]/55 bg-[#C9A44C]/14 text-[#C9A44C]'
                           : 'border-white/14 bg-transparent text-[#F4EFE1]/45 hover:border-white/28 hover:text-[#F4EFE1]/70'
@@ -584,7 +584,7 @@ export default function Landing() {
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <SignInForm />
               <a
-                className="mt-3 inline-flex items-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/38 transition-colors hover:text-[#F4EFE1]/65"
+                className="mt-3 inline-flex min-h-[44px] items-center text-xs uppercase tracking-[0.24em] text-[#F4EFE1]/38 transition-colors hover:text-[#F4EFE1]/65"
                 href="/about"
               >
                 Try the live tool →

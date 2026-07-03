@@ -1,14 +1,14 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-07-02 (Codex closeout); refreshed after Phase 1.12 local closeout.** Phase 1.12 (gray contrast pass + Standings refinements) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.9, 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
+**Auto-populated 2026-07-02 (Codex closeout); refreshed after Phase 1.12 local closeout; refreshed again after Claude's Phase 1.13 partial pass.** Phase 1.12 (gray contrast pass + Standings refinements) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.13 (iOS Safari mobile QA sweep) is partial: 6/13 routes swept and fixed, 7 authenticated routes and 2 deferred ARIA judgment calls remain — see below and the handoff. Phase 1.9, 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
 
 ## Active Task
 
-None pinned after Phase 1.12 local closeout.
+None pinned. Phase 1.13 has open remaining scope (see Blockers Surfaced) — next agent should either continue it or pull a fresh top-5 item; both are valid since it isn't pinned.
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.13 — iOS Safari mobile QA sweep.** Routed-page iOS Safari sweep plus radiogroup semantics for mutually exclusive chips. Done docs: page + design.
+1. **Phase 1.13 — iOS Safari mobile QA sweep (continue).** 7 authenticated routes still unswept (sandbox auth limitation); `ConnectLeague.jsx` ESPN browser selector (tabs pattern) and `AppearancePicker.jsx` 32-team grid (2D keyboard nav) ARIA conversions deferred as follow-ups. See `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md`. Done docs: page + design.
 2. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
 3. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
 4. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
@@ -18,6 +18,7 @@ None pinned after Phase 1.12 local closeout.
 
 - **Phase 1.9 (metallic tier treatment)** is complete locally — not pushed/merged/deployed. Applied only to the Draft Assistant card-header ordinal pill; the `Omen #N` ADP-footer pill was deliberately left unchanged per the locked footer structure. Appearance-tile metallic add-on stays out of scope, unbuilt.
 - **Phase 1.12 (gray contrast pass + Standings refinements)** is complete locally — not pushed/merged/deployed. The retired Hall of Records username target was closed as documentation debt because `/ledger` no longer exposes that column; no fake replacement surface was added.
+- **Phase 1.13 (iOS Safari mobile QA sweep) is partial locally on branch `frontend/phase1-13-mobile-qa-sweep` (commit `f826d2e`)** — not pushed/merged/deployed. Done: the named `DraftAssistant.jsx` radiogroup conversion, a full touch-target/overflow sweep of all 6 public routes at 375/390/430px (8 violations fixed), a focus-ring gap the new radiogroup surfaced, and an app-wide keyboard-trap fix on both slide-in panels (`inert` attribute, using the `inert={open ? undefined : ''}` idiom since React 18 has no native boolean handling for `inert`). Not done: the 7 authenticated routes (sandbox Supabase auth limitation, same as every recent phase) and two ARIA judgment calls (`ConnectLeague.jsx` browser selector — more correctly a tabs pattern; `AppearancePicker.jsx` 32-team grid — needs 2D keyboard nav), both deferred as separate follow-ups rather than force-fit. Justin has an iPhone + Mac for real-device QA once this deploys; a manual checklist was handed to him directly in-session (not duplicated into a file). Full details: `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md`.
 - **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
 - **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.

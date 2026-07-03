@@ -6,7 +6,6 @@ import { setDataMode } from '../lib/dataMode.js';
 import {
   MARQUEE_ABBRS,
   NFL_TEAMS,
-  TEAMS_BY_DIV,
   getTeamPalette,
 } from '../data/nflTeams.js';
 import { getTeamTemplate } from '../lib/teamTemplate.js';
@@ -35,6 +34,9 @@ const ROLE_LABEL = {
   mute:       'Mute',
   'accent-pop': 'Accent Pop',
 };
+
+const sortByTeamName = (a, b) =>
+  a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
 function Swatch({ color }) {
   return (
@@ -164,14 +166,15 @@ export default function Appearance() {
   const palette  = useMemo(() => getTeamPalette(teamAbbr, variant), [teamAbbr, variant]);
   const template = useMemo(() => getTeamTemplate(teamAbbr, variant), [teamAbbr, variant]);
 
+  const sortedTeams = useMemo(
+    () => [...NFL_TEAMS].sort(sortByTeamName),
+    [],
+  );
   const marqueeTeams = useMemo(
-    () => MARQUEE_ABBRS.map((a) => NFL_TEAMS.find((t) => t.abbr === a)),
-    [],
+    () => sortedTeams.filter((t) => MARQUEE_ABBRS.includes(t.abbr)),
+    [sortedTeams],
   );
-  const extraTeams = useMemo(
-    () => TEAMS_BY_DIV.filter((t) => !MARQUEE_ABBRS.includes(t.abbr)),
-    [],
-  );
+  const visibleTeams = expanded ? sortedTeams : marqueeTeams;
 
   const gridDisabled = mode !== 'team';
   const themed = mode === 'team' && Boolean(selectedTeam);
@@ -267,16 +270,7 @@ export default function Appearance() {
               style={{ maxWidth: 680 }}
               aria-disabled={gridDisabled}
             >
-              {marqueeTeams.map((team) => (
-                <TeamTile
-                  key={team.abbr}
-                  team={team}
-                  selected={teamAbbr === team.abbr}
-                  disabled={gridDisabled}
-                  onClick={() => handleSelectTeam(team.abbr)}
-                />
-              ))}
-              {expanded && extraTeams.map((team) => (
+              {visibleTeams.map((team) => (
                 <TeamTile
                   key={team.abbr}
                   team={team}

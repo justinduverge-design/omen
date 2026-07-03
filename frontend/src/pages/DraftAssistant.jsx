@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
@@ -87,7 +87,7 @@ function ConfidenceBar({ score }) {
           style={confidenceBarStyle(score)}
         />
       </div>
-      <span className="w-10 text-right text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
+      <span className="w-10 text-right font-mono text-xs font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
     </div>
   );
 }
@@ -280,6 +280,21 @@ export default function DraftAssistant({ platforms }) {
   const [adpLoading, setAdpLoading] = useState(false);
   const [fixture, setFixture] = useState(null);
   const { mode, team: teamAbbr } = useTheme();
+  const scoringFormatRefs = useRef([]);
+
+  function handleScoringFormatKeyDown(event, index) {
+    const { key } = event;
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(key)) return;
+    event.preventDefault();
+    let nextIndex = index;
+    if (key === 'ArrowRight' || key === 'ArrowDown') nextIndex = (index + 1) % SCORING_FORMATS.length;
+    else if (key === 'ArrowLeft' || key === 'ArrowUp') nextIndex = (index - 1 + SCORING_FORMATS.length) % SCORING_FORMATS.length;
+    else if (key === 'Home') nextIndex = 0;
+    else if (key === 'End') nextIndex = SCORING_FORMATS.length - 1;
+    setScoringFormat(SCORING_FORMATS[nextIndex].value);
+    scoringFormatRefs.current[nextIndex]?.focus();
+  }
+
   const cry = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
     return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cry ?? null;
@@ -417,22 +432,26 @@ export default function DraftAssistant({ platforms }) {
         onSubmit={handleSubmit}
       >
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <legend id="scoring-format-legend" className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Scoring Format
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {SCORING_FORMATS.map(({ value, label }) => {
+          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-labelledby="scoring-format-legend">
+            {SCORING_FORMATS.map(({ value, label }, index) => {
               const isSelected = scoringFormat === value;
               return (
                 <button
                   key={value}
-                  aria-pressed={isSelected}
-                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
+                  ref={(el) => { scoringFormatRefs.current[index] = el; }}
+                  role="radio"
+                  aria-checked={isSelected}
+                  tabIndex={isSelected ? 0 : -1}
+                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
                   style={isSelected
                     ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
                     : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
                   type="button"
                   onClick={() => setScoringFormat(value)}
+                  onKeyDown={(e) => handleScoringFormatKeyDown(e, index)}
                 >
                   {label}
                 </button>
@@ -483,7 +502,7 @@ export default function DraftAssistant({ platforms }) {
                 <button
                   key={pos}
                   aria-pressed={isSelected}
-                  className="inline-flex min-h-[44px] items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
                   style={isSelected
                     ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
                     : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
