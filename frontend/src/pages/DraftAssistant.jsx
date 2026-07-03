@@ -87,7 +87,7 @@ function ConfidenceBar({ score }) {
           style={confidenceBarStyle(score)}
         />
       </div>
-      <span className="w-10 text-right text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
+      <span className="w-10 text-right font-mono text-xs font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
     </div>
   );
 }

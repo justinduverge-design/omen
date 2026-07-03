@@ -1,4 +1,22 @@
-# Corvus Decision Log
+# Omen Decision Log
+
+*(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
+
+## Decisions Added 2026-07-03 (Design System v2 Reconciliation)
+
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` reconciled in place → **v2**. Filename preserved for reference compatibility.
+- **Palette caught up to production code.** `frontend/src/index.css` has been ahead of the spec since the 2026-06-22 rebrand. Spec now reflects reality:
+  - Aged Brass `#A67C2E` replaces v1 Antique Gold `#B8952A`.
+  - Verdigris Green `#2F7D5B` replaces v1 Electric Violet `#5B2D8E`.
+  - Deep Crimson `#7E1717` replaces v1 `#8B1A1A`.
+  - Weathered Umber `#5A3A25` added (new since v1).
+  - `--color-text-on-accent: #0A0A0B` added (new since v1).
+- **Tailwind `gold` alias is preserved by name but points at Aged Brass hex.** No codebase-wide rename of `text-gold` / `bg-gold-light` / `border-gold` needed; all existing class references now resolve to the new brass values.
+- **DM Mono is a third loaded font**, used for numeric/code-adjacent contexts. Not yet cross-referenced in `Brand/brand-system.md` §8 — flagged as follow-up for that doc's next reconciliation.
+- **Phase 1.x subsystems indexed as a new §"Phase 1.x Additions"** in the design system spec — team-theming, motif overlay, cultural-moment overlay, position chips, platform brand colors, confidence gradient endpoints, metallic tier palette, demo accent. Each with its own token map, consuming lib pointer, and handoff reference.
+- **Data-legibility invariant restated in the spec** as an explicit list: risk, confidence gradient, data-source, position chips, platform colors, and demo accent own their own colors and are never overridden by team color or moment overlay. Direct restatement of the fan-experience doctrine v1 invariant.
+- **Doctrine inheritance made explicit at the top of the spec.** The spec is implementation reference; upstream doctrine (`brand-system.md`, fan-experience doctrine v1, corvus-ux-ui-direction-v1) wins on conflict.
+- **Marketing pillars question surfaced** — the four brand-board pillars (DETECT / ANALYZE / PREDICT / WIN) are parked as provisional per `brand-system.md` §10a. Not used anywhere in the design system spec.
 
 ## Active Decisions
 
@@ -323,3 +341,10 @@
 - **Helmet's `upgrade-insecure-requests` CSP default broke the SPA outright over plain HTTP in real Safari.** `useDefaults: true` silently merges this directive in unless explicitly excluded per-key. Since `src/server.js` terminates TLS at the Nginx/Oracle LB (`trust proxy` set to `1`), the Node process only ever speaks plain HTTP — including for direct local/LAN QA — and WebKit's enforcement of that directive (rewriting every same-origin asset fetch to `https://`) fails with nothing on TLS at that port, so the app never mounted. Fixed with a single explicit `upgradeInsecureRequests: null` in `src/middleware/security.js`, which Helmet 7.2.0 treats as excluding just that one default (confirmed via `normalizeDirectives()` source) — all other CSP hardening defaults stay on. Verified end-to-end against the real production-mode server on `:3000` with real `webdriver.Safari()`. This touches `src/middleware/security.js`, which sits near this repo's hard-boundary line (security headers, not auth/secrets/deploy config) — done under the user's explicit "act in the two findings" instruction, not pulled unprompted. Full writeup: [`Blueprints/handoffs/2026-07-03-phase1-13-remediation-csp-and-focus-trap.md`](../Blueprints/handoffs/2026-07-03-phase1-13-remediation-csp-and-focus-trap.md).
 - **The nav drawer / Help panel "missing focus trap" finding was reframed mid-investigation: it's compounded by a macOS Safari default-mode quirk, not just a missing trap.** Diagnostic scripts showed the drawer's interactive elements were in correct DOM order and `.focus()`-able, yet real Safari `Tab` skipped them entirely — because Safari's default keyboard mode (no "Full Keyboard Access") excludes plain `<button>`/`<a href>` elements from native Tab order unless they carry an explicit `tabindex` attribute. A trap that only guards the first/last element (relying on native traversal for interior hops) would still fail in Safari, since interior hops between un-indexed links are exactly what gets skipped. Built `frontend/src/lib/useFocusTrap.js`, which intercepts **every** Tab/Shift+Tab keypress while active and drives focus via `.focus()` (which bypasses the Safari restriction entirely) rather than letting any native traversal happen inside the container. Wired into both `Header.jsx`'s `NavDrawer` and `HelpButton.jsx`'s `HelpPanel`. Verified with real Safari WebDriver: 12+ forward and reverse Tab hops cycle correctly inside each panel with zero escapes, across multiple full wrap cycles. `qa_suite.py`'s `check3_panels` — the one failing check in the original Phase 1.13 sweep — now passes.
 - **Both fixes verified with real Safari WebDriver, not simulated/scripted DOM events, matching Phase 1.13's original QA methodology.** Neither commit has been made — changes sit unstaged on `frontend/phase1-13-mobile-qa-sweep` pending Justin's explicit commit go-ahead, per standing instruction.
+
+## Decisions Added 2026-07-03 (Phase 1.13 discrete fixes)
+
+- **Phase 1.13 discrete fixes are minimum repairs, not a full colorway author pass.** The `official` / `special` palette mode names stay as code-level compatibility vocabulary, while `nflTeams.js` now maps them for humans as War Room primary skin and Color Rush alt skin. CLE and LAR remain official-only with TODOs for the extended-roster author pass rather than auto-generated regional palettes.
+- **Appearance team selection is one alphabetical list by team name.** The collapsed marquee set and expanded all-team grid now both sort by the display team name, not division order, so the picker behaves like a scan-first settings control.
+- **Duplicate special-skin repairs use thresholded color nudges only.** The pass used the existing palette data, CIE76 delta-E thresholding, and contrast against Omen bone; it nudged duplicate-looking special primaries until each repaired pair cleared delta-E >= 15 and 4.5:1 contrast. It did not change role assignments, cultural anchors, chants, or team copy except the `Birds Gang` typo.
+- **Branch/worktree caveat preserved.** Work completed on the existing `frontend/phase1-13-mobile-qa-sweep` branch because the checkout already had unrelated dirty files and an in-flight Phase 1.13 remediation context. Nothing was staged, committed, pushed, merged, or deployed in this pass.
