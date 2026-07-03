@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useFocusTrap } from '../../lib/useFocusTrap.js';
 
 // ── Page-specific help content ─────────────────────────────────────────────
 
@@ -140,6 +141,8 @@ function HelpPanel({ open, onClose, pathname }) {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
+
+  useFocusTrap(panelRef, open);
 
   return (
     <>

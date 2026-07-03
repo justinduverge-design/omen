@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { supabase } from '../../lib/supabase.js';
 import { useTheme } from '../../lib/themeMode.js';
+import { useFocusTrap } from '../../lib/useFocusTrap.js';
 
 // ── Nav map ────────────────────────────────────────────────────────────────
 // Items with `auth: true` only render when the user is signed in.
@@ -139,6 +140,8 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
+
+  useFocusTrap(drawerRef, open);
 
   return (
     <>

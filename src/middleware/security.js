@@ -32,6 +32,19 @@ const helmetMiddleware = helmet({
       fontSrc:    ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc:  ["'none'"],
       frameSrc:   ["'none'"],
+      // `useDefaults` stays on (true) so Helmet's other CSP defaults
+      // (base-uri, form-action, frame-ancestors, script-src-attr, etc.)
+      // still apply as extra hardening. But `upgrade-insecure-requests` is
+      // one of those defaults, and it breaks this app: TLS is terminated
+      // at the Nginx/LB layer (see `trust proxy` below), so the Node
+      // process itself only ever speaks plain HTTP -- including when hit
+      // directly for local/LAN device QA. Real WebKit enforces that
+      // directive by silently rewriting every same-origin http:// asset
+      // fetch to https://, which fails outright with nothing listening on
+      // TLS, and the SPA never mounts (confirmed via real Safari WebDriver
+      // testing, phase 1.13 mobile QA sweep, 2026-07-03). Setting it to
+      // `null` explicitly excludes just this one default directive.
+      upgradeInsecureRequests: null,
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
