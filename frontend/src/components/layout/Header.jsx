@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { supabase } from '../../lib/supabase.js';
 import { useTheme } from '../../lib/themeMode.js';
+import { useFocusTrap } from '../../lib/useFocusTrap.js';
 
 // ── Nav map ────────────────────────────────────────────────────────────────
 // Items with `auth: true` only render when the user is signed in.
@@ -140,6 +141,8 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  useFocusTrap(drawerRef, open);
+
   return (
     <>
       {/* Scrim */}
@@ -161,6 +164,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
+        inert={open ? undefined : ''}
         className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col transition-transform duration-300 ease-in-out motion-reduce:transition-none"
         style={{
           background: 'var(--color-surface-1)',
@@ -325,7 +329,7 @@ export default function Header() {
           {/* Wordmark — logo SVG slots in here when ready */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
+            className="flex min-h-[44px] items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] rounded-sm"
           >
             {/* Circle monogram — placeholder for real logo */}
             <div

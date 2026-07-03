@@ -272,7 +272,7 @@ export default function Login() {
         {/* Footer links */}
         <div className="mt-8 text-center">
           <a
-            className="text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
+            className="flex min-h-[44px] items-center justify-center text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
             href="/trade"
           >
             Try Trade Analyzer without signing in →

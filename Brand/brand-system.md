@@ -3,7 +3,7 @@
 **Status:** Canonical | Last updated: 2026-06-22
 **Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
-**Logos:** `logos/` — primary emblem, standalone wordmark, horizontal lockup, app icon (1024px), favicon set (16/32/48/64/180/256/512px), full brand board. All PNGs, solid black backgrounds.
+**Logos:** canonical asset set at `logos/` (13 files) — primary emblem (shield), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), full brand board, and PNG preview sheet. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
 **Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
 
 ---
@@ -189,6 +189,21 @@ Every feature must serve at least one. A feature that serves none does not belon
 
 ---
 
+## 10a. Marketing Pillars (Provisional)
+
+The brand board (`logos/omen-full-brand-board.png`) names four pillars for external positioning:
+
+1. **DETECT THE SIGNAL**
+2. **ANALYZE THE DATA**
+3. **PREDICT THE OUTCOME**
+4. **WIN WITH CONFIDENCE**
+
+**Status: provisional.** The concept is right — this is the shape of what Omen does. The specific phrasing was drafted on the brand board and has not been intentionally locked by Justin as our marketing voice. Do not put these on marketing pages, ads, or in-app copy until confirmed. Parked as an open decision, same posture as Decision 13 of `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md`.
+
+**Do not confuse with §10 Product Pillars.** §10's Decision Intelligence / Engagement / Trust / Accessibility are *internal engineering principles* — every feature must serve at least one. §10a's Detect / Analyze / Predict / Win are (would be) *external marketing pillars* — how Omen tells its own story publicly. Different jobs, different scopes. Do not mix.
+
+---
+
 ## 11. Non-Negotiables
 
 - No paid dependencies without CEO approval
@@ -200,7 +215,46 @@ Every feature must serve at least one. A feature that serves none does not belon
 
 ---
 
-## 12. Open Questions / Later Decisions
+## 12. Logo Usage
+
+**Load-bearing rule:** the emblem is a shield. The shield is its own frame. It never sits inside a circle. It sits inside a rounded-square only when the OS demands one — that's the favicon / app-icon container from the brand board, and nowhere else.
+
+### 12.1 Asset inventory
+
+| Asset | File | Use it here | Never use it here |
+|---|---|---|---|
+| Primary emblem | `omen-primary-emblem.png` | Alone: favicon slots, small-badge contexts, share-card corner mark, notification-icon parent. Paired with wordmark: use the horizontal lockup instead. | Alone in any large / hero context — pair with the wordmark or use the lockup. |
+| Standalone wordmark | `omen-standalone-wordmark.png` | Typography-lockup moments where the emblem would compete or clutter — footer sign-offs, share-card headings, marketing hero paragraphs. | Anywhere the shield helps identity carry — use the horizontal lockup. |
+| Horizontal lockup | `omen-horizontal-lockup.png` | **Default logo for identity slots.** `Header.jsx`, `NavDrawer`, `Landing.jsx` hero, `OmenLanding.jsx`, marketing hero, share-card header, Sign-In screen. | Inside anything smaller than ~32px tall — wordmark becomes illegible; use the emblem alone. |
+| Favicon set | `omen-favicon-{16,32,48,64,180,256,512}.png` | Browser tab, PWA manifest, apple-touch-icon, taskbar / home-screen tiles. | Inside the app UI as a logo. |
+| App icon | `omen-favicon-app-icon.png` | PWA install / home-screen icon slot where a rounded-square badge is expected. | Inside the app UI. |
+| Brand board | `omen-full-brand-board.png` | Doctrine reference only — this document, pitch decks, contractor handoffs. | Never as UI. Never in the app. |
+| Preview sheet | `omen-png-preview-sheet.png` | Doctrine reference / QA of the asset set. | Never as UI. |
+
+### 12.2 Framing rule
+
+- **In-app UI:** the emblem, standalone wordmark, and horizontal lockup are presented **raw** — no border, no glow, no drop shadow, no circular mask, no square container. Each asset already carries its own frame (the shield's gold border; the wordmark's built-in negative space). Ambient effects around the mark (a subtle background gradient, a section divider, a hairline rule) are fine. Wrappers that *contain* the mark are not.
+- **App-icon slot only exception:** the rounded-square dark badge shown on the brand board is the *only* container the shield ever sits inside. This is because the OS demands a square shape for install icons. Nowhere else.
+
+### 12.3 Wordmark rule — asset, not text
+
+The wordmark **is the designed asset** (`omen-standalone-wordmark.png` or its embedded appearance inside the horizontal lockup). Alegreya-Sans-rendered "Omen" is a *text label* — used in `<title>`, meta tags, ARIA labels, `alt` attributes, and inline body copy where the visual mark cannot render. Where the visual identity is expressed, the asset is used, not the text.
+
+**The current `[C]`-in-circle-plus-text-wordmark treatment in `Header.jsx` and `NavDrawer` is doctrine debt.** It predates the wordmark asset shipping. The fix — swap for the horizontal lockup — is scoped in the Codex prompt at `Blueprints/prompts/codex-logo-suite-swap.md`.
+
+### 12.4 Build-serve requirement
+
+Canonical assets live at `omen/logos/`. Build-served copies must live at `omen/frontend/public/` — Vite serves from `public/`, not from `logos/`. Any asset used in the app must exist in both locations. When the canonical asset is updated, the build-served copy must be re-copied in the same commit.
+
+**Current gap (as of 2026-07-03):** the horizontal lockup, standalone wordmark, app-icon, and the 48 / 64 favicon sizes exist canonically at `logos/` but have not been copied to `frontend/public/`. The Vite build cannot currently serve them. Closing this gap is scoped in the Codex prompt referenced above.
+
+### 12.5 Inheritance from the fan-experience doctrine
+
+Per `slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md`, the load-bearing principle is *Look Good — Play Good.* The logo-usage rules above serve that principle directly: the shield's own gold border does the framing job better than a redundant CSS ring, and the horizontal lockup expresses more identity per pixel than an emblem-plus-loose-text pattern. Rule of thumb: **presence of identity, not decoration of identity.**
+
+---
+
+## 13. Open Questions / Later Decisions
 
 - Paid tier name (TBD)
 - League hosting tier name (TBD)

@@ -29,6 +29,14 @@ import { MOMENT_DATES } from './nflCalendar.js';
  *     City), NO "Mardi Gras" (Krewe palette), TB "Gasparilla" (annual
  *     pirate festival), etc.
  *
+ *   Doctrine-vocabulary mapping (2026-07-03 fan-experience doctrine v1):
+ *     mode: 'official' <-> "War Room" primary skin - inside, institutional, chants as curated art
+ *     mode: 'special'  <-> "Color Rush" alt skin - outside, city on game day, chants as graffiti
+ *
+ *   Doctrine reference: slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md
+ *   Colorway spec:      slops-saloon/Blueprints/specs/team-colorway-system-spec-v1.md
+ *   Chant spec:         slops-saloon/Blueprints/specs/chant-and-fan-copy-spec-v1.md
+ *
  * ── Schema ─────────────────────────────────────────────────────────────────
  *
  *   team.palettes: [{ mode, name, surfaceRole, colors[], culturalAnchor? }]
@@ -162,7 +170,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Bunker Hill', surfaceRole: 'neutral',
         colors: [
-          { hex: '#1A2B4F', name: 'Continental Navy', role: 'primary' },
+          { hex: '#274075', name: 'Continental Navy', role: 'primary' },
           { hex: '#9C2A28', name: 'Brick Crimson',    role: 'secondary' },
           { hex: '#F0E9D6', name: 'Parchment',        role: 'neutral' },
           { hex: '#7A7E83', name: 'Musket Steel',     role: 'mute' },
@@ -203,7 +211,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Hempstead Green', surfaceRole: 'primary',
         colors: [
-          { hex: '#0F4A35', name: 'Hempstead Pine', role: 'primary' },
+          { hex: '#062017', name: 'Hempstead Pine', role: 'primary' },
           { hex: '#7A8488', name: 'Runway Grey',    role: 'secondary' },
           { hex: '#F5F1E8', name: 'Long Beach Cream', role: 'neutral' },
           { hex: '#0A1A2A', name: 'Atlantic Navy',  role: 'mute' },
@@ -233,7 +241,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: "Poe's Raven", surfaceRole: 'mute',
         colors: [
-          { hex: '#3D2899', name: 'Concord Violet', role: 'primary' },
+          { hex: '#592899', name: 'Concord Violet', role: 'primary' },
           { hex: '#B89F37', name: 'Brass Cup',      role: 'secondary' },
           { hex: '#080608', name: 'Raven Black',    role: 'mute' },
           { hex: '#F2EDDA', name: 'Old Parchment',  role: 'neutral' },
@@ -272,6 +280,7 @@ export const NFL_TEAMS = [
     cry:        'Who Dey',
     wardRoom:   'They gotta play us.',
   },
+  // TODO(colorway-spec-v1): Add verified Color Rush palette via slops-saloon/Blueprints/specs/team-colorway-system-spec-v1.md Team Roster extended-roster author pass.
   {
     abbr: 'CLE', city: 'Cleveland', name: 'Browns', div: 'AFC North',
     palettes: [
@@ -306,7 +315,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'US Steel', surfaceRole: 'primary',
         colors: [
-          { hex: '#0D0F12', name: 'Coal Black',    role: 'primary' },
+          { hex: '#38404D', name: 'Coal Black',    role: 'primary' },
           { hex: '#FFB612', name: 'Molten Gold',   role: 'secondary' },
           { hex: '#1F5BA8', name: 'Steel-Mill Blue', role: 'tertiary' },
           { hex: '#B85C1F', name: 'Iron Ore',      role: 'accent-pop' },
@@ -351,7 +360,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Mission Control', surfaceRole: 'primary',
         colors: [
-          { hex: '#0A2540', name: 'Mission Control Blue', role: 'primary' },
+          { hex: '#0A1740', name: 'Mission Control Blue', role: 'primary' },
           { hex: '#C8102E', name: 'Console Red',          role: 'secondary' },
           { hex: '#F0EBE0', name: 'Readout Cream',        role: 'neutral' },
           { hex: '#E9A23B', name: 'Indicator Amber',      role: 'accent-pop' },
@@ -378,7 +387,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Loud House', surfaceRole: 'neutral',
         colors: [
-          { hex: '#002C5F', name: 'Speed Blue',     role: 'primary' },
+          { hex: '#00145F', name: 'Speed Blue',     role: 'primary' },
           { hex: '#C0C5C8', name: 'Lucas Chrome',   role: 'secondary' },
           { hex: '#FAFAFA', name: 'Spotlight White', role: 'neutral' },
           { hex: '#1A1A1A', name: 'Checker Black',  role: 'mute' },
@@ -406,7 +415,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Marsh Teal', surfaceRole: 'primary',
         colors: [
-          { hex: '#005D6E', name: 'Marsh Teal',    role: 'primary' },
+          { hex: '#006E63', name: 'Marsh Teal',    role: 'primary' },
           { hex: '#D7A22A', name: 'Sunset Gold',   role: 'secondary' },
           { hex: '#0F1A1F', name: 'Cypress Black', role: 'mute' },
           { hex: '#EFE6CC', name: 'Reed Cream',    role: 'neutral' },
@@ -435,7 +444,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Music Row', surfaceRole: 'primary',
         colors: [
-          { hex: '#0C2340', name: 'Nashville Navy', role: 'primary' },
+          { hex: '#143A6B', name: 'Nashville Navy', role: 'primary' },
           { hex: '#4B92DB', name: 'Honky-Tonk Blue', role: 'secondary' },
           { hex: '#D4A24C', name: 'Whiskey Amber', role: 'accent-pop' },
           { hex: '#0A0A0B', name: 'Stage Black',   role: 'mute' },
@@ -465,7 +474,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Mile High Sunset', surfaceRole: 'primary',
         colors: [
-          { hex: '#FB4F14', name: 'Sunset Orange',  role: 'primary' },
+          { hex: '#BF3303', name: 'Sunset Orange',  role: 'primary' },
           { hex: '#002244', name: 'Mountain Navy',  role: 'secondary' },
           { hex: '#1F1A2C', name: 'Twilight Indigo', role: 'mute' },
           { hex: '#FCE5D0', name: 'Altitude Cream', role: 'neutral' },
@@ -520,7 +529,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Black Hole', surfaceRole: 'primary',
         colors: [
-          { hex: '#0A0A0B', name: 'Black Hole',    role: 'primary' },
+          { hex: '#2E2E33', name: 'Black Hole',    role: 'primary' },
           { hex: '#C8CDCF', name: 'Strip Chrome',  role: 'secondary' },
           { hex: '#C8102E', name: 'Sin City Red',  role: 'accent-pop' },
           { hex: '#FAFAFA', name: 'Spotlight White', role: 'neutral' },
@@ -548,7 +557,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Pacific Beach', surfaceRole: 'neutral',
         colors: [
-          { hex: '#0080C6', name: 'Beach Blue',   role: 'primary' },
+          { hex: '#005F93', name: 'Beach Blue',   role: 'primary' },
           { hex: '#FFC20E', name: 'Bolt Yellow',  role: 'secondary' },
           { hex: '#FBF1D4', name: 'Sand Cream',   role: 'neutral' },
           { hex: '#002A5E', name: 'Pacific Navy', role: 'mute' },
@@ -606,7 +615,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Empire State', surfaceRole: 'primary',
         colors: [
-          { hex: '#0B2265', name: 'Empire Blue',  role: 'primary' },
+          { hex: '#103193', name: 'Empire Blue',  role: 'primary' },
           { hex: '#A71930', name: 'Top-Tier Red', role: 'secondary' },
           { hex: '#8C9094', name: 'Steel Gray',   role: 'mute' },
           { hex: '#EFEAE0', name: 'Limestone Cream', role: 'neutral' },
@@ -636,7 +645,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Liberty Bell', surfaceRole: 'primary',
         colors: [
-          { hex: '#004C54', name: 'Liberty Green',  role: 'primary' },
+          { hex: '#003754', name: 'Liberty Green',  role: 'primary' },
           { hex: '#C8A44A', name: 'Bell Brass',     role: 'secondary' },
           { hex: '#F0E9D6', name: 'Independence Cream', role: 'neutral' },
           { hex: '#4A4F52', name: 'Hall Stone',     role: 'mute' },
@@ -644,7 +653,7 @@ export const NFL_TEAMS = [
         culturalAnchor: { name: 'Liberty Bell / Independence Hall', year: 1751, kind: 'history' },
       },
     ],
-    cultureTag: 'Birds Gang',
+    cultureTag: 'Bird Gang',
     cry:        'Fly Eagles Fly',
     wardRoom:   "No one likes us, we don't care.",
   },
@@ -664,7 +673,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Go-Go Burgundy', surfaceRole: 'primary',
         colors: [
-          { hex: '#5A1414', name: 'Go-Go Burgundy', role: 'primary' },
+          { hex: '#841D1D', name: 'Go-Go Burgundy', role: 'primary' },
           { hex: '#FFB612', name: 'Cymbal Gold',    role: 'secondary' },
           { hex: '#0F0F12', name: 'Night Show',     role: 'mute' },
           { hex: '#E8DCC6', name: 'Conga Tan',      role: 'neutral' },
@@ -693,7 +702,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: "'85 Bears", surfaceRole: 'primary',
         colors: [
-          { hex: '#0B162A', name: 'Sweetness Navy',  role: 'primary' },
+          { hex: '#162B52', name: 'Sweetness Navy',  role: 'primary' },
           { hex: '#C83803', name: 'Payton Orange',   role: 'secondary' },
           { hex: '#1F2A1A', name: 'Soldier Field Grass', role: 'mute' },
           { hex: '#EAE2C9', name: 'Chalkboard Cream', role: 'neutral' },
@@ -721,7 +730,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: '8 Mile', surfaceRole: 'primary',
         colors: [
-          { hex: '#0076B6', name: 'Honolulu Blue', role: 'primary' },
+          { hex: '#005583', name: 'Honolulu Blue', role: 'primary' },
           { hex: '#A8AFB4', name: 'Mill Silver',   role: 'secondary' },
           { hex: '#1A1A1A', name: 'Concrete Black', role: 'mute' },
           { hex: '#EFEAE0', name: 'Diner Cream',   role: 'neutral' },
@@ -768,7 +777,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Lambeau Tundra', surfaceRole: 'primary',
         colors: [
-          { hex: '#1A2E27', name: 'Tundra Green',  role: 'primary' },
+          { hex: '#080D0B', name: 'Tundra Green',  role: 'primary' },
           { hex: '#FFB612', name: 'Sunset Gold',   role: 'secondary' },
           { hex: '#F0F4F4', name: 'Ice White',     role: 'neutral' },
           { hex: '#3A4642', name: 'Pole Steel',    role: 'mute' },
@@ -829,7 +838,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Paisley Park', surfaceRole: 'primary',
         colors: [
-          { hex: '#4F2683', name: 'Paisley Purple', role: 'primary' },
+          { hex: '#6731AB', name: 'Paisley Purple', role: 'primary' },
           { hex: '#FFC62F', name: 'Cymbal Gold',    role: 'secondary' },
           { hex: '#1F0A2C', name: 'Sign of the Times', role: 'mute' },
           { hex: '#EDE6F5', name: 'Pure Cream',     role: 'neutral' },
@@ -859,7 +868,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Stankonia', surfaceRole: 'mute',
         colors: [
-          { hex: '#A71930', name: 'Hartsfield Red', role: 'primary' },
+          { hex: '#A72619', name: 'Hartsfield Red', role: 'primary' },
           { hex: '#1A1A1A', name: 'A-Town Black',   role: 'mute' },
           { hex: '#C8A44A', name: 'Aquemini Gold',  role: 'secondary' },
           { hex: '#F0EBE0', name: 'Peach Cream',    role: 'neutral' },
@@ -888,7 +897,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Tobacco Road', surfaceRole: 'neutral',
         colors: [
-          { hex: '#0085CA', name: 'Carolina Blue', role: 'primary' },
+          { hex: '#006397', name: 'Carolina Blue', role: 'primary' },
           { hex: '#7B4F2E', name: 'Tobacco Brown', role: 'secondary' },
           { hex: '#FAF5E8', name: 'Cotton Cream',  role: 'neutral' },
           { hex: '#0F1A20', name: 'Tar Black',     role: 'mute' },
@@ -1012,7 +1021,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Sonoran Sunset', surfaceRole: 'neutral',
         colors: [
-          { hex: '#97233F', name: 'Sedona Red',    role: 'primary' },
+          { hex: '#972423', name: 'Sedona Red',    role: 'primary' },
           { hex: '#1A1A1A', name: 'Mesa Silhouette', role: 'mute' },
           { hex: '#F0E0CC', name: 'Sandstone Cream', role: 'neutral' },
           { hex: '#4A6A3C', name: 'Saguaro Green', role: 'accent-pop' },
@@ -1024,6 +1033,7 @@ export const NFL_TEAMS = [
     cry:        'Be Water',
     wardRoom:   'Red Sea rising.',
   },
+  // TODO(colorway-spec-v1): Add verified Color Rush palette via slops-saloon/Blueprints/specs/team-colorway-system-spec-v1.md Team Roster extended-roster author pass.
   {
     abbr: 'LAR', city: 'Los Angeles', name: 'Rams', div: 'NFC West',
     palettes: [
@@ -1059,7 +1069,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Gold Rush', surfaceRole: 'primary',
         colors: [
-          { hex: '#AA0000', name: 'Miner Red',    role: 'primary' },
+          { hex: '#770000', name: 'Miner Red',    role: 'primary' },
           { hex: '#B3995D', name: 'Placer Gold',  role: 'secondary' },
           { hex: '#3A2818', name: 'Slate Pickaxe', role: 'mute' },
           { hex: '#F0E6D2', name: 'Canvas Cream',  role: 'neutral' },
@@ -1087,7 +1097,7 @@ export const NFL_TEAMS = [
       {
         mode: 'special', name: 'Pike Place Grunge', surfaceRole: 'primary',
         colors: [
-          { hex: '#001F3F', name: 'Pike Navy',    role: 'primary' },
+          { hex: '#002F3F', name: 'Pike Navy',    role: 'primary' },
           { hex: '#69BE28', name: 'Action Green', role: 'secondary' },
           { hex: '#7A828A', name: 'Flannel Grey', role: 'tertiary' },
           { hex: '#0A0A0B', name: 'Sub Pop Black', role: 'mute' },
