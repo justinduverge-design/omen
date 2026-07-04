@@ -7,6 +7,7 @@ const {
   DEFAULT_SHARE_TTL_SECONDS,
   createDefaultTradeShareStore,
 } = require("../services/tradeShareStore");
+const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
 
 const MAX_PLAYERS_PER_SIDE = 10;
@@ -233,6 +234,27 @@ function createTradeRouter({
       }
 
       return res.json(snapshot);
+    } catch (e) {
+      if (handleStorageError(res, e)) return undefined;
+      return next(e);
+    }
+  });
+
+  router.get("/share/:hash/og.svg", async (req, res, next) => {
+    try {
+      const { hash } = req.params;
+      if (!UUID_V4_RE.test(hash)) {
+        return res.status(400).json({ error: "invalid_trade_share_hash" });
+      }
+
+      const snapshot = await tradeShareStore.read(hash);
+      if (!snapshot) {
+        return res.status(404).json({ error: "trade_share_not_found" });
+      }
+
+      res.set("Content-Type", "image/svg+xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=300, s-maxage=300");
+      return res.send(buildTradeShareOgSvg(snapshot));
     } catch (e) {
       if (handleStorageError(res, e)) return undefined;
       return next(e);

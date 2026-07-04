@@ -7,6 +7,7 @@ import ErrorState from '../components/ui/ErrorState.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
+import { buildTradeShareUrl } from '../lib/tradeShare.js';
 
 const EMPTY_PLAYER = {
   name: '',
@@ -225,7 +226,65 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
 
 // ─── Result panel ─────────────────────────────────────────────────────────────
 
-function ResultPanel({ result }) {
+function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
+  return (
+    <div className="mt-5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">
+            Share this result
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+            Creates a public snapshot. No connected-platform data or private league context is included.
+          </p>
+        </div>
+        <button
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-[var(--color-team-accent)]/40 px-4 py-2 text-sm font-semibold text-[var(--color-team-accent)] transition-colors duration-150 hover:bg-[var(--color-team-accent)]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          aria-busy={shareStatus === 'creating'}
+          disabled={shareStatus === 'creating'}
+          onClick={onCreateShare}
+        >
+          {shareStatus === 'creating' ? 'Creating link...' : 'Share result'}
+        </button>
+      </div>
+
+      {shareError && (
+        <p className="mt-3 text-sm text-[var(--color-risk-high)]" role="alert">
+          {shareError}
+        </p>
+      )}
+
+      {shareUrl && (
+        <div className="mt-4">
+          <label className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]" htmlFor="trade-share-url">
+            Public link
+          </label>
+          <input
+            id="trade-share-url"
+            className="mt-2 w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
+            readOnly
+            value={shareUrl}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[var(--color-text-secondary)]" role="status">
+              {shareStatus === 'copied' ? 'Link copied. Public snapshot expires in 30 days.' : 'Public snapshot expires in 30 days.'}
+            </p>
+            <a
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+              href={shareUrl}
+            >
+              Open share card
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError }) {
   const { mode, team: teamAbbr } = useTheme();
   const cultureTag = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -280,6 +339,13 @@ function ResultPanel({ result }) {
           {result.explanation}
         </p>
       ) : null}
+
+      <ShareControls
+        onCreateShare={onCreateShare}
+        shareStatus={shareStatus}
+        shareUrl={shareUrl}
+        shareError={shareError}
+      />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {[
@@ -396,9 +462,13 @@ export default function TradeAnalyzer({ compact = false }) {
   const [send, setSend] = useState([{ ...EMPTY_PLAYER }]);
   const [receive, setReceive] = useState([{ ...EMPTY_PLAYER, position: 'WR' }]);
   const [result, setResult] = useState(null);
+  const [lastTradePayload, setLastTradePayload] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [shareStatus, setShareStatus] = useState('idle');
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareError, setShareError] = useState('');
 
   function updateSide(setter, index, patch) {
     setter((players) =>
@@ -426,6 +496,10 @@ export default function TradeAnalyzer({ compact = false }) {
         body: payload,
       });
       setResult(comparison);
+      setLastTradePayload(payload);
+      setShareStatus('idle');
+      setShareUrl('');
+      setShareError('');
     } catch (caught) {
       const message =
         caught instanceof ApiError && caught.status === 401
@@ -433,8 +507,47 @@ export default function TradeAnalyzer({ compact = false }) {
           : caught.message || 'Trade comparison failed.';
       setError(message);
       setResult(null);
+      setLastTradePayload(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCreateShare() {
+    if (!lastTradePayload) {
+      setShareError('Run the analyzer first, then share the result.');
+      return;
+    }
+
+    setShareStatus('creating');
+    setShareError('');
+
+    try {
+      const created = await apiFetch('/api/trade/share', {
+        method: 'POST',
+        body: lastTradePayload,
+      });
+      const url = buildTradeShareUrl(window.location.origin, created.hash);
+
+      setShareUrl(url);
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          setShareStatus('copied');
+        } else {
+          setShareStatus('ready');
+        }
+      } catch {
+        setShareStatus('ready');
+      }
+    } catch (caught) {
+      const unavailable = caught instanceof ApiError && caught.status === 503;
+      setShareStatus('error');
+      setShareError(
+        unavailable
+          ? 'Share storage is unavailable. Try again in a moment.'
+          : caught.message || 'Could not create the share link. Try again.',
+      );
     }
   }
 
@@ -495,7 +608,13 @@ export default function TradeAnalyzer({ compact = false }) {
           />
         )}
 
-        <ResultPanel result={result?.verdict ? result : null} />
+        <ResultPanel
+          result={result?.verdict ? result : null}
+          onCreateShare={handleCreateShare}
+          shareStatus={shareStatus}
+          shareUrl={shareUrl}
+          shareError={shareError}
+        />
       </div>
 
       {/* ── Trade Room sidebar ─────────────────────────────────────────────── */}

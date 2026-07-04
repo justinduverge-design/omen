@@ -32,9 +32,14 @@ async function request(app, { method = "GET", path, body } = {}) {
       headers: body === undefined ? {} : { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    const contentType = res.headers.get("content-type") || "";
+    const parsedBody = contentType.includes("application/json")
+      ? await res.json()
+      : await res.text();
     return {
       status: res.status,
-      body: await res.json(),
+      contentType,
+      body: parsedBody,
     };
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -125,4 +130,24 @@ test("GET /api/trade/share/:hash rejects malformed hashes before storage lookup"
 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "invalid_trade_share_hash");
+});
+
+test("GET /api/trade/share/:hash/og.svg renders a server-side public OG image", async () => {
+  const app = buildApp();
+  const created = await request(app, {
+    method: "POST",
+    path: "/api/trade/share",
+    body: validSharePayload(),
+  });
+
+  const image = await request(app, {
+    path: `/api/trade/share/${created.body.hash}/og.svg`,
+  });
+
+  assert.equal(image.status, 200);
+  assert.match(image.contentType, /image\/svg\+xml/);
+  assert.match(image.body, /Accept the deal/);
+  assert.match(image.body, /Bench RB/);
+  assert.match(image.body, /Starter WR/);
+  assert.doesNotMatch(image.body, /cookie|token|secret|espn_s2|swid/i);
 });

@@ -15,6 +15,7 @@ import Onboarding from '../pages/Onboarding.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
 import Appearance from '../pages/Appearance.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
+import TradeShare from '../pages/TradeShare.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
 
@@ -33,6 +34,7 @@ export default function AppRoutes() {
       <Route path="/corvus" element={<Navigate to="/about" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
+      <Route path="/trade/share/:hash" element={<AppLayout><TradeShare /></AppLayout>} />
       <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />
       <Route path="/demo" element={<Demo />} />
 
