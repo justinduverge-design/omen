@@ -5,7 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
-const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -217,7 +217,7 @@ async function buildPlatformSummaryForUser(rows = [], userId, now = new Date()) 
   return summary;
 }
 
-function buildOmenTool({ rows = [], isSubscribed = false } = {}) {
+function buildOmenTool({ rows = [], isSubscribed = false, offSeason = false } = {}) {
   const activeRows = rows.filter((row) => row?.is_active);
   const usableOmenConnection = activeRows.find(hasUsableOmenContext);
 
@@ -230,6 +230,10 @@ function buildOmenTool({ rows = [], isSubscribed = false } = {}) {
 
   if (!isSubscribed) {
     return { available: false, mode: "pro", status: "needs_subscription" };
+  }
+
+  if (offSeason) {
+    return { available: false, mode: "pro", status: "off_season" };
   }
 
   return { available: true, mode: "pro", status: "ready" };
@@ -340,7 +344,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       platforms: await buildPlatformSummaryForUser(rows, req.user.id),
       tools: {
         draft_assistant: { available: true, mode: "free", status: "ready" },
-        omen_of_the_week: buildOmenTool({ rows, isSubscribed }),
+        omen_of_the_week: buildOmenTool({ rows, isSubscribed, offSeason: isOffSeason() }),
         start_sit: { available: true, mode: "free", status: "ready" },
         trade_analyzer: { available: true, mode: "free", status: "ready" },
         waiver_wire: buildWaiverTool({ rows, isSubscribed }),

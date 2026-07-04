@@ -22,7 +22,7 @@ const FETCH_TIMEOUT_MS = 5000;
 const _cache = new Map();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
-function getCurrentNflWeekContext(now = new Date()) {
+function getSeasonWeekInfo(now = new Date()) {
   const current = new Date(now);
   const year = current.getUTCFullYear();
   const month = current.getUTCMonth();
@@ -37,7 +37,23 @@ function getCurrentNflWeekContext(now = new Date()) {
     season,
     week,
     season_type: seasonType,
+    raw_week: rawWeek,
   };
+}
+
+function getCurrentNflWeekContext(now = new Date()) {
+  const { season, week, season_type: seasonType } = getSeasonWeekInfo(now);
+
+  return {
+    season,
+    week,
+    season_type: seasonType,
+  };
+}
+
+function isOffSeason(now = new Date()) {
+  const { raw_week: rawWeek } = getSeasonWeekInfo(now);
+  return rawWeek < 1 || rawWeek > 18;
 }
 
 function _logger() {
@@ -214,4 +230,4 @@ function __clearCache() {
   _cache.clear();
 }
 
-module.exports = { getGameInfo, getCurrentNflWeekContext, __clearCache };
+module.exports = { getGameInfo, getCurrentNflWeekContext, isOffSeason, __clearCache };

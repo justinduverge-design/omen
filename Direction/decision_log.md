@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-04 (Canonical Off-Season Signal)
+
+- **Off-season truth now lives in one backend helper.** `src/services/nflSchedule.js` exports `isOffSeason()` using the same season/week calendar math as `getCurrentNflWeekContext()` so dashboard and league standings do not fork their own date rules.
+- **The off-season window is deliberately calendar-based.** The helper returns `true` before regular-season week 1 and after week 18, and `false` during weeks 1-18. It does not probe Yahoo, Sleeper, ESPN, or ESPN scoreboard availability to decide whether the product is off-season.
+- **Dashboard status preserves existing gates first.** `GET /api/dashboard/summary` still returns `needs_platform`, `pending_live_engine`, or `needs_subscription` before considering off-season. Only an otherwise-ready Omen user gets `tools.omen_of_the_week.status: "off_season"` with `available: false`.
+- **Standings treats off-season as an empty successful state, not a provider failure.** `GET /api/league/standings` now short-circuits to the existing `league-standings.v1` envelope with `standings: []` during off-season before Yahoo/Sleeper/ESPN adapter calls. In-season provider errors still return the existing safe error envelopes.
+- **This is local contract work only until Justin ships it.** Branch `codex/canonical-offseason-signal` is not pushed, merged, or deployed; frontend still needs to consume dashboard `off_season` before calling live Omen.
+
 ## Decisions Added 2026-07-04 (Phase 1.14 Deploy Logo Verification)
 
 - **Deploy workflow did trigger and complete for both target merges.** PR #75 (`642edaf`, run `28672896614`) and PR #76 (`339da00`, run `28674663739`) both completed quality, build, and KVM1 deploy jobs successfully on 2026-07-03.

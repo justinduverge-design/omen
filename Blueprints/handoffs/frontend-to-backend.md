@@ -1016,6 +1016,7 @@ No backend request needed. No migration needed. No approval needed — Claude ca
 **Owner:** Claude Code / frontend
 **Feature:** Fixing the 2026-07-02 Cowork mobile-QA audit's P1 "Standings fails to load"
 **Needed by:** Not blocking anything shipped today; real-user-visible whenever a connected account hits `/standings` or `/football` during the off-season (i.e., right now).
+**Status:** Fulfilled locally by Codex on branch `codex/canonical-offseason-signal`; see `Blueprints/handoffs/backend-to-frontend.md` ("Canonical Off-Season Signal — 2026-07-04"). Not pushed, merged, or deployed.
 
 **Frontend need:** `GET /api/league/standings` (`src/routes/league.js` lines 192-222) has no off-season detection. Any exception from the Yahoo/Sleeper/ESPN provider standings call — which is plausible off-season since there's no live matchup data — falls through the generic catch to a 502 `league_standings_provider_failed`. `Standings.jsx` and `LeagueStandings.jsx` (frontend, already built and correct) render that as the generic error state ("Couldn't load standings right now / Try again") rather than the existing, distinct empty state ("No standings yet — Standings will appear once the season begins."), which only fires today on a *successful* response with `standings: []`. Full triage: `Blueprints/handoffs/2026-07-04-ratelimit-scope-and-standings-offseason-triage.md`.
 

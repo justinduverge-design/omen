@@ -124,6 +124,7 @@ function loadLeagueRouter(options = {}) {
           week: 8,
           season_type: "regular",
         },
+        isOffSeason: () => options.offSeason || false,
       };
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
@@ -247,6 +248,47 @@ test("GET /api/league/standings returns Sleeper standings", async () => {
     points_for: 1142.4,
     points_against: 980.6,
   });
+});
+
+test("GET /api/league/standings returns empty success during off-season before provider calls", async () => {
+  let providerTouched = false;
+  const app = buildApp({
+    offSeason: true,
+    connections: [{
+      user_id: "user-1",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "league-1",
+      platform_username: "sleepy",
+      platform_user_id: "sleeper-user-1",
+    }],
+    sleeperAdapter: {
+      fetchSleeperUser: async () => {
+        providerTouched = true;
+        throw new Error("provider should not be touched during off-season");
+      },
+      fetchSleeperLeague: async () => {
+        providerTouched = true;
+        throw new Error("provider should not be touched during off-season");
+      },
+      fetchSleeperStandings: async () => {
+        providerTouched = true;
+        throw new Error("provider should not be touched during off-season");
+      },
+    },
+  });
+
+  const res = await request(app, "/api/league/standings?platform=sleeper&leagueId=league-1");
+
+  assert.equal(res.status, 200);
+  assert.equal(providerTouched, false);
+  assert.equal(res.body.contract_version, "league-standings.v1");
+  assert.equal(res.body.platform, "sleeper");
+  assert.equal(res.body.league_id, "league-1");
+  assert.equal(res.body.league_name, null);
+  assert.equal(res.body.season, 2026);
+  assert.equal(res.body.week, 8);
+  assert.deepEqual(res.body.standings, []);
 });
 
 test("GET /api/league/standings returns Yahoo standings", async () => {
