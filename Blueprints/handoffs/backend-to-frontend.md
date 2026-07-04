@@ -6,6 +6,107 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## Canonical Off-Season Signal — 2026-07-04
+
+Feature name: Canonical off-season signal for dashboard + league standings.
+
+Status: Built locally on branch `codex/canonical-offseason-signal`. Not pushed, merged, or deployed.
+
+Changed routes:
+
+```text
+GET /api/dashboard/summary
+GET /api/league/standings
+```
+
+Auth remains unchanged: both routes still require the normal Supabase bearer token. No request body, query parameter, package file, SQL, env, migration, deploy config, Stripe behavior, or production setting changed.
+
+Shared backend behavior:
+
+- `src/services/nflSchedule.js` now exports `isOffSeason(now = new Date())`.
+- The helper uses the same season/week calendar math as `getCurrentNflWeekContext()`.
+- It returns `true` before regular-season week 1 and after week 18, and `false` during weeks 1-18.
+- Both dashboard and standings now use this one shared signal so they do not invent separate off-season windows.
+
+Dashboard response change:
+
+When a user has a usable Omen platform connection and would otherwise be `ready`, `GET /api/dashboard/summary` now returns:
+
+```json
+{
+  "tools": {
+    "omen_of_the_week": {
+      "available": false,
+      "mode": "pro",
+      "status": "off_season"
+    }
+  }
+}
+```
+
+Existing statuses are unchanged:
+
+```text
+needs_platform
+pending_live_engine
+needs_subscription
+ready
+```
+
+Precedence remains conservative:
+
+- no usable connection -> existing `needs_platform` / `pending_live_engine`
+- missing subscription while billing gates still exist in the code path -> existing `needs_subscription`
+- usable connection + subscribed + off-season -> new `off_season`
+- usable connection + subscribed + regular season -> existing `ready`
+
+League standings response change:
+
+When `isOffSeason()` is true and a usable connection is selected, `GET /api/league/standings` now returns a normal empty success envelope before calling Yahoo, Sleeper, or ESPN adapters:
+
+```json
+{
+  "contract_version": "league-standings.v1",
+  "generated_at": "2026-07-04T00:00:00.000Z",
+  "platform": "sleeper",
+  "league_id": "league-1",
+  "league_name": null,
+  "season": 2026,
+  "week": 1,
+  "standings": []
+}
+```
+
+This lets the existing frontend empty state render instead of showing the generic provider-failed state during the off-season. Provider errors during weeks 1-18 still return the existing safe error envelope; the route does not swallow in-season provider failures.
+
+Frontend action needed:
+
+- League standings UI should not need a new field; the existing empty-state branch for `standings: []` should now work during the off-season.
+- Omen dashboard/UI should add explicit handling for `tools.omen_of_the_week.status === "off_season"` before calling `POST /api/omen/mvp-move`. Current backend contract now supplies the status; frontend copy was already requested in `Blueprints/handoffs/frontend-to-backend.md`.
+
+Files changed:
+
+- `src/services/nflSchedule.js`
+- `src/routes/dashboard.js`
+- `src/routes/league.js`
+- `test/nflSchedule.test.js`
+- `test/dashboardSummary.test.js`
+- `test/leagueStandingsRoute.test.js`
+
+Verification:
+
+- RED focused tests failed for missing `isOffSeason`, dashboard `ready` instead of `off_season`, and standings `502` instead of empty success.
+- GREEN focused tests: `node --test test/nflSchedule.test.js test/dashboardSummary.test.js test/leagueStandingsRoute.test.js` -> 28/28.
+- Full `npm test` -> 407/407.
+- `npm audit --audit-level=moderate` -> 0 vulnerabilities.
+- `npm --prefix frontend run build` -> clean build with existing warnings (Vite chunk size, `.env` `NODE_ENV`, duplicate `className` in `Header.jsx`).
+
+Limitations:
+
+- Off-season detection is calendar-based, not provider schedule/matchup availability probing.
+- The helper intentionally does not add new response fields to standings.
+- This does not deploy the contract and does not wire the frontend `off_season` dashboard state.
+
 ## Phase 1.12 Gray Contrast Pass + Standings Refinements — 2026-07-02
 
 Feature name: Gray contrast pass + Standings refinements.

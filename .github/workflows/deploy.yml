@@ -173,6 +173,28 @@ jobs:
           echo "::error::Health check failed after 60s. Check KVM1 logs."
           exit 1
 
+      - name: Verify deployed Omen logo asset in SPA bundle
+        run: |
+          set -euo pipefail
+          base_url="https://slopssaloon.com"
+
+          curl -fsS --max-time 8 "$base_url/" -o /tmp/omen-index.html
+          bundle_src="$(grep -oE 'src="/assets/[^"]+\.js"' /tmp/omen-index.html | head -1 | sed -E 's/^src="//; s/"$//' || true)"
+
+          if [ -z "$bundle_src" ]; then
+            echo "::error::Could not find the production Vite bundle in the deployed HTML."
+            exit 1
+          fi
+
+          curl -fsS --max-time 8 "$base_url$bundle_src" -o /tmp/omen-bundle.js
+          if ! grep -q "omen-horizontal-lockup-transparent.png" /tmp/omen-bundle.js; then
+            echo "::error::Production bundle is missing the Omen horizontal lockup reference."
+            exit 1
+          fi
+
+          curl -fsSI --max-time 8 "$base_url/omen-horizontal-lockup-transparent.png" >/tmp/omen-logo-head.txt
+          echo "Verified Omen lockup reference in $bundle_src and asset availability."
+
       - name: Tail recent server logs (on success or failure)
         if: always()
         run: |

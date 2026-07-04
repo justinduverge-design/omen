@@ -31,7 +31,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
 | `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
-| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, and additive platform `lastResult` fields. |
+| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |
@@ -45,7 +45,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |
 | `POST` | `/api/user/consent` | `user-consent.v1` | Yes | Upserts a consent record for the authenticated user. |
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
-| `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Error envelope is `league-standings-error.v1`. |
+| `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
 | `GET` | `/api/stripe/prices` | `stripe-prices.v1` | No | Public Stripe price display. |
 | `POST` | `/api/stripe/checkout` | checkout URL | Yes | Starts Stripe Checkout. |

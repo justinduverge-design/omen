@@ -22,6 +22,23 @@ test("deploy workflow has a quality gate before image build", () => {
   assert.match(workflow, /\n\s+build:\n[\s\S]*?\n\s+needs: quality\n/);
 });
 
+test("deploy workflow verifies the production SPA contains the Omen lockup", () => {
+  const workflow = read(".github", "workflows", "deploy.yml");
+
+  const healthIndex = workflow.indexOf("Smoke test /api/health");
+  const logoIndex = workflow.indexOf("Verify deployed Omen logo asset in SPA bundle");
+
+  assert.notEqual(healthIndex, -1);
+  assert.notEqual(logoIndex, -1);
+  assert.ok(logoIndex > healthIndex);
+  assert.match(workflow, /base_url="https:\/\/slopssaloon\.com"/);
+  assert.match(workflow, /grep -oE 'src="\/assets\/\[\^"\]\+\\\.js"'/);
+  assert.match(workflow, /\|\| true/);
+  assert.match(workflow, /curl -fsS --max-time 8 "\$base_url\$bundle_src"/);
+  assert.match(workflow, /grep -q "omen-horizontal-lockup-transparent\.png"/);
+  assert.match(workflow, /"\$base_url\/omen-horizontal-lockup-transparent\.png"/);
+});
+
 test("Docker builds use npm ci without Yarn-only lockfile flags", () => {
   const dockerfiles = [read("Dockerfile"), read("Dockerfile.cron")];
 
