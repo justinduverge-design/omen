@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-06-27
+Last updated: 2026-07-04
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -31,7 +31,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
 | `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
-| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, and additive platform `lastResult` fields. |
+| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |
@@ -42,7 +42,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Mock mode is explicit. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
-| `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Error envelope is `league-standings-error.v1`. |
+| `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
 | `GET` | `/api/stripe/prices` | `stripe-prices.v1` | No | Public Stripe price display. |
 | `POST` | `/api/stripe/checkout` | checkout URL | Yes | Starts Stripe Checkout. |
