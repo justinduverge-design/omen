@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-04 (Phase 1.14 Deploy Logo Verification)
+
+- **Deploy workflow did trigger and complete for both target merges.** PR #75 (`642edaf`, run `28672896614`) and PR #76 (`339da00`, run `28674663739`) both completed quality, build, and KVM1 deploy jobs successfully on 2026-07-03.
+- **Current production is not stale by served-source evidence.** `https://slopssaloon.com/` currently loads `/assets/index--4Oa572S.js`; that bundle references `omen-horizontal-lockup-transparent.png` and does not contain the baked-black `omen-horizontal-lockup.png` reference or a `[C]` literal. The transparent PNG is served from prod at the same byte length as the local public asset.
+- **The original stale-logo observation is most consistent with timing, an already-open browser tab, or browser/runtime cache, not Docker image cache or KVM1 runner drift.** The PR #76 deploy log shows the KVM1 runner pulled `ghcr.io/justinduverge-design/omen:main`, recreated `omen_api` and `omen_cron`, and served the SPA from `/app/frontend/dist`.
+- **Post-deploy content verification now follows the Vite bundle path.** `.github/workflows/deploy.yml` now fetches the production HTML, extracts the hashed `/assets/*.js` bundle, verifies `omen-horizontal-lockup-transparent.png` appears in that bundle, and checks the asset URL is reachable. This is intentionally stronger than grepping `/`, because the logo reference lives in the JavaScript bundle rather than the HTML shell.
+- **`/api/version` is not enough for deploy provenance yet.** Production currently returns `git_sha`, `build_id`, and `image_tag` as `null`; future deploy investigations would be cleaner if the workflow populated safe build metadata.
+
 ## Decisions Added 2026-07-03 (Design System v2 Reconciliation)
 
 - `Blueprints/specs/omen-ux-ui-design-system-v1.md` reconciled in place → **v2**. Filename preserved for reference compatibility.
