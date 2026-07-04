@@ -48,6 +48,7 @@ function loadDashboardRouter({
   userRows = [],
   requireAuth,
   context,
+  offSeason = false,
   sleeperAdapter,
   yahooAdapter,
   espnAdapter,
@@ -94,6 +95,7 @@ function loadDashboardRouter({
           week: 1,
           season_type: "regular",
         },
+        isOffSeason: () => offSeason,
       };
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
@@ -369,6 +371,35 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed Sleeper users w
     available: false,
     mode: "pro",
     status: "needs_platform",
+  });
+});
+
+test("GET /api/dashboard/summary marks Omen off-season for subscribed users with usable league context", async () => {
+  const app = buildApp({
+    offSeason: true,
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "sleeper",
+        is_active: true,
+        league_id: "sleeper-league-1",
+        platform_username: "sleepy",
+      },
+    ],
+    userRows: [
+      { id: "test-user", is_subscribed: true },
+    ],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.tools.omen_of_the_week, {
+    available: false,
+    mode: "pro",
+    status: "off_season",
   });
 });
 

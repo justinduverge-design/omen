@@ -5,7 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
-const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -187,6 +187,10 @@ router.get("/standings", requireAuth, async (req, res, next) => {
     if (!connection) {
       const result = errorEnvelope({ code: "league_not_connected", status: 404 });
       return res.status(result.status).json(result.body);
+    }
+
+    if (isOffSeason()) {
+      return res.json(baseEnvelope(connection, context));
     }
 
     try {

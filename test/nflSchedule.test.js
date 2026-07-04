@@ -20,6 +20,7 @@ installMockFetch();
 const {
   getGameInfo,
   getCurrentNflWeekContext,
+  isOffSeason,
   __clearCache,
 } = require("../src/services/nflSchedule");
 
@@ -96,5 +97,19 @@ describe("nflSchedule.getCurrentNflWeekContext", () => {
       week: 18,
       season_type: "postseason",
     });
+  });
+});
+
+describe("nflSchedule.isOffSeason", () => {
+  it("returns true before the regular season opens", () => {
+    assert.equal(isOffSeason(new Date("2026-07-04T12:00:00Z")), true);
+  });
+
+  it("returns false during the regular season", () => {
+    assert.equal(isOffSeason(new Date("2026-09-10T12:00:00Z")), false);
+  });
+
+  it("returns true after the regular season window closes", () => {
+    assert.equal(isOffSeason(new Date("2027-01-20T12:00:00Z")), true);
   });
 });
