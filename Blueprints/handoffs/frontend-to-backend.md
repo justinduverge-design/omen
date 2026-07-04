@@ -1010,6 +1010,25 @@ No backend request needed. No migration needed. No approval needed — Claude ca
 
 ---
 
+### Request — Canonical off-season signal for dashboard + league standings
+
+**Date:** 2026-07-04
+**Owner:** Claude Code / frontend
+**Feature:** Fixing the 2026-07-02 Cowork mobile-QA audit's P1 "Standings fails to load"
+**Needed by:** Not blocking anything shipped today; real-user-visible whenever a connected account hits `/standings` or `/football` during the off-season (i.e., right now).
+
+**Frontend need:** `GET /api/league/standings` (`src/routes/league.js` lines 192-222) has no off-season detection. Any exception from the Yahoo/Sleeper/ESPN provider standings call — which is plausible off-season since there's no live matchup data — falls through the generic catch to a 502 `league_standings_provider_failed`. `Standings.jsx` and `LeagueStandings.jsx` (frontend, already built and correct) render that as the generic error state ("Couldn't load standings right now / Try again") rather than the existing, distinct empty state ("No standings yet — Standings will appear once the season begins."), which only fires today on a *successful* response with `standings: []`. Full triage: `Blueprints/handoffs/2026-07-04-ratelimit-scope-and-standings-offseason-triage.md`.
+
+**Expected endpoint or contract:** This should be solved once, not twice — the 2026-06-25 request above asks for the same underlying signal (`off_season`) for `GET /api/dashboard/summary`'s `omen_of_the_week.status`. Recommend a single shared helper (e.g. `isOffSeason()` alongside `getCurrentNflWeekContext()` in `src/services/nflSchedule.js`) that both `src/routes/dashboard.js` and `src/routes/league.js` call, rather than two independently-invented detection paths. For `/api/league/standings` specifically: when off-season, return a normal `200` with `standings: []` (and `league_name`/`season` still populated from the connection) instead of attempting the provider call and 502ing when it fails — the frontend already renders the correct empty state for exactly this shape.
+
+**Required states:** Additive. Existing `league_not_connected`, `*_reconnect_required`, and populated-standings responses are unaffected. New: a successful empty-standings response during the off-season window, sourced from the shared off-season signal rather than a caught provider exception.
+
+**Plain-English output needed:** No new fields beyond what `baseEnvelope()` already returns; `standings: []` is enough for the frontend's existing empty state to render correctly.
+
+**Notes / risks:** Exact detection logic is a backend call — whether that's the same calendar-math window `getCurrentNflWeekContext()` already uses, or a real schedule/matchup-availability check. Whichever is chosen, using one shared signal for both call sites avoids the two routes disagreeing about when the season has started (a real risk if each route grows its own ad hoc date check independently). Do not silently swallow provider errors that happen *during* the season — off-season detection should short-circuit before the provider call, not mask genuine in-season failures as empty states.
+
+---
+
 ## Request Template
 
 ```text
