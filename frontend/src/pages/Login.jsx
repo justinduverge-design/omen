@@ -134,6 +134,7 @@ export default function Login() {
   const [sentEmail, setSentEmail] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   const [oauthError, setOauthError] = useState('');
+  const accountDeleted = searchParams.get('deleted') === 'true';
 
   // Store ?next= param on first render (before any auth action changes the URL)
   useEffect(() => {
@@ -243,6 +244,15 @@ export default function Login() {
         </div>
 
         {/* Auth options */}
+        {accountDeleted && (
+          <div className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Omen data deleted.</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+              Sign in again when you want to rebuild your setup.
+            </p>
+          </div>
+        )}
+
         {sentEmail ? (
           <MagicLinkSent email={sentEmail} />
         ) : (
