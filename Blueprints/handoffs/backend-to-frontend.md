@@ -2109,8 +2109,8 @@ Privacy/account routes:
 
 - `GET /api/user/export`: auth required. Returns safe user/platform/subscription/consent/move export. Excludes raw tokens, ESPN cookies, and Vault secret ids.
 - `POST /api/user/consent`: auth required. Upserts a consent record.
-- `DELETE /api/user/delete`: auth required. Requires exact `confirmation: "DELETE MY CORVUS DATA"`. Deletes platform rows and attempts Vault cleanup for Yahoo and ESPN secret ids.
-- Frontend should not expose destructive account deletion until UX copy and Justin approval are explicit.
+- `DELETE /api/user/delete`: auth required. Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side moves, platform connections, OAuth state, consent records, subscription rows, and the user profile row; writes a hashed deletion audit record; attempts Vault cleanup for Yahoo/ESPN secret ids before deleting platform rows. It does not delete data held by fantasy platforms or sign-in providers.
+- Frontend Phase 2.9 exposes the destructive delete flow under `/account` → Privacy after Justin's 2026-07-04 approval. UX copy must continue to say "Omen data" rather than implying provider-side or sign-in-provider deletion.
 
 System readiness:
 

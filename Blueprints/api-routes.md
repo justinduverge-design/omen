@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-06-27
+Last updated: 2026-07-04
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -42,6 +42,9 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Mock mode is explicit. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
+| `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |
+| `POST` | `/api/user/consent` | `user-consent.v1` | Yes | Upserts a consent record for the authenticated user. |
+| `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
 | `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
 | `GET` | `/api/stripe/prices` | `stripe-prices.v1` | No | Public Stripe price display. |

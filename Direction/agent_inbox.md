@@ -1,18 +1,18 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-07-02 (Codex closeout); refreshed after Phase 1.12 local closeout; refreshed again after Claude's Phase 1.13 partial pass.** Phase 1.12 (gray contrast pass + Standings refinements) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.13 (iOS Safari mobile QA sweep) is partial: 6/13 routes swept and fixed, 7 authenticated routes and 2 deferred ARIA judgment calls remain — see below and the handoff. Phase 1.9, 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
+**Auto-populated 2026-07-02 (Codex closeout); refreshed after Phase 1.12 local closeout; refreshed again after Claude's Phase 1.13 partial pass; Phase 2.9 closed locally 2026-07-04.** Phase 1.12 (gray contrast pass + Standings refinements) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.13 (iOS Safari mobile QA sweep) is partial: 6/13 routes swept and fixed, 7 authenticated routes and 2 deferred ARIA judgment calls remain — see below and the handoff. Phase 2.9 (account delete UI) is complete locally on `codex/phase2-9-account-delete-ui`, not pushed/merged/deployed. Phase 1.9, 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
 
 ## Active Task
 
-None pinned. Phase 1.13 has open remaining scope (see Blockers Surfaced) — next agent should either continue it or pull a fresh top-5 item; both are valid since it isn't pinned.
+Closed 2026-07-04: Phase 2.9 — Account delete UI. Built locally on `codex/phase2-9-account-delete-ui`; not pushed, merged, or deployed. Next kickoff should repopulate from `Direction/current_sprint.md` after Justin decides whether to review/merge this branch first.
 
 ## Auto-Populated Top 5
 
 1. **Phase 1.13 — iOS Safari mobile QA sweep (continue).** 7 authenticated routes still unswept (sandbox auth limitation); `ConnectLeague.jsx` ESPN browser selector (tabs pattern) and `AppearancePicker.jsx` 32-team grid (2D keyboard nav) ARIA conversions deferred as follow-ups. See `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md`. Done docs: page + design.
-2. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
-3. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
-4. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
-5. **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface, plus multi-team trade support. Done docs: page + design + recommendation.
+2. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
+3. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
+4. **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface, plus multi-team trade support. Done docs: page + design + recommendation.
+5. **Phase 2.13 — Trade Analyzer Strategy + Mock Buy Low content rewrite.** Remove the "Build roster depth now" tail from the Depth bullet and rewrite the marked "SO SO" content via `slops-ux-copy`. Done docs: page + design + recommendation.
 
 ## Blockers Surfaced
 
