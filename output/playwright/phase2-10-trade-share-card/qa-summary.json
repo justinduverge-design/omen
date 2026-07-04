@@ -1,0 +1,70 @@
+{
+  "findings": [
+    {
+      "name": "share-desktop-light",
+      "viewport": "1440x1000",
+      "overflow": {
+        "body": 1440,
+        "doc": 1440,
+        "viewport": 1440
+      },
+      "smallestTarget": {
+        "label": "Open navigation",
+        "width": 44,
+        "height": 44
+      },
+      "shortTargets": [],
+      "consoleErrors": []
+    },
+    {
+      "name": "share-mobile-light",
+      "viewport": "390x844",
+      "overflow": {
+        "body": 390,
+        "doc": 390,
+        "viewport": 390
+      },
+      "smallestTarget": {
+        "label": "Open navigation",
+        "width": 44,
+        "height": 44
+      },
+      "shortTargets": [],
+      "consoleErrors": []
+    },
+    {
+      "name": "share-desktop-dark",
+      "viewport": "1440x1000",
+      "overflow": {
+        "body": 1440,
+        "doc": 1440,
+        "viewport": 1440
+      },
+      "smallestTarget": {
+        "label": "Open navigation",
+        "width": 44,
+        "height": 44
+      },
+      "shortTargets": [],
+      "consoleErrors": []
+    },
+    {
+      "name": "trade-mobile-share-flow",
+      "viewport": "390x900",
+      "overflow": {
+        "body": 390,
+        "doc": 390,
+        "viewport": 390
+      },
+      "smallestTarget": {
+        "label": "Open navigation",
+        "width": 44,
+        "height": 44
+      },
+      "shortTargets": [],
+      "consoleErrors": []
+    }
+  ],
+  "badConsole": [],
+  "shortTargets": []
+}

@@ -455,9 +455,10 @@ Method and path:
 ```text
 POST /api/trade/share
 GET /api/trade/share/:hash
+GET /api/trade/share/:hash/og.svg
 ```
 
-Both routes are public and use the existing `/api/trade` public-tool rate limit. No auth, subscription, provider connection, Supabase query, ESPN cookie, LLM call, or frontend route is required.
+These routes are public and use the existing `/api/trade` public-tool rate limit. No auth, subscription, provider connection, Supabase query, ESPN cookie, or LLM call is required.
 
 Storage behavior:
 
@@ -567,15 +568,24 @@ Error responses:
 Frontend guidance:
 
 - Call `POST /api/trade/share` after a Trade Analyzer result exists, using the same `send`, `receive`, and `scoring_format` values that produced that result.
-- Use `api_path` for API reads. A public frontend page such as `/trade/share/:hash` can map to the same hash later.
+- Use `api_path` for API reads. The public frontend page is `/trade/share/:hash`.
 - Treat read responses as public, deterministic snapshots. They are not live platform data and should not be labeled as Sleeper/Yahoo/ESPN-backed.
 - If Redis is unavailable and the create call returns `503`, show a retryable share-error state rather than hiding the failure.
+- `GET /api/trade/share/:hash/og.svg` reads the same public snapshot and renders a 1200x630 SVG. Crawler meta for `/trade/share/:hash` should point `og:image` and `twitter:image` to that endpoint.
+- The public page and share-control copy must keep the privacy boundary visible: public snapshot only; no connected-platform context, ESPN cookies, tokens, or private league data.
 
 Files changed:
 
 - `src/routes/trade.js`
 - `src/services/tradeShareStore.js`
+- `src/services/tradeShareMeta.js`
+- `src/services/tradeShareOg.js`
+- `frontend/src/lib/tradeShare.js`
+- `frontend/src/pages/TradeAnalyzer.jsx`
+- `frontend/src/pages/TradeShare.jsx`
 - `test/tradeShareRoute.test.js`
+- `test/tradeShareFrontend.test.mjs`
+- `test/tradeShareMeta.test.js`
 - `Blueprints/api-routes.md`
 
 ## Phase 2.8 Sleeper Live Draft Tracking — 2026-06-19
