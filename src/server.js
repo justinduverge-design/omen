@@ -83,8 +83,16 @@ try {
 // --- Body parser --------------------------------------------------
 app.use(express.json({ limit: "100kb" }));
 
-// --- Rate limit (general) - skip health ---------------------------
+// --- Rate limit (general) - API routes only, skip health -----------
+// Scoped to /api/* so static assets and the SPA shell (index.html,
+// hashed JS/CSS/image chunks) never count against the same 100/min
+// budget as API calls. Un-scoped, a handful of normal page loads could
+// exceed 100 requests once every asset is counted, tripping this
+// limiter and serving raw rate-limit JSON as a full-page response
+// instead of the React app (no Content-Type-driven client ever gets a
+// chance to catch it, since the SPA hasn't mounted yet).
 app.use((req, res, next) => {
+  if (!req.path.startsWith("/api/")) return next();
   if (req.path === "/api/health") return next();
   return generalRateLimit(req, res, next);
 });

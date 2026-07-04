@@ -1,34 +1,38 @@
 # Omen Agent Inbox
 
-**Auto-populated 2026-07-02 (Codex closeout); refreshed after Phase 1.12 local closeout; refreshed again after Claude's Phase 1.13 partial pass.** Phase 1.12 (gray contrast pass + Standings refinements) is complete locally — see `Direction/current_sprint.md` Frontend Phase 1. Phase 1.13 (iOS Safari mobile QA sweep) is partial: 6/13 routes swept and fixed, 7 authenticated routes and 2 deferred ARIA judgment calls remain — see below and the handoff. Phase 1.9, 1.8, 1.7, and 1.5d remain complete locally as previously documented; the win-streak ladder is still blocked on a backend-computed streak contract.
+**Refreshed 2026-07-04 (Claude: rate-limit fix + Standings off-season triage, after Codex's Phase 1.14 closeout).** Phase 1.14 is complete locally (Codex): PR #75 and PR #76 deploy runs both completed successfully, current prod serves the transparent Omen lockup bundle/asset, and `.github/workflows/deploy.yml` now has a post-health bundle-level logo verification step. Handoff: `Blueprints/handoffs/2026-07-04-phase1-14-deploy-logo-verification.md`. Separately, the two Cowork mobile-QA P1s are now resolved/triaged — see Top 5 #1 and Blockers below.
 
 ## Active Task
 
-None pinned. Phase 1.13 has open remaining scope (see Blockers Surfaced) — next agent should either continue it or pull a fresh top-5 item; both are valid since it isn't pinned.
+None pinned. Next agent should pull from the top-5 below unless Justin pins a task.
 
 ## Auto-Populated Top 5
 
-1. **Phase 1.13 — iOS Safari mobile QA sweep (continue).** 7 authenticated routes still unswept (sandbox auth limitation); `ConnectLeague.jsx` ESPN browser selector (tabs pattern) and `AppearancePicker.jsx` 32-team grid (2D keyboard nav) ARIA conversions deferred as follow-ups. See `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md`. Done docs: page + design.
-2. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
-3. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Now unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
-4. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Done docs: feature + page + design + recommendation.
-5. **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface, plus multi-team trade support. Done docs: page + design + recommendation.
+1. **Phase 1.13 — remaining scope.** 7 authenticated routes still unswept for touch-target/overflow issues (sandbox Supabase-auth limitation blocked every session so far — try real-device or production QA per the Cowork audit's WebDriver approach instead of the dev sandbox); `ConnectLeague.jsx` ESPN browser-selector (tabs pattern) and `AppearancePicker.jsx` 32-team grid (2D keyboard nav) ARIA conversions remain deferred follow-ups. See `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md` and the 2026-07-03 remediation/discrete-fixes handoffs.
+2. **Canonical off-season signal for dashboard + league standings (backend).** New combined request in `Blueprints/handoffs/frontend-to-backend.md` — see Blockers below. Codex-leaning (backend route + service logic).
+3. **Phase 2.9 — Account delete UI.** Expose backend route at `src/routes/userPrivacy.js:136` in `Account.jsx`. Confirmation phrase: "DELETE MY OMEN DATA". Done docs: feature + page + design + security.
+4. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
+5. **Phase 2.18 — Waiver Wire route activation.** Free-tier route currently hidden behind doctrine-stale `ProGate`; 6 focused sub-tasks in `current_sprint.md`. Unblocked (Phase 1.6 chip helper shipped). Done docs: feature + page + design + recommendation.
 
 ## Blockers Surfaced
 
-- **Phase 1.9 (metallic tier treatment)** is complete locally — not pushed/merged/deployed. Applied only to the Draft Assistant card-header ordinal pill; the `Omen #N` ADP-footer pill was deliberately left unchanged per the locked footer structure. Appearance-tile metallic add-on stays out of scope, unbuilt.
-- **Phase 1.12 (gray contrast pass + Standings refinements)** is complete locally — not pushed/merged/deployed. The retired Hall of Records username target was closed as documentation debt because `/ledger` no longer exposes that column; no fake replacement surface was added.
-- **Phase 1.13 (iOS Safari mobile QA sweep) is partial locally on branch `frontend/phase1-13-mobile-qa-sweep` (commit `f826d2e`)** — not pushed/merged/deployed. Done: the named `DraftAssistant.jsx` radiogroup conversion, a full touch-target/overflow sweep of all 6 public routes at 375/390/430px (8 violations fixed), a focus-ring gap the new radiogroup surfaced, and an app-wide keyboard-trap fix on both slide-in panels (`inert` attribute, using the `inert={open ? undefined : ''}` idiom since React 18 has no native boolean handling for `inert`). Not done: the 7 authenticated routes (sandbox Supabase auth limitation, same as every recent phase) and two ARIA judgment calls (`ConnectLeague.jsx` browser selector — more correctly a tabs pattern; `AppearancePicker.jsx` 32-team grid — needs 2D keyboard nav), both deferred as separate follow-ups rather than force-fit. Justin has an iPhone + Mac for real-device QA once this deploys; a manual checklist was handed to him directly in-session (not duplicated into a file). Full details: `Blueprints/handoffs/2026-07-02-phase1-13-mobile-qa-sweep-partial.md`.
+- **Phase 1.14 (prod deploy stale for logo swap)** is complete locally. Current prod serves the transparent lockup bundle/asset; the deploy workflow now fails future runs if the production bundle lacks the transparent lockup reference.
+- **Phase 1.13 (iOS Safari mobile QA sweep) code is now merged to `main` via PR #75** (CSP `upgrade-insecure-requests` fix, cross-browser focus-trap via `useFocusTrap.js`, discrete team-palette repairs) — real Safari WebDriver verified. Sprint doc still shows this item unchecked because 7 authenticated routes remain unswept; see Top 5 #1.
+- **Both Cowork mobile-QA P1s are resolved.** (a) Unhandled 429 raw-JSON leak — root cause was `src/server.js`'s general rate limiter mounted globally instead of scoped to `/api/*`; fixed and live-verified (150/150 static requests exempt, API limiter still functional at 100/min). Local, not committed — see `Blueprints/handoffs/2026-07-04-ratelimit-scope-and-standings-offseason-triage.md`. (b) Standings-fails-to-load — confirmed as a mislabeled off-season case (frontend empty-state copy is already correct; backend has no off-season detection and 502s instead of returning empty standings). Routed as a combined backend request rather than a stopgap fix — see Top 5 #2 and `Blueprints/handoffs/frontend-to-backend.md`.
+- **Phase 1.9 (metallic tier treatment)** is complete and merged to `main`. Applied only to the Draft Assistant card-header ordinal pill per locked footer structure. Appearance-tile metallic add-on stays out of scope, unbuilt.
+- **Phase 1.12 (gray contrast pass + Standings refinements)** is complete and merged to `main`. Retired Hall of Records username target closed as documentation debt (page retired to `/ledger`, no replacement surface invented).
 - **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
 - **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** remains gated on a `decision_log.md` dollar-cap entry. Do not pull until Justin's approved dollar cap is logged.
 - **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.
-- **Phase 1.5d (post-win pulse animation)** is complete locally as single-win behavior; authenticated visual screenshot/mobile-smoke evidence remains a follow-up gap.
-- **Win-streak reward ladder** is documented but blocked on the new backend win-streak summary contract.
-- **Frontend Phase 2.10 (Trade share card)** is now unblocked by deployed Backend Phase 2.10 hash routes.
+- **Phase 1.5d (post-win pulse animation)** is complete as single-win behavior; authenticated visual screenshot/mobile-smoke evidence remains a follow-up gap.
+- **Win-streak reward ladder (Phase 2.19)** is documented but blocked on the new backend win-streak summary contract (`current_sprint.md` Backend — Behind launch readiness).
 - **Phase 4.16 provider legal packet** is complete as review-only open-agreements source material; counsel/Justin review still gates publication.
-- **Phase 1.7 (platform brand color emphasis)** is complete locally — not pushed/merged/deployed. Sleeper's brand hex has no confirmed public source; flagged for Justin if he has Sleeper's actual brand kit.
-- **Phase 1.8 (confidence gradient endpoints)** is complete locally — committed to `main`, not pushed/merged/deployed. The crimson floor's non-text contrast against the dark track (1.45:1) is below WCAG 1.4.11's 3:1 guideline, accepted as a documented tradeoff since both confidence bars always show the score as text. Flag for Justin if he wants a brighter floor regardless of the "deeper than risk-high" spec language.
-- **`test/deployHardening.test.js` has 1 pre-existing CRLF line-ending failure** (unrelated to recent feature work; confirmed present since at least the 2026-06-29 Phase 2.17-follow-up entry in `decision_log.md`). Spun off as its own background-task suggestion rather than fixed inline.
+- **Phase 1.7 (platform brand color emphasis)** is complete and merged. Sleeper's brand hex has no confirmed public source; flagged for Justin if he has Sleeper's actual brand kit.
+- **Phase 1.8 (confidence gradient endpoints)** is complete and merged. The crimson floor's non-text contrast against the dark track (1.45:1) is below WCAG 1.4.11's 3:1 guideline, accepted as a documented tradeoff since both confidence bars always show the score as text.
+- **Phase 2.20 (chant-render implementation)** is blocked on at least 6 teams' chants verified via `design-md-author` plus initial texture assets — do not pull yet.
+- **New Decisions-lane items from the 2026-07-03 doctrine merge** (marketing pillars confirm/revise, retire baked-black logo fallback, Corvus-reference audit) sit in `current_sprint.md` Decisions lane — Justin-gated, agents prepare recommendations only.
+- **`test/deployHardening.test.js` has 1 pre-existing CRLF line-ending failure** (unrelated to recent feature work; confirmed present since at least 2026-06-29). Spun off as its own background-task suggestion rather than fixed inline.
+- **Doc debt:** `current_sprint.md` Frontend Phase 1 has three overlapping Phase 1.13 bullet entries (in-progress detail, an older duplicate stub, and the Cowork audit note) that should get consolidated into one entry next time someone closes out 1.13 fully.
 
 ## Standing Route
 
@@ -44,7 +48,7 @@ SLOPS/
 - Product handoffs live in `Blueprints/handoffs/`.
 - Product context lives in `Direction/`.
 - Division context lives one layer up. OS context is in the sibling `slops-os/` checkout in this workspace.
-- Worktree was clean before this inbox refresh.
+- Worktree was clean before this refresh; local `main` fast-forwarded cleanly to `origin/main` (`339da00`), no local commits were at risk.
 
 ## Do Not Touch Unless Explicitly Asked
 
