@@ -224,9 +224,11 @@ export default function Login() {
       <div className="relative w-full max-w-sm">
         {/* Brand mark */}
         <div className="mb-10 text-center">
-          <p className="font-display text-2xl tracking-[0.22em] text-[var(--color-text-primary)]">
-            OMEN
-          </p>
+          <img
+            src="/omen-horizontal-lockup-transparent.png"
+            alt="Omen"
+            className="mx-auto h-12 w-auto"
+          />
           <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
             Fantasy Intelligence
           </p>

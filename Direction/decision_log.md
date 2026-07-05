@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-05 (Phase 1.15 Post-Deploy Visual Smoke)
+
+- **Public logo smoke follows the Vite bundle, not the HTML shell.** The deploy workflow now fetches `/`, `/about`, and `/login`, extracts each route's `/assets/*.js` bundle, and verifies the bundle contains the transparent Omen lockup while rejecting `[C]` and the baked-black fallback. This is because the deployed SPA shell does not directly contain the React logo image markup.
+- **The deploy canary stays read-only and dependency-free.** The workflow uses `curl`, `grep`, and `sed` already available to the deploy job instead of adding a headless browser dependency to the KVM1 runner. Rendered-pixel evidence stays in local Playwright artifacts until a browser-capable CI smoke is explicitly approved.
+- **`/login` should use the same brand image as the other public Omen routes.** Browser QA showed current production `/login` was text-only even though the shared bundle passed the logo-reference check. The page now renders `/omen-horizontal-lockup-transparent.png` with `alt="Omen"` above the existing "Fantasy Intelligence" label.
+- **This remains local work until shipped.** Branch `codex/phase1-15-post-deploy-visual-smoke` is not pushed, merged, or deployed; current production `/login` remains text-only until this branch lands and a normal deploy runs.
+
 ## Decisions Added 2026-07-04 (Canonical Off-Season Signal)
 
 - **Off-season truth now lives in one backend helper.** `src/services/nflSchedule.js` exports `isOffSeason()` using the same season/week calendar math as `getCurrentNflWeekContext()` so dashboard and league standings do not fork their own date rules.
