@@ -18,6 +18,7 @@ import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
 import TradeShare from '../pages/TradeShare.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
+import WaiverWire from '../pages/WaiverWire.jsx';
 
 // Dev-only harness — Vite replaces import.meta.env.DEV with `false` at build time,
 // making the dynamic import unreachable and tree-shaking Omen.jsx out of the prod bundle.
@@ -100,6 +101,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <Standings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/waiver"
+        element={
+          <ProtectedRoute>
+            <AppLayout><WaiverWire /></AppLayout>
           </ProtectedRoute>
         }
       />
