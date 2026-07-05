@@ -1,21 +1,22 @@
 # Omen Agent Inbox
 
-**Refreshed 2026-07-04 (Phase 2.9 account delete UI conflict resolution; after Phase 1.14 deploy verification and canonical off-season signal).** Phase 2.9 is complete on `codex/phase2-9-account-delete-ui`: `/account` now exposes Omen data deletion through the mounted `/api/user/delete` route, with evidence in `Blueprints/handoffs/2026-07-04-phase2-9-account-delete-ui.md`. Phase 1.14 is complete: PR #75 and PR #76 deploy runs both completed successfully, current prod serves the transparent Omen lockup bundle/asset, and `.github/workflows/deploy.yml` has a post-health bundle-level logo verification step. Phase 1.13 is complete and merged via PR #75; remaining mobile/ARIA polish items are follow-ups, not Phase 1.13 blockers. The Cowork mobile-QA P1s are resolved or routed through the rate-limit and canonical off-season work now in `origin/main`.
+**Refreshed 2026-07-04 (Phase 2.10 trade share card complete locally; Phase 2.9 account delete UI conflict resolution; after Phase 1.14 deploy verification and canonical off-season signal).** Phase 2.10 is complete locally on `frontend/phase2-10-trade-share-card`: `/trade` can create a public share link, `/trade/share/:hash` renders the public card, and `/api/trade/share/:hash/og.svg` serves the server-side OG SVG. Evidence is in `Blueprints/handoffs/2026-07-04-phase2-10-trade-share-card.md`. Phase 2.9 is complete on `codex/phase2-9-account-delete-ui`: `/account` now exposes Omen data deletion through the mounted `/api/user/delete` route, with evidence in `Blueprints/handoffs/2026-07-04-phase2-9-account-delete-ui.md`. Phase 1.14 is complete: PR #75 and PR #76 deploy runs both completed successfully, current prod serves the transparent Omen lockup bundle/asset, and `.github/workflows/deploy.yml` has a post-health bundle-level logo verification step. Phase 1.13 is complete and merged via PR #75; remaining mobile/ARIA polish items are follow-ups, not Phase 1.13 blockers. The Cowork mobile-QA P1s are resolved or routed through the rate-limit and canonical off-season work now in `origin/main`.
 
 ## Active Task
 
-None pinned. Next agent should pull from the top-5 below unless Justin pins a task.
+None pinned. Auto-populate from Top 5.
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.10 — Trade share card.** Share button on Trade Analyzer result, server-side OG image. Unblocked (Backend Phase 2.10 hash routes deployed). Done docs: feature + page + design + recommendation.
-2. **Phase 2.18 — Waiver Wire route activation.** Free-tier route currently hidden behind doctrine-stale `ProGate`; 6 focused sub-tasks in `current_sprint.md`. Unblocked (Phase 1.6 chip helper shipped). Done docs: feature + page + design + recommendation.
-3. **Phase 1.15 — Post-deploy visual smoke on prod.** Add a `slops-canary`-driven post-deploy smoke against `slopssaloon.com` for home/about/login logo visibility and no `[C]` placeholder / black-rectangle regression. Cost: small. Done docs: release.
-4. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Cost: medium. Done docs: feature + page + design + recommendation.
-5. **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface, plus multi-team trade support. Done docs: page + design + recommendation.
+1. **Phase 2.18 — Waiver Wire route activation.** Free-tier route currently hidden behind doctrine-stale `ProGate`; 6 focused sub-tasks in `current_sprint.md`. Unblocked (Phase 1.6 chip helper shipped). Done docs: feature + page + design + recommendation.
+2. **Phase 1.15 — Post-deploy visual smoke on prod.** Add a `slops-canary`-driven post-deploy smoke against `slopssaloon.com` for home/about/login logo visibility and no `[C]` placeholder / black-rectangle regression. Cost: small. Done docs: release.
+3. **Phase 2.11 — FP1 signal-honesty labels.** Surface each Omen input's `live` / `stub` / `unavailable` status. Backend vocabulary already exists at `src/services/omen.js:356`. Cost: medium. Done docs: feature + page + design + recommendation.
+4. **Phase 2.12 — Trade Analyzer form redesign.** Replace position dropdowns with position-as-buttons surface, plus multi-team trade support. Done docs: page + design + recommendation.
+5. **Phase 2.13 — Trade Analyzer Strategy + Mock Buy Low content rewrite.** Rewrite the "SO SO" strategy sidebar copy via `slops-ux-copy`; specifically remove the "Build roster depth now" tail from Depth bullet. Cost: small. Done docs: page + design + recommendation.
 
 ## Blockers Surfaced
 
+- **Phase 2.10 (trade share card)** is complete locally. Trade Analyzer can create public share links, `/trade/share/:hash` renders the public card, and `/api/trade/share/:hash/og.svg` provides the server-side OG image. Browser evidence is under `output/playwright/phase2-10-trade-share-card/`.
 - **Phase 2.9 (account delete UI)** is complete. `/account` exposes the mounted `DELETE /api/user/delete` route with the exact `DELETE MY OMEN DATA` confirmation phrase, sign-out redirect, login completion notice, and desktop/mobile screenshot evidence.
 - **Phase 1.14 (prod deploy stale for logo swap)** is complete and merged. Current prod serves the transparent lockup bundle/asset; the deploy workflow now fails future runs if the production bundle lacks the transparent lockup reference.
 - **Phase 1.13 (iOS Safari mobile QA sweep)** is complete and merged to `main` via PR #75. The sprint doc now reflects Justin's correction: real Safari WebDriver evidence and the remediation/discrete-fix handoffs satisfy the phase; remaining mobile/ARIA polish is tracked as separate follow-up work, not a Phase 1.13 blocker.

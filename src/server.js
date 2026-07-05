@@ -37,6 +37,11 @@ const {
   setSpaStaticCacheHeaders,
 } = require("./middleware/spaCache");
 const {
+  buildTradeShareMetaForRequest,
+  injectTradeShareMeta,
+  tradeShareHashFromPath,
+} = require("./services/tradeShareMeta");
+const {
   helmetMiddleware,
   corsMiddleware,
   generalRateLimit,
@@ -287,6 +292,21 @@ if (HAS_SPA) {
   // Canonical SPA fallback. app.get("*", ...) is the standard
   // pattern; using app.use(cb) here was racing with the JSON 404
   // handler in some configurations.
+  app.get(/^\/trade\/share\/[^/]+\/?$/i, (req, res, next) => {
+    const hash = tradeShareHashFromPath(req.path);
+    if (!hash) return next();
+
+    fs.readFile(SPA_INDEX, "utf8", (err, html) => {
+      if (err) {
+        logger.error("Trade share SPA index read failed", { err: err.message, path: req.path });
+        return next(err);
+      }
+
+      setSpaIndexCacheHeaders(res);
+      res.type("html").send(injectTradeShareMeta(html, buildTradeShareMetaForRequest(req, hash)));
+    });
+  });
+
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     if (req.path.includes("."))       return next();  // missed static asset = 404
