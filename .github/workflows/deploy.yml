@@ -18,7 +18,8 @@
 #   4. Run the deploy job on KVM1's self-hosted runner
 #   5. Pull images locally on KVM1 and restart containers via compose
 #   6. Smoke-test /api/health via the public hostname
-#   7. Fail the workflow if health check fails so you get a red X on GitHub
+#   7. Verify the deployed SPA bundle and public logo routes
+#   8. Fail the workflow if health/logo smoke fails so you get a red X on GitHub
 #
 # SY0-701 4.7 / 4.8: change-management with audit trail (git history +
 # Actions run logs) and rollback (revert commit -> auto-redeploy old).
@@ -194,6 +195,62 @@ jobs:
 
           curl -fsSI --max-time 8 "$base_url/omen-horizontal-lockup-transparent.png" >/tmp/omen-logo-head.txt
           echo "Verified Omen lockup reference in $bundle_src and asset availability."
+
+      - name: slops-canary public-route visual smoke
+        run: |
+          set -euo pipefail
+          base_url="https://slopssaloon.com"
+          routes=("/" "/about" "/login")
+          bundle_src=""
+          bundle_path="/tmp/omen-visual-smoke-bundle.js"
+
+          for route in "${routes[@]}"; do
+            route_label="${route//\//_}"
+            if [ "$route_label" = "_" ]; then
+              route_label="root"
+            fi
+
+            html_path="/tmp/omen-visual-smoke-${route_label}.html"
+            curl -fsS --max-time 8 "$base_url$route" -o "$html_path"
+
+            if grep -Fq "[C]" "$html_path"; then
+              echo "::error::Route $route contains the retired [C] placeholder in the HTML shell."
+              exit 1
+            fi
+
+            route_bundle="$(grep -oE 'src="/assets/[^"]+\.js"' "$html_path" | head -1 | sed -E 's/^src="//; s/"$//' || true)"
+            if [ -z "$route_bundle" ]; then
+              echo "::error::Route $route did not expose a Vite bundle source."
+              exit 1
+            fi
+
+            if [ "$route_bundle" != "$bundle_src" ]; then
+              bundle_src="$route_bundle"
+              curl -fsS --max-time 8 "$base_url$bundle_src" -o "$bundle_path"
+            fi
+
+            if grep -Fq "[C]" "$bundle_path"; then
+              echo "::error::Route $route bundle contains the retired [C] placeholder."
+              exit 1
+            fi
+
+            if ! grep -Eq "omen-horizontal-lockup[^\\\"]*\\.png" "$bundle_path"; then
+              echo "::error::Route $route bundle does not reference an Omen horizontal lockup PNG."
+              exit 1
+            fi
+
+            if ! grep -Fq "omen-horizontal-lockup-transparent.png" "$bundle_path"; then
+              echo "::error::Route $route bundle is missing the transparent Omen lockup reference."
+              exit 1
+            fi
+
+            if grep -Fq "omen-horizontal-lockup.png" "$bundle_path"; then
+              echo "::error::Route $route bundle still references the baked-black lockup fallback."
+              exit 1
+            fi
+
+            echo "Public logo smoke passed for $route via $bundle_src"
+          done
 
       - name: Tail recent server logs (on success or failure)
         if: always()

@@ -39,6 +39,25 @@ test("deploy workflow verifies the production SPA contains the Omen lockup", () 
   assert.match(workflow, /"\$base_url\/omen-horizontal-lockup-transparent\.png"/);
 });
 
+test("deploy workflow runs a public-route visual smoke for logo regressions", () => {
+  const workflow = read(".github", "workflows", "deploy.yml");
+
+  const logoIndex = workflow.indexOf("Verify deployed Omen logo asset in SPA bundle");
+  const visualSmokeIndex = workflow.indexOf("slops-canary public-route visual smoke");
+  const tailLogsIndex = workflow.indexOf("Tail recent server logs");
+
+  assert.notEqual(logoIndex, -1);
+  assert.notEqual(visualSmokeIndex, -1);
+  assert.notEqual(tailLogsIndex, -1);
+  assert.ok(visualSmokeIndex > logoIndex);
+  assert.ok(visualSmokeIndex < tailLogsIndex);
+  assert.match(workflow, /routes=\("\/" "\/about" "\/login"\)/);
+  assert.match(workflow, /grep -Fq "\[C\]"/);
+  assert.match(workflow, /grep -Eq "omen-horizontal-lockup\[\^\\\\\\"\]\*\\\\\.png"/);
+  assert.match(workflow, /grep -Fq "omen-horizontal-lockup\.png"/);
+  assert.match(workflow, /grep -Fq "omen-horizontal-lockup-transparent\.png"/);
+});
+
 test("Docker builds use npm ci without Yarn-only lockfile flags", () => {
   const dockerfiles = [read("Dockerfile"), read("Dockerfile.cron")];
 
