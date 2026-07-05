@@ -456,7 +456,8 @@ function AccountDeleteDialog({ open, onClose }) {
     <>
       <div
         aria-hidden="true"
-        className="fixed inset-0 z-40 bg-black/60"
+        className="fixed inset-0 z-40"
+        style={{ background: 'rgba(10, 10, 11, 0.6)' }}
         onClick={submitting ? undefined : onClose}
       />
       <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center">
