@@ -4,19 +4,22 @@ import { searchPlayers } from '../data/nflPlayers.js';
 import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
+import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
+import {
+  DEFAULT_TRADE_DEAL_SHAPE,
+  DEFAULT_TRADE_SCORING_FORMAT,
+  EMPTY_TRADE_PLAYER,
+  TRADE_DEAL_SHAPES,
+  TRADE_POSITIONS,
+  TRADE_SCORING_FORMATS,
+  buildTradePayload,
+  tradeDealShapeMeta,
+} from '../lib/tradeForm.js';
 import { buildTradeShareUrl } from '../lib/tradeShare.js';
 
-const EMPTY_PLAYER = {
-  name: '',
-  position: 'RB',
-  projected_points: '',
-  status: '',
-};
-
-const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF'];
 const MAX_SUGGESTIONS = 8;
 
 const INPUT_CLS =
@@ -25,21 +28,37 @@ const INPUT_CLS =
   'focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 ' +
   'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]';
 
-function cleanPlayer(player) {
-  const cleaned = {
-    name: player.name.trim() || 'Unknown',
-    position: player.position,
-  };
-  if (player.projected_points !== '') {
-    cleaned.projected_points = Number(player.projected_points);
-  }
-  if (player.status) {
-    cleaned.status = player.status;
-  }
-  return cleaned;
+function SegmentedControl({ label, options, value, onChange }) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+        {label}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={selected}
+              className={`inline-flex min-h-[44px] items-center justify-center rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] ${
+                selected
+                  ? 'border-[var(--color-team-accent)] bg-[var(--color-team-accent)] text-[var(--color-text-on-accent)]'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-text-secondary)] hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]'
+              }`}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
 }
 
-// ─── Single player row with position-first layout + autocomplete ──────────────
+// ─── Single player row with position-button layout + autocomplete ─────────────
 
 function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -71,7 +90,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
   }
 
   function selectSuggestion(p) {
-    onChange(index, { name: p.name });
+    onChange(index, { name: p.name, team: p.team || '' });
     setSuggestions([]);
     setShowSuggestions(false);
     setActiveIdx(-1);
@@ -105,21 +124,39 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[72px_1fr_44px]">
+    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_44px]">
 
       {/* ── Position ─────────────────────────────────────────────────────────── */}
-      <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-        Pos
-        <select
-          className={`mt-1 ${INPUT_CLS}`}
-          value={player.position}
-          onChange={(e) => handlePositionChange(e.target.value)}
-        >
-          {POSITIONS.map((pos) => (
-            <option key={pos} value={pos}>{pos}</option>
-          ))}
-        </select>
-      </label>
+      <fieldset className="space-y-1.5">
+        <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
+          Position
+        </legend>
+        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-4">
+          {TRADE_POSITIONS.map((pos) => {
+            const selected = player.position === pos;
+            return (
+              <button
+                key={pos}
+                type="button"
+                aria-pressed={selected}
+                className={`min-h-[44px] rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] ${
+                  selected
+                    ? 'ring-2 ring-[var(--color-team-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
+                    : 'hover:border-[var(--color-team-accent)]'
+                }`}
+                style={selected ? {
+                  background: 'var(--color-team-accent)',
+                  borderColor: 'var(--color-team-accent)',
+                  color: 'var(--color-text-on-accent)',
+                } : positionChipStyle(pos)}
+                onClick={() => handlePositionChange(pos)}
+              >
+                {pos}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       {/* ── Name + autocomplete dropdown ─────────────────────────────────────── */}
       <label className="relative text-xs font-semibold text-[var(--color-text-secondary)]">
@@ -323,7 +360,13 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError 
             {result.net_value > 0 ? '+' : ''}{result.net_value}
           </h2>
           <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
-            VORP value
+            <abbr
+              className="cursor-help no-underline"
+              title="Value Over Replacement Player - how much better this side is than a replacement-level option."
+            >
+              VORP
+            </abbr>{' '}
+            value
           </p>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Confidence: {result.confidence}
@@ -449,9 +492,9 @@ function BuyLowCard() {
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-[10px] text-[var(--color-text-tertiary)]">
-        Mock data · updated each preseason
-      </p>
+      <div className="mt-4">
+        <MockBanner message="Mock buy-low targets - updated each preseason." />
+      </div>
     </div>
   );
 }
@@ -459,8 +502,10 @@ function BuyLowCard() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function TradeAnalyzer({ compact = false }) {
-  const [send, setSend] = useState([{ ...EMPTY_PLAYER }]);
-  const [receive, setReceive] = useState([{ ...EMPTY_PLAYER, position: 'WR' }]);
+  const [send, setSend] = useState([{ ...EMPTY_TRADE_PLAYER }]);
+  const [receive, setReceive] = useState([{ ...EMPTY_TRADE_PLAYER, position: 'WR' }]);
+  const [scoringFormat, setScoringFormat] = useState(DEFAULT_TRADE_SCORING_FORMAT);
+  const [dealShape, setDealShape] = useState(DEFAULT_TRADE_DEAL_SHAPE);
   const [result, setResult] = useState(null);
   const [lastTradePayload, setLastTradePayload] = useState(null);
   const [error, setError] = useState(null);
@@ -469,6 +514,7 @@ export default function TradeAnalyzer({ compact = false }) {
   const [shareStatus, setShareStatus] = useState('idle');
   const [shareUrl, setShareUrl] = useState('');
   const [shareError, setShareError] = useState('');
+  const dealShapeMeta = tradeDealShapeMeta(dealShape);
 
   function updateSide(setter, index, patch) {
     setter((players) =>
@@ -482,15 +528,15 @@ export default function TradeAnalyzer({ compact = false }) {
 
   async function handleSubmit(event) {
     event?.preventDefault();
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setError(null);
     setLoading(true);
     setHasSubmitted(true);
 
     try {
-      const payload = {
-        send: send.map(cleanPlayer),
-        receive: receive.map(cleanPlayer),
-      };
+      const payload = buildTradePayload({ send, receive, scoringFormat });
       const comparison = await apiFetch('/api/trade/compare', {
         method: 'POST',
         body: payload,
@@ -557,18 +603,45 @@ export default function TradeAnalyzer({ compact = false }) {
       {/* ── Main column: form + result ─────────────────────────────────────── */}
       <div className="flex flex-col gap-8">
         <form className="space-y-5" onSubmit={handleSubmit}>
-          <div className="grid gap-5 xl:grid-cols-2">
+          <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <SegmentedControl
+                label="Scoring"
+                options={TRADE_SCORING_FORMATS}
+                value={scoringFormat}
+                onChange={setScoringFormat}
+              />
+              <div>
+                <SegmentedControl
+                  label="Deal shape"
+                  options={TRADE_DEAL_SHAPES}
+                  value={dealShape}
+                  onChange={setDealShape}
+                />
+                <p className="mt-2 text-xs leading-5 text-[var(--color-text-secondary)]">
+                  {dealShapeMeta.description}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)]">
             <PlayerRows
               title="Send"
               players={send}
-              onAdd={() => setSend((players) => [...players, { ...EMPTY_PLAYER }])}
+              onAdd={() => setSend((players) => [...players, { ...EMPTY_TRADE_PLAYER }])}
               onChange={(index, patch) => updateSide(setSend, index, patch)}
               onRemove={(index) => removeSidePlayer(setSend, index)}
             />
+            <div className="hidden items-center justify-center xl:flex" aria-hidden="true">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-team-accent)]/40 bg-[var(--color-team-accent)]/10 text-xl font-semibold text-[var(--color-team-accent)]">
+                &harr;
+              </span>
+            </div>
             <PlayerRows
               title="Receive"
               players={receive}
-              onAdd={() => setReceive((players) => [...players, { ...EMPTY_PLAYER }])}
+              onAdd={() => setReceive((players) => [...players, { ...EMPTY_TRADE_PLAYER, position: 'WR' }])}
               onChange={(index, patch) => updateSide(setReceive, index, patch)}
               onRemove={(index) => removeSidePlayer(setReceive, index)}
             />

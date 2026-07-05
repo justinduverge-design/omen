@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-05 (Phase 2.12 Trade Analyzer Form Redesign)
+
+- **The Trade Analyzer form now uses position buttons, not dropdowns.** Each player row exposes QB/RB/WR/TE/FLEX/K/DEF as button controls with text labels, 44px targets, focus rings, and selected-state styling instead of a compact `<select>`.
+- **Scoring format is now explicit.** The public `/trade` form sends `scoring_format` as `ppr`, `half_ppr`, or `standard`, matching the existing backend contract instead of silently using the backend default.
+- **Multi-team support is honest net-side support, not a fake three-team optimizer.** The UI exposes a Multi-team deal-shape mode with copy telling users to enter what leaves and enters their roster from the full deal. The backend still compares the user's net send/receive sides; no new three-team valuation contract was invented in this phase.
+- **Trade direction and VORP explanation are visible.** Desktop gets a center swap glyph between Send and Receive, and the result panel explains VORP via an `abbr` title.
+- **Mock buy-low data now uses the shared mock-label treatment.** The sidebar's buy-low targets still remain Phase 2.13 copy/work, but their mock status is surfaced through `MockBanner`.
+- **This is local work only until Justin ships it.** Branch `codex/phase2-12-trade-form-redesign` is not pushed, merged, or deployed.
+
 ## Decisions Added 2026-07-05 (Phase 2.18 Waiver Wire Route Activation)
 
 - **Waiver Wire is now a reachable free-tier route.** `/waiver` was built but never routed, and gated behind a `ProGate` Pro-upsell screen that was stale doctrine debt — Omen has been free indefinitely since the 2026-06-15 decision, and `OMEN_BILLING_ENABLED=false` makes the underlying `/api/optimizer/waiver` `402` path unreachable in production. The route is now registered, nav-reachable, and the dead Pro-gate branch is removed.
