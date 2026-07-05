@@ -7,6 +7,11 @@ import { ApiError, apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
 import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
 import { confidenceBarStyle } from '../lib/confidenceGradient.js';
+import {
+  formatOmenSignalKey,
+  omenSignalBadgeStyle,
+  omenSignalStatusMeta,
+} from '../lib/omenSignalLabels.js';
 
 const ESPN_RECOVERY_STATES = new Set([
   'espn_reauth_required',
@@ -19,13 +24,6 @@ const RISK_STYLES = {
   low: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
   medium: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
   high: 'border-red-400/30 bg-red-400/10 text-red-300',
-};
-
-const SIGNAL_STYLES = {
-  live: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
-  stub: 'border-amber-400/40 bg-amber-400/10 text-amber-300',
-  mock: 'border-sky-400/40 bg-sky-400/10 text-sky-300',
-  unavailable: 'border-slate-600 bg-slate-800/50 text-slate-500',
 };
 
 function useOmenData() {
@@ -369,10 +367,13 @@ function ReasoningList({ explanation }) {
 }
 
 function SignalBadge({ status }) {
-  const style = SIGNAL_STYLES[status] ?? SIGNAL_STYLES.unavailable;
+  const meta = omenSignalStatusMeta(status);
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${style}`}>
-      {status ?? 'unavailable'}
+    <span
+      className="rounded-full border px-2 py-0.5 text-xs font-semibold"
+      style={omenSignalBadgeStyle(status)}
+    >
+      {meta.label}
     </span>
   );
 }
@@ -383,29 +384,45 @@ function SignalsPanel({ signals }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">Signals</p>
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-text-secondary)]">
+            Input honesty
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">
+            Live inputs drive the call. Stub, mock, and unavailable inputs are labeled before the reasoning.
+          </p>
+        </div>
+      </div>
       <div className="space-y-2">
-        {entries.map(([key, signal]) => (
+        {entries.map(([key, signal]) => {
+          const meta = omenSignalStatusMeta(signal?.status);
+          const usedLabel = signal?.used ? meta.usedLabel : 'Not used';
+          return (
           <div
             key={key}
-            className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+            className="flex flex-col gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
           >
             <div>
-              <p className="text-sm font-semibold capitalize text-slate-300">
-                {key.replace(/_/g, ' ')}
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {formatOmenSignalKey(key)}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-text-secondary)]">
+                {meta.description}
               </p>
               {signal?.message ? (
-                <p className="mt-1 text-xs leading-5 text-slate-500">{signal.message}</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">{signal.message}</p>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <SignalBadge status={signal?.status} />
-              <span className="text-xs text-slate-600">
-                {signal?.used ? 'used' : 'not used'}
+              <span className="text-xs font-semibold text-[var(--color-text-tertiary)]">
+                {usedLabel}
               </span>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
