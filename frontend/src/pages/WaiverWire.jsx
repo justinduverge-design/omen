@@ -4,27 +4,10 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { positionChipStyle } from '../lib/positionChip.js';
 import { supabase } from '../lib/supabase.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
-
-function PositionBadge({ position }) {
-  const colors = {
-    QB: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-    RB: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    WR: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
-    TE: 'border-purple-400/30 bg-purple-400/10 text-purple-300',
-    K: 'border-slate-600 bg-slate-800 text-slate-300',
-    DEF: 'border-slate-600 bg-slate-800 text-slate-300',
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${colors[position] ?? colors.K}`}
-    >
-      {position}
-    </span>
-  );
-}
 
 function PlayerRow({ rank, player }) {
   const vorpDisplay = player.vorp_delta != null
@@ -35,19 +18,27 @@ function PlayerRow({ rank, player }) {
     : '—';
 
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-slate-800 bg-slate-900 px-5 py-4">
-      <p className="w-5 flex-shrink-0 pt-0.5 text-sm font-semibold text-slate-500">{rank}</p>
+    <div className="flex items-start gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4">
+      <p className="w-5 flex-shrink-0 pt-0.5 text-sm font-semibold text-[var(--color-text-tertiary)]">{rank}</p>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold text-white">{player.name}</p>
-          <PositionBadge position={player.position} />
-          <p className="text-xs text-slate-500">{player.team}</p>
+          <p className="font-semibold text-[var(--color-text-primary)]">{player.name}</p>
+          <span
+            className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
+            style={positionChipStyle(player.position)}
+          >
+            {player.position}
+          </span>
+          <p className="text-xs text-[var(--color-text-tertiary)]">{player.team}</p>
         </div>
-        <p className="mt-1.5 text-sm leading-5 text-slate-400">{player.reason}</p>
+        <p className="mt-1.5 text-sm leading-5 text-[var(--color-text-secondary)]">{player.reason}</p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className="text-sm font-semibold text-white">{ptsDisplay} pts</p>
-        <p className={`text-xs font-semibold ${player.vorp_delta >= 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+        <p className="text-sm font-semibold text-[var(--color-text-primary)]">{ptsDisplay} pts</p>
+        <p
+          className="text-xs font-semibold"
+          style={{ color: player.vorp_delta >= 0 ? 'var(--color-risk-low)' : 'var(--color-text-secondary)' }}
+        >
           {vorpDisplay} VORP
         </p>
       </div>
@@ -55,34 +46,16 @@ function PlayerRow({ rank, player }) {
   );
 }
 
-function ProGate() {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Pro Feature</p>
-      <p className="mt-3 text-lg font-semibold text-white">Waiver Wire Optimizer</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
-        Waiver wire rankings require a Omen Pro subscription. Upgrade to access VORP-ranked pickups for your roster.
-      </p>
-      <a
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
-        href="/account"
-      >
-        Upgrade to Pro →
-      </a>
-    </div>
-  );
-}
-
 function TokenExpiredState() {
   return (
-    <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-6 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Waiver Wire</p>
-      <p className="mt-3 text-lg font-semibold text-white">Yahoo session expired</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
+    <div className="rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)] p-6 text-center">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
+      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">Yahoo session expired</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
         Reconnect your Yahoo account to restore your live waiver rankings.
       </p>
       <button
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20"
         type="button"
         onClick={() => { window.location.href = '/api/yahoo/auth'; }}
       >
@@ -94,14 +67,14 @@ function TokenExpiredState() {
 
 function AuthGate() {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Waiver Wire</p>
-      <p className="mt-3 text-lg font-semibold text-white">Sign in to get waiver picks</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-10 text-center">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
+      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">Sign in to get waiver picks</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
         Connect your fantasy platform and sign in to receive VORP-ranked waiver recommendations for your roster.
       </p>
       <Link
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-amber-400/20"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20"
         to="/login"
       >
         Sign in →
@@ -116,7 +89,6 @@ export default function WaiverWire() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [proRequired, setProRequired] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
 
   useEffect(() => {
@@ -134,7 +106,6 @@ export default function WaiverWire() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
-    setProRequired(false);
     setTokenExpired(false);
     setResult(null);
     setLoading(true);
@@ -146,9 +117,7 @@ export default function WaiverWire() {
       const data = await apiFetch(`/api/optimizer/waiver${qs ? `?${qs}` : ''}`);
       setResult(data);
     } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 402) {
-        setProRequired(true);
-      } else if (
+      if (
         caught instanceof ApiError &&
         caught.status === 401 &&
         caught.message?.toLowerCase().includes('yahoo token expired')
@@ -169,22 +138,25 @@ export default function WaiverWire() {
   if (session === undefined) {
     return (
       <div className="flex h-32 items-center justify-center" aria-label="Loading" role="status">
-        <span className="h-5 w-5 animate-spin motion-reduce:hidden rounded-full border-2 border-slate-700 border-t-amber-400" aria-hidden="true" />
+        <span
+          className="h-5 w-5 animate-spin motion-reduce:hidden rounded-full border-2"
+          style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
+          aria-hidden="true"
+        />
       </div>
     );
   }
 
   if (!session) return <AuthGate />;
-  if (proRequired) return <ProGate />;
   if (tokenExpired) return <TokenExpiredState />;
 
   return (
     <div className="space-y-6">
       <form className="flex flex-wrap items-end gap-4" onSubmit={handleSubmit}>
-        <label className="text-xs font-semibold text-slate-400">
+        <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
           Week (optional)
           <input
-            className="mt-1 block w-24 min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="mt-1 block w-24 min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-team-accent)]"
             max="18"
             min="1"
             placeholder="Current"
@@ -219,16 +191,16 @@ export default function WaiverWire() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <p className="text-xs uppercase tracking-widest text-slate-400">
+              <p className="text-xs uppercase tracking-widest text-[var(--color-text-secondary)]">
                 Top Pickups — Week {result.week}
               </p>
               {result.platform && (
-                <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
+                <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-text-secondary)]">
                   {PLATFORM_LABELS[result.platform] ?? result.platform}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500">{result.pool_size} players scanned</p>
+            <p className="text-xs text-[var(--color-text-tertiary)]">{result.pool_size} players scanned</p>
           </div>
 
           {result.recommendations?.length > 0 ? (

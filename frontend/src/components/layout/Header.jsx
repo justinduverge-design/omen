@@ -26,6 +26,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Trade Analyzer',  to: '/trade' },
       { label: 'Draft Assistant', to: '/draft' },
+      { label: 'Waiver Wire',     to: '/waiver', auth: true },
     ],
   },
   {

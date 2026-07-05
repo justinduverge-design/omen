@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-05 (Phase 2.18 Waiver Wire Route Activation)
+
+- **Waiver Wire is now a reachable free-tier route.** `/waiver` was built but never routed, and gated behind a `ProGate` Pro-upsell screen that was stale doctrine debt — Omen has been free indefinitely since the 2026-06-15 decision, and `OMEN_BILLING_ENABLED=false` makes the underlying `/api/optimizer/waiver` `402` path unreachable in production. The route is now registered, nav-reachable, and the dead Pro-gate branch is removed.
+- **A stray backend `402` (if it ever occurred) now falls through to the existing generic error state** rather than a dedicated Pro-upsell screen, since that path is understood to be unreachable while billing stays off.
+- **Position chip styling is now consistent app-wide.** `WaiverWire.jsx`'s bespoke `PositionBadge` is retired in favor of the shared `positionChipStyle()` helper (Phase 1.6), matching `TradeAnalyzer.jsx`.
+- **This closes the last pre-Phase-1.6-token-migration page.** `WaiverWire.jsx` was the remaining page still using raw `slate-*`/`amber-*`/`emerald-*` Tailwind literals instead of the design-system CSS custom properties; it is now consistent with `TradeAnalyzer.jsx`/`TradeShare.jsx`.
+- **Recommendation Done is only partially satisfied for this route, by design of this phase's scope.** `/api/optimizer/waiver` still returns no confidence score or risk label per pickup. Adding those fields is a backend change and was explicitly out of scope for a route-activation phase; flagged rather than silently accepted as fully compliant.
+- **This is local work only until Justin ships it.** Branch `frontend/phase2-18-waiver-wire-activation` is not pushed, merged, or deployed.
 ## Decisions Added 2026-07-05 (Phase 1.15 Post-Deploy Visual Smoke)
 
 - **Public logo smoke follows the Vite bundle, not the HTML shell.** The deploy workflow now fetches `/`, `/about`, and `/login`, extracts each route's `/assets/*.js` bundle, and verifies the bundle contains the transparent Omen lockup while rejecting `[C]` and the baked-black fallback. This is because the deployed SPA shell does not directly contain the React logo image markup.
