@@ -1,0 +1,53 @@
+{
+  "baseUrl": "http://127.0.0.1:5176",
+  "routes": [
+    {
+      "route": "/",
+      "rootTheme": "light",
+      "htmlHasPlaceholder": false,
+      "imageCount": 1,
+      "checks": [
+        {
+          "src": "/omen-horizontal-lockup-transparent.png",
+          "renderedWidth": 148,
+          "renderedHeight": 48,
+          "naturalWidth": 763,
+          "naturalHeight": 248,
+          "darkOpaqueCorners": 0
+        }
+      ]
+    },
+    {
+      "route": "/about",
+      "rootTheme": "light",
+      "htmlHasPlaceholder": false,
+      "imageCount": 1,
+      "checks": [
+        {
+          "src": "/omen-horizontal-lockup-transparent.png",
+          "renderedWidth": 111,
+          "renderedHeight": 36,
+          "naturalWidth": 763,
+          "naturalHeight": 248,
+          "darkOpaqueCorners": 0
+        }
+      ]
+    },
+    {
+      "route": "/login",
+      "rootTheme": "light",
+      "htmlHasPlaceholder": false,
+      "imageCount": 1,
+      "checks": [
+        {
+          "src": "/omen-horizontal-lockup-transparent.png",
+          "renderedWidth": 148,
+          "renderedHeight": 48,
+          "naturalWidth": 763,
+          "naturalHeight": 248,
+          "darkOpaqueCorners": 0
+        }
+      ]
+    }
+  ]
+}

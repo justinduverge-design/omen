@@ -10,6 +10,12 @@
 - **This closes the last pre-Phase-1.6-token-migration page.** `WaiverWire.jsx` was the remaining page still using raw `slate-*`/`amber-*`/`emerald-*` Tailwind literals instead of the design-system CSS custom properties; it is now consistent with `TradeAnalyzer.jsx`/`TradeShare.jsx`.
 - **Recommendation Done is only partially satisfied for this route, by design of this phase's scope.** `/api/optimizer/waiver` still returns no confidence score or risk label per pickup. Adding those fields is a backend change and was explicitly out of scope for a route-activation phase; flagged rather than silently accepted as fully compliant.
 - **This is local work only until Justin ships it.** Branch `frontend/phase2-18-waiver-wire-activation` is not pushed, merged, or deployed.
+## Decisions Added 2026-07-05 (Phase 1.15 Post-Deploy Visual Smoke)
+
+- **Public logo smoke follows the Vite bundle, not the HTML shell.** The deploy workflow now fetches `/`, `/about`, and `/login`, extracts each route's `/assets/*.js` bundle, and verifies the bundle contains the transparent Omen lockup while rejecting `[C]` and the baked-black fallback. This is because the deployed SPA shell does not directly contain the React logo image markup.
+- **The deploy canary stays read-only and dependency-free.** The workflow uses `curl`, `grep`, and `sed` already available to the deploy job instead of adding a headless browser dependency to the KVM1 runner. Rendered-pixel evidence stays in local Playwright artifacts until a browser-capable CI smoke is explicitly approved.
+- **`/login` should use the same brand image as the other public Omen routes.** Browser QA showed current production `/login` was text-only even though the shared bundle passed the logo-reference check. The page now renders `/omen-horizontal-lockup-transparent.png` with `alt="Omen"` above the existing "Fantasy Intelligence" label.
+- **This remains local work until shipped.** Branch `codex/phase1-15-post-deploy-visual-smoke` is not pushed, merged, or deployed; current production `/login` remains text-only until this branch lands and a normal deploy runs.
 
 ## Decisions Added 2026-07-04 (Canonical Off-Season Signal)
 
