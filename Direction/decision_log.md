@@ -2,6 +2,20 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-05 (Account Deletion Guardrail Reconciliation)
+
+- **Justin explicitly approved the Phase 2.9 account-deletion UX copy and confirmation phrase.** `current_sprint.md`'s Guardrails section previously read "Account deletion stays hidden until UX copy + Justin approval are explicit," which conflicted with Phase 2.9 being checked complete and `frontend/src/pages/Account.jsx`'s `PrivacySection` rendering unconditionally with no feature flag. Justin's approval resolves the conflict in favor of the shipped implementation - no flag is needed and none was added.
+- **The guardrail is reworded, not removed.** It now records that deletion is approved-and-shipped as built, and narrows to: don't change the deletion confirmation copy or phrase (`"DELETE MY OMEN DATA"`) without logging a fresh approval note here.
+- **Corresponding Verify item in `current_sprint.md` closed** as resolved rather than left open, since the underlying fact (approval status) is now settled.
+
+## Decisions Added 2026-07-05 (Phase 2.11 Signal-Honesty Labels)
+
+- **Omen recommendation inputs now carry visible honesty labels.** The recommendation view exposes an `Input honesty` section that labels every backend-provided signal as Live, Stub, Mock, or Unavailable before the user reads the reasoning.
+- **Backend `demo` signal status display-normalizes to Mock.** Public Demo Mode already identifies itself as demo at the page level; individual `status: "demo"` signals now render as Mock / preview inputs so the UI never implies they are live and does not flood the panel with unavailable noise.
+- **Data-source colors stay invariant.** Signal badges use the existing data-source tokens (`--color-data-live`, `--color-data-stub`, `--color-data-mock`, `--color-data-unavailable`) rather than team accent or raw Tailwind colors.
+- **No endpoint contract changed.** The frontend consumes the existing `signals` envelope from Omen responses; there is no backend route, schema, auth, provider, SQL, package, env, or deploy behavior change.
+- **This is local work only until Justin ships it.** Branch `codex/phase2-11-signal-honesty-labels` is not pushed, merged, or deployed.
+
 ## Decisions Added 2026-07-05 (Phase 2.12 Trade Analyzer Form Redesign)
 
 - **The Trade Analyzer form now uses position buttons, not dropdowns.** Each player row exposes QB/RB/WR/TE/FLEX/K/DEF as button controls with text labels, 44px targets, focus rings, and selected-state styling instead of a compact `<select>`.

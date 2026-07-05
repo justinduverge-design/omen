@@ -1,0 +1,175 @@
+TOOLS
+
+Trade Analyzer
+Draft Assistant
+
+ACCOUNT
+
+Sign In
+
+© 2026 Slops Saloon
+
+OMEN DEMO
+
+See Omen on a sample league.
+
+This is a fixed example so you can read the shape of an Omen call before you connect your own league. Numbers and rosters here are illustrative — the real version reads your roster from Yahoo, Sleeper, or ESPN.
+
+DEMO MODE
+
+Sample league and roster data. This is not live fantasy advice.
+
+OMEN OF THE WEEK
+
+Demo
+Start Sample RB Breakout over Sample RB Starter
+
+Week 1 · 2026 Season
+
+Start/Sit
+Low Risk
+
+Start Sample RB Breakout over Sample RB Starter.
+
+Powered by Omen · Week 1 · PPR
+
+CONFIDENCE
+
+95% - high
+
+The demo optimizer sees a 5.60 point edge in the sample lineup.
+
+PRIMARY MOVE
+
+START
+
+Sample RB Breakout
+
+RB · ATL
+
+BENCH
+
+Sample RB Starter
+
+RB · CHI
+
+Move Sample RB Breakout into your RB slot and bench Sample RB Starter.
+
+IMPACT
+
+Expected Value Delta
+
++5.6 pts
+
+Edge Label
+
+Major
+
+REASONING
+
+1
+Sample RB Breakout improves the sample lineup by 5.60 projected points.
+2
+This demonstrates the decision shape only; it is not live fantasy advice.
+3
+Confidence is 95 out of 100 for this deterministic demo scenario.
+4
+Data used: deterministic demo roster, sample projected points, sample player availability.
+
+RISK NOTES
+
+The roster and projections are deterministic sample data, not current league information.
+A real recommendation can change with injuries, matchups, scoring settings, and roster context.
+
+INPUT HONESTY
+
+Live inputs drive the call. Stub, mock, and unavailable inputs are labeled before the reasoning.
+
+Roster
+
+Preview input
+
+Roster context comes from the deterministic Omen demo fixture.
+
+Mock
+Preview
+
+Projections
+
+Preview input
+
+Projected points are sample values for demonstrating Omen behavior.
+
+Mock
+Preview
+
+Matchup DvP
+
+Preview input
+
+Matchup context is illustrative and is not current NFL data.
+
+Mock
+Preview
+
+Plain-English reasoning
+
+Preview input
+
+Explanation is deterministic and does not call an LLM.
+
+Mock
+Preview
+
+READY FOR THE REAL CALL?
+
+Connect Yahoo, Sleeper, or ESPN and Omen reads your actual roster.
+
+Connect a league
+Back to home
+OMEN
+© 2026 Slops Saloon. All rights reserved.
+
+HELP
+
+Omen Help
+
+Fantasy football intelligence — less guessing, better moves.
+
+HOW IT WORKS
+
+Trade Analyzer
+
+Free — analyze any trade before you make it.
+
+Omen of the Week
+
+Your one weekly move, surfaced every Tuesday.
+
+Draft Assistant
+
+Free — pick recommendations for your draft.
+
+Connect a league
+
+Link Yahoo, Sleeper, or ESPN to unlock the full experience.
+
+QUICK LINKS
+
+Football Dashboard
+→
+Trade Analyzer
+→
+Draft Assistant
+→
+Connect a Platform
+→
+Account
+→
+
+Setup not complete
+
+You haven't finished connecting a platform. Complete setup to unlock Omen.
+
+Continue setup →
+Omen · Less guessing. Better moves.
