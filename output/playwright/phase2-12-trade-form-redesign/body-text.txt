@@ -1,0 +1,173 @@
+TOOLS
+
+Trade Analyzer
+Draft Assistant
+
+ACCOUNT
+
+Sign In
+
+© 2026 Slops Saloon
+
+SCORING
+PPR
+Half PPR
+Standard
+DEAL SHAPE
+Two-team
+Multi-team
+
+Use your net side from the full deal. Omen compares only what leaves and enters your roster.
+
+Send
+Add
+Position
+QB
+RB
+WR
+TE
+FLEX
+K
+DEF
+Name
+×
+Receive
+Add
+Position
+QB
+RB
+WR
+TE
+FLEX
+K
+DEF
+Name
+×
+Compare Trade
+
+RESULT
+
++2.5
+
+VORP VALUE
+
+Confidence: medium
+
+accept
+
+Accept it in half_ppr. You gain the cleaner weekly starter.
+
+Share this result
+
+Creates a public snapshot. No connected-platform data or private league context is included.
+
+Share result
+Send
+3.5
+Justin
+3.5
+Receive
+6
+Ja
+6
+
+OMEN · STRATEGY
+
+Trade Room
+
+Buy after one bad week
+
+One game is noise. The market overreacts. Move before it corrects.
+
+Sell into the schedule
+
+Value peaks before a brutal stretch. Check the next four matchups.
+
+Depth wins championships
+
+The waiver wire dries up in October. Build roster depth now.
+
+TE1 is a multiplier
+
+Position scarcity is real. A true TE1 compounds in value all season.
+
+MOCK · BUY LOW
+
+Targets
+Tyjae Spears
+RB
+TEN
+
+New OC, undervalued upside. Buy before anyone notices the usage trend.
+
+Zach Charbonnet
+RB
+SEA
+
+Clear lead-back path. Handcuff price, starter value.
+
+Sam LaPorta
+TE
+DET
+
+Year 2 TE1 in a run-first offense that loves the middle of the field.
+
+Rico Dowdle
+RB
+DAL
+
+Bell-cow role in Dallas. ADP still reflects Elliott-era uncertainty.
+
+Tank Dell
+WR
+HOU
+
+Coming off injury. Target share in a top offense at a discount.
+
+Mock buy-low targets - updated each preseason.
+OMEN
+© 2026 Slops Saloon. All rights reserved.
+
+HELP
+
+Trade Analyzer
+
+Enter the players going each way, compare, and get a plain-English verdict.
+
+HOW IT WORKS
+
+No account required
+
+Use Trade Analyzer without signing in.
+
+Both sides
+
+Fill in Send and Receive, then hit Compare Trade.
+
+Trade Room
+
+Strategy tips on the right keep context in view while you build.
+
+Player names
+
+Start typing and use autocomplete to lock in the right player.
+
+QUICK LINKS
+
+Football Dashboard
+→
+Trade Analyzer
+→
+Draft Assistant
+→
+Connect a Platform
+→
+Account
+→
+
+Setup not complete
+
+You haven't finished connecting a platform. Complete setup to unlock Omen.
+
+Continue setup →
+Omen · Less guessing. Better moves.
