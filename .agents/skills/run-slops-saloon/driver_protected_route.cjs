@@ -69,6 +69,13 @@ async function main() {
   }
   const routeConfig = require(routeConfigPath);
 
+  if (stateFilter && !routeConfig.states.some((s) => s.id === stateFilter)) {
+    console.error(`[protected-route-qa] No state "${stateFilter}" in route "${routeId}".`);
+    console.error("Available states:");
+    for (const s of routeConfig.states) console.error(`  - ${s.id}`);
+    process.exit(1);
+  }
+
   const screenshotDir = path.join(out || SCREENSHOT_ROOT, routeConfig.id);
   fs.mkdirSync(screenshotDir, { recursive: true });
 

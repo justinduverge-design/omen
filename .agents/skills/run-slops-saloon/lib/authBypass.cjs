@@ -50,6 +50,16 @@ const SUPABASE_STORAGE_KEY = "sb-localhost-auth-token";
  * Vite env vars to spawn the dev server with so the Supabase client
  * initializes for real (not the stub used when VITE_SUPABASE_URL is unset).
  *
+ * Explicitly clears VITE_API_BASE_URL even if the calling shell has it set
+ * (e.g. to a staging/prod URL) — frontend/src/lib/api.js's apiFetch() uses
+ * that as an absolute prefix, which would send the unmocked
+ * apiFetch('/api/session') call in ProtectedRoute.jsx straight to a real
+ * backend instead of through the Vite dev proxy. A real backend rejects the
+ * fake token, ProtectedRoute signs out, and the auth bypass silently breaks
+ * mid-run. Clearing it keeps the whole technique's zero-real-backend
+ * guarantee intact: unmocked /api/* calls hit the (absent) local proxy and
+ * fail closed with ECONNREFUSED, which ProtectedRoute already ignores.
+ *
  * @param {Record<string,string>} [overrides] - extra/overriding env vars
  *        (e.g. { VITE_ESPN_ENABLED: 'false' })
  */
@@ -58,6 +68,7 @@ function buildViteEnv(overrides = {}) {
     ...process.env,
     VITE_SUPABASE_URL: FAKE_SUPABASE_URL,
     VITE_SUPABASE_ANON_KEY: FAKE_SUPABASE_ANON_KEY,
+    VITE_API_BASE_URL: "",
     ...overrides,
   };
 }
