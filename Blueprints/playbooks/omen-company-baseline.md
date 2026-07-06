@@ -45,7 +45,7 @@ Required: repo inspection → contract/spec → `slops-tdd` → git flow → cod
 
 ### Frontend/user-visible behavior
 
-Required: page-system/design source → appropriate implementation loop → `slops-ux-copy` when words change → `slops-ui-ux-audit` → mobile smoke → real mobile QA at the release boundary. Use `slops-taste` and `slops-design-system-pack` while creating; use the SLOPS audit for verdicts.
+Required: page-system/design source → appropriate implementation loop → `slops-ux-copy` when words change → `slops-ui-ux-audit` → mobile smoke → real mobile QA at the release boundary. Use `slops-taste` and `slops-design-system-pack` while creating; use the SLOPS audit for verdicts. For the Page-Done/Design-Done light+dark screenshot gate on an auth-gated route, use `.agents/skills/run-slops-saloon/driver_protected_route.cjs` (see that skill's `SKILL.md`) rather than documenting "no authenticated screenshot" as a known gap — it needs zero real Supabase credentials or backend.
 
 ### AI, math, or data behavior
 
