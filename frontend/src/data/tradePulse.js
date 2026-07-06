@@ -16,7 +16,7 @@ export const TRADE_PULSE = {
       name: 'Tyjae Spears',
       position: 'RB',
       team: 'TEN',
-      reason: 'New OC, undervalued upside. Buy before anyone notices the usage trend.',
+      reason: 'Buy before the usage trend gets priced in. New OC, still undervalued.',
     },
     {
       id: 'bl-zach-charbonnet',
@@ -30,7 +30,7 @@ export const TRADE_PULSE = {
       name: 'Sam LaPorta',
       position: 'TE',
       team: 'DET',
-      reason: 'Year 2 TE1 in a run-first offense that loves the middle of the field.',
+      reason: 'A true TE1 in year two — buy before the league catches on.',
     },
     {
       id: 'bl-rico-dowdle',
@@ -44,7 +44,7 @@ export const TRADE_PULSE = {
       name: 'Tank Dell',
       position: 'WR',
       team: 'HOU',
-      reason: 'Coming off injury. Target share in a top offense at a discount.',
+      reason: 'Injury discount, not injury risk. Target share in a top offense.',
     },
   ],
 };
