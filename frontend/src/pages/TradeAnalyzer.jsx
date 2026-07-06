@@ -419,20 +419,20 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError 
 
 const TRADE_TIPS = [
   {
-    title: 'Buy after one bad week',
-    body: 'One game is noise. The market overreacts. Move before it corrects.',
+    title: 'The market overreacts',
+    body: 'One bad week ≠ decline. Buy before the price recovers.',
   },
   {
-    title: 'Sell into the schedule',
-    body: "Value peaks before a brutal stretch. Check the next four matchups.",
+    title: 'Trade the peak, not the crash',
+    body: 'Sell before the schedule turns — not after.',
   },
   {
-    title: 'Depth wins championships',
-    body: 'The waiver wire dries up in October. Build roster depth now.',
+    title: 'The bench wins in October',
+    body: "Waiver wire dries up. Depth you already own doesn't.",
   },
   {
-    title: 'TE1 is a multiplier',
-    body: 'Position scarcity is real. A true TE1 compounds in value all season.',
+    title: 'Scarcity beats volume',
+    body: 'One true TE1 outweighs two streaming options.',
   },
 ];
 

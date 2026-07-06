@@ -1,5 +1,6 @@
 # Omen Agent Inbox
 
+**Refreshed 2026-07-05 (Phase 2.13 Trade Analyzer Strategy + Mock Buy Low content rewrite complete, merged, deploy triggered).** Phase 2.13 closed on branch `frontend/phase2-13-trade-strategy-copy`: all 4 `TRADE_TIPS` bullets rewritten (Justin picked Option C), 3 of 5 Mock Buy Low `reason` lines rewritten, Depth bullet no longer ends with "Build roster depth now." Evidence in `Blueprints/handoffs/2026-07-05-phase2-13-trade-strategy-copy-rewrite.md`. Discovered and filed a new Decisions-lane item: `tradePulse.js` has no data-refresh mechanism despite its own "updated each preseason" copy. No pinned task remains — next unchecked items per `current_sprint.md` lead with Phase 2.14 (Standings team-switching UX).
 **Refreshed 2026-07-05 (Phase 2.12 Trade Analyzer form redesign complete locally).** Phase 2.12 is complete on `codex/phase2-12-trade-form-redesign`: `/trade` now uses position buttons instead of dropdowns, sends explicit scoring format, exposes an honest Multi-team net-side mode, adds a desktop swap cue, VORP help, and a shared MockBanner for buy-low targets. Evidence is in `Blueprints/handoffs/2026-07-05-phase2-12-trade-form-redesign.md`.
 **Refreshed 2026-07-05 (Phase 2.11 signal-honesty labels complete locally).** Phase 2.11 is complete on `codex/phase2-11-signal-honesty-labels`: Omen recommendation signals now render as visible Live / Stub / Mock / Unavailable input-honesty labels using data-source tokens, with public demo signals display-normalized to Mock. Evidence is in `Blueprints/handoffs/2026-07-05-phase2-11-signal-honesty-labels.md`. No push, merge, deploy, backend route, schema, auth, provider, package, env, or SQL change happened.
 **Refreshed 2026-07-05 (Codex kickoff auto-populate).** No pinned task. Phase 1.15 and Phase 2.18 are complete locally per latest handoffs, so they are not re-pulled. Next active build item is Phase 2.11 — FP1 signal-honesty labels. Current repo branch at kickoff: `tooling/authenticated-route-driver`; worktree clean.
@@ -8,14 +9,14 @@
 
 ## Active Task
 
-**Phase 2.13 — Trade Analyzer Strategy + Mock Buy Low content rewrite.** Rewrite the "SO SO" strategy sidebar copy via `slops-ux-copy`; specifically remove the "Build roster depth now" tail from Depth bullet. Cost: small. Done docs: page + design + recommendation.
+None pinned. Phase 2.13 is complete (see refresh line above). Next session should auto-populate from `current_sprint.md`.
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.13 — Trade Analyzer Strategy + Mock Buy Low content rewrite.** Rewrite the "SO SO" strategy sidebar copy via `slops-ux-copy`; specifically remove the "Build roster depth now" tail from Depth bullet. Cost: small. Done docs: page + design + recommendation.
-2. **Phase 2.14 — Standings team-switching UX.** Easier inter-platform team switching per Justin QA. Pairs with Phase 1.7 platform color emphasis. Cost: medium. Done docs: feature + page + design.
-3. **Phase 2.15 — Account subscription card removal (pre-launch hygiene).** Hide the Omen Pro "All features included" card on `/account` while Omen is free this season. Re-show when billing kill-switch flips. Cost: small. Done docs: page + design.
-4. **Phase 2.16 — IDP / defensive-player drafting prep.** Position chip palette (Phase 1.6) must already include DEF; this item carries the data + draft flow updates for leagues that draft defensive players. Cost: large. Done docs: feature + page + design + recommendation.
+1. **Phase 2.14 — Standings team-switching UX.** Easier inter-platform team switching per Justin QA. Pairs with Phase 1.7 platform color emphasis. Cost: medium. Done docs: feature + page + design.
+2. **Phase 2.15 — Account subscription card removal (pre-launch hygiene).** Hide the Omen Pro "All features included" card on `/account` while Omen is free this season. Re-show when billing kill-switch flips. Cost: small. Done docs: page + design.
+3. **Phase 2.16 — IDP / defensive-player drafting prep.** Position chip palette (Phase 1.6) must already include DEF; this item carries the data + draft flow updates for leagues that draft defensive players. Cost: large. Done docs: feature + page + design + recommendation.
+4. **Vault secretId plaintext logging fix (P0 security).** `src/routes/platforms.js` `vaultDelete()` logs the raw Vault secret id on RPC failure. Not re-verified as still current in this session — surfaced here from the sprint queue, not freshly confirmed.
 
 ## Blockers Surfaced
 
