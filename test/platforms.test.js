@@ -81,6 +81,9 @@ function makeSupabase(state) {
         return Promise.resolve({ data: null, error: null });
       }
       if (name === "vault_delete_secret") {
+        if (state.vaultDeleteError) {
+          return Promise.resolve({ data: null, error: { message: state.vaultDeleteError } });
+        }
         return Promise.resolve({ data: null, error: null });
       }
       return Promise.resolve({ data: null, error: null });
@@ -96,6 +99,7 @@ function loadPlatformsRouter({
   sleeperError,
   espnError,
   espnValid = true,
+  vaultDeleteError,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -108,6 +112,8 @@ function loadPlatformsRouter({
     rpcs: [],
     espnCalls: [],
     appUsers: [],
+    logs: [],
+    vaultDeleteError,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -132,7 +138,13 @@ function loadPlatformsRouter({
       };
     }
     if (request === "../middleware/logging" && parent?.filename === routePath) {
-      return { logger: { error() {}, warn() {}, info() {} } };
+      return {
+        logger: {
+          error(message, meta) { state.logs.push({ level: "error", message, meta }); },
+          warn(message, meta) { state.logs.push({ level: "warn", message, meta }); },
+          info(message, meta) { state.logs.push({ level: "info", message, meta }); },
+        },
+      };
     }
     if (request === "../adapters/sleeper" && parent?.filename === routePath) {
       return {
@@ -486,4 +498,26 @@ test("DELETE /api/platforms/espn destroys Vault secrets and removes row", async 
     state.rpcs.filter((rpc) => rpc.name === "vault_delete_secret").map((rpc) => rpc.params.secret_id),
     ["espn-secret", "swid-secret"]
   );
+});
+
+test("DELETE /api/platforms/espn never logs the raw Vault secret id when deletion fails", async () => {
+  const { app, state } = buildApp({
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "espn",
+        is_active: true,
+        espn_secret_id: "espn-secret",
+        swid_secret_id: "swid-secret",
+      },
+    ],
+    vaultDeleteError: "rpc unavailable",
+  });
+  const res = await request(app, "/api/platforms/espn", { method: "DELETE" });
+
+  assert.equal(res.status, 200);
+  const serializedLogs = JSON.stringify(state.logs);
+  assert.equal(serializedLogs.includes("espn-secret"), false);
+  assert.equal(serializedLogs.includes("swid-secret"), false);
+  assert.ok(state.logs.some((entry) => entry.level === "warn"));
 });

@@ -2,7 +2,12 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
-## Decisions Added 2026-07-05 (Account Deletion Guardrail Reconciliation)
+## Decisions Added 2026-07-06 (Vault secretId Plaintext Logging Fix)
+
+- **`vaultDelete()` in `src/routes/platforms.js` no longer logs the raw Vault secret id on RPC failure.** The one-line fix drops `secretId` from the `logger.warn` call, matching `src/routes/userPrivacy.js`'s `deleteVaultSecret()` exactly (message-only, no identifier). Closes the P0 security item flagged in `Direction/reviews/2026-07-05-app-store-mobile-readiness-sprint-proposal.md` §2.7.
+- **Kickoff auto-populate re-ranked the inbox top-5 by explicit priority tag before cost.** The 2026-07-05 refresh had surfaced un-tagged Phase 2.14/2.15/2.16 ahead of same-day-added P0 items in the Mobile/App-Store-Readiness lane. This session re-ranked P0/P1-tagged items first; Phase 2.14/2.15/2.16 remain unblocked and buildable, just lower in the queue until the P0/P1 backlog clears.
+- **Same bug pattern found but not fixed in three other files, flagged for follow-up rather than expanding this task's scope:** `src/omen_gdpr.js` (unmounted, already queued for delete/archive as a separate sprint item — same file also duplicates this exact secretId-logging bug); `src/omen_api_v2.js` and `src/services/yahooAuth.js` embed `secretId` in thrown Vault decrypt/update `Error` messages (a different call-site pattern — thrown-error text, not a direct logger call — not the one named in the original finding). Whether these thrown messages ever reach a `logger.error`/`.warn` call with the raw text intact was not traced in this session; worth a follow-up grep before treating as resolved-by-inaction.
+- **This is local work only until Justin ships it.** Branch `claude/fix-vault-secretid-logging` is not pushed, merged, or deployed.
 
 - **Justin explicitly approved the Phase 2.9 account-deletion UX copy and confirmation phrase.** `current_sprint.md`'s Guardrails section previously read "Account deletion stays hidden until UX copy + Justin approval are explicit," which conflicted with Phase 2.9 being checked complete and `frontend/src/pages/Account.jsx`'s `PrivacySection` rendering unconditionally with no feature flag. Justin's approval resolves the conflict in favor of the shipped implementation - no flag is needed and none was added.
 - **The guardrail is reworded, not removed.** It now records that deletion is approved-and-shipped as built, and narrows to: don't change the deletion confirmation copy or phrase (`"DELETE MY OMEN DATA"`) without logging a fresh approval note here.

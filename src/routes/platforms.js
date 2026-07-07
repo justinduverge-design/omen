@@ -201,7 +201,7 @@ async function vaultDelete(secretId) {
   if (!secretId) return;
   const { error } = await supabase.rpc("vault_delete_secret", { secret_id: secretId });
   if (error) {
-    logger.warn("Vault secret deletion failed", { err: error.message, secretId });
+    logger.warn("Vault secret deletion failed", { err: error.message });
   }
 }
 
