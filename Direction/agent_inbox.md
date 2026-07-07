@@ -9,14 +9,21 @@
 
 ## Active Task
 
-None pinned. Phase 2.13 is complete (see refresh line above). Next session should auto-populate from `current_sprint.md`.
+**Vault secretId plaintext logging fix (P0 security)** — set as active task by 2026-07-06 kickoff auto-populate (see Auto-Populated Top 5 below for ranking rationale).
 
 ## Auto-Populated Top 5
 
-1. **Phase 2.14 — Standings team-switching UX.** Easier inter-platform team switching per Justin QA. Pairs with Phase 1.7 platform color emphasis. Cost: medium. Done docs: feature + page + design.
-2. **Phase 2.15 — Account subscription card removal (pre-launch hygiene).** Hide the Omen Pro "All features included" card on `/account` while Omen is free this season. Re-show when billing kill-switch flips. Cost: small. Done docs: page + design.
-3. **Phase 2.16 — IDP / defensive-player drafting prep.** Position chip palette (Phase 1.6) must already include DEF; this item carries the data + draft flow updates for leagues that draft defensive players. Cost: large. Done docs: feature + page + design + recommendation.
-4. **Vault secretId plaintext logging fix (P0 security).** `src/routes/platforms.js` `vaultDelete()` logs the raw Vault secret id on RPC failure. Not re-verified as still current in this session — surfaced here from the sprint queue, not freshly confirmed.
+**Refreshed 2026-07-06 (kickoff auto-populate).** Re-ranked by explicit priority tag first, then cost — the prior refresh (2026-07-05) surfaced Phase 2.14/2.15/2.16 ahead of the Mobile/App-Store-Readiness lane's P0 items, which were added to `current_sprint.md` the same day but not reflected in that ranking.
+
+1. **Vault secretId plaintext logging fix (P0 security).** `src/routes/platforms.js` `vaultDelete()` (~lines 200-206) logs the raw Vault secret id on RPC failure via `logger.warn`. Violates `Blueprints/hard-prohibitions.md` #9. Correct pattern already exists in `src/routes/userPrivacy.js`'s `deleteVaultSecret()`. Cost: small. Blocked-by: none.
+2. **Phase 4.20a — Mobile-build kill-switch layer (P0).** Build-time flag hides Stripe checkout/portal, Pro-upsell copy, and ESPN connect entry point in app-store builds. Cost: medium. Blocked-by: none.
+3. **Phase 4.20c — Reviewer / demo access documentation (P0).** Playbook for how an app-store reviewer reaches a working demo account without a real platform connection. Cost: small. Blocked-by: none.
+4. **Phase 4.20d — Store metadata, privacy-label, and gambling/DFS copy audit (P1).** Grep + hand-review public copy for wagering language and unqualified "live" claims. Cost: medium. Blocked-by: none (parallelizable with 4.20a-c).
+5. **Delete or archive orphaned `src/omen_gdpr.js` (P1).** Duplicates the same plaintext secret-id logging bug plus a stale confirmation phrase; confirmed not `require`d anywhere. Cost: small. Blocked-by: none — pairs naturally with #1 since it's the same bug pattern.
+
+**Surfaced but not pulled (blocked):** Phase 4.20b (public legal/support pages — blocked on Justin/counsel sign-off on wording); Phase 4.20 integration (blocked on 4.20a-d + Decisions-lane ESPN/Stripe posture items); Phase 3.15 AI_PROVIDER toggle (blocked on dollar-cap decision-log entry); Tuesday scoring enablement (blocked on approved Supabase dry-run); Phase 2.19 win-streak ladder (blocked on backend win-streak contract); Phase 2.20 chant-render (blocked on 6 verified team chants + textures).
+
+**Deprioritized from last refresh (no explicit priority tag, now ranked below P0/P1 items):** Phase 2.14 (Standings team-switching UX, medium), Phase 2.15 (Account subscription card removal, small), Phase 2.16 (IDP/defensive-player drafting prep, large).
 
 ## Blockers Surfaced
 
