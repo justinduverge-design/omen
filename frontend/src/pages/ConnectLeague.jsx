@@ -77,9 +77,10 @@ function CTAButton({ children, onClick, disabled = false, loading = false, type 
   );
 }
 
-function GhostButton({ children, onClick, disabled = false }) {
+function GhostButton({ children, onClick, disabled = false, id }) {
   return (
     <button
+      id={id}
       className="inline-flex min-h-[44px] items-center justify-center rounded-lg border px-5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
       disabled={disabled}
@@ -475,7 +476,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
         badge={<ConnectedBadge />}
       >
         <div className="flex gap-2 flex-wrap">
-          <GhostButton disabled={disabled} onClick={() => setShowForm(true)}>
+          <GhostButton id="espn-reconnect-button" disabled={disabled} onClick={() => setShowForm(true)}>
             Reconnect ESPN
           </GhostButton>
           <GhostButton disabled={disabled} onClick={handleDisconnect}>
