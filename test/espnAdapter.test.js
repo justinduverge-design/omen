@@ -334,6 +334,73 @@ test("fetchEspnLastResult caches by league/week/teamId and never embeds the SWID
   }
 });
 
+test("standingsFromEspnData normalizes already-fetched data without a network call", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = {
+    teams: [
+      {
+        id: 9,
+        ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        name: "Current Team",
+        wins: 5,
+        losses: 3,
+        regularSeasonPointsFor: 1001.2,
+        regularSeasonPointsAgainst: 944.6,
+      },
+      {
+        id: 4,
+        name: "Top Team",
+        wins: 7,
+        losses: 1,
+        regularSeasonPointsFor: 1200,
+        regularSeasonPointsAgainst: 900,
+      },
+    ],
+  };
+
+  const standings = adapter.standingsFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", {});
+
+  assert.deepEqual(standings, [
+    { rank: 1, team_id: "4", team_name: "Top Team", is_current_user: false, wins: 7, losses: 1, points_for: 1200, points_against: 900 },
+    { rank: 2, team_id: "9", team_name: "Current Team", is_current_user: true, wins: 5, losses: 3, points_for: 1001.2, points_against: 944.6 },
+  ]);
+});
+
+test("teamFromEspnData finds the caller's team from already-fetched data", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = { teams: [{ id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team" }] };
+
+  const result = adapter.teamFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null);
+
+  assert.equal(result.team_id, "9");
+  assert.equal(result.team_name, "Current Team");
+});
+
+test("teamFromEspnData throws 404 when team not found in already-fetched data", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = { teams: [{ id: 99, ownerId: "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz", name: "Other Team" }] };
+
+  assert.throws(
+    () => adapter.teamFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", null),
+    (err) => err.status === 404
+  );
+});
+
+test("rosterFromEspnData normalizes starters/bench/IR from already-fetched data", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = { teams: fixtureTeams() };
+
+  const roster = adapter.rosterFromEspnData(data, "12345", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
+
+  assert.equal(roster.week, 1);
+  assert.equal(roster.league_key, "12345");
+  assert.equal(roster.team_key, "9");
+  assert.equal(roster.source, "espn");
+  assert.equal(roster.slots.starters.length, 1);
+  assert.equal(roster.slots.bench.length, 1);
+  assert.equal(roster.slots.ir.length, 1);
+});
+
 test("fetchEspnLastResult never caches when teamId is unknown", async () => {
   const schedule = [{
     id: 77,

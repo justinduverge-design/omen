@@ -335,9 +335,13 @@ function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId, opts = {}
   return doEspnRequest("fantasy.espn.com", path, espn_s2, swid, 3);
 }
 
-async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
-  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId, opts);
+// The *FromEspnData functions below are pure: they normalize an already-fetched
+// ESPN API response and never touch the network or a credential. They exist so
+// a future ingestion path (e.g. a client that fetched ESPN's API itself, inside
+// an authenticated browser/webview context) can reuse the exact same parsing
+// logic as the live server-side fetch, without duplicating it.
+
+function standingsFromEspnData(data, swid, opts = {}) {
   const teams = data?.teams || [];
   const currentTeam = findUserTeam(teams, swid, opts);
   const currentTeamId = teamId(currentTeam);
@@ -362,8 +366,13 @@ async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
-async function verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId) {
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam"]);
+async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId, opts);
+  return standingsFromEspnData(data, swid, opts);
+}
+
+function teamFromEspnData(data, swid, espnTeamId) {
   const teams = data?.teams || [];
   const opts = espnTeamId != null ? { teamId: espnTeamId } : {};
   const team = findUserTeam(teams, swid, opts);
@@ -375,9 +384,13 @@ async function verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId) {
   return { team_id: teamId(team), team_name: teamName(team) };
 }
 
-async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
+async function verifyLeagueAccess(leagueId, espn_s2, swid, espnTeamId) {
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam"]);
+  return teamFromEspnData(data, swid, espnTeamId);
+}
+
+function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
   const teams = data?.teams || [];
   const team = findUserTeam(teams, swid, opts);
   if (!team) {
@@ -401,6 +414,12 @@ async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
     slots,
     source: "espn",
   };
+}
+
+async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
+  const scoringPeriodId = Number(week);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
+  return rosterFromEspnData(data, leagueId, swid, week, opts);
 }
 
 function normalizeLastResult({ result, gameId, kickoff = null } = {}) {
@@ -498,4 +517,7 @@ module.exports = {
   fetchEspnLastResult,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
+  standingsFromEspnData,
+  teamFromEspnData,
+  rosterFromEspnData,
 };
