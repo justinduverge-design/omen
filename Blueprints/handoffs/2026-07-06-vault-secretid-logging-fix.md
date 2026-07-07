@@ -1,8 +1,8 @@
 # Vault secretId Plaintext Logging Fix Handoff
 
-Date: 2026-07-06
-Branch: `claude/fix-vault-secretid-logging`
-Status: Complete locally; not pushed, merged, or deployed in this session
+Date: 2026-07-06 (merged and deployed 2026-07-07)
+Branch: `claude/fix-vault-secretid-logging` (merged, deleted)
+Status: Shipped — PR #87 squash-merged to `main` as `aaf4ca6`; `Deploy to Hostinger KVM1` run `28835705215` completed `quality` -> `build` -> `deploy` green; post-deploy `GET /api/health` / `GET /api/ready` independently reverified 200/ok/ready with a fresh uptime.
 
 ## What Changed
 
@@ -46,7 +46,7 @@ Task: Vault secretId plaintext logging fix in vaultDelete() (src/routes/platform
 Change type: Backend bugfix (security/logging)
 Skills invoked: slops-tdd (RED/GREEN), slops-git-flow (scoped branch claude/fix-vault-secretid-logging)
 Conditional skills considered but not applicable: slops-ui-ux-audit / slops-ux-copy / slops-mobile-smoke (no UI change); pre-build-research (no new external dependency/API); workflow-tree-spec (no new flow state); design-md-author (no design doc affected); security-privacy-evidence (no new data classification/flow — see Done Docs above)
-Evidence: test/platforms.test.js new test + RED/GREEN log; full npm test 423/423; grep confirming no remaining raw secretId in vaultDelete()
+Evidence: test/platforms.test.js new test + RED/GREEN log; full npm test 422/422; grep confirming no remaining raw secretId in vaultDelete()
 Procedure gap found: none
 ```
 
@@ -54,6 +54,13 @@ Procedure gap found: none
 
 - Three related secretId-exposure sites found but not fixed (see "Discovered, Not Fixed" above) — carried forward as follow-ups, not silently closed.
 - `security-privacy-evidence` memo not separately authored (see Done Docs gate 11 reasoning).
+- This handoff's first draft incorrectly dropped a section header (`## Decisions Added 2026-07-05 (Account Deletion Guardrail Reconciliation)`) while editing `Direction/decision_log.md`, orphaning that section's bullets under the wrong heading. Caught and fixed in a follow-up commit before this closeout was finalized; flagged here as a reminder to re-read the surrounding section after any `old_string`/`new_string` edit to a long doc, not just diff the isolated hunk.
+
+## Release Evidence
+
+- PR: [#87](https://github.com/justinduverge-design/omen/pull/87), squash-merged to `main` as `aaf4ca6`.
+- Deploy: `Deploy to Hostinger KVM1` run [`28835705215`](https://github.com/justinduverge-design/omen/actions/runs/28835705215) — `quality` (1m33s) -> `build` (3m19s) -> `deploy` (13s), all green, including the in-workflow `/api/health` smoke, transparent-lockup bundle check, and `slops-canary` public-route visual smoke.
+- Independent post-deploy verification: `GET https://slopssaloon.com/api/health` -> `200 {"status":"ok","service":"omen-api","uptime":31.3,...}`; `GET https://slopssaloon.com/api/ready` -> `200 {"status":"ready",...,"checks":{"supabase":{"status":"reachable"}}}`.
 
 ## Next Step
 
