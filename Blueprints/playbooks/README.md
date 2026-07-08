@@ -9,6 +9,7 @@ Operational procedures for using SLOPS skills against Omen. These files apply La
 3. `skill-usage-ledger.md` — append-only evidence that a skill was used, skipped with reason, or exposed a procedure gap.
 4. `post-live-technology-learning.md` — parked until Omen is live plus seven stable days; teaches why the stack exists and creates an in-season improvement backlog.
 5. `espn-recovery.md` — provider-specific recovery behavior and security rules.
+6. `app-store-reviewer-access.md` — how an Apple/Google reviewer reaches a populated demo state without a real platform connection.
 
 ## Authority
 
