@@ -8,6 +8,7 @@ const EMPTY_STATUS = {
   espn: { connected: false, platform: 'espn' },
 };
 const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
+const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
 
 const ESPN_RECOVERY_COPY = {
   espn_reauth_required:
@@ -206,7 +207,7 @@ function StatusSkeleton() {
 
 export default function PlatformConnections({ recoveryState = null }) {
   const espnRecovery = Boolean(recoveryState?.startsWith('espn_'));
-  const showEspnRow = ESPN_ENABLED || espnRecovery;
+  const showEspnRow = !APP_STORE_BUILD && (ESPN_ENABLED || espnRecovery);
 
   const [status, setStatus] = useState(EMPTY_STATUS);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -214,7 +215,7 @@ export default function PlatformConnections({ recoveryState = null }) {
   const [errors, setErrors] = useState({});
 
   // Which platform's form is open — only one at a time
-  const [activeForm, setActiveForm] = useState(espnRecovery ? 'espn' : null);
+  const [activeForm, setActiveForm] = useState(!APP_STORE_BUILD && espnRecovery ? 'espn' : null);
 
   // Sleeper guided flow
   const [sleeperUsername, setSleeperUsername] = useState('');

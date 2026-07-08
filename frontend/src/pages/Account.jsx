@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
 
 const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
+const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
 
 const PLAN_OPTIONS = [
   {
@@ -611,7 +612,7 @@ export default function Account() {
     if (searchParams.get('upgrade') === 'true') {
       // Billing is disabled — there's no subscription section to scroll to.
       // Just strip the param and land on the account page normally.
-      if (BILLING_ENABLED) scrollRequested.current = true;
+      if (BILLING_ENABLED && !APP_STORE_BUILD) scrollRequested.current = true;
       const next = new URLSearchParams(searchParams);
       next.delete('upgrade');
       setSearchParams(next, { replace: true });
@@ -684,7 +685,7 @@ export default function Account() {
 
   return (
     <AppLayout>
-      {BILLING_ENABLED && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
+      {BILLING_ENABLED && !APP_STORE_BUILD && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
       <section className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen</p>
@@ -694,7 +695,7 @@ export default function Account() {
         </p>
       </section>
 
-      {BILLING_ENABLED && (
+      {BILLING_ENABLED && !APP_STORE_BUILD && (
         <SubscriptionSection
           subscription={summary?.subscription}
           summaryLoading={summaryLoading}
