@@ -126,6 +126,24 @@ function fixtureTeams() {
   ];
 }
 
+test("ESPN requests target the reads subdomain with the required headers", async () => {
+  // fantasy.espn.com's own /apis/v3/... path redirects instead of serving
+  // data, confirmed live 2026-07-07 against a real account with a valid
+  // session and the correct league id (regular fetch() returned
+  // type: "opaqueredirect"). lm-api-reads.fantasy.espn.com is what ESPN's
+  // own frontend actually calls, and it requires these two headers or it
+  // redirects the same way. This test only guards against silently
+  // regressing back to the broken hostname/headers — it can't catch a
+  // wrong-but-still-200 response, since the mock always returns canned data.
+  const { adapter, requests } = loadEspnAdapterWithTeams(fixtureTeams());
+  await adapter.buildNormalizedRoster("12345", "espn-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1);
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].hostname, "lm-api-reads.fantasy.espn.com");
+  assert.equal(requests[0].headers["x-fantasy-platform"], "espn-fantasy-web");
+  assert.equal(requests[0].headers["x-fantasy-source"], "kona");
+});
+
 test("buildNormalizedRoster returns starters, bench, and IR in normalized shape", async () => {
   const { adapter } = loadEspnAdapterWithTeams(fixtureTeams());
   const roster = await adapter.buildNormalizedRoster(

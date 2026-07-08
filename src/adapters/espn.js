@@ -272,6 +272,11 @@ function makeEspnHeaders(espn_s2, swid) {
     "Accept": "application/json",
     "Accept-Language": "en-US,en;q=0.9",
     "Cookie": `espn_s2=${espn_s2}; SWID=${swidWithBraces(swid)}`,
+    // Required by ESPN's reads API — omitting either causes fantasy.espn.com
+    // to redirect instead of returning JSON, even with valid cookies. See
+    // Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md.
+    "x-fantasy-platform": "espn-fantasy-web",
+    "x-fantasy-source": "kona",
   };
 }
 
@@ -327,12 +332,19 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
   });
 }
 
+// fantasy.espn.com's own /apis/v3/... path redirects instead of serving
+// data — confirmed live, 2026-07-07, even with a real valid session and the
+// correct league id (fetch() returned type: "opaqueredirect"). ESPN's own
+// frontend calls this dedicated reads subdomain instead. See
+// Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md.
+const ESPN_READS_HOSTNAME = "lm-api-reads.fantasy.espn.com";
+
 function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId, opts = {}) {
   const season = opts.seasonId || activeSeason();
   const viewParams = (Array.isArray(views) ? views : [views]).map((v) => `view=${v}`).join("&");
   const periodParam = scoringPeriodId != null ? `&scoringPeriodId=${scoringPeriodId}` : "";
   const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?${viewParams}${periodParam}`;
-  return doEspnRequest("fantasy.espn.com", path, espn_s2, swid, 3);
+  return doEspnRequest(ESPN_READS_HOSTNAME, path, espn_s2, swid, 3);
 }
 
 // The *FromEspnData functions below are pure: they normalize an already-fetched
