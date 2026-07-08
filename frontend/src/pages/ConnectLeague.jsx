@@ -431,6 +431,8 @@ function EspnCard({ connected, disabled, onRefresh }) {
   const [error, setError] = useState('');
 
   const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
+  const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
+  if (APP_STORE_BUILD) return null;
   if (!ESPN_ENABLED && !connected) return null;
 
   async function handleConnect(e) {
