@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Omen ESPN Connect</title>
+  <style>
+    body {
+      width: 300px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #ffffff;
+    }
+    h1 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+    p {
+      margin: 0 0 12px;
+      line-height: 1.5;
+      color: #444;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #16a34a;
+      color: white;
+    }
+    button.primary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: #f1f1f1;
+      color: #1a1a1a;
+      margin-top: 6px;
+    }
+    #status {
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+    #status.error { color: #b91c1c; }
+    #status.ok { color: #15803d; }
+  </style>
+</head>
+<body>
+  <h1>Omen ESPN Connect</h1>
+  <div id="notLoggedIn" hidden>
+    <p>No ESPN session found in this browser. Log into ESPN Fantasy first, then reopen this popup.</p>
+    <button class="secondary" id="openEspn">Open ESPN Fantasy</button>
+  </div>
+  <div id="loggedIn" hidden>
+    <p>ESPN session found in this browser.</p>
+    <label for="leagueId">ESPN League ID</label>
+    <input id="leagueId" type="text" placeholder="e.g. 156664" />
+    <button class="primary" id="fillOmen">Fill into Omen</button>
+    <div id="status"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
