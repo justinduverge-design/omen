@@ -53,14 +53,34 @@ function fillForm(payload) {
   }
 }
 
+// Logs are prefixed and never include payload values (only presence/absence)
+// — this is the one place a silent failure here would otherwise be
+// indistinguishable from "extension not loaded at all" to anyone debugging
+// without direct console access.
+const LOG_PREFIX = "[Omen ESPN Connect]";
+
 async function run() {
-  const stored = await chrome.storage.session.get("omenEspnFill");
+  let stored;
+  try {
+    stored = await chrome.storage.session.get("omenEspnFill");
+  } catch (err) {
+    console.error(`${LOG_PREFIX} could not read staged fill data:`, err.message);
+    return;
+  }
+
   const payload = stored?.omenEspnFill;
-  if (!payload) return;
+  if (!payload) {
+    console.log(`${LOG_PREFIX} no staged fill data — popup wasn't used on this page load, nothing to do.`);
+    return;
+  }
 
   // Clear immediately — this is a one-shot fill, and the staged cookie
   // values should not persist in storage past this attempt either way.
   await chrome.storage.session.remove("omenEspnFill");
+
+  if (payload.diagnostics) {
+    console.log(`${LOG_PREFIX} cookie domain diagnostic:`, payload.diagnostics);
+  }
 
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (!fieldsPresent() && Date.now() < deadline) {
@@ -71,9 +91,13 @@ async function run() {
     expandFormIfCollapsed();
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
-  if (!fieldsPresent()) return;
+  if (!fieldsPresent()) {
+    console.error(`${LOG_PREFIX} gave up after ${POLL_TIMEOUT_MS}ms — the ESPN form fields never appeared on this page.`);
+    return;
+  }
 
   fillForm(payload);
+  console.log(`${LOG_PREFIX} filled the ESPN connect form. Review and click Connect ESPN to finish.`);
 }
 
 run();

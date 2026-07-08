@@ -5,6 +5,9 @@
   "description": "Reads your own ESPN Fantasy cookies from this browser and fills them into Omen's Connect ESPN form. Local-only: never sends your ESPN cookies anywhere except the Omen connect form you click into.",
   "permissions": ["cookies", "storage", "activeTab"],
   "host_permissions": ["https://*.espn.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   },
