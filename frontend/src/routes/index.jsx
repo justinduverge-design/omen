@@ -26,6 +26,14 @@ const OmenHarness = import.meta.env.DEV
   ? lazy(() => import('../pages/Omen.jsx'))
   : null;
 
+const PromoCapture = import.meta.env.DEV
+  ? lazy(() => import('../pages/PromoCapture.jsx'))
+  : null;
+
+const PromoTradeCapture = import.meta.env.DEV
+  ? lazy(() => import('../pages/PromoTradeCapture.jsx'))
+  : null;
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -121,6 +129,28 @@ export default function AppRoutes() {
           element={
             <Suspense fallback={null}>
               <AppLayout><OmenHarness /></AppLayout>
+            </Suspense>
+          }
+        />
+      )}
+
+      {import.meta.env.DEV && PromoCapture && (
+        <Route
+          path="/dev/promo-capture"
+          element={
+            <Suspense fallback={null}>
+              <AppLayout><PromoCapture /></AppLayout>
+            </Suspense>
+          }
+        />
+      )}
+
+      {import.meta.env.DEV && PromoTradeCapture && (
+        <Route
+          path="/dev/promo-trade"
+          element={
+            <Suspense fallback={null}>
+              <AppLayout><PromoTradeCapture /></AppLayout>
             </Suspense>
           }
         />

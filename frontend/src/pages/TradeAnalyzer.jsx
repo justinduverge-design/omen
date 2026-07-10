@@ -321,7 +321,7 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
   );
 }
 
-function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError }) {
+function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError, showShare = true }) {
   const { mode, team: teamAbbr } = useTheme();
   const cultureTag = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -383,12 +383,14 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError 
         </p>
       ) : null}
 
-      <ShareControls
-        onCreateShare={onCreateShare}
-        shareStatus={shareStatus}
-        shareUrl={shareUrl}
-        shareError={shareError}
-      />
+      {showShare && (
+        <ShareControls
+          onCreateShare={onCreateShare}
+          shareStatus={shareStatus}
+          shareUrl={shareUrl}
+          shareError={shareError}
+        />
+      )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {[
@@ -501,12 +503,22 @@ function BuyLowCard() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function TradeAnalyzer({ compact = false }) {
-  const [send, setSend] = useState([{ ...EMPTY_TRADE_PLAYER }]);
-  const [receive, setReceive] = useState([{ ...EMPTY_TRADE_PLAYER, position: 'WR' }]);
-  const [scoringFormat, setScoringFormat] = useState(DEFAULT_TRADE_SCORING_FORMAT);
-  const [dealShape, setDealShape] = useState(DEFAULT_TRADE_DEAL_SHAPE);
-  const [result, setResult] = useState(null);
+export default function TradeAnalyzer({
+  compact = false,
+  initialSend = [{ ...EMPTY_TRADE_PLAYER }],
+  initialReceive = [{ ...EMPTY_TRADE_PLAYER, position: 'WR' }],
+  initialScoringFormat = DEFAULT_TRADE_SCORING_FORMAT,
+  initialDealShape = DEFAULT_TRADE_DEAL_SHAPE,
+  initialResult = null,
+  mockCompareResult = null,
+  showShare = true,
+  showSidebar = true,
+}) {
+  const [send, setSend] = useState(() => initialSend.map((player) => ({ ...player })));
+  const [receive, setReceive] = useState(() => initialReceive.map((player) => ({ ...player })));
+  const [scoringFormat, setScoringFormat] = useState(initialScoringFormat);
+  const [dealShape, setDealShape] = useState(initialDealShape);
+  const [result, setResult] = useState(initialResult);
   const [lastTradePayload, setLastTradePayload] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -537,6 +549,14 @@ export default function TradeAnalyzer({ compact = false }) {
 
     try {
       const payload = buildTradePayload({ send, receive, scoringFormat });
+      if (mockCompareResult) {
+        setResult(mockCompareResult);
+        setLastTradePayload(payload);
+        setShareStatus('idle');
+        setShareUrl('');
+        setShareError('');
+        return;
+      }
       const comparison = await apiFetch('/api/trade/compare', {
         method: 'POST',
         body: payload,
@@ -687,11 +707,12 @@ export default function TradeAnalyzer({ compact = false }) {
           shareStatus={shareStatus}
           shareUrl={shareUrl}
           shareError={shareError}
+          showShare={showShare}
         />
       </div>
 
       {/* ── Trade Room sidebar ─────────────────────────────────────────────── */}
-      {!compact && (
+      {showSidebar && !compact && (
         <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
           <TradeTipsCard />
           <BuyLowCard />

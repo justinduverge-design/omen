@@ -1,0 +1,30 @@
+{
+  "name": "omen-coming-soon-promo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "audio": "node scripts/generate-audio.mjs",
+    "preview": "remotion studio src/index.jsx",
+    "render:vertical": "remotion render src/index.jsx OmenComingSoonVertical renders/omen-coming-soon-vertical.mp4",
+    "render:horizontal": "remotion render src/index.jsx OmenComingSoonHorizontal renders/omen-coming-soon-horizontal.mp4",
+    "render:hype:vertical": "remotion render src/index.jsx OmenHypeVertical renders/omen-hype-vertical.mp4",
+    "render:hype:horizontal": "remotion render src/index.jsx OmenHypeHorizontal renders/omen-hype-horizontal.mp4",
+    "render:explainer:vertical": "remotion render src/index.jsx OmenExplainerVertical renders/omen-explainer-vertical.mp4",
+    "render:explainer:horizontal": "remotion render src/index.jsx OmenExplainerHorizontal renders/omen-explainer-horizontal.mp4",
+    "render:app:vertical": "remotion render src/index.jsx OmenAppExplainerVertical renders/omen-app-explainer-vertical.mp4",
+    "render:app:horizontal": "remotion render src/index.jsx OmenAppExplainerHorizontal renders/omen-app-explainer-horizontal.mp4",
+    "render:trade-flow:vertical": "remotion render src/index.jsx OmenTradeFlowReel renders/omen-trade-flow-reel-vertical.mp4",
+    "render:all": "npm run render:trade-flow:vertical"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.487",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.487"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.3",
+    "vite": "8.1.4"
+  }
+}
