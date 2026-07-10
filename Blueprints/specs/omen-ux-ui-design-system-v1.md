@@ -1,6 +1,20 @@
 # Omen UX/UI Design System
 
-**Date:** 2026-05-24 (v1) · 2026-07-03 (v2 reconciliation, in place — filename preserved for reference compatibility)
+> **⚠ 2026-07-10: PARTIALLY SUPERSEDED. Read this first.**
+>
+> The **component-level guidance** in this document (buttons, inputs, segmented controls, cards, type roles, spacing) is superseded by:
+>
+> - `Blueprints/specs/design/component-lock-v1.md` — canonical component API, variants, and states.
+>
+> The **team-theming behavior** documented in the Phase 1.x additions here is superseded by:
+>
+> - `Blueprints/specs/design/team-theme-contract-v1.md` — token allow/deny list, contrast enforcement, five-team stress test.
+>
+> Both new specs are grounded in `Blueprints/audits/2026-07-10-app-wide-ux-audit.md`, which documents the specific drift and the "Commanders drowns in burgundy" token-contract bug this doc's Phase 1.x team-theming behavior produced.
+>
+> **What in this doc is still authoritative:** the base Omen palette hexes, dark-mode token names + values (`--color-bg` through `--color-omen`), the brand character in UI terms, the voice guidance, and the upstream doctrine pointers (fan-experience doctrine, brand-system.md, corvus-ux-ui-direction-v1.md). Consult `component-lock-v1.md` for how those tokens are consumed and `team-theme-contract-v1.md` for who is allowed to override them.
+
+**Date:** 2026-05-24 (v1) · 2026-07-03 (v2 reconciliation) · 2026-07-10 (superseded-by banner added; component + team-theme sections deferred to lock/contract specs)
 **Status:** **v2 — reconciled 2026-07-03 against production code.** `frontend/src/index.css` had drifted ahead of this v1 spec after the 2026-06-22 palette rebrand. This spec now reflects reality: Aged Brass `#A67C2E` (was Antique Gold `#B8952A`), Verdigris Green `#2F7D5B` (was Electric Violet `#5B2D8E`), Deep Crimson `#7E1717` (was `#8B1A1A`), plus Weathered Umber `#5A3A25` and DM Mono font (new since v1). Phase 1.x subsystems (team-theming, motif overlay, cultural-moment overlay, position chips, platform brand colors, confidence gradient endpoints, metallic tiers, demo accent) are indexed inline as they land in `frontend/src/index.css`. Component + voice guidance unchanged from v1. **Follow-up rewrite pass pending** to expand the v2 palette + Phase 1.x sections in-line (a fuller v2 revision was authored in the 2026-07-03 doctrine session but was not persisted through the merge; see the L1 fan-experience doctrine handoff for tracking).
 **Status:** **v2 — reconciled 2026-07-03.** Palette, typography, and design-token layer now reflect actual production code (`frontend/src/index.css` as of 2026-07-03). Component + voice guidance largely unchanged from v1. Phase 1.x additions indexed in §"Phase 1.x Additions" below.
 **Extends:** `slops-saloon/Blueprints/specs/slops-os-app-template-spec.md`
@@ -472,42 +486,4 @@ Account
 
 5 items max. Order: Dashboard | Trade | Draft | Omen | Account
 
-Active state: gold accent underline or filled icon.
-
----
-
-## Page-Level Padding
-
-- Mobile: `px-4 py-6`
-- Tablet: `px-6 py-8`
-- Desktop: `px-8 py-10` inside the content area (sidebar handles its own padding)
-
-Max content width: `max-w-3xl` for single-column tools, `max-w-5xl` for dashboard.
-
----
-
-## Iconography
-
-Use a consistent icon library (Heroicons or Lucide — to be confirmed before build).
-Icons should be outline style in most contexts, filled only for active/selected states.
-Raven/omen icon is a brand asset, not a generic icon — handle separately.
-
----
-
-## Animation
-
-- Keep it subtle. This is a decision tool, not an entertainment app.
-- Transitions: 150ms ease-in-out for state changes
-- Card hover: very subtle lift (translateY -1px, shadow increase)
-- Loading: spinner at 1.5s rotation
-- No bouncy, springy, or game-like animations
-
----
-
-## Accessibility
-
-- All interactive elements must be keyboard-navigable
-- Color is never the only differentiator (confidence/risk must also use labels)
-- Minimum text contrast: WCAG AA (4.5:1 for body, 3:1 for large text)
-- Focus rings: visible, gold accent, consistent across theme modes
-- Screen reader: all data labels and state messages must have `aria-label` or be in readable text (no icon-only status)
+Active state: gold accent
