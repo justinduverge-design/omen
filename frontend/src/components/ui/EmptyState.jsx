@@ -1,9 +1,8 @@
+import { Card } from './Card.jsx';
+
 export default function EmptyState({ eyebrow, title, message, cta }) {
   return (
-    <div
-      className="rounded-xl border p-10 text-center"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-    >
+    <Card variant="solid" className="p-10 text-center">
       {eyebrow && (
         <p
           className="text-xs font-semibold uppercase tracking-widest"
@@ -30,13 +29,13 @@ export default function EmptyState({ eyebrow, title, message, cta }) {
       )}
       {cta && (
         <a
-          className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-amber-400/20"
-          style={{ background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}
+          className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors bg-[var(--color-accent-muted)] hover:bg-[var(--color-accent)]/20"
+          style={{ color: 'var(--color-accent)' }}
           href={cta.href}
         >
           {cta.label} →
         </a>
       )}
-    </div>
+    </Card>
   );
 }

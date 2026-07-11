@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Card } from './Card.jsx';
 
 const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
 const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
@@ -18,9 +19,13 @@ export default function UpgradeState({
   if (!BILLING_ENABLED || APP_STORE_BUILD) return null;
 
   return (
-    <div
-      className="rounded-xl border p-10 text-center"
-      style={{ borderColor: 'rgba(93,45,142,0.4)', background: 'rgba(93,45,142,0.06)' }}
+    <Card
+      variant="outlined"
+      className="p-10 text-center"
+      style={{
+        borderColor: 'color-mix(in srgb, var(--color-omen) 40%, transparent)',
+        background: 'color-mix(in srgb, var(--color-omen) 6%, transparent)',
+      }}
     >
       {eyebrow && (
         <p
@@ -45,12 +50,12 @@ export default function UpgradeState({
         {message ?? 'Most Valuable Play is a Omen Pro feature. Upgrade to receive your personalized weekly move.'}
       </p>
       <Link
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-purple-500/25"
-        style={{ background: 'rgba(93,45,142,0.06)', color: 'var(--color-omen)' }}
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors bg-[var(--color-omen)]/15 hover:bg-[var(--color-omen)]/25"
+        style={{ color: 'var(--color-omen)' }}
         to={ctaTo}
       >
         {ctaLabel} →
       </Link>
-    </div>
+    </Card>
   );
 }
