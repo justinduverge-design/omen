@@ -16,12 +16,12 @@ const TONE_STYLE = {
   success: { borderColor: 'rgba(52,199,89,0.3)', background: 'rgba(52,199,89,0.10)', color: 'var(--color-text-primary)' },
 };
 
-export function Alert({ tone = 'neutral', className = '', children, ...rest }) {
-  const style = TONE_STYLE[tone] ?? TONE_STYLE.neutral;
+export function Alert({ tone = 'neutral', className = '', style: styleOverride, children, ...rest }) {
+  const toneStyle = TONE_STYLE[tone] ?? TONE_STYLE.neutral;
   return (
     <div
       className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-xs ${className}`.trim()}
-      style={style}
+      style={{ ...toneStyle, ...styleOverride }}
       data-alert-tone={tone}
       {...rest}
     >
