@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { Button, Card, Input, SegmentedControl } from '../components/ui/index.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
-import { platformButtonStyle, platformChipStyle } from '../lib/platformChip.js';
+import { platformChipStyle } from '../lib/platformChip.js';
 import { supabase } from '../lib/supabase.js';
 import { startYahooOAuth } from '../lib/yahooAuth.js';
 
@@ -27,8 +28,10 @@ function PlatformIcon({ title }) {
 
 function PlatformCard({ title, description, badge, children }) {
   return (
-    <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <Card variant="solid">
+      <Card.Header
+        trailing={badge}
+      >
         <div className="flex items-center gap-3">
           <PlatformIcon title={title} />
           <div>
@@ -38,10 +41,9 @@ function PlatformCard({ title, description, badge, children }) {
             <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{description}</p>
           </div>
         </div>
-        {badge}
-      </div>
-      {children}
-    </article>
+      </Card.Header>
+      <Card.Body>{children}</Card.Body>
+    </Card>
   );
 }
 
@@ -56,52 +58,31 @@ function ConnectedBadge() {
   );
 }
 
-function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button', platform = null }) {
-  const style = platform
-    ? platformButtonStyle(platform)
-    : { background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' };
-  const className =
-    'inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50' +
-    (platform ? ' hover:brightness-110' : '');
+function CTAButton({ children, onClick, disabled = false, loading = false, type = 'button' }) {
   return (
-    <button
-      className={className}
-      style={style}
-      disabled={disabled || loading}
-      aria-busy={loading}
-      type={type}
-      onClick={onClick}
-    >
+    <Button variant="primary" size="md" type={type} loading={loading} disabled={disabled || loading} onClick={onClick}>
       {loading ? 'Working…' : children}
-    </button>
+    </Button>
   );
 }
 
 function GhostButton({ children, onClick, disabled = false, id }) {
   return (
-    <button
-      id={id}
-      className="inline-flex min-h-[44px] items-center justify-center rounded-lg border px-5 text-sm font-semibold transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
-      disabled={disabled}
-      type="button"
-      onClick={onClick}
-    >
+    <Button id={id} variant="secondary" size="md" disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
 function FieldInput({ id, label, value, onChange, type = 'text', autoComplete = 'off', placeholder = '' }) {
   return (
-    <label className="block" htmlFor={id}>
-      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
+    <label className="flex flex-col gap-1" htmlFor={id}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
         {label}
       </span>
-      <input
+      <Input
         id={id}
         autoComplete={autoComplete}
-        className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
         placeholder={placeholder}
         required
         type={type}
@@ -393,22 +374,12 @@ function EspnGuide({ browser, setBrowser }) {
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
         How to find your ESPN cookies
       </p>
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {ESPN_STEPS.map(g => (
-          <button
-            key={g.browser}
-            aria-pressed={browser === g.browser}
-            className={`rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${
-              browser === g.browser
-                ? 'bg-[var(--color-accent)] text-black'
-                : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-            type="button"
-            onClick={() => setBrowser(g.browser)}
-          >
-            {g.browser}
-          </button>
-        ))}
+      <div className="mb-3">
+        <SegmentedControl size="sm" value={browser} onValueChange={setBrowser}>
+          {ESPN_STEPS.map(g => (
+            <SegmentedControl.Item key={g.browser} value={g.browser}>{g.browser}</SegmentedControl.Item>
+          ))}
+        </SegmentedControl>
       </div>
       <ol className="list-decimal space-y-1.5 pl-4">
         {guide.steps.map((step, i) => (
@@ -684,24 +655,14 @@ export default function ConnectLeague() {
         {/* Continue / Skip */}
         <div className="mt-8 flex flex-col gap-3">
           {anyConnected && (
-            <button
-              className="w-full min-h-[48px] rounded-lg text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-              style={{ background: 'var(--color-accent)', color: '#000' }}
-              type="button"
-              onClick={handleContinue}
-            >
+            <Button variant="primary" size="lg" className="w-full" onClick={handleContinue}>
               Continue →
-            </button>
+            </Button>
           )}
 
-          <button
-            className="w-full min-h-[44px] rounded-lg text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-border)]"
-            style={{ color: 'var(--color-text-tertiary)' }}
-            type="button"
-            onClick={handleSkip}
-          >
+          <Button variant="link" className="w-full justify-center" onClick={handleSkip}>
             Skip for now — I'll connect later
-          </button>
+          </Button>
           <p className="text-center text-[10px] text-[var(--color-text-tertiary)]">
             Skipping keeps Trade Analyzer available. Omen requires a connected league.
           </p>
