@@ -5,6 +5,7 @@ import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { Button, Input, SegmentedControl as CanonicalSegmentedControl } from '../components/ui/index.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
@@ -28,32 +29,19 @@ const INPUT_CLS =
   'focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 ' +
   'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]';
 
-function SegmentedControl({ label, options, value, onChange }) {
+function TradeSegmentedField({ label, options, value, onChange }) {
   return (
     <fieldset className="space-y-2">
       <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
         {label}
       </legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          const selected = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={selected}
-              className={`inline-flex min-h-[44px] items-center justify-center rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] ${
-                selected
-                  ? 'border-[var(--color-team-accent)] bg-[var(--color-team-accent)] text-[var(--color-text-on-accent)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-text-secondary)] hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]'
-              }`}
-              onClick={() => onChange(option.value)}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      <CanonicalSegmentedControl value={value} onValueChange={onChange}>
+        {options.map((option) => (
+          <CanonicalSegmentedControl.Item key={option.value} value={option.value}>
+            {option.label}
+          </CanonicalSegmentedControl.Item>
+        ))}
+      </CanonicalSegmentedControl>
     </fieldset>
   );
 }
@@ -235,13 +223,7 @@ function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
-        <button
-          className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]"
-          type="button"
-          onClick={onAdd}
-        >
-          Add
-        </button>
+        <Button variant="secondary" size="sm" onClick={onAdd}>Add</Button>
       </div>
 
       <div className="space-y-3">
@@ -275,15 +257,16 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
             Creates a public snapshot. No connected-platform data or private league context is included.
           </p>
         </div>
-        <button
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-[var(--color-team-accent)]/40 px-4 py-2 text-sm font-semibold text-[var(--color-team-accent)] transition-colors duration-150 hover:bg-[var(--color-team-accent)]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
-          aria-busy={shareStatus === 'creating'}
+        <Button
+          variant="secondary"
+          size="md"
+          className="shrink-0"
+          loading={shareStatus === 'creating'}
           disabled={shareStatus === 'creating'}
           onClick={onCreateShare}
         >
           {shareStatus === 'creating' ? 'Creating link...' : 'Share result'}
-        </button>
+        </Button>
       </div>
 
       {shareError && (
@@ -297,9 +280,9 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
           <label className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]" htmlFor="trade-share-url">
             Public link
           </label>
-          <input
+          <Input
             id="trade-share-url"
-            className="mt-2 w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
+            className="mt-2 font-mono text-xs"
             readOnly
             value={shareUrl}
             onFocus={(event) => event.currentTarget.select()}
@@ -308,12 +291,9 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
             <p className="text-xs text-[var(--color-text-secondary)]" role="status">
               {shareStatus === 'copied' ? 'Link copied. Public snapshot expires in 30 days.' : 'Public snapshot expires in 30 days.'}
             </p>
-            <a
-              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-              href={shareUrl}
-            >
-              Open share card
-            </a>
+            <Button variant="primary" size="md" asChild>
+              <a href={shareUrl}>Open share card</a>
+            </Button>
           </div>
         </div>
       )}
@@ -625,14 +605,14 @@ export default function TradeAnalyzer({
         <form className="space-y-5" onSubmit={handleSubmit}>
           <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <SegmentedControl
+              <TradeSegmentedField
                 label="Scoring"
                 options={TRADE_SCORING_FORMATS}
                 value={scoringFormat}
                 onChange={setScoringFormat}
               />
               <div>
-                <SegmentedControl
+                <TradeSegmentedField
                   label="Deal shape"
                   options={TRADE_DEAL_SHAPES}
                   value={dealShape}
@@ -668,20 +648,9 @@ export default function TradeAnalyzer({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-              aria-busy={loading}
-              disabled={loading}
-              type="submit"
-            >
-              {loading ? (
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-                />
-              ) : null}
+            <Button variant="primary" size="lg" type="submit" loading={loading} disabled={loading}>
               {loading ? 'Comparing...' : 'Compare Trade'}
-            </button>
+            </Button>
           </div>
         </form>
 

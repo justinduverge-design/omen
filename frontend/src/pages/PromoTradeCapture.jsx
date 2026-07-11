@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { PageHero } from '../components/ui/index.js';
 import { setDataMode } from '../lib/dataMode.js';
 import TradeAnalyzer from './TradeAnalyzer.jsx';
 
@@ -89,17 +90,11 @@ export default function PromoTradeCapture() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <section className="space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Trade Analyzer
-        </p>
-        <div className="max-w-3xl space-y-3">
-          <h1 className="font-display text-4xl font-semibold text-white sm:text-5xl">
-            Test the trade before you send it.
-          </h1>
-          <p className="text-sm leading-6 text-slate-300">
-            Build both sides, compare the player value, and see the recommendation in one pass.
-          </p>
-        </div>
+        <PageHero
+          eyebrow="TRADE ANALYZER"
+          title="Test the trade before you send it."
+          subtitle="Build both sides, compare the player value, and see the recommendation in one pass."
+        />
         <MockBanner message="Sample trade data for preview only." />
       </section>
 

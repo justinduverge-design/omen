@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { PageHero } from '../components/ui/index.js';
 import { OMEN_VISUAL_FIXTURE } from '../data/privateDemoFixtures.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { OmenRecommendationView } from './OmenOfTheWeek.jsx';
@@ -58,20 +59,11 @@ export default function PromoCapture() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <section className="space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Omen preview
-        </p>
-        <div className="max-w-3xl space-y-3">
-          <h1 className="font-display text-4xl font-semibold text-white sm:text-5xl">
-            See the move before your league does.
-          </h1>
-          <p className="text-sm leading-6 text-slate-300">
-            Omen reads your roster context, weighs the close calls, and gives you
-            the recommendation first, with confidence and risk right behind it.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="OMEN PREVIEW"
+        title="See the move before your league does."
+        subtitle="Omen reads your roster context, weighs the close calls, and gives you the recommendation first, with confidence and risk right behind it."
+      />
 
       <OmenRecommendationView
         data={promoOmenData}
