@@ -366,22 +366,39 @@ function mixHex(hexA, pctA, hexB) {
 }
 
 // Card sits a small luminance step brighter than surface (Material-style
-// elevation) — mix toward white, same direction as before this fix. What's
-// new: if the base mix doesn't reach 3:1 against the shell (Rule 3a — the
-// exact failure mode diagnosed for Commanders/Packers/Steelers-type teams),
-// step the mix further toward white until it does, capped so the card never
-// gets mixed past recognizably-still-team-tinted.
+// elevation) — mix toward white, same direction as before this fix.
 const CARD_MIN_TINT_PCT = 20;
 // Fallback lift target for near-white surfaces (e.g. Dolphins cream, Chiefs
 // light default), where mixing further toward white cannot create contrast
-// no matter how far the percentage moves — a distinct failure mode from the
-// dark-team case, not covered by stepping the white-mix percentage alone.
-// Needs to be a genuinely mid-tone neutral (not just "less white") since the
-// starting surface is already near-white and the floor below is much lower
-// than the white-mix floor to give this pass enough range to actually reach
-// 3:1 against a surface with almost no headroom.
+// no matter how far the percentage moves — needs a genuinely mid-tone
+// neutral, not just "less white."
 const LIGHT_SURFACE_CARD_FALLBACK = '#7A7266';
 const LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT = 0;
+
+// Second-generation rule (post-Commanders): card-vs-shell (Rule 3a, ≥3:1)
+// was the only thing checked before, and it silently allowed a card that
+// technically cleared the shell but was still too close to the team hue for
+// BODY TEXT sitting on it to read — measured across all 32 teams, 31 of 32
+// failed a 4.5:1 check for --color-text-secondary against their resolved
+// card fill under the Rule-3a-only version of this function. A card that
+// passes 3:1 against the shell but fails 4.5:1 for the text printed on it
+// is not "readable," it's "technically distinguishable" — not the same
+// requirement. This is the actual generalized rule: card fill must clear
+// BOTH thresholds simultaneously, and if team-tinting can't do that, the
+// card gives up the tint rather than ship muddy.
+const TEXT_ON_CARD_MIN_RATIO = 4.5;
+// Desaturated lift targets for the "give up the tint" tier — deliberately
+// the app's own default --color-surface-1 values (index.css), not invented
+// colors. Material "lift toward white" elevation and a fixed light-gray
+// --color-text-secondary (#AEAEB2 on dark) are structurally incompatible
+// past a point: AEAEB2 only clears 4.5:1 against a card whose luminance is
+// close to the shell's own darkness, not a card lifted toward white. The
+// non-team-themed app already solved this by keeping surface-1 dark
+// (#1C1C1E, barely lifted off #0A0A0B) — reusing that value (and its light-
+// theme counterpart) is what "clean, Omen-quality" concretely means here,
+// not a new color invented for this rule.
+const NEUTRAL_CARD_LIFT_FOR_DARK_SHELL = '#1C1C1E';
+const NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL = '#FFFFFF';
 
 function bestOf(surfaceHex, candidates) {
   let best = candidates[0];
@@ -393,59 +410,91 @@ function bestOf(surfaceHex, candidates) {
   return { hex: best, ratio: bestRatio };
 }
 
+/** True once a card fill clears both the shell-contrast and text-on-card floors. */
+function cardFillPasses(candidateHex, surfaceHex, textSecondaryHex) {
+  return contrastRatio(candidateHex, surfaceHex) >= 3
+    && contrastRatio(textSecondaryHex, candidateHex) >= TEXT_ON_CARD_MIN_RATIO;
+}
+
+/**
+ * Step `pct` from `basePct` down to `minPct` mixing surfaceHex toward
+ * liftHex. Text legibility (`textSecondaryHex` vs the candidate) is a hard
+ * filter — a step that fails it is never considered, even if it would have
+ * scored higher on shell contrast. Among steps that keep text legible,
+ * return whichever gets closest to (or clears) the shell-contrast floor.
+ * `--color-text-secondary` is fixed and never team-tinted (deny list,
+ * team-theme-contract-v1.md), so for a shell dark/light enough that no
+ * candidate along this path can hit both floors at once, legibility always
+ * wins — a technically-passing-3:1 card nobody can read the text on is not
+ * a improvement over the muddy tint it replaced.
+ */
+function stepToward(surfaceHex, liftHex, basePct, minPct, textSecondaryHex) {
+  let bestLegible = null;
+  let bestLegibleShellRatio = -1;
+  for (let pct = basePct; pct >= minPct; pct -= 4) {
+    const hex = mixHex(surfaceHex, pct, liftHex);
+    const shellRatio = contrastRatio(hex, surfaceHex);
+    const textRatio = contrastRatio(textSecondaryHex, hex);
+    if (textRatio < TEXT_ON_CARD_MIN_RATIO) continue;
+    if (shellRatio >= 3) return { hex, passed: true, shellRatio };
+    if (shellRatio > bestLegibleShellRatio) { bestLegible = hex; bestLegibleShellRatio = shellRatio; }
+  }
+  return bestLegible
+    ? { hex: bestLegible, passed: false, shellRatio: bestLegibleShellRatio }
+    : { hex: null, passed: false, shellRatio: -1 };
+}
+
 function resolveCardFill(surfaceHex, surfaceIsDark) {
   const basePct = surfaceIsDark ? 92 : 96;
-  // Try lifting toward white first (the Material-elevation direction the
-  // spec describes), but some mid-luminance saturated surfaces (e.g. Denver
-  // orange) separate further from black than from white — try both
-  // directions and keep whichever clears 3:1 with the lighter touch.
-  let pct = basePct;
-  let hex = mixHex(surfaceHex, pct, '#FFFFFF');
-  let ratio = contrastRatio(hex, surfaceHex);
-  while (ratio < 3 && pct > CARD_MIN_TINT_PCT) {
-    pct -= 4;
-    hex = mixHex(surfaceHex, pct, '#FFFFFF');
-    ratio = contrastRatio(hex, surfaceHex);
-  }
+  const textSecondaryHex = surfaceIsDark ? '#AEAEB2' : '#4A5158';
 
-  if (ratio < 3) {
-    let blackPct = basePct;
-    let blackHex = mixHex(surfaceHex, blackPct, '#0A0A0B');
-    let blackRatio = contrastRatio(blackHex, surfaceHex);
-    while (blackRatio < 3 && blackPct > CARD_MIN_TINT_PCT) {
-      blackPct -= 4;
-      blackHex = mixHex(surfaceHex, blackPct, '#0A0A0B');
-      blackRatio = contrastRatio(blackHex, surfaceHex);
-    }
-    const pickedDirection = bestOf(surfaceHex, [hex, blackHex]);
-    hex = pickedDirection.hex;
-    ratio = pickedDirection.ratio;
-  }
+  // Tier 1: try team-tinted lift toward white, then toward black — same
+  // Material-elevation direction as before, but now required to keep text
+  // legible, not just clear the shell-contrast floor.
+  const whiteAttempt = stepToward(surfaceHex, '#FFFFFF', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
+  if (whiteAttempt.passed) return whiteAttempt.hex;
 
-  if (ratio < 3) {
-    // White-mix exhausted (surface is already near-white) — try darkening
-    // toward a neutral tan-gray instead, same stepping logic in reverse.
-    let darkPct = 92;
-    let darkHex = mixHex(surfaceHex, darkPct, LIGHT_SURFACE_CARD_FALLBACK);
-    let darkRatio = contrastRatio(darkHex, surfaceHex);
-    while (darkRatio < 3 && darkPct > LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT) {
-      darkPct -= 4;
-      darkHex = mixHex(surfaceHex, darkPct, LIGHT_SURFACE_CARD_FALLBACK);
-      darkRatio = contrastRatio(darkHex, surfaceHex);
-    }
-    const picked = bestOf(surfaceHex, [hex, darkHex]);
-    hex = picked.hex;
-    ratio = picked.ratio;
-  }
+  const blackAttempt = stepToward(surfaceHex, '#0A0A0B', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
+  if (blackAttempt.passed) return blackAttempt.hex;
 
-  if (ratio < 3 && typeof console !== 'undefined') {
+  // Tier 2: near-white surfaces where lifting toward white/black can't
+  // create shell contrast at all (a distinct failure mode) — try the warm
+  // mid-tone fallback used before this rule existed.
+  const warmFallback = stepToward(
+    surfaceHex, LIGHT_SURFACE_CARD_FALLBACK, 92, LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT, textSecondaryHex,
+  );
+  if (warmFallback.passed) return warmFallback.hex;
+
+  // Tier 3: team hue genuinely cannot carry both requirements at once —
+  // this is the founder's rule. Stop preserving team tint and use a clean,
+  // fully desaturated premium surface (the app's own default surface-1)
+  // instead. Team identity still shows up via the badge, border accent, and
+  // motif layer; the card itself reads as an Omen-quality panel, not a
+  // diluted team-color smear.
+  const neutralLift = surfaceIsDark ? NEUTRAL_CARD_LIFT_FOR_DARK_SHELL : NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL;
+  const neutralAttempt = stepToward(surfaceHex, neutralLift, basePct, 0, textSecondaryHex);
+  if (neutralAttempt.passed) return neutralAttempt.hex;
+
+  // Tier 4: the shell itself is dark/light enough (e.g. Steelers-black,
+  // Raiders-black) that NO fill can be simultaneously ≥3:1 from the shell
+  // AND ≥4.5:1 for text sitting on it — that's a real mathematical ceiling,
+  // not a tuning problem (a card dark enough for legible light-gray text
+  // cannot also be 3:1 lighter than an already near-black shell). Per
+  // team-theme-contract-v1.md Rule 3c, differentiation in this band comes
+  // from the border, not the fill — text legibility is non-negotiable, so
+  // take the best text-legible candidate found (from the neutral-lift pass,
+  // which already searched the full range) even though it under-shoots the
+  // shell-contrast floor, and log it as a border-differentiation case.
+  const fallback = neutralAttempt.hex ?? neutralLift;
+  if (typeof console !== 'undefined') {
+    const shellRatio = neutralAttempt.shellRatio >= 0 ? neutralAttempt.shellRatio.toFixed(2) : 'n/a';
     console.warn(
-      `[theme] card-vs-shell contrast still ${ratio.toFixed(2)}:1 (< 3:1) for surface ${surfaceHex} ` +
-      `even after the light-surface fallback. Needs an authored card fill — see ` +
-      `team-theme-contract-v1.md Rule 3.`,
+      `[theme] surface ${surfaceHex} cannot reach 3:1 card-vs-shell contrast without dropping text-secondary ` +
+      `below 4.5:1 (best legible candidate reaches ${shellRatio}:1 vs shell). Card differentiation for this ` +
+      `shell must come from the border (Rule 3c), not the fill — text legibility was kept, shell contrast was not.`,
     );
   }
-  return hex;
+  return fallback;
 }
 
 // Rule 2 fallback: team primary → team secondary → white/black (whichever
