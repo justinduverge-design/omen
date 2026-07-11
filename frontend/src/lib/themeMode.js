@@ -31,6 +31,7 @@
 
 import { useEffect, useState } from 'react';
 import { getTeamTemplate } from './teamTemplate.js';
+import { contrastRatio, readableOn, hexToRgb } from '../data/nflTeams.js';
 
 const MODE_KEY    = 'omen.theme.mode';
 const TEAM_KEY    = 'omen.theme.team';
@@ -344,26 +345,139 @@ function setRoleTokens(root, template) {
   }
 }
 
+// ── Shell/card/accent contrast guard (team-theme-contract-v1.md Rules 2+3) ──
+//
+// Scoped fix for the "Commanders drowns in burgundy" bug: card fills and the
+// CTA accent must stay findable against a team-tinted shell. This does NOT
+// implement the full contract (room-mode depth ladder, three-switch UI,
+// Lab ΔE role-collision check, color-wheel accent derivation, per-team
+// authored card lifts) — those are separate follow-up work. This only
+// guarantees Rule 2 (accent ≥ 3:1 vs shell) and Rule 3a (card ≥ 3:1 vs
+// shell) never silently fail.
+
+/** Linear sRGB blend matching `color-mix(in srgb, hexA pctA%, hexB)`. */
+function mixHex(hexA, pctA, hexB) {
+  const [r1, g1, b1] = hexToRgb(hexA);
+  const [r2, g2, b2] = hexToRgb(hexB);
+  const a = pctA / 100;
+  const blend = (x1, x2) => Math.round(x1 * a + x2 * (1 - a));
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+  return `#${toHex(blend(r1, r2))}${toHex(blend(g1, g2))}${toHex(blend(b1, b2))}`;
+}
+
+// Card sits a small luminance step brighter than surface (Material-style
+// elevation) — mix toward white, same direction as before this fix. What's
+// new: if the base mix doesn't reach 3:1 against the shell (Rule 3a — the
+// exact failure mode diagnosed for Commanders/Packers/Steelers-type teams),
+// step the mix further toward white until it does, capped so the card never
+// gets mixed past recognizably-still-team-tinted.
+const CARD_MIN_TINT_PCT = 20;
+// Fallback lift target for near-white surfaces (e.g. Dolphins cream, Chiefs
+// light default), where mixing further toward white cannot create contrast
+// no matter how far the percentage moves — a distinct failure mode from the
+// dark-team case, not covered by stepping the white-mix percentage alone.
+// Needs to be a genuinely mid-tone neutral (not just "less white") since the
+// starting surface is already near-white and the floor below is much lower
+// than the white-mix floor to give this pass enough range to actually reach
+// 3:1 against a surface with almost no headroom.
+const LIGHT_SURFACE_CARD_FALLBACK = '#7A7266';
+const LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT = 0;
+
+function bestOf(surfaceHex, candidates) {
+  let best = candidates[0];
+  let bestRatio = contrastRatio(best, surfaceHex);
+  for (const hex of candidates.slice(1)) {
+    const ratio = contrastRatio(hex, surfaceHex);
+    if (ratio > bestRatio) { best = hex; bestRatio = ratio; }
+  }
+  return { hex: best, ratio: bestRatio };
+}
+
+function resolveCardFill(surfaceHex, surfaceIsDark) {
+  const basePct = surfaceIsDark ? 92 : 96;
+  // Try lifting toward white first (the Material-elevation direction the
+  // spec describes), but some mid-luminance saturated surfaces (e.g. Denver
+  // orange) separate further from black than from white — try both
+  // directions and keep whichever clears 3:1 with the lighter touch.
+  let pct = basePct;
+  let hex = mixHex(surfaceHex, pct, '#FFFFFF');
+  let ratio = contrastRatio(hex, surfaceHex);
+  while (ratio < 3 && pct > CARD_MIN_TINT_PCT) {
+    pct -= 4;
+    hex = mixHex(surfaceHex, pct, '#FFFFFF');
+    ratio = contrastRatio(hex, surfaceHex);
+  }
+
+  if (ratio < 3) {
+    let blackPct = basePct;
+    let blackHex = mixHex(surfaceHex, blackPct, '#0A0A0B');
+    let blackRatio = contrastRatio(blackHex, surfaceHex);
+    while (blackRatio < 3 && blackPct > CARD_MIN_TINT_PCT) {
+      blackPct -= 4;
+      blackHex = mixHex(surfaceHex, blackPct, '#0A0A0B');
+      blackRatio = contrastRatio(blackHex, surfaceHex);
+    }
+    const pickedDirection = bestOf(surfaceHex, [hex, blackHex]);
+    hex = pickedDirection.hex;
+    ratio = pickedDirection.ratio;
+  }
+
+  if (ratio < 3) {
+    // White-mix exhausted (surface is already near-white) — try darkening
+    // toward a neutral tan-gray instead, same stepping logic in reverse.
+    let darkPct = 92;
+    let darkHex = mixHex(surfaceHex, darkPct, LIGHT_SURFACE_CARD_FALLBACK);
+    let darkRatio = contrastRatio(darkHex, surfaceHex);
+    while (darkRatio < 3 && darkPct > LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT) {
+      darkPct -= 4;
+      darkHex = mixHex(surfaceHex, darkPct, LIGHT_SURFACE_CARD_FALLBACK);
+      darkRatio = contrastRatio(darkHex, surfaceHex);
+    }
+    const picked = bestOf(surfaceHex, [hex, darkHex]);
+    hex = picked.hex;
+    ratio = picked.ratio;
+  }
+
+  if (ratio < 3 && typeof console !== 'undefined') {
+    console.warn(
+      `[theme] card-vs-shell contrast still ${ratio.toFixed(2)}:1 (< 3:1) for surface ${surfaceHex} ` +
+      `even after the light-surface fallback. Needs an authored card fill — see ` +
+      `team-theme-contract-v1.md Rule 3.`,
+    );
+  }
+  return hex;
+}
+
+// Rule 2 fallback: team primary → team secondary → white/black (whichever
+// passes vs. the shell, via the same WCAG pick already used for body text).
+// Full ladder also has a color-wheel-derived step and an Omen-brass last
+// resort (team-theme-contract-v1.md "Fallback cascade") — not implemented
+// here; if primary/secondary/readableOn all somehow fail 3:1 (readableOn
+// picking the higher-contrast of two fixed candidates cannot fail to beat a
+// weak team color), readableOn's result is still returned as the safest
+// available fallback.
+function resolveAccent(template, surfaceHex) {
+  const candidates = [template.accent?.hex, template.secondary?.hex, template.primary?.hex].filter(Boolean);
+  for (const hex of candidates) {
+    if (contrastRatio(hex, surfaceHex) >= 3) return hex;
+  }
+  return readableOn(surfaceHex);
+}
+
 function applyTeamTokens(root, template) {
   setRoleTokens(root, template);
 
-  // Card sits a small luminance step brighter than surface (Material-style
-  // elevation) — mix toward white on both light and dark surfaces.
-  const cardMix = template.surfaceIsDark ? '92%' : '96%';
+  // Card fill, contrast-guarded against the shell (Rule 3a) rather than a
+  // fixed mix percentage — see resolveCardFill above.
+  const cardFillHex = resolveCardFill(template.surface, template.surfaceIsDark);
   root.style.setProperty('--color-team-surface', template.surface);
-  root.style.setProperty(
-    '--color-team-surface-card',
-    `color-mix(in srgb, ${template.surface} ${cardMix}, white)`,
-  );
+  root.style.setProperty('--color-team-surface-card', cardFillHex);
 
   // Drive the core Omen tokens from the team palette so every page that
   // consumes --color-bg, --color-accent, etc. inherits the team look
   // automatically (no per-page rewrite needed for the basic case).
   root.style.setProperty('--color-bg',            template.surface);
-  root.style.setProperty(
-    '--color-surface-1',
-    `color-mix(in srgb, ${template.surface} ${cardMix}, white)`,
-  );
+  root.style.setProperty('--color-surface-1',     cardFillHex);
   root.style.setProperty(
     '--color-surface-2',
     `color-mix(in srgb, ${template.surface} ${template.surfaceIsDark ? '84%' : '92%'}, ${template.surfaceIsDark ? 'white' : 'black'})`,
@@ -382,10 +496,11 @@ function applyTeamTokens(root, template) {
   );
 
   // Accent semantics: `accent` is the derived CTA color (falls through to
-  // secondary when surface == primary). This keeps GB green-on-green and
-  // PIT black-on-black CTAs visible.
-  const accentHex   = template.accent?.hex ?? template.primary?.hex ?? template.surface;
-  const accentOnHex = template.textOnAccent ?? '#0A0A0B';
+  // secondary when surface == primary), then contrast-guarded against the
+  // shell (Rule 2) so a low-contrast pairing (e.g. a dark primary on a
+  // similarly dark shell) doesn't ship an unfindable CTA.
+  const accentHex   = resolveAccent(template, template.surface);
+  const accentOnHex = readableOn(accentHex);
   root.style.setProperty('--color-accent',       accentHex);
   root.style.setProperty('--color-accent-hover', `color-mix(in srgb, ${accentHex} 84%, ${template.surfaceIsDark ? 'white' : 'black'})`);
   root.style.setProperty('--color-accent-muted', `color-mix(in srgb, ${accentHex} 18%, ${template.surface})`);
