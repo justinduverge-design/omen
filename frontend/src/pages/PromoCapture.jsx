@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Gauge, ShieldCheck, Sparkles } from 'lucide-react';
 import MockBanner from '../components/ui/MockBanner.jsx';
-import { PageHero } from '../components/ui/index.js';
+import { Button, Card, Chip, PageHero } from '../components/ui/index.js';
 import { OMEN_VISUAL_FIXTURE } from '../data/privateDemoFixtures.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { OmenRecommendationView } from './OmenOfTheWeek.jsx';
@@ -58,18 +60,67 @@ export default function PromoCapture() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <PageHero
-        eyebrow="OMEN PREVIEW"
-        title="See the move before your league does."
-        subtitle="Omen reads your roster context, weighs the close calls, and gives you the recommendation first, with confidence and risk right behind it."
-      />
+    <div className="mx-auto max-w-6xl space-y-10">
+      <section className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="space-y-6">
+          <PageHero
+            className="pb-0"
+            eyebrow="OMEN PREVIEW"
+            title="See the move before your league does."
+            subtitle="Omen turns roster context into a clear weekly call: the move, the confidence, and the risk."
+            trailing={<Chip variant="preview">Sample</Chip>}
+          />
+          <div className="flex flex-wrap gap-3">
+            <Button asChild size="lg">
+              <Link to="/demo">
+                Try the demo
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link to="/trade">Run a trade check</Link>
+            </Button>
+          </div>
+        </div>
 
-      <OmenRecommendationView
-        data={promoOmenData}
-        banner={<MockBanner message="Sample data. Connect a league to generate live recommendations." />}
-        showFeedback={false}
-      />
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <Card variant="outlined">
+            <Card.Body className="flex items-start gap-3 pt-6">
+              <Sparkles className="mt-0.5 size-5 text-[var(--color-accent)]" aria-hidden="true" />
+              <div>
+                <p className="font-sans text-sm font-semibold">Move first</p>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">The recommendation leads. The explanation follows.</p>
+              </div>
+            </Card.Body>
+          </Card>
+          <Card variant="outlined">
+            <Card.Body className="flex items-start gap-3 pt-6">
+              <Gauge className="mt-0.5 size-5 text-[var(--color-accent)]" aria-hidden="true" />
+              <div>
+                <p className="font-sans text-sm font-semibold">Confidence visible</p>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">No hidden score. The call shows its strength.</p>
+              </div>
+            </Card.Body>
+          </Card>
+          <Card variant="outlined">
+            <Card.Body className="flex items-start gap-3 pt-6">
+              <ShieldCheck className="mt-0.5 size-5 text-[var(--color-accent)]" aria-hidden="true" />
+              <div>
+                <p className="font-sans text-sm font-semibold">Risk included</p>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">A good call still shows what can break it.</p>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <MockBanner message="Sample data. Connect a league to generate live recommendations." />
+        <OmenRecommendationView
+          data={promoOmenData}
+          showFeedback={false}
+        />
+      </section>
     </div>
   );
 }
