@@ -27,6 +27,7 @@ If a file is missing, continue and mention it.
 - `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
 - `test/` directory — test conventions
 - `src/` + `services/` + `routes/` — backend layout
+- `Blueprints/specs/design/component-lock-v1.md` / `team-theme-contract-v1.md` — current frontend design authority; read before any task that touches shared UI components or team theming, even from the backend lane
 
 ## Kickoff
 
