@@ -51,34 +51,22 @@ async function fetchStripePrices() {
 function SubscriptionBanner({ type, onDismiss }) {
   if (type === 'subscribed') {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-3">
+      <Alert className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-emerald-300">Welcome to Omen Pro.</p>
-          <p className="mt-0.5 text-xs text-emerald-200/70">Your subscription is active. You're all set.</p>
+          <AlertTitle>Welcome to Omen Pro.</AlertTitle>
+          <AlertDescription>Your subscription is active. You're all set.</AlertDescription>
         </div>
-        <button
-          className="ml-4 shrink-0 text-xs text-emerald-400/50 transition-colors hover:text-emerald-300"
-          type="button"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      </div>
+        <Button variant="link" size="sm" onClick={onDismiss}>Dismiss</Button>
+      </Alert>
     );
   }
 
   if (type === 'cancelled') {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-[var(--color-team-accent)]/20 bg-[var(--color-team-accent)]/5 px-5 py-3">
+      <Alert className="flex items-center justify-between">
         <p className="text-sm text-[var(--color-text-secondary)]">Checkout cancelled — no changes were made.</p>
-        <button
-          className="ml-4 shrink-0 text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
-          type="button"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      </div>
+        <Button variant="link" size="sm" onClick={onDismiss}>Dismiss</Button>
+      </Alert>
     );
   }
 
@@ -146,16 +134,18 @@ function PlanPicker({ onCheckout, loading, error }) {
         ))}
       </div>
 
-      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
+      {error && <p className="text-xs text-[var(--color-risk-high)]" role="alert">{error}</p>}
 
-      <button
-        className="w-full rounded-xl bg-[var(--color-team-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:opacity-60"
+      <Button
+        variant="primary"
+        size="md"
+        className="w-full"
+        loading={loading}
         disabled={loading}
-        type="button"
         onClick={() => onCheckout(selected)}
       >
         {loading ? 'Redirecting to Stripe…' : selectedOption?.cta ?? 'Continue to checkout'}
-      </button>
+      </Button>
 
       <p className="text-center text-xs text-[var(--color-text-tertiary)]">
         Payments secured by Stripe.
@@ -263,17 +253,12 @@ function ActiveSubscription({ subscription, onManage, loading, error }) {
 
       <BillingDates subscription={subscription} />
 
-      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
+      {error && <p className="text-xs text-[var(--color-risk-high)]" role="alert">{error}</p>}
 
       {subscription?.can_manage_billing && (
-        <button
-          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-surface-3)] hover:text-[var(--color-text-primary)] disabled:opacity-60"
-          disabled={loading}
-          type="button"
-          onClick={onManage}
-        >
+        <Button variant="secondary" size="md" loading={loading} disabled={loading} onClick={onManage}>
           {loading ? 'Redirecting…' : 'Manage subscription'}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -353,13 +338,7 @@ function SubscriptionSection({ subscription, summaryLoading, summaryError, onRef
       return (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
           <p className="text-sm text-[var(--color-text-secondary)]">Could not load subscription status.</p>
-          <button
-            className="mt-3 text-xs font-semibold text-[var(--color-team-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
-            type="button"
-            onClick={onRefetch}
-          >
-            Retry →
-          </button>
+          <Button variant="link" className="mt-3" onClick={onRefetch}>Retry →</Button>
         </div>
       );
     }
@@ -524,21 +503,12 @@ function AccountDeleteDialog({ open, onClose }) {
           )}
 
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-150 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={submitting}
-              onClick={onClose}
-            >
+            <Button variant="secondary" size="md" disabled={submitting} onClick={onClose}>
               Keep my data
-            </button>
-            <button
-              type="submit"
-              className="min-h-[44px] rounded-lg bg-[var(--color-risk-high)] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!canSubmit || submitting}
-            >
+            </Button>
+            <Button variant="danger" size="md" type="submit" loading={submitting} disabled={!canSubmit || submitting}>
               {submitting ? 'Deleting Omen data…' : 'Delete Omen data'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -566,13 +536,9 @@ function PrivacySection() {
               Omen will remove saved data and sign this browser out after the request completes.
             </p>
           </div>
-          <button
-            type="button"
-            className="min-h-[44px] shrink-0 rounded-lg border border-[var(--color-risk-high)]/50 px-5 text-sm font-semibold text-[var(--color-risk-high)] transition-colors duration-150 hover:bg-[var(--color-risk-high)]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button variant="danger" size="md" className="shrink-0" onClick={() => setDialogOpen(true)}>
             Delete data
-          </button>
+          </Button>
         </div>
       </div>
       <AccountDeleteDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
@@ -688,13 +654,11 @@ export default function Account() {
     <AppLayout>
       {BILLING_ENABLED && !APP_STORE_BUILD && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
 
-      <section className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen</p>
-        <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
-        <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-          Manage your fantasy platform connections and account preferences.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="OMEN"
+        title="Account"
+        subtitle="Manage your fantasy platform connections and account preferences."
+      />
 
       {BILLING_ENABLED && !APP_STORE_BUILD && (
         <SubscriptionSection
