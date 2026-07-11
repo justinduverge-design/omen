@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import LeagueStandings from '../components/league/LeagueStandings.jsx';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
+import { Alert } from '../components/ui/Alert.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
@@ -49,8 +50,8 @@ function PlatformStatusBar({ platforms, loading }) {
   return (
     <div className="space-y-2">
       {connected.length === 0 && tokenExpired.length === 0 ? (
-        <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}>
-          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No fantasy platform connected.</p>
+        <Alert tone="neutral" className="justify-between">
+          <p>No fantasy platform connected.</p>
           <Link
             className="text-xs font-semibold transition-colors"
             style={{ color: 'var(--color-team-accent)' }}
@@ -58,10 +59,10 @@ function PlatformStatusBar({ platforms, loading }) {
           >
             Connect a platform →
           </Link>
-        </div>
+        </Alert>
       ) : connected.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border px-4 py-2.5" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}>
-          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Connected:</p>
+        <Alert tone="neutral">
+          <p>Connected:</p>
           {connected.map(([key, val]) => {
             const label = PLATFORM_LABELS[key] ?? key;
             const suffix = key === 'sleeper' && val?.username ? ` · ${val.username}` : '';
@@ -77,26 +78,19 @@ function PlatformStatusBar({ platforms, loading }) {
           })}
           <Link
             className="ml-auto text-xs transition-colors hover:text-[var(--color-text-primary)]"
-            style={{ color: 'var(--color-text-secondary)' }}
             to="/account"
           >
             Manage
           </Link>
-        </div>
+        </Alert>
       ) : null}
 
       {tokenExpired.map(([key]) => {
         const label = PLATFORM_LABELS[key] ?? key;
         const canReconnect = key === 'yahoo';
         return (
-          <div
-            key={key}
-            className="flex items-center justify-between rounded-lg border px-4 py-3"
-            style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)' }}
-          >
-            <p className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
-              {label} session expired — reconnect to restore your live data
-            </p>
+          <Alert key={key} tone="omen" className="justify-between" style={{ color: 'var(--color-text-primary)' }}>
+            <p>{label} session expired — reconnect to restore your live data</p>
             {canReconnect && (
               <button
                 className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"
@@ -118,11 +112,11 @@ function PlatformStatusBar({ platforms, loading }) {
               </button>
             )}
             {reconnectError ? (
-              <p className="ml-4 text-xs" style={{ color: 'var(--color-risk-high)' }}>
+              <p className="ml-4" style={{ color: 'var(--color-risk-high)' }}>
                 {reconnectError}
               </p>
             ) : null}
-          </div>
+          </Alert>
         );
       })}
     </div>
