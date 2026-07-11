@@ -11,7 +11,25 @@
    The :root block below is the dark fallback for SSR / before JS runs.
    ─────────────────────────────────────────────────────────────────────────── */
 
+/* ── Room Mode depth ladder ──────────────────────────────────────────────────
+   team-theme-contract-v1.md "Room Mode — the graduated depth ladder". Pages
+   set data-room on <html> (Prompt D — not wired yet, so --room-alpha stays
+   at its Locker Room default until then). themeResolver.js / teamTheme.js
+   mirror these exact percentages as numeric constants (ROOM_ALPHA in
+   frontend/src/lib/teamTheme.js) since the token blend is computed in JS
+   (needs a JS number for the hex math), not via CSS color-mix() — keep both
+   in sync if either changes.
+   ─────────────────────────────────────────────────────────────────────────── */
 :root {
+  --room-alpha: 35%; /* locker (default — most pages belong to this room) */
+}
+[data-room="owner"]  { --room-alpha: 5%; }
+[data-room="gm"]     { --room-alpha: 14%; }
+[data-room="locker"] { --room-alpha: 35%; }
+
+:root {
+  --radius: 0.5rem;
+  --color-focus-ring:      var(--color-accent);
   --color-bg:              #0A0A0B;
   --color-surface-1:       #1C1C1E;
   --color-surface-2:       #2C2C2E;

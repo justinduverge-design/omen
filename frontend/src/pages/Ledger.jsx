@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
+import { PageHero } from '../components/ui/index.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
 
@@ -32,27 +33,11 @@ export default function Ledger() {
   }, [fixtureActive]);
   return (
     <AppLayout>
-      {/* Page header */}
-      <div>
-        <p
-          className="text-xs font-semibold uppercase tracking-[0.2em]"
-          style={{ color: 'var(--color-team-accent)' }}
-        >
-          The Ledger
-        </p>
-        <h1
-          className="mt-3 font-display text-3xl font-semibold"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Your Season Record
-        </h1>
-        <p
-          className="mt-2 max-w-xl text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          Every move Omen called. Whether you followed it. Whether it worked.
-        </p>
-      </div>
+      <PageHero
+        eyebrow="THE LEDGER"
+        title="Your Season Record"
+        subtitle="Every move Omen called. Whether you followed it. Whether it worked."
+      />
 
       {/* Move history — handles loading, error, empty, and populated states */}
       {fixtureActive && !fixture ? (

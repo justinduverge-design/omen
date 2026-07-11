@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { Alert, AlertDescription, AlertTitle, Button, Card, PageHero } from '../components/ui/index.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
 import { OmenRecommendationView } from './OmenOfTheWeek.jsx';
@@ -23,50 +24,20 @@ function DemoBanner({ notice }) {
   const message = notice?.message
     ?? 'Sample league and roster data. This is not live fantasy advice.';
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex items-start gap-2.5 rounded-md border border-sky-400/30 bg-sky-400/5 px-3.5 py-3 text-xs"
-      style={{ color: 'var(--color-demo-text)' }}
-    >
-      <span aria-hidden="true" className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-400" />
-      <div>
-        <p className="font-semibold uppercase tracking-widest">{label}</p>
-        <p
-          className="mt-0.5 leading-5"
-          style={{ color: 'var(--color-demo-text-secondary)' }}
-        >
-          {message}
-        </p>
-      </div>
-    </div>
+    <Alert role="status" aria-live="polite">
+      <AlertTitle>{label}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
 
 function DemoHeader() {
   return (
-    <section className="max-w-2xl">
-      <p
-        className="text-xs font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-demo-text)' }}
-      >
-        Omen Demo
-      </p>
-      <h1
-        className="mt-3 font-display text-4xl font-semibold sm:text-5xl"
-        style={{ color: 'var(--color-text-primary)' }}
-      >
-        See Omen on a sample league.
-      </h1>
-      <p
-        className="mt-4 text-sm leading-6"
-        style={{ color: 'var(--color-text-secondary)' }}
-      >
-        This is a fixed example so you can read the shape of an Omen call before
-        you connect your own league. Numbers and rosters here are illustrative —
-        the real version reads your roster from Yahoo, Sleeper, or ESPN.
-      </p>
-    </section>
+    <PageHero
+      eyebrow="OMEN DEMO"
+      title="See Omen on a sample league."
+      subtitle="This is a fixed example so you can read the shape of an Omen call before you connect your own league. Numbers and rosters here are illustrative — the real version reads your roster from Yahoo, Sleeper, or ESPN."
+    />
   );
 }
 
@@ -82,64 +53,32 @@ function LoadingGate() {
 
 function ErrorBlock({ message, onRetry }) {
   return (
-    <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-6">
-      <p className="text-sm font-semibold text-red-300">
-        Demo Mode is temporarily unavailable
-      </p>
-      <p className="mt-1 text-sm text-red-200/70">{message}</p>
-      <button
-        className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
-        type="button"
-        onClick={onRetry}
-      >
-        Try again
-      </button>
-    </div>
+    <Card variant="error" tone="risk">
+      <Card.Header title="Demo Mode is temporarily unavailable" />
+      <Card.Body>{message}</Card.Body>
+      <Card.Footer>
+        <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
 function ConversionFooter() {
   return (
-    <section
-      className="rounded-xl border px-5 py-5 sm:flex sm:items-center sm:justify-between sm:gap-6"
-      style={{
-        borderColor: 'var(--color-border)',
-        background: 'var(--color-surface-1)',
-      }}
-    >
-      <div>
-        <p
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--color-demo-text)' }}
-        >
-          Ready for the real call?
-        </p>
-        <p
-          className="mt-1 text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          Connect Yahoo, Sleeper, or ESPN and Omen reads your actual roster.
-        </p>
-      </div>
-      <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">
-        <Link
-          to="/account/connect"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-        >
-          Connect a league
-        </Link>
-        <Link
-          to="/"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          style={{
-            borderColor: 'var(--color-border)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          Back to home
-        </Link>
-      </div>
-    </section>
+    <Card variant="solid">
+      <Card.Header eyebrow="Ready for the real call?" />
+      <Card.Body>
+        Connect Yahoo, Sleeper, or ESPN and Omen reads your actual roster.
+      </Card.Body>
+      <Card.Footer className="flex-col gap-2 sm:flex-row">
+        <Button variant="primary" size="md" asChild>
+          <Link to="/account/connect">Connect a league</Link>
+        </Button>
+        <Button variant="secondary" size="md" asChild>
+          <Link to="/">Back to home</Link>
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 

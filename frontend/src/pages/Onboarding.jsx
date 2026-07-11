@@ -2,17 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { MARQUEE_ABBRS, NFL_TEAMS, TEAMS_BY_DIV } from '../data/nflTeams.js';
-import { ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
-import { getThemeMode, setThemeMode, setThemeTeam, useTheme } from '../lib/themeMode.js';
+import { TeamTile } from '../components/theme/AppearancePicker.jsx';
+import { Button } from '../components/ui/index.js';
+import { RadioCardGroup } from '../components/ui/radio-card-group.jsx';
+import { setThemeAccentSource, setThemeTeam, useTheme } from '../lib/themeMode.js';
 
 const DONE_KEY = 'omen.onboarding.done';
 const LEGACY_DONE_KEY = 'corvus.onboarding.done';
 const CONNECTED_STATUSES = new Set(['ready', 'needs_subscription', 'pending_live_engine']);
 
+// team-theme-contract-v1.md §Switch A — onboarding only surfaces accent
+// source; surface mode (light/dark) stays at its 'auto' default and is
+// tunable later in Account → Appearance.
+const ACCENT_OPTIONS = [
+  { value: 'omen', title: 'Omen', description: 'Brass gold accents, every page.' },
+  { value: 'team', title: 'Team', description: "Accents pull from your team's palette." },
+];
+
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function PickLookStep({ onSkip, onContinue }) {
-  const { mode, team: teamAbbr } = useTheme();
+  const { accentSource, team: teamAbbr } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const marqueeTeams = useMemo(
@@ -24,15 +34,12 @@ function PickLookStep({ onSkip, onContinue }) {
     [],
   );
 
-  const gridDisabled = mode !== 'team';
-
-  function handleModeChange(next) {
-    setThemeMode(next);
+  function handleAccentSourceChange(next) {
+    setThemeAccentSource(next);
   }
 
   async function handleSelectTeam(abbr) {
     setThemeTeam(abbr);
-    if (getThemeMode() !== 'team') setThemeMode('team');
     try {
       await apiFetch('/api/account/preferences', {
         method: 'PATCH',
@@ -42,7 +49,7 @@ function PickLookStep({ onSkip, onContinue }) {
   }
 
   function handleSkip() {
-    setThemeMode('omen');
+    setThemeAccentSource('omen');
     onSkip();
   }
 
@@ -69,7 +76,15 @@ function PickLookStep({ onSkip, onContinue }) {
       </p>
 
       <div className="mb-6">
-        <ModePicker mode={mode} onChange={handleModeChange} />
+        <RadioCardGroup
+          value={accentSource}
+          onValueChange={handleAccentSourceChange}
+          className="sm:grid-cols-2"
+        >
+          {ACCENT_OPTIONS.map((opt) => (
+            <RadioCardGroup.Item key={opt.value} {...opt} />
+          ))}
+        </RadioCardGroup>
       </div>
 
       <div className="mb-2 flex items-baseline justify-between">
@@ -77,7 +92,7 @@ function PickLookStep({ onSkip, onContinue }) {
           className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: 'var(--color-text-tertiary)' }}
         >
-          {gridDisabled ? 'Team (switches to Team mode)' : 'Choose a team'}
+          Choose a team
         </span>
         <span
           className="font-mono text-[11px] tabular-nums"
@@ -87,13 +102,13 @@ function PickLookStep({ onSkip, onContinue }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8" aria-disabled={gridDisabled}>
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
         {marqueeTeams.map((team) => (
           <TeamTile
             key={team.abbr}
             team={team}
             selected={teamAbbr === team.abbr}
-            disabled={gridDisabled}
+            disabled={false}
             onClick={() => handleSelectTeam(team.abbr)}
           />
         ))}
@@ -102,40 +117,21 @@ function PickLookStep({ onSkip, onContinue }) {
             key={team.abbr}
             team={team}
             selected={teamAbbr === team.abbr}
-            disabled={gridDisabled}
+            disabled={false}
             onClick={() => handleSelectTeam(team.abbr)}
           />
         ))}
       </div>
 
       <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="inline-flex min-h-[44px] items-center text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] rounded-sm"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
+        <Button variant="link" onClick={() => setExpanded((v) => !v)}>
           {expanded ? 'Show fewer teams' : 'Show all 32 teams →'}
-        </button>
+        </Button>
       </div>
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={onContinue}
-          className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          style={{ background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }}
-        >
-          Continue →
-        </button>
-        <button
-          type="button"
-          onClick={handleSkip}
-          className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-        >
-          Skip — use Omen default
-        </button>
+        <Button variant="primary" size="lg" onClick={onContinue}>Continue →</Button>
+        <Button variant="secondary" size="lg" onClick={handleSkip}>Skip — use Omen default</Button>
       </div>
     </div>
   );
@@ -165,14 +161,7 @@ function WelcomeStep({ onNext }) {
         Omen watches your roster, reads the matchups, and surfaces the one
         move that matters most each week. Plain English. No heavy math required.
       </p>
-      <button
-        type="button"
-        onClick={onNext}
-        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-        style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
-      >
-        Get started →
-      </button>
+      <Button variant="primary" size="lg" onClick={onNext}>Get started →</Button>
     </div>
   );
 }
@@ -235,22 +224,12 @@ function ConnectStep({ onCheck, checking, noConnection }) {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Link
-          to="/account/connect"
-          className="rounded-md px-6 py-3 text-center font-sans text-base font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-          style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
-        >
-          Connect a platform →
-        </Link>
-        <button
-          type="button"
-          onClick={onCheck}
-          disabled={checking}
-          className="rounded-md border px-6 py-3 font-sans text-base font-semibold transition-all hover:bg-[var(--color-surface-2)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
-        >
+        <Button variant="primary" size="md" asChild>
+          <Link to="/account/connect">Connect a platform →</Link>
+        </Button>
+        <Button variant="secondary" size="md" onClick={onCheck} loading={checking} disabled={checking}>
           {checking ? 'Checking…' : "I've connected →"}
-        </button>
+        </Button>
       </div>
 
       {noConnection && (
@@ -307,14 +286,7 @@ function CompleteStep({ onDone }) {
         League connected. Omen reads the matchup the moment your roster locks
         — your first call lands Tuesday.
       </p>
-      <button
-        type="button"
-        onClick={onDone}
-        className="rounded-md px-8 py-4 font-sans text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-        style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
-      >
-        Go to Omen →
-      </button>
+      <Button variant="primary" size="lg" onClick={onDone}>Go to Omen →</Button>
     </div>
   );
 }

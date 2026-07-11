@@ -1,17 +1,8 @@
 import { useState } from 'react';
+import { Button as CanonicalButton } from '../components/ui/index.js';
 import { apiFetch } from '../lib/api.js';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
-
-function Button({ children, className = '', disabled = false, href }) {
-  const base =
-    'inline-flex min-h-[44px] items-center justify-center rounded-md px-6 text-sm font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]';
-  const cls = [base, disabled ? 'cursor-default opacity-55' : '', className]
-    .filter(Boolean)
-    .join(' ');
-  if (href) return <a className={cls} href={href}>{children}</a>;
-  return <button className={cls} disabled={disabled} type="button">{children}</button>;
-}
 
 function Arrow() {
   return <span aria-hidden="true" className="ml-1.5 text-base leading-none">→</span>;
@@ -31,18 +22,12 @@ function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
         <OmenLogo />
         <div className="flex items-center gap-6">
-          <a
-            className="inline-flex min-h-[44px] items-center rounded-sm text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]"
-            href="#waitlist"
-          >
-            Join Waitlist
-          </a>
-          <a
-            className="inline-flex min-h-[44px] items-center rounded-sm text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C]"
-            href="/login"
-          >
-            Sign In →
-          </a>
+          <CanonicalButton variant="tertiary" size="sm" asChild>
+            <a href="#waitlist">Join Waitlist</a>
+          </CanonicalButton>
+          <CanonicalButton variant="secondary" size="md" asChild>
+            <a href="/login">Sign In →</a>
+          </CanonicalButton>
         </div>
       </div>
     </header>
@@ -188,12 +173,9 @@ function TradeAnalyzerHeroCard() {
           <p className="mb-3 text-xs leading-5 text-[#F4EFE1]/52">
             This is a sample result. Sign in to run the live Trade Analyzer on your own players.
           </p>
-          <Button
-            className="w-full bg-[#C9A44C] text-black hover:bg-[#dbb95a]"
-            href="/about"
-          >
-            Analyze Your Trade <Arrow />
-          </Button>
+          <CanonicalButton variant="primary" size="lg" className="w-full" asChild>
+            <a href="/about">Analyze Your Trade <Arrow /></a>
+          </CanonicalButton>
         </div>
       </div>
     </article>
@@ -628,12 +610,9 @@ export default function Landing() {
                   No account required. Omen analyzes any trade in seconds.
                 </p>
               </div>
-              <a
-                className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-md bg-[#C9A44C] px-7 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] active:scale-[0.97]"
-                href="/about"
-              >
-                Try the live tool →
-              </a>
+              <CanonicalButton variant="primary" size="lg" asChild>
+                <a href="/about">Try the live tool →</a>
+              </CanonicalButton>
             </div>
           </div>
         </section>

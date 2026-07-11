@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
+import { Button, Card, Input } from '../components/ui/index.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 
 const EMPTY_PLAYER = {
@@ -31,24 +32,22 @@ function formatAdvantage(pointsDelta) {
 
 function PlayerInput({ label, player, onChange }) {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-      <h2 className="text-base font-semibold text-white">{label}</h2>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_112px_144px]">
-        <label className="text-xs font-semibold text-slate-400">
+    <Card variant="solid">
+      <Card.Header title={label} />
+      <Card.Body className="grid gap-3 md:grid-cols-[1fr_112px_144px]">
+        <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
           Player name
-          <input
-            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+          <Input
             placeholder="e.g. Tyreek Hill"
             value={player.name}
             onChange={(event) => onChange({ name: event.target.value })}
           />
         </label>
 
-        <label className="text-xs font-semibold text-slate-400">
+        <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
           Position
           <select
-            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
             value={player.position}
             onChange={(event) => onChange({ position: event.target.value })}
           >
@@ -58,10 +57,9 @@ function PlayerInput({ label, player, onChange }) {
           </select>
         </label>
 
-        <label className="text-xs font-semibold text-slate-400">
+        <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
           Projected pts
-          <input
-            className="mt-1 w-full min-h-[44px] rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+          <Input
             min="0"
             placeholder="0.0"
             step="0.1"
@@ -70,8 +68,8 @@ function PlayerInput({ label, player, onChange }) {
             onChange={(event) => onChange({ projected_points: event.target.value })}
           />
         </label>
-      </div>
-    </section>
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -111,24 +109,24 @@ function ResultPanel({ result, playerA, playerB }) {
   const name = winnerName(result, playerA, playerB);
 
   return (
-    <section className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
-        Recommendation
-      </p>
-      <h2 className="mt-2 text-3xl font-semibold text-white">
-        Start {name || 'the higher projection'}
-      </h2>
-      <p className="mt-2 text-base font-semibold text-slate-300">
-        {formatAdvantage(result.pointsDelta)}
-      </p>
-      <p className="mt-4 rounded-md border border-slate-800 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100">
-        {result.recommendation}
-      </p>
-      <p className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
-        {result.explanation ?? 'Reasoning unavailable — recommendation based on projected points.'}
-      </p>
-      <SignalsList signals={result.signals} />
-    </section>
+    <Card variant="solid" tone="omen">
+      <Card.Header
+        eyebrow="Recommendation"
+        title={`Start ${name || 'the higher projection'}`}
+      />
+      <Card.Body>
+        <p className="text-base font-semibold text-[var(--color-text-primary)]">
+          {formatAdvantage(result.pointsDelta)}
+        </p>
+        <p className="mt-4 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)]">
+          {result.recommendation}
+        </p>
+        <p className="mt-4 rounded-md border border-[var(--color-omen)]/30 bg-[color-mix(in_srgb,var(--color-omen)_10%,transparent)] px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
+          {result.explanation ?? 'Reasoning unavailable — recommendation based on projected points.'}
+        </p>
+        <SignalsList signals={result.signals} />
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -216,24 +214,14 @@ export default function StartSit() {
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isSubmitDisabled}
-            type="submit"
-          >
-            {loading ? (
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-              />
-            ) : null}
+          <Button variant="primary" size="md" type="submit" loading={loading} disabled={isSubmitDisabled}>
             {loading ? 'Comparing' : 'Compare'}
-          </button>
+          </Button>
           {hasMissingName ? (
-            <p className="text-sm text-red-300" role="alert">Both players need a name.</p>
+            <p className="text-sm text-[var(--color-risk-high)]" role="alert">Both players need a name.</p>
           ) : null}
           {hasInvalidProjection ? (
-            <p className="text-sm text-red-300" role="alert">Projected points must be a number.</p>
+            <p className="text-sm text-[var(--color-risk-high)]" role="alert">Projected points must be a number.</p>
           ) : null}
         </div>
       </form>

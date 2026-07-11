@@ -1,28 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle, Button, Card, Input } from '../components/ui/index.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
-function AuthButton({ children, onClick, disabled = false, variant = 'default' }) {
-  const base =
-    'w-full flex items-center justify-center gap-3 min-h-[48px] px-5 rounded-lg text-sm font-semibold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-  const variants = {
-    default:
-      'border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] focus-visible:outline-[var(--color-accent)]',
-    gold:
-      'bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-hover)] focus-visible:outline-[var(--color-accent)]',
-  };
+function AuthButton({ children, onClick, disabled = false }) {
   return (
-    <button
-      className={`${base} ${variants[variant]} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
-      disabled={disabled}
-      type="button"
-      onClick={onClick}
-    >
+    <Button variant="secondary" size="lg" className="w-full" disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -85,28 +73,23 @@ function MagicLinkForm({ onSent }) {
   return (
     <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
       <label className="sr-only" htmlFor="login-email">Email address</label>
-      <input
+      <Input
         ref={inputRef}
         id="login-email"
         aria-label="Email address"
         autoComplete="email"
-        className="w-full min-h-[48px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+        size="lg"
         placeholder="you@example.com"
         required
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button
-        className="w-full min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-        aria-busy={loading}
-        disabled={loading}
-        type="submit"
-      >
+      <Button variant="primary" size="lg" type="submit" loading={loading} disabled={loading}>
         {loading ? 'Sending link…' : 'Continue with Email'}
-      </button>
+      </Button>
       {error && (
-        <p className="text-xs text-red-400" role="alert">{error}</p>
+        <p className="text-xs text-[var(--color-risk-high)]" role="alert">{error}</p>
       )}
     </form>
   );
@@ -116,13 +99,15 @@ function MagicLinkForm({ onSent }) {
 
 function MagicLinkSent({ email }) {
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4 text-center">
-      <p className="text-sm font-semibold text-[var(--color-text-primary)]">Check your email</p>
-      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-        We sent a sign-in link to <span className="text-[var(--color-text-primary)]">{email}</span>.
-        Click it to continue.
-      </p>
-    </div>
+    <Card variant="solid" className="text-center">
+      <Card.Body>
+        <p className="text-sm font-semibold text-[var(--color-text-primary)]">Check your email</p>
+        <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+          We sent a sign-in link to <span className="text-[var(--color-text-primary)]">{email}</span>.
+          Click it to continue.
+        </p>
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -247,12 +232,12 @@ export default function Login() {
 
         {/* Auth options */}
         {accountDeleted && (
-          <div className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Omen data deleted.</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
-              Sign in again when you want to rebuild your setup.
-            </p>
-          </div>
+          <Alert className="mb-4">
+            <div>
+              <AlertTitle>Omen data deleted.</AlertTitle>
+              <AlertDescription>Sign in again when you want to rebuild your setup.</AlertDescription>
+            </div>
+          </Alert>
         )}
 
         {sentEmail ? (
@@ -276,19 +261,16 @@ export default function Login() {
             <MagicLinkForm onSent={setSentEmail} />
 
             {oauthError && (
-              <p className="text-xs text-red-400" role="alert">{oauthError}</p>
+              <p className="text-xs text-[var(--color-risk-high)]" role="alert">{oauthError}</p>
             )}
           </div>
         )}
 
         {/* Footer links */}
         <div className="mt-8 text-center">
-          <a
-            className="flex min-h-[44px] items-center justify-center text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
-            href="/trade"
-          >
-            Try Trade Analyzer without signing in →
-          </a>
+          <Button variant="link" asChild>
+            <a href="/trade">Try Trade Analyzer without signing in →</a>
+          </Button>
         </div>
       </div>
     </div>

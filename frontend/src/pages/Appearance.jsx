@@ -10,19 +10,31 @@ import {
 } from '../data/nflTeams.js';
 import { getTeamTemplate } from '../lib/teamTemplate.js';
 import {
-  getThemeMode,
-  getThemeTeam,
-  setThemeMode,
+  setThemeAccentSource,
+  setThemeSurfaceMode,
   setThemeTeam,
   setThemeVariant,
   useTheme,
 } from '../lib/themeMode.js';
+import { RadioCardGroup } from '../components/ui/radio-card-group.jsx';
+import { Button, PageHero } from '../components/ui/index.js';
 import {
   CulturalAnchorAttribution,
-  ModePicker,
   TeamTile,
   VariantPicker,
 } from '../components/theme/AppearancePicker.jsx';
+
+// team-theme-contract-v1.md §The three switches
+const ACCENT_OPTIONS = [
+  { value: 'omen', title: 'Omen', description: "Brass gold accents, every page." },
+  { value: 'team', title: 'Team', description: "Accents pull from your team's palette." },
+];
+
+const SURFACE_OPTIONS = [
+  { value: 'light', title: 'Light', description: 'Warm cream shell.' },
+  { value: 'dark',  title: 'Dark',  description: 'Omen graphite shell.' },
+  { value: 'auto',  title: 'Auto',  description: "Follows your team's authored default." },
+];
 
 // ── Swatch ────────────────────────────────────────────────────────────────
 
@@ -146,7 +158,7 @@ function LivePreview({ template, themed }) {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function Appearance() {
-  const { mode, team: teamAbbr, variant } = useTheme();
+  const { team: teamAbbr, variant, accentSource, surfaceMode } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   // Phase 1.5g.3: the appearance picker carries no live fantasy data, so it is
@@ -176,15 +188,21 @@ export default function Appearance() {
   );
   const visibleTeams = expanded ? sortedTeams : marqueeTeams;
 
-  const gridDisabled = mode !== 'team';
-  const themed = mode === 'team' && Boolean(selectedTeam);
-  const showVariantPicker = themed && Boolean(selectedTeam?.palettes?.some((p) => p.mode === 'special'));
+  // Switch C (team) is orthogonal to Switch A (accent source) — picking a
+  // team no longer force-flips accent source. The grid stays selectable
+  // regardless; it only *paints* the app when accent source = team.
+  const themed = accentSource === 'team' && Boolean(selectedTeam);
+  const showVariantPicker = Boolean(selectedTeam) && Boolean(selectedTeam?.palettes?.some((p) => p.mode === 'special'));
   const hasEyebrowFlourish = Boolean(
     template?.typeFlourishes?.active?.some((f) => f.scope === 'eyebrow'),
   );
 
-  function handleModeChange(next) {
-    setThemeMode(next);
+  function handleAccentSourceChange(next) {
+    setThemeAccentSource(next);
+  }
+
+  function handleSurfaceModeChange(next) {
+    setThemeSurfaceMode(next);
   }
 
   function handleVariantChange(next) {
@@ -193,8 +211,6 @@ export default function Appearance() {
 
   async function handleSelectTeam(abbr) {
     setThemeTeam(abbr);
-    // Picking a team auto-flips into Team mode so the choice takes effect.
-    if (getThemeMode() !== 'team') setThemeMode('team');
     try {
       await apiFetch('/api/account/preferences', {
         method: 'PATCH',
@@ -207,39 +223,48 @@ export default function Appearance() {
     <AppLayout>
       <div className="mx-auto max-w-5xl pb-24">
 
-        {/* ── Page heading ──────────────────────────────────────── */}
-        <div className="mb-10">
+        <PageHero
+          eyebrow="SETTINGS · APPEARANCE"
+          title="Your look."
+          subtitle="Omen paints with your team's actual colors — every one of them. Pick Official for the canonical palette, or a Special variant to swap the chrome for a culture-anchored alternate."
+        />
+
+        {/* ── Switch A: Accent source ──────────────────────────────── */}
+        <div className="mb-8">
           <p
             className="mb-3 text-xs font-semibold uppercase tracking-widest"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
-            Settings · Appearance
+            Accent source
           </p>
-          <h1
-            className="mb-4 text-5xl font-bold tracking-tight sm:text-6xl"
-            style={{ color: 'var(--color-text-primary)', lineHeight: 1.02 }}
+          <RadioCardGroup
+            value={accentSource}
+            onValueChange={handleAccentSourceChange}
+            className="sm:grid-cols-2"
           >
-            Your look.
-          </h1>
-          <p
-            className="font-serif text-lg leading-relaxed"
-            style={{ color: 'var(--color-text-primary)', maxWidth: '52ch' }}
-          >
-            Omen paints with your team's actual colors — every one of them. Pick
-            Official for the canonical palette, or a Special variant to swap the
-            chrome for a culture-anchored alternate.
-          </p>
+            {ACCENT_OPTIONS.map((opt) => (
+              <RadioCardGroup.Item key={opt.value} {...opt} />
+            ))}
+          </RadioCardGroup>
         </div>
 
-        {/* ── Mode picker ───────────────────────────────────────── */}
+        {/* ── Switch B: Surface mode ───────────────────────────────── */}
         <div className="mb-10">
           <p
             className="mb-3 text-xs font-semibold uppercase tracking-widest"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
-            Mode
+            Surface mode
           </p>
-          <ModePicker mode={mode} onChange={handleModeChange} />
+          <RadioCardGroup
+            value={surfaceMode}
+            onValueChange={handleSurfaceModeChange}
+            className="sm:grid-cols-3"
+          >
+            {SURFACE_OPTIONS.map((opt) => (
+              <RadioCardGroup.Item key={opt.value} {...opt} />
+            ))}
+          </RadioCardGroup>
         </div>
 
         <div className="grid gap-14 xl:grid-cols-[1fr_400px]">
@@ -255,7 +280,7 @@ export default function Appearance() {
                 className="text-xs font-semibold uppercase tracking-widest"
                 style={{ color: 'var(--color-text-tertiary)' }}
               >
-                {gridDisabled ? 'Team (switches to Team mode)' : 'Choose a team'}
+                Choose a team
               </span>
               <span
                 className="font-mono text-[11px] tabular-nums"
@@ -268,28 +293,22 @@ export default function Appearance() {
             <div
               className="grid grid-cols-4 gap-2 sm:grid-cols-8"
               style={{ maxWidth: 680 }}
-              aria-disabled={gridDisabled}
             >
               {visibleTeams.map((team) => (
                 <TeamTile
                   key={team.abbr}
                   team={team}
                   selected={teamAbbr === team.abbr}
-                  disabled={gridDisabled}
+                  disabled={false}
                   onClick={() => handleSelectTeam(team.abbr)}
                 />
               ))}
             </div>
 
             <div className="mt-4" style={{ maxWidth: 680 }}>
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="inline-flex min-h-[44px] items-center text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] rounded-sm"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
+              <Button variant="link" onClick={() => setExpanded((v) => !v)}>
                 {expanded ? 'Show fewer teams' : 'Show all 32 teams →'}
-              </button>
+              </Button>
             </div>
 
             {/* Selected meta */}
@@ -325,7 +344,7 @@ export default function Appearance() {
                       </div>
                     ) : (
                       <span className="font-display text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                        {mode === 'system' ? 'Following your OS' : 'Omen default'}
+                        Omen default
                       </span>
                     )}
                   </div>
@@ -437,9 +456,7 @@ export default function Appearance() {
             >
               {themed
                 ? `Every Omen surface uses ${selectedTeam.name} colors. Switch variants to see the special palette.`
-                : mode === 'system'
-                ? 'System mode tracks your OS. Switch to Team to paint Omen.'
-                : 'Omen mode keeps the brand gold. Switch to Team to paint Omen.'}
+                : 'Accent source is set to Omen. Switch to Team to paint the shell with your team.'}
             </p>
           </div>
         </div>
@@ -449,12 +466,9 @@ export default function Appearance() {
           className="mt-14 border-t pt-5"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <Link
-            to="/account"
-            className="rounded-sm text-xs text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          >
-            ← Back to account
-          </Link>
+          <Button variant="link" asChild>
+            <Link to="/account">← Back to account</Link>
+          </Button>
         </div>
       </div>
     </AppLayout>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { Button, Card } from '../components/ui/index.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
 import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
@@ -116,39 +117,26 @@ function LoadingState({ cry }) {
 
 function ErrorState({ message, onRetry }) {
   return (
-    <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-6">
-      <p className="text-sm font-semibold text-red-300">Failed to load Omen of the Week</p>
-      <p className="mt-1 text-sm text-red-200/70">{message}</p>
-      <button
-        className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
-        type="button"
-        onClick={onRetry}
-      >
-        Try again
-      </button>
-    </div>
+    <Card variant="error" tone="risk">
+      <Card.Header title="Failed to load Omen of the Week" />
+      <Card.Body>{message}</Card.Body>
+      <Card.Footer>
+        <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
 function EmptyState({ explanation }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-        Omen of the Week
-      </p>
-      <p className="mt-3 text-lg font-semibold text-white">No move clears the threshold</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
-        {explanation?.summary ?? 'Omen does not see a weekly move worth forcing right now.'}
-      </p>
-      {explanation?.why_it_matters ? (
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          {explanation.why_it_matters}
-        </p>
-      ) : null}
-      {explanation?.confidence ? (
-        <p className="mt-3 text-xs text-slate-500">{explanation.confidence}</p>
-      ) : null}
-    </div>
+    <Card variant="empty">
+      <Card.Header eyebrow="Omen of the Week" title="No move clears the threshold" />
+      <Card.Body>
+        <p>{explanation?.summary ?? 'Omen does not see a weekly move worth forcing right now.'}</p>
+        {explanation?.why_it_matters ? <p className="mt-3">{explanation.why_it_matters}</p> : null}
+        {explanation?.confidence ? <p className="mt-3 text-xs">{explanation.confidence}</p> : null}
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -157,21 +145,17 @@ function PlatformPromptState({ platform }) {
   const platformName = platformLabel(platform?.name) || 'your fantasy platform';
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-        Omen of the Week
-      </p>
-      <p className="mt-3 text-lg font-semibold text-white">Connect {platformName}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
+    <Card variant="empty">
+      <Card.Header eyebrow="Omen of the Week" title={`Connect ${platformName}`} />
+      <Card.Body>
         {recovery?.message ?? 'Link Yahoo, Sleeper, or ESPN to receive your personalized weekly omen.'}
-      </p>
-      <a
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
-        href="/account"
-      >
-        {recovery?.cta ?? 'Connect a platform'} →
-      </a>
-    </div>
+      </Card.Body>
+      <Card.Footer>
+        <Button variant="secondary" size="sm" asChild>
+          <a href="/account">{recovery?.cta ?? 'Connect a platform'} →</a>
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
@@ -185,30 +169,26 @@ function RecoveryPanel({ platform, state }) {
     : '/account';
 
   return (
-    <section className="rounded-xl border border-red-400/20 bg-red-400/5 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-red-400">
-        {isEspn ? 'ESPN recovery required' : 'Platform disconnected'}
-      </p>
-      <h2 className="mt-2 text-xl font-semibold capitalize text-white">
-        {platformLabel(name) || name}
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
-        {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
-      </p>
-      {recovery?.fields_needed?.length ? (
-        <p className="mt-2 text-xs text-slate-500">
-          Fields needed: {recovery.fields_needed.join(', ')}
-        </p>
-      ) : null}
+    <Card variant="error" tone="risk">
+      <Card.Header
+        eyebrow={isEspn ? 'ESPN recovery required' : 'Platform disconnected'}
+        title={platformLabel(name) || name}
+        className="capitalize"
+      />
+      <Card.Body>
+        <p>{recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}</p>
+        {recovery?.fields_needed?.length ? (
+          <p className="mt-2 text-xs">Fields needed: {recovery.fields_needed.join(', ')}</p>
+        ) : null}
+      </Card.Body>
       {recovery?.cta ? (
-        <a
-          className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-400"
-          href={accountHref}
-        >
-          {recovery.cta} →
-        </a>
+        <Card.Footer>
+          <Button variant="secondary" size="sm" asChild>
+            <a href={accountHref}>{recovery.cta} →</a>
+          </Button>
+        </Card.Footer>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
@@ -529,21 +509,17 @@ export default function OmenOfTheWeek() {
 
   if (data?.state === 'pending_live_engine') {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-          Omen of the Week
-        </p>
-        <p className="mt-3 text-lg font-semibold text-white">Platform connected</p>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
+      <Card variant="empty">
+        <Card.Header eyebrow="Omen of the Week" title="Platform connected" />
+        <Card.Body>
           Your platform is connected. Live recommendations are being prepared — check back soon.
-        </p>
-        <Link
-          className="mt-6 inline-flex items-center text-xs text-slate-500 transition-colors hover:text-slate-300"
-          to="/football"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
+        </Card.Body>
+        <Card.Footer>
+          <Button variant="link" asChild>
+            <Link to="/football">← Back to dashboard</Link>
+          </Button>
+        </Card.Footer>
+      </Card>
     );
   }
 

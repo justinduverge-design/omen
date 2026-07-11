@@ -83,6 +83,7 @@ export const NFL_TEAMS = [
   // ─── AFC East ─────────────────────────────────────────────────────────────
   {
     abbr: 'BUF', city: 'Buffalo', name: 'Bills', div: 'AFC East',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Bills', surfaceRole: 'primary',
@@ -112,6 +113,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'MIA', city: 'Miami', name: 'Dolphins', div: 'AFC East',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Dolphins', surfaceRole: 'neutral',
@@ -156,6 +158,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'NE', city: 'New England', name: 'Patriots', div: 'AFC East',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Patriots', surfaceRole: 'primary',
@@ -198,6 +201,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'NYJ', city: 'New York', name: 'Jets', div: 'AFC East',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Jets', surfaceRole: 'primary',
@@ -227,6 +231,7 @@ export const NFL_TEAMS = [
   // ─── AFC North ────────────────────────────────────────────────────────────
   {
     abbr: 'BAL', city: 'Baltimore', name: 'Ravens', div: 'AFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Ravens', surfaceRole: 'primary',
@@ -255,6 +260,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'CIN', city: 'Cincinnati', name: 'Bengals', div: 'AFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Bengals', surfaceRole: 'mute',
@@ -283,6 +289,7 @@ export const NFL_TEAMS = [
   // TODO(colorway-spec-v1): Add verified Color Rush palette via slops-saloon/Blueprints/specs/team-colorway-system-spec-v1.md Team Roster extended-roster author pass.
   {
     abbr: 'CLE', city: 'Cleveland', name: 'Browns', div: 'AFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Browns', surfaceRole: 'primary',
@@ -300,6 +307,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'PIT', city: 'Pittsburgh', name: 'Steelers', div: 'AFC North',
+    authoredSurfaceDefault: 'dark', cardLift: true,
     palettes: [
       {
         mode: 'official', name: 'Steelers', surfaceRole: 'primary',
@@ -347,6 +355,7 @@ export const NFL_TEAMS = [
   // ─── AFC South ────────────────────────────────────────────────────────────
   {
     abbr: 'HOU', city: 'Houston', name: 'Texans', div: 'AFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Texans', surfaceRole: 'primary',
@@ -374,6 +383,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'IND', city: 'Indianapolis', name: 'Colts', div: 'AFC South',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Colts', surfaceRole: 'neutral',
@@ -401,6 +411,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'JAX', city: 'Jacksonville', name: 'Jaguars', div: 'AFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Jaguars', surfaceRole: 'primary',
@@ -429,6 +440,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'TEN', city: 'Tennessee', name: 'Titans', div: 'AFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Titans', surfaceRole: 'primary',
@@ -461,6 +473,7 @@ export const NFL_TEAMS = [
   // ─── AFC West ─────────────────────────────────────────────────────────────
   {
     abbr: 'DEN', city: 'Denver', name: 'Broncos', div: 'AFC West',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Broncos', surfaceRole: 'primary',
@@ -488,6 +501,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'KC', city: 'Kansas City', name: 'Chiefs', div: 'AFC West',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Chiefs', surfaceRole: 'neutral',
@@ -516,6 +530,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'LV', city: 'Las Vegas', name: 'Raiders', div: 'AFC West',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Raiders', surfaceRole: 'primary',
@@ -543,6 +558,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'LAC', city: 'Los Angeles', name: 'Chargers', div: 'AFC West',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Chargers', surfaceRole: 'neutral',
@@ -573,6 +589,7 @@ export const NFL_TEAMS = [
   // ─── NFC East ─────────────────────────────────────────────────────────────
   {
     abbr: 'DAL', city: 'Dallas', name: 'Cowboys', div: 'NFC East',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Cowboys', surfaceRole: 'neutral',
@@ -601,6 +618,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'NYG', city: 'New York', name: 'Giants', div: 'NFC East',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Giants', surfaceRole: 'primary',
@@ -630,6 +648,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'PHI', city: 'Philadelphia', name: 'Eagles', div: 'NFC East',
+    authoredSurfaceDefault: 'dark', cardLift: true,
     palettes: [
       {
         mode: 'official', name: 'Eagles', surfaceRole: 'primary',
@@ -659,6 +678,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'WAS', city: 'Washington', name: 'Commanders', div: 'NFC East',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Commanders', surfaceRole: 'primary',
@@ -689,6 +709,7 @@ export const NFL_TEAMS = [
   // ─── NFC North ────────────────────────────────────────────────────────────
   {
     abbr: 'CHI', city: 'Chicago', name: 'Bears', div: 'NFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Bears', surfaceRole: 'primary',
@@ -716,6 +737,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'DET', city: 'Detroit', name: 'Lions', div: 'NFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Lions', surfaceRole: 'primary',
@@ -764,6 +786,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'GB', city: 'Green Bay', name: 'Packers', div: 'NFC North',
+    authoredSurfaceDefault: 'dark', cardLift: true,
     palettes: [
       {
         mode: 'official', name: 'Packers', surfaceRole: 'primary',
@@ -825,6 +848,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'MIN', city: 'Minnesota', name: 'Vikings', div: 'NFC North',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Vikings', surfaceRole: 'primary',
@@ -854,6 +878,7 @@ export const NFL_TEAMS = [
   // ─── NFC South ────────────────────────────────────────────────────────────
   {
     abbr: 'ATL', city: 'Atlanta', name: 'Falcons', div: 'NFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Falcons', surfaceRole: 'mute',
@@ -883,6 +908,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'CAR', city: 'Carolina', name: 'Panthers', div: 'NFC South',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Panthers', surfaceRole: 'neutral',
@@ -911,6 +937,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'NO', city: 'New Orleans', name: 'Saints', div: 'NFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Saints', surfaceRole: 'mute',
@@ -976,6 +1003,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'TB', city: 'Tampa Bay', name: 'Buccaneers', div: 'NFC South',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Buccaneers', surfaceRole: 'mute',
@@ -1007,6 +1035,7 @@ export const NFL_TEAMS = [
   // ─── NFC West ─────────────────────────────────────────────────────────────
   {
     abbr: 'ARI', city: 'Arizona', name: 'Cardinals', div: 'NFC West',
+    authoredSurfaceDefault: 'light', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Cardinals', surfaceRole: 'neutral',
@@ -1036,6 +1065,7 @@ export const NFL_TEAMS = [
   // TODO(colorway-spec-v1): Add verified Color Rush palette via slops-saloon/Blueprints/specs/team-colorway-system-spec-v1.md Team Roster extended-roster author pass.
   {
     abbr: 'LAR', city: 'Los Angeles', name: 'Rams', div: 'NFC West',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Rams', surfaceRole: 'primary',
@@ -1055,6 +1085,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'SF', city: 'San Francisco', name: '49ers', div: 'NFC West',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: '49ers', surfaceRole: 'primary',
@@ -1083,6 +1114,7 @@ export const NFL_TEAMS = [
   },
   {
     abbr: 'SEA', city: 'Seattle', name: 'Seahawks', div: 'NFC West',
+    authoredSurfaceDefault: 'dark', cardLift: false,
     palettes: [
       {
         mode: 'official', name: 'Seahawks', surfaceRole: 'primary',

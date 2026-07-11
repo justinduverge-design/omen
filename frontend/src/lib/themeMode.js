@@ -35,11 +35,15 @@ import { getTeamTemplate } from './teamTemplate.js';
 const MODE_KEY    = 'omen.theme.mode';
 const TEAM_KEY    = 'omen.theme.team';
 const VARIANT_KEY = 'omen.theme.variant';
+const ACCENT_KEY  = 'omen.theme.accentSource';
+const SURFACE_KEY = 'omen.theme.surfaceMode';
 const LEGACY_MODE_KEY    = 'corvus.theme.mode';
 const LEGACY_TEAM_KEY    = 'corvus.theme.team';
 const LEGACY_VARIANT_KEY = 'corvus.theme.variant';
 const VALID_MODES    = ['system', 'team', 'omen'];
 const VALID_VARIANTS = ['official', 'special'];
+const VALID_ACCENT_SOURCES = ['omen', 'team'];
+const VALID_SURFACE_MODES  = ['dark', 'light', 'auto'];
 
 // All role + surface CSS variables themeMode writes onto :root when team
 // mode is active. Cleared together when switching out of team mode.
@@ -132,13 +136,46 @@ export function subscribeTheme(cb) {
 
 // ── Persistence ───────────────────────────────────────────────────────────
 
-export function getThemeMode() {
+// team-theme-contract-v1.md §The three switches. Accent source (Switch A) and
+// surface mode (Switch B) are the real, orthogonal source of truth going
+// forward — persisted independently. `getThemeMode()` below is kept only for
+// the handful of older pages that still gate on a single legacy mode value
+// (a boolean "is team theming active" check); it's now *derived* from the
+// two switches rather than stored separately, so there's one source of truth.
+
+function legacyModeToSwitches(mode) {
+  if (mode === 'team') return { accentSource: 'team', surfaceMode: 'auto' };
+  if (mode === 'omen') return { accentSource: 'omen', surfaceMode: 'dark' };
+  return { accentSource: 'omen', surfaceMode: 'auto' }; // legacy 'system'
+}
+
+export function getThemeAccentSource() {
   try {
-    const stored = localStorage.getItem(MODE_KEY) ?? localStorage.getItem(LEGACY_MODE_KEY);
-    const v = stored === 'corvus' ? 'omen' : stored;
-    if (v && !localStorage.getItem(MODE_KEY)) localStorage.setItem(MODE_KEY, v);
-    return VALID_MODES.includes(v) ? v : 'system';
-  } catch { return 'system'; }
+    const stored = localStorage.getItem(ACCENT_KEY);
+    if (VALID_ACCENT_SOURCES.includes(stored)) return stored;
+    const legacyMode = localStorage.getItem(MODE_KEY) ?? localStorage.getItem(LEGACY_MODE_KEY);
+    const { accentSource } = legacyModeToSwitches(legacyMode);
+    try { localStorage.setItem(ACCENT_KEY, accentSource); } catch { /* ignore */ }
+    return accentSource;
+  } catch { return 'omen'; }
+}
+
+export function getThemeSurfaceMode() {
+  try {
+    const stored = localStorage.getItem(SURFACE_KEY);
+    if (VALID_SURFACE_MODES.includes(stored)) return stored;
+    const legacyMode = localStorage.getItem(MODE_KEY) ?? localStorage.getItem(LEGACY_MODE_KEY);
+    const { surfaceMode } = legacyModeToSwitches(legacyMode);
+    try { localStorage.setItem(SURFACE_KEY, surfaceMode); } catch { /* ignore */ }
+    return surfaceMode;
+  } catch { return 'auto'; }
+}
+
+/** @deprecated Derived from accentSource + surfaceMode; kept for pages that
+ * only need a boolean "is team theming active" read (`mode === 'team'`). */
+export function getThemeMode() {
+  if (getThemeAccentSource() === 'team') return 'team';
+  return getThemeSurfaceMode() === 'auto' ? 'system' : 'omen';
 }
 
 export function getThemeTeam() {
@@ -157,9 +194,29 @@ export function getThemeVariant() {
   } catch { return 'official'; }
 }
 
+/** @deprecated use setThemeAccentSource / setThemeSurfaceMode. Kept for
+ * pages (Onboarding) that still flip a single legacy mode value. */
 export function setThemeMode(mode) {
   if (!VALID_MODES.includes(mode)) return;
-  try { localStorage.setItem(MODE_KEY, mode); } catch { /* ignore */ }
+  const { accentSource, surfaceMode } = legacyModeToSwitches(mode);
+  try {
+    localStorage.setItem(ACCENT_KEY, accentSource);
+    localStorage.setItem(SURFACE_KEY, surfaceMode);
+  } catch { /* ignore */ }
+  applyThemeMode();
+  notify();
+}
+
+export function setThemeAccentSource(source) {
+  if (!VALID_ACCENT_SOURCES.includes(source)) return;
+  try { localStorage.setItem(ACCENT_KEY, source); } catch { /* ignore */ }
+  applyThemeMode();
+  notify();
+}
+
+export function setThemeSurfaceMode(mode) {
+  if (!VALID_SURFACE_MODES.includes(mode)) return;
+  try { localStorage.setItem(SURFACE_KEY, mode); } catch { /* ignore */ }
   applyThemeMode();
   notify();
 }
@@ -451,15 +508,19 @@ export function applyThemeMode() {
  */
 export function useTheme() {
   const [snap, setSnap] = useState(() => ({
-    mode:    getThemeMode(),
-    team:    getThemeTeam(),
-    variant: getThemeVariant(),
+    mode:         getThemeMode(),
+    team:         getThemeTeam(),
+    variant:      getThemeVariant(),
+    accentSource: getThemeAccentSource(),
+    surfaceMode:  getThemeSurfaceMode(),
   }));
   useEffect(() => {
     const sync = () => setSnap({
-      mode:    getThemeMode(),
-      team:    getThemeTeam(),
-      variant: getThemeVariant(),
+      mode:         getThemeMode(),
+      team:         getThemeTeam(),
+      variant:      getThemeVariant(),
+      accentSource: getThemeAccentSource(),
+      surfaceMode:  getThemeSurfaceMode(),
     });
     sync();
     return subscribeTheme(sync);

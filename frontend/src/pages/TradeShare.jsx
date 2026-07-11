@@ -1,60 +1,51 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Button, Card } from '../components/ui/index.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { summarizeTradeSnapshot } from '../lib/tradeShare.js';
 
 function StateCard({ eyebrow, title, message, action }) {
   return (
-    <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-8 text-center">
-      {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
-          {eyebrow}
-        </p>
-      )}
-      <h1 className="mt-3 font-display text-3xl font-semibold text-[var(--color-text-primary)]">
-        {title}
-      </h1>
-      {message && (
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--color-text-secondary)]">
-          {message}
-        </p>
-      )}
+    <Card variant="solid" className="p-8 text-center">
+      <Card.Header eyebrow={eyebrow} title={title} className="justify-center text-center [&>div]:items-center" />
+      {message && <Card.Body className="mx-auto max-w-xl">{message}</Card.Body>}
       {action && (
-        <Link
-          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          to={action.href}
-        >
-          {action.label}
-        </Link>
+        <Card.Footer className="justify-center">
+          <Button variant="primary" size="md" asChild>
+            <Link to={action.href}>{action.label}</Link>
+          </Button>
+        </Card.Footer>
       )}
-    </section>
+    </Card>
   );
 }
 
 function PlayerList({ label, players = [], totalValue }) {
   return (
-    <section className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-base font-semibold text-[var(--color-text-primary)]">{label}</h2>
-        {Number.isFinite(Number(totalValue)) && (
+    <Card variant="outlined">
+      <Card.Header
+        title={label}
+        trailing={Number.isFinite(Number(totalValue)) && (
           <span className="font-mono text-sm text-[var(--color-text-secondary)]">{totalValue}</span>
         )}
-      </div>
-      <ul className="mt-4 space-y-3">
-        {players.map((player, index) => (
-          <li className="flex items-center justify-between gap-3 text-sm" key={`${label}-${player.name}-${index}`}>
-            <span className="min-w-0 text-[var(--color-text-primary)]">{player.name}</span>
-            <span
-              className="shrink-0 rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
-              style={positionChipStyle(player.position)}
-            >
-              {player.position}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
+      />
+      <Card.Body>
+        <ul className="space-y-3">
+          {players.map((player, index) => (
+            <li className="flex items-center justify-between gap-3 text-sm" key={`${label}-${player.name}-${index}`}>
+              <span className="min-w-0 text-[var(--color-text-primary)]">{player.name}</span>
+              <span
+                className="shrink-0 rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
+                style={positionChipStyle(player.position)}
+              >
+                {player.position}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -128,7 +119,7 @@ export default function TradeShare() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
-      <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6 md:p-8">
+      <Card variant="solid" className="p-6 md:p-8">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
@@ -174,21 +165,15 @@ export default function TradeShare() {
           <PlayerList label="Send" players={result.send?.players || trade.send} totalValue={result.send?.total_value} />
           <PlayerList label="Receive" players={result.receive?.players || trade.receive} totalValue={result.receive?.total_value} />
         </div>
-      </section>
+      </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          to="/trade"
-        >
-          Run your own trade
-        </Link>
-        <Link
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--color-border)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-150 hover:border-[var(--color-team-accent)] hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          to="/"
-        >
-          Back to home
-        </Link>
+        <Button variant="primary" size="md" asChild>
+          <Link to="/trade">Run your own trade</Link>
+        </Button>
+        <Button variant="secondary" size="md" asChild>
+          <Link to="/">Back to home</Link>
+        </Button>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Button } from '../components/ui/index.js';
 import TradeAnalyzer from './TradeAnalyzer.jsx';
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -11,18 +12,12 @@ function Header() {
 
         {/* Nav */}
         <div className="flex items-center gap-5">
-          <a
-            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#F4EFE1]/45 transition-colors hover:text-[#F4EFE1]/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
-            href="/"
-          >
-            ← Slops Saloon
-          </a>
-          <a
-            className="flex min-h-[44px] items-center text-xs uppercase tracking-[0.28em] text-[#C9A44C]/80 transition-colors hover:text-[#C9A44C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A44C] rounded-sm"
-            href="/login"
-          >
-            Sign In →
-          </a>
+          <Button variant="tertiary" size="sm" asChild>
+            <a href="/">← Slops Saloon</a>
+          </Button>
+          <Button variant="secondary" size="md" asChild>
+            <a href="/login">Sign In →</a>
+          </Button>
         </div>
       </div>
     </header>
@@ -61,18 +56,12 @@ function FeaturePitch() {
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <a
-            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[#C9A44C] px-7 text-sm font-semibold text-black transition-colors hover:bg-[#dbb95a] active:scale-[0.97]"
-            href="/login"
-          >
-            Sign up free →
-          </a>
-          <a
-            className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-white/15 px-7 text-sm font-semibold text-[#F4EFE1]/70 transition-colors hover:bg-white/8"
-            href="/login"
-          >
-            Sign in to your account
-          </a>
+          <Button variant="primary" size="lg" asChild>
+            <a href="/login">Sign up free →</a>
+          </Button>
+          <Button variant="secondary" size="lg" asChild>
+            <a href="/login">Sign in to your account</a>
+          </Button>
         </div>
 
         <p className="mt-5 text-center text-xs text-[#F4EFE1]/28">

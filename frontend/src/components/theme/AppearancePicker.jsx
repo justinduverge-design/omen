@@ -1,52 +1,5 @@
 import { getTeamPalette, isDark } from '../../data/nflTeams.js';
 
-// ── Mode picker ────────────────────────────────────────────────────────────
-
-export const MODE_OPTIONS = [
-  { id: 'system', label: 'System', hint: 'Matches your OS theme. Omen gold accents.' },
-  { id: 'team',   label: 'Team',   hint: "Your team's actual colors paint the app." },
-  { id: 'omen', label: 'Omen', hint: 'Default dark. Gold on graphite.' },
-];
-
-export function ModePicker({ mode, onChange }) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Appearance mode"
-      className="grid gap-2 sm:grid-cols-3"
-    >
-      {MODE_OPTIONS.map((opt) => {
-        const selected = mode === opt.id;
-        return (
-          <button
-            key={opt.id}
-            role="radio"
-            aria-checked={selected}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className="min-h-[44px] rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-            style={{
-              borderColor: selected ? 'var(--color-team-accent)' : 'var(--color-border)',
-              background: selected ? 'color-mix(in srgb, var(--color-team-accent) 10%, var(--color-surface-1))' : 'var(--color-surface-1)',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            <span
-              className="block text-sm font-semibold"
-              style={{ color: selected ? 'var(--color-team-accent)' : 'var(--color-text-primary)' }}
-            >
-              {opt.label}
-            </span>
-            <span className="mt-0.5 block text-xs leading-5" style={{ color: 'var(--color-text-secondary)' }}>
-              {opt.hint}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Variant (sub-mode) picker — Phase 1.5h ───────────────────────────────
 
 /**

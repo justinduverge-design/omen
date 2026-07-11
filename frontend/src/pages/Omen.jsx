@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../lib/api.js';
+import { Button, Card, Input } from '../components/ui/index.js';
 
 const PLATFORMS = ['yahoo', 'sleeper', 'espn'];
 
@@ -121,75 +122,58 @@ function RecoveryPanel({ platform, state }) {
     : '/account';
 
   return (
-    <section className="rounded-lg border border-red-400/20 bg-red-400/5 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-red-400">
-        {isEspn ? 'ESPN connection required' : 'Platform disconnected'}
-      </p>
-      <h2 className="mt-2 text-xl font-semibold capitalize text-white">
-        {name}
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-400">
-        {recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}
-      </p>
-      {recovery?.fields_needed?.length ? (
-        <p className="mt-2 text-xs text-slate-500">
-          Fields needed: {recovery.fields_needed.join(', ')}
-        </p>
-      ) : null}
+    <Card variant="error" tone="risk">
+      <Card.Header
+        eyebrow={isEspn ? 'ESPN connection required' : 'Platform disconnected'}
+        title={name}
+        className="capitalize"
+      />
+      <Card.Body>
+        <p>{recovery?.message ?? 'Reconnect your platform before Omen can read your roster.'}</p>
+        {recovery?.fields_needed?.length ? (
+          <p className="mt-2 text-xs">Fields needed: {recovery.fields_needed.join(', ')}</p>
+        ) : null}
+      </Card.Body>
       {recovery?.cta ? (
-        <a
-          className="mt-4 inline-flex items-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-400"
-          href={accountHref}
-        >
-          {recovery.cta} →
-        </a>
+        <Card.Footer>
+          <Button variant="secondary" size="sm" asChild>
+            <a href={accountHref}>{recovery.cta} →</a>
+          </Button>
+        </Card.Footer>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
 function EmptyStateCard({ explanation }) {
   return (
-    <section className="rounded-lg border border-slate-700 bg-slate-900 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-        No move this week
-      </p>
-      <h2 className="mt-2 text-2xl font-semibold text-white">Stand pat.</h2>
+    <Card variant="empty">
+      <Card.Header eyebrow="No move this week" title="Stand pat." />
       {explanation ? (
-        <div className="mt-4 space-y-2">
-          <p className="text-sm leading-6 text-slate-300">{explanation.summary}</p>
-          {explanation.why_it_matters ? (
-            <p className="text-sm leading-6 text-slate-400">{explanation.why_it_matters}</p>
-          ) : null}
-          {explanation.risk ? (
-            <p className="text-sm text-slate-500">{explanation.risk}</p>
-          ) : null}
-          {explanation.confidence ? (
-            <p className="text-xs text-slate-500">{explanation.confidence}</p>
-          ) : null}
-        </div>
+        <Card.Body className="space-y-2">
+          <p>{explanation.summary}</p>
+          {explanation.why_it_matters ? <p>{explanation.why_it_matters}</p> : null}
+          {explanation.risk ? <p className="text-xs">{explanation.risk}</p> : null}
+          {explanation.confidence ? <p className="text-xs">{explanation.confidence}</p> : null}
+        </Card.Body>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
 function ErrorCard({ error, onRetry }) {
   return (
-    <section className="rounded-lg border border-red-400/30 bg-red-400/10 p-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-red-400">Error</p>
-      <p className="mt-2 text-sm text-slate-300">
+    <Card variant="error" tone="risk">
+      <Card.Header title="Error" />
+      <Card.Body>
         {error?.message ?? 'Omen could not generate an MVP Move right now.'}
-      </p>
+      </Card.Body>
       {error?.retryable !== false ? (
-        <button
-          className="mt-4 rounded-md border border-slate-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-amber-400 hover:text-amber-300"
-          type="button"
-          onClick={onRetry}
-        >
-          Try again
-        </button>
+        <Card.Footer>
+          <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
+        </Card.Footer>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
@@ -213,7 +197,8 @@ function RecommendationCard({ data }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Primary card */}
-      <section className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-6">
+      <Card variant="solid" tone="omen">
+        <Card.Body className="pt-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
@@ -252,14 +237,14 @@ function RecommendationCard({ data }) {
             ) : null}
           </div>
         ) : null}
-      </section>
+        </Card.Body>
+      </Card>
 
       {/* Plain-English explanation */}
       {explanation ? (
-        <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Why this move
-          </p>
+        <Card variant="solid">
+        <Card.Header eyebrow="Why this move" />
+        <Card.Body>
           <div className="space-y-3">
             <p className="text-sm leading-6 text-slate-200">{explanation.summary}</p>
             {explanation.why_it_matters ? (
@@ -288,7 +273,8 @@ function RecommendationCard({ data }) {
               ))}
             </div>
           ) : null}
-        </section>
+        </Card.Body>
+        </Card>
       ) : null}
 
       {/* Player comparison */}
@@ -410,14 +396,13 @@ export default function Omen() {
   return (
     <div className="flex flex-col gap-8">
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <h2 className="text-base font-semibold text-white">Your team</h2>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="text-xs font-semibold text-slate-400">
+        <Card variant="solid">
+          <Card.Header title="Your team" />
+          <Card.Body className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               Platform
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
               >
@@ -429,31 +414,27 @@ export default function Omen() {
               </select>
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               League ID
-              <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+              <Input
                 placeholder="e.g. 414.l.12345"
                 value={leagueId}
                 onChange={(e) => setLeagueId(e.target.value)}
               />
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
-              Team ID
-              <span className="ml-1 font-normal text-slate-600">(optional)</span>
-              <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
+              Team ID <span className="font-normal opacity-70">(optional)</span>
+              <Input
                 placeholder="e.g. 7"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
               />
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               Week
-              <input
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+              <Input
                 max={18}
                 min={1}
                 type="number"
@@ -462,10 +443,10 @@ export default function Omen() {
               />
             </label>
 
-            <label className="text-xs font-semibold text-slate-400">
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               Scoring format
               <select
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-amber-400"
+                className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
                 value={scoringFormat}
                 onChange={(e) => setScoringFormat(e.target.value)}
               >
@@ -474,8 +455,8 @@ export default function Omen() {
                 ))}
               </select>
             </label>
-          </div>
-        </section>
+          </Card.Body>
+        </Card>
 
         {/* Dev / preview mock controls */}
         <details className="rounded-md border border-slate-800">
@@ -513,26 +494,14 @@ export default function Omen() {
         </details>
 
         {fetchError ? (
-          <div className="rounded-md border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-            {fetchError}
-          </div>
+          <Card variant="error" tone="risk">
+            <Card.Body>{fetchError}</Card.Body>
+          </Card>
         ) : null}
 
-        <div>
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-400 px-5 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading}
-            type="submit"
-          >
-            {loading ? (
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 animate-spin rounded-full border-2 border-amber-950/30 border-t-amber-950"
-              />
-            ) : null}
-            {loading ? 'Reading your roster…' : 'Get my MVP Move'}
-          </button>
-        </div>
+        <Button variant="primary" size="md" type="submit" loading={loading} disabled={loading}>
+          {loading ? 'Reading your roster…' : 'Get my MVP Move'}
+        </Button>
       </form>
 
       <OmenResult data={result} onRetry={fetchOmen} />

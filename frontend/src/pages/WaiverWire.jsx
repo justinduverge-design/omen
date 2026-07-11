@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import ErrorState from '../components/ui/ErrorState.jsx';
+import { Button, Card, Input, PageHero } from '../components/ui/index.js';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
@@ -48,38 +47,33 @@ function PlayerRow({ rank, player }) {
 
 function TokenExpiredState() {
   return (
-    <div className="rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)] p-6 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
-      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">Yahoo session expired</p>
-      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+    <Card variant="error" tone="risk">
+      <Card.Header eyebrow="Waiver Wire" title="Yahoo session expired" />
+      <Card.Body>
         Reconnect your Yahoo account to restore your live waiver rankings.
-      </p>
-      <button
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20"
-        type="button"
-        onClick={() => { window.location.href = '/api/yahoo/auth'; }}
-      >
-        Reconnect Yahoo →
-      </button>
-    </div>
+      </Card.Body>
+      <Card.Footer>
+        <Button variant="secondary" size="sm" onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
+          Reconnect Yahoo →
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
 function AuthGate() {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-10 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
-      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">Sign in to get waiver picks</p>
-      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+    <Card variant="solid">
+      <Card.Header eyebrow="Waiver Wire" title="Sign in to get waiver picks" />
+      <Card.Body>
         Connect your fantasy platform and sign in to receive VORP-ranked waiver recommendations for your roster.
-      </p>
-      <Link
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20"
-        to="/login"
-      >
-        Sign in →
-      </Link>
-    </div>
+      </Card.Body>
+      <Card.Footer>
+        <Button variant="primary" size="md" asChild>
+          <Link to="/login">Sign in →</Link>
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
@@ -152,11 +146,19 @@ export default function WaiverWire() {
 
   return (
     <div className="space-y-6">
+      <PageHero
+        eyebrow="WAIVER"
+        title="Waiver Wire"
+        subtitle="VORP-ranked pickups for your roster."
+      />
+
       <form className="flex flex-wrap items-end gap-4" onSubmit={handleSubmit}>
-        <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-          Week (optional)
-          <input
-            className="mt-1 block w-24 min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-team-accent)]"
+        <label className="flex flex-col gap-2">
+          <span className="font-sans text-xs font-medium uppercase tracking-[0.05em] text-[var(--color-text-primary)]">
+            Week (optional)
+          </span>
+          <Input
+            className="w-24"
             max="18"
             min="1"
             placeholder="Current"
@@ -166,23 +168,16 @@ export default function WaiverWire() {
           />
         </label>
 
-        <button
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-md bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={loading}
-          type="submit"
-        >
-          {loading ? (
-            <span
-              aria-hidden="true"
-              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-            />
-          ) : null}
+        <Button variant="primary" size="md" type="submit" loading={loading} disabled={loading}>
           {loading ? 'Loading' : 'Get Picks'}
-        </button>
+        </Button>
       </form>
 
       {error ? (
-        <ErrorState title="Failed to load waiver picks" message={error} />
+        <Card variant="error" tone="risk">
+          <Card.Header title="Failed to load waiver picks" />
+          <Card.Body>{error}</Card.Body>
+        </Card>
       ) : null}
 
       {result ? (
@@ -210,11 +205,12 @@ export default function WaiverWire() {
               ))}
             </div>
           ) : (
-            <EmptyState
-              eyebrow="Waiver Wire"
-              title="No pickups found"
-              message="No waiver candidates were returned. Your waiver wire may be empty or the platform connection needs refreshing."
-            />
+            <Card variant="empty">
+              <Card.Header eyebrow="Waiver Wire" title="No pickups found" />
+              <Card.Body>
+                No waiver candidates were returned. Your waiver wire may be empty or the platform connection needs refreshing.
+              </Card.Body>
+            </Card>
           )}
         </div>
       ) : null}

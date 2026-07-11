@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { apiFetch } from './lib/api.js';
 import { supabase } from './lib/supabase.js';
 import { applyThemeMode, getThemeMode, getThemeTeam, setThemeTeam } from './lib/themeMode.js';
+import { ThemeProvider } from './providers/ThemeProvider.jsx';
 import AppRoutes from './routes/index.jsx';
 
-export default function App() {
+function AppInner() {
   // Apply theme mode (data-theme + team tokens) on mount and whenever the OS
   // light/dark preference changes (System mode tracks it).
   useEffect(() => {
@@ -34,4 +35,12 @@ export default function App() {
   }, []);
 
   return <AppRoutes />;
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
 }

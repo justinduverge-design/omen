@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { Button, Input, PageHero, SegmentedControl } from '../components/ui/index.js';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
@@ -280,20 +281,6 @@ export default function DraftAssistant({ platforms }) {
   const [adpLoading, setAdpLoading] = useState(false);
   const [fixture, setFixture] = useState(null);
   const { mode, team: teamAbbr } = useTheme();
-  const scoringFormatRefs = useRef([]);
-
-  function handleScoringFormatKeyDown(event, index) {
-    const { key } = event;
-    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(key)) return;
-    event.preventDefault();
-    let nextIndex = index;
-    if (key === 'ArrowRight' || key === 'ArrowDown') nextIndex = (index + 1) % SCORING_FORMATS.length;
-    else if (key === 'ArrowLeft' || key === 'ArrowUp') nextIndex = (index - 1 + SCORING_FORMATS.length) % SCORING_FORMATS.length;
-    else if (key === 'Home') nextIndex = 0;
-    else if (key === 'End') nextIndex = SCORING_FORMATS.length - 1;
-    setScoringFormat(SCORING_FORMATS[nextIndex].value);
-    scoringFormatRefs.current[nextIndex]?.focus();
-  }
 
   const cry = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -406,25 +393,11 @@ export default function DraftAssistant({ platforms }) {
     <div className="space-y-6">
       <MockBanner message={bannerMessage} />
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
-          Draft Assistant
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Your next pick</h2>
-        </div>
-        <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-          Tell Omen where you are in your draft. It will surface the best available move for your roster.
-        </p>
-        {cry && (
-          <p
-            className="mt-1.5 font-sans text-[11px] font-semibold uppercase"
-            style={{ color: 'var(--color-team-accent)', letterSpacing: '0.18em', opacity: 0.7 }}
-          >
-            {cry}
-          </p>
-        )}
-      </div>
+      <PageHero
+        eyebrow={cry ? `DRAFT ASSISTANT · ${cry}` : 'DRAFT ASSISTANT'}
+        title="Your next pick"
+        subtitle="Tell Omen where you are in your draft. It will surface the best available move for your roster."
+      />
 
       <form
         className="space-y-5 rounded-xl border p-5"
@@ -432,40 +405,22 @@ export default function DraftAssistant({ platforms }) {
         onSubmit={handleSubmit}
       >
         <fieldset>
-          <legend id="scoring-format-legend" className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <legend className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Scoring Format
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-labelledby="scoring-format-legend">
-            {SCORING_FORMATS.map(({ value, label }, index) => {
-              const isSelected = scoringFormat === value;
-              return (
-                <button
-                  key={value}
-                  ref={(el) => { scoringFormatRefs.current[index] = el; }}
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={isSelected ? 0 : -1}
-                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-                  style={isSelected
-                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
-                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-                  type="button"
-                  onClick={() => setScoringFormat(value)}
-                  onKeyDown={(e) => handleScoringFormatKeyDown(e, index)}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          <div className="mt-2">
+            <SegmentedControl value={scoringFormat} onValueChange={setScoringFormat}>
+              {SCORING_FORMATS.map(({ value, label }) => (
+                <SegmentedControl.Item key={value} value={value}>{label}</SegmentedControl.Item>
+              ))}
+            </SegmentedControl>
           </div>
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Draft Position (1–12)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
+            <Input
               max="12"
               min="1"
               type="number"
@@ -474,11 +429,9 @@ export default function DraftAssistant({ platforms }) {
             />
           </label>
 
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Current Round (1–15)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
+            <Input
               max="15"
               min="1"
               type="number"
@@ -516,19 +469,15 @@ export default function DraftAssistant({ platforms }) {
           </div>
         </fieldset>
 
-        <button
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={loading || (fixtureActive && !fixture)}
+        <Button
+          variant="primary"
+          size="md"
           type="submit"
+          loading={loading}
+          disabled={loading || (fixtureActive && !fixture)}
         >
-          {loading && (
-            <span
-              aria-hidden="true"
-              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-            />
-          )}
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}
-        </button>
+        </Button>
       </form>
 
       {loading && <LoadingRecommendations />}

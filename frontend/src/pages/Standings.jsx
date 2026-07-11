@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { Button, Card, Chip, PageHero } from '../components/ui/index.js';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
@@ -12,7 +13,7 @@ import { useTheme } from '../lib/themeMode.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
-function PlatformBadge({ platform }) {
+function PlatformPill({ platform }) {
   const label = PLATFORM_LABELS[platform] ?? platform;
   return (
     <span
@@ -183,23 +184,15 @@ export default function Standings() {
     // No league connected — show a proper CTA, not a blank screen
     if (isDisconnected) {
       return (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
-          <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            No league connected.
-          </p>
-          <p className="mt-2 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-            Connect a Yahoo, Sleeper, or ESPN league to see where you stand.
-          </p>
-          <Link
-            to="/account/connect"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)]"
-          >
-            Connect a league →
-          </Link>
-        </div>
+        <Card variant="empty">
+          <Card.Header title="No league connected." />
+          <Card.Body>Connect a Yahoo, Sleeper, or ESPN league to see where you stand.</Card.Body>
+          <Card.Footer>
+            <Button variant="primary" size="md" asChild>
+              <Link to="/account/connect">Connect a league →</Link>
+            </Button>
+          </Card.Footer>
+        </Card>
       );
     }
 
@@ -208,78 +201,48 @@ export default function Standings() {
       const platform = errorCode.replace('_reconnect_required', '');
       const label    = PLATFORM_LABELS[platform] ?? platform;
       return (
-        <div
-          className="rounded-xl border p-6"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
-          <p className="text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-            Your {label} connection needs to be refreshed before standings can load.
-          </p>
-          <Link
-            to="/account/connect"
-            className="mt-4 inline-flex min-h-[44px] items-center rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors"
-            style={{
-              borderColor: 'var(--color-border)',
-              color: 'var(--color-team-accent)',
-            }}
-          >
-            Reconnect {label} →
-          </Link>
-        </div>
+        <Card variant="solid">
+          <Card.Body>Your {label} connection needs to be refreshed before standings can load.</Card.Body>
+          <Card.Footer>
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/account/connect">Reconnect {label} →</Link>
+            </Button>
+          </Card.Footer>
+        </Card>
       );
     }
 
     // Generic / provider error
     if (errorCode) {
       return (
-        <div
-          className="rounded-xl border p-6 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Couldn't load standings right now.
-          </p>
-          <button
-            className="mt-4 text-sm font-semibold transition-colors"
-            style={{ color: 'var(--color-team-accent)' }}
-            type="button"
-            onClick={load}
-          >
-            Try again →
-          </button>
-        </div>
+        <Card variant="error" tone="risk">
+          <Card.Body>Couldn't load standings right now.</Card.Body>
+          <Card.Footer>
+            <Button variant="secondary" size="sm" onClick={load}>Try again</Button>
+          </Card.Footer>
+        </Card>
       );
     }
 
     // Empty standings (season not started)
     if (!data?.standings?.length) {
       return (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
-          <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            No standings yet.
-          </p>
-          <p className="mt-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Standings will appear once the season begins.
-          </p>
-        </div>
+        <Card variant="empty">
+          <Card.Header title="No standings yet." />
+          <Card.Body>Standings will appear once the season begins.</Card.Body>
+        </Card>
       );
     }
 
     // Standings table
     return (
-      <div
-        className="rounded-xl border"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-      >
+      <Card variant="solid" className="overflow-hidden">
         {/* League meta row */}
         <div
           className="flex flex-wrap items-center gap-2 border-b px-5 py-3"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <PlatformBadge platform={data.platform} />
+          <PlatformPill platform={data.platform} />
           {data.league_name && (
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
               {data.league_name}
@@ -298,41 +261,18 @@ export default function Standings() {
         <div className="px-5 pb-5 pt-4">
           <StandingsTable standings={data.standings} />
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
     <AppLayout>
-      {/* Page header */}
-      <div>
-        <p
-          className="text-xs font-semibold uppercase tracking-[0.2em]"
-          style={{ color: 'var(--color-team-accent)' }}
-        >
-          League
-        </p>
-        <h1
-          className="mt-3 font-display text-3xl font-semibold"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Standings
-        </h1>
-        <p
-          className="mt-2 text-sm leading-6"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          Where every manager sits after the last whistle.
-        </p>
-        {wardRoom && (
-          <p
-            className="mt-3 font-serif text-base italic"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
-            {wardRoom}
-          </p>
-        )}
-      </div>
+      <PageHero
+        eyebrow="LEAGUE"
+        title="Standings"
+        subtitle="Where every manager sits after the last whistle."
+        trailing={wardRoom ? <Chip>{wardRoom}</Chip> : null}
+      />
 
       {renderContent()}
     </AppLayout>

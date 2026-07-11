@@ -5,6 +5,7 @@ import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import { Button, Chip, PageHero, TabNav, TabNavItem } from '../components/ui/index.js';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
@@ -98,11 +99,10 @@ function PlatformStatusBar({ platforms, loading }) {
               {label} session expired — reconnect to restore your live data
             </p>
             {canReconnect && (
-              <button
-                className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"
-                style={{ color: 'var(--color-team-accent)' }}
+              <Button
+                variant="link"
+                className="ml-4 shrink-0"
                 disabled={reconnecting === key}
-                type="button"
                 onClick={async () => {
                   setReconnectError(null);
                   setReconnecting(key);
@@ -115,7 +115,7 @@ function PlatformStatusBar({ platforms, loading }) {
                 }}
               >
                 {reconnecting === key ? 'Reconnecting...' : `Reconnect ${label} →`}
-              </button>
+              </Button>
             )}
             {reconnectError ? (
               <p className="ml-4 text-xs" style={{ color: 'var(--color-risk-high)' }}>
@@ -247,75 +247,40 @@ export default function Football() {
 
   return (
     <AppLayout>
-      <section className="max-w-3xl">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-team-accent)' }}>
-            Omen · Hall of Records
-          </p>
-          {cultureTag && (
-            <span
-              className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-              style={{
-                color: 'var(--color-team-accent)',
-                borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
-              }}
-            >
-              {cultureTag}
-            </span>
-          )}
-          {postWinSignal && (
-            <span
-              className="post-win-chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
-              aria-label={teamWinLabel(postWinTeam)}
-            >
-              <span aria-hidden="true">✦</span>
-              <span>{teamWinLabel(postWinTeam)}</span>
-            </span>
-          )}
-        </div>
-        <h1 className="mt-3 text-5xl font-bold tracking-tight sm:text-6xl" style={{ color: 'var(--color-text-primary)' }}>
-          Hall of Records
-        </h1>
-        <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-          Start with a trade check, prepare for the draft, then let Omen of the Week fold
-          start/sit and waiver choices into one plain-English weekly move.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="OMEN · HALL OF RECORDS"
+        title="Hall of Records"
+        subtitle="Start with a trade check, prepare for the draft, then let Omen of the Week fold start/sit and waiver choices into one plain-English weekly move."
+        trailing={
+          <div className="flex flex-wrap items-center gap-2">
+            {cultureTag && <Chip>{cultureTag}</Chip>}
+            {postWinSignal && (
+              <Chip className="post-win-chip" aria-label={teamWinLabel(postWinTeam)}>
+                <span aria-hidden="true">✦</span>
+                <span>{teamWinLabel(postWinTeam)}</span>
+              </Chip>
+            )}
+          </div>
+        }
+      />
 
       <PlatformStatusBar platforms={summary?.platforms} loading={summaryLoading} />
 
       <LeagueStandings postWinActive={Boolean(postWinSignal)} />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
-      <div
-        role="tablist"
+      <TabNav
+        value={activeTab}
+        onValueChange={setActiveTab}
         aria-label="Football tools"
-        className="-mb-px flex overflow-x-auto border-b"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="overflow-x-auto"
       >
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`tab-panel-${tab.id}`}
-              id={`tab-${tab.id}`}
-              className="min-h-[44px] shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                isActive
-                  ? { borderColor: 'var(--color-team-accent)', color: 'var(--color-team-accent)' }
-                  : { borderColor: 'transparent', color: 'var(--color-text-secondary)' }
-              }
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+        {TABS.map((tab) => (
+          <TabNavItem key={tab.id} value={tab.id} className="shrink-0">
+            {tab.label}
+          </TabNavItem>
+        ))}
+      </TabNav>
 
       <section
         role="tabpanel"
