@@ -45,6 +45,41 @@ const VALID_VARIANTS = ['official', 'special'];
 const VALID_ACCENT_SOURCES = ['omen', 'team'];
 const VALID_SURFACE_MODES  = ['dark', 'light', 'auto'];
 
+// Phase 4 depth correction: Omen shell first, team presence second.
+// Keep this routing centralized so pages do not grow one-off theme CSS.
+export const ROOM_DEPTH = Object.freeze({ owner: 0.05, gm: 0.10, locker: 0.18 });
+
+export function getRoomForPath(pathname = '/') {
+  if (pathname === '/omen' || pathname.startsWith('/omen/')) return 'owner';
+  if (pathname === '/trade' || pathname.startsWith('/trade/') || pathname === '/about') return 'gm';
+  return 'locker';
+}
+
+function applyRoomForPath(root) {
+  const room = getRoomForPath(window.location.pathname);
+  root.setAttribute('data-room', room);
+  root.style.setProperty('--room-alpha', `${ROOM_DEPTH[room] * 100}%`);
+}
+
+let routeWatcherInstalled = false;
+function ensureRouteWatcher() {
+  if (routeWatcherInstalled) return;
+  routeWatcherInstalled = true;
+  const refresh = () => {
+    applyRoomForPath(document.documentElement);
+    notify();
+  };
+  for (const method of ['pushState', 'replaceState']) {
+    const original = window.history[method];
+    window.history[method] = function themeAwareHistory(...args) {
+      const result = original.apply(this, args);
+      refresh();
+      return result;
+    };
+  }
+  window.addEventListener('popstate', refresh);
+}
+
 // All role + surface CSS variables themeMode writes onto :root when team
 // mode is active. Cleared together when switching out of team mode.
 const TEAM_TOKEN_VARS = [
@@ -464,13 +499,14 @@ function applyTeamTokens(root, template) {
 }
 
 function resolveDataTheme(mode, teamAbbr, variant) {
+  const surfaceMode = getThemeSurfaceMode();
+  if (surfaceMode === 'dark' || surfaceMode === 'light') return surfaceMode;
   if (mode === 'team') {
     const template = teamAbbr ? getTeamTemplate(teamAbbr, variant) : null;
     return template?.surfaceIsDark === false ? 'light' : 'dark';
   }
-  if (mode === 'omen') return 'dark';
-  // 'system' — follow OS preference
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Auto + Omen is the canonical dark Raven/Charcoal/Aged Brass shell.
+  return 'dark';
 }
 
 /**
@@ -479,6 +515,8 @@ function resolveDataTheme(mode, teamAbbr, variant) {
  */
 export function applyThemeMode() {
   const root = document.documentElement;
+  applyRoomForPath(root);
+  ensureRouteWatcher();
   const mode    = getThemeMode();
   const team    = getThemeTeam();
   const variant = getThemeVariant();

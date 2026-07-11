@@ -90,6 +90,7 @@ function Swatch({ color }) {
 function LivePreview({ template, themed }) {
   return (
     <div
+      data-slot="card"
       className="rounded-lg border p-6 transition-colors duration-300"
       style={{
         background: 'var(--color-team-surface-card)',

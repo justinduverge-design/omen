@@ -9,10 +9,10 @@ const cardVariants = cva('rounded-lg text-[var(--color-text-primary)]', {
   variants: {
     variant: {
       solid: 'bg-[var(--color-surface-1)] border border-[var(--color-border-subtle)]',
-      outlined: 'bg-transparent border border-[var(--color-border)]',
-      empty: 'bg-transparent border border-dashed border-[var(--color-border)] text-[var(--color-text-secondary)]',
+      outlined: 'bg-[var(--color-quiet-card,transparent)] border border-[var(--color-border)]',
+      empty: 'bg-[var(--color-quiet-card,transparent)] border border-dashed border-[var(--color-border)] text-[var(--color-text-secondary)]',
       error: 'bg-[color-mix(in_srgb,var(--color-risk-high)_14%,transparent)] border border-[var(--color-risk-high)]',
-      preview: 'bg-transparent border border-[var(--color-border)]',
+      preview: 'bg-[var(--color-quiet-card,transparent)] border border-[var(--color-border)]',
     },
     tone: {
       neutral: '',
@@ -27,7 +27,7 @@ const cardVariants = cva('rounded-lg text-[var(--color-text-primary)]', {
 });
 
 const Card = React.forwardRef(({ className, variant, tone, ...props }, ref) => (
-  <div ref={ref} className={cn(cardVariants({ variant, tone }), className)} {...props} />
+  <div ref={ref} data-slot="card" className={cn(cardVariants({ variant, tone }), className)} {...props} />
 ));
 Card.displayName = 'Card';
 

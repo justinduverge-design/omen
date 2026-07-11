@@ -21,11 +21,99 @@
    in sync if either changes.
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --room-alpha: 35%; /* locker (default — most pages belong to this room) */
+  --room-alpha: 18%; /* locker (default — restrained team presence) */
 }
 [data-room="owner"]  { --room-alpha: 5%; }
-[data-room="gm"]     { --room-alpha: 14%; }
-[data-room="locker"] { --room-alpha: 35%; }
+[data-room="gm"]     { --room-alpha: 10%; }
+[data-room="locker"] { --room-alpha: 18%; }
+
+/* Phase 4 team-depth correction. Runtime still owns team selection, accent
+   fallback, and semantic tokens; this layer only resolves shell depth by
+   room. !important is intentional: the older resolver writes shell aliases
+   inline, and these contract-level aliases must win without page hacks. */
+:root[data-accent-source="team"][data-theme="dark"] {
+  --team-shell-base: #0A0A0B;
+  --team-card-base: #1C1C1E;
+  --team-surface-2-base: #2C2C2E;
+  --team-surface-3-base: #3A3A3C;
+  --team-border-base: #3A3A3C;
+  /* Dark uniforms still need crisp white hierarchy inside controls/cards. */
+  --color-text-secondary: #D8D4CC;
+  --color-text-tertiary: #AAA59D;
+}
+
+:root[data-accent-source="team"][data-theme="light"] {
+  /* Warm paper, not a white wall. Team color layers over an Omen parchment
+     ramp, with cards remaining clearly separate from the page canvas. */
+  --team-shell-base: #F2ECE3;
+  --team-card-base: #FFFDF9;
+  --team-surface-2-base: #E9E1D6;
+  --team-surface-3-base: #DED4C7;
+  --team-border-base: #B9AA98;
+  --color-text-secondary: #514A43;
+  --color-text-tertiary: #746B62;
+  --color-quiet-card: color-mix(in oklab, #FFFFFF 90%, var(--color-team-secondary) 10%);
+}
+
+:root[data-accent-source="team"] {
+  --color-team-surface: color-mix(in oklab, var(--color-team-primary) var(--room-alpha), var(--team-shell-base)) !important;
+  --color-team-surface-card: color-mix(in oklab, var(--color-team-primary) calc(var(--room-alpha) * 0.28), var(--team-card-base)) !important;
+  --color-bg: var(--color-team-surface) !important;
+  --color-surface-1: var(--color-team-surface-card) !important;
+  --color-surface-2: color-mix(in oklab, var(--color-team-primary) calc(var(--room-alpha) * 0.22), var(--team-surface-2-base)) !important;
+  --color-surface-3: color-mix(in oklab, var(--color-team-primary) calc(var(--room-alpha) * 0.18), var(--team-surface-3-base)) !important;
+  --color-border: color-mix(in oklab, var(--color-team-primary) calc(var(--room-alpha) * 0.38), var(--team-border-base)) !important;
+  --color-border-subtle: color-mix(in oklab, var(--color-team-primary) calc(var(--room-alpha) * 0.18), var(--team-border-base)) !important;
+}
+
+/* Light uniforms need actual panel blocks, not white controls scattered over
+   a pale canvas. Secondary color owns the working fields (Miami orange,
+   Kansas City gold); primary continues to tint the shell. */
+:root[data-accent-source="team"][data-theme="light"] {
+  --color-surface-1: color-mix(in oklab, #FFFFFF 88%, var(--color-team-secondary) 12%) !important;
+  --color-team-surface-card: var(--color-surface-1) !important;
+  --color-quiet-card: color-mix(in oklab, #FFFFFF 86%, var(--color-team-secondary) 14%);
+}
+
+/* Green Bay and Washington both need real white working fields against their
+   dark uniforms. Shadow the text tokens inside those fields so their content
+   remains AA-readable while shell copy stays bone white. */
+:root[data-accent-source="team"][data-theme="dark"]:is([data-team="GB"], [data-team="WAS"]) {
+  --color-surface-1: #F5F0E8 !important;
+  --color-team-surface-card: #F5F0E8 !important;
+  --color-quiet-card: #F5F0E8;
+}
+
+:root[data-accent-source="team"][data-theme="dark"]:is([data-team="GB"], [data-team="WAS"]) main :is(
+  [data-slot="card"],
+  [class*="bg-[var(--color-surface-1)]"],
+  [style*="background: var(--color-surface-1)"]
+) {
+  --color-text-primary: #17191A;
+  --color-text-secondary: #3F4548;
+  --color-text-tertiary: #62696D;
+  color: var(--color-text-primary);
+}
+
+/* Team-authored accent exceptions. White is part of Green Bay's palette and
+   restores the crisp field/control hierarchy the dark green uniform needs.
+   Miami's orange is its necessary second voice, not a decorative swatch. */
+:root[data-accent-source="team"][data-team="GB"][data-theme="dark"] {
+  --color-accent: #F5F0E8 !important;
+  --color-accent-hover: #FFFFFF !important;
+  --color-accent-muted: color-mix(in oklab, #F5F0E8 14%, var(--color-bg)) !important;
+  --color-text-on-accent: #0A0A0B !important;
+  --color-focus-ring: #F5F0E8 !important;
+}
+
+:root[data-accent-source="team"][data-team="MIA"][data-theme="light"] {
+  --color-accent: #C83D00 !important;
+  --color-accent-hover: #A93200 !important;
+  --color-accent-muted: color-mix(in oklab, #FC4C02 16%, var(--color-bg)) !important;
+  --color-text-on-accent: #FFFFFF !important;
+  --color-focus-ring: #C83D00 !important;
+  --color-border: color-mix(in oklab, #FC4C02 18%, var(--team-border-base)) !important;
+}
 
 :root {
   --radius: 0.5rem;
