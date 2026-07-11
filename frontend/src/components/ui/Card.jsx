@@ -38,12 +38,12 @@ function variantStyle(variant) {
   }
 }
 
-export function Card({ variant = 'solid', tone = 'neutral', className = '', children, ...rest }) {
+export function Card({ variant = 'solid', tone = 'neutral', className = '', style: styleOverride, children, ...rest }) {
   const base = VARIANT_CLASSES[variant] ?? VARIANT_CLASSES.solid;
   return (
     <div
       className={`rounded-xl ${base} ${className}`.trim()}
-      style={variantStyle(variant)}
+      style={{ ...variantStyle(variant), ...styleOverride }}
       data-card-variant={variant}
       data-card-tone={tone}
       {...rest}
