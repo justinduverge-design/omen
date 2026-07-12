@@ -1,4 +1,4 @@
-import HelpButton from '../ui/HelpButton.jsx';
+import HelpButton from '../help/HelpButton.jsx';
 import Footer from './Footer.jsx';
 import Header from './Header.jsx';
 import MomentChrome from './MomentChrome.jsx';
