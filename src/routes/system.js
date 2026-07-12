@@ -26,7 +26,6 @@ router.get("/ready", async (_req, res) => {
     supabase_service_key: Boolean(config.supabaseServiceKey),
   };
   const optionalServices = {
-    stripe: Boolean(config.stripe.secretKey && config.stripe.webhookSecret),
     yahoo_oauth: Boolean(config.yahoo.clientId && config.yahoo.clientSecret && config.yahoo.redirectUri),
     redis: Boolean(config.redisUrl && config.redisToken),
     llm_private: llmStatus.status === "configured_private",

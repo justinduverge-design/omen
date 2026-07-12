@@ -2,11 +2,16 @@
 
 Last updated: 2026-06-04 (launch-QA sync)
 
+**2026-07-12: this doc predates the "Omen is free indefinitely" decision and Stripe's full
+removal — every Stripe/subscription gate/blocker mentioned below is moot, not a real launch
+gate. See `Direction/facts-of-record.md` and `Direction/decision_log.md`. This file needs a
+full re-sync against current state; treat everything below as historical until then.**
+
 ## Status
 
 Omen is deployed on the renamed route and responding to health checks.
 
-This does not mean paid launch is complete. The current posture is launch-QA: Tier 2 feature work is deployed and smoked, but the Stripe webhook recovery gate still needs an approved deploy/resend validation.
+This does not mean paid launch is complete. The current posture is launch-QA: Tier 2 feature work is deployed and smoked. (Stripe webhook recovery is no longer a gate — Stripe was removed 2026-07-12.)
 
 ## Verified
 

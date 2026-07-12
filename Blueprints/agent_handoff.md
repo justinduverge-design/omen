@@ -2,6 +2,8 @@
 
 ## Current State
 
+**2026-07-12: All Stripe/subscription content below is historical.** Stripe was fully removed from Omen 2026-07-12 (package, `/api/stripe/*` routes, `requireSubscription` middleware, `subscriptions` table, `users.is_subscribed` column) — Omen is free indefinitely, see `Direction/decision_log.md` and `Direction/facts-of-record.md`. Do not use the Stripe sections below as a current contract.
+
 This file was recreated during a DBS integrity repair on 2026-05-21.
 
 Use this repo as the active product workspace:

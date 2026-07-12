@@ -11,21 +11,6 @@ function read(...parts) {
   return fs.readFileSync(path.join(root, ...parts), "utf8");
 }
 
-test("Account.jsx suppresses Stripe/Pro UI in app-store builds", () => {
-  const src = read("frontend", "src", "pages", "Account.jsx");
-
-  assert.match(src, /const APP_STORE_BUILD = import\.meta\.env\.VITE_APP_STORE_BUILD === 'true';/);
-  assert.match(src, /BILLING_ENABLED && !APP_STORE_BUILD && banner && <SubscriptionBanner/);
-  assert.match(src, /\{BILLING_ENABLED && !APP_STORE_BUILD && \(\s*<SubscriptionSection/);
-});
-
-test("UpgradeState.jsx suppresses Pro-upsell copy in app-store builds", () => {
-  const src = read("frontend", "src", "components", "ui", "UpgradeState.jsx");
-
-  assert.match(src, /const APP_STORE_BUILD = import\.meta\.env\.VITE_APP_STORE_BUILD === 'true';/);
-  assert.match(src, /if \(!BILLING_ENABLED \|\| APP_STORE_BUILD\) return null;/);
-});
-
 test("PlatformConnections.jsx hides ESPN row in app-store builds, even during recovery", () => {
   const src = read("frontend", "src", "components", "platforms", "PlatformConnections.jsx");
 

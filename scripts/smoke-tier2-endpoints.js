@@ -96,41 +96,6 @@ function requireToken(name) {
   return false;
 }
 
-async function smokeStripePrices() {
-  const res = await request("stripe_prices", "GET", "/api/stripe/prices");
-  const plans = Array.isArray(res.body?.plans) ? res.body.plans : [];
-  const monthly = plans.find((plan) => plan.id === "monthly");
-  const season = plans.find((plan) => plan.id === "season");
-  const configured = plans.every((plan) => plan.stripe_price_id_configured === true);
-  const priced = plans.every((plan) => plan.price?.display);
-
-  if (
-    res.status === 200
-    && res.body?.contract_version === "stripe-prices.v1"
-    && monthly
-    && season
-    && configured
-    && priced
-  ) {
-    pass("stripe_prices", {
-      status_code: res.status,
-      elapsed_ms: res.elapsed_ms,
-      source: res.body.source,
-      displays: plans.map((plan) => ({ id: plan.id, display: plan.price.display })),
-    });
-    return;
-  }
-
-  fail("stripe_prices", {
-    status_code: res.status,
-    elapsed_ms: res.elapsed_ms,
-    shape: safeBodyShape(res.body),
-    plan_count: plans.length,
-    configured,
-    priced,
-  });
-}
-
 async function smokeAuthGuards() {
   const checks = [
     request("preferences_auth_guard", "PATCH", "/api/account/preferences", {
@@ -399,7 +364,6 @@ async function smokeStandings() {
 }
 
 async function main() {
-  await smokeStripePrices();
   await smokeAuthGuards();
 
   if (!authToken && !allowAuthSkips) {

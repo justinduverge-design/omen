@@ -280,19 +280,6 @@ async function getActivePlatformConnections(userId) {
   return Array.isArray(data) ? data : [];
 }
 
-async function getOmenSubscriptionStatus(userId) {
-  const { data, error } = await supabase
-    .from("users")
-    .select("is_subscribed")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`subscription lookup failed: ${error.message}`);
-  }
-
-  return Boolean(data?.is_subscribed);
-}
 
 async function getLiveOmenForUser(userId) {
   const connections = await getActivePlatformConnections(userId);
@@ -558,22 +545,6 @@ function authRequiredMvpResponse(message = "Authentication is required for Most 
     code: "omen_auth_required",
     message,
     httpStatus: 401,
-  });
-}
-
-function subscriptionRequiredMvpResponse() {
-  const message = "Most Valuable Play requires Pro.";
-  return liveMvpBlockedResponse({
-    status: "error",
-    platformStatus: "subscription_required",
-    recovery: {
-      code: "upgrade_required",
-      message,
-      cta: "Upgrade",
-    },
-    code: "omen_subscription_required",
-    message,
-    httpStatus: 402,
   });
 }
 
@@ -1214,10 +1185,8 @@ module.exports = {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
   getActivePlatformConnections,
-  getOmenSubscriptionStatus,
   getLiveOmenForUser,
   selectYahooConnection,
-  subscriptionRequiredMvpResponse,
   mapLineupSwapToOmen,
   FEATURE,
   VALID_SIGNAL_STATUSES,

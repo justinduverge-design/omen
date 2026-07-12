@@ -85,11 +85,13 @@ test("waitlist_signups allows browser insert without exposing reads", () => {
   assert.doesNotMatch(sql, /grant select .*waitlist_signups to anon/i);
 });
 
-test("subscriptions migration repairs Stripe date columns on existing tables", () => {
+test("subscriptions table and is_subscribed column are dropped now that Stripe is removed", () => {
   const sql = readRepoFile("sql", "omen_rls_security.sql");
   const compactSql = sql.replace(/\s+/g, " ");
 
-  assert.match(compactSql, /alter table public\.subscriptions add column if not exists trial_ends_at timestamptz, add column if not exists current_period_end timestamptz;/i);
+  assert.match(compactSql, /drop table if exists public\.subscriptions cascade;/i);
+  assert.match(compactSql, /alter table public\.users drop column if exists is_subscribed;/i);
+  assert.doesNotMatch(sql, /create table if not exists public\.subscriptions/i);
 });
 
 test("profiles table supports self-only favorite_team preference", () => {

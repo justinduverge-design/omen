@@ -54,19 +54,6 @@ const config = {
     redirectUri:  process.env.YAHOO_REDIRECT_URI,
   },
 
-  // --- Stripe ---------------------------------------------------
-  stripe: {
-    secretKey:      process.env.STRIPE_SECRET_KEY,
-    webhookSecret:  process.env.STRIPE_WEBHOOK_SECRET,
-    monthlyPriceId: process.env.STRIPE_MONTHLY_PRICE_ID,
-    seasonPriceId:  process.env.STRIPE_SEASON_PRICE_ID,
-  },
-
-  // --- Billing --------------------------------------------------
-  billing: {
-    enabled: (process.env.OMEN_BILLING_ENABLED ?? process.env.CORVUS_BILLING_ENABLED) === "true",
-  },
-
   // --- Resend (transactional email) -----------------------------
   resend: {
     apiKey: process.env.RESEND_API_KEY || null,

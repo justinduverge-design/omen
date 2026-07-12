@@ -3,7 +3,7 @@
 /**
  * Trade valuation service.
  *
- * Pure functions only: no API calls, no Supabase, no Stripe, no auth.
+ * Pure functions only: no API calls, no Supabase, no auth.
  * The first MVP uses replacement-level adjusted projection as a defensible
  * baseline until richer historical projections and league settings are wired.
  */

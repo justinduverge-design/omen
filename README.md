@@ -120,7 +120,6 @@ Verdicts: `accept` (>2.0), `neutral` (±2.0), `decline` (<−2.0).
 | Cache | Upstash Redis |
 | Secrets | Infisical — no `.env` file on the production server |
 | LLM | Ollama + Gemma (self-hosted on Hostinger, internal only) |
-| Payments | Stripe (Checkout + Webhooks) |
 | Deploy | Docker + docker-compose + Nginx on Oracle VPS |
 
 ---
@@ -161,10 +160,6 @@ YAHOO_REDIRECT_URI=https://yourdomain.com/api/yahoo/callback
 # Upstash Redis
 REDIS_URL=rediss://...
 REDIS_TOKEN=your-token
-
-# Stripe
-STRIPE_SECRET_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
 
 # App
 APP_BASE_URL=https://yourdomain.com
@@ -328,7 +323,6 @@ corvus/
 - [ ] Start/Sit recommendations with LLM reasoning
 - [ ] Waiver wire optimizer
 - [ ] Dashboard polish (Hall of Records)
-- [ ] Stripe live keys + payment validation
 - [ ] Security hardening pass (helmet, rate limiting)
 - [ ] Load testing + final deploy
 
