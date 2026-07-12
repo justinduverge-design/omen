@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { Card } from '../components/ui/Card.jsx';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
 import {
@@ -77,8 +78,9 @@ function Swatch({ color }) {
  */
 function LivePreview({ template, themed }) {
   return (
-    <div
-      className="rounded-lg border p-6 transition-colors duration-300"
+    <Card
+      variant="preview"
+      className="p-6 transition-colors duration-300"
       style={{
         background: 'var(--color-team-surface-card)',
         borderColor: themed
@@ -96,12 +98,6 @@ function LivePreview({ template, themed }) {
           }}
         >
           Omen · Omen
-        </span>
-        <span
-          className="rounded border px-2 py-0.5 text-xs"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-        >
-          Preview
         </span>
       </div>
 
@@ -139,7 +135,7 @@ function LivePreview({ template, themed }) {
       >
         Accept the call →
       </div>
-    </div>
+    </Card>
   );
 }
 
