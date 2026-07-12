@@ -28,7 +28,6 @@ export default {
       },
       fontFamily: {
         sans:    ['Alegreya Sans', 'system-ui', 'sans-serif'],
-        serif:   ['Alegreya', 'Georgia', 'serif'],
         display: ['Alegreya Sans', 'system-ui', 'sans-serif'],
         mono:    ['DM Mono', 'ui-monospace', 'monospace'],
       },
