@@ -83,6 +83,8 @@ const CORE_TEAM_OVERRIDE_VARS = [
   '--color-text-primary',
   '--color-text-secondary',
   '--color-text-tertiary',
+  '--color-card-text-secondary',
+  '--color-card-text-primary',
 ];
 
 export const MOTIF_VARS = [
@@ -457,9 +459,38 @@ function tintPreservation(candidateHex, surfaceHex) {
   return 100 * (1 - dist / maxDist);
 }
 
-function scoreCardCandidate(candidateHex, surfaceHex, template, textSecondaryHex) {
+/**
+ * Best of the app's two fixed secondary-text hexes against `hex` — the
+ * secondary-text equivalent of `readableOn` (which does the same job for
+ * the two primary-text anchors). Neither of these is team-tinted (deny
+ * list, team-theme-contract-v1.md); this only chooses which of the two
+ * fixed options fits a given surface.
+ */
+function readableSecondaryOn(hex) {
+  return contrastRatio('#AEAEB2', hex) >= contrastRatio('#4A5158', hex)
+    ? '#AEAEB2'
+    : '#4A5158';
+}
+
+/**
+ * Card-scoped text pair for `candidateHex`, resolved independently of the
+ * shell's own text colors (see the card/shell token split below). Picking
+ * per-candidate — not reusing the shell's fixed pair — is what makes light
+ * Omen-neutral cards a real option for saturated dark shells (Bills,
+ * Commanders, Eagles): under the old fixed-per-shell text color, a light
+ * card was excluded before scoring ever ran, because the shell's light-grey
+ * secondary text is illegible on any light surface. Resolving text per
+ * candidate removes that blanket exclusion and lets light cards compete on
+ * their actual merits.
+ */
+function cardTextPair(candidateHex) {
+  return { secondary: readableSecondaryOn(candidateHex), primary: readableOn(candidateHex) };
+}
+
+function scoreCardCandidate(candidateHex, surfaceHex, template) {
+  const { secondary: textSecondaryHex, primary: textPrimaryHex } = cardTextPair(candidateHex);
   const secRatio = contrastRatio(textSecondaryHex, candidateHex);
-  const primRatio = contrastRatio(template.textOnSurface, candidateHex);
+  const primRatio = contrastRatio(textPrimaryHex, candidateHex);
   const shellRatio = contrastRatio(candidateHex, surfaceHex);
   const borderHex = resolveBorder(surfaceHex, candidateHex, template, { silent: true });
   const borderRatio = Math.min(
@@ -475,7 +506,10 @@ function scoreCardCandidate(candidateHex, surfaceHex, template, textSecondaryHex
     Math.min(borderRatio, CARDFILL_BORDER_CAP) * CARDFILL_BORDER_WEIGHT +
     tint * CARDFILL_TINT_WEIGHT;
 
-  return { hex: candidateHex, score, secRatio, primRatio, shellRatio, borderRatio, tint };
+  return {
+    hex: candidateHex, score, secRatio, primRatio, shellRatio, borderRatio, tint,
+    textSecondaryHex, textPrimaryHex,
+  };
 }
 
 function buildCardCandidates(surfaceHex) {
@@ -494,21 +528,26 @@ function buildCardCandidates(surfaceHex) {
   return Array.from(hexes);
 }
 
-function resolveCardFill(surfaceHex, surfaceIsDark, template) {
-  const textSecondaryHex = surfaceIsDark ? '#AEAEB2' : '#4A5158';
+/**
+ * Resolves the card fill AND its own card-scoped text pair (see the
+ * card/shell token split above `cardTextPair`). Returns
+ * `{ hex, textSecondaryHex, textPrimaryHex }` — callers write the text pair
+ * to `--color-card-text-secondary`/`-primary`, decoupled from the shell's
+ * own (unchanged) `--color-text-secondary`/`-primary`. `surfaceIsDark` is
+ * no longer used to pre-select a fixed text color (that's the whole point
+ * of the split) but stays in the signature since callers already have it
+ * and future tie-breaking may want it.
+ */
+function resolveCardFill(surfaceHex, _surfaceIsDark, template) {
   const candidates = buildCardCandidates(surfaceHex);
-  const scored = candidates.map((hex) => scoreCardCandidate(hex, surfaceHex, template, textSecondaryHex));
+  const scored = candidates.map((hex) => scoreCardCandidate(hex, surfaceHex, template));
 
   // Hard floor: never ship a candidate under the WCAG AA minimum for EITHER
-  // text role that actually renders on the card (--color-text-secondary in
-  // the body copy, --color-text-primary in the heading) if anything in the
-  // candidate set clears both. Gating on secondary alone let a candidate
-  // win purely on secondary/shell/border/tint score while primary text
-  // (a single fixed hex chosen for contrast against the SHELL, e.g. dark
-  // text picked for a bright orange shell) landed at ~1:1 against a
-  // near-black card — invisible, not just weaker. Both roles are priority
-  // 1/2 in the founder's ordering; both are non-negotiable floors before
-  // score even matters.
+  // text role that actually renders on the card. With per-candidate text
+  // resolution this floor is almost always clearable (each candidate picks
+  // whichever of the two fixed secondary/primary anchors fits it), so this
+  // remains a true, rare ceiling rather than the routine exclusion it used
+  // to be under a single shell-fixed text color.
   const bothLegible = scored.filter(
     (c) => c.secRatio >= TEXT_ON_CARD_MIN_RATIO && c.primRatio >= TEXT_ON_CARD_MIN_RATIO,
   );
@@ -519,15 +558,14 @@ function resolveCardFill(surfaceHex, surfaceIsDark, template) {
     const best = pool.reduce((a, b) => (Math.min(b.secRatio, b.primRatio) > Math.min(a.secRatio, a.primRatio) ? b : a));
     console.warn(
       `[theme] surface ${surfaceHex}: no card-fill candidate reaches ${TEXT_ON_CARD_MIN_RATIO}:1 for both ` +
-      `secondary and primary text (best candidate reaches sec=${best.secRatio.toFixed(2)}:1, ` +
-      `prim=${best.primRatio.toFixed(2)}:1). Returning the most legible candidate found — this shell/text-role ` +
-      `pairing is a genuine ceiling for a single fixed text-primary hex chosen against the shell, not a search ` +
-      `failure. Flag for a per-surface text-primary override if this repeats.`,
+      `secondary and primary text even with per-candidate text resolution (best candidate reaches ` +
+      `sec=${best.secRatio.toFixed(2)}:1, prim=${best.primRatio.toFixed(2)}:1). Returning the most legible ` +
+      `candidate found — a genuine ceiling for the app's two fixed text-color pairs against this specific hue.`,
     );
   }
 
   const best = pool.reduce((a, b) => (b.score > a.score ? b : a));
-  return best.hex;
+  return { hex: best.hex, textSecondaryHex: best.textSecondaryHex, textPrimaryHex: best.textPrimaryHex };
 }
 
 // Rule 2 fallback: team primary → team secondary → white/black (whichever
@@ -635,10 +673,25 @@ function applyTeamTokens(root, template) {
   setRoleTokens(root, template);
 
   // Card fill, contrast-guarded against the shell (Rule 3a) rather than a
-  // fixed mix percentage — see resolveCardFill above.
-  const cardFillHex = resolveCardFill(template.surface, template.surfaceIsDark, template);
+  // fixed mix percentage — see resolveCardFill above. Card and shell now
+  // resolve independent text-color pairs (founder decision 2026-07-12,
+  // card/shell token split): --color-text-secondary/-primary stay fixed to
+  // the shell as before, and --color-card-text-secondary/-primary carry
+  // whatever pair is actually legible on the resolved card. Card.jsx scopes
+  // the card tokens back onto --color-text-secondary/-primary for its own
+  // DOM subtree (CSS custom-property cascade, not a per-page migration),
+  // so every existing `var(--color-text-secondary)` reference already
+  // written inside a <Card> picks up the correct value automatically. This
+  // is what makes light Omen-neutral cards viable for saturated dark
+  // shells (Bills, Commanders, Eagles): the old single shared text color
+  // excluded light cards before scoring ever ran, because the shell's
+  // fixed light-grey secondary text is illegible on any light surface.
+  const { hex: cardFillHex, textSecondaryHex: cardTextSecondary, textPrimaryHex: cardTextPrimary } =
+    resolveCardFill(template.surface, template.surfaceIsDark, template);
   root.style.setProperty('--color-team-surface', template.surface);
   root.style.setProperty('--color-team-surface-card', cardFillHex);
+  root.style.setProperty('--color-card-text-secondary', cardTextSecondary);
+  root.style.setProperty('--color-card-text-primary', cardTextPrimary);
 
   // Drive the core Omen tokens from the team palette so every page that
   // consumes --color-bg, --color-accent, etc. inherits the team look

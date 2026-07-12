@@ -29,6 +29,8 @@ export function ModePicker({ mode, onChange }) {
               borderColor: selected ? 'var(--color-team-accent)' : 'var(--color-border)',
               background: selected ? 'color-mix(in srgb, var(--color-team-accent) 10%, var(--color-surface-1))' : 'var(--color-surface-1)',
               color: 'var(--color-text-primary)',
+              '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+              '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
             }}
           >
             <span

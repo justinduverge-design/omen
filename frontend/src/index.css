@@ -20,6 +20,8 @@
   --color-border-subtle:   #2C2C2E;
   --color-text-primary:    #F5F0E8;
   --color-text-secondary:  #AEAEB2;
+  --color-card-text-primary:   #F5F0E8;
+  --color-card-text-secondary: #AEAEB2;
   --color-text-tertiary:   #6D6D72;
   --color-accent:          #A67C2E;
   --color-accent-hover:    #C49035;
@@ -244,6 +246,8 @@
   --color-border-subtle:   #2C2C2E;
   --color-text-primary:    #F5F0E8;
   --color-text-secondary:  #AEAEB2;
+  --color-card-text-primary:   #F5F0E8;
+  --color-card-text-secondary: #AEAEB2;
   --color-text-tertiary:   #6D6D72;
   --color-accent:          #A67C2E;
   --color-accent-hover:    #C49035;
@@ -306,6 +310,8 @@
   --color-border-subtle:   #F0F0EE;
   --color-text-primary:    #1C1C1E;
   --color-text-secondary:  #6B7280;
+  --color-card-text-primary:   #1C1C1E;
+  --color-card-text-secondary: #6B7280;
   --color-text-tertiary:   #9CA3AF;
   --color-accent:          #7A5C1E;
   --color-accent-hover:    #A67C2E;

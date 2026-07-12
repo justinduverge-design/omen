@@ -89,7 +89,7 @@ function SummaryStats({ summary, season }) {
   return (
     <div
       className="rounded-xl border"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
     >
       {/* Header row */}
       <div
@@ -148,7 +148,7 @@ function MoveRow({ move }) {
   return (
     <div
       className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:gap-4"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
     >
       {/* Week + type */}
       <div className="flex shrink-0 flex-row items-center gap-2 sm:w-20 sm:flex-col sm:items-start sm:gap-1.5">
@@ -204,7 +204,7 @@ function EmptyHistory() {
   return (
     <div
       className="rounded-xl border px-6 py-12 text-center"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
     >
       {/* Raven glyph */}
       <p
@@ -292,7 +292,7 @@ export default function MoveHistory({ onDataState, fixture = null }) {
     return (
       <div
         className="rounded-xl border p-6 text-center"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))', '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))' }}
       >
         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           Couldn't load history.
