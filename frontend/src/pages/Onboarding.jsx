@@ -97,6 +97,10 @@ function ConnectStep({ onCheck, checking, noConnection }) {
             </div>
           ))}
         </div>
+        <p className="mt-4 text-[11px] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
+          Platform trademarks belong to their respective owners. Omen is not endorsed by or
+          affiliated with those platforms.
+        </p>
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

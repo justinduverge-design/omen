@@ -56,6 +56,10 @@ Current MVP Move data status:
 | Sleeper | ✅ Live | Username lookup (public API) |
 | ESPN | ✅ Live | ESPN_S2 + SWID cookies (Vault-encrypted) |
 
+Platform trademarks belong to their respective owners. Omen is not endorsed by, sponsored by,
+or affiliated with Yahoo, Sleeper, ESPN, Disney, or the NFL. "Live" above describes Omen's own
+connection status, not a claim of official real-time data rights from those platforms.
+
 ---
 
 ## Architecture
