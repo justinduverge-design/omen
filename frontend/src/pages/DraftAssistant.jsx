@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Card } from '../components/ui/Card.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
@@ -173,13 +174,14 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
   const isTop = rec.rank === 1;
   const tierStyle = metallicTierStyle(rec.rank);
   return (
-    <div
-      className={`space-y-4 rounded-xl border p-5 ${
+    <Card
+      variant="solid"
+      className={`space-y-4 p-5 ${
         isTop
           ? 'border-[var(--color-team-accent)]/40 bg-[var(--color-team-accent)]/5 shadow-lg shadow-[var(--color-team-accent)]/5'
           : ''
       }`}
-      style={isTop ? undefined : { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      style={isTop ? { borderColor: undefined, background: undefined } : undefined}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
@@ -236,7 +238,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         adpLoading={adpLoading}
         connectedPlatform={connectedPlatform}
       />
-    </div>
+    </Card>
   );
 }
 
@@ -244,10 +246,10 @@ function LoadingRecommendations() {
   return (
     <div aria-busy="true" aria-label="Loading recommendations" className="space-y-4">
       {[0, 1, 2].map((i) => (
-        <div
+        <Card
           key={i}
-          className="animate-pulse motion-reduce:animate-none space-y-3 rounded-xl border p-5"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+          variant="solid"
+          className="animate-pulse motion-reduce:animate-none space-y-3 p-5"
         >
           <div className="flex items-center gap-3">
             <div className="h-7 w-7 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
@@ -260,7 +262,7 @@ function LoadingRecommendations() {
             <div className="h-4 w-5/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
             <div className="h-4 w-4/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );
