@@ -1389,9 +1389,8 @@ function SubModal({ onClose, onSubscribe }) {
           </div>
         </div>
         <button className="btn btn-primary" style={{width:"100%"}} onClick={() => onSubscribe("season")}>
-          Start Free — 7 Day Trial (Stripe)
+          Continue
         </button>
-        <div className="modal-fine">Powered by Stripe. Secure. Cancel anytime.</div>
       </div>
     </div>
   );
@@ -1625,8 +1624,7 @@ export default function SlopsSaloonFFMVP() {
   const [toast,   showToast]  = useToast();
 
   const handleSubscribe = (plan) => {
-    // PRODUCTION: POST /api/stripe/checkout-session → redirect to Stripe
-    window.__startCheckout?.(plan); showToast(`Redirecting to Stripe for ${plan} plan…`);
+    showToast(`All Omen features are free. No checkout is required for the ${plan} plan.`);
     setTimeout(() => setShowSub(false), 1500);
   };
 

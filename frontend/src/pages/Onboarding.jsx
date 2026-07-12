@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card.jsx';
 
 const DONE_KEY = 'omen.onboarding.done';
 const LEGACY_DONE_KEY = 'corvus.onboarding.done';
-const CONNECTED_STATUSES = new Set(['ready', 'needs_subscription', 'pending_live_engine']);
+const CONNECTED_STATUSES = new Set(['ready', 'pending_live_engine']);
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
