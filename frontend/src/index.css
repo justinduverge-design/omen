@@ -364,14 +364,10 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply font-serif antialiased;
-    font-family: 'Alegreya', Georgia, serif;
+    @apply font-sans antialiased;
+    font-family: 'Alegreya Sans', system-ui, sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
-  }
-  h1, h2, h3 {
-    @apply font-display;
-    font-family: 'Alegreya Sans', system-ui, sans-serif;
   }
   button,
   input,
