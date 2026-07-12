@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { supabase } from '../../lib/supabase.js';
-import { useTheme } from '../../lib/themeMode.js';
 import { useFocusTrap } from '../../lib/useFocusTrap.js';
 
 // ── Nav map ────────────────────────────────────────────────────────────────
@@ -42,8 +40,6 @@ const NAV_SECTIONS = [
     auth: false,
     items: [
       { label: 'Account',         to: '/account',            auth: true  },
-      { label: 'Appearance',      to: '/account/appearance', auth: true,
-        note: 'Team colors' },
       { label: 'Sign In',         to: '/login',              auth: 'guest' },
     ],
   },
@@ -102,26 +98,7 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
   const location = useLocation();
   const drawerRef = useRef(null);
   const closeRef  = useRef(null);
-  const { mode, team: teamAbbr } = useTheme();
-  const cultureTag = useMemo(() => {
-    if (mode !== 'team' || !teamAbbr) return null;
-    return NFL_TEAMS.find((t) => t.abbr === teamAbbr)?.cultureTag ?? null;
-  }, [mode, teamAbbr]);
-
-  // Inject the active team's cultureTag onto the Appearance nav item's note
-  // when the user is in Team mode. Falls back to "Team colors" otherwise.
-  const navSections = useMemo(() => {
-    if (!cultureTag) return NAV_SECTIONS;
-    return NAV_SECTIONS.map((section) => {
-      if (section.label !== 'Account') return section;
-      return {
-        ...section,
-        items: section.items.map((item) =>
-          item.to === '/account/appearance' ? { ...item, note: cultureTag } : item,
-        ),
-      };
-    });
-  }, [cultureTag]);
+  const navSections = NAV_SECTIONS;
 
   // Focus the close button when drawer opens
   useEffect(() => {

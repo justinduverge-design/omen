@@ -12,7 +12,9 @@
 
 ## Active Task
 
-**Phase 4.20d — Store metadata, privacy-label, and gambling/DFS copy audit (P1)** — set as active task by 2026-07-08 kickoff auto-populate refresh (see Auto-Populated Top 5 below for ranking rationale).
+**Team theme removal (Justin-directed, 2026-07-12)** — complete locally on branch `claude/team-theme-removal` (cut fresh from `origin/main`, not local `main` — see decision log). Full removal of team-based app-wide theming, cultural-moment chrome, motifs, and type flourishes; supersedes the now-stale `claude-phase4-team-theme-depth-fix.md` prompt. `npm run build` and `npm test` (415/415) pass; not pushed/merged/deployed. Evidence: `Direction/reviews/2026-07-12-team-theme-removal-verification.md`. Decision log: "Decisions Added 2026-07-12 (Team Theme Removal)".
+
+Phase 4.20d — Store metadata, privacy-label, and gambling/DFS copy audit (P1) — was the prior pinned task (set by 2026-07-08 kickoff auto-populate) and remains untouched/still queued; see Auto-Populated Top 5 below.
 
 ## Auto-Populated Top 5
 
