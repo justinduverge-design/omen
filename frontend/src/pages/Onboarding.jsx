@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { Card } from '../components/ui/Card.jsx';
 import { MARQUEE_ABBRS, NFL_TEAMS, TEAMS_BY_DIV } from '../data/nflTeams.js';
 import { ModePicker, TeamTile } from '../components/theme/AppearancePicker.jsx';
 import { getThemeMode, setThemeMode, setThemeTeam, useTheme } from '../lib/themeMode.js';
@@ -200,10 +201,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         Connect one of the supported platforms to unlock Omen of the Week.
       </p>
 
-      <div
-        className="mb-8 rounded-xl border p-5"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-      >
+      <Card variant="solid" className="mb-8 p-5">
         <p
           className="mb-4 text-xs font-semibold uppercase tracking-widest"
           style={{ color: 'var(--color-text-tertiary)' }}
@@ -232,7 +230,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
