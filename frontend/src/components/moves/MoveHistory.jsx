@@ -223,7 +223,7 @@ function EmptyHistory() {
       </p>
       {wardRoom && (
         <p
-          className="mt-3 font-serif text-base italic"
+          className="mt-3 text-base italic"
           style={{ color: 'var(--color-text-secondary)' }}
         >
           {wardRoom}
