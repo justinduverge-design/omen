@@ -25,9 +25,6 @@ function loadOptimizerRouter(state) {
         },
       };
     }
-    if (parent?.filename === routePath && request === "../middleware/subscription") {
-      return { requireSubscription: (_req, _res, next) => next() };
-    }
     if (parent?.filename === routePath && request === "../services/yahooAuth") {
       return {
         getAuthenticatedYahooClient: async (userId) => {

@@ -40,7 +40,7 @@ async function selectRows(table, columns, userId) {
 async function selectUserProfile(userId) {
   const { data, error } = await supabase
     .from("users")
-    .select("id,email,is_subscribed,created_at,updated_at")
+    .select("id,email,created_at,updated_at")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(`users export failed: ${error.message}`);
@@ -66,7 +66,6 @@ router.get("/export", requireAuth, async (req, res, next) => {
     const [
       profile,
       platformRows,
-      subscriptionRows,
       consentRows,
       moveRows,
     ] = await Promise.all([
@@ -74,11 +73,6 @@ router.get("/export", requireAuth, async (req, res, next) => {
       selectRows(
         "platform_connections",
         "platform,platform_username,league_id,espn_team_id,is_active,token_expires_at,created_at,updated_at",
-        userId
-      ),
-      selectRows(
-        "subscriptions",
-        "plan,status,subscribed_at,canceled_at,trial_ends_at,current_period_end,expires_at",
         userId
       ),
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
@@ -90,7 +84,6 @@ router.get("/export", requireAuth, async (req, res, next) => {
       generated_at: new Date().toISOString(),
       user: profile,
       platform_connections: platformRows.map(redactPlatformConnection),
-      subscriptions: subscriptionRows,
       consent_records: consentRows,
       moves: moveRows,
       redactions: [
@@ -161,7 +154,6 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
       deleteWhereUserId("platform_connections", userId),
       deleteWhereUserId("oauth_state", userId),
       deleteWhereUserId("consent_records", userId),
-      deleteWhereUserId("subscriptions", userId),
     ]);
 
     await supabase.from("deletion_audit_log").insert({

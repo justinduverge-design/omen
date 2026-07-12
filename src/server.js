@@ -10,13 +10,12 @@
  *   3. logger (so all subsequent errors are captured structurally)
  *   4. trust proxy (req.ip + X-Forwarded-* correct behind Nginx)
  *   5. security middleware (helmet, CORS) BEFORE body parser
- *   6. Stripe WEBHOOK router  (raw body)  -- BEFORE express.json
- *   7. body parser (express.json)
- *   8. rate limits
- *   9. routes
- *  10. 404 handler
- *  11. Sentry error capture
- *  12. error handler (last - catches anything thrown above)
+ *   6. body parser (express.json)
+ *   7. rate limits
+ *   8. routes
+ *   9. 404 handler
+ *  10. Sentry error capture
+ *  11. error handler (last - catches anything thrown above)
  * =================================================================
  */
 
@@ -71,19 +70,6 @@ app.use((req, res, next) => {
   next();
 });
 app.use(httpLogger);
-
-// --- Stripe webhook BEFORE JSON parser ---------------------------
-// Stripe signs the raw request body. Once express.json() parses and
-// re-serializes it, the signature won't validate anymore. So we mount
-// the webhook router first (it uses express.raw() internally for /webhook).
-// Only the /webhook path inside this router does anything; other paths
-// fall through to the JSON-bodied router below.
-try {
-  const { webhookRouter } = require("./routes/stripe");
-  app.use("/api/stripe", webhookRouter);
-} catch (e) {
-  logger.error("Stripe webhook router failed to load", { err: e.message });
-}
 
 // --- Body parser --------------------------------------------------
 app.use(express.json({ limit: "100kb" }));
@@ -167,14 +153,6 @@ if (HAS_SPA) {
 
 // --- Auth gets the stricter limiter -------------------------------
 app.use("/api/auth", authRateLimit);
-
-// --- Mount Stripe JSON routes (checkout, portal) -----------------
-try {
-  const { router: stripeRouter } = require("./routes/stripe");
-  app.use("/api/stripe", stripeRouter);
-} catch (e) {
-  logger.error("Stripe router failed to load", { err: e.message });
-}
 
 // --- Mount /api/yahoo (modular roster routes) -------------------
 try {

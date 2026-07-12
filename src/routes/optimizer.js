@@ -12,7 +12,7 @@
  *   - Currently returns empty recommendations until Yahoo waiver
  *     fetching is wired in 2C; route is structurally complete.
  *
- * Both gated by requireAuth + requireSubscription.
+ * Both gated by requireAuth.
  * SY0-701 5.4: privilege isolation - free users get 402.
  * =================================================================
  */
@@ -22,7 +22,6 @@ const { createClient } = require("@supabase/supabase-js");
 const config  = require("../config");
 const { logger }              = require("../middleware/logging");
 const { requireAuth }         = require("../middleware/auth");
-const { requireSubscription } = require("../middleware/subscription");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const rosterSvc               = require("../services/roster");
 const optimizer               = require("../services/optimizer");
@@ -168,9 +167,8 @@ router.post("/mvp-move", retiredCompatRoute({
   canonicalEndpoint: "/api/omen/mvp-move",
 }));
 
-// All optimizer endpoints require both auth AND a Pro subscription.
+// All optimizer endpoints require auth.
 router.use(requireAuth);
-router.use(requireSubscription);
 
 router.get("/lineup", async (req, res, next) => {
   try {

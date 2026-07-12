@@ -4,7 +4,7 @@
  * Sleeper data routes.
  *
  * GET /api/sleeper/roster?username=...&leagueId=...&week=...
- * Returns a normalized Sleeper roster. Auth is required; subscription is not.
+ * Returns a normalized Sleeper roster. Auth is required.
  */
 
 const express = require("express");

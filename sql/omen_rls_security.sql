@@ -1,11 +1,11 @@
 -- =================================================================
 -- Slops Saloon Fantasy Football MVP (Omen)
--- Supabase setup - schema + RLS + Vault wrappers + subscriptions
+-- Supabase setup - schema + RLS + Vault wrappers
 -- -----------------------------------------------------------------
 -- Run once on a fresh project; idempotent so it's safe to re-run on
 -- existing projects to apply additions (new tables / columns / policies).
--- Built to match the production schema export verbatim, plus the
--- subscriptions table required by the Stripe webhook.
+-- Built to match the production schema export while removing the retired
+-- paid-access schema from both fresh and existing databases.
 -- =================================================================
 
 
@@ -31,7 +31,6 @@ create table if not exists public.users (
   team_name     text,
   platform      text,
   league_id     text,
-  is_subscribed boolean default false,
   push_token     text,
   created_at     timestamptz default now(),
   updated_at     timestamptz default now()
@@ -161,22 +160,11 @@ create table if not exists public.system_context (
   updated_at  timestamptz
 );
 
--- subscriptions -- backs the Stripe webhook. One row per user.
-create table if not exists public.subscriptions (
-  user_id            uuid primary key references public.users(id) on delete cascade,
-  stripe_customer_id text unique,
-  plan               text,
-  status             text default 'active',
-  subscribed_at      timestamptz default now(),
-  canceled_at        timestamptz,
-  trial_ends_at      timestamptz,
-  current_period_end timestamptz,
-  expires_at         timestamptz
-);
-
-alter table public.subscriptions
-  add column if not exists trial_ends_at      timestamptz,
-  add column if not exists current_period_end timestamptz;
+-- Remove retired paid-access storage from existing databases. These statements
+-- are intentionally idempotent; production execution remains a separate,
+-- founder-approved migration step.
+drop table if exists public.subscriptions;
+alter table public.users drop column if exists is_subscribed;
 
 -- waitlist_signups -- public landing-page capture.
 -- Duplicate emails are allowed intentionally so the current frontend never
@@ -200,7 +188,6 @@ create index if not exists idx_moves_user_week              on public.moves     
 create unique index if not exists idx_moves_user_week_unique on public.moves               (user_id, week_num, season);
 create index if not exists idx_moves_pending                on public.moves                (outcome) where outcome = 'pending';
 create index if not exists idx_oauth_state_expires_at       on public.oauth_state          (expires_at);
-create index if not exists idx_subscriptions_customer       on public.subscriptions        (stripe_customer_id);
 create index if not exists idx_waitlist_signups_created_at  on public.waitlist_signups     (created_at);
 
 
@@ -218,7 +205,6 @@ alter table public.deletion_audit_log    enable row level security;
 alter table public.oauth_state           enable row level security;
 alter table public.local_snapshots       enable row level security;
 alter table public.system_context        enable row level security;
-alter table public.subscriptions         enable row level security;
 alter table public.waitlist_signups      enable row level security;
 
 -- users -- self-only
@@ -302,10 +288,6 @@ create policy deletion_audit_no_user_read on public.deletion_audit_log for selec
 -- oauth_state, local_snapshots, system_context -- service_role only.
 -- RLS enabled with NO policies = no anon/auth user can read or write.
 -- service_role bypasses RLS.
-
--- subscriptions -- read-own only; only service_role (webhook) writes
-drop policy if exists subscriptions_self_select on public.subscriptions;
-create policy subscriptions_self_select on public.subscriptions for select using (auth.uid() = user_id);
 
 -- waitlist_signups -- browser may insert only; no anon/auth select/update/delete
 drop policy if exists anon_insert on public.waitlist_signups;
@@ -421,5 +403,5 @@ grant execute on function public.vault_delete_secret(uuid)             to servic
 -- After running, verify:
 --   select tablename, rowsecurity from pg_tables where schemaname='public';
 --   select proname from pg_proc where proname like 'vault_%';
---   select count(*) from public.subscriptions;
+--   select to_regclass('public.subscriptions'); -- expected: null (relation does not exist)
 -- =================================================================

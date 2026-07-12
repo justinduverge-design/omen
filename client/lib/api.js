@@ -11,7 +11,6 @@
  *
  * Usage:
  *   const roster = await apiFetch("/api/yahoo/roster?leagueKey=nfl.l.123");
- *   await apiFetch("/api/stripe/checkout", { method: "POST", body: { plan: "monthly" } });
  * =================================================================
  */
 

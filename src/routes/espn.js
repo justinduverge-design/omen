@@ -4,7 +4,7 @@
  * ESPN data routes.
  *
  * GET /api/espn/roster?leagueId=...&week=...
- * Returns a normalized ESPN roster. Auth is required; subscription is not.
+ * Returns a normalized ESPN roster. Auth is required.
  */
 
 const express = require("express");

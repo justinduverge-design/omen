@@ -7,14 +7,10 @@
  *     with email + sign-out button
  *   - Keep App.jsx untouched
  *
- * Stripe checkout is exposed as a global click delegate so the
- * existing SubGate / SubModal buttons inside App.jsx can call
- * `window.__startCheckout(plan)` without us having to edit App.jsx.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth }   from "./lib/auth.js";
-import { apiFetch }  from "./lib/api.js";
 import App           from "./App.jsx";
 
 // =================================================================
@@ -182,37 +178,10 @@ function AuthHeader({ user, onSignOut }) {
 }
 
 // =================================================================
-// Stripe checkout bridge - exposed as window.__startCheckout(plan)
-// so the existing SubGate / SubModal in App.jsx can call it without
-// us having to edit App.jsx.
-// =================================================================
-function useStripeBridge(user) {
-  useEffect(() => {
-    window.__startCheckout = async (plan = "monthly") => {
-      if (!user) {
-        alert("Please sign in first.");
-        return;
-      }
-      try {
-        const { url } = await apiFetch("/api/stripe/checkout", {
-          method: "POST",
-          body:   { plan },
-        });
-        if (url) window.location = url;
-      } catch (e) {
-        alert(`Checkout error: ${e.message}`);
-      }
-    };
-    return () => { delete window.__startCheckout; };
-  }, [user]);
-}
-
-// =================================================================
 // AuthApp - top-level wrapper
 // =================================================================
 export default function AuthApp() {
   const { user, loading, signOut } = useAuth();
-  useStripeBridge(user);
 
   if (loading) {
     return (

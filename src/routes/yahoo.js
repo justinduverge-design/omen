@@ -9,8 +9,7 @@
  * Returns the authenticated user's normalized Yahoo roster for the
  * given league. If `week` is omitted, uses the league's current week.
  *
- * Roster is table-stakes data (free + pro), so this only requires
- * auth - subscription gating goes on the optimizer routes.
+ * Roster is table-stakes data, so this only requires auth.
  *
  * Token plumbing (decrypt, refresh-if-expired, persist) lives in
  * src/services/yahooAuth.js so the optimizer router can reuse it.

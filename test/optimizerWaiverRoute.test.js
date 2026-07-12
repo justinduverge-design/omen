@@ -1,5 +1,4 @@
 "use strict";
-
 process.env.SUPABASE_URL ||= "https://example.supabase.co";
 process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 delete process.env.REDIS_URL;
@@ -153,11 +152,6 @@ function loadOptimizerRouter(options = {}) {
         }),
       };
     }
-    if (parent?.filename === routePath && request === "../middleware/subscription") {
-      return {
-        requireSubscription: options.requireSubscription || ((_req, _res, next) => next()),
-      };
-    }
     if (parent?.filename === routePath && request === "../services/yahooAuth") {
       return {
         getAuthenticatedYahooClient: async () => ({ client: yahoo }),
@@ -287,14 +281,4 @@ test("GET /api/optimizer/waiver returns 400 without usable Yahoo league", async 
 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "Yahoo league connection required");
-});
-
-test("GET /api/optimizer/waiver preserves subscription middleware failure", async () => {
-  const { app } = buildApp({
-    requireSubscription: (_req, res) => res.status(402).json({ error: "Pro subscription required" }),
-  });
-  const res = await request(app);
-
-  assert.equal(res.status, 402);
-  assert.equal(res.body.error, "Pro subscription required");
 });

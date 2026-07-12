@@ -14,7 +14,7 @@ public Ollama/OpenClaw address.
 | `NODE_ENV` | Runs Express in production mode. | App | No |
 | `PORT` | Internal Node listen port; current app default is `3000`. | App | No |
 | `TZ` | Cron container timezone for the Tuesday 6 AM schedule; compose sets `America/New_York`. | App | No |
-| `APP_BASE_URL` | Public app URL for redirects and Stripe return URLs. | App | No |
+| `APP_BASE_URL` | Public app URL for redirects. | App | No |
 | `CORS_ORIGINS` | Optional comma-separated browser origins allowed by CORS. | App | No |
 | `LOG_LEVEL` | Server log verbosity. | App | No |
 | `SUPABASE_URL` | Supabase project URL used by API, worker, and health readiness. | Supabase | No |
@@ -25,11 +25,6 @@ public Ollama/OpenClaw address.
 | `YAHOO_CLIENT_ID` | Yahoo OAuth app client id. | Yahoo | No |
 | `YAHOO_CLIENT_SECRET` | Yahoo OAuth app client secret. | Yahoo | Yes |
 | `YAHOO_REDIRECT_URI` | Yahoo OAuth callback URL. | Yahoo | No |
-| `STRIPE_SECRET_KEY` | Stripe server API key. | Stripe | Yes |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret. | Stripe | Yes |
-| `STRIPE_MONTHLY_PRICE_ID` | Stripe monthly plan price id. | Stripe | No |
-| `STRIPE_SEASON_PRICE_ID` | Stripe season pass price id. | Stripe | No |
-| `OMEN_BILLING_ENABLED` | Master billing kill-switch for checkout/portal/prices and Pro gate; launch value `false`. Legacy `CORVUS_BILLING_ENABLED` is still accepted as a fallback. | App | No |
 | `LLM_BASE_URL` | Private KVM2 Ollama/OpenClaw model base URL for narration. | LLM | Private-only endpoint |
 | `LLM_MODEL` | Model name sent to the LLM service. | LLM | No |
 | `LLM_TIMEOUT` | LLM request timeout in milliseconds. | LLM | No |
@@ -61,8 +56,7 @@ to GitHub Actions when the images are built, not to the KVM runtime env file.
 | `VITE_SUPABASE_ANON_KEY` | Public Supabase anon key baked into the SPA bundle. | Supabase | No |
 | `VITE_API_BASE_URL` | Optional SPA API base URL override; blank means same-origin `/api`. | App | No |
 | `VITE_ESPN_ENABLED` | Build-time flag that shows the ESPN connection UI. | App | No |
-| `VITE_BILLING_ENABLED` | Build-time flag that enables the Stripe subscription UI on Account; expected unset since Omen ships free. Forced off when VITE_APP_STORE_BUILD=true. | App | No |
-| `VITE_APP_STORE_BUILD` | Build-time flag that produces a Stripe-free, ESPN-connect-free bundle for mobile app-store builds; suppresses Subscription UI, all "Omen Pro" copy, and ESPN connect everywhere. Not yet wired into deploy.yml build args. | App | No |
+| `VITE_APP_STORE_BUILD` | Build-time flag that suppresses ESPN connect everywhere for mobile app-store builds. Not yet wired into deploy.yml build args. | App | No |
 | `VITE_SENTRY_DSN` | Public Sentry DSN baked into the SPA bundle for frontend error capture. Empty = SDK no-op. | Sentry | No (public client ID) |
 | `VITE_COMMIT_SHA` | Optional commit hash baked into the SPA bundle as the Sentry release tag. | App | No |
 
@@ -70,5 +64,5 @@ to GitHub Actions when the images are built, not to the KVM runtime env file.
 
 - `src/config/index.js` requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` at boot.
 - `src/server.js` listens on `config.port`, which defaults to `3000`.
-- `/api/ready` reports Supabase reachability plus optional Stripe, Yahoo, Redis, LLM, and OpenWeather configuration.
+- `/api/ready` reports Supabase reachability plus optional Yahoo, Redis, LLM, and OpenWeather configuration.
 - `src/omen_tuesday_cron.js` requires `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` for scoring, optionally uses Upstash, and has no inbound HTTP listener.

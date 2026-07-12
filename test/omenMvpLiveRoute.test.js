@@ -69,47 +69,14 @@ function authEnvelope(message = "Missing bearer token") {
   };
 }
 
-function subscriptionEnvelope() {
-  return {
-    state: "error",
-    feature: "omen_mvp_move",
-    mode: "live",
-    request_id: "omen_req_sub",
-    generated_at: "2026-05-25T00:00:00.000Z",
-    platform: {
-      name: "unknown",
-      status: "subscription_required",
-      recovery: { code: "upgrade_required", message: "Most Valuable Play requires Pro.", cta: "Upgrade" },
-    },
-    league: null,
-    team: null,
-    signals: {
-      roster: {
-        status: "unavailable",
-        used: false,
-        source: "platform_adapter",
-        message: "Most Valuable Play requires Pro.",
-      },
-    },
-    recommendation: null,
-    alternatives: [],
-    warnings: [],
-    error: {
-      code: "omen_subscription_required",
-      message: "Most Valuable Play requires Pro.",
-      retryable: false,
-    },
-  };
-}
 
-function loadOmenRouter({ subscribed = true } = {}) {
+function loadOmenRouter() {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
   const state = {
     authHeaders: [],
     llmPayloads: [],
-    subscriptionUserIds: [],
     liveUserIds: [],
   };
   const originalLoad = Module._load;
@@ -129,11 +96,6 @@ function loadOmenRouter({ subscribed = true } = {}) {
           return { status: 200, body: liveEnvelope() };
         },
         buildOmenMvpMoveResponse: () => ({ status: 200, body: liveEnvelope() }),
-        getOmenSubscriptionStatus: async (userId) => {
-          state.subscriptionUserIds.push(userId);
-          return subscribed;
-        },
-        subscriptionRequiredMvpResponse: () => ({ status: 402, body: subscriptionEnvelope() }),
       };
     }
     if (request === "../services/llm" && parent?.filename === routePath) {
@@ -200,22 +162,12 @@ test("POST /api/omen/mvp-move requires auth for live requests", async () => {
 
   assert.equal(res.status, 401);
   assert.equal(res.body.error.code, "omen_auth_required");
-  assert.deepEqual(state.subscriptionUserIds, []);
   assert.deepEqual(state.liveUserIds, []);
 });
 
-test("POST /api/omen/mvp-move requires subscription for live requests", async () => {
-  const { app, state } = buildApp({ subscribed: false });
-  const res = await post(app, { headers: { authorization: "Bearer valid-token" } });
 
-  assert.equal(res.status, 402);
-  assert.equal(res.body.error.code, "omen_subscription_required");
-  assert.deepEqual(state.subscriptionUserIds, ["user-1"]);
-  assert.deepEqual(state.liveUserIds, []);
-});
-
-test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized subscribed users", async () => {
-  const { app, state } = buildApp({ subscribed: true });
+test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized users", async () => {
+  const { app, state } = buildApp();
   const res = await post(app, {
     headers: { authorization: "Bearer valid-token" },
     body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
@@ -231,7 +183,7 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized subs
 });
 
 test("POST /api/omen/mvp-move skips LLM by default for live empty-body requests", async () => {
-  const { app, state } = buildApp({ subscribed: true });
+  const { app, state } = buildApp();
   const res = await post(app, {
     headers: { authorization: "Bearer valid-token" },
   });

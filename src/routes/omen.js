@@ -10,8 +10,6 @@ const {
   buildLiveOmenMvpMoveForUser,
   buildOmenMvpMoveResponse,
   authenticateOmenRequest,
-  getOmenSubscriptionStatus,
-  subscriptionRequiredMvpResponse,
 } = require("../services/omen");
 const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
@@ -280,9 +278,6 @@ async function liveOmenResult(req) {
   }
 
   try {
-    const isSubscribed = await getOmenSubscriptionStatus(user.id);
-    if (!isSubscribed) return subscriptionRequiredMvpResponse();
-
     return await buildLiveOmenMvpMoveForUser(user.id);
   } catch (e) {
     return {

@@ -54,10 +54,6 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL}
       LLM_MODEL: ${LLM_MODEL}
       LLM_TIMEOUT: ${LLM_TIMEOUT}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      STRIPE_MONTHLY_PRICE_ID: ${STRIPE_MONTHLY_PRICE_ID}
-      STRIPE_SEASON_PRICE_ID: ${STRIPE_SEASON_PRICE_ID}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -100,10 +96,6 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL}
       LLM_MODEL: ${LLM_MODEL}
       LLM_TIMEOUT: ${LLM_TIMEOUT}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      STRIPE_MONTHLY_PRICE_ID: ${STRIPE_MONTHLY_PRICE_ID}
-      STRIPE_SEASON_PRICE_ID: ${STRIPE_SEASON_PRICE_ID}
     restart: unless-stopped
     # No ports exposed — cron is a pure worker, no HTTP
     logging:
