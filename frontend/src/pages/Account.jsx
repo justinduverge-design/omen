@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
+import { Card } from '../components/ui/Card.jsx';
 import { apiFetch } from '../lib/api.js';
 import {
   ACCOUNT_DELETE_CONFIRMATION,
@@ -200,22 +201,9 @@ function BillingDates({ subscription }) {
   if (rows.length === 0) return null;
 
   return (
-    <div
-      className="overflow-hidden rounded-xl border"
-      style={{ borderColor: 'var(--color-border)' }}
-    >
-      <div
-        className="border-b px-4 py-2.5"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-      >
-        <p
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--color-team-accent)' }}
-        >
-          Billing
-        </p>
-      </div>
-      <dl style={{ background: 'var(--color-surface-1)' }}>
+    <Card variant="solid" className="overflow-hidden">
+      <Card.Header eyebrow="Billing" />
+      <dl>
         {rows.map((row, i) => (
           <div
             key={row.key}
@@ -237,7 +225,7 @@ function BillingDates({ subscription }) {
           </div>
         ))}
       </dl>
-    </div>
+    </Card>
   );
 }
 
