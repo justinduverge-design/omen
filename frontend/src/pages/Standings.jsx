@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
+import { Card } from '../components/ui/Card.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
@@ -183,10 +184,7 @@ export default function Standings() {
     // No league connected — show a proper CTA, not a blank screen
     if (isDisconnected) {
       return (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
+        <Card variant="solid" className="p-10 text-center">
           <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             No league connected.
           </p>
@@ -199,7 +197,7 @@ export default function Standings() {
           >
             Connect a league →
           </Link>
-        </div>
+        </Card>
       );
     }
 
@@ -208,10 +206,7 @@ export default function Standings() {
       const platform = errorCode.replace('_reconnect_required', '');
       const label    = PLATFORM_LABELS[platform] ?? platform;
       return (
-        <div
-          className="rounded-xl border p-6"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
+        <Card variant="solid" className="p-6">
           <p className="text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
             Your {label} connection needs to be refreshed before standings can load.
           </p>
@@ -225,17 +220,14 @@ export default function Standings() {
           >
             Reconnect {label} →
           </Link>
-        </div>
+        </Card>
       );
     }
 
     // Generic / provider error
     if (errorCode) {
       return (
-        <div
-          className="rounded-xl border p-6 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
+        <Card variant="error" className="p-6 text-center">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Couldn't load standings right now.
           </p>
@@ -247,33 +239,27 @@ export default function Standings() {
           >
             Try again →
           </button>
-        </div>
+        </Card>
       );
     }
 
     // Empty standings (season not started)
     if (!data?.standings?.length) {
       return (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-        >
+        <Card variant="empty" className="p-10 text-center">
           <p className="font-display text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             No standings yet.
           </p>
           <p className="mt-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Standings will appear once the season begins.
           </p>
-        </div>
+        </Card>
       );
     }
 
     // Standings table
     return (
-      <div
-        className="rounded-xl border"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
-      >
+      <Card variant="solid">
         {/* League meta row */}
         <div
           className="flex flex-wrap items-center gap-2 border-b px-5 py-3"
@@ -298,7 +284,7 @@ export default function Standings() {
         <div className="px-5 pb-5 pt-4">
           <StandingsTable standings={data.standings} />
         </div>
-      </div>
+      </Card>
     );
   }
 
