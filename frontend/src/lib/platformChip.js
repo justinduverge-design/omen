@@ -6,7 +6,7 @@ const PLATFORM_TOKEN = {
 
 // Yahoo and ESPN's brand hues are too low-luminance to read as small text
 // directly on the dark-theme surface; [data-theme="dark"] defines lightened
-// -chip overrides for those two only. Sleeper's brand blue is bright enough
+// -chip overrides for those two only. Sleeper's brand cyan is bright enough
 // to use directly in both themes.
 const PLATFORM_CHIP_TOKEN = {
   sleeper: '--color-platform-sleeper',
