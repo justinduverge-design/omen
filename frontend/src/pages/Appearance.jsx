@@ -222,7 +222,7 @@ export default function Appearance() {
             Your look.
           </h1>
           <p
-            className="font-serif text-lg leading-relaxed"
+            className="text-lg leading-relaxed"
             style={{ color: 'var(--color-text-primary)', maxWidth: '52ch' }}
           >
             Omen paints with your team's actual colors — every one of them. Pick
@@ -432,7 +432,7 @@ export default function Appearance() {
             </p>
             <LivePreview template={template} themed={themed} />
             <p
-              className="mt-3 font-serif text-sm italic"
+              className="mt-3 text-sm italic"
               style={{ color: 'var(--color-text-tertiary)' }}
             >
               {themed

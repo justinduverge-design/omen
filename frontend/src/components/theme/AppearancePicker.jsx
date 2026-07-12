@@ -120,7 +120,7 @@ export function CulturalAnchorAttribution({ anchor }) {
   const yearPart = year ? ` (${year})` : '';
   return (
     <p
-      className="mt-3 font-serif text-xs italic leading-relaxed"
+      className="mt-3 text-xs italic leading-relaxed"
       style={{ color: 'var(--color-text-tertiary)', maxWidth: '52ch' }}
     >
       {prefix} {name}{yearPart}.

@@ -22,7 +22,7 @@ function CulturalAnchorLine() {
   const yearPart = anchor.year ? ` (${anchor.year})` : '';
   return (
     <span
-      className="font-serif text-xs italic"
+      className="text-xs italic"
       style={{ color: 'var(--color-text-tertiary)' }}
     >
       Painted in the spirit of {anchor.name}{yearPart}.
@@ -42,7 +42,7 @@ function MomentCitationLine() {
   if (!citation) return null;
   return (
     <span
-      className="font-serif text-xs italic"
+      className="text-xs italic"
       style={{ color: 'var(--color-text-tertiary)' }}
     >
       {citation}

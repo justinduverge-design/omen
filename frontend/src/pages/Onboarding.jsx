@@ -61,7 +61,7 @@ function PickLookStep({ onSkip, onContinue }) {
         Pick your look.
       </h2>
       <p
-        className="mb-8 font-serif text-lg leading-relaxed"
+        className="mb-8 text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}
       >
         Omen borrows your team's colors for accents — recommendations, confidence,
@@ -159,7 +159,7 @@ function WelcomeStep({ onNext }) {
         Better moves.
       </h1>
       <p
-        className="mb-10 font-serif text-lg leading-relaxed"
+        className="mb-10 text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
         Omen watches your roster, reads the matchups, and surfaces the one
@@ -193,7 +193,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         Connect your league.
       </h2>
       <p
-        className="mb-8 font-serif text-lg leading-relaxed"
+        className="mb-8 text-lg leading-relaxed"
         style={{ color: 'var(--color-text-secondary)', maxWidth: '44ch' }}
       >
         Omen needs your roster and matchup data to generate your weekly move.
@@ -301,7 +301,7 @@ function CompleteStep({ onDone }) {
         You're set.
       </h2>
       <p
-        className="mb-10 font-serif text-lg leading-relaxed"
+        className="mb-10 text-lg leading-relaxed"
         style={{ color: 'var(--color-text-primary)', maxWidth: '44ch' }}
       >
         League connected. Omen reads the matchup the moment your roster locks
