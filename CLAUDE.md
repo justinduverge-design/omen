@@ -23,7 +23,9 @@ If a file is missing, continue and mention it.
 
 - `Brand/brand-system.md` — voice, palette, type, AAA framework
 - `Blueprints/specs/page-system.md` — per-page typography / accent / palette / copy contract
-- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — tokens + components
+- `Blueprints/specs/design/component-lock-v1.md` — canonical component API/tokens (Button, Input, Segmented, Card shell, Type scale, Spacing)
+- `Blueprints/specs/design/team-theme-contract-v1.md` — which tokens a team skin may override, contrast rules, room-mode depth
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — **partially superseded** by the two specs above (see its own banner); still authoritative for base palette hexes, dark-mode token names, brand voice
 - `Blueprints/api-routes.md` — API contracts
 - `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
 
