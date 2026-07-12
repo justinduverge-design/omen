@@ -513,6 +513,60 @@ function resolveAccent(template, surfaceHex) {
   return readableOn(surfaceHex);
 }
 
+// ── Border/panel-definition guard (team-theme-contract-v1.md Rule 3c) ──────
+//
+// Follow-up to the card-fill guard above. That fix made text on the card
+// legible, but never touched --color-border, which was still a fixed
+// `color-mix(primary 26%, neutral 74%)` formula computed independently of
+// both the shell and the resolved card fill. Audited all 32 teams: 15 have
+// a border under 1.5:1 against BOTH the shell and the card (functionally
+// invisible), and none reach a real 3:1 anywhere. Once cards started
+// falling back to a darker neutral (the previous fix), the shell-to-card
+// luminance gap shrank and panels started relying entirely on this
+// never-verified border to read as separated — which it structurally
+// couldn't do. This is the actual source of the "flatter" feeling: not a
+// font problem, a border-was-never-contrast-checked problem.
+const BORDER_MIN_RATIO = 3;
+const BORDER_NEUTRAL_DARK = '#5A5A5E';   // a genuine mid-gray, one step up from --color-surface-3 (#3A3A3C)
+const BORDER_NEUTRAL_LIGHT = '#A8A8AC';  // mid-gray counterpart for light shells
+
+/**
+ * Border must be >=3:1 against BOTH the shell and the resolved card (Rule
+ * 3c: differentiation for cards that can't get there via fill alone comes
+ * from the border). Tries team-primary-tinted first (identity carries into
+ * the border even when the card itself went neutral), falls back to a
+ * plain neutral border if team tint can't hit both floors.
+ */
+function resolveBorder(surfaceHex, cardHex, template, surfaceIsDark) {
+  const teamHex = template.primary?.hex ?? template.accent?.hex;
+  const neutralTarget = surfaceIsDark ? BORDER_NEUTRAL_DARK : BORDER_NEUTRAL_LIGHT;
+
+  function passes(hex) {
+    return contrastRatio(hex, surfaceHex) >= BORDER_MIN_RATIO && contrastRatio(hex, cardHex) >= BORDER_MIN_RATIO;
+  }
+
+  if (teamHex) {
+    for (let pct = 55; pct >= 0; pct -= 5) {
+      const hex = mixHex(teamHex, pct, neutralTarget);
+      if (passes(hex)) return hex;
+    }
+  }
+  for (let pct = 100; pct >= 0; pct -= 5) {
+    const hex = mixHex(neutralTarget, pct, surfaceIsDark ? '#FFFFFF' : '#0A0A0B');
+    if (passes(hex)) return hex;
+  }
+  // Neither team-tinted nor a swept neutral range hit both floors — return
+  // the plain neutral target as the closest available compromise and log
+  // it the same way the card-fill guard logs its own ceiling cases.
+  if (typeof console !== 'undefined') {
+    console.warn(
+      `[theme] border cannot reach ${BORDER_MIN_RATIO}:1 against both shell (${surfaceHex}) and card (${cardHex}). ` +
+      `Using best-effort neutral (${neutralTarget}) — this shell/card pairing needs an authored border.`,
+    );
+  }
+  return neutralTarget;
+}
+
 function applyTeamTokens(root, template) {
   setRoleTokens(root, template);
 
@@ -535,13 +589,11 @@ function applyTeamTokens(root, template) {
     '--color-surface-3',
     `color-mix(in srgb, ${template.surface} ${template.surfaceIsDark ? '74%' : '84%'}, ${template.surfaceIsDark ? 'white' : 'black'})`,
   );
-  root.style.setProperty(
-    '--color-border',
-    `color-mix(in srgb, ${template.primary?.hex ?? template.surface} 26%, ${template.surfaceIsDark ? '#3A3A3C' : '#C8C8C5'} 74%)`,
-  );
+  const borderHex = resolveBorder(template.surface, cardFillHex, template, template.surfaceIsDark);
+  root.style.setProperty('--color-border', borderHex);
   root.style.setProperty(
     '--color-border-subtle',
-    `color-mix(in srgb, ${template.primary?.hex ?? template.surface} 12%, ${template.surface} 88%)`,
+    `color-mix(in srgb, ${borderHex} 55%, ${cardFillHex} 45%)`,
   );
 
   // Accent semantics: `accent` is the derived CTA color (falls through to
