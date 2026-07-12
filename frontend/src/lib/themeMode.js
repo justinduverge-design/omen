@@ -467,6 +467,22 @@ function readableSecondaryOn(hex) {
   return bestGrayscaleOn(hex, '#AEAEB2');
 }
 
+/**
+ * --color-text-tertiary equivalent of readableSecondaryOn. Missed in the
+ * first legibility pass -- had the exact same crude surfaceIsDark binary
+ * (no contrast check at all) as secondary text did before that fix, so
+ * every muted/tertiary label (eyebrows, "Show all 32 teams", swatch
+ * captions) inherited the same silent-failure bug. Founder: "we need all
+ * of the text legible... no matter what" -- tertiary gets the same 4.5:1
+ * floor as secondary, not a relaxed one, since it's still real body-size
+ * text in this app, not large/decorative type.
+ */
+function readableTertiaryOn(hex) {
+  if (contrastRatio('#6D6D72', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#6D6D72';
+  if (contrastRatio('#6B7280', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#6B7280';
+  return bestGrayscaleOn(hex, '#6D6D72');
+}
+
 /** Best-contrast pure grayscale shade against `hex`, searched exhaustively. */
 function bestGrayscaleOn(hex, fallback) {
   let best = fallback;
@@ -774,10 +790,7 @@ function applyTeamTokens(root, template) {
   // gets an actual best-of-two-candidates check instead of a heuristic.
   root.style.setProperty('--color-text-primary',   template.textOnSurface);
   root.style.setProperty('--color-text-secondary', readableSecondaryOn(template.surface));
-  root.style.setProperty(
-    '--color-text-tertiary',
-    template.surfaceIsDark ? '#6D6D72' : '#6B7280',
-  );
+  root.style.setProperty('--color-text-tertiary',  readableTertiaryOn(template.surface));
 
   applyMotifTokens(root, template.motifs);
   applyTypeFlourishTokens(root, template.typeFlourishes);
