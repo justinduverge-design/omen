@@ -1,6 +1,8 @@
 # Omen API Route Reference
 
-Last updated: 2026-07-04
+Last updated: 2026-07-12
+
+`/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
 This file is the quick backend reference for current canonical routes and known retired compatibility routes. It is not a full OpenAPI spec; the detailed contracts remain in `Blueprints/handoffs/backend-to-frontend.md`.
 
@@ -32,7 +34,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
 | `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
-| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, subscription, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. |
+| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. No `subscription` field — Omen is free, no billing gate. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |
@@ -48,10 +50,6 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
 | `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
-| `GET` | `/api/stripe/prices` | `stripe-prices.v1` | No | Public Stripe price display. |
-| `POST` | `/api/stripe/checkout` | checkout URL | Yes | Starts Stripe Checkout. |
-| `POST` | `/api/stripe/portal` | portal URL | Yes | Starts Stripe Billing Portal. |
-| `POST` | `/api/stripe/webhook` | webhook receipt | Stripe signature | Raw-body webhook route. |
 
 ## Retired Compatibility Routes
 

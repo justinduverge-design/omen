@@ -1053,3 +1053,13 @@ Plain-English output needed:
 
 Notes / risks:
 ```
+
+## Stripe/Subscription Removal — 2026-07-12
+
+Every Stripe/subscription/`UpgradeState`/billing-gate reference above this entry is historical.
+Justin confirmed 2026-07-12 Omen ships free indefinitely and Stripe is fully removed (backend +
+schema) — see `Direction/decision_log.md` and the matching entry in `backend-to-frontend.md`.
+`UpgradeState.jsx` is deleted (was already dead code before this removal), `Account.jsx`'s
+subscription section is gone, and `GET /api/dashboard/summary` no longer includes a
+`subscription` field or a `needs_subscription`/`mode: "pro"` gate anywhere. Do not build against
+any Stripe/subscription contract described earlier in this file.

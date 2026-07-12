@@ -86,16 +86,6 @@ server {
         proxy_set_header   Connection        "upgrade";
         proxy_read_timeout 60s;
     }
-
-    # Stripe webhooks - keep raw body, no buffering games
-    location /api/stripe/webhook {
-        proxy_pass         $UPSTREAM;
-        proxy_http_version 1.1;
-        proxy_set_header   Host              \$host;
-        proxy_set_header   X-Forwarded-Proto \$scheme;
-        proxy_buffering    off;
-        client_max_body_size 1m;
-    }
 }
 NGINX
 

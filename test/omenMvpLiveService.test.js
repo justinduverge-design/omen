@@ -64,7 +64,7 @@ function loadOmenService({
       return {
         select() {
           if (table === "platform_connections") return new FakeQuery(connections);
-          if (table === "users") return new FakeQuery([{ id: "user-1", is_subscribed: true }]);
+          if (table === "users") return new FakeQuery([{ id: "user-1" }]);
           throw new Error(`unexpected table ${table}`);
         },
       };

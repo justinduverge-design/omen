@@ -3655,3 +3655,30 @@ How frontend should call it:
 
 - No frontend change. Continue calling existing endpoints with their current request bodies.
 - Do not send raw scoring-config rows from the browser; future backend integration should load the authenticated user's owned league config server-side.
+
+## Stripe/Subscription Removal — 2026-07-12
+
+Feature: Full Stripe/billing removal (backend + schema)
+
+Every Stripe/subscription reference above this entry is historical. Justin confirmed
+2026-07-12 that Omen ships free indefinitely and Stripe will not be used on this product
+(see `Direction/decision_log.md` "Decisions Added 2026-07-12 (Justin — batch decision review
+on open blockers)"). Removed:
+
+- `src/routes/stripe.js`, `src/middleware/subscription.js`, `src/services/subscription.js` (deleted).
+- `/api/stripe/prices`, `/api/stripe/checkout`, `/api/stripe/portal`, `/api/stripe/webhook` (all gone, 404).
+- `requireSubscription` gate on `/api/optimizer/*` and the `omen_subscription_required` 402 on
+  `POST /api/omen/mvp-move` — both routes are now auth-only, no billing gate.
+- `GET /api/dashboard/summary` no longer returns a `subscription` field; `tools.omen_of_the_week`
+  and `tools.waiver_wire` no longer have a `needs_subscription` status or `mode: "pro"` — both are
+  `mode: "free"` now.
+- `public.subscriptions` table and `public.users.is_subscribed` column dropped from
+  `sql/omen_rls_security.sql` (drop statements added; must still be run against production
+  Supabase separately with explicit sign-off — this repo cannot apply schema changes directly).
+- `stripe` npm package removed from root `package.json`.
+- Frontend: `UpgradeState.jsx` deleted (was dead code, zero importers). `Account.jsx`'s entire
+  `SubscriptionSection`/`PlanPicker`/`ActiveSubscription`/`SubscriptionBanner` UI removed.
+
+Frontend impact: any code still reading `res.body.subscription` from `/api/dashboard/summary`
+will get `undefined`. Any code checking `tools.omen_of_the_week.mode === 'pro'` will never match
+again — check `available`/`status` instead.

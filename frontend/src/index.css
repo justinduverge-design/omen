@@ -84,11 +84,12 @@
   --color-pos-def: #F472B6;
   --color-pos-k:   #A3A3A3;
   /* Phase 1.7 platform brand palette — dark fallback. Yahoo/ESPN sourced from
-     public brand-color references; Sleeper has no confirmed official hex, so
-     this keeps the prior approximate blue (verify against Justin's brand kit
-     if one exists). -chip tokens are dark-surface-legible overrides for small
-     badge/icon text where the raw brand hue is too low-luminance to read. */
-  --color-platform-sleeper:    #1FA3E8;
+     public brand-color references; Sleeper's hex is sampled from the app
+     icon's eye color (2026-07-12, ~#63D8F7 measured, see decision log) — the
+     prior #1FA3E8 was an unconfirmed approximation. -chip tokens are
+     dark-surface-legible overrides for small badge/icon text where the raw
+     brand hue is too low-luminance to read. */
+  --color-platform-sleeper:    #63D8F7;
   --color-platform-yahoo:      #410093;
   --color-platform-espn:       #C81E2C;
   --color-platform-yahoo-chip: #A080C9;
@@ -291,7 +292,7 @@
   --color-pos-k:   #A3A3A3;
   /* Phase 1.7 platform brand palette — dark theme. See :root comment for
      sourcing/confidence notes. */
-  --color-platform-sleeper:    #1FA3E8;
+  --color-platform-sleeper:    #63D8F7;
   --color-platform-yahoo:      #410093;
   --color-platform-espn:       #C81E2C;
   --color-platform-yahoo-chip: #A080C9;
@@ -354,9 +355,12 @@
   --color-pos-k:   #525252;
   /* Phase 1.7 platform brand palette — light-mode variants land deeper for AA
      on light surfaces. Yahoo's official purple is already dark enough to
-     reuse unchanged; Sleeper and ESPN get deepened light-mode hexes. No -chip
-     overrides needed here — base tokens already pass as text-on-white. */
-  --color-platform-sleeper:    #0E6FB3;
+     reuse unchanged; Sleeper and ESPN get deepened light-mode hexes. Sleeper's
+     light variant is the dark-theme cyan (#63D8F7) deepened ~50% luminance to
+     hit 5.9:1 on white (verified via WCAG contrast calc, 2026-07-12) rather
+     than a separately-picked color. No -chip overrides needed here — base
+     tokens already pass as text-on-white. */
+  --color-platform-sleeper:    #316C7B;
   --color-platform-yahoo:      #410093;
   --color-platform-espn:       #C81E2C;
   --color-on-platform-sleeper: #FAFAF9;

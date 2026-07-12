@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
-import { Card } from '../components/ui/Card.jsx';
 import { apiFetch } from '../lib/api.js';
 import {
   ACCOUNT_DELETE_CONFIRMATION,
@@ -12,375 +11,6 @@ import { setDataMode } from '../lib/dataMode.js';
 import { storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
-
-const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
-const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
-
-const PLAN_OPTIONS = [
-  {
-    id: 'monthly',
-    label: 'Monthly',
-    badge: '7-day trial',
-    description: "Recurring subscription. Includes a 7-day free trial — cancel before it ends and you won't be charged.",
-    cta: 'Start 7-day free trial',
-  },
-  {
-    id: 'season',
-    label: 'Season Pass',
-    badge: 'One-time',
-    description: 'Single payment for full-season access. No renewal, no surprises.',
-    cta: 'Continue to checkout',
-  },
-];
-
-async function fetchStripePrices() {
-  try {
-    const data = await apiFetch('/api/stripe/prices');
-    const map = {};
-    for (const plan of data?.plans ?? []) {
-      if (plan.price?.display) map[plan.id] = plan.price.display;
-    }
-    return map;
-  } catch {
-    return {};
-  }
-}
-
-// ── Banner ────────────────────────────────────────────────────────────────────
-
-function SubscriptionBanner({ type, onDismiss }) {
-  if (type === 'subscribed') {
-    return (
-      <div className="flex items-center justify-between rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-3">
-        <div>
-          <p className="text-sm font-semibold text-emerald-300">Welcome to Omen Pro.</p>
-          <p className="mt-0.5 text-xs text-emerald-200/70">Your subscription is active. You're all set.</p>
-        </div>
-        <button
-          className="ml-4 shrink-0 text-xs text-emerald-400/50 transition-colors hover:text-emerald-300"
-          type="button"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      </div>
-    );
-  }
-
-  if (type === 'cancelled') {
-    return (
-      <div className="flex items-center justify-between rounded-xl border border-[var(--color-team-accent)]/20 bg-[var(--color-team-accent)]/5 px-5 py-3">
-        <p className="text-sm text-[var(--color-text-secondary)]">Checkout cancelled — no changes were made.</p>
-        <button
-          className="ml-4 shrink-0 text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
-          type="button"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      </div>
-    );
-  }
-
-  return null;
-}
-
-// ── Plan picker ───────────────────────────────────────────────────────────────
-
-function PlanCard({ option, selected, onSelect, price }) {
-  const isSelected = selected === option.id;
-  return (
-    <button
-      role="radio"
-      aria-checked={isSelected}
-      className={[
-        'w-full rounded-xl border p-4 text-left transition-colors',
-        isSelected
-          ? 'border-[var(--color-team-accent)]/60 bg-[var(--color-team-accent)]/10'
-          : 'border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-surface-3)]',
-      ].join(' ')}
-      type="button"
-      onClick={() => onSelect(option.id)}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-2">
-          <p className={`text-sm font-semibold ${isSelected ? 'text-[var(--color-accent-hover)]' : 'text-[var(--color-text-primary)]'}`}>
-            {option.label}
-          </p>
-          {price && (
-            <span className={`font-mono text-sm tabular-nums ${isSelected ? 'text-[var(--color-team-accent)]' : 'text-[var(--color-text-secondary)]'}`}>
-              {price}
-            </span>
-          )}
-        </div>
-        <span
-          className={[
-            'rounded-full border px-2 py-0.5 text-xs font-semibold shrink-0',
-            isSelected
-              ? 'border-[var(--color-team-accent)]/30 bg-[var(--color-team-accent)]/10 text-[var(--color-team-accent)]'
-              : 'border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)]',
-          ].join(' ')}
-        >
-          {option.badge}
-        </span>
-      </div>
-      <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">{option.description}</p>
-    </button>
-  );
-}
-
-function PlanPicker({ onCheckout, loading, error }) {
-  const [selected, setSelected] = useState('monthly');
-  const [prices, setPrices] = useState({});
-  const selectedOption = PLAN_OPTIONS.find((o) => o.id === selected);
-
-  useEffect(() => {
-    fetchStripePrices().then(setPrices);
-  }, []);
-
-  return (
-    <div className="space-y-4">
-      <div role="radiogroup" aria-label="Select a plan" className="space-y-2">
-        {PLAN_OPTIONS.map((opt) => (
-          <PlanCard key={opt.id} option={opt} selected={selected} onSelect={setSelected} price={prices[opt.id]} />
-        ))}
-      </div>
-
-      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
-
-      <button
-        className="w-full rounded-xl bg-[var(--color-team-accent)] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:opacity-60"
-        disabled={loading}
-        type="button"
-        onClick={() => onCheckout(selected)}
-      >
-        {loading ? 'Redirecting to Stripe…' : selectedOption?.cta ?? 'Continue to checkout'}
-      </button>
-
-      <p className="text-center text-xs text-[var(--color-text-tertiary)]">
-        Payments secured by Stripe.
-      </p>
-    </div>
-  );
-}
-
-// ── Billing dates ─────────────────────────────────────────────────────────────
-
-function fmtDate(iso) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? null
-    : d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-function BillingDates({ subscription }) {
-  const plan = subscription?.plan;
-  const status = subscription?.status;
-
-  const trialEndsLabel = fmtDate(subscription?.trial_ends_at);
-
-  let billingLabel = null;
-  let billingKey = 'Next billing date';
-
-  if (plan === 'season') {
-    billingLabel = fmtDate(subscription?.expires_at) || fmtDate(subscription?.current_period_end);
-    billingKey = 'Access through';
-  } else {
-    if (subscription?.current_period_end) {
-      billingLabel = fmtDate(subscription.current_period_end);
-    } else if (status === 'trialing' && subscription?.trial_ends_at) {
-      billingLabel = fmtDate(subscription.trial_ends_at);
-    }
-  }
-
-  const rows = [];
-  if (trialEndsLabel) rows.push({ key: 'Trial ends', value: trialEndsLabel });
-  if (billingLabel) rows.push({ key: billingKey, value: billingLabel });
-
-  if (rows.length === 0) return null;
-
-  return (
-    <Card variant="solid" className="overflow-hidden">
-      <Card.Header eyebrow="Billing" />
-      <dl>
-        {rows.map((row, i) => (
-          <div
-            key={row.key}
-            className="flex items-center justify-between px-4 py-3"
-            style={i > 0 ? { borderTop: '1px solid var(--color-border)' } : undefined}
-          >
-            <dt
-              className="text-xs font-medium"
-              style={{ color: 'var(--color-text-tertiary)' }}
-            >
-              {row.key}
-            </dt>
-            <dd
-              className="text-sm font-medium tabular-nums"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              {row.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </Card>
-  );
-}
-
-// ── Active state ──────────────────────────────────────────────────────────────
-
-function ActiveSubscription({ subscription, onManage, loading, error }) {
-  const planLabel = subscription?.plan === 'monthly'
-    ? 'Monthly'
-    : subscription?.plan === 'season'
-    ? 'Season Pass'
-    : null;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-5 py-4">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          Omen Pro · Active
-        </span>
-        {planLabel && <span className="text-xs text-[var(--color-text-secondary)]">{planLabel}</span>}
-      </div>
-
-      <BillingDates subscription={subscription} />
-
-      {error && <p className="text-xs text-red-400" role="alert">{error}</p>}
-
-      {subscription?.can_manage_billing && (
-        <button
-          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-surface-3)] hover:text-[var(--color-text-primary)] disabled:opacity-60"
-          disabled={loading}
-          type="button"
-          onClick={onManage}
-        >
-          {loading ? 'Redirecting…' : 'Manage subscription'}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ── Subscription section ──────────────────────────────────────────────────────
-
-function SubscriptionSection({ subscription, summaryLoading, summaryError, onRefetch, sectionRef }) {
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [actionError, setActionError] = useState(null);
-
-  async function handleCheckout(plan) {
-    setCheckoutLoading(true);
-    setActionError(null);
-    try {
-      const { url } = await apiFetch('/api/stripe/checkout', {
-        method: 'POST',
-        body: { plan },
-      });
-      window.location.href = url;
-    } catch (err) {
-      const status = err?.status;
-      if (status === 503) {
-        setActionError('Stripe is not available right now. Please try again later.');
-      } else if (status === 400) {
-        setActionError('Invalid plan selected. Please choose a plan and try again.');
-      } else {
-        setActionError('Could not open Stripe checkout. Please try again.');
-      }
-      setCheckoutLoading(false);
-    }
-  }
-
-  async function handlePortal() {
-    setPortalLoading(true);
-    setActionError(null);
-    try {
-      const { url } = await apiFetch('/api/stripe/portal', { method: 'POST' });
-      window.location.href = url;
-    } catch (err) {
-      const status = err?.status;
-      if (status === 404) {
-        setActionError('No billing record found. Complete a checkout first.');
-      } else if (status === 503) {
-        setActionError('Billing portal is not available right now. Please try again later.');
-      } else {
-        setActionError('Could not open the billing portal. Please try again.');
-      }
-      setPortalLoading(false);
-    }
-  }
-
-  function renderBody() {
-    if (!BILLING_ENABLED) {
-      return (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-          <p className="text-sm font-semibold text-[var(--color-text-primary)]">All features included</p>
-          <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Every Omen tool is available on your account.
-          </p>
-        </div>
-      );
-    }
-
-    if (summaryLoading) {
-      return (
-        <div className="animate-pulse motion-reduce:animate-none space-y-3">
-          <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
-          <div className="h-14 rounded-xl bg-[var(--color-surface-2)]" />
-          <div className="h-11 w-full rounded-xl bg-[var(--color-surface-2)]" />
-        </div>
-      );
-    }
-
-    if (summaryError || subscription?.status === 'unknown') {
-      return (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-          <p className="text-sm text-[var(--color-text-secondary)]">Could not load subscription status.</p>
-          <button
-            className="mt-3 text-xs font-semibold text-[var(--color-team-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
-            type="button"
-            onClick={onRefetch}
-          >
-            Retry →
-          </button>
-        </div>
-      );
-    }
-
-    if (subscription?.is_subscribed) {
-      return (
-        <ActiveSubscription
-          subscription={subscription}
-          onManage={handlePortal}
-          loading={portalLoading}
-          error={actionError}
-        />
-      );
-    }
-
-    return (
-      <PlanPicker
-        onCheckout={handleCheckout}
-        loading={checkoutLoading}
-        error={actionError}
-      />
-    );
-  }
-
-  return (
-    <section ref={sectionRef} className="space-y-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen Pro</p>
-        <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Subscription</h2>
-      </div>
-      {renderBody()}
-    </section>
-  );
-}
 
 // ── Privacy section ──────────────────────────────────────────────────────────
 
@@ -480,7 +110,7 @@ function AccountDeleteDialog({ open, onClose }) {
           </div>
 
           <p id="account-delete-copy" className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-            This removes Omen-stored platform connections, saved moves, consent records, subscription records, and profile data.
+            This removes Omen-stored platform connections, saved moves, consent records, and profile data.
             It does not change data held by fantasy platforms or sign-in providers.
           </p>
 
@@ -571,42 +201,10 @@ function PrivacySection() {
 
 export default function Account() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const recoveryState = searchParams.get('recovery') || null;
 
   const [checkingSession, setCheckingSession] = useState(true);
-  const [summary, setSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState(false);
-  const [banner, setBanner] = useState(null);
-
-  const subscriptionRef = useRef(null);
-  const scrollRequested = useRef(false);
-
-  // Read Stripe return params on mount only.
-  useEffect(() => {
-    if (searchParams.get('subscribed') === 'true') {
-      setBanner('subscribed');
-      const next = new URLSearchParams(searchParams);
-      next.delete('subscribed');
-      setSearchParams(next, { replace: true });
-    } else if (searchParams.get('cancelled') === 'true') {
-      setBanner('cancelled');
-      const next = new URLSearchParams(searchParams);
-      next.delete('cancelled');
-      setSearchParams(next, { replace: true });
-    }
-
-    if (searchParams.get('upgrade') === 'true') {
-      // Billing is disabled — there's no subscription section to scroll to.
-      // Just strip the param and land on the account page normally.
-      if (BILLING_ENABLED && !APP_STORE_BUILD) scrollRequested.current = true;
-      const next = new URLSearchParams(searchParams);
-      next.delete('upgrade');
-      setSearchParams(next, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Session gate.
   useEffect(() => {
@@ -630,38 +228,12 @@ export default function Account() {
     return () => { mounted = false; };
   }, [navigate]);
 
-  const fetchSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    setSummaryError(false);
-    try {
-      const data = await apiFetch('/api/dashboard/summary');
-      setSummary(data);
-    } catch {
-      setSummaryError(true);
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, []);
-
-  // Fetch summary once session is confirmed.
-  useEffect(() => {
-    if (!checkingSession) fetchSummary();
-  }, [checkingSession, fetchSummary]);
-
   // Phase 1.5g.3: Account is settings-only — no live fantasy recommendation
   // data on the page — so cultural-moment chrome is mock-safe here.
   useEffect(() => {
     setDataMode('mock');
     return () => setDataMode(null);
   }, []);
-
-  // Scroll to subscription section once rendered (from ?upgrade=true).
-  useEffect(() => {
-    if (!checkingSession && scrollRequested.current && subscriptionRef.current) {
-      scrollRequested.current = false;
-      subscriptionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [checkingSession, summaryLoading]);
 
   if (checkingSession) {
     return (
@@ -673,8 +245,6 @@ export default function Account() {
 
   return (
     <AppLayout>
-      {BILLING_ENABLED && !APP_STORE_BUILD && banner && <SubscriptionBanner type={banner} onDismiss={() => setBanner(null)} />}
-
       <section className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Omen</p>
         <h1 className="mt-3 text-5xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-6xl">Account</h1>
@@ -682,16 +252,6 @@ export default function Account() {
           Manage your fantasy platform connections and account preferences.
         </p>
       </section>
-
-      {BILLING_ENABLED && !APP_STORE_BUILD && (
-        <SubscriptionSection
-          subscription={summary?.subscription}
-          summaryLoading={summaryLoading}
-          summaryError={summaryError}
-          onRefetch={fetchSummary}
-          sectionRef={subscriptionRef}
-        />
-      )}
 
       <div className="border-t border-[var(--color-border)] pt-6">
         <section className="space-y-1">
