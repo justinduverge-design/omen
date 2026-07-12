@@ -59,6 +59,9 @@ const TEAM_TOKEN_VARS = [
   '--color-team-pop-name',
   '--color-team-surface',
   '--color-team-surface-card',
+  '--color-team-secondary-on-card',
+  '--color-team-identity-primary-on-shell',
+  '--color-team-identity-secondary-on-shell',
   '--color-team-text-on-primary',
   '--color-team-text-on-secondary',
   '--color-team-text-on-tertiary',
@@ -83,6 +86,8 @@ const CORE_TEAM_OVERRIDE_VARS = [
   '--color-text-primary',
   '--color-text-secondary',
   '--color-text-tertiary',
+  '--color-card-text-secondary',
+  '--color-card-text-primary',
 ];
 
 export const MOTIF_VARS = [
@@ -365,9 +370,6 @@ function mixHex(hexA, pctA, hexB) {
   return `#${toHex(blend(r1, r2))}${toHex(blend(g1, g2))}${toHex(blend(b1, b2))}`;
 }
 
-// Card sits a small luminance step brighter than surface (Material-style
-// elevation) — mix toward white, same direction as before this fix.
-const CARD_MIN_TINT_PCT = 20;
 // Fallback lift target for near-white surfaces (e.g. Dolphins cream, Chiefs
 // light default), where mixing further toward white cannot create contrast
 // no matter how far the percentage moves — needs a genuinely mid-tone
@@ -376,130 +378,217 @@ const CARD_MIN_TINT_PCT = 20;
 // #7E1717) — no invented grays/slates. Omen brass (#A67C2E) is the correct
 // choice here: it's the brand's own mid-tone anchor, not a generic neutral.
 const LIGHT_SURFACE_CARD_FALLBACK = '#A67C2E';
-const LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT = 0;
 
-// Second-generation rule (post-Commanders): card-vs-shell (Rule 3a, ≥3:1)
-// was the only thing checked before, and it silently allowed a card that
-// technically cleared the shell but was still too close to the team hue for
-// BODY TEXT sitting on it to read — measured across all 32 teams, 31 of 32
-// failed a 4.5:1 check for --color-text-secondary against their resolved
-// card fill under the Rule-3a-only version of this function. A card that
-// passes 3:1 against the shell but fails 4.5:1 for the text printed on it
-// is not "readable," it's "technically distinguishable" — not the same
-// requirement. This is the actual generalized rule: card fill must clear
-// BOTH thresholds simultaneously, and if team-tinting can't do that, the
-// card gives up the tint rather than ship muddy.
+// WCAG AA minimum for --color-text-secondary against the resolved card
+// fill. Hard floor, never traded away for a better score on any other
+// axis — see resolveCardFill.
 const TEXT_ON_CARD_MIN_RATIO = 4.5;
-// Desaturated lift targets for the "give up the tint" tier. Material "lift
-// toward white" elevation and a fixed light-gray --color-text-secondary
-// (#AEAEB2 on dark) are structurally incompatible past a point: AEAEB2 only
-// clears 4.5:1 against a card whose luminance is close to the shell's own
-// darkness, not a card lifted toward white. Every fallback color here must
-// come from the approved Omen palette (#0A0A0B, #F5F0E8, #A67C2E, #2F7D5B,
-// #7E1717) — no invented near-black/near-white grays. #0A0A0B and #F5F0E8
-// are literally the palette's own black and cream anchors, so this isn't a
-// compromise value, it's the correct in-palette choice for "clean,
-// Omen-quality neutral."
-const NEUTRAL_CARD_LIFT_FOR_DARK_SHELL = '#0A0A0B';
-const NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL = '#F5F0E8';
 
-function bestOf(surfaceHex, candidates) {
-  let best = candidates[0];
-  let bestRatio = contrastRatio(best, surfaceHex);
-  for (const hex of candidates.slice(1)) {
-    const ratio = contrastRatio(hex, surfaceHex);
-    if (ratio > bestRatio) { best = hex; bestRatio = ratio; }
-  }
-  return { hex: best, ratio: bestRatio };
-}
+// ── Global card-fill scoring (founder decision 2026-07-12) ─────────────────
+//
+// Prior version searched tinted candidates but returned on the FIRST one
+// that cleared a fixed 3:1 shell-contrast floor while walking from
+// least-tinted to most-tinted. For shells dark/saturated enough to never
+// clear that floor (Commanders, Bills, Eagles), this was invisible — the
+// search exhausted and fell through to a hardcoded neutral. But for a shell
+// bright enough to pass early (Lions: Honolulu Blue), the search stopped at
+// the FIRST passing candidate (secondary-text contrast 6.90:1) instead of
+// continuing toward darker, more legible candidates the same sweep found
+// later (up to 7.57:1 within the old search range; full black reaches
+// 8.95:1). "First passing" and "best available" are different targets —
+// the old code only ever computed the former. Not a Lions-specific bug: any
+// team whose shell is bright enough to pass early was under-scored the same
+// way.
+//
+// Round 3 (founder decision 2026-07-12): no team tint in the card fill at
+// all. Team identity lives on the border (already team-tinted, see
+// resolveBorder) — the fill itself is always a neutral: cream, black, or a
+// shade of cream/black/brass chosen purely to keep text legible and the
+// card visibly separated from the shell. Candidates are built from three
+// fixed anchors only (cream, black, brass); the shell's own hue never
+// enters the fill search.
+//
+// Scoring priority (highest first, per founder spec):
+//   1. secondary text legibility  (--color-text-secondary vs. card)
+//   2. primary text legibility    (--color-text-primary vs. card)
+//   3. card vs. shell separation  (Rule 3a, floor 3:1)
+//   4. border legibility          (Rule 3c, vs. both shell and card)
+//   5. prefer cream over black    (tie-breaker only — Kansas City: a light
+//      shell should get a light neutral card, not flip to black just
+//      because black measures marginally more raw shell contrast)
+//
+// Priority is enforced by weighting, not literal lexicographic comparison,
+// but the two text-legibility axes (1, 2) are gates, not quality axes:
+// once a candidate clears the WCAG floor for a role, it gets full credit
+// for that role regardless of how far past the floor it lands. An earlier
+// version scored raw contrast ratio (capped at 9) for both text axes, which
+// let "very legible" (8.95:1) numerically outscore "adequately legible"
+// (4.63:1) by enough to overrule which candidate was actually chosen even
+// when the loser was meaningfully better on a role that hadn't cleared its
+// own floor yet (Denver: the highest-scoring candidate had primary-text
+// contrast of 1.00:1 — invisible — while a less "optimal" secondary-text
+// candidate reached 1.93:1 on primary, still failing but far less broken).
+// Once a role passes, more headroom on that role must not be able to
+// out-vote a still-failing lower-priority role. Shell separation (3) and
+// border legibility (4) stay continuous/capped — those are genuine quality
+// axes where "more separation" is a real improvement, not just a floor to
+// clear (this is exactly what fixed the Lions under-scoring bug: preferring
+// more shell contrast, not just enough).
+// Round 3 reprioritization (founder feedback, Kansas City): a card whose
+// fill barely separates from the shell (cream on a near-white shell:
+// ~1.1:1, nowhere near the 3:1 floor) was still losing to black purely on
+// raw shell-contrast magnitude, even though the BORDER already clears 3:1
+// against both sides for that same cream candidate. Rule 3c already
+// established that border-driven differentiation is an accepted fallback
+// when the fill can't separate on its own -- so shell separation and border
+// legibility are no longer competing scoring axes at all: border legibility
+// (plus both text roles) is a hard pass/fail gate (see candidatePasses),
+// and shell separation is used only to rank among candidates that already
+// passed everything else (see qualityScore).
+const CARDFILL_SHELL_CAP  = 6;
+const CARDFILL_BORDER_CAP = 6;
 
-/** True once a card fill clears both the shell-contrast and text-on-card floors. */
-function cardFillPasses(candidateHex, surfaceHex, textSecondaryHex) {
-  return contrastRatio(candidateHex, surfaceHex) >= 3
-    && contrastRatio(textSecondaryHex, candidateHex) >= TEXT_ON_CARD_MIN_RATIO;
+/**
+ * Secondary text color for `hex`, per the founder's three-tier hierarchy
+ * (2026-07-12): tier 1/2 here are the app's two fixed neutral anchors
+ * (#AEAEB2 light grey, #4A5158 dark charcoal — never team-tinted, deny
+ * list). For saturated/mid-luminance shells (Denver orange, Detroit blue,
+ * Jaguars teal, Niners red, Jets green, Eagles teal) NEITHER fixed anchor
+ * clears the WCAG floor — verified across all 32 teams, 6 failed this way,
+ * silently, until now. Tier 3 is a real computed fallback: search the full
+ * black-to-white grayscale for the best-contrast shade against this
+ * specific hex, per "a color we did the math on, and it works." Grayscale
+ * only, never colored or team-tinted, so it still reads as body text, not
+ * a brand accent.
+ */
+function readableSecondaryOn(hex) {
+  if (contrastRatio('#AEAEB2', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#AEAEB2';
+  if (contrastRatio('#4A5158', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#4A5158';
+  return bestGrayscaleOn(hex, '#AEAEB2');
 }
 
 /**
- * Step `pct` from `basePct` down to `minPct` mixing surfaceHex toward
- * liftHex. Text legibility (`textSecondaryHex` vs the candidate) is a hard
- * filter — a step that fails it is never considered, even if it would have
- * scored higher on shell contrast. Among steps that keep text legible,
- * return whichever gets closest to (or clears) the shell-contrast floor.
- * `--color-text-secondary` is fixed and never team-tinted (deny list,
- * team-theme-contract-v1.md), so for a shell dark/light enough that no
- * candidate along this path can hit both floors at once, legibility always
- * wins — a technically-passing-3:1 card nobody can read the text on is not
- * a improvement over the muddy tint it replaced.
+ * --color-text-tertiary equivalent of readableSecondaryOn. Missed in the
+ * first legibility pass -- had the exact same crude surfaceIsDark binary
+ * (no contrast check at all) as secondary text did before that fix, so
+ * every muted/tertiary label (eyebrows, "Show all 32 teams", swatch
+ * captions) inherited the same silent-failure bug. Founder: "we need all
+ * of the text legible... no matter what" -- tertiary gets the same 4.5:1
+ * floor as secondary, not a relaxed one, since it's still real body-size
+ * text in this app, not large/decorative type.
  */
-function stepToward(surfaceHex, liftHex, basePct, minPct, textSecondaryHex) {
-  let bestLegible = null;
-  let bestLegibleShellRatio = -1;
-  for (let pct = basePct; pct >= minPct; pct -= 4) {
-    const hex = mixHex(surfaceHex, pct, liftHex);
-    const shellRatio = contrastRatio(hex, surfaceHex);
-    const textRatio = contrastRatio(textSecondaryHex, hex);
-    if (textRatio < TEXT_ON_CARD_MIN_RATIO) continue;
-    if (shellRatio >= 3) return { hex, passed: true, shellRatio };
-    if (shellRatio > bestLegibleShellRatio) { bestLegible = hex; bestLegibleShellRatio = shellRatio; }
-  }
-  return bestLegible
-    ? { hex: bestLegible, passed: false, shellRatio: bestLegibleShellRatio }
-    : { hex: null, passed: false, shellRatio: -1 };
+function readableTertiaryOn(hex) {
+  if (contrastRatio('#6D6D72', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#6D6D72';
+  if (contrastRatio('#6B7280', hex) >= TEXT_ON_CARD_MIN_RATIO) return '#6B7280';
+  return bestGrayscaleOn(hex, '#6D6D72');
 }
 
-function resolveCardFill(surfaceHex, surfaceIsDark) {
-  const basePct = surfaceIsDark ? 92 : 96;
-  const textSecondaryHex = surfaceIsDark ? '#AEAEB2' : '#4A5158';
+/** Best-contrast pure grayscale shade against `hex`, searched exhaustively. */
+function bestGrayscaleOn(hex, fallback) {
+  let best = fallback;
+  let bestRatio = contrastRatio(fallback, hex);
+  for (let v = 0; v <= 255; v += 5) {
+    const shade = '#' + [v, v, v].map((n) => n.toString(16).padStart(2, '0')).join('');
+    const ratio = contrastRatio(shade, hex);
+    if (ratio > bestRatio) { best = shade; bestRatio = ratio; }
+  }
+  return best;
+}
 
-  // Tier 1: try team-tinted lift toward the palette's light anchor (cream,
-  // not pure white — every mix target in this file stays inside the
-  // approved Omen palette), then toward black. Same Material-elevation
-  // direction as before, but now required to keep text legible, not just
-  // clear the shell-contrast floor.
-  const creamAttempt = stepToward(surfaceHex, '#F5F0E8', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
-  if (creamAttempt.passed) return creamAttempt.hex;
+/**
+ * Card-scoped text pair for `candidateHex`, resolved independently of the
+ * shell's own text colors (see the card/shell token split below). Picking
+ * per-candidate — not reusing the shell's fixed pair — is what makes light
+ * Omen-neutral cards a real option for saturated dark shells (Bills,
+ * Commanders, Eagles): under the old fixed-per-shell text color, a light
+ * card was excluded before scoring ever ran, because the shell's light-grey
+ * secondary text is illegible on any light surface. Resolving text per
+ * candidate removes that blanket exclusion and lets light cards compete on
+ * their actual merits.
+ */
+function cardTextPair(candidateHex) {
+  return { secondary: readableSecondaryOn(candidateHex), primary: readableOn(candidateHex) };
+}
 
-  const blackAttempt = stepToward(surfaceHex, '#0A0A0B', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
-  if (blackAttempt.passed) return blackAttempt.hex;
+function scoreCardCandidate(candidateHex, surfaceHex, template) {
+  const { secondary: textSecondaryHex, primary: textPrimaryHex } = cardTextPair(candidateHex);
+  const secRatio = contrastRatio(textSecondaryHex, candidateHex);
+  const primRatio = contrastRatio(textPrimaryHex, candidateHex);
+  const shellRatio = contrastRatio(candidateHex, surfaceHex);
+  const borderHex = resolveBorder(surfaceHex, candidateHex, template, { silent: true });
+  const borderShellRatio = contrastRatio(borderHex, surfaceHex);
+  const borderCardRatio = contrastRatio(borderHex, candidateHex);
+  const borderRatio = Math.min(borderShellRatio, borderCardRatio);
 
-  // Tier 2: near-white surfaces where lifting toward white/black can't
-  // create shell contrast at all (a distinct failure mode) — try the warm
-  // mid-tone fallback used before this rule existed.
-  const warmFallback = stepToward(
-    surfaceHex, LIGHT_SURFACE_CARD_FALLBACK, 92, LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT, textSecondaryHex,
-  );
-  if (warmFallback.passed) return warmFallback.hex;
+  return { hex: candidateHex, secRatio, primRatio, shellRatio, borderRatio, textSecondaryHex, textPrimaryHex };
+}
 
-  // Tier 3: team hue genuinely cannot carry both requirements at once —
-  // this is the founder's rule. Stop preserving team tint and use a clean,
-  // fully desaturated premium surface (the app's own default surface-1)
-  // instead. Team identity still shows up via the badge, border accent, and
-  // motif layer; the card itself reads as an Omen-quality panel, not a
-  // diluted team-color smear.
-  const neutralLift = surfaceIsDark ? NEUTRAL_CARD_LIFT_FOR_DARK_SHELL : NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL;
-  const neutralAttempt = stepToward(surfaceHex, neutralLift, basePct, 0, textSecondaryHex);
-  if (neutralAttempt.passed) return neutralAttempt.hex;
+/** True when `candidate` clears every hard floor: both text roles (4.5:1) and border legibility (3:1 vs. both shell and card). */
+function candidatePasses(candidate) {
+  return candidate.secRatio >= TEXT_ON_CARD_MIN_RATIO
+    && candidate.primRatio >= TEXT_ON_CARD_MIN_RATIO
+    && candidate.borderRatio >= BORDER_MIN_RATIO;
+}
 
-  // Tier 4: the shell itself is dark/light enough (e.g. Steelers-black,
-  // Raiders-black) that NO fill can be simultaneously ≥3:1 from the shell
-  // AND ≥4.5:1 for text sitting on it — that's a real mathematical ceiling,
-  // not a tuning problem (a card dark enough for legible light-gray text
-  // cannot also be 3:1 lighter than an already near-black shell). Per
-  // team-theme-contract-v1.md Rule 3c, differentiation in this band comes
-  // from the border, not the fill — text legibility is non-negotiable, so
-  // take the best text-legible candidate found (from the neutral-lift pass,
-  // which already searched the full range) even though it under-shoots the
-  // shell-contrast floor, and log it as a border-differentiation case.
-  const fallback = neutralAttempt.hex ?? neutralLift;
+/** Score used only to rank candidates that already passed every hard floor — real quality signal now that legibility isn't in question. */
+function qualityScore(candidate) {
+  return Math.min(candidate.shellRatio, CARDFILL_SHELL_CAP) + Math.min(candidate.borderRatio, CARDFILL_BORDER_CAP) * 0.1;
+}
+
+/**
+ * Card fill resolution, founder hierarchy (2026-07-12, round 3): no team
+ * tint in the fill at all (identity lives on the border instead, via
+ * resolveBorder). Try the two pure Omen neutrals first -- cream, then
+ * black -- and only fall back to a computed shade when *neither* pure
+ * neutral clears every floor (text legibility, border legibility). This
+ * mirrors "official color, then neutral, then a color we did the math on
+ * that works," applied to the fill: cream/black stand in for the clean,
+ * unblended options; the computed fallback only fires when they can't do
+ * the job (an earlier version scored a full cream<->black<->brass gradient
+ * against a continuous "prefer cream" bias and it produced muddy
+ * intermediate browns winning ties instead of a clean pure neutral --
+ * fixed by making cream/black a hard first/second tier, not just the top
+ * of a continuous scale).
+ */
+function resolveCardFill(surfaceHex, _surfaceIsDark, template) {
+  const cream = scoreCardCandidate('#F5F0E8', surfaceHex, template);
+  if (candidatePasses(cream)) return pickResult(cream);
+
+  const black = scoreCardCandidate('#0A0A0B', surfaceHex, template);
+  if (candidatePasses(black)) return pickResult(black);
+
+  // Neither pure neutral clears every floor -- search computed shades
+  // (cream<->black<->brass gradients, still no team hue) for the best
+  // available candidate. Prefer one that passes every floor if any does;
+  // otherwise the most-legible candidate found, logged as a genuine
+  // ceiling (same disclosure pattern as the rest of this resolver).
+  const hexes = new Set();
+  for (let pct = 0; pct <= 100; pct += 4) hexes.add(mixHex('#F5F0E8', pct, '#0A0A0B'));
+  for (let pct = 0; pct <= 100; pct += 4) hexes.add(mixHex(LIGHT_SURFACE_CARD_FALLBACK, pct, '#0A0A0B'));
+  for (let pct = 0; pct <= 100; pct += 4) hexes.add(mixHex(LIGHT_SURFACE_CARD_FALLBACK, pct, '#F5F0E8'));
+  const scored = Array.from(hexes).map((hex) => scoreCardCandidate(hex, surfaceHex, template));
+
+  const passing = scored.filter(candidatePasses);
+  if (passing.length > 0) {
+    return pickResult(passing.reduce((a, b) => (qualityScore(b) > qualityScore(a) ? b : a)));
+  }
+
+  const bothTextLegible = scored.filter((c) => c.secRatio >= TEXT_ON_CARD_MIN_RATIO && c.primRatio >= TEXT_ON_CARD_MIN_RATIO);
+  const pool = bothTextLegible.length > 0 ? bothTextLegible : scored;
+  const best = pool.reduce((a, b) => (Math.min(b.secRatio, b.primRatio) > Math.min(a.secRatio, a.primRatio) ? b : a));
+
   if (typeof console !== 'undefined') {
-    const shellRatio = neutralAttempt.shellRatio >= 0 ? neutralAttempt.shellRatio.toFixed(2) : 'n/a';
     console.warn(
-      `[theme] surface ${surfaceHex} cannot reach 3:1 card-vs-shell contrast without dropping text-secondary ` +
-      `below 4.5:1 (best legible candidate reaches ${shellRatio}:1 vs shell). Card differentiation for this ` +
-      `shell must come from the border (Rule 3c), not the fill — text legibility was kept, shell contrast was not.`,
+      `[theme] surface ${surfaceHex}: no card-fill candidate (cream, black, or computed shade) clears every floor ` +
+      `(text legibility + border legibility). Best available: ${best.hex} (sec=${best.secRatio.toFixed(2)}:1, ` +
+      `prim=${best.primRatio.toFixed(2)}:1, border=${best.borderRatio.toFixed(2)}:1). Genuine ceiling for this hue, not a search failure.`,
     );
   }
-  return fallback;
+  return pickResult(best);
+}
+
+function pickResult(candidate) {
+  return { hex: candidate.hex, textSecondaryHex: candidate.textSecondaryHex, textPrimaryHex: candidate.textPrimaryHex };
 }
 
 // Rule 2 fallback: team primary → team secondary → white/black (whichever
@@ -548,7 +637,7 @@ const BORDER_NEUTRAL = '#A67C2E';
  * the border even when the card itself went neutral), falls back to a
  * plain neutral border if team tint can't hit both floors.
  */
-function resolveBorder(surfaceHex, cardHex, template) {
+function resolveBorder(surfaceHex, cardHex, template, { silent = false } = {}) {
   const teamHex = template.primary?.hex ?? template.accent?.hex;
   const neutralTarget = BORDER_NEUTRAL;
 
@@ -593,7 +682,7 @@ function resolveBorder(surfaceHex, cardHex, template) {
   // do, not a search failure). Return the best-scoring candidate found
   // across the whole sweep rather than the raw, unmixed neutral -- "closest
   // to passing" is materially better than "didn't even try."
-  if (typeof console !== 'undefined') {
+  if (!silent && typeof console !== 'undefined') {
     console.warn(
       `[theme] border cannot reach ${BORDER_MIN_RATIO}:1 against both shell (${surfaceHex}) and card (${cardHex}) ` +
       `using only the approved palette. Best in-palette candidate (${best}) scores ${bestScore.toFixed(2)}:1 on its ` +
@@ -607,10 +696,57 @@ function applyTeamTokens(root, template) {
   setRoleTokens(root, template);
 
   // Card fill, contrast-guarded against the shell (Rule 3a) rather than a
-  // fixed mix percentage — see resolveCardFill above.
-  const cardFillHex = resolveCardFill(template.surface, template.surfaceIsDark);
+  // fixed mix percentage — see resolveCardFill above. Card and shell now
+  // resolve independent text-color pairs (founder decision 2026-07-12,
+  // card/shell token split): --color-text-secondary/-primary stay fixed to
+  // the shell as before, and --color-card-text-secondary/-primary carry
+  // whatever pair is actually legible on the resolved card. Card.jsx scopes
+  // the card tokens back onto --color-text-secondary/-primary for its own
+  // DOM subtree (CSS custom-property cascade, not a per-page migration),
+  // so every existing `var(--color-text-secondary)` reference already
+  // written inside a <Card> picks up the correct value automatically. This
+  // is what makes light Omen-neutral cards viable for saturated dark
+  // shells (Bills, Commanders, Eagles): the old single shared text color
+  // excluded light cards before scoring ever ran, because the shell's
+  // fixed light-grey secondary text is illegible on any light surface.
+  const { hex: cardFillHex, textSecondaryHex: cardTextSecondary, textPrimaryHex: cardTextPrimary } =
+    resolveCardFill(template.surface, template.surfaceIsDark, template);
   root.style.setProperty('--color-team-surface', template.surface);
   root.style.setProperty('--color-team-surface-card', cardFillHex);
+  root.style.setProperty('--color-card-text-secondary', cardTextSecondary);
+  root.style.setProperty('--color-card-text-primary', cardTextPrimary);
+
+  // team.secondary rendered as decorative text (e.g. the LivePreview
+  // eyebrow) was using the raw brand hex with no contrast check against
+  // whatever it's actually printed on -- for Denver, secondary (Mountain
+  // Navy, #002244) on the resolved black card measured well under 2:1,
+  // effectively invisible ("the blue gets lost within the black fill").
+  // Same bug class as the shell-secondary fix above: a brand color used as
+  // text needs to be verified against its real background, not assumed
+  // legible because it's an official palette color. Falls back to the
+  // already-resolved card-scoped secondary text when the raw brand color
+  // doesn't clear the floor.
+  const secondaryOnCard = template.secondary?.hex && contrastRatio(template.secondary.hex, cardFillHex) >= TEXT_ON_CARD_MIN_RATIO
+    ? template.secondary.hex
+    : cardTextSecondary;
+  root.style.setProperty('--color-team-secondary-on-card', secondaryOnCard);
+
+  // Same bug, shell surface: Appearance.jsx's "identity copy" (team cry/
+  // wardRoom/lore, e.g. Bills' "Mafia don't leave their own") rendered
+  // template.identityPrimary/-Secondary's raw hex directly on the shell
+  // with no contrast check -- these are brand colors chosen for CTA/accent
+  // roles, not verified as legible body text on the team's own surface.
+  // Contrast-check each against the shell; fall back to the shell's own
+  // resolved text colors (readableOn/readableSecondaryOn) when the raw
+  // brand hex doesn't clear the floor.
+  const identityPrimaryOnShell = template.identityPrimary?.hex && contrastRatio(template.identityPrimary.hex, template.surface) >= TEXT_ON_CARD_MIN_RATIO
+    ? template.identityPrimary.hex
+    : template.textOnSurface;
+  const identitySecondaryOnShell = template.identitySecondary?.hex && contrastRatio(template.identitySecondary.hex, template.surface) >= TEXT_ON_CARD_MIN_RATIO
+    ? template.identitySecondary.hex
+    : readableSecondaryOn(template.surface);
+  root.style.setProperty('--color-team-identity-primary-on-shell', identityPrimaryOnShell);
+  root.style.setProperty('--color-team-identity-secondary-on-shell', identitySecondaryOnShell);
 
   // Drive the core Omen tokens from the team palette so every page that
   // consumes --color-bg, --color-accent, etc. inherits the team look
@@ -643,16 +779,18 @@ function applyTeamTokens(root, template) {
   root.style.setProperty('--color-accent-muted', `color-mix(in srgb, ${accentHex} 18%, ${template.surface})`);
   root.style.setProperty('--color-text-on-accent', accentOnHex);
 
-  // Body text colors on the team surface.
+  // Body text colors on the team surface. Primary already used a real
+  // contrast check (readableOn, via template.textOnSurface). Secondary used
+  // a crude surfaceIsDark luminance-threshold binary instead -- the same
+  // class of bug fixed for card text: for mid-luminance/saturated shells
+  // (Denver orange, Detroit blue), the binary can pick the wrong polarity
+  // outright (Denver: light grey on bright orange measured at 1.52:1;
+  // Detroit: 2.23:1) rather than just under-optimizing it. Switched to the
+  // same readableSecondaryOn() used for card text, so shell secondary text
+  // gets an actual best-of-two-candidates check instead of a heuristic.
   root.style.setProperty('--color-text-primary',   template.textOnSurface);
-  root.style.setProperty(
-    '--color-text-secondary',
-    template.surfaceIsDark ? '#AEAEB2' : '#4A5158',
-  );
-  root.style.setProperty(
-    '--color-text-tertiary',
-    template.surfaceIsDark ? '#6D6D72' : '#6B7280',
-  );
+  root.style.setProperty('--color-text-secondary', readableSecondaryOn(template.surface));
+  root.style.setProperty('--color-text-tertiary',  readableTertiaryOn(template.surface));
 
   applyMotifTokens(root, template.motifs);
   applyTypeFlourishTokens(root, template.typeFlourishes);

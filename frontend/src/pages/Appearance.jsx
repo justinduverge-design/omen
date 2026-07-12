@@ -92,8 +92,11 @@ function LivePreview({ template, themed }) {
         <span
           className="text-xs font-semibold uppercase tracking-[0.32em] transition-colors duration-300"
           style={{
+            // Contrast-checked against the resolved card fill (themeMode.js
+            // --color-team-secondary-on-card), not the raw brand hex --
+            // template.secondary isn't guaranteed legible on every card.
             color: themed && template?.secondary
-              ? template.secondary.hex
+              ? 'var(--color-team-secondary-on-card)'
               : 'var(--color-text-tertiary)',
           }}
         >
@@ -352,8 +355,12 @@ export default function Appearance() {
                             : 'inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest'
                         }
                         style={{
-                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex,
-                          borderColor: `color-mix(in srgb, ${(template.identitySecondary?.hex ?? template.identityPrimary?.hex ?? 'var(--color-team-primary)')} 40%, var(--color-border) 60%)`,
+                          // Contrast-checked against the shell (themeMode.js
+                          // --color-team-identity-*-on-shell), not the raw
+                          // brand hex -- template.identityPrimary/-Secondary
+                          // are CTA/accent colors, not verified body text.
+                          color: 'var(--color-team-identity-secondary-on-shell)',
+                          borderColor: 'color-mix(in srgb, var(--color-team-identity-secondary-on-shell) 40%, var(--color-border) 60%)',
                         }}
                       >
                         {selectedTeam.cultureTag}
@@ -363,7 +370,7 @@ export default function Appearance() {
                       <p
                         className="text-sm font-semibold uppercase tracking-widest"
                         style={{
-                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex,
+                          color: 'var(--color-team-identity-secondary-on-shell)',
                           opacity: 0.8,
                         }}
                       >
@@ -373,7 +380,7 @@ export default function Appearance() {
                     {selectedTeam.wardRoom && (
                       <p
                         className="text-xl font-bold leading-tight"
-                        style={{ color: template.identityPrimary?.hex ?? 'var(--color-team-accent)' }}
+                        style={{ color: 'var(--color-team-identity-primary-on-shell)' }}
                       >
                         {selectedTeam.wardRoom}
                       </p>
@@ -382,7 +389,7 @@ export default function Appearance() {
                       <p
                         className="pt-0.5 text-xs font-medium"
                         style={{
-                          color: template.identitySecondary?.hex ?? template.identityPrimary?.hex ?? 'var(--color-team-accent)',
+                          color: 'var(--color-team-identity-secondary-on-shell)',
                           opacity: 0.6,
                         }}
                       >

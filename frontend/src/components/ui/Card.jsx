@@ -19,6 +19,14 @@ const VARIANT_CLASSES = {
   preview:  'border relative',
 };
 
+// `preview` is intentionally included even though its base fill is
+// transparent by default -- callers of the preview variant (e.g. the
+// Appearance LivePreview) universally override `background` to the
+// resolved team card fill, so its text should read against the card, not
+// the shell. `outlined`/`empty` stay shell-scoped: their background really
+// is transparent (the shell shows through), so shell-fixed text is correct.
+const CARD_SURFACE_VARIANTS = new Set(['solid', 'preview', 'error']);
+
 function variantStyle(variant) {
   switch (variant) {
     case 'outlined':
@@ -38,6 +46,29 @@ function variantStyle(variant) {
   }
 }
 
+/**
+ * Card/shell text-color split (founder decision 2026-07-12): the resolved
+ * card fill can legitimately need different text than the shell (that's
+ * what makes light Omen-neutral cards viable for saturated dark shells).
+ * Redefining `--color-text-secondary`/`-primary` here, scoped to this DOM
+ * subtree via ordinary CSS custom-property cascade, means every existing
+ * `var(--color-text-secondary)` reference already written by pages that
+ * render children inside a Card (Standings, DraftAssistant, Account,
+ * Onboarding, Appearance) picks up the correct card-local value with zero
+ * changes to those files -- this is the actual smallest fix, not a
+ * per-page migration. The `var(--color-card-text-secondary, ...)` fallback
+ * means an unthemed/system-mode render (before JS applies team tokens, or
+ * outside team mode entirely) still resolves correctly, since index.css
+ * defines `--color-card-text-*` defaults equal to the shell's own values.
+ */
+function cardTextScope(variant) {
+  if (!CARD_SURFACE_VARIANTS.has(variant)) return {};
+  return {
+    '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+    '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+  };
+}
+
 export function Card({ variant = 'solid', tone = 'neutral', className = '', style: styleOverride, children, ...rest }) {
   const base = VARIANT_CLASSES[variant] ?? VARIANT_CLASSES.solid;
   return (
@@ -49,6 +80,9 @@ export function Card({ variant = 'solid', tone = 'neutral', className = '', styl
       {...rest}
     >
       {variant === 'preview' && (
+        // Sits on --color-surface-2 (still shell-tinted), NOT the resolved
+        // card fill -- deliberately outside the cardTextScope wrapper below
+        // so it keeps the shell's own text color instead of the card's.
         <span
           className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.10em]"
           style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
@@ -56,7 +90,13 @@ export function Card({ variant = 'solid', tone = 'neutral', className = '', styl
           Preview
         </span>
       )}
-      {children}
+      {/* `display: contents` keeps this wrapper invisible to layout (no
+          box, no effect on Card.Header/Body/Footer spacing) while still
+          scoping the card/shell text-color split via CSS cascade to
+          everything that's actually rendered on the resolved card fill. */}
+      <div style={{ display: 'contents', ...cardTextScope(variant) }}>
+        {children}
+      </div>
     </div>
   );
 }

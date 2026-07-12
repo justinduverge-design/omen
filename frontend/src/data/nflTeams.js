@@ -1147,6 +1147,30 @@ export function readableOn(hex) {
 }
 
 /**
+ * `readableOn` picks the better of two fixed anchors but has no floor of
+ * its own -- for a genuinely mid-luminance surface (e.g. Lions blue,
+ * #0076B6), neither black nor cream clears WCAG AA (best is 4.34:1),
+ * so body text silently ships under the accessibility minimum. Founder
+ * directive 2026-07-12: text legibility "can no longer slip... address it
+ * no matter what." This is the tier-3 fallback in that hierarchy --
+ * official/fixed anchors first, then a real computed shade that measurably
+ * works, searched across the full grayscale so it stays a neutral, never a
+ * team-tinted color.
+ */
+export function readableOnFloor(hex, floor = 4.5) {
+  const anchor = readableOn(hex);
+  if (contrastRatio(anchor, hex) >= floor) return anchor;
+  let best = anchor;
+  let bestRatio = contrastRatio(anchor, hex);
+  for (let v = 0; v <= 255; v += 5) {
+    const shade = '#' + [v, v, v].map((n) => n.toString(16).padStart(2, '0')).join('');
+    const ratio = contrastRatio(shade, hex);
+    if (ratio > bestRatio) { best = shade; bestRatio = ratio; }
+  }
+  return best;
+}
+
+/**
  * True when the color is dark enough to need the hairline-inset tile border.
  */
 export function isDark(hex) {

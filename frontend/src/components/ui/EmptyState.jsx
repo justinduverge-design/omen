@@ -2,7 +2,12 @@ export default function EmptyState({ eyebrow, title, message, cta }) {
   return (
     <div
       className="rounded-xl border p-10 text-center"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)' }}
+      style={{
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-surface-1)',
+        '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
+        '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
+      }}
     >
       {eyebrow && (
         <p
