@@ -705,27 +705,6 @@ export default function Account() {
         </div>
       </div>
 
-      <div className="border-t border-[var(--color-border)] pt-6">
-        <section className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">Appearance</p>
-          <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Team Theme</h2>
-          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-            Choose your team. Omen colors its entire interface to match.
-          </p>
-        </section>
-        <div className="mt-4">
-          <Link
-            to="/account/appearance"
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-team-accent)] hover:text-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
-          >
-            Customize Team Colors
-            <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-        </div>
-      </div>
-
       <PrivacySection />
     </AppLayout>
   );

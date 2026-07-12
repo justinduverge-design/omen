@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { NFL_TEAMS } from '../data/nflTeams.js';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, getPrivateFixtureKey } from '../lib/privateFixtureMode.js';
-import { getThemeMode, getThemeTeam } from '../lib/themeMode.js';
 import { confidenceBarStyle } from '../lib/confidenceGradient.js';
 import {
   formatOmenSignalKey,
@@ -512,12 +510,10 @@ function reasoningFromExplanation(explanation) {
   return lines;
 }
 
+// Team-theme voice removed 2026-07-12; Omen of the Week no longer renders a
+// team cry line.
 function getTeamCry() {
-  // Only render team voice when the user is actively in Team mode.
-  if (getThemeMode() !== 'team') return null;
-  const abbr = getThemeTeam();
-  if (!abbr) return null;
-  return NFL_TEAMS.find((t) => t.abbr === abbr)?.cry ?? null;
+  return null;
 }
 
 export default function OmenOfTheWeek() {

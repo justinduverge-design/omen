@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-12 (Team Theme Removal)
+
+- **Team-based theming is fully removed, not toned down.** Justin explicitly asked for full removal on branch `claude/team-theme-removal`, confirmed twice after being shown that the card-fill/contrast system he was removing had merged to `origin/main` as PR #113 earlier the same day. This supersedes the standing `Blueprints/prompts/claude-phase4-team-theme-depth-fix.md` prompt (a depth reduction, not a removal) — that prompt is now stale/moot for any future session that finds it.
+- **Local `main` and `origin/main` had diverged** (7 local-only commits vs. 17 origin-only) at the time this work started. The removal branch was cut fresh from `origin/main`, not local `main`, per standing branch-hygiene instruction. Someone should reconcile the divergence (local `main` carries unpushed `team-theme-contract-v1`/three-switch work that origin/main's simpler, already-merged team-theme system does not have) — not attempted here, out of scope.
+- **Removed:** `themeMode.js`'s team/variant modes and all team-token CSS writing (now `system`/`omen` light-dark only), `teamTemplate.js`, `culturalMoments.js`, `motifs.js`, `typeFlourishes.js`, `useActiveMoment.js`, `MomentChrome.jsx`, `components/theme/AppearancePicker.jsx`, `pages/Appearance.jsx` and its `/account/appearance` route, the Onboarding team-picker step, Footer's cultural-anchor/moment citation lines, and the three backend tests that exercised the deleted feature directly.
+- **Kept, deliberately:** `data/nflTeams.js` team identity data (used by non-theme features); the `--color-team-*` CSS custom properties in `index.css` (now static Omen-brass values, no longer team-driven — renaming them app-wide was out of scope); `profiles.favorite_team` backend column (untouched, just no longer written to by the frontend).
+- **Full verification note:** `Direction/reviews/2026-07-12-team-theme-removal-verification.md`. `npm run build` and `npm test` (415/415) both pass on this branch; not pushed, not merged, not deployed.
+
 ## Decisions Added 2026-07-06 (Vault secretId Plaintext Logging Fix)
 
 - **`vaultDelete()` in `src/routes/platforms.js` no longer logs the raw Vault secret id on RPC failure.** The one-line fix drops `secretId` from the `logger.warn` call, matching `src/routes/userPrivacy.js`'s `deleteVaultSecret()` exactly (message-only, no identifier). Closes the P0 security item flagged in `Direction/reviews/2026-07-05-app-store-mobile-readiness-sprint-proposal.md` §2.7.
