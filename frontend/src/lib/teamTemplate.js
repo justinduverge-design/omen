@@ -24,7 +24,7 @@
  *     comparison against #0A0A0B vs #F5F0E8.
  */
 
-import { NFL_TEAMS, getTeamPalette, readableOn, relLum, hexToRgb } from '../data/nflTeams.js';
+import { NFL_TEAMS, getTeamPalette, readableOn, readableOnFloor, relLum, hexToRgb } from '../data/nflTeams.js';
 import { resolveMotifs } from './motifs.js';
 import { resolveTypeFlourishes } from './typeFlourishes.js';
 
@@ -65,8 +65,11 @@ export function getTeamTemplate(abbr, variant = 'official') {
   // luminance heuristic). This matters for mid-luminance surfaces like DEN
   // Broncos orange and DET Honolulu blue where the luminance-based pick
   // gives the wrong polarity (cream-on-orange = 2.97 contrast, dark-on-
-  // orange = ~5.5).
-  const textOnSurface = readableOn(surfaceHex);
+  // orange = ~5.5). readableOnFloor adds a real computed-shade fallback for
+  // surfaces where neither black nor cream clears WCAG AA at all (DET: best
+  // of the two fixed anchors is 4.34:1, under the 4.5 floor) -- text
+  // legibility must never silently ship under the accessibility minimum.
+  const textOnSurface = readableOnFloor(surfaceHex);
 
   // For each role that exists, compute the best foreground for filled CTAs.
   function textOn(roleHex) {
