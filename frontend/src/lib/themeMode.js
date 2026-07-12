@@ -371,8 +371,11 @@ const CARD_MIN_TINT_PCT = 20;
 // Fallback lift target for near-white surfaces (e.g. Dolphins cream, Chiefs
 // light default), where mixing further toward white cannot create contrast
 // no matter how far the percentage moves — needs a genuinely mid-tone
-// neutral, not just "less white."
-const LIGHT_SURFACE_CARD_FALLBACK = '#7A7266';
+// target, not just "less white." Every fallback color in this file must
+// come from the approved Omen palette (#0A0A0B, #F5F0E8, #A67C2E, #2F7D5B,
+// #7E1717) — no invented grays/slates. Omen brass (#A67C2E) is the correct
+// choice here: it's the brand's own mid-tone anchor, not a generic neutral.
+const LIGHT_SURFACE_CARD_FALLBACK = '#A67C2E';
 const LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT = 0;
 
 // Second-generation rule (post-Commanders): card-vs-shell (Rule 3a, ≥3:1)
@@ -387,18 +390,18 @@ const LIGHT_SURFACE_CARD_FALLBACK_MIN_TINT_PCT = 0;
 // BOTH thresholds simultaneously, and if team-tinting can't do that, the
 // card gives up the tint rather than ship muddy.
 const TEXT_ON_CARD_MIN_RATIO = 4.5;
-// Desaturated lift targets for the "give up the tint" tier — deliberately
-// the app's own default --color-surface-1 values (index.css), not invented
-// colors. Material "lift toward white" elevation and a fixed light-gray
-// --color-text-secondary (#AEAEB2 on dark) are structurally incompatible
-// past a point: AEAEB2 only clears 4.5:1 against a card whose luminance is
-// close to the shell's own darkness, not a card lifted toward white. The
-// non-team-themed app already solved this by keeping surface-1 dark
-// (#1C1C1E, barely lifted off #0A0A0B) — reusing that value (and its light-
-// theme counterpart) is what "clean, Omen-quality" concretely means here,
-// not a new color invented for this rule.
-const NEUTRAL_CARD_LIFT_FOR_DARK_SHELL = '#1C1C1E';
-const NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL = '#FFFFFF';
+// Desaturated lift targets for the "give up the tint" tier. Material "lift
+// toward white" elevation and a fixed light-gray --color-text-secondary
+// (#AEAEB2 on dark) are structurally incompatible past a point: AEAEB2 only
+// clears 4.5:1 against a card whose luminance is close to the shell's own
+// darkness, not a card lifted toward white. Every fallback color here must
+// come from the approved Omen palette (#0A0A0B, #F5F0E8, #A67C2E, #2F7D5B,
+// #7E1717) — no invented near-black/near-white grays. #0A0A0B and #F5F0E8
+// are literally the palette's own black and cream anchors, so this isn't a
+// compromise value, it's the correct in-palette choice for "clean,
+// Omen-quality neutral."
+const NEUTRAL_CARD_LIFT_FOR_DARK_SHELL = '#0A0A0B';
+const NEUTRAL_CARD_LIFT_FOR_LIGHT_SHELL = '#F5F0E8';
 
 function bestOf(surfaceHex, candidates) {
   let best = candidates[0];
@@ -448,11 +451,13 @@ function resolveCardFill(surfaceHex, surfaceIsDark) {
   const basePct = surfaceIsDark ? 92 : 96;
   const textSecondaryHex = surfaceIsDark ? '#AEAEB2' : '#4A5158';
 
-  // Tier 1: try team-tinted lift toward white, then toward black — same
-  // Material-elevation direction as before, but now required to keep text
-  // legible, not just clear the shell-contrast floor.
-  const whiteAttempt = stepToward(surfaceHex, '#FFFFFF', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
-  if (whiteAttempt.passed) return whiteAttempt.hex;
+  // Tier 1: try team-tinted lift toward the palette's light anchor (cream,
+  // not pure white — every mix target in this file stays inside the
+  // approved Omen palette), then toward black. Same Material-elevation
+  // direction as before, but now required to keep text legible, not just
+  // clear the shell-contrast floor.
+  const creamAttempt = stepToward(surfaceHex, '#F5F0E8', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
+  if (creamAttempt.passed) return creamAttempt.hex;
 
   const blackAttempt = stepToward(surfaceHex, '#0A0A0B', basePct, CARD_MIN_TINT_PCT, textSecondaryHex);
   if (blackAttempt.passed) return blackAttempt.hex;
@@ -527,8 +532,14 @@ function resolveAccent(template, surfaceHex) {
 // couldn't do. This is the actual source of the "flatter" feeling: not a
 // font problem, a border-was-never-contrast-checked problem.
 const BORDER_MIN_RATIO = 3;
-const BORDER_NEUTRAL_DARK = '#5A5A5E';   // a genuine mid-gray, one step up from --color-surface-3 (#3A3A3C)
-const BORDER_NEUTRAL_LIGHT = '#A8A8AC';  // mid-gray counterpart for light shells
+// Mixing target for the "team tint can't carry the border" case. Not a
+// generic mid-gray — every color here must come from the approved Omen
+// palette (#0A0A0B, #F5F0E8, #A67C2E, #2F7D5B, #7E1717). Omen brass
+// (#A67C2E) is the brand's own mid-tone anchor, so a border that falls back
+// to it reads as an intentional Omen accent, not a slate-gray escape hatch.
+// Used for both dark and light shells — its own mid-luminance gives it
+// headroom to separate from either extreme when mixed toward white/black.
+const BORDER_NEUTRAL = '#A67C2E';
 
 /**
  * Border must be >=3:1 against BOTH the shell and the resolved card (Rule
@@ -537,34 +548,59 @@ const BORDER_NEUTRAL_LIGHT = '#A8A8AC';  // mid-gray counterpart for light shell
  * the border even when the card itself went neutral), falls back to a
  * plain neutral border if team tint can't hit both floors.
  */
-function resolveBorder(surfaceHex, cardHex, template, surfaceIsDark) {
+function resolveBorder(surfaceHex, cardHex, template) {
   const teamHex = template.primary?.hex ?? template.accent?.hex;
-  const neutralTarget = surfaceIsDark ? BORDER_NEUTRAL_DARK : BORDER_NEUTRAL_LIGHT;
+  const neutralTarget = BORDER_NEUTRAL;
 
   function passes(hex) {
     return contrastRatio(hex, surfaceHex) >= BORDER_MIN_RATIO && contrastRatio(hex, cardHex) >= BORDER_MIN_RATIO;
   }
+  // Score by the weaker of the two ratios — a candidate that's great vs.
+  // shell but weak vs. card is no better than the reverse; optimize the
+  // floor, not one side.
+  function score(hex) {
+    return Math.min(contrastRatio(hex, surfaceHex), contrastRatio(hex, cardHex));
+  }
+
+  let best = neutralTarget;
+  let bestScore = score(neutralTarget);
 
   if (teamHex) {
     for (let pct = 55; pct >= 0; pct -= 5) {
       const hex = mixHex(teamHex, pct, neutralTarget);
       if (passes(hex)) return hex;
+      const s = score(hex);
+      if (s > bestScore) { best = hex; bestScore = s; }
     }
   }
-  for (let pct = 100; pct >= 0; pct -= 5) {
-    const hex = mixHex(neutralTarget, pct, surfaceIsDark ? '#FFFFFF' : '#0A0A0B');
-    if (passes(hex)) return hex;
+  // Second-pass lift stays inside the palette: try both cream and black
+  // (not just the "expected" direction for the shell's darkness) — a
+  // mid-luminance saturated shell (e.g. Denver orange) can need the
+  // opposite-of-obvious direction to actually separate, same reasoning as
+  // the card-fill resolver's own both-directions search.
+  for (const liftHex of ['#F5F0E8', '#0A0A0B']) {
+    for (let pct = 100; pct >= 0; pct -= 5) {
+      const hex = mixHex(neutralTarget, pct, liftHex);
+      if (passes(hex)) return hex;
+      const s = score(hex);
+      if (s > bestScore) { best = hex; bestScore = s; }
+    }
   }
-  // Neither team-tinted nor a swept neutral range hit both floors — return
-  // the plain neutral target as the closest available compromise and log
-  // it the same way the card-fill guard logs its own ceiling cases.
+  // No candidate inside the approved palette hits >=3:1 against both shell
+  // and card simultaneously — a real ceiling for this specific shell (e.g.
+  // Denver: pure cream, the lightest of the 5 approved colors, tops out at
+  // 2.97:1 against the shell — provably the best any in-palette color can
+  // do, not a search failure). Return the best-scoring candidate found
+  // across the whole sweep rather than the raw, unmixed neutral -- "closest
+  // to passing" is materially better than "didn't even try."
   if (typeof console !== 'undefined') {
     console.warn(
-      `[theme] border cannot reach ${BORDER_MIN_RATIO}:1 against both shell (${surfaceHex}) and card (${cardHex}). ` +
-      `Using best-effort neutral (${neutralTarget}) — this shell/card pairing needs an authored border.`,
+      `[theme] border cannot reach ${BORDER_MIN_RATIO}:1 against both shell (${surfaceHex}) and card (${cardHex}) ` +
+      `using only the approved palette. Best in-palette candidate (${best}) scores ${bestScore.toFixed(2)}:1 on its ` +
+      `weaker side — this shell/card pairing needs an authored border or a documented palette exception.`,
     );
   }
-  return neutralTarget;
+  return best;
 }
 
 function applyTeamTokens(root, template) {
@@ -589,7 +625,7 @@ function applyTeamTokens(root, template) {
     '--color-surface-3',
     `color-mix(in srgb, ${template.surface} ${template.surfaceIsDark ? '74%' : '84%'}, ${template.surfaceIsDark ? 'white' : 'black'})`,
   );
-  const borderHex = resolveBorder(template.surface, cardFillHex, template, template.surfaceIsDark);
+  const borderHex = resolveBorder(template.surface, cardFillHex, template);
   root.style.setProperty('--color-border', borderHex);
   root.style.setProperty(
     '--color-border-subtle',
