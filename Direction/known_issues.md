@@ -25,7 +25,6 @@ Last updated: 2026-07-04
 - ADP and provider-backed data should be verified before launch claims.
 - Legacy API files remain mounted and should be handled carefully.
 - Tuesday scoring is executable but intentionally gated behind `OMEN_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.
-- Legacy `src/omen_gdpr.js` remains present with historical account-deletion copy; the mounted `/api/user` route is `src/routes/userPrivacy.js` and uses `"DELETE MY OMEN DATA"`.
 
 ## Documentation Risks
 
