@@ -383,7 +383,7 @@ const ESPN_STEPS = [
   },
 ];
 
-const ESPN_EXTENSION_GUIDE_URL = 'https://github.com/justinduverge-design/omen/tree/main/extension';
+const ESPN_EXTENSION_GUIDE_URL = '/espn-connect';
 
 function MobileEspnCard() {
   return (
@@ -400,7 +400,7 @@ function MobileEspnCard() {
           target="_blank"
           rel="noreferrer"
         >
-          Open desktop extension guide
+          Open ESPN setup guide
         </a>
         <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>The extension is local-only and passes your ESPN session values only into the Omen form you open.</p>
       </div>

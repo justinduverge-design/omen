@@ -19,6 +19,7 @@ import TradeShare from '../pages/TradeShare.jsx';
 import Privacy from '../pages/Privacy.jsx';
 import Support from '../pages/Support.jsx';
 import Terms from '../pages/Terms.jsx';
+import EspnConnectGuide from '../pages/EspnConnectGuide.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
 import WaiverWire from '../pages/WaiverWire.jsx';
@@ -53,6 +54,7 @@ export default function AppRoutes() {
       <Route path="/terms" element={<Terms />} />
       <Route path="/support" element={<Support />} />
       <Route path="/delete-account" element={<DeleteAccount />} />
+      <Route path="/espn-connect" element={<EspnConnectGuide />} />
 
       {/* ConnectLeague handles its own auth gate internally */}
       <Route path="/account/connect" element={<ConnectLeague />} />
