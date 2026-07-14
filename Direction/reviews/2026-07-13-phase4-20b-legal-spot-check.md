@@ -1,6 +1,6 @@
 # Legal Spot Check — Phase 4.20b Public Legal and Support Pages
 
-Date: 2026-07-13  
+Date: 2026-07-13
 Scope: Pre-counsel triage of the proposed `/privacy`, `/terms`, `/support`, and `/delete-account` pages. Not legal advice and not publication approval.
 
 ## P0 — Do Not Publish

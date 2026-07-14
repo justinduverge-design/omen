@@ -1,7 +1,7 @@
 # Phase 4.20b Public Pages — Security and Privacy Evidence
 
-Date: 2026-07-13  
-Audience: Justin / final wording review  
+Date: 2026-07-13
+Audience: Justin / final wording review
 Scope: Evidence for the public privacy, terms, support, and account-deletion pages. No secrets, production settings, database state, or external provider accounts were inspected.
 
 ## Sources Reviewed
