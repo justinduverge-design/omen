@@ -13,19 +13,19 @@ controls:
   - id: "GDPR_ART_17"
     name: "User Data Erasure"
     description: "Automated purge of user data, secrets, and cache"
-    evidence_path: "src/omen_gdpr.js"
-    check: "contains('supabase.auth.admin.deleteUser')"
+    evidence_path: "src/routes/userPrivacy.js"
+    check: "contains('router.delete(\"/delete\"')"
 
 # 3. Data Minimization (Article 5)
   - id: "GDPR_ART_5"
     name: "Data Inventory Control"
     description: "Ensures only authorized data points are collected"
-    evidence_path: "src/omen_gdpr.js"
-    check: "contains('dataInventory')"
+    evidence_path: "src/routes/userPrivacy.js"
+    check: "contains('redactions')"
 
 # 4. Audit Logging (Non-PII)
   - id: "CC7.2"
     name: "Compliance Audit Trail"
     description: "Hashed user IDs for deletion logs"
-    evidence_path: "src/omen_gdpr.js"
-    check: "contains('hashUserId')"
+    evidence_path: "src/routes/userPrivacy.js"
+    check: "contains('userHash')"
