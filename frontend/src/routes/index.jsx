@@ -5,6 +5,7 @@ import ProtectedRoute from '../components/layout/ProtectedRoute.jsx';
 import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
 import Demo from '../pages/Demo.jsx';
+import DeleteAccount from '../pages/DeleteAccount.jsx';
 import DraftAssistant from '../pages/DraftAssistant.jsx';
 import Football from '../pages/Football';
 import OmenLanding from '../pages/OmenLanding.jsx';
@@ -15,6 +16,9 @@ import Onboarding from '../pages/Onboarding.jsx';
 import OmenPage from '../pages/OmenPage.jsx';
 import TradeAnalyzer from '../pages/TradeAnalyzer.jsx';
 import TradeShare from '../pages/TradeShare.jsx';
+import Privacy from '../pages/Privacy.jsx';
+import Support from '../pages/Support.jsx';
+import Terms from '../pages/Terms.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
 import WaiverWire from '../pages/WaiverWire.jsx';
@@ -45,6 +49,10 @@ export default function AppRoutes() {
       <Route path="/trade/share/:hash" element={<AppLayout><TradeShare /></AppLayout>} />
       <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/support" element={<Support />} />
+      <Route path="/delete-account" element={<DeleteAccount />} />
 
       {/* ConnectLeague handles its own auth gate internally */}
       <Route path="/account/connect" element={<ConnectLeague />} />
