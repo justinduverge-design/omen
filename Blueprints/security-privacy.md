@@ -17,6 +17,7 @@ This is the human-readable tracker for active `slops-saloon` security and privac
 
 ## Current Controls
 
+- Public `/privacy`, `/terms`, `/support`, and `/delete-account` pages disclose Omen's current data and deletion posture without collecting credentials. Their monitored contacts are `support@slopssaloon.com`, `privacy@slopssaloon.com`, and `legal@slopssaloon.com`; none may receive reusable platform credentials.
 - ESPN cookies are stored through Supabase Vault references, not plaintext database columns.
 - Yahoo tokens are stored through Supabase Vault references.
 - Supabase Row Level Security restricts user-owned rows by authenticated user.

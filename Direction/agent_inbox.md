@@ -13,6 +13,7 @@
 
 ## Active Task
 
+No pinned task. Phase 4.20b public legal/support pages completed locally on 2026-07-13; see `Blueprints/handoffs/2026-07-13-phase4-20b-public-legal-support-pages.md`.
 No pinned task. The orphaned `src/omen_gdpr.js` cleanup is complete locally on `codex/p1-retire-orphan-gdpr` (code commit `26441a1`); see `Blueprints/handoffs/2026-07-13-orphaned-gdpr-module-retirement.md`.
 
 ## Auto-Populated Top 5
