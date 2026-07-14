@@ -15,6 +15,7 @@
     "render:app:vertical": "remotion render src/index.jsx OmenAppExplainerVertical renders/omen-app-explainer-vertical.mp4",
     "render:app:horizontal": "remotion render src/index.jsx OmenAppExplainerHorizontal renders/omen-app-explainer-horizontal.mp4",
     "render:trade-flow:vertical": "remotion render src/index.jsx OmenTradeFlowReel renders/omen-trade-flow-reel-vertical.mp4",
+    "render:all-users:vertical": "remotion render src/index.jsx OmenAllUsersReel renders/omen-all-users-reel-vertical.mp4",
     "render:all": "npm run render:trade-flow:vertical"
   },
   "dependencies": {
