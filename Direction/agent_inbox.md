@@ -13,7 +13,7 @@
 
 ## Active Task
 
-No pinned task. Phase 4.20d (below) is complete locally this session.
+No pinned task. Phase 4.20b public legal/support pages completed locally on 2026-07-13; see `Blueprints/handoffs/2026-07-13-phase4-20b-public-legal-support-pages.md`.
 
 ## Auto-Populated Top 5
 

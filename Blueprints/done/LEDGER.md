@@ -66,6 +66,8 @@ If you skip a gate, write why. If the same gate gets skipped 3+ times across dif
 
 ## Monthly review
 
+| 2026-07-13 | Phase 4.20b - Public legal/support pages | feature, page, design, security | Added public `/privacy`, `/terms`, `/support`, and `/delete-account` routes and shared information layout; linked all four from the footer; preserved provider credential, attribution, no-guarantee, and no-betting caveats; corrected Omen's no-Stripe posture; added monitored support/privacy/legal emails. Evidence: `Blueprints/handoffs/2026-07-13-phase4-20b-public-legal-support-pages.md`, security/legal reviews, code/UI audits, and mobile screenshots. Focused 3/3; full `npm test` 391/391; audit 0; frontend build pass; `git diff --check` clean. | Existing Vite warnings in `Header.jsx`, `.env` NODE_ENV, and chunk size remain outside scope. Automated viewport checks do not replace real-device mobile QA. | Final wording pass completed locally; not committed, pushed, merged, or deployed. |
+
 On the first of each month, scan the previous month's rows. Look for:
 
 - Same gate skipped repeatedly → fix gate, prompt, or skill

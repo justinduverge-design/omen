@@ -2,6 +2,11 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-13 (Phase 4.20b public legal/support pages)
+
+- **Approved monitored public contacts are scoped by inquiry type.** `support@slopssaloon.com` handles account/product help, `privacy@slopssaloon.com` handles privacy questions, and `legal@slopssaloon.com` handles terms questions. Public copy tells users not to send platform cookies, OAuth tokens, auth headers, or credential-bearing screenshots through any channel.
+- **Public pages describe existing behavior rather than creating a second privacy/deletion system.** `/delete-account` points users to the authenticated `/account` flow and states that third-party-platform data is outside Omen control; the privacy page preserves the limited non-personal deletion-audit exception. The Phase 4.16 provider caveats remain visible, and the obsolete Omen payment-provider line was removed because Omen is free and does not use Stripe.
+
 ## Decisions Added 2026-07-12 (Team Theme Removal)
 
 - **Team-based theming is fully removed, not toned down.** Justin explicitly asked for full removal on branch `claude/team-theme-removal`, confirmed twice after being shown that the card-fill/contrast system he was removing had merged to `origin/main` as PR #113 earlier the same day. This supersedes the standing `Blueprints/prompts/claude-phase4-team-theme-depth-fix.md` prompt (a depth reduction, not a removal) — that prompt is now stale/moot for any future session that finds it.
