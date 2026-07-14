@@ -315,7 +315,6 @@ module.exports = {
   │   ├── omen_agents.js
   │   ├── omen_api_v2.js
   │   ├── omen_tuesday_cron.js
-  │   ├── omen_gdpr.js
   │   └── omen_prompt_loader.js    ← this file
   ├── Blueprints/
   │   └── prompts/

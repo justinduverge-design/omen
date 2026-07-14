@@ -14,10 +14,11 @@
 ## Active Task
 
 No pinned task. Phase 4.20b public legal/support pages completed locally on 2026-07-13; see `Blueprints/handoffs/2026-07-13-phase4-20b-public-legal-support-pages.md`.
+No pinned task. The orphaned `src/omen_gdpr.js` cleanup is complete locally on `codex/p1-retire-orphan-gdpr` (code commit `26441a1`); see `Blueprints/handoffs/2026-07-13-orphaned-gdpr-module-retirement.md`.
 
 ## Auto-Populated Top 5
 
-**Refreshed 2026-07-12 (kickoff auto-populate).** Item #1 from the prior refresh (Phase 4.20d) is complete locally this session; confirmed Team theme removal (PR #114) shipped/merged. Remaining items shift up unchanged.
+**Refreshed 2026-07-13 (Codex kickoff auto-populate).** No pin is present. The Phase 4.20b public legal/support-pages work is complete locally; the next unblocked agent-buildable P1 is the orphaned GDPR module cleanup. Verify-lane work remains surfaced but is not auto-pulled under the standing rule.
 
 1. **Delete or archive orphaned `src/omen_gdpr.js` (P1).** Duplicates the same plaintext secret-id logging bug (already fixed in `platforms.js`) plus a stale confirmation phrase; confirmed not `require`d anywhere. Cost: small. Blocked-by: none.
 2. **Service-key Supabase route scoping audit (P1).** Verify every route using `config.supabaseServiceKey` scopes queries by `user_id` with a cross-user-isolation test. Cost: medium. Blocked-by: none.

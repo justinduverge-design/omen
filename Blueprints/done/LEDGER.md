@@ -9,6 +9,7 @@ When you close a task, append a row. Format:
 ```
 | Date | Item | Done docs applied | Gates skipped + why | Skill/prompt to revisit |
 |---|---|---|---|---|
+| 2026-07-13 | Orphaned `src/omen_gdpr.js` retirement | security | No new auth/data/credential/telemetry boundary; historical records retained | Push/merge/deploy remain Justin gates. Evidence: `26441a1`, dated review, evidence, and handoff. |
 | 2026-06-15 | Phase 1.3 — page-system spec | feature, design | none | — |
 ```
 

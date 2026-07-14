@@ -8,6 +8,7 @@ Prove which skills are doing useful work and expose unused, skipped, or weak pro
 
 | Date | Task/milestone | Skill | Result | Evidence | Procedure gap / next correction |
 |---|---|---|---|---|---|
+| 2026-07-13 | Orphaned GDPR module retirement | `slops-repo-inspector`, `slops-git-flow`, `security-privacy-evidence`, `slops-code-review`, `slops-quality-baseline`, `slops-context-markdown` | PASS | `26441a1`; dated security evidence, review, and handoff | TDD/UI/provider/release skills N/A: unmounted deletion with no user-facing or contract change |
 
 Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with the reason. Do not add rows for conditional skills that were genuinely unrelated; list those in the task's skill receipt instead.
 

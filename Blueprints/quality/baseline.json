@@ -2,6 +2,7 @@
   "schema_version": 1,
   "recorded_at": "2026-07-13",
   "commit": "6213f76",
+  "commit": "26441a1",
   "runtime": {
     "node": "v24.11.0",
     "npm": "11.6.1"
@@ -10,6 +11,8 @@
     "backend_tests": {
       "passing": 391,
       "total": 391,
+      "passing": 388,
+      "total": 388,
       "status": "pass"
     },
     "npm_audit_moderate": {

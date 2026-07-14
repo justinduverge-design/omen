@@ -123,6 +123,7 @@ test("compliance evidence manifest points at current Omen files", () => {
 
   assert.match(manifest, /project:\s*"Omen"/);
   assert.match(manifest, /sql\/omen_rls_security\.sql/);
-  assert.match(manifest, /src\/omen_gdpr\.js/);
+  assert.match(manifest, /src\/routes\/userPrivacy\.js/);
+  assert.doesNotMatch(manifest, /src\/omen_gdpr\.js/);
   assert.doesNotMatch(manifest, /ssffmvp_(rls_security|gdpr)\.js|ssffmvp_rls_security\.sql/);
 });

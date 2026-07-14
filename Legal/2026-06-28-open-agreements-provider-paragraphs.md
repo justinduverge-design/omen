@@ -106,5 +106,5 @@ Use short, factual labels. Do not style them like sponsorship badges.
 - Disney Cookies Policy: https://privacy.thewaltdisneycompany.com/en/current-privacy-policy/cookies-policy/
 - Omen security/privacy tracker: `Blueprints/security-privacy.md`
 - Omen ESPN recovery playbook: `Blueprints/playbooks/espn-recovery.md`
-- Omen GDPR module: `src/omen_gdpr.js`
+- Omen privacy routes: `src/routes/userPrivacy.js`
 - Omen platform routes: `src/routes/platforms.js`
