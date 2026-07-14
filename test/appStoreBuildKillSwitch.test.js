@@ -19,17 +19,20 @@ test("PlatformConnections.jsx hides ESPN row in app-store builds, even during re
   assert.match(src, /useState\(!APP_STORE_BUILD && espnRecovery \? 'espn' : null\);/);
 });
 
-test("ConnectLeague.jsx hides EspnCard in app-store builds, even when already connected", () => {
+test("ConnectLeague.jsx replaces ESPN cookie entry with the desktop extension guide in app-store builds", () => {
   const src = read("frontend", "src", "pages", "ConnectLeague.jsx");
 
   const cardMatch = src.match(/function EspnCard\([\s\S]*?\n\}/);
   assert.ok(cardMatch, "EspnCard component not found");
   const card = cardMatch[0];
 
-  const appStoreIdx = card.indexOf("if (APP_STORE_BUILD) return null;");
+  const appStoreIdx = card.indexOf("if (APP_STORE_BUILD) return <MobileEspnCard />;");
   const connectedIdx = card.indexOf("if (!ESPN_ENABLED && !connected) return null;");
 
-  assert.notStrictEqual(appStoreIdx, -1, "APP_STORE_BUILD short-circuit missing from EspnCard");
+  assert.match(src, /const ESPN_EXTENSION_GUIDE_URL = 'https:\/\/github\.com\/justinduverge-design\/omen\/tree\/main\/extension';/);
+  assert.match(src, /function MobileEspnCard\(\)/);
+  assert.match(src, /Open desktop extension guide/);
+  assert.notStrictEqual(appStoreIdx, -1, "APP_STORE_BUILD mobile extension guide missing from EspnCard");
   assert.notStrictEqual(connectedIdx, -1, "existing ESPN_ENABLED/connected gate missing from EspnCard");
   assert.ok(
     appStoreIdx < connectedIdx,

@@ -383,6 +383,31 @@ const ESPN_STEPS = [
   },
 ];
 
+const ESPN_EXTENSION_GUIDE_URL = 'https://github.com/justinduverge-design/omen/tree/main/extension';
+
+function MobileEspnCard() {
+  return (
+    <PlatformCard
+      title="ESPN"
+      description="Finish this connection from a desktop browser. Omen's ESPN helper fills the existing form there; it never submits on your behalf."
+    >
+      <div className="flex flex-col gap-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+        <p>On a computer, load the Omen ESPN Connect extension, sign in to ESPN Fantasy, then choose “Fill into Omen.” Review the filled form and select Connect ESPN yourself.</p>
+        <a
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md px-4 py-2 font-semibold transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-text-on-accent)' }}
+          href={ESPN_EXTENSION_GUIDE_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open desktop extension guide
+        </a>
+        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>The extension is local-only and passes your ESPN session values only into the Omen form you open.</p>
+      </div>
+    </PlatformCard>
+  );
+}
+
 function EspnGuide({ browser, setBrowser }) {
   const guide = ESPN_STEPS.find(g => g.browser === browser) || ESPN_STEPS[0];
   return (
@@ -432,7 +457,7 @@ function EspnCard({ connected, disabled, onRefresh }) {
 
   const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
   const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
-  if (APP_STORE_BUILD) return null;
+  if (APP_STORE_BUILD) return <MobileEspnCard />;
   if (!ESPN_ENABLED && !connected) return null;
 
   async function handleConnect(e) {
