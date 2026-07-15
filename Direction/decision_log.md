@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-13 (Retro — Omen Promo Video Lessons Learned)
+
+- **Promo video work exists at `Brand/promos/omen-coming-soon/` and was previously undiscoverable from `Direction/`.** Nothing in `decision_log.md`, `current_sprint.md`, or `agent_inbox.md` referenced it before this entry; the only reason it surfaced is Justin supplying the exact path. **Going forward, any promo/video work must get at least a one-line pointer logged here** so future sessions can find it without being told.
+- **Three cut generations were built; real app captures beat recreated/abstract cuts.** Teaser/hype cuts (abstract brand mood, generated placeholder audio) and mockup-style "explainer" cuts (recreated UI panels) were both superseded by `renders/omen-trade-flow-reel-vertical.mp4`, built from real Omen frontend captures on deterministic demo data. The project's own `assets/next-explainer-brief.md` verdict: abstract cuts show "brand mood, not app value" and a viewer "does not learn the workflow." **Doctrine: shoot real app captures on demo-mode data first; do not re-attempt abstract/mockup-style promo cuts.**
+- **Generated placeholder audio was treated as usable and had to be redone.** Lesson: source and license real music before the first render, not as a late swap.
+- **No closing decision was ever logged on the current best cut.** `omen-trade-flow-reel-vertical.mp4` has sat at "pending Justin's final viewing approval" (per the promo README) with no yes/no recorded. This entry logs that status explicitly so it isn't silently dropped. Next new-footage effort should treat this cut as superseded-in-progress, not restart from zero.
+
 ## Decisions Added 2026-07-13 (Phase 4.20b public legal/support pages)
 
 - **Approved monitored public contacts are scoped by inquiry type.** `support@slopssaloon.com` handles account/product help, `privacy@slopssaloon.com` handles privacy questions, and `legal@slopssaloon.com` handles terms questions. Public copy tells users not to send platform cookies, OAuth tokens, auth headers, or credential-bearing screenshots through any channel.

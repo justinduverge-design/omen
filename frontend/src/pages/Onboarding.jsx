@@ -79,7 +79,7 @@ function ConnectStep({ onCheck, checking, noConnection }) {
           {[
             { name: 'Yahoo Fantasy', note: 'Most popular — full Omen support' },
             { name: 'Sleeper',       note: 'Full Omen support' },
-            { name: 'ESPN Fantasy',  note: 'Supported — see setup guide' },
+            { name: 'ESPN Fantasy',  note: 'Supported — finish setup on a computer' },
           ].map(({ name, note }) => (
             <div key={name} className="flex items-center justify-between">
               <div className="flex items-center gap-3">

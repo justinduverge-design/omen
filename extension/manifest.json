@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Omen ESPN Connect",
   "version": "0.1.0",
-  "description": "Reads your own ESPN Fantasy cookies from this browser and fills them into Omen's Connect ESPN form. Local-only: never sends your ESPN cookies anywhere except the Omen connect form you click into.",
+  "description": "Fills Omen's ESPN connection form from your browser session. Local-only; you review and submit the form.",
   "permissions": ["cookies", "storage", "activeTab"],
   "host_permissions": ["https://*.espn.com/*"],
   "background": {

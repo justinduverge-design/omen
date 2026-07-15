@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Audio, Composition, Img, interpolate, registerRoot, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Composition, Img, Sequence, interpolate, registerRoot, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 
 const COLORS = {
   raven: '#0A0A0B',
@@ -1249,8 +1249,209 @@ function OmenTradeFlowReel() {
   );
 }
 
+function TextCard({ children, delay, holdUntil, size = 60 }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame: frame - delay, fps, config: { damping: 22, stiffness: 100 } });
+  const exit = out(frame, holdUntil, holdUntil + 26);
+  // Gate the WHOLE card (including its opaque background) on enter*exit — not just the text div.
+  // A prior version only opacity-gated the text, leaving this AbsoluteFill's solid background
+  // permanently painted over every earlier scene for the full video (2026-07-13 content-ship re-check).
+  const cardOpacity = enter * exit;
+  if (cardOpacity <= 0.001) return null;
+  return (
+    <AbsoluteFill style={{ background: COLORS.raven, opacity: cardOpacity }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(circle at 50% 40%, rgba(47,125,91,0.14), transparent 34%), linear-gradient(180deg, ${COLORS.raven}, #121110 60%, ${COLORS.raven})`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: '84%',
+          maxWidth: 860,
+          transform: `translate(-50%, calc(-50% + ${interpolate(enter, [0, 1], [22, 0])}px))`,
+          color: COLORS.bone,
+          fontFamily: 'Alegreya Sans, Arial, sans-serif',
+          fontSize: size,
+          fontWeight: 900,
+          lineHeight: 1.05,
+          textAlign: 'center',
+        }}
+      >
+        {children}
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+// Real VO recorded 2026-07-14 via slops-voiceover (voicebox, Kokoro engine, "Onyx" preset) —
+// see Blueprints/skills/slops-voiceover/notes/prior-use-review.md. Durations measured from the
+// actual generated WAVs, not estimated — scene frame timing below is built from those numbers,
+// not the ~2.75 words/sec caption-pacing guess used in the earlier (VO-less) cut.
+const VO = {
+  hook: { file: '01-hook.wav', frames: 59 },      // 1.975s
+  trade: { file: '02-trade.wav', frames: 173 },   // 5.775s
+  weekly: { file: '03-weekly.wav', frames: 166 }, // 5.525s
+  draft: { file: '04-draft.wav', frames: 134 },   // 4.45s
+  platform: { file: '05-platform.wav', frames: 177 }, // 5.9s
+  turn: { file: '06-turn.wav', frames: 88 },      // 2.925s
+  cta: { file: '07-cta.wav', frames: 113 },       // 3.775s
+};
+
+// Scene timing derived from VO durations: each scene = 10f audio lead-in, the audio's own length,
+// 15f post-roll hold, then an 18f fade-out; scenes are separated by a 12f gap. Computed once here so
+// the JSX below reads as fixed frame numbers without re-deriving the arithmetic inline.
+function sceneTiming(startFrame, voFrames, opts = {}) {
+  const lead = opts.lead ?? 10;
+  const postRoll = opts.postRoll ?? 15;
+  const fadeOutLen = opts.fadeOutLen ?? 18;
+  const audioStart = startFrame + lead;
+  const audioEnd = audioStart + voFrames;
+  const holdUntil = audioEnd + postRoll;
+  const fadeOutEnd = holdUntil + fadeOutLen;
+  return { sceneStart: startFrame, audioStart, audioEnd, holdUntil, fadeOutEnd };
+}
+
+const GAP = 12;
+const S1 = sceneTiming(0, VO.hook.frames, { postRoll: 30 }); // extra hold so LaunchOpen's own beat lands
+const S2 = sceneTiming(S1.fadeOutEnd + GAP, VO.trade.frames);
+const S3 = sceneTiming(S2.fadeOutEnd + GAP, VO.weekly.frames);
+const S4 = sceneTiming(S3.fadeOutEnd + GAP, VO.draft.frames);
+const S5 = sceneTiming(S4.fadeOutEnd + GAP, VO.platform.frames);
+const S6 = sceneTiming(S5.fadeOutEnd + GAP, VO.turn.frames);
+const S7 = sceneTiming(S6.fadeOutEnd + GAP, VO.cta.frames, { postRoll: 40 }); // end card holds longer
+const TOTAL_FRAMES = S7.fadeOutEnd + 20;
+
+// Beat sheet: Blueprints handoff 2026-07-13 (multi-segment promo script), Direction/decision_log.md
+// 2026-07-13 retro entry. Trade + Weekly beats use real captures from public/captures/trade-flow —
+// no recreated UI panels. Draft/platform beats have no captured footage yet, so they stay as plain
+// text cards (same treatment as the Turn/CTA cards below) rather than mocked-up screens.
+function OmenAllUsersReel() {
+  const frame = useCurrentFrame();
+  const openOut = out(frame, S1.holdUntil, S1.fadeOutEnd);
+
+  const s2Opacity = fade(frame, S2.sceneStart, S2.sceneStart + 14) * out(frame, S2.holdUntil, S2.fadeOutEnd);
+  const s2Mid = S2.audioStart + Math.round(VO.trade.frames / 2);
+  const s2ImgA = out(frame, s2Mid - 9, s2Mid + 9);
+  const s2ImgB = fade(frame, s2Mid - 9, s2Mid + 9);
+
+  const s3Opacity = fade(frame, S3.sceneStart, S3.sceneStart + 14) * out(frame, S3.holdUntil, S3.fadeOutEnd);
+  const s3Mid = S3.audioStart + Math.round(VO.weekly.frames / 2);
+  const s3ImgA = out(frame, s3Mid - 9, s3Mid + 9);
+  const s3ImgB = fade(frame, s3Mid - 9, s3Mid + 9);
+
+  const end = fade(frame, S7.sceneStart, S7.sceneStart + 14);
+
+  return (
+    <AbsoluteFill style={{ background: COLORS.raven, overflow: 'hidden' }}>
+      <Audio src={staticFile('audio/omen-explainer-boom-bap.mp3')} volume={0.4} />
+      <Sequence from={S1.audioStart} durationInFrames={VO.hook.frames}>
+        <Audio src={staticFile('audio/vo/01-hook.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S2.audioStart} durationInFrames={VO.trade.frames}>
+        <Audio src={staticFile('audio/vo/02-trade.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S3.audioStart} durationInFrames={VO.weekly.frames}>
+        <Audio src={staticFile('audio/vo/03-weekly.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S4.audioStart} durationInFrames={VO.draft.frames}>
+        <Audio src={staticFile('audio/vo/04-draft.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S5.audioStart} durationInFrames={VO.platform.frames}>
+        <Audio src={staticFile('audio/vo/05-platform.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S6.audioStart} durationInFrames={VO.turn.frames}>
+        <Audio src={staticFile('audio/vo/06-turn.wav')} volume={1} />
+      </Sequence>
+      <Sequence from={S7.audioStart} durationInFrames={VO.cta.frames}>
+        <Audio src={staticFile('audio/vo/07-cta.wav')} volume={1} />
+      </Sequence>
+
+      <div style={{ opacity: openOut }}>
+        <LaunchOpen />
+      </div>
+
+      <div style={{ opacity: s2Opacity }}>
+        <FlowScreenshot src="trade-open.png" opacity={s2ImgA} scale={1.06} y={-18} />
+        <FlowScreenshot src="trade-result.png" opacity={s2ImgB} scale={1.12} y={-256} />
+        <ReelCaption top={1492} delay={S2.audioStart + 4}>Weighing a trade? Build it, compare both sides. See the recommendation before you send it.</ReelCaption>
+      </div>
+
+      <div style={{ opacity: s3Opacity }}>
+        <FlowScreenshot src="omen-top.png" opacity={s3ImgA} scale={1.1} y={-210} />
+        <FlowScreenshot src="omen-middle.png" opacity={s3ImgB} scale={1.12} y={-120} />
+        <ReelCaption top={1496} delay={S3.audioStart + 4}>Deciding who starts? Recommendation first. Confidence and risk right behind it.</ReelCaption>
+      </div>
+
+      {/* Platform-line clause restored — the prior render dropped "not a generic one," the actual
+          differentiating half of the approved script line (content-ship script-writing finding). */}
+      <TextCard delay={S4.audioStart} holdUntil={S4.holdUntil} size={56}>Getting ready to draft? Omen reads the board so you don't have to.</TextCard>
+      <TextCard delay={S5.audioStart} holdUntil={S5.holdUntil} size={54}>Yahoo, Sleeper, or ESPN — Omen reads your actual league, not a generic one.</TextCard>
+      <TextCard delay={S6.audioStart} holdUntil={S6.holdUntil} size={64}>The edge is in what you almost missed.</TextCard>
+
+      <div style={{ opacity: end }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 48,
+            background:
+              `radial-gradient(circle at 50% 35%, rgba(166,124,46,0.18), transparent 30%), ` +
+              `linear-gradient(180deg, rgba(10,10,11,0.76), ${COLORS.raven})`,
+          }}
+        >
+          <Img src={staticFile('omen-horizontal-lockup-transparent.png')} style={{ width: 560 }} />
+          <div
+            style={{
+              width: '86%',
+              color: COLORS.bone,
+              fontFamily: 'Alegreya Sans, Arial, sans-serif',
+              fontSize: 68,
+              fontWeight: 900,
+              lineHeight: 1.02,
+              textAlign: 'center',
+            }}
+          >
+            See the result before it happens.
+          </div>
+          <div
+            style={{
+              color: COLORS.raven,
+              background: COLORS.brass,
+              fontFamily: 'Alegreya Sans, Arial, sans-serif',
+              fontSize: 38,
+              fontWeight: 900,
+              padding: '22px 44px',
+            }}
+          >
+            Join the waitlist
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
 export const RemotionRoot = () => (
   <>
+    <Composition
+      id="OmenAllUsersReel"
+      component={OmenAllUsersReel}
+      durationInFrames={TOTAL_FRAMES}
+      fps={30}
+      width={1080}
+      height={1920}
+    />
     <Composition
       id="OmenTradeFlowReel"
       component={OmenTradeFlowReel}
