@@ -10,10 +10,12 @@
 - Component is built as a plain React component, utilizing standard Tailwind utility classes and inline styles with CSS custom properties.
 - Integrated forwardRef for proper DOM measuring by tooltips/popovers in the future, handling feedback from code review.
 - Built a robust manual `asChild` prop implementation to render links as buttons.
+- Included an active interaction state (`active:scale-[0.98]`) for tactile feedback on non-link variants, which correctly falls back (`motion-reduce:active:transform-none`) for users with reduced motion preferences.
 - Created `frontend/src/components/ui/index.js` to export the new `Button` alongside existing primitives in that directory.
 - Appended a row to `Blueprints/playbooks/skill-usage-ledger.md`.
 
 ## Notes for next agent/human
 
 - **No page migrations have been performed.** This PR is strictly Phase A (component code only) as directed.
+- **Focus ring deviation:** As `--color-focus-ring` does not exist in the design system, the focus ring implementation utilizes the existing accent/omen outline convention (`focus-visible:outline-[var(--color-accent)]`).
 - Proceed with Phase B in a serialized manner against any other brief affecting hot files (`ConnectLeague.jsx`, `TradeAnalyzer.jsx`, `DraftAssistant.jsx`, or `Landing.jsx`).
