@@ -2,6 +2,25 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-14 (Sandbox Environment — Scope + Access Model)
+
+- **Sandbox environment approved as full multi-scenario** (trade incl. multi-team, draft, waiver,
+  start/sit) — not a narrow one-fixture extension. Serves three consumers: App Store review, content
+  capture, dev/QA feature testing. Spec: `Blueprints/specs/sandbox-environment-spec-v1.md`.
+- **Access model decided: separate authenticated sandbox account**, not an extension of the public
+  `/demo` route. `/demo` stays untouched — it already solves App Store review and isn't broken. The new
+  Sandbox account is a real login with fixture-backed data instead of real platform-adapter calls, giving
+  content capture the "someone actually using the app" feel that the all-users-reel feedback wanted —
+  and it's consistent with the existing 2026-07-13 doctrine below to "shoot real app captures on demo-mode
+  data first."
+- **Phasing approved:** Phase A (fixture expansion — multi-team trade + draft board fixtures, buildable
+  now) → Phase B (the sandbox account mechanism — schema-adjacent, needs a separate explicit approval
+  before any migration is written) → Phase C (wire into reviewer docs / content workflow / dev usage).
+- **Reuse candidate flagged, not confirmed:** the drafted-but-unapplied `platform_connections.
+  connection_mode` schema addition (from the iOS ESPN relay work, Phase 5.3) may be extendable with a
+  `sandbox` value instead of adding a new column — verify the actual branch diff before assuming this,
+  don't build on the name alone.
+
 ## Decisions Added 2026-07-13 (Retro — Omen Promo Video Lessons Learned)
 
 - **Promo video work exists at `Brand/promos/omen-coming-soon/` and was previously undiscoverable from `Direction/`.** Nothing in `decision_log.md`, `current_sprint.md`, or `agent_inbox.md` referenced it before this entry; the only reason it surfaced is Justin supplying the exact path. **Going forward, any promo/video work must get at least a one-line pointer logged here** so future sessions can find it without being told.

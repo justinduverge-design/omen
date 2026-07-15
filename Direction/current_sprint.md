@@ -125,6 +125,34 @@ Thin native shell only — the ESPN-connect handoff, not a native reimplementati
 - [ ] **Service-key Supabase route scoping audit.** `src/routes/platforms.js` and `src/routes/userPrivacy.js` both use a service-key client and manually scope every query by `user_id`; verify this holds for every other route using `config.supabaseServiceKey`, and confirm each has an existing cross-user-isolation test or gets one added. Priority: P1. Cost: medium. Done-when: a table (route file → query → scoping column → test reference) covering every service-key route in `src/routes/` is checked into `Direction/reviews/`; any unscoped query found is treated as a P0 bug fix, not closed silently. Research: `Direction/reviews/2026-07-05-app-store-mobile-readiness-sprint-proposal.md` §2.8.
 
 ### Decisions (Justin / Agents — not builds)
+- [x] **Sandbox environment — scope + access model decided (2026-07-14).** Full multi-scenario sandbox
+  approved; access model is a separate authenticated fake-data account, `/demo` stays untouched. See
+  `decision_log.md` same date and `Blueprints/specs/sandbox-environment-spec-v1.md`. Real build items
+  below.
+
+### Sandbox Environment (new lane, 2026-07-14)
+- [ ] **SB-A — Fixture expansion (multi-team trade + draft board).** Add a multi-team trade fixture and a
+  draft-board fixture alongside the existing `DEMO_ROSTER_FIXTURE` in `src/services/demoMode.js` (or a
+  sibling fixture module if that file shouldn't grow multi-purpose), using the same placeholder-identity
+  convention (`"Sample QB Starter"`-style names, never real players). Spec: `Blueprints/specs/
+  sandbox-environment-spec-v1.md` §6 Phase A. Priority: P1. Cost: medium. Blocked-by: none — buildable
+  now. Done-when: a multi-team trade scenario and a draft-board scenario both render through existing
+  `/demo`-style plumbing (or a new dev-only preview route) with placeholder identities, no real
+  Supabase/platform-adapter/LLM calls, and the same non-dismissible demo labeling `demo-mode.md` requires.
+  This alone unblocks `slops-saloon/Direction/current_sprint.md` CP4's multi-team trade capture item.
+- [ ] **SB-B — Sandbox account mechanism.** Build the real authenticated fake-data account per spec §5:
+  a sandbox flag (verify whether the drafted-but-unapplied `platform_connections.connection_mode` schema
+  addition is reusable before adding a new column), platform-adapter short-circuit to return fixture data
+  instead of real Yahoo/Sleeper/ESPN calls for the flagged account, analytics/LLM-training exclusion
+  carried over from the `/demo` rule, and a persistent non-dismissible sandbox label in the authenticated
+  shell. **Schema-adjacent — needs Justin's explicit approval on the specific schema/migration approach
+  before any migration is written**, per `action-posture.md`. Priority: P1. Cost: large. Blocked-by:
+  SB-A (reuses its fixture data) and a separate schema-approval conversation.
+- [ ] **SB-C — Wire into consumers.** Confirm `Blueprints/playbooks/app-store-reviewer-access.md` and
+  `/demo` are unaffected (they should be); update `slops-saloon/Blueprints/workflows/
+  content-production-pipeline.md` and `short-video-workflow.md` to point content-capture work at the
+  Sandbox account; document it as the default place to test new screens/UX in development. Cost: small.
+  Blocked-by: SB-B.
 - [ ] `POST /api/optimizer/mvp-move` (`src/routes/optimizer.js`): merge into Omen as a Pro enrichment layer, or keep separate. Cost: small (recommendation memo).
 - [x] **Merge `mvp-move` into Omen; retire the mock helper; ship recovery analytics — decided 2026-07-12 (see decision log).** Justin: merge `POST /api/optimizer/mvp-move` into Omen as a Pro enrichment layer taking the best of both, rather than keeping them separate. Follow-on build tracked as a new item below. `getOmenOfTheWeekMock()` and recovery-analytics timing to be resolved as part of that same merge design, not separately.
 - [ ] **Build: merge `mvp-move` optimizer into Omen as a unified recommendation layer.** Priority: P1. Cost: large. Blocked-by: none — decision made 2026-07-12. Design a single Omen recommendation surface that combines `POST /api/optimizer/mvp-move`'s LLM-narrated single highest-value-action output with the existing Omen of the Week contract, rather than shipping two parallel recommendation systems. As part of this, decide and resolve inline: whether `getOmenOfTheWeekMock()` is retired outright or kept as an explicitly-labeled fallback for off-season/no-data states, and whether recovery analytics (tracking reconnect/recovery flows) ships as part of this merge or is deferred past first paid launch. Done-when: one documented recommendation contract in `Blueprints/api-routes.md`, no duplicate/competing recommendation route, `npm test`/build clean, decision log entry for the mock-retirement and recovery-analytics-timing sub-decisions made during the design pass. Docs affected: `src/routes/optimizer.js`, `src/routes/dashboard.js` (or wherever Omen of the Week lives), `Blueprints/api-routes.md`, `Blueprints/handoffs/`. Done docs: feature + recommendation + security.
