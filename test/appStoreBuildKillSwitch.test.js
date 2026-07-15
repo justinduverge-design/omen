@@ -29,9 +29,9 @@ test("ConnectLeague.jsx replaces ESPN cookie entry with the desktop extension gu
   const appStoreIdx = card.indexOf("if (APP_STORE_BUILD) return <MobileEspnCard />;");
   const connectedIdx = card.indexOf("if (!ESPN_ENABLED && !connected) return null;");
 
-  assert.match(src, /const ESPN_EXTENSION_GUIDE_URL = 'https:\/\/github\.com\/justinduverge-design\/omen\/tree\/main\/extension';/);
+  assert.match(src, /const ESPN_EXTENSION_GUIDE_URL = '\/espn-connect';/);
   assert.match(src, /function MobileEspnCard\(\)/);
-  assert.match(src, /Open desktop extension guide/);
+  assert.match(src, /Open ESPN setup guide/);
   assert.notStrictEqual(appStoreIdx, -1, "APP_STORE_BUILD mobile extension guide missing from EspnCard");
   assert.notStrictEqual(connectedIdx, -1, "existing ESPN_ENABLED/connected gate missing from EspnCard");
   assert.ok(
