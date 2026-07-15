@@ -11,9 +11,10 @@
 For any task touching Omen UX, UI, shared components, visual language, colorways, page hierarchy, motion, or theme strategy, read files in this order:
 
 1. `Blueprints/specs/design/omen-ui-north-star-v1.md`
-2. `Brand/brand-system.md`
-3. Relevant implementation spec or route/page file
-4. Historical audit/evidence only if the task needs it
+2. `Blueprints/specs/design/legacy-doc-suppression-banners.md`
+3. `Brand/brand-system.md`
+4. Relevant implementation spec or route/page file
+5. Historical audit/evidence only if the task needs it
 
 The North Star is the current authority for the overhaul. If another design document conflicts with it, the North Star wins unless Justin explicitly says otherwise.
 
@@ -24,6 +25,7 @@ The North Star is the current authority for the overhaul. If another design docu
 | File | Status | Use |
 |---|---|---|
 | `Blueprints/specs/design/omen-ui-north-star-v1.md` | Active | Current UX/UI overhaul authority: product posture, component governance, visual direction, motion, colorway strategy, and document-status cleanup. |
+| `Blueprints/specs/design/legacy-doc-suppression-banners.md` | Active routing support | Exact banner text and suppression status for older UX/UI files until physical banners are applied. |
 | `Brand/brand-system.md` | Active companion | Brand identity, voice, positioning, copy anchors, palette, logo usage, and product pillars. |
 
 ---
