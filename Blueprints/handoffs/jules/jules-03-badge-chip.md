@@ -1,15 +1,17 @@
 # Jules brief — 03 · Badge / Chip primitive
 
-**Queue position:** 3 of 11 (added 2026-07-15 as a dependency gap-fill — see `Blueprints/handoffs/jules/README.md` for the authoritative run order)
+**Queue position:** 03 of 13 (`Blueprints/handoffs/jules/README.md` is the authoritative run order)
 **Depends on:** none
-**Status:** ready to run immediately (component build only — no migration in this brief, see scope note)
-**Unblocks:** brief 08 (`PlatformConnectionCard`), brief 09 (`PlayerRow`/`PlayerChip`), and gives brief 04 (`PageHero`) and brief 11 (`DecisionBrief`) a real `trailing`/status-chip implementation instead of ad-hoc markup.
+**Status:** Phase A ready immediately. **This brief has no Phase B** — component build only, no migration, ever (see scope note).
+**Unblocks:** brief 08 (`PlatformConnectionCard`), brief 10 (`PlayerRow`/`PlayerChip`), and gives brief 04 (`PageHero`) and brief 09 (`DecisionBrief`) a real `trailing`/status-chip implementation instead of ad-hoc markup.
 
 ---
 
 ## Objective
 
-Build two small, closely related components — `Badge` and `Chip` — as locked Level-1 primitives per `omen-ui-north-star-v1.md` §4. **This brief builds the components only. It does not migrate any page.** Repo inspection (2026-07-15) found badge/chip-like markup scattered across 13+ files (`LeagueStandings.jsx`, `MoveHistory.jsx`, `PlatformConnections.jsx`, `ConnectLeague.jsx`, `DraftAssistant.jsx`, `Football.jsx`, `Landing.jsx`, `Omen.jsx`, `OmenOfTheWeek.jsx`, `Standings.jsx`, `StartSit.jsx`, `TradeAnalyzer.jsx`, `TradeShare.jsx`, `WaiverWire.jsx`) — sweeping all of that in one PR would violate the "favor smaller PRs" rule and would collide with nearly every other brief's migration files. Downstream briefs (08, 09) each adopt `Badge`/`Chip` narrowly, in their own scope, when they need it.
+Build two small, closely related components — `Badge` and `Chip` — as locked Level-1 primitives per `omen-ui-north-star-v1.md` §4. **This brief builds the components only. It does not migrate any page, and never will — there is no Phase B for this brief.** Repo inspection (2026-07-15) found badge/chip-like markup scattered across 13+ files (`LeagueStandings.jsx`, `MoveHistory.jsx`, `PlatformConnections.jsx`, `ConnectLeague.jsx`, `DraftAssistant.jsx`, `Football.jsx`, `Landing.jsx`, `Omen.jsx`, `OmenOfTheWeek.jsx`, `Standings.jsx`, `StartSit.jsx`, `TradeAnalyzer.jsx`, `TradeShare.jsx`, `WaiverWire.jsx`) — sweeping all of that in one PR would violate the "favor smaller PRs" rule and would collide with nearly every other brief's migration files. Downstream briefs (08, 10) each adopt `Badge`/`Chip` narrowly, in their own scope, when they need it.
+
+## Phase A — component build only (the entirety of this brief)
 
 ## Required reading (in order)
 
@@ -62,7 +64,7 @@ Position tones read the existing `--color-pos-*` tokens already defined in `inde
 - Minimum text contrast AA against each tone's background in both themes — verify against the light-mode token values in `index.css` (`:root[data-theme="light"]` block), which differ from dark.
 - `Chip`/`Badge` are inline, non-interactive elements by default — no button semantics, no implicit focus stop, unless a future variant adds `onClick` (not in this PR).
 
-## Allowed files
+## Phase A allowed files
 
 - `frontend/src/components/ui/Badge.jsx` (new)
 - `frontend/src/components/ui/Chip.jsx` (new)
@@ -70,18 +72,21 @@ Position tones read the existing `--color-pos-*` tokens already defined in `inde
 - `Blueprints/playbooks/skill-usage-ledger.md`
 - `Blueprints/handoffs/` (new dated handoff)
 
-## Forbidden files
+## Forbidden files (applies to this brief's only phase, Phase A)
 
 - **No page files at all in this brief** — this is the key constraint distinguishing it from every other queued brief. Do not touch `ConnectLeague.jsx`, `TradeAnalyzer.jsx`, `DraftAssistant.jsx`, `Football.jsx`, `Landing.jsx`, `Omen.jsx`, `OmenOfTheWeek.jsx`, `Standings.jsx`, `StartSit.jsx`, `TradeShare.jsx`, `WaiverWire.jsx`, or any component under `components/league/`, `components/moves/`, `components/platforms/`.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - `frontend/src/components/ui/Button.jsx`, `Input.jsx`, `Textarea.jsx`, `PageHero.jsx` — do not modify existing primitives.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Team theming tokens (`--color-team-*`) — do not wire Badge/Chip tone to team color.
 
-## Testing / build commands
+## Phase A verification
 
 - `npm --prefix frontend run build` — must succeed with the new components present but unused (no consumer imports them yet in this PR — that's expected and correct).
-- No automated component tests exist in `frontend/` (confirmed). Verification is a small standalone check: temporarily render both components with all documented tones/sizes in `frontend/src/pages/NotFound.jsx` or a scratch route is **not** allowed (that would be an unrequested page edit) — instead verify via a local Storybook-less manual render is acceptable only in a throwaway branch that is not part of the PR diff, or via a quick script/Vite dev inspection that leaves no trace in the committed files. State in the PR description how visual verification was done since there's no in-repo fixture to point to.
+- No committed scratch route or fixture page — that would be an unrequested page edit and is not allowed. No automated component tests exist in `frontend/` (confirmed).
+- No screenshots required — this component is not yet used on any real page (that happens in briefs 08/10's own Phase B). Instead, the PR description must state how tones/sizes/contrast were checked (e.g. a local, uncommitted manual render) since there's no in-repo fixture to point to.
 
 ## Done criteria
 
@@ -98,8 +103,8 @@ Position tones read the existing `--color-pos-*` tokens already defined in `inde
 **Body:**
 ```
 ## What
-Adds Badge and Chip per omen-ui-north-star-v1.md §4. Component-only PR — no page migration.
-Unblocks: PlatformConnectionCard (08), PlayerRow/PlayerChip (09), PageHero trailing slot, DecisionBrief (11).
+Adds Badge and Chip per omen-ui-north-star-v1.md §4. Component-only PR — no page migration, no Phase B.
+Unblocks: PlatformConnectionCard (08), PlayerRow/PlayerChip (10), PageHero trailing slot, DecisionBrief (09).
 
 ## Why no migration here
 13+ files have drifted badge/chip markup. Sweeping them in one PR would violate the
@@ -126,10 +131,11 @@ Handoff: [link]
 
 ## Which later briefs depend on this
 
-- **08 PlatformConnectionCard** — needs `Badge` for connection status, needs `Chip`/`Badge`-adjacent for the platform identity marker (may still need a dedicated `PlatformBadge` composition — flag that gap again if it emerges, don't build it here).
-- **09 PlayerRow / PlayerChip** — needs `Chip` for the position tag (`pos-*` tones exist specifically for this).
-- **11 DecisionBrief** — likely wants `Badge` for risk/confidence-adjacent labeling, though its primary confidence/risk display is `MetricStrip` (10), not this.
+- **08 PlatformConnectionCard** — needs `Badge` for connection status; platform identity now goes through the dedicated `PlatformBadge` (brief 12), not through `Badge`/`Chip` directly.
+- **10 PlayerRow / PlayerChip** — needs `Chip` for the position tag (`pos-*` tones exist specifically for this).
+- **09 DecisionBrief** — likely wants `Badge` for risk/confidence-adjacent labeling, though its primary confidence/risk display is `MetricStrip` (brief 11), not this.
 - **04 PageHero** — its `trailing` slot example in `component-lock-v1.md` §5 (`<Chip>THE 305</Chip>`) can be filled for real once this merges, but PageHero does not require this brief to ship first (the slot accepts any `ReactNode` already).
+- **12 PlatformBadge** — reuses this brief's styling approach as a soft precedent, though it is built as its own distinct component, not a `Badge` tone.
 
 ## Risk level
 

@@ -38,11 +38,14 @@ Build `MarketingHero`, the distinct marketing-page hero shape referenced by both
 
 ## Forbidden files
 
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile — no font-stack changes (see discrepancy note; do not resolve Cinzel/Inter vs. Alegreya Sans in this PR, same constraint as brief 04).
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no font-stack changes (see discrepancy note; do not resolve Cinzel/Inter vs. Alegreya Sans in this PR, same constraint as brief 04).
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - `frontend/src/components/ui/PageHero.jsx` — `MarketingHero` is a sibling, not a variant of `PageHero`; do not merge them into one component or make one wrap the other unless a future doc explicitly calls for that.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page other than `Landing.jsx` — in particular, do not touch `/about` or the public Trade Analyzer demo surfaces in this brief even though `ui-component-system.md` P2.1 eventually wants `MarketingHero` there too; that's page-migration (P2) scope, not primitive (P0/P1) scope, and belongs to a future brief.
 - The Landing hero glitch bug (noted in `component-lock-v1.md` as a separate tracked issue, likely a rendering/animation timing bug) — do not attempt to fix it as part of this brief; if it's visible while building, note it in the PR but leave it alone.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -75,12 +78,17 @@ One shape — no size/layout variants in v1. `visual` slot is optional (renders 
 - CTAs inherit accessibility from `Button` (01) — no local reimplementation.
 - `visual` slot, if used, needs `aria-hidden="true"` if purely decorative, or proper alt text if it conveys information not present in the text content.
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with the component present but unused.
+- No committed scratch route. No screenshots required if Phase B is deferred — PR description must instead state how the `headline`/`subheadline`/CTA/`visual` slot layout was checked locally.
+
+## Phase B verification (only if Phase B is included in this PR)
 
 - `npm --prefix frontend run build` — must succeed.
 - No automated test framework in `frontend/`; verify manually.
-- If Phase B is included: manual check that exactly one `<h1>` exists on `Landing.jsx` post-migration, and that the existing hero glitch bug's behavior is unchanged (not fixed, not worsened) by this PR.
-- Manual light/dark screenshots.
+- Manual check that exactly one `<h1>` exists on `Landing.jsx` post-migration, and that the existing hero glitch bug's behavior is unchanged (not fixed, not worsened) by this PR.
+- Manual light/dark screenshots — required here since this is a real, live page.
 
 ## Done criteria
 

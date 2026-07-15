@@ -1,6 +1,6 @@
 # Jules UI Implementation Brief Queue — Omen
 
-**Date:** 2026-07-15 (updated same day — added briefs 06–13, corrected PlatformBadge dependency)
+**Date:** 2026-07-15 (updated same day — added briefs 06–13, corrected PlatformBadge dependency, then a consistency/quality polish pass: queue-position labels, Phase A/B structure normalization across all 13 briefs, forbidden-file standardization, common-failure-modes and review-gate sections added)
 **Status:** Active queue index — authoritative run order
 **Authority chain:** `Blueprints/specs/design/omen-ui-north-star-v1.md` → `Blueprints/specs/design/README.md` → `Blueprints/backlog/ui-component-system.md` → this file → individual briefs in this directory.
 
@@ -122,3 +122,34 @@ Each Phase-B PR should rebase onto `main` after the prior one in this list merge
 **Safe to draft in parallel (Phase A only, no shared files, no dependency conflict):** 01, 02, 03, 04, 05, 06, 13 can all have their component-build halves in flight at once. Once 03 merges, 12 joins that parallel-safe set. Once 01 merges, 07 joins it.
 
 **Must be serialized because they touch the same page files (Phase B only):** every brief touching `ConnectLeague.jsx`, `TradeAnalyzer.jsx`, `DraftAssistant.jsx`, `Football.jsx`, or `Landing.jsx` — that's 01, 02, 04, 06, 07, 08, 10, 11, and optionally 13. Follow the numbered Phase-B order above exactly; do not merge two of these concurrently regardless of how ready they otherwise are. Briefs 03, 05, 09, 12 touch no hot files and are exempt from this constraint (09 touches `OmenOfTheWeek.jsx`, which isn't hot, but still carries its own five-way dependency block above).
+
+---
+
+## Common Jules failure modes
+
+Watch for these specifically when reviewing any PR against this queue. None of them are hypothetical — each maps to a constraint stated in one or more briefs, which means each is also a place a brief could be misread or corners could get cut under time pressure.
+
+1. **Accidental package-lock churn from `npm install`.** Even a no-op `npm install` (e.g. run to "make sure things are set up") can rewrite the lockfile's dependency-resolution metadata without adding a real dependency. This shows up as a large, hard-to-review lockfile diff with no corresponding `package.json` change. Treat any lockfile diff as a red flag regardless of whether `package.json` changed.
+2. **Raw Tailwind color literals** — `text-white`, `red-400`, `slate-800`, `amber-400`, and similar utility classes that bypass the token system. These are easy to miss in a quick diff scan because they look like normal Tailwind usage; they are only wrong in this codebase because every brief requires token-only color (`var(--color-...)`). Brief 07 exists specifically because this drift was already found in "canonical" files (`ErrorState.jsx`, `Spinner.jsx`) during planning — assume it will recur.
+3. **Adding dependencies.** Not just `npm install <package>` — also watch for a component quietly importing something already present in `node_modules` as a transitive dependency of an existing package, which technically adds no new top-level entry to `package.json` but still introduces an undeclared coupling. If an import isn't from React, `react-router-dom`, `@sentry/react`, `@supabase/supabase-js`, or the codebase's own files, question it.
+4. **Migrating pages in Phase A.** The single most likely structural mistake given how this queue is organized — a Phase A PR that includes "just one quick" page edit to see the component in context. Every brief's Phase A section says no page files; treat any page file in a Phase A diff as an automatic scope-split request, not a judgment call.
+5. **Touching hot files out of sequence.** `ConnectLeague.jsx`, `TradeAnalyzer.jsx`, `DraftAssistant.jsx`, `Football.jsx`, `Landing.jsx` — the Phase B serialization order in this file is the only thing preventing merge conflicts between briefs. A Phase B PR opened against a hot file before its predecessor in the order has merged is out of sequence even if it doesn't yet show a git conflict — it will as soon as the predecessor lands.
+6. **Silently resolving merge conflicts.** If a Phase B PR conflicts with an already-merged Phase A/B (e.g. Input's Phase B rebasing over Button's shipped `Button.jsx`), the fix must match what actually merged, not what the brief draft assumed. Every brief in this queue says some version of "read the final shipped API, not the draft" — a silently resolved conflict that guesses instead of re-reading is a correctness risk, not just a style nit.
+7. **Creating local one-off components instead of using primitives.** A `PrimaryButton`, `IconButton`, `StatusPill`, `SmallHero`, or similar local component invented inside a page file because reading the primitive's real API felt slower than copying an existing pattern. This is exactly the drift this entire queue exists to stop — every brief's done-criteria and review checklist has a line checking for it, but it's worth repeating here because it's the failure mode most likely to slip through a fast review.
+
+---
+
+## Claude/Codex review gate
+
+Every Jules PR against this queue must be reviewed against **both** the individual brief file **and** this README before Justin merges. Neither alone is sufficient — the brief has the component-specific detail, this README has the cross-cutting sequencing and dependency state that no single brief can fully see.
+
+Standard actions when a PR fails review:
+
+- **If the PR changes a forbidden file** (per that brief's "Forbidden files" section, or the cross-cutting constraints above): request cleanup before merge. Do not merge with an explanation in the PR description as a substitute for actually removing the change — forbidden means forbidden, not "flag and proceed."
+- **If the PR changes the package lockfile without an accompanying, explicitly-approved dependency decision:** request a revert of the lockfile change specifically. This applies even if no new dependency was intentionally added — see failure mode 1 above; an unexplained lockfile diff is treated as accidental until proven otherwise.
+- **If raw color literals are added** (Tailwind color-scale utilities or raw hex, anywhere the brief specifies token-only color): request token cleanup. Point to the specific existing `--color-*` token that should have been used, per that brief's "Token usage" section, rather than leaving it open-ended.
+- **If Phase A includes page migration:** request a scope split into two PRs before further review. Do not review the migration portion in place of a proper Phase B PR — the whole point of the split is independent reviewability, and reviewing a merged Phase A+B PR defeats that even if the code itself is fine.
+- **If a brief's stated dependencies haven't actually merged yet** (checked against this README's tier order and the brief's own "Depends on" line, not just the PR author's claim): the PR should not have been opened yet. Request it be closed and reopened once the dependency has merged, rather than reviewed against a moving target.
+- **If a Phase B PR is opened out of the hot-file serialization order** in this README: request it be held until its predecessor in the sequence has merged, even if it would otherwise pass review cleanly on its own.
+
+Reviewers should treat this gate as a checklist to run every time, not a one-time setup step — the queue will keep evolving (new briefs, corrected dependencies, discovered gaps) and a review that was correct last week may not be correct against this week's README.

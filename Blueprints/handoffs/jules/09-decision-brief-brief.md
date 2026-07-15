@@ -40,9 +40,12 @@ Build `DecisionBrief`, the premium decision surface for Omen of the Week, per `u
 - Recommendation-generation logic — anything backend, anything under `frontend/src/lib/` that computes the actual recommendation (as opposed to `confidenceGradient.js`, which is styling math and is fine to *consume*, not modify). This brief presents a recommendation it's given; it does not change how recommendations are computed.
 - `frontend/src/components/ui/Button.jsx`, `Badge.jsx`, `Chip.jsx`, `Tooltip.jsx`, `MetricStrip.jsx`, `EmptyState.jsx`, `ErrorState.jsx`, `LoadingState.jsx` — consume only.
 - `frontend/src/lib/confidenceGradient.js` — consume its exports, do not modify.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page other than `OmenOfTheWeek.jsx`.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 - Do not build `SignalList`, `RiskPanel`, or `ConfidenceBar` as new standalone components in this PR — see scope note above. If existing confidence-bar styling from `confidenceGradient.js` is reused inline within `DecisionBrief`, that's fine; a new named `ConfidenceBar` *component* is not, since it hasn't been through this queue's brief process.
 
 ## Implementation requirements
@@ -79,12 +82,17 @@ Reads tokens only through child components (`MetricStrip`, `EmptyState`, `ErrorS
 - Status changes (live→stale, loading→loaded) should be announced via `aria-live="polite"` on the status-sensitive region, consistent with the live/mock/stale honesty principle — a sighted user sees the badge change, a screen-reader user needs the same information.
 - All child components' accessibility (Tooltip focus, MetricStrip sign/glyph, EmptyState/ErrorState/LoadingState live-region behavior) is inherited, not reimplemented.
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with the component present but unused.
+- No committed scratch route. No screenshots required at this stage — PR description must state how verdict/summary/MetricStrip composition/status-driven rendering were checked locally across all five `status` values before Phase B wires it into the real page.
+
+## Phase B verification
 
 - `npm --prefix frontend run build` — must succeed.
 - No automated test framework in `frontend/`; verify manually.
-- Manual test of all five `status` values rendering correctly (live, mock, stale, error, loading) — `OmenOfTheWeek.jsx` should already have code paths that produce these states; exercise each one, don't just visually inspect the default.
-- Manual light/dark screenshots of all five states.
+- Manual test of all five `status` values rendering correctly (live, mock, stale, error, loading) on the real `OmenOfTheWeek.jsx` page — it should already have code paths that produce these states; exercise each one, don't just visually inspect the default.
+- Manual light/dark screenshots of all five states — required here since this is a real, live page.
 - Confirm the confidence-gradient coloring still matches pre-migration visual output (spot-check a couple of confidence values against the old `confidenceBarStyle` rendering).
 
 ## Done criteria

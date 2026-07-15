@@ -44,11 +44,14 @@ Consolidate drifted empty/error/loading panels into three canonical states built
 
 ## Forbidden files
 
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - `frontend/src/components/ui/Button.jsx`, `Card.jsx`, `Alert.jsx` — consume them, do not modify their internals. If `Card`'s existing variant set (`solid|outlined|empty|error|preview`, confirmed present in `Card.jsx`) doesn't cleanly support what's needed, stop and flag rather than editing `Card.jsx` in this PR.
 - `frontend/src/components/ui/DisconnectedState.jsx` — related but distinct (platform disconnection, not generic error/empty). Leave alone unless it's a near-duplicate of the new `ErrorState`; if so, flag the redundancy in the PR description rather than merging them silently.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page outside the five listed above.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -97,13 +100,19 @@ Replace `border-slate-700 border-t-amber-400` with token-based colors (`--color-
 - `prefers-reduced-motion` — see LoadingState note above; must be a deliberate, documented choice, not an oversight.
 - Color is never the only differentiator for error vs. empty vs. loading — text content must always distinguish them, not tint alone.
 
-## Testing / build commands
+## Phase A verification
 
 - `npm --prefix frontend run build` — must succeed.
-- No automated component tests in `frontend/`; verify manually.
+- No committed scratch route. No automated component tests in `frontend/`; verify manually.
 - Manual check: search the diff for `red-`, `slate-`, `amber-` Tailwind color-scale utility classes in the four touched `components/ui/` files — none should remain.
-- Manual light/dark screenshots of all three states across all five migration targets (15 screenshots, can be batched per page).
+- No screenshots required at the Phase A stage — `EmptyState`/`ErrorState`/`Spinner` already render on real pages today (this is a rework, not a from-scratch build), so their *current* on-page appearance is the baseline; the PR description must instead state how the token/color fixes were checked locally against that baseline before Phase B rolls them out further.
 - `prefers-reduced-motion: reduce` emulation check on `LoadingState`.
+
+## Phase B verification
+
+- `npm --prefix frontend run build` — must succeed.
+- Manual light/dark screenshots of all three states across all five migration targets (15 screenshots, can be batched per page) — required here since these are real, live pages.
+- Manual re-check that the token/color fixes from Phase A actually reached every migrated page (no stale `red-`/`slate-`/`amber-` literals reintroduced at the call sites).
 
 ## Done criteria
 
@@ -161,7 +170,7 @@ Handoff: [link]
 
 ## Downstream dependencies
 
-**11 DecisionBrief** depends on this brief (uses these states inside `OmenOfTheWeek.jsx`'s decision surface). Sequence 07 before 09/11.
+**09 DecisionBrief** depends on this brief (uses these states inside `OmenOfTheWeek.jsx`'s decision surface). Sequence 07 before 09.
 
 ## Risk level
 

@@ -39,9 +39,12 @@ Build `MetricStrip`, the standard display for VORP, confidence, risk, expected v
 
 - `frontend/src/lib/confidenceGradient.js` — consume its exports, do not modify its gradient math in this PR.
 - `frontend/src/components/ui/Button.jsx`, `Tooltip.jsx` — consume, do not modify.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page other than the two listed. In particular, do not touch `OmenOfTheWeek.jsx`'s confidence bar in this PR even though it uses related gradient logic — that page is brief 09's (DecisionBrief) territory; coordinate rather than reaching into it here.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -74,12 +77,17 @@ Build `MetricStrip`, the standard display for VORP, confidence, risk, expected v
 - If using the `Tooltip` (05) integration, inherits its accessibility (keyboard focus, `aria-describedby`) automatically — don't rebuild that here.
 - If using the `title`-attribute fallback, note in the PR that this is a known-weaker accessibility path (title has poor screen-reader support) and is explicitly temporary, not a permanent design decision.
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with the component present but unused.
+- No committed scratch route. No screenshots required at this stage — PR description must state how all three tones and the confidence-gradient variant were checked locally.
+
+## Phase B verification
 
 - `npm --prefix frontend run build` — must succeed.
 - No automated test framework in `frontend/`; verify manually.
 - Manual check that VORP and ADP values displayed via the new component match the values previously shown by the old markup (a formatting regression here would be a data-trust issue, not just a style issue — spot-check a few real values).
-- Manual light/dark screenshots of `MetricStrip` in all three tones, plus the confidence-gradient variant if used.
+- Manual light/dark screenshots of `MetricStrip` in all three tones, plus the confidence-gradient variant if used, on the real migrated pages — required here since these are real, live pages.
 
 ## Done criteria
 

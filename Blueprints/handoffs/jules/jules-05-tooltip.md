@@ -1,15 +1,17 @@
 # Jules brief — 05 · Tooltip / lightweight help affordance primitive
 
-**Queue position:** 5 of 11 (added 2026-07-15 as a dependency gap-fill — see `Blueprints/handoffs/jules/README.md` for the authoritative run order)
+**Queue position:** 05 of 13 (`Blueprints/handoffs/jules/README.md` is the authoritative run order)
 **Depends on:** none
-**Status:** ready to run immediately (component build only — no migration in this brief)
-**Unblocks:** brief 10 (`MetricStrip`, explanation slot), brief 11 (`DecisionBrief`, reasoning/signal explanations)
+**Status:** Phase A ready immediately. **This brief has no Phase B** — component build only, no migration, ever.
+**Unblocks:** brief 11 (`MetricStrip`, explanation slot), brief 09 (`DecisionBrief`, reasoning/signal explanations)
 
 ---
 
 ## Objective
 
-Build one component, `Tooltip`, as the North-Star-named Level-1 primitive (`omen-ui-north-star-v1.md` §4 lists `Tooltip` explicitly). **Component-only PR, no page migration** — same scope discipline as brief 03 (Badge/Chip). This exists so `MetricStrip`'s "explanation tooltip/help" slot (per `ui-component-system.md` P1.4) has a real implementation instead of each consumer inventing its own hover/popover logic.
+Build one component, `Tooltip`, as the North-Star-named Level-1 primitive (`omen-ui-north-star-v1.md` §4 lists `Tooltip` explicitly). **Component-only PR, no page migration, no Phase B** — same scope discipline as brief 03 (Badge/Chip). This exists so `MetricStrip`'s "explanation tooltip/help" slot (per `ui-component-system.md` P1.4) has a real implementation instead of each consumer inventing its own hover/popover logic.
+
+## Phase A — component build only (the entirety of this brief)
 
 ## Required reading (in order)
 
@@ -50,24 +52,28 @@ Build one component, `Tooltip`, as the North-Star-named Level-1 primitive (`omen
 - `prefers-reduced-motion` — the show/hide transition (if any fade/scale is added) must be instant instead of animated when reduced motion is requested (design-done.md gate 9).
 - Tooltip must not be the only way to access critical information — it's supplementary explanation, not a hidden requirement (consistent with North Star §5 "evidence second" principle: the tooltip explains, it doesn't gatekeep).
 
-## Allowed files
+## Phase A allowed files
 
 - `frontend/src/components/ui/Tooltip.jsx` (new)
 - `frontend/src/components/ui/index.js` (extend existing barrel if present)
 - `Blueprints/playbooks/skill-usage-ledger.md`
 - `Blueprints/handoffs/` (new dated handoff)
 
-## Forbidden files
+## Forbidden files (applies to this brief's only phase, Phase A)
 
 - **No page files** — same constraint as brief 03. Do not touch any page or component outside `components/ui/`.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile — in particular, do not add `@floating-ui/react` or any positioning library; the simple fixed-position approach above is the deliberate scope boundary.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies. In particular, do not add `@floating-ui/react` or any positioning library; the simple fixed-position approach above is the deliberate scope boundary.
+- Package lockfile — no changes, including accidental churn from `npm install`.
 - Any other `components/ui/*` primitive file.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
-## Testing / build commands
+## Phase A verification
 
 - `npm --prefix frontend run build` — must succeed with the component present but unused.
-- No automated test framework in `frontend/`. Same verification-documentation requirement as brief 03: state in the PR body how hover/focus/keyboard/reduced-motion behavior was manually verified, since there's no fixture route in this PR.
+- No committed scratch route. No screenshots required — this component isn't used on any real page yet (that happens when brief 11 or 09 adopt it in their own Phase B).
+- No automated test framework in `frontend/`. PR body must state how hover/focus/keyboard/reduced-motion behavior was manually verified, since there's no fixture route in this PR.
 - Manual keyboard test: Tab to trigger, tooltip appears, `Escape` dismisses.
 - Manual `prefers-reduced-motion: reduce` emulation check (DevTools).
 
@@ -88,8 +94,8 @@ Build one component, `Tooltip`, as the North-Star-named Level-1 primitive (`omen
 **Body:**
 ```
 ## What
-Adds Tooltip per omen-ui-north-star-v1.md §4. Component-only PR — no page migration.
-Unblocks: MetricStrip (10) explanation slot, DecisionBrief (11) reasoning/signal explanations.
+Adds Tooltip per omen-ui-north-star-v1.md §4. Component-only PR — no page migration, no Phase B.
+Unblocks: MetricStrip (11) explanation slot, DecisionBrief (09) reasoning/signal explanations.
 
 ## Known limitation (deliberate)
 No viewport-edge collision/auto-flip logic — ships as fixed top/bottom/left/right positioning
@@ -115,8 +121,8 @@ Handoff: [link]
 
 ## Which later briefs depend on this
 
-- **10 MetricStrip** — explanation tooltip/help slot per `ui-component-system.md` P1.4. If this brief hasn't shipped when 10 is ready, `MetricStrip`'s tooltip slot should stub to a native `title` attribute fallback rather than blocking, per the scoping note in the queue summary — but real `Tooltip` is preferred once available.
-- **11 DecisionBrief** — reasoning/signal-list items may want inline explanations; not a hard blocker (DecisionBrief has larger dependency problems than this one, see brief 11's own notes), but this component will be used there once both exist.
+- **11 MetricStrip** — explanation tooltip/help slot per `ui-component-system.md` P1.4. If this brief hasn't shipped when 11 is ready, `MetricStrip`'s tooltip slot should stub to a native `title` attribute fallback rather than blocking, per that brief's own scoping note — but real `Tooltip` is preferred once available.
+- **09 DecisionBrief** — hard-depends on this brief (see brief 09's dependency list); reasoning/signal-list items use it for inline explanations once both exist.
 
 ## Risk level
 

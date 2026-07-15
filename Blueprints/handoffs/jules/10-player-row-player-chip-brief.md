@@ -42,10 +42,13 @@ Build two components: `PlayerRow` (display row — name, position chip, team, va
 
 - `frontend/src/data/nflPlayers.js` — player search/autocomplete data and logic stay untouched. This brief is display-only.
 - `frontend/src/components/ui/Button.jsx`, `Badge.jsx`, `Chip.jsx` — consume, do not modify.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile — position-tone tokens (`--color-pos-*`) already exist; do not add new ones.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes; position-tone tokens (`--color-pos-*`) already exist, do not add new ones.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page other than the three listed.
 - The **input-side** player form fields in `TradeAnalyzer.jsx` (the renamed `TradeAnalyzerPlayerRow`) — this brief does not redesign data entry, only the rename for disambiguation. Do not restyle the form row's internals beyond what the rename requires.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -90,12 +93,17 @@ Build two components: `PlayerRow` (display row — name, position chip, team, va
 - `selected`/`recommended` state must be conveyed by more than border-color alone where feasible (e.g. an icon or text badge), consistent with North Star §7.
 - `PlayerRow` as a whole should be keyboard-focusable only if it's interactive in a given context (e.g. selectable in a list) — the base component itself is presentational; interactivity (onClick/onSelect) is an optional prop, and when present, must have proper button/role semantics and focus styling, not a bare `onClick` on a `div`.
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with both components present but unused.
+- No committed scratch route. No screenshots required at this stage — PR description must state how `PlayerRow`'s default/selected/recommended/unavailable states and `PlayerChip`'s two sizes were checked locally, including all six position-chip tones.
+
+## Phase B verification
 
 - `npm --prefix frontend run build` — must succeed.
 - No automated test framework in `frontend/`; verify manually.
-- **Critical manual check:** after the `TradeAnalyzer.jsx` rename, confirm the trade form still submits correctly end-to-end (add players, compare trade, view result) — the rename touches a function used throughout that file's render tree; a missed reference is a silent breakage risk.
-- Manual light/dark screenshots of `PlayerRow` in default/selected/recommended/unavailable states, and `PlayerChip` at both sizes.
+- **Critical manual check:** after the `TradeAnalyzer.jsx` rename (`PlayerRow`→`TradeAnalyzerPlayerRow`), confirm the trade form still submits correctly end-to-end (add players, compare trade, view result) — the rename touches a function used throughout that file's render tree; a missed reference is a silent breakage risk.
+- Manual light/dark screenshots of `PlayerRow` in default/selected/recommended/unavailable states, and `PlayerChip` at both sizes, across the real migrated pages — required here since these are real, live pages.
 
 ## Done criteria
 

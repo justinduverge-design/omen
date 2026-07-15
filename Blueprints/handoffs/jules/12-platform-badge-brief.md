@@ -2,7 +2,7 @@
 
 **Queue position:** 12 of 13 by file number (numbered late to avoid renumbering already-shipped briefs) — **but functionally an early, blocking dependency.** See dependency correction below.
 **Depends on:** **03 Badge/Chip** (soft — may reuse its base styling approach, but is a distinct component, not a `Badge` tone)
-**Status:** Phase A (component-only, no migration) ready as soon as 03 has merged.
+**Status:** Phase A ready as soon as 03 has merged. **This brief has no Phase B** — component build only, no migration, ever.
 **⚠ Hard blocking dependency for brief 08:** `08-platform-connection-card-brief.md` **must not be implemented before this brief ships.** `component-lock-v1.md`'s deprecated-pattern note is explicit that platform brand color must move "off the button chrome" onto a dedicated badge component — Button (01) and PlatformConnectionCard (08) both deferred this exact gap when they were written. This brief closes it. Jules: do not start 08 until `PlatformBadge.jsx` exists and is merged.
 
 ---
@@ -21,7 +21,7 @@ Build one component, `PlatformBadge`, that carries Yahoo/Sleeper/ESPN brand iden
 6. `Blueprints/handoffs/jules/jules-03-badge-chip.md` — must be merged first; read its final `Badge`/`Chip` API.
 7. `frontend/src/index.css` — read the full platform brand palette block (both `:root`/dark and `:root[data-theme="light"]`): `--color-platform-sleeper`, `--color-platform-yahoo`, `--color-platform-espn`, `--color-platform-yahoo-chip`, `--color-platform-espn-chip`, `--color-on-platform-sleeper`, `--color-on-platform-yahoo`, `--color-on-platform-espn`. These tokens already exist and are already theme-aware — use them, do not recalculate or re-derive brand colors.
 
-## Allowed files
+## Phase A allowed files
 
 - `frontend/src/components/ui/PlatformBadge.jsx` (new)
 - `frontend/src/components/ui/index.js` (extend barrel)
@@ -30,12 +30,15 @@ Build one component, `PlatformBadge`, that carries Yahoo/Sleeper/ESPN brand iden
 
 A tiny usage example is justified here (per queue rule: "component build briefs should be component-only unless a tiny usage example is explicitly justified") because the platform-icon assets need a concrete rendering check — include a throwaway inline example in the PR description (a code block, not a committed page route) showing all three platforms rendered, rather than adding a scratch route to the app.
 
-## Forbidden files
+## Forbidden files (applies to this brief's only phase, Phase A)
 
 - **No page files** — `ConnectLeague.jsx` and any other consumer are out of scope; brief 08 handles integration.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile — in particular, do not add new platform tokens; the existing `--color-platform-*` set already covers all three platforms in both themes.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes; in particular, do not add new platform tokens, the existing `--color-platform-*` set already covers all three platforms in both themes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - `frontend/src/components/ui/Badge.jsx`, `Chip.jsx` — do not modify; `PlatformBadge` is a new, distinct component, not an edit to `Badge`'s tone list (platform brand color is identity, not status — mixing it into `Badge`'s status tones would violate the North Star §7 rule that role tokens must not be repurposed as brand colors).
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -64,10 +67,10 @@ A tiny usage example is justified here (per queue rule: "component build briefs 
 - Verify AA contrast for label text against whichever background it's rendered on, in both themes — the `-chip` tokens exist precisely because raw platform colors don't always pass on their own; use them where the `index.css` comments indicate.
 - Do not rely on platform color alone to distinguish platforms when `showLabel` is true — label text is the primary differentiator, color is secondary (consistent with North Star §7: "color must never be the only differentiator").
 
-## Testing / build commands
+## Phase A verification
 
 - `npm --prefix frontend run build` — must succeed with the component present but unused.
-- No automated test framework in `frontend/`; verify manually. Document in the PR how all three platforms were visually checked in both themes, since there's no fixture route (per the "tiny usage example in the PR description, not a committed route" allowance above).
+- No committed scratch route. No screenshots required — a tiny inline usage example in the PR description (code block only, per the allowance above) substitutes for the missing fixture. Document in the PR how all three platforms were visually checked in both themes.
 - Manual contrast check (browser DevTools contrast checker or equivalent) for each platform's label-on-badge combination, both themes.
 
 ## Done criteria

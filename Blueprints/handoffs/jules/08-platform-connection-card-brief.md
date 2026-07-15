@@ -40,9 +40,12 @@ Build the `PlatformConnectionCard` Level-2 composition per `ui-component-system.
 - **OAuth/session/API logic** — anything under `frontend/src/lib/`, `frontend/src/providers/`, or backend platform-auth code. This brief is presentational only. If wrapping the card requires touching how the Yahoo OAuth redirect or ESPN cookie submission actually works, stop — that's out of scope and a much higher-risk change than a UI composition PR.
 - `frontend/src/components/ui/Button.jsx`, `Badge.jsx`, `Chip.jsx`, `PlatformBadge.jsx`, `Card.jsx` — consume, do not modify.
 - `frontend/src/components/platforms/PlatformConnections.jsx` unless the overlap with the new card is genuinely redundant — if so, flag it in the PR description rather than merging/deleting silently.
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page other than `ConnectLeague.jsx`.
+- Team theming tokens (`--color-team-*`) — do not resurrect.
 
 ## Implementation requirements
 
@@ -80,12 +83,17 @@ Reads tokens only through its child primitives (`Badge`, `PlatformBadge`, `Butto
 - All interactive elements (primary/secondary actions) inherit their accessibility from `Button` — confirm nothing wraps them in a way that breaks focus order or the `Button` component's own `focus-visible` handling.
 - Preserve any existing ARIA live-region behavior in `ConnectLeague.jsx` for connection-state changes (e.g. announcing "Connected" after a successful OAuth round-trip) — do not regress this while restyling.
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with the component present but unused.
+- No committed scratch route. No screenshots required at this stage — the component isn't wired into a real page until Phase B. PR description must state how the composed layout (status badge + platform badge + actions) was checked locally against all four `status` values and all three platforms.
+
+## Phase B verification
 
 - `npm --prefix frontend run build` — must succeed.
 - **Manual end-to-end test of all three real connection flows** (Yahoo OAuth, Sleeper username, ESPN cookie) — this is not optional given the auth-adjacent nature; a build-success check alone is insufficient. Document exact steps taken in the PR.
 - No automated test framework exists in `frontend/`; the backend has `node --test` (`npm test` at repo root) — confirm this PR doesn't touch anything that suite covers, and that it still passes untouched.
-- Manual light/dark screenshots of all four status states across all three platforms (up to 12 combinations — a representative subset is acceptable if some combinations are rare/hard to reach manually, but state which were actually tested vs. visually inferred).
+- Manual light/dark screenshots of all four status states across all three platforms (up to 12 combinations — a representative subset is acceptable if some combinations are rare/hard to reach manually, but state which were actually tested vs. visually inferred) — required here since this is a real, live page.
 
 ## Done criteria
 

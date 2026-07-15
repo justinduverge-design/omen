@@ -41,7 +41,9 @@ Build three sibling components from one shared selection-primitive family, per `
 
 ## Forbidden files
 
-- `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/package.json` / lockfile.
+- `frontend/src/index.css`, `frontend/tailwind.config.js` — no changes.
+- `frontend/package.json` — no new dependencies.
+- Package lockfile — no changes, including accidental churn from running `npm install`.
 - `frontend/src/components/ui/Button.jsx`, `Input.jsx`, `Textarea.jsx`, `PageHero.jsx`, `Badge.jsx`, `Chip.jsx`, `Tooltip.jsx` — do not modify other primitives.
 - Any file under `Blueprints/specs/design/` or `Blueprints/backlog/ui-component-system.md`.
 - Any page outside the five listed above.
@@ -105,12 +107,17 @@ Build three sibling components from one shared selection-primitive family, per `
 - All three respect `prefers-reduced-motion` for their selection-transition.
 - Minimum 44×44px touch target per item on touch devices, consistent with existing button/link sizing conventions in the codebase (see `HelpButton.jsx`'s `h-11 w-11` precedent).
 
-## Testing / build commands
+## Phase A verification
+
+- `npm --prefix frontend run build` — must succeed with all three components present but unused.
+- No committed scratch route. No screenshots required at this stage — PR description must state how keyboard navigation (arrow keys, focus-visible) and ARIA roles were checked locally for all three components before Phase B wires them into real pages.
+
+## Phase B verification
 
 - `npm --prefix frontend run build` — must succeed.
 - No automated component tests in `frontend/`; verify manually.
-- Keyboard test: Tab into each control, arrow-key navigate between options, confirm selection changes and focus-visible ring follows.
-- Manual light/dark screenshots of all five migrated locations.
+- Keyboard test: Tab into each control on the real migrated pages, arrow-key navigate between options, confirm selection changes and focus-visible ring follows.
+- Manual light/dark screenshots of all five migrated locations — required here since these are real, live pages.
 - Confirm `Football.jsx`'s `TabNav` migration doesn't change actual routing behavior — it's a visual/semantic swap, not a routing refactor.
 
 ## Done criteria
