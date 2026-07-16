@@ -11,3 +11,4 @@ export { default as Textarea } from './Textarea';
 export { default as Badge } from './Badge';
 export { default as Chip } from './Chip';
 export { default as PlatformBadge } from './PlatformBadge';
+export { default as PlatformConnectionCard } from './PlatformConnectionCard';
