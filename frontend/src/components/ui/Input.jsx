@@ -17,7 +17,6 @@ const Input = forwardRef(function Input({
   const inputId = id || generatedId;
 
   let sizeClasses = '';
-  // According to brief: sm 32px (h-8), md 40px (h-10 default), lg 48px (h-12)
   if (size === 'sm') {
     sizeClasses = 'h-8 px-3 text-sm';
   } else if (size === 'md') {
@@ -63,6 +62,18 @@ const Input = forwardRef(function Input({
     return trailingIcon;
   };
 
+  const isError = state === 'error';
+  const showErrorMessage = isError && errorMessage;
+  const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
+
+  let ariaDescribedBy;
+  if (showErrorMessage) {
+    ariaDescribedBy = errorId;
+  } else if (hint) {
+    ariaDescribedBy = hintId;
+  }
+
   return (
     <div className="flex w-full flex-col gap-1.5">
       {label && (
@@ -81,6 +92,8 @@ const Input = forwardRef(function Input({
           type={type}
           id={inputId}
           className={combinedClasses}
+          aria-invalid={isError ? 'true' : undefined}
+          aria-describedby={ariaDescribedBy}
           {...props}
         />
         {hasTrailingIcon && (
@@ -89,12 +102,12 @@ const Input = forwardRef(function Input({
           </div>
         )}
       </div>
-      {(hint || (state === 'error' && errorMessage)) && (
+      {(hint || showErrorMessage) && (
         <div className="text-xs">
-          {state === 'error' && errorMessage ? (
-            <span className="text-[var(--color-risk-high)]">{errorMessage}</span>
+          {showErrorMessage ? (
+            <span id={errorId} className="text-[var(--color-risk-high)]">{errorMessage}</span>
           ) : (
-            <span className="text-[var(--color-text-secondary)]">{hint}</span>
+            <span id={hintId} className="text-[var(--color-text-secondary)]">{hint}</span>
           )}
         </div>
       )}

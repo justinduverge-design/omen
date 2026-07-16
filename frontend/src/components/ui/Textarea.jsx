@@ -16,7 +16,6 @@ const Textarea = forwardRef(function Textarea({
   const textareaId = id || generatedId;
 
   let sizeClasses = '';
-  // According to brief: sm 32px (min-h-8), md 40px (min-h-10 default), lg 48px (min-h-12)
   if (size === 'sm') {
     sizeClasses = 'min-h-[32px] p-3 text-sm';
   } else if (size === 'md') {
@@ -62,6 +61,18 @@ const Textarea = forwardRef(function Textarea({
     return trailingIcon;
   };
 
+  const isError = state === 'error';
+  const showErrorMessage = isError && errorMessage;
+  const errorId = `${textareaId}-error`;
+  const hintId = `${textareaId}-hint`;
+
+  let ariaDescribedBy;
+  if (showErrorMessage) {
+    ariaDescribedBy = errorId;
+  } else if (hint) {
+    ariaDescribedBy = hintId;
+  }
+
   return (
     <div className="flex w-full flex-col gap-1.5">
       {label && (
@@ -79,6 +90,8 @@ const Textarea = forwardRef(function Textarea({
           ref={ref}
           id={textareaId}
           className={combinedClasses}
+          aria-invalid={isError ? 'true' : undefined}
+          aria-describedby={ariaDescribedBy}
           {...props}
         />
         {hasTrailingIcon && (
@@ -87,12 +100,12 @@ const Textarea = forwardRef(function Textarea({
           </div>
         )}
       </div>
-      {(hint || (state === 'error' && errorMessage)) && (
+      {(hint || showErrorMessage) && (
         <div className="text-xs">
-          {state === 'error' && errorMessage ? (
-            <span className="text-[var(--color-risk-high)]">{errorMessage}</span>
+          {showErrorMessage ? (
+            <span id={errorId} className="text-[var(--color-risk-high)]">{errorMessage}</span>
           ) : (
-            <span className="text-[var(--color-text-secondary)]">{hint}</span>
+            <span id={hintId} className="text-[var(--color-text-secondary)]">{hint}</span>
           )}
         </div>
       )}
