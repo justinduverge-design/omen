@@ -4,6 +4,7 @@ export { default as Card } from './Card';
 export { default as DisconnectedState } from './DisconnectedState';
 export { default as EmptyState } from './EmptyState';
 export { default as ErrorState } from './ErrorState';
+export { default as LoadingState } from './LoadingState';
 export { default as MockBanner } from './MockBanner';
 export { default as Spinner } from './Spinner';
 export { default as Input } from './Input';

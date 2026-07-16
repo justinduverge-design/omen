@@ -1,16 +1,29 @@
+import React from 'react';
+import Button from './Button';
+
 export default function ErrorState({ title = 'Something went wrong', message, onRetry }) {
   return (
-    <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-6">
-      <p className="text-sm font-semibold text-red-300">{title}</p>
-      {message && <p className="mt-1 text-sm text-red-200/70">{message}</p>}
+    <div
+      className="rounded-xl border p-6"
+      style={{
+        borderColor: 'color-mix(in srgb, var(--color-risk-high) 30%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--color-risk-high) 10%, transparent)',
+      }}
+    >
+      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+        {title}
+      </p>
+      {message && (
+        <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          {message}
+        </p>
+      )}
       {onRetry && (
-        <button
-          className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-400/30"
-          type="button"
-          onClick={onRetry}
-        >
-          Try again
-        </button>
+        <div className="mt-4">
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            Try again
+          </Button>
+        </div>
       )}
     </div>
   );
