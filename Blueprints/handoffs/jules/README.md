@@ -1,6 +1,6 @@
 # Jules UI Implementation Brief Queue — Omen
 
-**Date:** 2026-07-15 (updated same day — added briefs 06–13, corrected PlatformBadge dependency, then a consistency/quality polish pass: queue-position labels, Phase A/B structure normalization across all 13 briefs, forbidden-file standardization, common-failure-modes and review-gate sections added)
+**Date:** 2026-07-15 (updated same day — added briefs 06–13, corrected PlatformBadge dependency, then a consistency/quality polish pass: queue-position labels, Phase A/B structure normalization across all 13 briefs, forbidden-file standardization, common-failure-modes and review-gate sections added; execution-safety polish added to prevent verification-time lockfile churn)
 **Status:** Active queue index — authoritative run order
 **Authority chain:** `Blueprints/specs/design/omen-ui-north-star-v1.md` → `Blueprints/specs/design/README.md` → `Blueprints/backlog/ui-component-system.md` → this file → individual briefs in this directory.
 
@@ -102,6 +102,42 @@ Each Phase-B PR should rebase onto `main` after the prior one in this list merge
 - Every brief's PR must close with a `Blueprints/playbooks/skill-usage-ledger.md` row and a dated `Blueprints/handoffs/` entry, per `Blueprints/definition-of-done.md`.
 - Every brief's PR description must answer the North Star §10 self-check questions.
 - Any brief touching `ConnectLeague.jsx`, `TradeAnalyzer.jsx`, `DraftAssistant.jsx`, `Football.jsx`, or `Landing.jsx` carries an explicit parallel-run warning in its own file — treat that warning as binding, not advisory.
+
+---
+
+## Verification hygiene (binding for every brief)
+
+This section applies to every individual Jules brief, even if the brief's own testing section is shorter or older. It exists because PR #125 showed that routine verification can accidentally create lockfile churn.
+
+- Do **not** run `npm install` for routine verification.
+- Preferred build check: `npm --prefix frontend run build`.
+- If dependency installation is required in the worker environment, use `npm --prefix frontend ci`, not `npm install`.
+- Before submitting, run `git diff --name-only`.
+- If any forbidden file appears in the diff and the brief did not explicitly allow it, revert that file before opening the PR.
+- Files forbidden unless the active brief explicitly allows them:
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+  - `frontend/src/index.css`
+  - `frontend/tailwind.config.js`
+  - files under `Blueprints/specs/design/`
+  - `Blueprints/backlog/ui-component-system.md`
+  - unrelated page files during Phase A
+
+---
+
+## Pre-submit diff gate (binding for every brief)
+
+Before Jules opens any PR from this queue, the PR description must confirm:
+
+1. Changed files match the brief's allowed-files list.
+2. No package-lock churn.
+3. No new dependencies.
+4. No raw color literals (`text-white`, `red-400`, `slate-800`, `amber-400`, raw hex, etc.) where the brief requires token-only color.
+5. No Phase A page migration.
+6. Build command was run.
+7. Exact commands run are listed in the PR body.
+
+If any item fails, Jules should fix the diff before opening the PR rather than explaining the exception after the fact.
 
 ---
 
