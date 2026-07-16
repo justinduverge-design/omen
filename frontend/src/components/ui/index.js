@@ -8,3 +8,5 @@ export { default as MockBanner } from './MockBanner';
 export { default as Spinner } from './Spinner';
 export { default as Input } from './Input';
 export { default as Textarea } from './Textarea';
+export { default as Badge } from './Badge';
+export { default as Chip } from './Chip';
