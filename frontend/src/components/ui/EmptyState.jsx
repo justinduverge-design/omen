@@ -1,10 +1,35 @@
+import React from 'react';
+
 export default function EmptyState({ eyebrow, title, message, cta }) {
+  const renderCta = () => {
+    if (!cta) return null;
+
+    if (React.isValidElement(cta)) {
+      return (
+        <div className="mt-6">
+          {cta}
+        </div>
+      );
+    }
+
+    // Fallback for legacy cta object { label, href }
+    return (
+      <a
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80"
+        style={{ background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}
+        href={cta.href}
+      >
+        {cta.label} →
+      </a>
+    );
+  };
+
   return (
     <div
-      className="rounded-xl border p-10 text-center"
+      className="rounded-xl border border-dashed p-10 text-center"
       style={{
         borderColor: 'var(--color-border)',
-        background: 'var(--color-surface-1)',
+        background: 'transparent',
         '--color-text-secondary': 'var(--color-card-text-secondary, var(--color-text-secondary))',
         '--color-text-primary': 'var(--color-card-text-primary, var(--color-text-primary))',
       }}
@@ -33,15 +58,7 @@ export default function EmptyState({ eyebrow, title, message, cta }) {
           {message}
         </p>
       )}
-      {cta && (
-        <a
-          className="mt-6 inline-flex min-h-[44px] items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-amber-400/20"
-          style={{ background: 'var(--color-accent-muted)', color: 'var(--color-accent)' }}
-          href={cta.href}
-        >
-          {cta.label} →
-        </a>
-      )}
+      {renderCta()}
     </div>
   );
 }
