@@ -14,6 +14,7 @@ const Badge = React.forwardRef(function Badge({
   tone = 'neutral',
   size = 'md',
   className = '',
+  style = {},
   children,
   ...props
 }, ref) {
@@ -30,16 +31,16 @@ const Badge = React.forwardRef(function Badge({
   // To maintain AA text contrast across both light and dark themes (especially for tones
   // like 'risk' where --color-risk-high is dark red in both themes), we use the tone color
   // for a tinted background and border, but keep the text as primary.
-  const style = {
+  const computedStyle = {
     color: 'var(--color-text-primary)',
     backgroundColor: `color-mix(in srgb, ${toneColor} 15%, transparent)`,
     borderColor: `color-mix(in srgb, ${toneColor} 30%, transparent)`,
   };
 
   if (tone === 'neutral') {
-      style.color = 'var(--color-text-secondary)';
-      style.backgroundColor = 'var(--color-surface-2)';
-      style.borderColor = 'var(--color-border)';
+      computedStyle.color = 'var(--color-text-secondary)';
+      computedStyle.backgroundColor = 'var(--color-surface-2)';
+      computedStyle.borderColor = 'var(--color-border)';
   }
 
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full border whitespace-nowrap';
@@ -50,7 +51,7 @@ const Badge = React.forwardRef(function Badge({
     <span
       ref={ref}
       className={combinedClasses}
-      style={style}
+      style={{ ...style, ...computedStyle }}
       {...props}
     >
       {/* We prepend a dot indicator to explicitly communicate the tone color since text is primary */}

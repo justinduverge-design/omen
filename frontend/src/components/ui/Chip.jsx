@@ -16,6 +16,7 @@ const Chip = React.forwardRef(function Chip({
   tone = 'neutral',
   size = 'md',
   className = '',
+  style = {},
   children,
   ...props
 }, ref) {
@@ -29,7 +30,7 @@ const Chip = React.forwardRef(function Chip({
     sizeClasses = 'px-2.5 py-0.5 text-xs';
   }
 
-  const style = {
+  const computedStyle = {
     backgroundColor: toneConfig.bg,
     color: toneConfig.text,
   };
@@ -42,7 +43,7 @@ const Chip = React.forwardRef(function Chip({
     <span
       ref={ref}
       className={combinedClasses}
-      style={style}
+      style={{ ...style, ...computedStyle }}
       {...props}
     >
       {children}
