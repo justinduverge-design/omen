@@ -90,7 +90,7 @@ const Textarea = forwardRef(function Textarea({
           ref={ref}
           id={textareaId}
           className={combinedClasses}
-          aria-invalid={isError ? 'true' : undefined}
+          aria-invalid={showErrorMessage ? 'true' : undefined}
           aria-describedby={ariaDescribedBy}
           {...props}
         />

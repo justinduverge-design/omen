@@ -92,7 +92,7 @@ const Input = forwardRef(function Input({
           type={type}
           id={inputId}
           className={combinedClasses}
-          aria-invalid={isError ? 'true' : undefined}
+          aria-invalid={showErrorMessage ? 'true' : undefined}
           aria-describedby={ariaDescribedBy}
           {...props}
         />
