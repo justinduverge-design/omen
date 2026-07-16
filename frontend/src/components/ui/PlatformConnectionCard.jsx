@@ -2,8 +2,6 @@ import React from 'react';
 import Card from './Card';
 import Badge from './Badge';
 import PlatformBadge from './PlatformBadge';
-import ErrorState from './ErrorState';
-import Button from './Button';
 
 const STATUS_TONES = {
   connected: 'success',
@@ -61,8 +59,13 @@ export default function PlatformConnectionCard({
         )}
 
         {isError && errorMessage && (
-          <div className="mt-4">
-            <ErrorState title="Connection Error" message={errorMessage} />
+          <div className="mt-4 rounded-lg px-4 py-3 text-sm border" style={{
+            borderColor: 'var(--color-border)',
+            backgroundColor: 'var(--color-surface-1)',
+            color: 'var(--color-text-primary)'
+          }}>
+            <p className="font-semibold mb-1" style={{ color: 'var(--color-risk-high)' }}>Connection Error</p>
+            <p style={{ color: 'var(--color-text-secondary)' }}>{errorMessage}</p>
           </div>
         )}
 
