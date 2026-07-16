@@ -102,8 +102,17 @@ One master, three cuts. Detail that cannot survive a size is removed at that siz
 | Tier | Sizes | Geometry | Rendering |
 |---|---|---|---|
 | **Small cut** | 16, 32, 48 | Shield + spine only. **No lace bars, no feather cuts,** wings simplified to solid forms (or dropped at 16 if G4 legibility fails) | Flat 2-tone: Brass `#A67C2E` on Raven. No gradients, no bevel, no grain |
-| **Mid cut** | 64, 180 | Full geometry; lace bars at 1.25 × L weight (small-size optical compensation — thin strokes evaporate when downsampled) | Rim gradient only; no inner bevel, no grain, no sheen |
+| **Mid cut** | 64, 180 | Full geometry, with the lace block re-proportioned and **pixel-locked to the 64px grid** (see "64-lock rule" below): bars 1.5 × L, gaps 1.0 × L, spine 1.0 × L; ink-trap correction dropped at this tier (sub-pixel at 2–3px strokes) | Rim gradient only; no inner bevel, no grain, no sheen |
 | **Full cut** | 256, 512, 1024, video/OG | Full geometry as authored | All five depth layers |
+
+**The 64-lock rule (mid cut).** At 64px, one device pixel = 16 master units (1024 / 64), so a crisp export requires every **edge coordinate** of the lace block — not just stroke dimensions — to sit on multiples of 16. Dimensions that are multiples of 16 but *positioned* off the 16-grid still straddle pixels and blur. Consequences, worked for the Stage 1 drafting geometry (shield proper 512 wide, L = 32):
+
+- **Bars: stroke 48 (3px), gaps 32 (2px), pitch 80 (5px)** — block x 368 → 656, every edge a multiple of 16. The full cut's bar/gap ratio inverts at this tier (bars heavier than gaps), which is correct small-size compensation: bold bars carry the lace rhythm at 64px.
+- **Gap arithmetic constraint:** with four bars symmetric about the axis, the center gap straddles x = 512, so inner bar edges sit at 512 ± gap/2 — the gap must therefore be a multiple of 32 to land on the 16-grid. A 48-unit gap (1.5 L) was evaluated and rejected: it puts inner edges at 512 ± 24, a half-pixel at 64px, defeating the lock.
+- **Spine: stroke 32 (2px)**, y 512 → 544, x 336 → 688 (symmetric, one gap of overshoot past the outer bars).
+- **Bars vertical: y 480 → 576** (height 96 = 6px). Block top lands at 39.5% of shield height — the §1.3 "top edge at 38%" rule carries a ±2% tolerance at this tier; quantization wins.
+- **Wings at mid cut:** equal blade roots 112/112/112 with 16-unit cuts, wing y 288 → 656, putting every blade edge (400, 416, 528, 544, 656) on the 16-grid.
+- **180px caveat:** 180 is non-dyadic (÷5.689) — no parameter choice can pixel-lock it, so the mid cut optimizes for 64 and relies on supersampled downscale for 180. The export script (§5 Stage 2) encodes these mid-cut overrides; the master's full-cut geometry is untouched, so Gate G1 (centroid) is unaffected — the lace block is interior detail, not silhouette.
 
 The favicon HTML must be re-wired to reference the currently-orphaned 48/64 exports (they exist in `frontend/public/` but nothing links them). Also add an `SVG favicon` (`<link rel="icon" type="image/svg+xml">`) built from the small cut — modern browsers get vector crispness at every zoom, PNGs remain the fallback.
 
