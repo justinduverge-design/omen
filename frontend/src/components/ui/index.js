@@ -14,3 +14,6 @@ export { default as Chip } from './Chip';
 export { default as PlatformBadge } from './PlatformBadge';
 export { default as PlatformConnectionCard } from './PlatformConnectionCard';
 export { default as Tooltip } from './Tooltip';
+export { default as SegmentedControl } from './SegmentedControl';
+export { default as TabNav } from './TabNav';
+export { default as RadioCardGroup } from './RadioCardGroup';
