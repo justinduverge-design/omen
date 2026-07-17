@@ -57,8 +57,12 @@ const Tooltip = ({
   const trigger = React.cloneElement(child, {
     ref: (node) => {
       triggerRef.current = node;
-      // Also pass down the ref if the child already has one. This can be complex depending on React version,
-      // but standard is to just assign to our ref. We'll stick to a simple ref assignment for now.
+      const childRef = child.ref;
+      if (typeof childRef === 'function') {
+        childRef(node);
+      } else if (childRef && typeof childRef === 'object') {
+        childRef.current = node;
+      }
     },
     tabIndex: child.props.tabIndex !== undefined ? child.props.tabIndex : 0,
     onMouseEnter: (e) => {
@@ -81,7 +85,9 @@ const Tooltip = ({
       handleKeyDown(e);
       if (child.props.onKeyDown) child.props.onKeyDown(e);
     },
-    'aria-describedby': isVisible ? tooltipId : child.props['aria-describedby'],
+    'aria-describedby': isVisible
+      ? [child.props['aria-describedby'], tooltipId].filter(Boolean).join(' ')
+      : child.props['aria-describedby'],
   });
 
   return (
