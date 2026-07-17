@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Omen shield emblem — MASTER (full cut). Blueprint: Blueprints/specs/design/omen-master-design-blueprint-v1.md §1.
+       Canvas 1024, module 64, fine grid 8. Geometry verified 2026-07-16: silhouette centroid (50.000%, 48.713%),
+       inside Gate G1 band (48.10–48.90%). Whole emblem sits one 16-unit step above the drafting-proposal position
+       (shield y 224→832) — the pre-shift layout measured 50.29% and failed G1. All edges preserve the 64px 16-grid lock.
+       Sub-grid decimals below are sanctioned optical geometry only: apex tip arc, blade tip arc tangents, ink-traps.
+       Do not hand-resize exports from this file — scripts/export-assets.mjs (§5 Stage 2) owns rasterization. -->
+  <defs>
+    <!-- ONE light: top-left, 45° azimuth ~60° elevation. Single userSpaceOnUse metal ramp shared by every
+         metal element (rim, laces, wings) so nothing can disagree with the light — including the mirrored
+         right wing, which flips geometry but correctly keeps world-space lighting. -->
+    <linearGradient id="metal" gradientUnits="userSpaceOnUse" x1="128" y1="224" x2="896" y2="832">
+      <stop offset="0" stop-color="#C49035"/>
+      <stop offset="0.48" stop-color="#A67C2E"/>
+      <stop offset="1" stop-color="#5A3A25"/>
+    </linearGradient>
+    <linearGradient id="plate" gradientUnits="userSpaceOnUse" x1="512" y1="256" x2="512" y2="832">
+      <stop offset="0" stop-color="#1C1C1E"/>
+      <stop offset="1" stop-color="#0A0A0B"/>
+    </linearGradient>
+    <!-- Directional masks: bevel light lives on light-facing (upper-left) edges, occlusion on lower-right. -->
+    <linearGradient id="lightDir" gradientUnits="userSpaceOnUse" x1="128" y1="224" x2="896" y2="832">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="darkDir" gradientUnits="userSpaceOnUse" x1="128" y1="224" x2="896" y2="832">
+      <stop offset="0.4" stop-color="#000000"/><stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="sheen" gradientUnits="userSpaceOnUse" x1="128" y1="224" x2="896" y2="832">
+      <stop offset="0.08" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.20" stop-color="#FFFFFF" stop-opacity="0.08"/>
+      <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="bevelLight"><rect width="1024" height="1024" fill="url(#lightDir)"/></mask>
+    <mask id="bevelDark"><rect width="1024" height="1024" fill="url(#darkDir)"/></mask>
+
+    <!-- Shield outer silhouette. Top arc R=800 (center 512,1024; peak 512,224); shoulder corners r=32;
+         vertical sides x=256/768 (y 288–608); ogee taper C(±256,728)(±120 from axis…) to apex 512,832, tip r=8. -->
+    <path id="shieldOuter" d="M 288 256
+      A 800 800 0 0 1 736 256
+      A 32 32 0 0 1 768 288
+      L 768 608
+      C 768 728 632 800 516 831
+      A 8 8 0 0 1 508 831
+      C 392 800 256 728 256 608
+      L 256 288
+      A 32 32 0 0 1 288 256 Z"/>
+    <clipPath id="silhouette"><use href="#shieldOuter"/></clipPath>
+
+    <!-- Left wing: 3 down-swept blades, slope 4/3 (53.13°, inside the 53°±2° shoulder-echo band),
+         staggered lengths (tips x=128/176/200), roots 112 on x=224, feather cuts 16, tip radii 16/16/8.
+         Box x 128–224, y 272–640. Right wing = strict mirror via matrix(-1 0 0 1 1024 0). -->
+    <g id="wingLeft">
+      <path d="M 224 272 L 131.2 395.733 A 16 16 0 0 0 128 405.333 L 128 464 A 16 16 0 0 0 156.8 473.6 L 224 384 Z"/>
+      <path d="M 224 400 L 179.2 459.733 A 16 16 0 0 0 176 469.333 L 176 528 A 16 16 0 0 0 204.8 537.6 L 224 512 Z"/>
+      <path d="M 224 528 L 201.6 557.867 A 8 8 0 0 0 200 562.667 L 200 632 A 8 8 0 0 0 208 640 L 224 640 Z"/>
+    </g>
+
+    <!-- Micro-grain: metal only, ≤3%. Export script strips the #finish grain node below 256px (§1.5). -->
+    <filter id="grainF">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComposite operator="in" in2="SourceAlpha"/>
+    </filter>
+  </defs>
+
+  <g id="emblem">
+    <g id="shield">
+      <use href="#shieldOuter" fill="url(#plate)"/>
+      <!-- Uniform 32-unit rim via center-stroke w=64 clipped to the silhouette (outer half discarded).
+           Bevels: wider strokes underlap the rim by 8 units each — light pass then dark pass,
+           direction-gated by the masks so highlights sit on light-facing edges only. -->
+      <g clip-path="url(#silhouette)">
+        <use href="#shieldOuter" fill="none" stroke="#0A0A0B" stroke-opacity="0.5" stroke-width="96"
+             stroke-linejoin="round" mask="url(#bevelDark)"/>
+        <use href="#shieldOuter" fill="none" stroke="#C49035" stroke-opacity="0.6" stroke-width="80"
+             stroke-linejoin="round" mask="url(#bevelLight)"/>
+        <use href="#shieldOuter" fill="none" stroke="url(#metal)" stroke-width="64" stroke-linejoin="round"/>
+      </g>
+    </g>
+
+    <!-- Laces (full cut): 4 vertical bars stroke 32 (x centers 404/476/548/620), height 96 (y 456–552),
+         gaps 40, stadium caps; horizontal spine stroke 24 (y 492–516), x 344–680, one-pitch overshoot.
+         Ink-traps: +4% bar widening feathered ±8 around the crossing (sanctioned sub-grid). -->
+    <g id="laces" fill="url(#metal)">
+      <rect x="344" y="492" width="336" height="24" rx="12"/>
+      <rect x="387.36" y="484" width="33.28" height="40"/>
+      <rect x="459.36" y="484" width="33.28" height="40"/>
+      <rect x="531.36" y="484" width="33.28" height="40"/>
+      <rect x="603.36" y="484" width="33.28" height="40"/>
+      <rect x="388" y="456" width="32" height="96" rx="16"/>
+      <rect x="460" y="456" width="32" height="96" rx="16"/>
+      <rect x="532" y="456" width="32" height="96" rx="16"/>
+      <rect x="604" y="456" width="32" height="96" rx="16"/>
+    </g>
+
+    <g id="wings" fill="url(#metal)">
+      <use href="#wingLeft"/>
+      <use href="#wingLeft" transform="matrix(-1 0 0 1 1024 0)"/>
+      <g fill="none" stroke="#C49035" stroke-opacity="0.35" stroke-width="4" mask="url(#bevelLight)">
+        <use href="#wingLeft"/>
+        <use href="#wingLeft" transform="matrix(-1 0 0 1 1024 0)"/>
+      </g>
+    </g>
+
+    <g id="finish">
+      <!-- Static specular sheen: diagonal white band gradient on duplicate metal shapes (fill-confined,
+           no mask dependence), <=8% peak, upper-left third only. Never animated. -->
+      <g clip-path="url(#silhouette)">
+        <use href="#shieldOuter" fill="none" stroke="url(#sheen)" stroke-width="64" stroke-linejoin="round"/>
+      </g>
+      <g fill="url(#sheen)">
+        <rect x="344" y="492" width="336" height="24" rx="12"/>
+        <rect x="388" y="456" width="32" height="96" rx="16"/>
+        <rect x="460" y="456" width="32" height="96" rx="16"/>
+        <rect x="532" y="456" width="32" height="96" rx="16"/>
+        <rect x="604" y="456" width="32" height="96" rx="16"/>
+        <use href="#wingLeft"/><use href="#wingLeft" transform="matrix(-1 0 0 1 1024 0)"/>
+      </g>
+      <!-- Micro-grain, metal-confined by SourceAlpha composite. Export script strips #grain below 256px (S1.5). -->
+      <g id="grain" opacity="0.03" filter="url(#grainF)">
+        <g clip-path="url(#silhouette)">
+          <use href="#shieldOuter" fill="none" stroke="#808080" stroke-width="64" stroke-linejoin="round"/>
+        </g>
+        <g fill="#808080">
+          <rect x="344" y="492" width="336" height="24" rx="12"/>
+          <rect x="388" y="456" width="32" height="96" rx="16"/>
+          <rect x="460" y="456" width="32" height="96" rx="16"/>
+          <rect x="532" y="456" width="32" height="96" rx="16"/>
+          <rect x="604" y="456" width="32" height="96" rx="16"/>
+          <use href="#wingLeft"/><use href="#wingLeft" transform="matrix(-1 0 0 1 1024 0)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

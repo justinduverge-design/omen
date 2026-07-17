@@ -51,24 +51,24 @@ A shield is a bottom-tapering form: broad shoulders, converging apex. Its **visu
 
 1. **Define the optical center** as the area centroid of the filled silhouette (rasterize the silhouette at 1024px, threshold at 50% alpha, take the mean x/y of opaque pixels). This is scriptable — it becomes QA Gate G1 in §5, not a designer's eyeball call.
 2. **Placement rule:** the centroid sits at **(50.0%, 48.5%)** of the squircle — dead-center horizontally, **1.5% above** geometric vertical center. *Why 48.5 and not 50:* aligning the centroid at exactly 50% still under-corrects, because the eye also weights the shield's hard top edge more than its soft tapered apex; nudging the whole mass ~15 units up on the 1024 canvas balances perceived weight. Tolerance: ±0.4% (±4 units at 1024). Beyond that, G1 fails the export.
-3. **Apex breathing room:** the gap from apex to squircle bottom edge must be ≥ 1.15× the gap from shield top edge to squircle top edge. Converging forms need more escape room than flat edges or the apex looks pinned.
+3. **Apex breathing room (amended 2026-07-17, Stage 1 as-built):** apex clearance to the squircle bottom edge ≥ 1.5 m (96 units), with apex tip radius ≥ 1r. The rule's original ratio form (bottom gap ≥ 1.15 × top gap) was proven jointly infeasible with rule 2: it requires a silhouette centroid fraction ≥ 1/2.15 ≈ 0.465 of form height, and winged-shield silhouettes measure ≈ 0.42–0.44 — so the centroid rule wins and the apex is protected by an absolute floor instead. (Stage 1 master: clearance 192, passes.)
 4. **Horizontal symmetry check:** the centroid x must sit within ±2 units of canvas center. If the wings are asymmetric (§1.4), this catches it mechanically.
 
 **Container doctrine (restating Brand §12, which stays in force):** the squircle appears **only** in the OS app-icon/favicon slot. The squircle is the iOS-standard superellipse (corner radius ≈ 22.37% of side, continuous-curvature "squircle" corners, not a plain rounded rect). Everywhere else the shield floats raw.
 
-**Clearspace inside the squircle:** the shield's maximum width is **76% of the squircle width** (778 of 1024 units), leaving ≥ 123 units per side — which is ~2 lace-widths (§1.3). *Why:* Apple's own icon grid puts primary forms at ~70–80% of tile; below 70% the mark looks timid at 60px on a home screen, above 80% it collides with the OS corner mask.
+**Presence inside the squircle (amended 2026-07-17, Stage 1 as-built):** the **full winged silhouette** spans **75% of the squircle width** (768 of 1024 units: shield proper 512, plus 32-unit gap and 96-unit wing per side), leaving 128 units — 4 lace-widths — of clearspace per side. The presence budget applies to the winged silhouette, not the shield alone; the original "shield = 76%" wording was arithmetically impossible with detached wings (778 + 2 × (32 + 96) > 1024). *Why 70–80% presence:* Apple's own icon grid puts primary forms at ~70–80% of tile; below 70% the mark looks timid at 60px on a home screen, above 80% it collides with the OS corner mask.
 
 ### 1.3 The laces (football element) — geometric rules
 
 The laces are the emblem's one literal football signifier, so they must be unambiguous at every tier or dropped entirely — a mushy hint of laces is worse than none.
 
 - **Count:** exactly **4 lace bars** crossing one spine. Fixed forever. *Why 4:* 3 reads as generic hatching, 5+ smears into texture below 64px; 4 is the minimum count that still scans as "laces."
-- **Lace bar stroke weight `L`** = shield max width / 16 → **48.6 ≈ 48 units** (snapped to the 8-grid). `L` is the emblem's **base unit of detail**: clearspace, minimum gaps, and cursor scale (§4) all derive from it, which is what keeps the system internally proportioned.
+- **Lace bar stroke weight `L`** = shield-proper width / 16 = **512 / 16 = 32 units** (grid-true; amended 2026-07-17 with the winged-silhouette presence budget above — the original 48 assumed a 778-unit shield). `L` is the emblem's **base unit of detail**: clearspace, minimum gaps, and cursor scale (§4) all derive from it, which is what keeps the system internally proportioned. Orientation as built: **4 vertical bars crossing 1 horizontal spine.**
 - **Bar gap:** 1.25 × L. Below 1.2 × L the bars fuse at small sizes; above 1.4 × L they read as separate floating dashes.
-- **Spine stroke:** 0.75 × L — visibly subordinate to the bars, so the horizontal lace rhythm dominates (that rhythm is what says "football").
+- **Spine stroke:** 0.75 × L — visibly subordinate to the bars, so the bar rhythm dominates (that rhythm is what says "football").
 - **Terminals:** all lace caps rounded at radius L/2 (i.e., stadium/pill caps) from the radius scale. No square caps anywhere in the mark.
 - **Optical join correction:** where a bar crosses the spine, thicken the bar by +4% locally (2 units). Perpendicular strokes of equal weight create a perceived pinch at the crossing; the overshoot cancels it. This is classic type-design ink-trap logic applied in reverse.
-- **Lace block placement:** the lace group's own centroid sits on the shield's vertical axis, its top edge at 38% of shield height — upper-middle, where a football's laces actually sit, and clear of the apex taper.
+- **Lace block placement:** the lace group's own centroid sits on the shield's vertical axis, its top edge at 38% (±2%) of shield height — upper-middle, where a football's laces actually sit, and clear of the apex taper. Within the ±2% band, grid quantization and optical placement win.
 
 ### 1.4 The side wings — symmetry rules
 
@@ -105,13 +105,15 @@ One master, three cuts. Detail that cannot survive a size is removed at that siz
 | **Mid cut** | 64, 180 | Full geometry, with the lace block re-proportioned and **pixel-locked to the 64px grid** (see "64-lock rule" below): bars 1.5 × L, gaps 1.0 × L, spine 1.0 × L; ink-trap correction dropped at this tier (sub-pixel at 2–3px strokes) | Rim gradient only; no inner bevel, no grain, no sheen |
 | **Full cut** | 256, 512, 1024, video/OG | Full geometry as authored | All five depth layers |
 
+**Stage 1 as-built record (2026-07-17).** The master (`Brand/masters/emblem-master.svg`) is authored with the whole emblem **one 16-unit step above the drafting-proposal position** (shield y 224 → 832, wings y 272 → 640): the pre-shift layout measured a silhouette centroid of (50.000%, 50.29%) and **failed Gate G1**; the shifted geometry measures **(50.000%, 48.713%)**, inside the 48.10–48.90% band (computed by Green's-theorem integration over the exact paths, `scripts/` QA tooling to reproduce in Stage 2). A −16 translation is the unique in-band option that preserves the 16-grid lock. All absolute coordinates below reflect the shifted position.
+
 **The 64-lock rule (mid cut).** At 64px, one device pixel = 16 master units (1024 / 64), so a crisp export requires every **edge coordinate** of the lace block — not just stroke dimensions — to sit on multiples of 16. Dimensions that are multiples of 16 but *positioned* off the 16-grid still straddle pixels and blur. Consequences, worked for the Stage 1 drafting geometry (shield proper 512 wide, L = 32):
 
 - **Bars: stroke 48 (3px), gaps 32 (2px), pitch 80 (5px)** — block x 368 → 656, every edge a multiple of 16. The full cut's bar/gap ratio inverts at this tier (bars heavier than gaps), which is correct small-size compensation: bold bars carry the lace rhythm at 64px.
 - **Gap arithmetic constraint:** with four bars symmetric about the axis, the center gap straddles x = 512, so inner bar edges sit at 512 ± gap/2 — the gap must therefore be a multiple of 32 to land on the 16-grid. A 48-unit gap (1.5 L) was evaluated and rejected: it puts inner edges at 512 ± 24, a half-pixel at 64px, defeating the lock.
-- **Spine: stroke 32 (2px)**, y 512 → 544, x 336 → 688 (symmetric, one gap of overshoot past the outer bars).
-- **Bars vertical: y 480 → 576** (height 96 = 6px). Block top lands at 39.5% of shield height — the §1.3 "top edge at 38%" rule carries a ±2% tolerance at this tier; quantization wins.
-- **Wings at mid cut:** equal blade roots 112/112/112 with 16-unit cuts, wing y 288 → 656, putting every blade edge (400, 416, 528, 544, 656) on the 16-grid.
+- **Spine: stroke 32 (2px)**, y 496 → 528, x 336 → 688 (symmetric, one gap of overshoot past the outer bars).
+- **Bars vertical: y 464 → 560** (height 96 = 6px). Block top lands at 39.5% of shield height — inside the §1.3 ±2% band; quantization wins.
+- **Wings at mid cut:** equal blade roots 112/112/112 with 16-unit cuts, wing y 272 → 640, putting every blade edge (384, 400, 512, 528, 640) on the 16-grid.
 - **180px caveat:** 180 is non-dyadic (÷5.689) — no parameter choice can pixel-lock it, so the mid cut optimizes for 64 and relies on supersampled downscale for 180. The export script (§5 Stage 2) encodes these mid-cut overrides; the master's full-cut geometry is untouched, so Gate G1 (centroid) is unaffected — the lace block is interior detail, not silhouette.
 
 The favicon HTML must be re-wired to reference the currently-orphaned 48/64 exports (they exist in `frontend/public/` but nothing links them). Also add an `SVG favicon` (`<link rel="icon" type="image/svg+xml">`) built from the small cut — modern browsers get vector crispness at every zoom, PNGs remain the fallback.
