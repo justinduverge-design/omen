@@ -19,3 +19,5 @@ export { default as TabNav } from './TabNav';
 export { default as RadioCardGroup } from './RadioCardGroup';
 export { default as PageHero } from './PageHero';
 export { default as MetricStrip } from './MetricStrip';
+export { default as PlayerChip } from './PlayerChip';
+export { default as PlayerRow } from './PlayerRow';
