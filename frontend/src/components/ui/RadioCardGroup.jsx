@@ -7,6 +7,7 @@ const RadioCardGroup = ({
   onValueChange,
   className = '',
   'aria-label': ariaLabel,
+  children,
   ...props
 }) => {
   const name = useId();
@@ -49,7 +50,7 @@ const RadioCardGroup = ({
         onKeyDown={handleKeyDown}
         {...props}
       >
-        {props.children}
+        {children}
       </div>
     </RadioCardGroupContext.Provider>
   );
@@ -61,7 +62,7 @@ const RadioCardGroupItem = ({ value, title, description, disabled = false, class
   const id = useId();
 
   const baseClasses = `
-    relative flex flex-col items-start rounded-xl p-4 transition-colors duration-150 ease-in-out cursor-pointer text-left
+    relative flex flex-col items-start rounded-xl p-4 transition-colors duration-150 ease-in-out motion-reduce:transition-none motion-reduce:duration-0 cursor-pointer text-left
   `;
 
   // We use border-2 on both to prevent layout shift.

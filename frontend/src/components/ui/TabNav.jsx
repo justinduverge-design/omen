@@ -7,6 +7,7 @@ const TabNav = ({
   onValueChange,
   className = '',
   'aria-label': ariaLabel,
+  children,
   ...props
 }) => {
   const containerRef = useRef(null);
@@ -48,7 +49,7 @@ const TabNav = ({
         onKeyDown={handleKeyDown}
         {...props}
       >
-        {props.children}
+        {children}
       </div>
     </TabNavContext.Provider>
   );
@@ -60,7 +61,7 @@ const TabNavItem = ({ value, children, disabled = false, className = '', ...prop
   const id = useId();
 
   const baseClasses = `
-    relative flex items-center justify-center font-medium transition-colors duration-150 ease-in-out
+    relative flex items-center justify-center font-medium transition-colors duration-150 ease-in-out motion-reduce:transition-none motion-reduce:duration-0
     cursor-pointer pb-3 pt-3 min-h-[44px] whitespace-nowrap
     focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]
   `;

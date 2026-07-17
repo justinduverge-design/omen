@@ -8,6 +8,7 @@ const SegmentedControl = ({
   size = 'md',
   className = '',
   'aria-label': ariaLabel,
+  children,
   ...props
 }) => {
   const name = useId();
@@ -54,7 +55,7 @@ const SegmentedControl = ({
         onKeyDown={handleKeyDown}
         {...props}
       >
-        {props.children}
+        {children}
       </div>
     </SegmentedControlContext.Provider>
   );
@@ -66,7 +67,7 @@ const SegmentedControlItem = ({ value, children, disabled = false, className = '
   const id = useId();
 
   const baseClasses = `
-    relative flex items-center justify-center rounded-md font-medium transition-colors duration-150 ease-in-out
+    relative flex items-center justify-center rounded-md font-medium transition-colors duration-150 ease-in-out motion-reduce:transition-none motion-reduce:duration-0
     cursor-pointer px-3
   `;
 
