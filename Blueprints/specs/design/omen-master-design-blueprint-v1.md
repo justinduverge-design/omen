@@ -39,6 +39,8 @@ The fix is sequenced, not simultaneous: **tokens → masters → exports → QA 
 
 The emblem must be rebuilt **vector-first**: a single master SVG on a 1024-unit canvas, from which every raster (favicon set, app icon, OG image, video plates) is *exported by script*, never hand-resized. A PNG-only identity cannot be optically corrected, cannot ship size-appropriate detail tiers, and cannot be audited. This mandate is the whole ballgame; everything below is the geometry that master must satisfy.
 
+**Stage 1 as-built pivot (2026-07-17, Justin's direction):** the master is **traced from the original brand mark** (`logos/omen-primary-emblem.png`, via `scripts/trace-logo.py` — color-class extraction to three brand-hex vector layers with evenodd holes). The from-scratch geometric construction that first occupied Stage 1 did not match the actual emblem and is retired (git history retains it). Consequently §1.3–§1.4's constructed lace/wing rules and §1.6's constructed-coordinate 64-lock enumeration are **reference idealizations for future redraws, not gates on the traced master**. The gates that still bind the traced master: G1 optical centering (applied by the tracer's fit transform; measured **(50.000%, 48.371%), PASS**), the winged-silhouette presence/clearspace budget, the apex clearance floor (placed apex 923 → clearance 101 ≥ 96, PASS), and §1.5's one-light rule for any rendered enrichment. Next refinement pass: convert traced polygons to clean Bézier geometry and re-derive the size-tier cuts from the real mark.
+
 ### 1.1 Construction grid
 
 - **Canvas:** 1024 × 1024 units. **Base module `m` = 64 units** (a 16 × 16 module grid). All major dimensions are whole or half multiples of `m`.
