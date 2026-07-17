@@ -18,3 +18,5 @@ export { default as SegmentedControl } from './SegmentedControl';
 export { default as TabNav } from './TabNav';
 export { default as RadioCardGroup } from './RadioCardGroup';
 export { default as PageHero } from './PageHero';
+export { default as PlayerChip } from './PlayerChip';
+export { default as PlayerRow } from './PlayerRow';
