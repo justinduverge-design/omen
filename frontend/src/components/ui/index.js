@@ -20,3 +20,4 @@ export { default as RadioCardGroup } from './RadioCardGroup';
 export { default as PageHero } from './PageHero';
 export { default as PlayerChip } from './PlayerChip';
 export { default as PlayerRow } from './PlayerRow';
+export { default as MetricStrip } from './MetricStrip';

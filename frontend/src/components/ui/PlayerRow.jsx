@@ -1,5 +1,6 @@
 import React from 'react';
 import PlayerChip from './PlayerChip';
+import Chip from './Chip';
 
 const PlayerRow = React.forwardRef(function PlayerRow({
   name,
@@ -39,18 +40,31 @@ const PlayerRow = React.forwardRef(function PlayerRow({
 
   const combinedClasses = `${baseClasses} ${stateClasses} ${textDimmingClass} ${className}`.trim().replace(/\s+/g, ' ');
 
+  // For interactive mode, we prefer aria-pressed. For non-interactive, aria-selected might not be appropriate without listbox roles, but we'll apply conditionally.
+  const ariaProps = isInteractive
+    ? { 'aria-pressed': selected ? true : undefined }
+    : { 'aria-selected': selected ? true : undefined };
+
   return (
     <Component
       ref={ref}
       className={combinedClasses}
       onClick={onClick}
       type={isInteractive ? 'button' : undefined}
-      aria-selected={selected ? true : undefined}
+      {...ariaProps}
       {...props}
     >
-      <div className="flex flex-col gap-0.5">
-        <PlayerChip name={name} position={position} size="md" />
-        <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]">
+      <span className="flex flex-col gap-0.5 items-start">
+        <span className="flex items-center gap-2">
+          <PlayerChip name={name} position={position} size="md" />
+          {selected && (
+            <Chip tone="accent" size="sm">Selected</Chip>
+          )}
+          {recommended && !selected && (
+            <Chip tone="omen" size="sm">Recommended</Chip>
+          )}
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]">
           {team && <span>{team.toUpperCase()}</span>}
           {injuryNote && (
             <>
@@ -60,13 +74,13 @@ const PlayerRow = React.forwardRef(function PlayerRow({
               </span>
             </>
           )}
-        </div>
-      </div>
+        </span>
+      </span>
 
       {valueSlot && (
-        <div className="ml-4 flex-shrink-0">
+        <span className="ml-4 flex-shrink-0 flex items-center">
           {valueSlot}
-        </div>
+        </span>
       )}
     </Component>
   );
