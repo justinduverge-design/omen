@@ -12,19 +12,26 @@ const MetricStrip = ({
   className = '',
   ...props
 }) => {
+  const deltaStr = delta !== undefined && delta !== null ? String(delta).trim() : '';
+  const hasExplicitSign = /^[+\-↑↓]/.test(deltaStr);
+
   let deltaColor = 'var(--color-text-secondary)';
   let DeltaIcon = null;
 
   if (tone === 'positive') {
     deltaColor = 'var(--color-risk-low)';
-    DeltaIcon = (
-      <span aria-hidden="true" className="mr-0.5 text-[0.85em] leading-none">+</span>
-    );
+    if (!hasExplicitSign) {
+      DeltaIcon = (
+        <span aria-hidden="true" className="mr-0.5 text-[0.85em] leading-none">+</span>
+      );
+    }
   } else if (tone === 'negative') {
     deltaColor = 'var(--color-risk-high)';
-    DeltaIcon = (
-      <span aria-hidden="true" className="mr-0.5 text-[0.85em] leading-none">-</span>
-    );
+    if (!hasExplicitSign) {
+      DeltaIcon = (
+        <span aria-hidden="true" className="mr-0.5 text-[0.85em] leading-none">-</span>
+      );
+    }
   } else if (tone === 'neutral') {
     deltaColor = 'var(--color-text-secondary)';
     DeltaIcon = null;
@@ -75,19 +82,19 @@ const MetricStrip = ({
       </div>
 
       <div className="flex items-baseline gap-3">
-        {value !== undefined && (
+        {value !== undefined && value !== null && (
           <span className={valueClasses} style={valueStyle}>
             {value}
           </span>
         )}
 
-        {delta && (
+        {deltaStr !== '' && (
           <span
             className="flex items-center font-mono text-sm font-semibold"
             style={{ color: deltaColor }}
           >
             {DeltaIcon}
-            <span>{delta}</span>
+            <span>{deltaStr}</span>
           </span>
         )}
       </div>
