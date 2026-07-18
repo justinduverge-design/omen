@@ -4,8 +4,11 @@ import LeagueStandings from '../components/league/LeagueStandings.jsx';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';
 import { Alert } from '../components/ui/Alert.jsx';
+import Badge from '../components/ui/Badge.jsx';
+import Button from '../components/ui/Button.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import TabNav from '../components/ui/TabNav.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';
@@ -67,13 +70,9 @@ function PlatformStatusBar({ platforms, loading }) {
             const label = PLATFORM_LABELS[key] ?? key;
             const suffix = key === 'sleeper' && val?.username ? ` · ${val.username}` : '';
             return (
-              <span
-                key={key}
-                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <Badge key={key} tone="success">
                 {label}{suffix}
-              </span>
+              </Badge>
             );
           })}
           <Link
@@ -92,11 +91,11 @@ function PlatformStatusBar({ platforms, loading }) {
           <Alert key={key} tone="omen" className="justify-between" style={{ color: 'var(--color-text-primary)' }}>
             <p>{label} session expired — reconnect to restore your live data</p>
             {canReconnect && (
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"
-                style={{ color: 'var(--color-team-accent)' }}
                 disabled={reconnecting === key}
-                type="button"
                 onClick={async () => {
                   setReconnectError(null);
                   setReconnecting(key);
@@ -109,7 +108,7 @@ function PlatformStatusBar({ platforms, loading }) {
                 }}
               >
                 {reconnecting === key ? 'Reconnecting...' : `Reconnect ${label} →`}
-              </button>
+              </Button>
             )}
             {reconnectError ? (
               <p className="ml-4" style={{ color: 'var(--color-risk-high)' }}>
@@ -281,35 +280,24 @@ export default function Football() {
       <LeagueStandings postWinActive={Boolean(postWinSignal)} />
 
       {/* Horizontally scrollable on mobile so tabs never wrap to a second line */}
-      <div
-        role="tablist"
+      <TabNav
+        value={activeTab}
+        onValueChange={setActiveTab}
         aria-label="Football tools"
-        className="-mb-px flex overflow-x-auto border-b"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="-mb-px overflow-x-auto"
       >
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`tab-panel-${tab.id}`}
-              id={`tab-${tab.id}`}
-              className="min-h-[44px] shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                isActive
-                  ? { borderColor: 'var(--color-team-accent)', color: 'var(--color-team-accent)' }
-                  : { borderColor: 'transparent', color: 'var(--color-text-secondary)' }
-              }
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+        {TABS.map((tab) => (
+          <TabNav.Item
+            key={tab.id}
+            value={tab.id}
+            aria-controls={`tab-panel-${tab.id}`}
+            id={`tab-${tab.id}`}
+            className="shrink-0 px-4 text-sm font-semibold"
+          >
+            {tab.label}
+          </TabNav.Item>
+        ))}
+      </TabNav>
 
       <section
         role="tabpanel"
