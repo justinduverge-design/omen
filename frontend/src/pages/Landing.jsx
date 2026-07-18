@@ -1,17 +1,9 @@
 import { useState } from 'react';
+import Button from '../components/ui/Button.jsx';
+import Input from '../components/ui/Input.jsx';
+import PlayerChip from '../components/ui/PlayerChip.jsx';
+import RadioCardGroup from '../components/ui/RadioCardGroup.jsx';
 import { apiFetch } from '../lib/api.js';
-
-// ─── Shared primitives ────────────────────────────────────────────────────────
-
-function Button({ children, className = '', disabled = false, href }) {
-  const base =
-    'inline-flex min-h-[44px] items-center justify-center rounded-md px-6 text-sm font-semibold transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]';
-  const cls = [base, disabled ? 'cursor-default opacity-55' : '', className]
-    .filter(Boolean)
-    .join(' ');
-  if (href) return <a className={cls} href={href}>{children}</a>;
-  return <button className={cls} disabled={disabled} type="button">{children}</button>;
-}
 
 function Arrow() {
   return <span aria-hidden="true" className="ml-1.5 text-base leading-none">→</span>;
@@ -82,24 +74,6 @@ function StoryArc() {
 
 // ─── Trade Analyzer hero card ─────────────────────────────────────────────────
 
-function PlayerChip({ name, position }) {
-  const posStyle = {
-    RB: 'text-[var(--color-pos-rb)] border-[var(--color-pos-rb)]/30 bg-[var(--color-pos-rb)]/8',
-    WR: 'text-[var(--color-pos-wr)] border-[var(--color-pos-wr)]/30 bg-[var(--color-pos-wr)]/8',
-  };
-  const style = posStyle[position] ?? 'text-[var(--color-text-primary)]/55 border-white/15 bg-white/5';
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-      <span
-        className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${style}`}
-      >
-        {position}
-      </span>
-      <span className="text-sm font-medium text-[var(--color-text-primary)]">{name}</span>
-    </div>
-  );
-}
-
 function TradeAnalyzerHeroCard() {
   return (
     <article className="relative overflow-hidden rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-surface-1)]/95 shadow-2xl shadow-black/70">
@@ -124,8 +98,8 @@ function TradeAnalyzerHeroCard() {
               You receive
             </p>
             <div className="flex flex-col gap-2">
-              <PlayerChip name="Breece Hall" position="RB" />
-              <PlayerChip name="Chris Olave" position="WR" />
+              <PlayerChip className="min-w-0 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2" name="Breece Hall" position="RB" />
+              <PlayerChip className="min-w-0 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2" name="Chris Olave" position="WR" />
             </div>
           </div>
 
@@ -138,8 +112,8 @@ function TradeAnalyzerHeroCard() {
               You give
             </p>
             <div className="flex flex-col gap-2">
-              <PlayerChip name="Deebo Samuel" position="WR" />
-              <PlayerChip name="James Conner" position="RB" />
+              <PlayerChip className="min-w-0 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2" name="Deebo Samuel" position="WR" />
+              <PlayerChip className="min-w-0 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2" name="James Conner" position="RB" />
             </div>
           </div>
         </div>
@@ -188,11 +162,10 @@ function TradeAnalyzerHeroCard() {
           <p className="mb-3 text-xs leading-5 text-[var(--color-text-primary)]/52">
             This is a sample result. Sign in to run the live Trade Analyzer on your own players.
           </p>
-          <Button
-            className="w-full bg-[var(--color-accent)] text-[var(--color-text-on-accent)] hover:bg-[var(--color-accent-hover)]"
-            href="/about"
-          >
-            Analyze Your Trade <Arrow />
+          <Button asChild className="w-full" size="lg">
+            <a href="/about">
+              Analyze Your Trade <Arrow />
+            </a>
           </Button>
         </div>
       </div>
@@ -305,12 +278,9 @@ function SignInForm() {
       <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-primary)]/32">
         Already have an account?
       </p>
-      <a
-        className="mt-2 inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-accent)]/28 px-5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)]/55 hover:bg-[var(--color-accent)]/10"
-        href="/login"
-      >
-        Sign in →
-      </a>
+      <Button asChild className="mt-2" size="lg" variant="secondary">
+        <a href="/login">Sign in →</a>
+      </Button>
     </div>
   );
 }
@@ -349,47 +319,43 @@ function HeroWaitlist() {
   return (
     <form className="mt-6 flex flex-col gap-3" onSubmit={handleSubmit}>
       {/* Platform pills */}
-      <div className="flex flex-wrap gap-2">
+      <RadioCardGroup
+        aria-label="Fantasy platform"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4"
+        value={platform}
+        onValueChange={setPlatform}
+      >
         {PLATFORMS.map((p) => (
-          <label
+          <RadioCardGroup.Item
             key={p}
-            className={`flex min-h-[44px] cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              platform === p
-                ? 'border-[var(--color-accent)]/55 bg-[var(--color-accent)]/14 text-[var(--color-accent)]'
-                : 'border-white/14 bg-transparent text-[var(--color-text-primary)]/40 hover:border-white/28 hover:text-[var(--color-text-primary)]/65'
-            }`}
-          >
-            <input
-              checked={platform === p}
-              className="sr-only"
-              name="hero-platform"
-              type="radio"
-              value={p}
-              onChange={() => setPlatform(p)}
-            />
-            {p}
-          </label>
+            className="min-h-[44px] p-3"
+            title={p}
+            value={p}
+          />
         ))}
-      </div>
+      </RadioCardGroup>
 
       {/* Email + submit */}
-      <div className="flex gap-2">
-        <input
-          aria-label="Email address"
-          className="min-h-[44px] flex-1 rounded-md border border-white/12 bg-[var(--color-bg)] px-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-primary)]/28 outline-none transition-colors focus:border-[var(--color-accent)]/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]/40"
-          placeholder="you@example.com"
-          required
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-accent)] px-5 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55 whitespace-nowrap"
+      <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+        <div className="min-w-0 flex-1">
+          <Input
+            aria-label="Email address"
+            placeholder="you@example.com"
+            required
+            size="lg"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <Button
+          className="shrink-0 whitespace-nowrap"
           disabled={status === 'submitting'}
+          size="lg"
           type="submit"
         >
           {status === 'submitting' ? 'Joining…' : 'Join Waitlist'}
-        </button>
+        </Button>
       </div>
 
       {status === 'error' && (
@@ -466,11 +432,11 @@ function WaitlistSection() {
                 >
                   Email address
                 </label>
-                <input
+                <Input
                   id="waitlist-email"
-                  className="min-h-[44px] w-full rounded-md border border-white/12 bg-[var(--color-bg)] px-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-primary)]/28 outline-none transition-colors focus:border-[var(--color-accent)]/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]/40"
                   placeholder="you@example.com"
                   required
+                  size="lg"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -483,38 +449,32 @@ function WaitlistSection() {
                   Your platform{' '}
                   <span className="normal-case text-[var(--color-text-primary)]/28">(optional)</span>
                 </legend>
-                <div className="flex flex-wrap gap-2">
+                <RadioCardGroup
+                  aria-label="Your platform (optional)"
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                  value={platform}
+                  onValueChange={setPlatform}
+                >
                   {PLATFORMS.map((p) => (
-                    <label
+                    <RadioCardGroup.Item
                       key={p}
-                      className={`flex min-h-[44px] cursor-pointer items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        platform === p
-                          ? 'border-[var(--color-accent)]/55 bg-[var(--color-accent)]/14 text-[var(--color-accent)]'
-                          : 'border-white/14 bg-transparent text-[var(--color-text-primary)]/45 hover:border-white/28 hover:text-[var(--color-text-primary)]/70'
-                      }`}
-                    >
-                      <input
-                        checked={platform === p}
-                        className="sr-only"
-                        name="platform"
-                        type="radio"
-                        value={p}
-                        onChange={() => setPlatform(p)}
-                      />
-                      {p}
-                    </label>
+                      className="min-h-[44px] p-3"
+                      title={p}
+                      value={p}
+                    />
                   ))}
-                </div>
+                </RadioCardGroup>
               </fieldset>
 
               {/* Submit */}
-              <button
-                className="mt-1 inline-flex min-h-[46px] w-full items-center justify-center rounded-md bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors active:scale-[0.97] hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-55"
+              <Button
+                className="mt-1 w-full"
                 disabled={status === 'submitting'}
+                size="lg"
                 type="submit"
               >
                 {status === 'submitting' ? 'Joining…' : 'Join the Waitlist'}
-              </button>
+              </Button>
 
               {status === 'error' && (
                 <p className="text-xs text-red-300" role="alert">
@@ -583,12 +543,9 @@ export default function Landing() {
             {/* Secondary: sign in + try live tool */}
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <SignInForm />
-              <a
-                className="mt-3 inline-flex min-h-[44px] items-center text-xs uppercase tracking-[0.24em] text-[var(--color-text-primary)]/38 transition-colors hover:text-[var(--color-text-primary)]/65"
-                href="/about"
-              >
-                Try the live tool →
-              </a>
+              <Button asChild className="mt-3 uppercase tracking-[0.24em]" size="sm" variant="link">
+                <a href="/about">Try the live tool →</a>
+              </Button>
             </div>
           </div>
 
@@ -628,12 +585,9 @@ export default function Landing() {
                   No account required. Omen analyzes any trade in seconds.
                 </p>
               </div>
-              <a
-                className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] px-7 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97]"
-                href="/about"
-              >
-                Try the live tool →
-              </a>
+              <Button asChild className="shrink-0" size="lg">
+                <a href="/about">Try the live tool →</a>
+              </Button>
             </div>
           </div>
         </section>
