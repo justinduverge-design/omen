@@ -1,10 +1,16 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { searchPlayers } from '../data/nflPlayers.js';
 import { TRADE_PULSE } from '../data/tradePulse.js';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import Button from '../components/ui/Button.jsx';
+import Chip from '../components/ui/Chip.jsx';
+import Input from '../components/ui/Input.jsx';
+import MetricStrip from '../components/ui/MetricStrip.jsx';
+import PlayerRow from '../components/ui/PlayerRow.jsx';
+import SegmentedControl from '../components/ui/SegmentedControl.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { useTheme } from '../lib/themeMode.js';
@@ -22,64 +28,30 @@ import { buildTradeShareUrl } from '../lib/tradeShare.js';
 
 const MAX_SUGGESTIONS = 8;
 
-const INPUT_CLS =
-  'w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm ' +
-  'text-[var(--color-text-primary)] outline-none transition-colors ' +
-  'focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 ' +
-  'focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]';
+// ─── Compact player row with autocomplete ─────────────────────────────────
 
-function SegmentedControl({ label, options, value, onChange }) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
-        {label}
-      </legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          const selected = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={selected}
-              className={`inline-flex min-h-[44px] items-center justify-center rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] ${
-                selected
-                  ? 'border-[var(--color-team-accent)] bg-[var(--color-team-accent)] text-[var(--color-text-on-accent)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-text-secondary)] hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]'
-              }`}
-              onClick={() => onChange(option.value)}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-}
-
-// ─── Single player row with position-button layout + autocomplete ─────────────
-
-function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove }) {
+function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, active, onActivate, onChange, onRemove }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const closeTimeout = useRef(null);
+  const previousPosition = useRef(player.position);
 
   function computeSuggestions(position, query) {
     if (!query.trim()) return [];
     return searchPlayers(position, query).slice(0, MAX_SUGGESTIONS);
   }
 
-  function handlePositionChange(position) {
-    onChange(index, { position });
-    // Re-filter suggestions with new position, keeping current name query
+  useEffect(() => {
+    if (previousPosition.current === player.position) return;
+    previousPosition.current = player.position;
+
     if (player.name.trim()) {
-      const next = computeSuggestions(position, player.name);
+      const next = searchPlayers(player.position, player.name).slice(0, MAX_SUGGESTIONS);
       setSuggestions(next);
       setShowSuggestions(next.length > 0);
     }
-  }
+  }, [player.name, player.position]);
 
   function handleNameChange(value) {
     onChange(index, { name: value });
@@ -124,55 +96,36 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_44px]">
+    <div
+      className={`grid grid-cols-[auto_minmax(0,1fr)_44px] items-center gap-2 rounded-md border p-2 transition-colors ${
+        active
+          ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
+          : 'border-[var(--color-border)] bg-[var(--color-surface-1)]'
+      }`}
+      onFocusCapture={() => onActivate(index)}
+    >
+      <Chip className="w-12 shrink-0" size="sm" tone={`pos-${player.position.toLowerCase()}`}>
+        {player.position}
+      </Chip>
 
-      {/* ── Position ─────────────────────────────────────────────────────────── */}
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
-          Position
-        </legend>
-        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-4">
-          {TRADE_POSITIONS.map((pos) => {
-            const selected = player.position === pos;
-            return (
-              <button
-                key={pos}
-                type="button"
-                aria-pressed={selected}
-                className={`min-h-[44px] rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] ${
-                  selected
-                    ? 'ring-2 ring-[var(--color-team-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
-                    : 'hover:border-[var(--color-team-accent)]'
-                }`}
-                style={selected ? {
-                  background: 'var(--color-team-accent)',
-                  borderColor: 'var(--color-team-accent)',
-                  color: 'var(--color-text-on-accent)',
-                } : positionChipStyle(pos)}
-                onClick={() => handlePositionChange(pos)}
-              >
-                {pos}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* ── Name + autocomplete dropdown ─────────────────────────────────────── */}
-      <label className="relative text-xs font-semibold text-[var(--color-text-secondary)]">
-        Name
-        <input
+      <div className="relative min-w-0">
+        <Input
+          size="lg"
           role="combobox"
+          aria-label={`${sectionTitle} player ${index + 1} name`}
           aria-autocomplete="list"
           aria-haspopup="listbox"
           aria-expanded={showSuggestions && suggestions.length > 0}
           aria-controls={`${sectionTitle}-${index}-suggestions`}
           aria-activedescendant={activeIdx >= 0 ? `${sectionTitle}-${index}-suggestions-${activeIdx}` : undefined}
           autoComplete="off"
-          className={`mt-1 ${INPUT_CLS}`}
+          className="text-sm"
           value={player.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          onFocus={handleNameFocus}
+          onFocus={() => {
+            onActivate(index);
+            handleNameFocus();
+          }}
           onBlur={handleNameBlur}
           onKeyDown={handleKeyDown}
         />
@@ -190,7 +143,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
                 aria-selected={si === activeIdx}
                 className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm transition-colors ${
                   si === activeIdx
-                    ? 'bg-[var(--color-team-accent)]/15 text-[var(--color-text-primary)]'
+                    ? 'bg-[var(--color-accent)]/15 text-[var(--color-text-primary)]'
                     : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
                 }`}
                 role="option"
@@ -202,7 +155,7 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
                 <span>{p.name}</span>
                 <span
                   className="text-xs font-semibold"
-                  style={{ color: 'var(--color-team-accent)', opacity: 0.7 }}
+                  style={{ color: 'var(--color-accent)', opacity: 0.7 }}
                 >
                   {p.team}
                 </span>
@@ -210,10 +163,9 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
             ))}
           </ul>
         )}
-      </label>
+      </div>
 
-      {/* ── Remove ×  ────────────────────────────────────────────────────────── */}
-      <div className="flex items-end pb-0.5">
+      <div className="flex items-center">
         <button
           aria-label={`Remove ${sectionTitle} player ${index + 1}`}
           className="flex h-11 w-11 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -231,31 +183,92 @@ function PlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove
 // ─── Side section (Send / Receive) ────────────────────────────────────────────
 
 function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const safeActiveIndex = Math.min(activeIndex, Math.max(players.length - 1, 0));
+  const activePlayer = players[safeActiveIndex];
+
+  function handleAddPlayer() {
+    onAdd();
+    setActiveIndex(players.length);
+  }
+
+  function handleRemovePlayer(index) {
+    onRemove(index);
+    setActiveIndex((current) => {
+      if (current > index) return current - 1;
+      if (current === index) return Math.max(0, index - 1);
+      return current;
+    });
+  }
+
   return (
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
-        <button
-          className="inline-flex min-h-[44px] items-center rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-team-accent)] hover:text-[var(--color-accent-hover)]"
-          type="button"
-          onClick={onAdd}
-        >
-          Add
-        </button>
       </div>
 
-      <div className="space-y-3">
-        {players.map((player, index) => (
-          <PlayerRow
-            key={`${title}-${index}`}
-            sectionTitle={title}
-            index={index}
-            player={player}
-            totalCount={players.length}
-            onChange={onChange}
-            onRemove={onRemove}
-          />
-        ))}
+      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+        <fieldset className="min-w-0 space-y-1.5">
+          <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
+            Position
+            <span className="sr-only">
+              {' '}for {activePlayer?.name || `${title} player ${safeActiveIndex + 1}`}
+            </span>
+          </legend>
+          <div className="grid grid-cols-4 gap-2">
+            {TRADE_POSITIONS.map((pos) => {
+              const selected = activePlayer?.position === pos;
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  aria-pressed={selected}
+                  className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
+                    selected
+                      ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
+                      : 'hover:border-[var(--color-accent)]'
+                  }`}
+                  style={selected ? {
+                    background: 'var(--color-accent)',
+                    borderColor: 'var(--color-accent)',
+                    color: 'var(--color-text-on-accent)',
+                  } : positionChipStyle(pos)}
+                  onClick={() => onChange(safeActiveIndex, { position: pos })}
+                >
+                  {pos}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Players</p>
+          <Button
+            variant="secondary"
+            size="lg"
+            leadingIcon={<span aria-hidden="true" className="text-lg leading-none">+</span>}
+            onClick={handleAddPlayer}
+          >
+            Add player
+          </Button>
+        </div>
+
+        <div className="mt-2 space-y-2">
+          {players.map((player, index) => (
+            <TradeAnalyzerPlayerRow
+              key={`${title}-${index}`}
+              sectionTitle={title}
+              index={index}
+              player={player}
+              totalCount={players.length}
+              active={index === safeActiveIndex}
+              onActivate={setActiveIndex}
+              onChange={onChange}
+              onRemove={handleRemovePlayer}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -275,15 +288,17 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
             Creates a public snapshot. No connected-platform data or private league context is included.
           </p>
         </div>
-        <button
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-[var(--color-team-accent)]/40 px-4 py-2 text-sm font-semibold text-[var(--color-team-accent)] transition-colors duration-150 hover:bg-[var(--color-team-accent)]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)] disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
+        <Button
+          className="shrink-0"
+          variant="secondary"
+          size="lg"
           aria-busy={shareStatus === 'creating'}
           disabled={shareStatus === 'creating'}
+          loading={shareStatus === 'creating'}
           onClick={onCreateShare}
         >
           {shareStatus === 'creating' ? 'Creating link...' : 'Share result'}
-        </button>
+        </Button>
       </div>
 
       {shareError && (
@@ -299,7 +314,7 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
           </label>
           <input
             id="trade-share-url"
-            className="mt-2 w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
+            className="mt-2 w-full min-h-[44px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
             readOnly
             value={shareUrl}
             onFocus={(event) => event.currentTarget.select()}
@@ -309,7 +324,7 @@ function ShareControls({ onCreateShare, shareStatus, shareUrl, shareError }) {
               {shareStatus === 'copied' ? 'Link copied. Public snapshot expires in 30 days.' : 'Public snapshot expires in 30 days.'}
             </p>
             <a
-              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-team-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-team-accent)]"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-accent)] transition-colors duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               href={shareUrl}
             >
               Open share card
@@ -331,9 +346,9 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
   if (!result) return null;
 
   const verdictStyles = {
-    accept: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    decline: 'border-red-400/30 bg-red-400/10 text-red-300',
-    neutral: 'border-[var(--color-team-accent)]/30 bg-[var(--color-team-accent)]/10 text-[var(--color-accent-hover)]',
+    accept: 'border-[var(--color-risk-low)]/30 bg-[var(--color-risk-low)]/10 text-[var(--color-risk-low)]',
+    decline: 'border-[var(--color-risk-high)]/30 bg-[var(--color-risk-high)]/10 text-[var(--color-risk-high)]',
+    neutral: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent-hover)]',
   };
 
   return (
@@ -341,33 +356,28 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
               Result
             </p>
             {cultureTag && (
               <span
                 className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"
                 style={{
-                  color: 'var(--color-team-accent)',
-                  borderColor: 'color-mix(in srgb, var(--color-team-accent) 40%, var(--color-border) 60%)',
+                  color: 'var(--color-accent)',
+                  borderColor: 'color-mix(in srgb, var(--color-accent) 40%, var(--color-border) 60%)',
                 }}
               >
                 {cultureTag}
               </span>
             )}
           </div>
-          <h2 className="mt-2 font-mono text-3xl font-semibold text-[var(--color-text-primary)]">
-            {result.net_value > 0 ? '+' : ''}{result.net_value}
-          </h2>
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
-            <abbr
-              className="cursor-help no-underline"
-              title="Value Over Replacement Player - how much better this side is than a replacement-level option."
-            >
-              VORP
-            </abbr>{' '}
-            value
-          </p>
+          <MetricStrip
+            className="mt-2 min-w-52 border-0 py-0"
+            explanation="Value Over Replacement Player - how much better this side is than a replacement-level option."
+            label="VORP value"
+            value={`${result.net_value > 0 ? '+' : ''}${result.net_value}`}
+            tone={result.net_value > 0 ? 'positive' : result.net_value < 0 ? 'negative' : 'neutral'}
+          />
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Confidence: {result.confidence}
           </p>
@@ -378,7 +388,7 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
       </div>
 
       {result.explanation ? (
-        <p className="mt-4 rounded-md border border-[var(--color-team-accent)]/20 bg-[var(--color-team-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
+        <p className="mt-4 rounded-md border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/10 px-4 py-3 text-sm leading-6 text-[var(--color-text-primary)]">
           {result.explanation}
         </p>
       ) : null}
@@ -398,15 +408,16 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
           ['Receive', result.receive],
         ].map(([label, side]) => (
           <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-4" key={label}>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-display text-base font-semibold text-[var(--color-text-primary)]">{label}</h3>
-              <span className="text-sm text-[var(--color-text-secondary)]">{side.total_value}</span>
-            </div>
+            <MetricStrip label={`${label} total`} value={side.total_value} />
             <ul className="mt-3 space-y-2">
               {side.players.map((player, index) => (
-                <li className="flex items-center justify-between gap-3 text-sm" key={`${label}-${index}`}>
-                  <span className="text-[var(--color-text-primary)]">{player.name}</span>
-                  <span className="text-[var(--color-text-tertiary)]">{player.value}</span>
+                <li key={`${label}-${index}`}>
+                  <PlayerRow
+                    name={player.name}
+                    position={player.position}
+                    team={player.team}
+                    valueSlot={<span className="text-sm text-[var(--color-text-tertiary)]">{player.value}</span>}
+                  />
                 </li>
               ))}
             </ul>
@@ -441,7 +452,7 @@ const TRADE_TIPS = [
 function TradeTipsCard() {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Omen · Strategy
       </p>
       <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Trade Room</h3>
@@ -451,7 +462,7 @@ function TradeTipsCard() {
             <span
               aria-hidden="true"
               className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: 'var(--color-team-accent)' }}
+              style={{ background: 'var(--color-accent)' }}
             />
             <div>
               <p className="font-display text-sm font-semibold text-[var(--color-text-primary)]">{tip.title}</p>
@@ -467,7 +478,7 @@ function TradeTipsCard() {
 function BuyLowCard() {
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-team-accent)]">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
         Mock · Buy Low
       </p>
       <h3 className="mt-1 font-display text-lg font-bold text-[var(--color-text-primary)]">Targets</h3>
@@ -479,12 +490,9 @@ function BuyLowCard() {
                 {target.name}
               </span>
               <div className="flex shrink-0 items-center gap-1.5">
-                <span
-                  className="inline-block rounded border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
-                  style={positionChipStyle(target.position)}
-                >
+                <Chip tone={`pos-${target.position.toLowerCase()}`} size="sm">
                   {target.position}
-                </span>
+                </Chip>
                 <span className="text-xs text-[var(--color-text-tertiary)]">{target.team}</span>
               </div>
             </div>
@@ -625,19 +633,43 @@ export default function TradeAnalyzer({
         <form className="space-y-5" onSubmit={handleSubmit}>
           <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <SegmentedControl
-                label="Scoring"
-                options={TRADE_SCORING_FORMATS}
-                value={scoringFormat}
-                onChange={setScoringFormat}
-              />
-              <div>
+              <fieldset className="space-y-2">
+                <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+                  Scoring
+                </legend>
                 <SegmentedControl
-                  label="Deal shape"
-                  options={TRADE_DEAL_SHAPES}
-                  value={dealShape}
-                  onChange={setDealShape}
-                />
+                  value={scoringFormat}
+                  onValueChange={setScoringFormat}
+                  size="lg"
+                  className="flex flex-wrap"
+                  aria-label="Scoring"
+                >
+                  {TRADE_SCORING_FORMATS.map((option) => (
+                    <SegmentedControl.Item key={option.value} value={option.value}>
+                      {option.label}
+                    </SegmentedControl.Item>
+                  ))}
+                </SegmentedControl>
+              </fieldset>
+              <div>
+                <fieldset className="space-y-2">
+                  <legend className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+                    Deal shape
+                  </legend>
+                  <SegmentedControl
+                    value={dealShape}
+                    onValueChange={setDealShape}
+                    size="lg"
+                    className="flex flex-wrap"
+                    aria-label="Deal shape"
+                  >
+                    {TRADE_DEAL_SHAPES.map((option) => (
+                      <SegmentedControl.Item key={option.value} value={option.value}>
+                        {option.label}
+                      </SegmentedControl.Item>
+                    ))}
+                  </SegmentedControl>
+                </fieldset>
                 <p className="mt-2 text-xs leading-5 text-[var(--color-text-secondary)]">
                   {dealShapeMeta.description}
                 </p>
@@ -654,7 +686,7 @@ export default function TradeAnalyzer({
               onRemove={(index) => removeSidePlayer(setSend, index)}
             />
             <div className="hidden items-center justify-center xl:flex" aria-hidden="true">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-team-accent)]/40 bg-[var(--color-team-accent)]/10 text-xl font-semibold text-[var(--color-team-accent)]">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 text-xl font-semibold text-[var(--color-accent)]">
                 &harr;
               </span>
             </div>
@@ -668,20 +700,15 @@ export default function TradeAnalyzer({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            <Button
+              size="lg"
               aria-busy={loading}
               disabled={loading}
+              loading={loading}
               type="submit"
             >
-              {loading ? (
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-                />
-              ) : null}
               {loading ? 'Comparing...' : 'Compare Trade'}
-            </button>
+            </Button>
           </div>
         </form>
 
