@@ -94,14 +94,14 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_44px]">
+    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[minmax(0,1fr)_44px]">
 
       {/* ── Position ─────────────────────────────────────────────────────────── */}
-      <fieldset className="space-y-1.5">
+      <fieldset className="min-w-0 space-y-1.5 md:col-span-2">
         <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
           Position
         </legend>
-        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-4">
+        <div className="grid grid-cols-4 gap-2">
           {TRADE_POSITIONS.map((pos) => {
             const selected = player.position === pos;
             return (
@@ -109,7 +109,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
                 key={pos}
                 type="button"
                 aria-pressed={selected}
-                className={`min-h-[44px] rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
+                className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
                   selected
                     ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
                     : 'hover:border-[var(--color-accent)]'
@@ -129,7 +129,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
       </fieldset>
 
       {/* ── Name + autocomplete dropdown ─────────────────────────────────────── */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <Input
           label="Name"
           size="lg"
