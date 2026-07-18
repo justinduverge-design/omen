@@ -1,5 +1,7 @@
 # Jules brief — 01-B (slice 1 of 4) · Button Phase B — ConnectLeague.jsx only
 
+**⚠ SUPERSEDED for execution purposes:** Phase B page migration work moved to a local-agent track (Claude Code/Codex) because Jules cannot run a dev server for live visual/functional verification. See `Blueprints/prompts/phase-b-local-agent-README.md` and `Blueprints/prompts/phase-b-local-agent-01-connectleague.md`, which covers this same page but consolidated with every applicable primitive (Button, Input, Badge, PlatformBadge, PlatformConnectionCard, SegmentedControl) in one pass rather than Button alone. This file is kept for historical/reasoning reference (the "why ConnectLeague first" rationale still applies) — do not execute it as a standalone Jules PR.
+
 **Parent brief:** `jules-01-button.md` — this is a narrower cut of that brief's existing "Phase B — page migration only" section, not a new component or new API. `Button.jsx` Phase A is already merged (PR #125); this brief covers only the first migration target.
 **Queue position:** First Phase B PR to run, now that all 19 Phase A primitives are confirmed merged to `main` (through PR #138).
 **Depends on:** `Button.jsx` (Phase A, merged).
