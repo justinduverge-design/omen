@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Badge from '../components/ui/Badge.jsx';
+import Button from '../components/ui/Button.jsx';
 import { Card } from '../components/ui/Card.jsx';
+import Chip from '../components/ui/Chip.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
+import Input from '../components/ui/Input.jsx';
+import LoadingState from '../components/ui/LoadingState.jsx';
+import MetricStrip from '../components/ui/MetricStrip.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import SegmentedControl from '../components/ui/SegmentedControl.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
-import { positionChipStyle } from '../lib/positionChip.js';
-import { confidenceBarStyle } from '../lib/confidenceGradient.js';
 import { metallicTierStyle } from '../lib/metallicTier.js';
 import { useTheme } from '../lib/themeMode.js';
 
@@ -23,6 +28,12 @@ const REC_TYPE_LABELS = {
   roster_fit: 'Roster Fit',
   value_pick: 'Value Pick',
   risk_adjusted: 'Risk Adjusted',
+};
+
+const RISK_BADGE_TONES = {
+  low: 'success',
+  medium: 'neutral',
+  high: 'risk',
 };
 
 // Build { [playerName]: { ffc, yahoo, mfl } } lookup from ADP response sources
@@ -46,51 +57,6 @@ function getConnectedPlatform(platforms) {
     if (platforms[key]?.connected) return key;
   }
   return null;
-}
-
-function RiskBadge({ risk }) {
-  const styles = {
-    low: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    medium: null,
-    high: 'border-red-400/30 bg-red-400/10 text-red-300',
-  };
-  const colorClass = styles[risk] ?? null;
-  const mediumStyle = colorClass === null
-    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
-    : undefined;
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize${colorClass ? ` ${colorClass}` : ''}`}
-      style={mediumStyle}
-    >
-      {risk} risk
-    </span>
-  );
-}
-
-function PositionBadge({ position }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
-      style={positionChipStyle(position)}
-    >
-      {position}
-    </span>
-  );
-}
-
-function ConfidenceBar({ score }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-surface-1)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-500 motion-reduce:transition-none"
-          style={confidenceBarStyle(score)}
-        />
-      </div>
-      <span className="w-10 text-right font-mono text-xs font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{score}%</span>
-    </div>
-  );
 }
 
 const ADP_OTHER_SOURCES = [
@@ -129,17 +95,14 @@ function AdpRow({ rec, adpMap, adpLoading, connectedPlatform }) {
       <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>ADP</p>
 
       {platformAdp != null && (
-        <span className="inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+        <Chip className="normal-case tracking-normal" tone="accent">
           Yahoo {platformAdp}
-        </span>
+        </Chip>
       )}
 
-      <span
-        className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
-      >
+      <Chip className="normal-case tracking-normal" tone="omen">
         Omen #{rec.rank}
-      </span>
+      </Chip>
 
       {otherSources.length > 0 && (
         <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -194,7 +157,9 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{rec.player.name}</p>
-              <PositionBadge position={rec.player.position} />
+              <Chip size="sm" tone={`pos-${rec.player.position.toLowerCase()}`}>
+                {rec.player.position}
+              </Chip>
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{rec.player.team}</p>
             </div>
           </div>
@@ -203,7 +168,9 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
           <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}>
             {REC_TYPE_LABELS[rec.recommendation_type] ?? rec.recommendation_type}
           </span>
-          <RiskBadge risk={rec.risk_level} />
+          <Badge className="capitalize" tone={RISK_BADGE_TONES[rec.risk_level] ?? 'neutral'}>
+            {rec.risk_level} risk
+          </Badge>
         </div>
       </div>
 
@@ -214,10 +181,11 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         {rec.headline}
       </p>
 
-      <div>
-        <p className="mb-2 text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>Confidence</p>
-        <ConfidenceBar score={rec.confidence_score} />
-      </div>
+      <MetricStrip
+        confidenceScore={rec.confidence_score}
+        label="Confidence"
+        value={`${rec.confidence_score}%`}
+      />
 
       {rec.reasoning?.length > 0 && (
         <ol className="space-y-2">
@@ -242,32 +210,6 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
   );
 }
 
-function LoadingRecommendations() {
-  return (
-    <div aria-busy="true" aria-label="Loading recommendations" className="space-y-4">
-      {[0, 1, 2].map((i) => (
-        <Card
-          key={i}
-          variant="solid"
-          className="animate-pulse motion-reduce:animate-none space-y-3 p-5"
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-7 w-7 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-5 w-36 rounded" style={{ background: 'var(--color-surface-2)' }} />
-          </div>
-          <div className="h-5 w-3/4 rounded" style={{ background: 'var(--color-surface-2)' }} />
-          <div className="h-2 rounded-full" style={{ background: 'var(--color-surface-2)' }} />
-          <div className="space-y-2">
-            <div className="h-4 w-full rounded" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-4 w-5/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
-            <div className="h-4 w-4/6 rounded" style={{ background: 'var(--color-surface-2)' }} />
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
 export default function DraftAssistant({ platforms }) {
   const fixtureActive = isPrivateFixtureEnabled(PRIVATE_FIXTURE_KEYS.MOCK_DRAFT);
   const [scoringFormat, setScoringFormat] = useState('ppr');
@@ -282,20 +224,6 @@ export default function DraftAssistant({ platforms }) {
   const [adpLoading, setAdpLoading] = useState(false);
   const [fixture, setFixture] = useState(null);
   const { mode, team: teamAbbr } = useTheme();
-  const scoringFormatRefs = useRef([]);
-
-  function handleScoringFormatKeyDown(event, index) {
-    const { key } = event;
-    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(key)) return;
-    event.preventDefault();
-    let nextIndex = index;
-    if (key === 'ArrowRight' || key === 'ArrowDown') nextIndex = (index + 1) % SCORING_FORMATS.length;
-    else if (key === 'ArrowLeft' || key === 'ArrowUp') nextIndex = (index - 1 + SCORING_FORMATS.length) % SCORING_FORMATS.length;
-    else if (key === 'Home') nextIndex = 0;
-    else if (key === 'End') nextIndex = SCORING_FORMATS.length - 1;
-    setScoringFormat(SCORING_FORMATS[nextIndex].value);
-    scoringFormatRefs.current[nextIndex]?.focus();
-  }
 
   const cry = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -437,57 +365,41 @@ export default function DraftAssistant({ platforms }) {
           <legend id="scoring-format-legend" className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Scoring Format
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-labelledby="scoring-format-legend">
-            {SCORING_FORMATS.map(({ value, label }, index) => {
-              const isSelected = scoringFormat === value;
-              return (
-                <button
-                  key={value}
-                  ref={(el) => { scoringFormatRefs.current[index] = el; }}
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={isSelected ? 0 : -1}
-                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-                  style={isSelected
-                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
-                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-                  type="button"
-                  onClick={() => setScoringFormat(value)}
-                  onKeyDown={(e) => handleScoringFormatKeyDown(e, index)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            aria-label="Scoring Format"
+            className="mt-2 flex-wrap"
+            size="lg"
+            value={scoringFormat}
+            onValueChange={setScoringFormat}
+          >
+            {SCORING_FORMATS.map(({ value, label }) => (
+              <SegmentedControl.Item key={value} value={value}>
+                {label}
+              </SegmentedControl.Item>
+            ))}
+          </SegmentedControl>
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
-            Draft Position (1–12)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-              max="12"
-              min="1"
-              type="number"
-              value={draftPosition}
-              onChange={(e) => setDraftPosition(e.target.value)}
-            />
-          </label>
+          <Input
+            label="Draft Position (1–12)"
+            max="12"
+            min="1"
+            size="lg"
+            type="number"
+            value={draftPosition}
+            onChange={(e) => setDraftPosition(e.target.value)}
+          />
 
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
-            Current Round (1–15)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-              max="15"
-              min="1"
-              type="number"
-              value={round}
-              onChange={(e) => setRound(e.target.value)}
-            />
-          </label>
+          <Input
+            label="Current Round (1–15)"
+            max="15"
+            min="1"
+            size="lg"
+            type="number"
+            value={round}
+            onChange={(e) => setRound(e.target.value)}
+          />
         </div>
 
         <fieldset>
@@ -518,22 +430,17 @@ export default function DraftAssistant({ platforms }) {
           </div>
         </fieldset>
 
-        <button
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+        <Button
           disabled={loading || (fixtureActive && !fixture)}
+          loading={loading}
+          size="lg"
           type="submit"
         >
-          {loading && (
-            <span
-              aria-hidden="true"
-              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-            />
-          )}
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}
-        </button>
+        </Button>
       </form>
 
-      {loading && <LoadingRecommendations />}
+      {loading && <LoadingState variant="skeleton" rows={3} />}
 
       {!loading && error && (
         <ErrorState
