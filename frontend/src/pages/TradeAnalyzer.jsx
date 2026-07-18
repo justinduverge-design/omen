@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { searchPlayers } from '../data/nflPlayers.js';
 import { TRADE_PULSE } from '../data/tradePulse.js';
@@ -28,28 +28,30 @@ import { buildTradeShareUrl } from '../lib/tradeShare.js';
 
 const MAX_SUGGESTIONS = 8;
 
-// ─── Single player row with position-button layout + autocomplete ─────────────
+// ─── Compact player row with autocomplete ─────────────────────────────────
 
-function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onChange, onRemove }) {
+function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, active, onActivate, onChange, onRemove }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const closeTimeout = useRef(null);
+  const previousPosition = useRef(player.position);
 
   function computeSuggestions(position, query) {
     if (!query.trim()) return [];
     return searchPlayers(position, query).slice(0, MAX_SUGGESTIONS);
   }
 
-  function handlePositionChange(position) {
-    onChange(index, { position });
-    // Re-filter suggestions with new position, keeping current name query
+  useEffect(() => {
+    if (previousPosition.current === player.position) return;
+    previousPosition.current = player.position;
+
     if (player.name.trim()) {
-      const next = computeSuggestions(position, player.name);
+      const next = searchPlayers(player.position, player.name).slice(0, MAX_SUGGESTIONS);
       setSuggestions(next);
       setShowSuggestions(next.length > 0);
     }
-  }
+  }, [player.name, player.position]);
 
   function handleNameChange(value) {
     onChange(index, { name: value });
@@ -94,46 +96,23 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 md:grid-cols-[minmax(0,1fr)_44px]">
+    <div
+      className={`grid grid-cols-[auto_minmax(0,1fr)_44px] items-center gap-2 rounded-md border p-2 transition-colors ${
+        active
+          ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
+          : 'border-[var(--color-border)] bg-[var(--color-surface-1)]'
+      }`}
+      onFocusCapture={() => onActivate(index)}
+    >
+      <Chip className="w-12 shrink-0" size="sm" tone={`pos-${player.position.toLowerCase()}`}>
+        {player.position}
+      </Chip>
 
-      {/* ── Position ─────────────────────────────────────────────────────────── */}
-      <fieldset className="min-w-0 space-y-1.5 md:col-span-2">
-        <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
-          Position
-        </legend>
-        <div className="grid grid-cols-4 gap-2">
-          {TRADE_POSITIONS.map((pos) => {
-            const selected = player.position === pos;
-            return (
-              <button
-                key={pos}
-                type="button"
-                aria-pressed={selected}
-                className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
-                  selected
-                    ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
-                    : 'hover:border-[var(--color-accent)]'
-                }`}
-                style={selected ? {
-                  background: 'var(--color-accent)',
-                  borderColor: 'var(--color-accent)',
-                  color: 'var(--color-text-on-accent)',
-                } : positionChipStyle(pos)}
-                onClick={() => handlePositionChange(pos)}
-              >
-                {pos}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* ── Name + autocomplete dropdown ─────────────────────────────────────── */}
       <div className="relative min-w-0">
         <Input
-          label="Name"
           size="lg"
           role="combobox"
+          aria-label={`${sectionTitle} player ${index + 1} name`}
           aria-autocomplete="list"
           aria-haspopup="listbox"
           aria-expanded={showSuggestions && suggestions.length > 0}
@@ -143,7 +122,10 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
           className="text-sm"
           value={player.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          onFocus={handleNameFocus}
+          onFocus={() => {
+            onActivate(index);
+            handleNameFocus();
+          }}
           onBlur={handleNameBlur}
           onKeyDown={handleKeyDown}
         />
@@ -183,8 +165,7 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
         )}
       </div>
 
-      {/* ── Remove ×  ────────────────────────────────────────────────────────── */}
-      <div className="flex items-end pb-0.5">
+      <div className="flex items-center">
         <button
           aria-label={`Remove ${sectionTitle} player ${index + 1}`}
           className="flex h-11 w-11 items-center justify-center rounded-md border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] transition-colors hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -202,31 +183,92 @@ function TradeAnalyzerPlayerRow({ sectionTitle, index, player, totalCount, onCha
 // ─── Side section (Send / Receive) ────────────────────────────────────────────
 
 function PlayerRows({ title, players, onChange, onAdd, onRemove }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const safeActiveIndex = Math.min(activeIndex, Math.max(players.length - 1, 0));
+  const activePlayer = players[safeActiveIndex];
+
+  function handleAddPlayer() {
+    onAdd();
+    setActiveIndex(players.length);
+  }
+
+  function handleRemovePlayer(index) {
+    onRemove(index);
+    setActiveIndex((current) => {
+      if (current > index) return current - 1;
+      if (current === index) return Math.max(0, index - 1);
+      return current;
+    });
+  }
+
   return (
     <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={onAdd}
-        >
-          Add
-        </Button>
       </div>
 
-      <div className="space-y-3">
-        {players.map((player, index) => (
-          <TradeAnalyzerPlayerRow
-            key={`${title}-${index}`}
-            sectionTitle={title}
-            index={index}
-            player={player}
-            totalCount={players.length}
-            onChange={onChange}
-            onRemove={onRemove}
-          />
-        ))}
+      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+        <fieldset className="min-w-0 space-y-1.5">
+          <legend className="text-xs font-semibold text-[var(--color-text-secondary)]">
+            Position
+            <span className="sr-only">
+              {' '}for {activePlayer?.name || `${title} player ${safeActiveIndex + 1}`}
+            </span>
+          </legend>
+          <div className="grid grid-cols-4 gap-2">
+            {TRADE_POSITIONS.map((pos) => {
+              const selected = activePlayer?.position === pos;
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  aria-pressed={selected}
+                  className={`min-h-[44px] min-w-0 rounded-md border px-2 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
+                    selected
+                      ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
+                      : 'hover:border-[var(--color-accent)]'
+                  }`}
+                  style={selected ? {
+                    background: 'var(--color-accent)',
+                    borderColor: 'var(--color-accent)',
+                    color: 'var(--color-text-on-accent)',
+                  } : positionChipStyle(pos)}
+                  onClick={() => onChange(safeActiveIndex, { position: pos })}
+                >
+                  {pos}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Players</p>
+          <Button
+            variant="secondary"
+            size="lg"
+            leadingIcon={<span aria-hidden="true" className="text-lg leading-none">+</span>}
+            onClick={handleAddPlayer}
+          >
+            Add player
+          </Button>
+        </div>
+
+        <div className="mt-2 space-y-2">
+          {players.map((player, index) => (
+            <TradeAnalyzerPlayerRow
+              key={`${title}-${index}`}
+              sectionTitle={title}
+              index={index}
+              player={player}
+              totalCount={players.length}
+              active={index === safeActiveIndex}
+              onActivate={setActiveIndex}
+              onChange={onChange}
+              onRemove={handleRemovePlayer}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
