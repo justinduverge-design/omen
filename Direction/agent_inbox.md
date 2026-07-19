@@ -11,14 +11,13 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**M0a + M0b approved (Justin, 2026-07-19).** `omen-mobile-onboarding-connection-contract-v1.md` and `omen-native-design-system-registry-v1.md` are approved contracts. Evidence: `Direction/reviews/2026-07-19-m0a-*`, and the registry itself.
+**M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
 
-**Current next task:** M0b — mobile design-system inventory and rules. Read `omen-native-agent-capabilities-canvas-v1.md`, `omen-native-design-house-v1.md`, and `native-mobile-design-delivery-workflow-v1.md`, then produce a reviewable token/component/screen registry. The [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) is the approved visual canvas; Markdown remains the behavioral/source-of-truth companion. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP; per-component build briefs begin in M1. Planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, change Figma permissions, or claim ESPN is mobile-ready.
-**Current next task:** M0c — native app-shell/auth/API contract. Owns the concrete auth spec deferred from M0a: native ID-token (Apple/Google) vs system-browser+PKCE (Yahoo) vs email-OTP; Yahoo deep-link return (not built — callback returns to web today); provider state-machine→backend mapping; connect/validate idempotency; secure token storage; navigation/session/demo/environment boundaries. **Recommend pinning F2** (`ready` vs `pending_live_engine`) alongside it. Planning/contract only; no native projects, web pages, deploy, secrets, or Figma-permission changes.
+**Current next task:** M1 — native design-system implementation plan. Write small SwiftUI + Compose foundation-component build briefs from the approved `omen-native-design-system-registry-v1.md`. **First two per registry §7:** add the semantic `focus-ring` token (non-color: visible outline + native focus/selection, never brass-alone) and lock the Alegreya stack. Planning/briefs only; no native project scaffolding yet (that is M2).
 
-**Then M1** — native design-system implementation plan: small SwiftUI/Compose foundation-component build briefs from the approved registry. First per registry §7: add semantic `focus-ring` (non-color) and lock the Alegreya stack. Blocked by M0c for the app-shell pieces but foundation-component briefs can begin from the registry.
+**In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M0b — Native design-system registry** on branch `docs/m0b-native-design-system-registry` (approved). M0a merged via PR #148.
+Last completed pull: **M0c — App-shell/auth/API contract** (approved). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
 
 ## Open PR gates
 
@@ -40,7 +39,7 @@ Last completed pull: **M0b — Native design-system registry** on branch `docs/m
 
 ## Auto-Populated Top 5
 
-**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the pinned M0b task above or an explicitly pinned M0a/M0c mobile-contract brief instead.
+**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the current next task (M1) above, or an explicitly pinned M-lane brief instead.
 
 Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
 

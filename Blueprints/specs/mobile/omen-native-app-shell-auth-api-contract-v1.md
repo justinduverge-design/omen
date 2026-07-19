@@ -1,0 +1,170 @@
+# Omen Native App-Shell / Auth / API Contract v1 (M0c)
+
+**Status:** **Approved M0c contract** (Justin, 2026-07-19)
+**Date:** 2026-07-19
+**Owner:** Native mobile foundation
+**Purpose:** Define the native app shell (navigation + environments), the auth/session contract, deep links, the safe provider-state API, idempotency, and demo mode — the concrete engineering contract deferred from the approved M0a onboarding contract.
+**Applies to:** SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
+**Companions:** `omen-mobile-onboarding-connection-contract-v1.md` (**Approved**), `omen-native-design-system-registry-v1.md` (**Approved**), `omen-native-mobile-foundation-v1.md` (v1), `omen-native-agent-capabilities-canvas-v1.md` (v1).
+**Grounded in backend truth:** `Blueprints/api-routes.md` (platform/connect/dashboard/omen routes), `Direction/context.md` Current Build Truth, `Direction/facts-of-record.md`.
+
+> **Figma reality:** the Design House (`mWjrAKPi4JSIP5lAmGAtB3`) is a stub (`00 — Start Here`). This Markdown is the behavioral source of truth.
+
+---
+
+## 0. Altitude & boundary
+
+M0c is a **contract**. It defines what must be true of navigation, auth, deep links, provider state, and environments. It **does not** write native code (that is M1/M2) and **does not** modify backend auth/routes/schema — where a backend change is required, it is stated as a **requirement** and routed to the backend lane via `Blueprints/handoffs/frontend-to-backend.md` (§11). No secrets, schema, deploy, or provider mechanics are changed by this document.
+
+## 1. App shell
+
+### 1.1 Project shape (from foundation §9)
+
+```
+mobile/
+  contracts/                 # this + companion contracts
+  ios/OmenIOS/   App/ · DesignSystem/ · Features/ · Core/{network,auth,models,session}
+  android/       app/ · core:{network,auth,models,session,designsystem} · feature:*
+```
+Shared: contracts + API models. Not shared: UI. No feature module defines shadow tokens or duplicate primitives.
+
+### 1.2 Navigation (native expression of the M0b/foundation map)
+
+Top-level destinations (limited): **Command Center · Omen · Trade · Draft · League/Account (consolidated)**. Everything else (provider connect, player detail, confirmation, filtering, recovery, onboarding) is a nested stack push or a sheet — never a permanent top-level tab.
+
+| Platform | Container | Focused tasks | Back/resume |
+|---|---|---|---|
+| iOS | Tab bar for top-level + `NavigationStack` per tab; `.sheet` / `.fullScreenCover` for focused tasks | onboarding, connect, recovery, confirm | native swipe-back; state preserved or safely canceled |
+| Android | Bottom navigation + Compose Navigation per destination; bottom sheets / dialogs for focused tasks | same | platform back + state restoration |
+
+### 1.3 Route / destination table
+
+| Route key | Screen (M0b map) | Auth required | Notes |
+|---|---|---|---|
+| `welcome` | Welcome | no | demo + get-started entry |
+| `demo` | Demo Mode | no | reviewer path; no credentials |
+| `auth` | Omen account | no (is the gate) | native ID-token / OTP (§2) |
+| `onboarding.next` | Choose next step | yes | connect vs explore |
+| `connect.choose` | Choose provider | yes | Sleeper/Yahoo/ESPN status |
+| `connect.<provider>` | Connect / recover | yes | state machine (§4) |
+| `command` | Command Center | yes | first useful destination |
+| `omen` | Omen | yes | calls `POST /api/omen/mvp-move` |
+| `trade` | Trade Room | no (public) | Trade Analyzer is free/public |
+| `draft` | Draft Room | yes | |
+| `league` | League/Standings | yes | |
+| `account` | Account/Connections | yes | includes in-app account deletion |
+
+## 2. Auth & session contract
+
+### 2.1 Three mechanisms (from the approved M0a sign-in audit)
+
+| Mechanism | Providers | Flow | Deep link? |
+|---|---|---|---|
+| Native ID-token | Apple, Google | Native sheet → provider ID token → Supabase `signInWithIdToken` | No |
+| System-browser OAuth + PKCE | Yahoo | `ASWebAuthenticationSession` (iOS) / Chrome Custom Tabs (Android) + PKCE per RFC 8252 → deep-link return | Yes |
+| Email OTP | Email | 6-digit code entry (not magic link) | No |
+
+- **iOS:** Sign in with Apple is required whenever any third-party login is offered (App Store 4.8).
+- **Android:** Credential Manager (Sign in with Google); legacy Google Sign-In SDK banned.
+- No embedded WebView for any OAuth. No manual browser copy/paste.
+
+### 2.2 Session
+
+- Session/auth tokens stored only in **iOS Keychain** / **Android Keystore-backed** storage — never plain files, logs, or unencrypted preferences.
+- **Session restore runs independently from provider sync**: the app renders locally and restores the Omen session before any league work begins. A provider-sync failure must never block sign-in/session restore.
+- Supabase session refresh handled by the client SDK; refresh failures surface as a `needs_reauth` state, not a crash or infinite spinner.
+
+### 2.3 Account lifecycle
+
+- **In-app account deletion** (App Store 5.1.1) tied to the existing authenticated flow and confirmation phrase `DELETE MY OMEN DATA`. Copy/phrase changes require fresh approval (guardrail).
+
+## 3. Deep-link contract
+
+- **Custom URL scheme:** `com.slopssaloon.omen://` (reverse-DNS — approved 2026-07-19; collision-resistant and not user-facing). Add verified iOS Universal Links / Android App Links (https) later. A custom scheme is the appropriate first auth-callback pattern and is supported by both Apple and Supabase. [Apple: custom URL scheme](https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app) · [Supabase native deep linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking)
+- **Registered return paths:** `com.slopssaloon.omen://auth/callback` (Yahoo OAuth return), `com.slopssaloon.omen://auth/verify` (email confirm if used). Registered as Supabase redirect URLs and in the native app manifests/entitlements.
+- **Backend change required:** `GET /api/yahoo/callback` currently redirects to the **web** Account page. For native, the callback must return to `com.slopssaloon.omen://auth/callback` (or a mobile-aware return that hands control back to the app). This is a backend requirement (§11), not yet implemented.
+- **Robustness (from M0a §6/§7):** app backgrounding/termination during return must recover; a killed app relaunched via deep link resumes the correct connection stage; double-invocation is idempotent (§5).
+
+## 4. Safe provider-state API
+
+### 4.1 Existing backend routes (source: `api-routes.md`)
+
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/api/platforms` | account/connection status |
+| `POST` | `/api/platforms/sleeper/resolve` | username-first league discovery |
+| `POST` | `/api/platforms/sleeper/connect` | connect selected `league_id` |
+| `GET` | `/api/yahoo/auth` → `/api/yahoo/callback` | Yahoo OAuth start/return |
+| `POST` | `/api/platforms/espn/connect` | cookie-backed ESPN connect (web) |
+| `DELETE` | `/api/platforms/:platform` | disconnect yahoo/sleeper/espn |
+| `GET` | `/api/dashboard/summary` | app-shell gates, platforms, `off_season` |
+| `POST` | `/api/omen/mvp-move` | canonical Omen; live UI sends `{}` after dashboard `ready` |
+
+### 4.2 State mapping (M0a §6 user-facing → backend)
+
+The M0a state machine (`not_started → authorizing → awaiting_return → resolving_account → choosing_league → validating_connection → syncing_initial_context → connected`, plus `canceled / retryable_error / needs_reauth / unsupported_on_mobile`) is the **client** contract. Today the backend exposes coarse status via `/api/platforms` and gates via `/api/dashboard/summary`; it does **not** emit the granular machine.
+
+**Backend requirement:** a safe, machine-readable provider-state response that maps to these states with **opaque error codes only** (no raw provider text, no cookie/token values). The native client derives its state screens from that response; it must not infer state from HTTP errors alone. Until this exists, native connect uses the current coarse status and treats missing granularity as `validating_connection` / `retryable_error` conservatively.
+
+### 4.3 Dashboard status truth (F2 dependency)
+
+The `connected → Omen ready` transition uses the single dashboard status truth being resolved in Verify item **F2** (`ready` vs `pending_live_engine`). Native must adopt whichever one truth F2 settles — do not hardcode a second meaning. **Recommend pinning F2 with M0c.**
+
+### 4.4 ESPN
+
+ESPN stays feasibility-gated (M0a §5, item 7). No direct cookie-entry UI in a store build until a separately approved, safe mobile method exists. ESPN must not block first-run success for demo/Sleeper/Yahoo users.
+
+## 5. Idempotency & request IDs
+
+- Native connect/validate operations send a client-generated **request ID** and must be **idempotent**: double-taps, retries, and app resumes do not create duplicate connections.
+- The B2 envelope work already carries `request_id`; **backend verification required** that the existing connect/validate endpoints are idempotent, and implementation if they are not. Stated as a requirement (§11), not assumed.
+- Every network call has a **bounded timeout** that becomes a visible `retryable_error`, never a permanent spinner.
+
+## 6. Demo mode contract
+
+- Demo Mode is reachable **before any sign-in** and works with **no auth and no connected league** — it is the App Store / Google Play reviewer path.
+- Demo data is served from safe fixtures, **visibly labeled mock**, and never mixed with live data (facts-of-record #7, `demo-mode-pre-empty-state`).
+- Demo state is isolated from real user/session data.
+
+## 7. Environment boundaries
+
+- Separate **development / staging / production** configurations with distinct API base URLs, injected at build/config time — never hardcoded secrets in the client.
+- Production base is the KVM1 deployment; staging/dev are separate and protected (capability canvas §7). The client ships no service keys, OAuth client secrets, or provider credentials — only public config (API base URL, Supabase anon key, OAuth client IDs).
+- Build variants keep store-safe config separate from dev tooling; reviewer/demo mode available in the store build.
+
+## 8. Security & privacy (native)
+
+- No secret, OAuth token, ESPN cookie, or provider value ever enters client view state, logs, crash reports, screenshots, analytics, or share payloads (facts-of-record #6).
+- Errors surfaced to the client are opaque, safe codes; raw provider errors stay server-side.
+- Telemetry (M0a §7) records only safe operational categories (durations, outcome, provider/state/error-code category, app version) — never league names, roster data, or identifiers.
+
+## 9. Definition of done (M0c)
+
+Approved when: navigation/route table, the three-mechanism auth + session-storage contract, the deep-link contract (incl. the Yahoo-callback backend requirement), the safe provider-state API mapping (incl. F2 dependency), idempotency/request-ID rule, demo-mode contract, and environment boundaries are approved. No native code is written under M0c.
+
+## 10. What M0c does NOT cover
+
+- Native code / project scaffolding → M2 (app shells) and M1 (design-system foundation).
+- Per-screen implementation → M3 (vertical slice) / M4 (features).
+- The actual backend implementation of §11 requirements → backend lane.
+
+## 11. Backend requirements surfaced (→ `frontend-to-backend.md`)
+
+1. **Mobile-aware Yahoo OAuth return** to the registered `omen://auth/callback` deep link (today returns to web Account).
+2. **Safe provider-state response** mapping to the M0a state machine with opaque error codes (no raw provider text / no cookie values).
+3. **Idempotency verification** (and implementation if needed) of connect/validate, keyed by client request ID.
+4. **F2 resolution** — one status truth for `ready` vs `pending_live_engine` for connected Sleeper/ESPN users.
+
+**Delivery shape (Justin, 2026-07-19):** one owner, **one shared API/state contract**, and **one acceptance-test matrix** across all four — but delivered as **four small PRs**, not one large risky PR. The shared contract and test matrix are authored once before the first PR; each PR lands one requirement against them.
+
+## 12. Decisions — RESOLVED (Justin, 2026-07-19)
+
+1. **URL scheme:** ✅ **`com.slopssaloon.omen://`** (reverse-DNS custom scheme; collision-resistant, not user-facing). Verified https Universal/App Links added later. Callback: `com.slopssaloon.omen://auth/callback` (§3).
+2. **Pin F2:** ✅ yes — pinned alongside M0c; a screen cannot honestly show "connected/ready/syncing" while the backend definition is ambiguous. Must resolve before M3.
+3. **Backend requirements §11:** ✅ routed to the backend lane as **one owner + one shared API/state contract + one acceptance-test matrix, delivered as four small PRs** (not one giant PR).
+
+## 13. Evidence
+
+- Grounded in approved M0a (state machine, three-mechanism sign-in, secure storage, deletion), approved M0b (navigation map, tokens), and live `api-routes.md`.
+- No conflicting prior iOS/deep-link contract found (ADR-008 is a web hash-route note; no `ios-espn-relay` spec exists at the referenced path — flag if E3 still expects one).
+- No app code, deploy, secret, schema, Figma permission, or provider behavior touched.
