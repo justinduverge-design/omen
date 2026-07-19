@@ -11,13 +11,14 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**M0a is approved (Justin, 2026-07-19).** `omen-mobile-onboarding-connection-contract-v1.md` is now an approved contract. M0b and M0c are **unblocked**. Evidence: `Direction/reviews/2026-07-19-m0a-onboarding-connection-contract-review.md` and `2026-07-19-m0a-signin-flow-audit.md`.
+**M0a + M0b approved (Justin, 2026-07-19).** `omen-mobile-onboarding-connection-contract-v1.md` and `omen-native-design-system-registry-v1.md` are approved contracts. Evidence: `Direction/reviews/2026-07-19-m0a-*`, and the registry itself.
 
 **Current next task:** M0b — mobile design-system inventory and rules. Read `omen-native-agent-capabilities-canvas-v1.md`, `omen-native-design-house-v1.md`, and `native-mobile-design-delivery-workflow-v1.md`, then produce a reviewable token/component/screen registry. The [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) is the approved visual canvas; Markdown remains the behavioral/source-of-truth companion. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP; per-component build briefs begin in M1. Planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, change Figma permissions, or claim ESPN is mobile-ready.
+**Current next task:** M0c — native app-shell/auth/API contract. Owns the concrete auth spec deferred from M0a: native ID-token (Apple/Google) vs system-browser+PKCE (Yahoo) vs email-OTP; Yahoo deep-link return (not built — callback returns to web today); provider state-machine→backend mapping; connect/validate idempotency; secure token storage; navigation/session/demo/environment boundaries. **Recommend pinning F2** (`ready` vs `pending_live_engine`) alongside it. Planning/contract only; no native projects, web pages, deploy, secrets, or Figma-permission changes.
 
-**In parallel:** M0c — native app-shell/auth/API contract — is also unblocked and owns the concrete auth spec deferred from M0a (native ID-token vs system-browser+PKCE vs email-OTP; Yahoo deep-link return; provider state→backend mapping; connect/validate idempotency; secure token storage). Consider pinning F2 (`ready` vs `pending_live_engine`) alongside M0c.
+**Then M1** — native design-system implementation plan: small SwiftUI/Compose foundation-component build briefs from the approved registry. First per registry §7: add semantic `focus-ring` (non-color) and lock the Alegreya stack. Blocked by M0c for the app-shell pieces but foundation-component briefs can begin from the registry.
 
-Last completed pull: **M0a — Onboarding and connection contract review** on branch `docs/m0a-onboarding-connection-review` (approved; not yet pushed/merged).
+Last completed pull: **M0b — Native design-system registry** on branch `docs/m0b-native-design-system-registry` (approved). M0a merged via PR #148.
 
 ## Open PR gates
 

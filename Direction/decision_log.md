@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (M0b — Native Design-System Registry Approved)
+
+- **M0b is approved.** `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md` is the approved native token/component registry. M1 (component build briefs) builds from it. Native tokens **mirror the existing web `--color-*` contract** so web/SwiftUI/Compose stay one system.
+- **Token values verified against live `frontend/src/index.css`**, which caught four stale light-mode values in `omen-ux-ui-design-system-v1.md` (accent `#7A5C1E` not `#92740F`; text-on-accent `#FAFAF9`; omen `#1A5C3E`; risk-high light `#7E1717`). The registry uses the live CSS values; the older doc's light block is stale.
+- **`focus-ring` is a required semantic token with a non-color rule.** Focus/selection must use a visible outline + native focus/selection behavior, never the brass color alone (low-vision requirement, Justin). To be added in M1.
+- **Font stack locked: Alegreya Sans (UI/headings/controls) / Alegreya (reading) / DM Mono (numeric).** Hierarchy preserved through accessibility fallback. Cinzel/Inter (named in `component-lock-v1.md` §5) are not revived.
+- **No team-color tokens in the phone MVP.** Semantic color meaning is fixed: brass = attention, verdigris = ready/healthy, crimson = risk/recovery. Team skins are a future customization layer, never a foundation, and may not repurpose these roles or the data-semantic invariant layer.
+- **Altitude confirmed:** M0b = inventory + token map + platform rules (what components exist, their states, iOS/Android differences); M1 = the small SwiftUI/Compose build briefs.
+
 ## Decisions Added 2026-07-19 (M0a — Onboarding & Connection Contract Approved)
 
 - **M0a is approved.** `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` is now an approved M0 contract. M0b (design-system contract) and M0c (app-shell/auth/API contract) are unblocked. Evidence: `Direction/reviews/2026-07-19-m0a-onboarding-connection-contract-review.md` and `Direction/reviews/2026-07-19-m0a-signin-flow-audit.md`.
