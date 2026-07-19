@@ -172,7 +172,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
             style={tierStyle ?? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
           >
             {rec.rank}
@@ -206,7 +206,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <ol className="space-y-2">
           {rec.reasoning.map((line, i) => (
             <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: 'var(--color-text-primary)' }}>
-              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
                 {i + 1}
               </span>
               {line}
