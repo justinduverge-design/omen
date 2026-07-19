@@ -1,7 +1,7 @@
 # Primitive Migration Plan — Frontend Pages
 
 **valid-as-of:** 2026-07-19
-**Status:** active plan — execution not yet started
+**Status:** active plan — all §2 primitives built and merged to `main`; page migration not yet started
 **Scope:** migrate all live frontend pages onto the canonical `frontend/src/components/ui/` primitive library. Follows the merged Trade Analyzer (PR #139) and Draft Assistant (branch `frontend/c1-draft-assistant-primitive-migration`) precedents.
 **Authority:** this file is the reference for the multi-PR migration. One page per PR, most-work → least-work. `Direction/current_sprint.md` items C1–C5 point here.
 
@@ -43,7 +43,7 @@ Ranked by *remaining migration work*, not file size. `ConnectLeague.jsx` is a 65
 
 ## 2. Primitives to build
 
-`Table` and `Stepper` are already built (branch `frontend/table-stepper-primitives`) — they clear Standings (#5) and Onboarding (#6).
+**STATUS: complete.** All five below are built, verified, and merged to `main` (2026-07-19). `Table` and `Stepper` clear Standings (#5) and Onboarding (#6); `Modal` unblocks Account (#2); `Meter` + the `PageHero` size prop unblock OmenOfTheWeek (#1). Every page migration can now branch straight off `main`. The sub-sections below are retained as the design record.
 
 ### A. `Modal` — REQUIRED, blocks Account (#2)
 `Account.jsx:17-164` hand-builds a delete-confirmation dialog: fixed backdrop, `role="dialog"`/`aria-modal`, focus trap (via `lib/useFocusTrap.js`), ESC-to-close, body-scroll-lock, responsive `items-end`→`sm:items-center`. This is production a11y logic to **promote, not rewrite** — Account is the reference implementation. Build `Modal` (compound `Modal.Body`/`Modal.Footer` following Card's shape; header rendered from `title`/`eyebrow`/`onClose` props with the standardized close button), then Account consumes it. First primitive to build.
