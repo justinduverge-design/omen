@@ -5,6 +5,12 @@
 **Scope:** Native iPhone and Android product foundations, shared design/system contracts, screen parity, and delivery sequence.  
 **Out of scope:** Web-page migrations, production deployment, Apple/Google account setup, provider credential changes, or recreating the backend.
 
+## Native authority companions
+
+- `Blueprints/specs/mobile/omen-native-design-house-v1.md` — shared Omen visual language plus Apple-native iPhone and Google/Material-native Android expression.
+- `Blueprints/specs/mobile/omen-native-delivery-governance-v1.md` — required contract, review, security, accessibility, and evidence gates for native work.
+- `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` — first-run, account, provider-connection, and reliability authority.
+
 ## 1. Decision
 
 Omen is now planned as two real native applications:
