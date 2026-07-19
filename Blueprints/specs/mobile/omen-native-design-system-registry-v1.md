@@ -1,6 +1,6 @@
 # Omen Native Design-System Registry v1 (M0b)
 
-**Status:** Proposed M0b contract — founder review required
+**Status:** **Approved M0b contract** (Justin, 2026-07-19)
 **Date:** 2026-07-19
 **Owner:** Native mobile foundation
 **Purpose:** The single reviewable registry of tokens, components, accessibility rules, theme packs, and platform-specific implementation rules for the native iPhone (SwiftUI) and Android (Kotlin/Compose) apps.
@@ -62,7 +62,9 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 | `umber` | brown-metal depth | `#5A3A25` | `#5A3A25` |
 | `focus-ring` | focus indicator (accent @ 40%) | derived from `accent` | derived from `accent` |
 
-*(`--color-focus-ring` is referenced by the web component lock but absent from `index.css` tokens (Jules Button note). The registry names it as a required token; M1 must add it with an AA-visible value in both themes.)*
+*(`--color-focus-ring` is referenced by the web component lock but absent from `index.css` tokens (Jules Button note). The registry names it as a **semantic** token — `focus-ring`, not "gold outline" — so each platform expresses focus appropriately. M1 must add it with an AA-visible value in both themes. **Non-color requirement (Justin, 2026-07-19):** focus/selection must be conveyed by a **visible outline plus platform-native focus/selection behavior**, never by the brass color alone — so it works for low-vision users. See §4.)*
+
+**Semantic color meaning (stable across MVP, Justin 2026-07-19):** brass (`accent`) = attention/CTA; verdigris (`omen`) = ready / healthy / active signal; crimson (`risk-high`) = risk / recovery. These meanings stay fixed; team skins are a **future customization layer, not a foundation**, and may never repurpose these three roles.
 
 ### 2.3 Data-semantic invariant tokens (never theme-overridden)
 
@@ -94,7 +96,7 @@ Live font stack (source of truth `index.css`): **Alegreya Sans** (headings, UI, 
 | `chip` | DM Mono | 11/14 | 500 (+0.10em, upper) | Chip/badge text |
 | `numeric` | DM Mono | contextual | 500 | Scores, cell values |
 
-All type roles must scale with Dynamic Type (iOS) / font scale (Android); no fixed-pt text that ignores the accessibility scale.
+**Role split (locked, Justin 2026-07-19):** Alegreya Sans = UI, headings, controls; Alegreya = longer reading copy; DM Mono = scores, numeric data, code-like values. On native, **preserve this hierarchy even when platform font-fallback is needed for accessibility** (e.g., Dynamic Type / large-text substitution) — the role relationship must survive substitution. All type roles must scale with Dynamic Type (iOS) / font scale (Android); no fixed-pt text that ignores the accessibility scale. Cinzel/Inter must not be revived.
 
 ### 2.5 Spacing scale
 
@@ -168,6 +170,7 @@ New composition patterns must be proposed on Figma `03 — Components` before ap
 
 - **Contrast:** text and essential UI meet WCAG **AA**. Color is expressive, never the sole carrier — risk/status/data always carry a text label or icon too.
 - **Touch targets:** minimum **44pt** (iOS) / **48dp** (Android). Button `lg` = 44px is the hero/primary size on mobile.
+- **Focus & selection (non-color):** every focusable/selectable element shows a **visible outline plus native focus/selection behavior** (iOS focus engine / accessibility focus, Android focus + state layers). Focus must never be signaled by the brass `focus-ring` color alone — it must remain perceivable for low-vision and high-contrast users. Selected state carries a shape/weight/checkmark change in addition to color.
 - **Dynamic Type / font scale:** all type roles scale; layouts reflow, no clipped text.
 - **VoiceOver / TalkBack:** every interactive element has a label and correct role; logical focus order; state (selected/disabled/loading) is announced.
 - **Reduce motion:** honor Reduce Motion / animator-duration-scale; spinners and transitions have static equivalents.
@@ -204,12 +207,12 @@ Top-level: Command Center, Omen, Trade, Draft, League/Account (consolidated). Pr
 
 ---
 
-## 7. Open reconciliations / decisions requested
+## 7. Reconciliations — RESOLVED (Justin, 2026-07-19)
 
-1. **`focus-ring` token:** absent from live `index.css`. Approve adding `focus-ring` (accent @ ~40%, AA-visible) in both themes as an M1 first task.
-2. **Font-name discrepancy:** `component-lock-v1.md` §5 names Cinzel/Inter but the live app and this registry use Alegreya Sans / Alegreya / DM Mono. Confirm the **Alegreya stack** as canonical for native so M1 doesn't re-litigate. *(Recommended: yes — matches shipped code.)*
-3. **Team tokens:** `--color-team-*` exist in web CSS but are static brass since team theming was removed (PR #114). Confirm native **omits team tokens** in MVP (team skins are future). *(Recommended: yes.)*
-4. **Registry scope:** confirm M0b = inventory + token map + rules, and per-component build briefs are M1. *(Recommended: yes.)*
+1. **`focus-ring` token:** ✅ approved. Add as a **semantic** token in M1 with a **non-color requirement** — visible outline + native focus/selection behavior, never brass-alone (see §2.2 note, §4 Focus & selection).
+2. **Font stack:** ✅ locked to **Alegreya Sans (UI/headings/controls) / Alegreya (reading) / DM Mono (numeric)**; hierarchy preserved through accessibility fallback; Cinzel/Inter must not be revived (§2.4).
+3. **Team tokens:** ✅ **omitted** from the phone MVP. Semantic colors stay stable — brass = attention, verdigris = ready/healthy, crimson = risk/recovery. Team skins are a future customization layer (§2.2 semantic-meaning note, §5).
+4. **Registry scope:** ✅ M0b answers *what components exist, what states they have, and how iOS/Android differ*; M1 creates the small SwiftUI/Compose build briefs.
 
 ## 8. What M0b does NOT cover
 
