@@ -19,6 +19,7 @@ If you skip a gate, write why. If the same gate gets skipped 3+ times across dif
 
 | Date | Item | Done docs applied | Gates skipped + why | Skill/prompt to revisit |
 |---|---|---|---|---|
+| 2026-07-19 | B1 Unified Omen recommendation contract + F3 skill-receipt pilot | feature, recommendation, security evidence | Page/Design/mobile gates N/A: no UI changed. Recommendation Done applied as contract review, not new recommendation output; current live output remains `start_sit`. Full root audit fails on pre-existing dev `promptfoo`/`adm-zip` chain; production audit is clean and no package edit was approved. RED was not rerun before the one-line platform-status metadata fix; new assertion now pins the contract. Evidence: `Blueprints/handoffs/2026-07-19-b1-unified-omen-recommendation-contract.md`, focused 55/55, full 391/391, production audit 0, `git diff --check` clean. | `slops-tdd` discipline for tiny metadata fixes; consider a package-maintenance item for the promptfoo dev audit chain. |
 | 2026-06-15 | Phase 1.3 — page-system spec | feature, design | n/a — spec authoring, not feature ship | — |
 | 2026-06-15 | RESOURCES_INDEX + facts-of-record at L0/L1/L2 + L1 strategy promotion | feature (doctrine) | content-marketing-done deferred to live posts | — |
 | 2026-06-15 | Phase 1.4 — font system propagation fix | page, design | repo-local run-slops driver gate skipped: driver expects stale Trade Analyzer CTA text (`Run Your Trade`); replaced with targeted browser QA for 1.4 scope | run-slops-saloon driver |

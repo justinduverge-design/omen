@@ -6,7 +6,7 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 
 ## Invocation Procedure
 
-1. Read the skill's status in `../../../../Blueprints/skills/SKILL_ROUTING.md`.
+1. Read the skill's status in `../../../../Blueprints/skills/SKILL_ROUTING.md` resolved relative to this playbook file (`<SLOPS-root>/Blueprints/skills/SKILL_ROUTING.md`).
 2. If `retired`, do not use it. If `parked`, stop unless its named gate is satisfied or Justin explicitly overrides it.
 3. Match the task to the trigger below and read the canonical `SKILL.md` before acting.
 4. Put selected skills and expected evidence in the plan-approval response.

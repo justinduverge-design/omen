@@ -55,6 +55,47 @@ Purpose:
 
 Return the single highest-value fantasy football action for the user's selected platform, league, team, and week.
 
+## Unified Recommendation Contract - 2026-07-19
+
+`POST /api/omen/mvp-move` is the only canonical Omen recommendation route.
+
+`POST /api/optimizer/mvp-move` is not a competing product tier. It is a retired compatibility route that returns `410 legacy_route_retired` with `canonical_endpoint: "/api/omen/mvp-move"`.
+
+Live Omen is free and auth-gated. There is no Pro, subscription, billing, Stripe, or optimizer-enrichment tier in Omen.
+
+Dashboard-first calling remains the frontend contract:
+
+1. `GET /api/dashboard/summary`
+2. Read `tools.omen_of_the_week`
+3. Call `POST /api/omen/mvp-move` with `{}` only when status is `ready`
+
+Current dashboard statuses:
+
+- `ready` - authenticated user has a usable Yahoo, Sleeper, or ESPN league context; the Omen route may be called.
+- `needs_platform` - no usable active fantasy platform connection exists.
+- `pending_live_engine` - a platform row exists, but required league/user/credential context is incomplete.
+- `off_season` - otherwise-ready user is outside the regular-season recommendation window.
+
+Live request policy:
+
+- Normal live UI request body is `{}`. The backend infers platform, league, team, season, week, and scoring context from the authenticated user's stored connection and NFL calendar.
+- Explicit mock/preview requests are allowed only with `use_mock_data: true` or `mock_state`, and must stay visibly labeled as mock/preview wherever rendered.
+- Live mode must never silently fall back to mock data.
+- No-data live results use `state: "empty"` with `recommendation: null`, not fabricated advice.
+- Off-season should be handled before the POST call by the dashboard `off_season` status. A future direct POST `off_season` envelope may be added in B2 as a defensive route-level guard, but the frontend should not need it to avoid off-season advice.
+
+Current live decision scope:
+
+- `start_sit` is the only implemented live recommendation type.
+- Waiver, trade, schedule, weather, travel, TV, and matchup signals may appear as live/stub/unavailable evidence, but they do not create separate top-level recommendations in v1.
+- B2 may improve the internal recommendation layer, but it must preserve the single route and the honest signal labels.
+
+Recovery analytics timing:
+
+- Do not add recovery analytics in B2.
+- First finish the unified route implementation and `DecisionBrief`/`OmenOfTheWeek` migration.
+- Add analytics only after the migrated UI has stable recovery-state names and a real-account QA pass, so event names match the final user states and do not capture provider credential material.
+
 Decision types:
 
 - `start_sit`
@@ -63,6 +104,14 @@ Decision types:
 - `matchup_note`
 
 ## Request Shape
+
+Live UI request:
+
+```json
+{}
+```
+
+Mock/dev preview request:
 
 ```json
 {
@@ -86,13 +135,14 @@ Decision types:
 
 Fields:
 
-- `platform`: `yahoo`, `sleeper`, or `espn`.
-- `league_id`: platform league id or league key.
-- `team_id`: platform team id when required. Backend may infer it when only one team is available.
-- `season`: NFL season year.
-- `week`: NFL week.
-- `scoring_format`: `ppr`, `half_ppr`, or `standard`.
-- `decision_scope`: optional decision types to consider.
+- Live UI callers should not send platform, league, team, season, week, or scoring fields.
+- `platform`: `yahoo`, `sleeper`, or `espn`; mock/dev preview only unless a future backend handoff says otherwise.
+- `league_id`: platform league id or league key; mock/dev preview only.
+- `team_id`: platform team id; mock/dev preview only.
+- `season`: NFL season year; mock/dev preview only.
+- `week`: NFL week; mock/dev preview only.
+- `scoring_format`: `ppr`, `half_ppr`, or `standard`; mock/dev preview only.
+- `decision_scope`: optional decision types to consider; currently advisory only.
 - `include_signals`: optional signal toggles.
 - `use_mock_data`: allowed for local/dev UI integration only.
 

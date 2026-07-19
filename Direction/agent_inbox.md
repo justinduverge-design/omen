@@ -1,13 +1,13 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-18  
+**Refreshed:** 2026-07-19
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
 
 No pinned implementation task.
 
-The current docs-only task is **sprint grooming + skill routing** on branch `docs/sprint-grooming-skill-routing`. It must not mutate app code, packages, SQL, deploy configuration, secrets, or production infrastructure.
+Last completed pull: **B1 - Unified Omen recommendation contract** on branch `codex/b1-unified-omen-recommendation-contract`, paired with **F3 - First company-baseline skill-receipt pilot**.
 
 ## Open PR gates
 
@@ -27,26 +27,27 @@ The current docs-only task is **sprint grooming + skill routing** on branch `doc
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-design-system-pack`, `slops-ui-ux-audit`
 - **Next action:** produce approve/revise/close recommendation and reconciliation table.
 
-## Recommended next pulls
+## Auto-Populated Top 5
+
+Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
 
 These are recommendations, not hard ownership assignments. Any capable agent may execute them after reading the named skill procedures.
 
-### 1. B1 — Unified Omen recommendation contract
-
-- **Why first:** prevents duplicate recommendation systems and stops UI work from migrating onto a contract that is about to change.
-- **Priority / cost / blocker:** P0 / medium / none
-- **Recommended execution surface:** Claude for synthesis or Codex for code-grounded contract tracing
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `product-gap-analysis-session`, `workflow-tree-spec`, `slops-ai-integration-review`, `security-privacy-evidence`, `slops-context-markdown`
-- **Pair with:** F3 company-baseline skill-receipt pilot
-- **Output:** one API/state contract, mock/off-season fallback decision, recovery-analytics timing decision.
-
-### 2. B3 — DecisionBrief component
+### 1. B3 — DecisionBrief component
 
 - **Why next:** the core recommendation surface is still missing while its supporting primitives now exist.
-- **Priority / cost / blocker:** P0 / medium / B1 contract shape
+- **Priority / cost / blocker:** P0 / medium / none; B1 contract complete.
 - **Recommended execution surface:** Jules for a strictly component-only Phase A PR
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
 - **Output:** canonical composition, variants, accessibility evidence, no page migration.
+
+### 2. B2 — Implement unified Omen recommendation layer
+
+- **Why next:** contract is now stable; backend can cleanly preserve the single route and honest fallback states before `/omen` migrates.
+- **Priority / cost / blocker:** P1 / large / none
+- **Recommended execution surface:** Codex
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** one internal recommendation path, route-level tests for live/mock/off-season/error honesty, no cloud spend or provider credential change.
 
 ### 3. C1 — Draft Assistant primitive migration
 
@@ -76,7 +77,7 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 
 - **D2 — `AI_PROVIDER` $0-cap control:** P1, medium; local-only fail-closed behavior.
 - **C3 — Football Command Center migration:** P1, large; confirm no hot-file conflict.
-- **B2/B4 — Unified Omen implementation + page migration:** after B1/B3.
+- **B4 — Omen page migration:** after B2/B3.
 - **E1 — Mobile scope decision:** P0 decision memo; resolves full-app vs relay-only conflict.
 - **F1 — Service-key Supabase audit:** P1 Verify-lane item; Justin must pin.
 
@@ -86,8 +87,8 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
 - **PR #132:** proposed only; do not implement its typography/cursor/background changes before approval.
 - **PR #140:** visual review required; no automatic merge or app wiring.
-- **B3 DecisionBrief:** waits on B1 contract shape to prevent rework.
-- **B2/B4 unified implementation and Omen migration:** wait on B1 and B3.
+- **B3 DecisionBrief:** B1 contract is complete; no contract blocker remains.
+- **B4 unified Omen migration:** waits on B2 and B3.
 - **C4 public-front-door migration:** waits on A2 visual-direction decision or an explicit current-North-Star-only authorization.
 - **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision.
 - **iOS Phase 5.3:** requires explicit approval before any `connection_mode` production schema action.

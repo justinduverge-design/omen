@@ -1,17 +1,16 @@
 # Omen Release Readiness
 
-Last updated: 2026-06-04 (launch-QA sync)
+Last updated: 2026-07-19 (B1 contract sync)
 
-**2026-07-12: this doc predates the "Omen is free indefinitely" decision and Stripe's full
-removal — every Stripe/subscription gate/blocker mentioned below is moot, not a real launch
-gate. See `Direction/facts-of-record.md` and `Direction/decision_log.md`. This file needs a
-full re-sync against current state; treat everything below as historical until then.**
+**2026-07-19: Omen is free indefinitely. Stripe/subscription gates are not launch gates for this
+product. B1 also locks `POST /api/omen/mvp-move` as the only canonical Omen recommendation route;
+`POST /api/optimizer/mvp-move` remains retired.**
 
 ## Status
 
 Omen is deployed on the renamed route and responding to health checks.
 
-This does not mean paid launch is complete. The current posture is launch-QA: Tier 2 feature work is deployed and smoked. (Stripe webhook recovery is no longer a gate — Stripe was removed 2026-07-12.)
+The current posture is launch-QA: Tier 2 feature work is deployed and smoked, with remaining confidence work centered on real-account provider QA, load testing, and Tuesday scoring readiness.
 
 ## Verified
 
@@ -21,12 +20,12 @@ This does not mean paid launch is complete. The current posture is launch-QA: Ti
 - Containers: `omen_api`, `omen_cron`
 - Health endpoint: `https://slopssaloon.com/api/health`
 - Health service: `omen-api`
-- Tests: latest recorded local backend suites passed 260/260 for Stripe webhook recovery and 262/262 after ESPN connect input normalization on 2026-06-04.
-- Dependency audit: latest sprint draft records `npm audit --audit-level=moderate` with 0 vulnerabilities on 2026-06-04.
+- Tests: latest recorded local backend suite passed 391/391 during B1 contract sync on 2026-07-19.
+- Dependency audit: `npm audit --omit=dev --audit-level=moderate` found 0 production vulnerabilities on 2026-07-19. Root dev audit still reports a pre-existing `promptfoo` -> `@huggingface/transformers` -> `onnxruntime-node` -> `adm-zip` high advisory that requires a breaking dev-tool update.
 - Frontend build: latest sprint draft records `npm --prefix frontend run build` passing on 2026-06-04.
 - Tier 2 authenticated production smoke: 13/13 passed on 2026-06-04.
 - Omen live MVP service covers Yahoo, Sleeper, and ESPN start/sit recommendations when stored credentials and league context are usable.
-- Stripe webhook code handles checkout completion, subscription created/updated/deleted, and payment-failed states with safe subscription metadata.
+- Stripe code is removed from Omen; no billing/subscription gate applies to live recommendations.
 - Privacy routes are mounted under `/api/user`.
 - `/api/ready` distinguishes dependency readiness from `/api/health`.
 - GitHub Actions deploy completed successfully after checkout path rename
@@ -36,15 +35,12 @@ This does not mean paid launch is complete. The current posture is launch-QA: Ti
 
 ## Prepared Locally, Not Deployed
 
-- Stripe webhook recovery follow-up for old unmapped checkout/subscription events. Deploy and resend validation require Justin approval.
 - ESPN connect input normalization for pasted cookie fragments and full ESPN league URLs. No cookies are logged or echoed.
 - SPA cache header fix for `index.html`.
 - `GET /api/version`, Tier 2 smoke cleanup mode, API route reference, and League Standings error envelope polish.
 
-## Still Required Before Paid Launch Confidence
+## Still Required Before Launch Confidence
 
-- **Stripe webhook recovery gate** - deploy the prepared follow-up only after Justin approval, resend the failed Stripe event, and confirm `200` delivery without Account subscription regression.
-- **Stripe subscription date verification** - after the gate clears, confirm `trial_ends_at` and `current_period_end` persist into the dashboard subscription contract.
 - Keep dependency audit in the normal pre-release checklist.
 - Load testing for `POST /api/omen/mvp-move`, `POST /api/trade/compare`, and `GET /api/dashboard/summary` using `scripts/load-omen-routes.js`.
 - Final review of mock/live labeling. Draft Assistant now supports ADP-backed recommendations when provider ADP rows are supplied; fallback mock output remains labeled.

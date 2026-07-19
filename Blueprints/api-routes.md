@@ -42,7 +42,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/yahoo/callback` | redirect | No | Yahoo OAuth callback; redirects to Account connect. |
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
 | `DELETE` | `/api/platforms/:platform` | disconnect response | Yes | Disconnects `yahoo`, `sleeper`, or `espn`. |
-| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Mock mode is explicit. |
+| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
 | `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |
@@ -64,6 +64,8 @@ These routes intentionally return `410 legacy_route_retired` with canonical hint
 | `POST` | `/api/auth/espn/connect` | `/api/platforms/espn/connect` |
 
 `GET /api/league/standings` was previously considered for retirement but is now restored as the canonical League Standings route.
+
+`POST /api/optimizer/mvp-move` is intentionally not a product tier or fallback recommendation route. It remains retired so all Omen recommendation work converges on `POST /api/omen/mvp-move`.
 
 ## Smoke Conventions
 

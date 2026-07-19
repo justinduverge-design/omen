@@ -103,17 +103,18 @@ For every pulled item:
 - **Cost:** medium
 - **Blocked by:** none
 - **Agent-buildable:** yes
+- **Status:** Completed 2026-07-19 on branch `codex/b1-unified-omen-recommendation-contract`.
 - **Recommended surface:** Claude for contract synthesis or Codex for code-grounded contract analysis; not exclusive ownership
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `product-gap-analysis-session`, `workflow-tree-spec`, `slops-ai-integration-review`, `security-privacy-evidence`, `slops-context-markdown`
 - **Done when:** one recommendation contract defines how existing Omen of the Week and `POST /api/optimizer/mvp-move` become one system; mock/off-season/no-data fallback policy and recovery-analytics timing are decided; `Blueprints/api-routes.md` and decision log agree.
-- **Evidence:** contract diff, Have/Need/Gap analysis, state tree, AI integration review, decision receipt.
-- **Do not touch:** production route behavior in this design item.
+- **Evidence:** `Direction/reviews/2026-07-19-b1-unified-omen-recommendation-contract.md`, `Direction/reviews/2026-07-19-ai-integration-omen-recommendation-contract.md`, `Direction/reviews/2026-07-19-b1-security-privacy-evidence.md`, `Blueprints/handoffs/2026-07-19-b1-unified-omen-recommendation-contract.md`.
+- **Do not touch:** recommendation route behavior in this design item; only safe contract metadata may be reconciled.
 
 ### B2 — Implement unified Omen recommendation layer
 
 - **Priority:** P1
 - **Cost:** large
-- **Blocked by:** B1 complete
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
 - **Done when:** there is one non-competing recommendation path; auth, live/mock/off-season/error states match B1; deterministic fallback remains honest; tests/build/audit pass.
@@ -124,7 +125,7 @@ For every pulled item:
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** B1 contract shape
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes; component-only PR first
 - **Recommended surface:** Jules for the bounded component brief; Codex/Claude may execute if available
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
@@ -237,7 +238,7 @@ For every pulled item:
 
 - **Priority:** P2
 - **Cost:** medium
-- **Blocked by:** B1 contract should be stable first
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `slops-investigate`, `slops-ai-integration-review`, `planning-pass`, `slops-tdd`, `slops-quality-baseline`, `slops-code-review`
 - **Done when:** measured bottleneck is identified; one bounded optimization is implemented or a no-change recommendation is documented; output correctness and fallback behavior do not regress.
@@ -301,7 +302,7 @@ For every pulled item:
 
 - **Priority:** P0 operating-system improvement
 - **Cost:** small addition to the next implementation task
-- **Blocked by:** pair with B1, B3, C1, C2, or D1
+- **Blocked by:** complete; paired with B1 on 2026-07-19.
 - **Skills:** `slops-repo-inspector`, `planning-pass`, plus the selected task’s full bundle; `slops-retro` after closeout
 - **Done when:** plan names skills and N/A reasons; handoff records actual results/gaps; usage ledger links evidence; at least one skill improvement is accepted or explicitly judged unnecessary.
 - **Evidence:** plan, skill receipt, ledger row, retro decision.

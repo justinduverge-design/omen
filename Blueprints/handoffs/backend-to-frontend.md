@@ -6,6 +6,151 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## B1 Unified Omen Recommendation Contract — 2026-07-19
+
+Feature name: Unified Omen recommendation contract.
+
+Status: Contract decided on branch `codex/b1-unified-omen-recommendation-contract`. One safe runtime metadata correction included: `/api/platform-status` now reports Omen as auth-gated instead of Pro-gated. Not pushed, merged, deployed, or production-smoked.
+
+Canonical route:
+
+```text
+POST /api/omen/mvp-move
+```
+
+Retired route:
+
+```text
+POST /api/optimizer/mvp-move
+```
+
+The retired optimizer MVP route intentionally returns:
+
+```json
+{
+  "error": "Legacy endpoint retired",
+  "code": "legacy_route_retired",
+  "deprecated_endpoint": "/api/optimizer/mvp-move",
+  "canonical_endpoint": "/api/omen/mvp-move"
+}
+```
+
+Frontend call contract:
+
+1. Call `GET /api/dashboard/summary`.
+2. Read `tools.omen_of_the_week`.
+3. Call `POST /api/omen/mvp-move` with `{}` only when `tools.omen_of_the_week.status === "ready"`.
+
+Dashboard Omen statuses:
+
+```text
+ready
+needs_platform
+pending_live_engine
+off_season
+```
+
+There is no `needs_subscription` status in current runtime behavior. Omen is free indefinitely and no Stripe/subscription gate applies.
+
+Live Omen request shape:
+
+```json
+{}
+```
+
+Mock/dev preview request shape:
+
+```json
+{
+  "use_mock_data": true,
+  "mock_state": "success",
+  "platform": "yahoo",
+  "include_signals": {
+    "matchup_dvp": true,
+    "llm_reasoning": true
+  }
+}
+```
+
+Mock/preview behavior:
+
+- Mock mode is explicit only through `use_mock_data: true` or `mock_state`.
+- Live mode must never silently fall back to mock advice.
+- Mock/preview output must stay visibly labeled wherever rendered.
+
+No-data and off-season behavior:
+
+- If live roster context exists but no move clears the threshold, `POST /api/omen/mvp-move` returns `state: "empty"` with `recommendation: null`.
+- Off-season is currently a dashboard pre-call gate: `tools.omen_of_the_week.status === "off_season"` means the frontend should not call the Omen POST route.
+- B2 may add a direct POST-level `state: "off_season"` defense for callers that bypass the dashboard gate, but frontend routing should not require it.
+
+Current live recommendation scope:
+
+- Current live Omen produces `recommendation.type: "start_sit"` only.
+- Waiver/trade/schedule/weather/travel/TV/matchup context may appear as labeled signals, but does not produce separate top-level live recommendations in v1.
+- `DecisionBrief` should support future recommendation types, but the first migration should not imply live waiver/trade advice exists.
+
+Recovery state guidance:
+
+`DecisionBrief` and `/omen` should handle these state families before rendering recommendation content:
+
+```text
+success
+empty
+platform_disconnected
+pending_live_engine
+yahoo_reauth_required
+sleeper_league_context_missing
+espn_reauth_required
+espn_league_context_missing
+espn_import_blocked
+espn_recovery_needed
+error
+```
+
+Recovery analytics:
+
+- Do not add recovery analytics during B2.
+- Add analytics only after B2/B4 stabilize the final state names and real-account QA confirms no provider credential material can enter events.
+
+Runtime metadata correction:
+
+`GET /api/platform-status.endpoints.omen_of_the_week` now reports:
+
+```json
+{
+  "method": "POST",
+  "path": "/api/omen/mvp-move",
+  "auth_required": false,
+  "status": "mock_ready_live_auth_gated",
+  "note": "Mock previews do not require auth. Non-mock live requests require bearer auth and a usable Yahoo, Sleeper, or ESPN league connection."
+}
+```
+
+Files changed:
+
+- `src/services/systemContracts.js`
+- `test/systemRoutes.test.js`
+- `Blueprints/specs/omen-mvp-move.md`
+- `Blueprints/api-routes.md`
+- `Direction/reviews/2026-07-19-b1-unified-omen-recommendation-contract.md`
+- `Direction/reviews/2026-07-19-ai-integration-omen-recommendation-contract.md`
+- `Direction/reviews/2026-07-19-b1-security-privacy-evidence.md`
+
+Limitations:
+
+- This contract pass does not refactor the internal Omen recommendation builder.
+- This pass does not add route-level off-season POST behavior.
+- This pass does not add analytics.
+- This pass does not run real-account Yahoo/Sleeper/ESPN QA.
+
+Frontend action needed:
+
+- Build B3 `DecisionBrief` against the state families above.
+- Keep using dashboard status as the Omen call gate.
+- Do not build anything against `/api/optimizer/mvp-move`.
+- Do not show Pro/subscription states for Omen.
+
 ## Canonical Off-Season Signal — 2026-07-04
 
 Feature name: Canonical off-season signal for dashboard + league standings.
