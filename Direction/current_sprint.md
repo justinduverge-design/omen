@@ -51,7 +51,9 @@ For every pulled item:
 
 | ID | Work | Priority | Blocked by | Done when |
 |---|---|---|---|---|
-| M0 | Approve native contract pack | P0 | Justin review | Mobile foundation, screen map, token/theme, component, state/API, onboarding, and ESPN-scope contracts are approved or revised. |
+| M0a | Onboarding and connection contract | P0 | Justin review | Omen sign-in, demo escape hatch, provider state machine, reliability rules, Sleeper/Yahoo proof paths, and ESPN mobile gate are approved or revised. |
+| M0b | Mobile design-system contract | P0 | M0a | Tokens, component registry, accessibility, theme packs, and platform-specific implementation rules are approved. |
+| M0c | Native app-shell/API contract | P0 | M0a | Navigation, auth/session deep links, demo mode, safe provider-state API, and environment boundaries are approved. |
 | M1 | Native design-system implementation plan | P0 | M0 | Small SwiftUI and Compose foundation-component briefs define tokens, accessibility, variants, and evidence. |
 | M2 | Native app-shell contracts | P0 | M0 | iOS/Android project structure, auth/session, demo, navigation, environment, and store-safe configuration contracts are approved. |
 | M3 | Native vertical slice | P1 | M1 + M2 | Both apps prove Welcome → Demo → Sign in → Command Center → Omen states with contract parity. |
