@@ -49,7 +49,7 @@ Every Omen screen must feel:
 
 Every Omen screen must avoid:
 - full-screen marketing gradients in product workflows;
-- glass everywhere;
+- unbounded glass across content cards; iOS Liquid Glass is a controlled system-chrome exception;
 - neon as a primary language;
 - multiple competing accent colors;
 - dashboard card farms;
@@ -107,6 +107,14 @@ Future packs are not built until the core system passes accessibility and cross-
 - Use tab navigation only for stable top-level destinations.
 - Respect safe areas, Dynamic Type, VoiceOver, reduce motion, and iOS back/swipe conventions.
 - Omen owns colors, hierarchy, content, and component aliases—not a fake Android look.
+
+#### iOS Liquid Glass rule
+
+Use Apple’s native Liquid Glass treatment where it communicates system navigation or an immediate control: tab bars, navigation/toolbars, compact action groups, search controls, and transient sheets or confirmations. Prefer SwiftUI/system components over a hand-built fake blur.
+
+Do **not** place dense DecisionBrief content, long explanatory copy, provider data, errors, or recovery instructions on glass. Those remain on calm Omen surfaces with reliable contrast. Respect Reduce Transparency and provide a system-material/opaque fallback. Liquid Glass is an iPhone expression only; Android keeps its Material 3 treatment.
+
+References: [Apple Liquid Glass overview](https://developer.apple.com/documentation/technologyoverviews/liquid-glass), [Apple materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials).
 
 Reference: [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines).
 
