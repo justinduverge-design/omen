@@ -11,7 +11,7 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**Current next task:** M0a — review and split `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` into the Omen auth, provider-state API, native navigation, Sleeper proof, Yahoo OAuth proof, ESPN feasibility, and Demo Mode briefs. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, or claim that ESPN is mobile-ready.
+**Current next task:** M0a — review and split `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` into the Omen auth, provider-state API, native navigation, Sleeper proof, Yahoo OAuth proof, ESPN feasibility, and Demo Mode briefs. Use `omen-native-design-house-v1.md` and `omen-native-delivery-governance-v1.md` as mandatory companion authorities. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, or claim that ESPN is mobile-ready.
 
 No pinned implementation task.
 
