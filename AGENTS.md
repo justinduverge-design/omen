@@ -29,6 +29,18 @@ If a file is missing, continue and mention it.
 - `src/` + `services/` + `routes/` — backend layout
 - `Blueprints/specs/design/component-lock-v1.md` / `team-theme-contract-v1.md` — current frontend design authority; read before any task that touches shared UI components or team theming, even from the backend lane
 
+## Native mobile read gate
+
+For any native iPhone, Android, mobile design-system, mobile onboarding, provider-connection, or mobile release task, read these before planning or code:
+
+1. `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
+2. `Blueprints/specs/mobile/omen-native-design-house-v1.md`
+3. `Blueprints/specs/mobile/omen-native-delivery-governance-v1.md`
+4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
+5. Relevant approved Figma screen/component and API/state contract
+
+Do not start native feature code when any of those sources are missing or conflict. Flag the gap instead.
+
 ## Kickoff
 
 Paste `Blueprints/prompts/kickoff-backend-codex.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
