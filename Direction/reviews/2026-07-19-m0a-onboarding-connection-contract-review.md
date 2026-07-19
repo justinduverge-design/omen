@@ -16,7 +16,29 @@ M0b (mobile design-system contract) is blocked by M0a in `Direction/current_spri
 
 ## 1. Recommendation
 
-**Approve with revisions (R1–R7 below).** The contract is well-scoped, security-honest, and platform-native in the right places. It is not yet safe to mark M0a "approved" as written because six of its claims either introduce a new copy variant, imply an unbuilt backend/infra dependency, or collide with an unresolved documentation conflict already tracked as F2. None require a redesign — they are reconciliations. Once R1–R7 are dispositioned, M0a can be approved and M0b unblocked.
+**Approve with revisions (R1–R7 below).** The contract is well-scoped, security-honest, and platform-native in the right places. None of the revisions require a redesign — they are reconciliations.
+
+### Update 2026-07-19 — fixes applied (pending Justin review)
+
+All seven revisions have been dispositioned in `omen-mobile-onboarding-connection-contract-v1.md` (revised header). Summary:
+
+| Rev | Disposition | Where |
+|---|---|---|
+| R1 Welcome copy | **Resolved** — canonical promise "See the move before the league does." | contract §4.1 stands |
+| R2 deep-link dependency | **Folded in** + deferred to M0c | contract §4.2 |
+| R3 state-machine → backend mapping | **Folded in** + deferred to M0c | contract §6 backend-mapping note |
+| R4 idempotency not-yet-guaranteed | **Folded in** as M0c verification | contract §7 |
+| R5 F2 status conflict | **Folded in** as cross-ref | contract §4.6 |
+| R6 version links | **Folded in** | contract header Companions |
+| R7 Figma-stub reality | **Folded in** | contract header note |
+| A SIWA required-if-Google | **Folded in** | contract §4.2 |
+| B deprecated Google SDK | **Folded in** | contract §4.2 |
+| C/D/E three-mechanism + PKCE + OTP | **Folded in** (naming) + concrete spec deferred to M0c | contract §4.2, §5 Yahoo |
+| F secure token storage | **Folded in** | contract §7 |
+| G in-app account deletion | **Folded in** | contract §10 store-compliance note |
+| H demo = review path | **Folded in** | contract §7 |
+
+**Net:** M0a wording is App-Store-safe and internally consistent. The concrete auth/API/deep-link/PKCE/secure-storage/idempotency spec is explicitly assigned to **M0c**. Once Justin approves this revised contract, M0a is done and **M0b unblocks**.
 
 ---
 
