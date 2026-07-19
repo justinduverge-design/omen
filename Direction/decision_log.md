@@ -2,6 +2,16 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (M0a — Onboarding & Connection Contract Approved)
+
+- **M0a is approved.** `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` is now an approved M0 contract. M0b (design-system contract) and M0c (app-shell/auth/API contract) are unblocked. Evidence: `Direction/reviews/2026-07-19-m0a-onboarding-connection-contract-review.md` and `Direction/reviews/2026-07-19-m0a-signin-flow-audit.md`.
+- **Canonical product promise: "See the move before the league does."** Chosen over the shipped web line "See the result before it happens." and the stale driver variant "Know the move." The mobile contract wording stands; the web `Landing.jsx` line is the one to realign when web work resumes (paused under the native pivot).
+- **Mobile sign-in is three distinct mechanisms, not one.** Native ID-token for Apple/Google (no browser); system-browser OAuth + PKCE (`ASWebAuthenticationSession` / Chrome Custom Tabs, RFC 8252) for Yahoo; email **OTP code** (not magic link) as the fallback. Sign in with Apple is required on iOS whenever any third-party login is offered (App Store Guideline 4.8). Android uses Credential Manager (Sign in with Google); the legacy Google Sign-In SDK is banned.
+- **Store-safety requirements folded into the contract:** in-app account deletion (Guideline 5.1.1) tied to the existing `DELETE MY OMEN DATA` flow; secure token storage (Keychain/Keystore); Demo Mode is the App Store/Play reviewer path.
+- **Concrete auth/API/deep-link/PKCE/idempotency/secure-storage spec is assigned to M0c**, not M0a. The Yahoo deep-link return is not yet built (`GET /api/yahoo/callback` currently returns to the web Account page), and the connection state machine is not yet emitted by the backend — both are M0c scope.
+- **The "connected → Omen ready" transition depends on unresolved Verify item F2** (`ready` vs `pending_live_engine`); native must adopt whatever single status truth F2 settles. Recommend pinning F2 alongside M0c.
+- **Figma reality:** the official Design House (`mWjrAKPi4JSIP5lAmGAtB3`) is a stub — only `00 — Start Here` exists. Until `04 — iOS Screens` / `05 — Android Screens` are populated, the Markdown specs are the working source of truth and Figma is a pending cross-reference. (Justin's direction: connect Figma, use the Markdowns as documentation/guidance.)
+
 ## Decisions Added 2026-07-19 (Native Mobile Pivot)
 
 - **Omen will be planned as real native mobile products, not a web wrapper.** The intended stacks are SwiftUI for iPhone and Kotlin + Jetpack Compose for Android. The existing React web app remains a service/API client and maintenance surface.
