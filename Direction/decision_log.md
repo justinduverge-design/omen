@@ -2,6 +2,11 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (CI Lockfile Repair)
+
+- **The clean-CI resolver is the release authority for the root lockfile.** Two merge-triggered quality jobs failed before deployment because `npm ci` found missing transitive records that a local installation did not surface. The lockfile was regenerated without changing the dependency manifest or runtime code, then validated with the same clean-resolver path.
+- **No KVM1 mutation occurred during the failed workflows.** The quality job failed before build and deploy; the repair is merged only to rerun the existing serialized workflow rather than to alter server or workflow configuration.
+
 ## Decisions Added 2026-07-19 (Dev-Tool Audit Remediation)
 
 - **Promptfoo is pinned to `0.121.19` and `adm-zip` is overridden to `0.6.0`.** The dev-only Promptfoo evaluation chain previously resolved vulnerable `adm-zip@0.5.x`; the explicit root override keeps `onnxruntime-node` on the patched release until Promptfoo updates its own range.
