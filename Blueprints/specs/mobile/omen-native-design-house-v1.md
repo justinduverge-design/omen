@@ -227,3 +227,8 @@ Not like a dashboard, not like a sportsbook, and not like a webpage stuffed insi
 The official canvas is [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) (file key `mWjrAKPi4JSIP5lAmGAtB3`). Its pages, ownership, approval path, and Figma integrity rules are governed by `omen-native-agent-capabilities-canvas-v1.md`.
 
 Agents begin at `00 — Start Here`. A visual pattern must be approved as a component on `03 — Components` before it appears on an iOS or Android screen.
+
+
+## 14. Delivery workflow and skill route
+
+Every native task follows `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`. It defines the required sequence from state/API contract through native research, Figma, security, implementation, device/accessibility evidence, and review. The workflow’s skill bundle is mandatory unless a task records a concrete N/A reason.
