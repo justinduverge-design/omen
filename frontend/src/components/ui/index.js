@@ -21,3 +21,5 @@ export { default as PageHero } from './PageHero';
 export { default as MetricStrip } from './MetricStrip';
 export { default as PlayerChip } from './PlayerChip';
 export { default as PlayerRow } from './PlayerRow';
+export { default as Table } from './Table';
+export { default as Stepper } from './Stepper';
