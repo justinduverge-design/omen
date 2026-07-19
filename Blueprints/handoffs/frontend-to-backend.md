@@ -6,6 +6,19 @@ Claude/frontend writes backend contract requests here.
 
 Codex/backend reads this file before backend work and responds in `backend-to-frontend.md`.
 
+## 2026-07-19 — Native mobile backend requirements (from approved M0c)
+
+Source contract: `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` (Approved). These four are foundational for the native apps, especially before any real connected-league screen (M3).
+
+**Delivery shape (Justin):** one owner, **one shared API/state contract + one acceptance-test matrix authored first**, then **four small PRs** (not one giant PR). Pin F2 first.
+
+1. **Mobile-aware Yahoo OAuth return.** `GET /api/yahoo/callback` currently redirects to the web Account page. Native needs it to return to the registered deep link `com.slopssaloon.omen://auth/callback` (or a mobile-aware handoff). Must handle cancel/deny/backgrounding/termination and be idempotent.
+2. **Safe provider-state API.** A machine-readable response mapping to the M0a connection state machine (`not_started → authorizing → awaiting_return → resolving_account → choosing_league → validating_connection → syncing_initial_context → connected`, plus `canceled / retryable_error / needs_reauth / unsupported_on_mobile`) with **opaque error codes only** — no raw provider text, no cookie/token values. Native derives state screens from this, not from HTTP errors.
+3. **Idempotency verification.** Confirm (and implement if needed) that connect/validate are idempotent, keyed by a client-supplied request ID, so double-taps/retries/app-resumes never create duplicate connections. Pairs with the existing B2 `request_id` envelope.
+4. **F2 resolution.** One status truth for `ready` vs `pending_live_engine` for connected Sleeper/ESPN users (Verify item F2). A native screen cannot honestly show "connected/ready/syncing" while the definition is ambiguous. **Pinned.**
+
+Security invariant across all four: no secret, OAuth token, or ESPN cookie value in responses, logs, or error text (facts-of-record #6).
+
 ## Active Context
 
 Last updated: 2026-06-02 (Tier 2 frontend deployed; docs reconciled post-PR-#22)

@@ -57,9 +57,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 |---|---|---|---|---|
 | M0a | Onboarding and connection contract | P0 | ~~Justin review~~ | ✅ **Approved 2026-07-19.** Revised contract covers Omen sign-in (3-mechanism split), demo escape hatch, provider state machine, reliability rules, Sleeper/Yahoo proof paths, and ESPN mobile gate. Concrete auth/API/deep-link/PKCE/idempotency spec assigned to M0c. Evidence: `Direction/reviews/2026-07-19-m0a-*`. |
 | M0b | Mobile design-system contract | P0 | ~~M0a~~ | ✅ **Approved 2026-07-19.** `omen-native-design-system-registry-v1.md` — token model (dark/light verified vs `index.css`), data-semantic invariant layer, Alegreya type scale, foundation + Omen-composition registry with iOS/Android mapping, AA/44pt/Dynamic-Type/focus-non-color/reduce-motion rules, theme-pack bounds, Liquid-Glass/Material-3 rules. Per-component build briefs deferred to M1. |
-| M0c | Native app-shell/auth/API contract | P0 | ~~M0a~~ **unblocked** | Navigation, auth/session deep links, demo mode, safe provider-state API, and environment boundaries are approved. **Owns (from M0a review):** native ID-token vs system-browser+PKCE vs email-OTP auth mechanisms, Yahoo deep-link return, provider state-machine→backend mapping, connect/validate idempotency, secure token storage (Keychain/Keystore). |
-| M1 | Native design-system implementation plan | P0 | M0 | Small SwiftUI and Compose foundation-component briefs define tokens, including the semantic focus-ring, accessibility, variants, and evidence. |
-| M1 | Native design-system implementation plan | P0 | M0b ✅ + M0c | Small SwiftUI and Compose foundation-component briefs define tokens, accessibility, variants, and evidence — built from the approved `omen-native-design-system-registry-v1.md`. First tasks per registry §7: add semantic `focus-ring` token (non-color) and lock the Alegreya stack. |
+| M0c | Native app-shell/auth/API contract | P0 | ~~M0a~~ | ✅ **Approved 2026-07-19.** `omen-native-app-shell-auth-api-contract-v1.md` — nav/route table, three-mechanism auth + Keychain/Keystore session, `com.slopssaloon.omen://` deep links, safe provider-state API mapping (+F2 dep), idempotency/request-id, demo/reviewer mode, env boundaries, security. Surfaces 4 backend requirements → `frontend-to-backend.md`. |
+| M1 | Native design-system implementation plan | P0 | M0b ✅ + M0c ✅ | **Unblocked.** Small SwiftUI and Compose foundation-component briefs define tokens (incl. the semantic `focus-ring`), accessibility, variants, and evidence — built from the approved `omen-native-design-system-registry-v1.md`. First tasks per registry §7: add semantic `focus-ring` token (non-color) and lock the Alegreya stack. |
+| M0-BE | Native backend requirements bundle | P0 | F2 pinned first | 4 reqs from M0c §11 (Yahoo deep-link return, safe provider-state API, connect idempotency, F2). **Shape:** one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. Routes to backend lane. |
 | M2 | Native app-shell contracts | P0 | M0 | iOS/Android project structure, auth/session, demo, navigation, environment, and store-safe configuration contracts are approved. |
 | M3 | Native vertical slice | P1 | M1 + M2 | Both apps prove Welcome → Demo → Sign in → Command Center → Omen states with contract parity. |
 | M4 | Native feature delivery | P1 | M3 | Trade, Draft, League, and Connections ship one contract-backed feature at a time. |
@@ -325,9 +325,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### F2 — Resolve `ready` vs `pending_live_engine` documentation conflict
 
-- **Priority:** P1
+- **Priority:** P1 → **P0 (pinned 2026-07-19)** — native M3 depends on one honest status truth
 - **Cost:** small
-- **Blocked by:** Justin pin
+- **Blocked by:** ~~Justin pin~~ **pinned**; gates the M0-BE backend bundle and native M3
 - **Skills:** `slops-repo-inspector`, `slops-verify`, `slops-context-markdown`, `planning-pass`
 - **Done when:** runtime and all active contracts use one status truth for connected Sleeper/ESPN users; stale wording is corrected without changing behavior unless separately approved.
 - **Evidence:** source-of-truth trace and doc diff.
