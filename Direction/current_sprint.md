@@ -117,8 +117,11 @@ For every pulled item:
 - **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
-- **Done when:** there is one non-competing recommendation path; auth, live/mock/off-season/error states match B1; deterministic fallback remains honest; tests/build/audit pass.
-- **Evidence:** intended RED, GREEN, broader suite, API contract, AI/security reviews, handoff.
+- **Spec:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`
+- **Phase plan:** B2A route-level contract guard; B2B internal recommendation boundary; B2C `DecisionBrief` field completeness. Keep as one branch only if the diff stays focused; otherwise split B2A first.
+- **Field need:** every Omen envelope must preserve `contract_version`, `state`, `feature`, `mode`, `request_id`, `generated_at`, safe `platform`/`league`/`team`, `signals`, `recommendation`, `alternatives`, `warnings`, and safe `error` where applicable. Success recommendations must expose title/move, impact, confidence, risk, explanation, and signal honesty fields per the B2 spec.
+- **Done when:** there is one non-competing recommendation path; direct live POST cannot silently fall back to mock; auth, live/mock/off-season/empty/recovery/error states match B1; field needs above are tested; deterministic fallback remains honest; tests/build/audit pass.
+- **Evidence:** intended RED, GREEN, broader suite, API contract, AI/security reviews, handoff, field-completeness test.
 - **Do not touch:** cloud spend, provider credentials, SQL, or deploy without separate approval.
 
 ### B3 — DecisionBrief composition

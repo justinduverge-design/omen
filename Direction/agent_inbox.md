@@ -47,7 +47,10 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Priority / cost / blocker:** P1 / large / none
 - **Recommended execution surface:** Codex
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** one internal recommendation path, route-level tests for live/mock/off-season/error honesty, no cloud spend or provider credential change.
+- **Spec:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`
+- **Start with:** B2A route-level contract guard unless Justin explicitly wants the whole B2 branch at once. Then B2B internal recommendation boundary, then B2C field-completeness handoff for `DecisionBrief`.
+- **Field need:** preserve the full Omen envelope and success recommendation fields named in the B2 spec; add tests before any route/output refactor.
+- **Output:** one internal recommendation path, route-level tests for live/mock/off-season/empty/recovery/error honesty, no cloud spend or provider credential change.
 
 ### 3. C1 — Draft Assistant primitive migration
 

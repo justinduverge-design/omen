@@ -151,6 +151,36 @@ Frontend action needed:
 - Do not build anything against `/api/optimizer/mvp-move`.
 - Do not show Pro/subscription states for Omen.
 
+## B2 Field Need Plan — 2026-07-19
+
+Feature name: Unified Omen recommendation layer implementation plan.
+
+Status: Planned only on branch `codex/b2-unified-omen-phase-plan`; no B2 runtime behavior implemented in this planning pass.
+
+Spec:
+
+```text
+Blueprints/specs/b2-unified-omen-recommendation-layer.md
+```
+
+Planned B2 phases:
+
+1. **B2A - Route-level contract guard.** Add direct POST defense for off-season/non-ready cases if implementation confirms it is needed; keep dashboard as the normal frontend gate.
+2. **B2B - Internal recommendation boundary.** Extract or clarify internal recommendation building only where it reduces real complexity; preserve external output shape.
+3. **B2C - DecisionBrief field completeness.** Add tests and handoff evidence proving success/empty/recovery/error envelopes supply the fields frontend composition needs.
+
+Field needs for `DecisionBrief` and `/omen` migration:
+
+- Every envelope: `contract_version`, `state`, `feature`, `mode`, `request_id`, `generated_at`, safe `platform`, `league`, `team`, `signals`, `recommendation`, `alternatives`, `warnings`, and safe `error` where applicable.
+- Success recommendation: `id`, `type`, `title`, `move`, `primary_player`, `comparison_player`, `expected_value_delta.points`, `expected_value_delta.label`, `confidence.score`, `confidence.label`, `confidence.rationale`, `risk.level`, `risk.reasons`, and `explanation` fields.
+- Signal entry: `status`, `used`, `source`, and `message`.
+- Empty/off-season/recovery/error states: `recommendation: null`; no fabricated advice; no provider credential values; recovery fields may name needed fields but must never include values.
+
+Frontend guidance:
+
+- B3 can design `DecisionBrief` against these field needs, but should not assume B2 is implemented until the B2 handoff replaces this plan with verification evidence.
+- B4 should still wait for B2 and B3.
+
 ## Canonical Off-Season Signal — 2026-07-04
 
 Feature name: Canonical off-season signal for dashboard + league standings.
