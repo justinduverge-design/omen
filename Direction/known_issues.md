@@ -1,6 +1,6 @@
 # Omen Known Issues
 
-Last updated: 2026-07-04
+Last updated: 2026-07-19
 
 ## Current Context Risks
 
@@ -10,9 +10,7 @@ Last updated: 2026-07-04
 
 ## Product Risks
 
-- Stripe webhook recovery is the remaining pre-launch ops gate: the follow-up is prepared locally but needs approved deploy, failed-event resend, and `200` confirmation.
-- `POST /api/optimizer/mvp-move` and `POST /api/omen/mvp-move` still need a product-tier architecture decision.
-- Recovery analytics timing is still open.
+- Unified Omen recommendation contract is now decided: `POST /api/omen/mvp-move` is canonical, `POST /api/optimizer/mvp-move` stays retired, and recovery analytics waits until after B2/B4 stabilize final state names and real-account QA.
 - Load testing for Omen, Trade Analyzer, and dashboard summary is still pending; local script exists.
 
 ## Backend / Data Risks
@@ -21,7 +19,7 @@ Last updated: 2026-07-04
 - ESPN remains high-value and fragile because it depends on user-provided cookies.
 - ESPN connect input normalization is prepared locally but not production behavior until deployed.
 - Sleeper/ESPN live Omen code paths are wired but still need real-account staging QA before public claims.
-- Docs still need one final truth pass on exactly when Sleeper and ESPN Omen reach `ready` versus `pending_live_engine`.
+- Docs now treat dashboard `ready` as the call gate for usable Yahoo, Sleeper, or ESPN context; real-account QA remains required before public provider-depth claims.
 - ADP and provider-backed data should be verified before launch claims.
 - Legacy API files remain mounted and should be handled carefully.
 - Tuesday scoring is executable but intentionally gated behind `OMEN_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.

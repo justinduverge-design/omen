@@ -3,6 +3,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const {
+  CONTRACT_VERSION,
   DEFAULT_SCORING_FORMAT,
   LIVE_CONTRACT_VERSION,
   getOmenLiveEmpty,
@@ -10,7 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
-const { getCurrentNflWeekContext } = require("./nflSchedule");
+const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -333,14 +334,18 @@ const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const VALID_STATES = new Set([
   "success",
   "empty",
+  "off_season",
   "platform_disconnected",
+  "pending_live_engine",
+  "yahoo_reauth_required",
+  "sleeper_league_context_missing",
   "espn_reauth_required",
   "espn_league_context_missing",
   "espn_import_blocked",
   "espn_recovery_needed",
   "error",
 ]);
-const VALID_SIGNAL_STATUSES = new Set(["live", "stub", "mock", "unavailable"]);
+const VALID_SIGNAL_STATUSES = new Set(["live", "stub", "mock", "demo", "unavailable"]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -430,10 +435,12 @@ function buildSignals({ connected = true, useMockData = false } = {}) {
 
 function baseEnvelope(body = {}, state = "success") {
   const platform = normalizePlatform(body.platform);
+  const explicitMock = Boolean(body.use_mock_data || body.mock_state);
   return {
+    contract_version: CONTRACT_VERSION,
     state,
     feature: FEATURE,
-    mode: body.use_mock_data || body.mock_state ? "mock" : "hybrid",
+    mode: explicitMock ? "mock" : "demo",
     request_id: requestId(),
     generated_at: nowIso(),
     platform: {
@@ -452,7 +459,7 @@ function baseEnvelope(body = {}, state = "success") {
       id: body.team_id || "mock-team-1",
       name: "Mock Omen Team",
     },
-    signals: buildSignals({ connected: true, useMockData: Boolean(body.use_mock_data || body.mock_state) }),
+    signals: buildSignals({ connected: true, useMockData: explicitMock }),
     recommendation: null,
     alternatives: [],
     warnings: [],
@@ -473,6 +480,7 @@ function liveBaseEnvelope({
   state = "success",
 } = {}) {
   return {
+    contract_version: LIVE_CONTRACT_VERSION,
     state,
     feature: FEATURE,
     mode: "live",
@@ -546,6 +554,39 @@ function authRequiredMvpResponse(message = "Authentication is required for Most 
     message,
     httpStatus: 401,
   });
+}
+
+function offSeasonMvpResponse() {
+  const context = getCurrentNflWeekContext();
+  const response = liveBaseEnvelope({
+    platform: "unknown",
+    platformStatus: "off_season",
+    season: context.season,
+    week: context.week,
+    state: "off_season",
+  });
+  response.signals = {
+    roster: signal(
+      "unavailable",
+      false,
+      "nfl_calendar",
+      "Omen does not generate live lineup advice outside the NFL regular season."
+    ),
+  };
+  response.explanation = {
+    summary: "Omen is paused until the NFL regular season starts.",
+    why_it_matters: "Live lineup recommendations need current weekly matchups and active rosters.",
+    risk: "Showing stale offseason advice would be misleading.",
+    confidence: "Confidence is high that no live weekly move should be generated right now.",
+    data_used: ["NFL calendar"],
+  };
+  response.confidence = confidence(
+    100,
+    "high",
+    "The shared NFL calendar is outside the regular season window."
+  );
+  response.warnings.push("Live MVP Move is paused outside the NFL regular season.");
+  return { status: 200, body: response };
 }
 
 function platformDisconnectedMvpResponse() {
@@ -946,6 +987,8 @@ function espnRecoveryFromError(connection, err) {
 }
 
 async function buildLiveOmenMvpMoveForUser(userId) {
+  if (isOffSeason()) return offSeasonMvpResponse();
+
   const connections = await getActivePlatformConnections(userId);
   if (!connections.length) return platformDisconnectedMvpResponse();
 
@@ -1145,6 +1188,33 @@ function errorResponse(body = {}, message = "Omen could not generate an MVP Move
   return response;
 }
 
+function offSeasonMockResponse(body = {}) {
+  const response = baseEnvelope(body, "off_season");
+  response.recommendation = null;
+  response.signals = {
+    roster: signal(
+      "unavailable",
+      false,
+      "nfl_calendar",
+      "Omen does not generate live lineup advice outside the NFL regular season."
+    ),
+  };
+  response.explanation = {
+    summary: "Omen is paused until the NFL regular season starts.",
+    why_it_matters: "Live lineup recommendations need current weekly matchups and active rosters.",
+    risk: "Showing stale offseason advice would be misleading.",
+    confidence: "Confidence is high that no live weekly move should be generated right now.",
+    data_used: ["NFL calendar"],
+  };
+  response.confidence = confidence(
+    100,
+    "high",
+    "The shared NFL calendar is outside the regular season window."
+  );
+  response.warnings.push("Mock off-season state. Do not present as live fantasy advice.");
+  return response;
+}
+
 function requestedState(body = {}) {
   const state = body.mock_state || "success";
   return String(state).trim().toLowerCase();
@@ -1173,6 +1243,10 @@ function buildOmenMvpMoveResponse(body = {}) {
     return { status: 200, body: platformDisconnectedResponse(body) };
   }
 
+  if (state === "off_season") {
+    return { status: 200, body: offSeasonMockResponse(body) };
+  }
+
   if (state === "error") {
     return { status: 500, body: errorResponse(body) };
   }
@@ -1193,4 +1267,5 @@ module.exports = {
   VALID_STATES,
   buildOmenMvpMoveResponse,
   buildSignals,
+  offSeasonMvpResponse,
 };

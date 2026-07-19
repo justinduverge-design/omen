@@ -2,6 +2,23 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (B2 — Unified Omen Recommendation Layer)
+
+- **Direct authenticated Omen POST now has an off-season defense.** `POST /api/omen/mvp-move` still authenticates first, then returns `state: "off_season"` with `recommendation: null` before live generation when the shared NFL calendar is outside weeks 1-18. Dashboard-first gating remains the normal frontend contract; this is defensive API behavior for callers that bypass the dashboard.
+- **Every Omen MVP envelope now carries `contract_version`.** Live envelopes use `2026-05-18.omen-live.v1`; mock/dev envelopes use the existing mock contract version. B3/B4 should branch on `state` first and treat `mode` plus `contract_version` as explicit truth labels.
+- **No new B2 recommendation builder file was added.** The existing service already separates base envelopes, platform recovery, live signal construction, and lineup-swap mapping. B2 kept those boundaries and added tests rather than creating another abstraction with no behavioral payoff.
+- **Live recommendation scope remains `start_sit`.** B2 did not add waiver/trade generation, recovery analytics, provider credential changes, AI/cloud spend, SQL, packages, UI migration, or deploy behavior.
+
+## Decisions Added 2026-07-19 (B1 — Unified Omen Recommendation Contract)
+
+- **`POST /api/omen/mvp-move` is the only canonical Omen recommendation route.** `POST /api/optimizer/mvp-move` is not a competing tier and should not be rebuilt as a fallback or enrichment surface; it remains a `410 legacy_route_retired` compatibility response pointing callers to `/api/omen/mvp-move`.
+- **Omen recommendations are free and auth-gated, not Pro/subscription-gated.** The stale public platform-status metadata that said `mock_ready_live_pro_gated` was corrected to `mock_ready_live_auth_gated`. Any historical handoff sections mentioning `needs_subscription`, Pro, or Stripe are superseded by the 2026-07-12 Stripe removal and this B1 contract.
+- **Live UI calls use dashboard-first gating and then body `{}`.** The frontend should call `GET /api/dashboard/summary`, require `tools.omen_of_the_week.status === "ready"`, and then call `POST /api/omen/mvp-move` with `{}` so the backend infers platform, league, team, season, week, and scoring context.
+- **Mock fallback is explicit only.** `use_mock_data: true` or `mock_state` may produce preview/mock envelopes for local/dev/UI integration. Live mode must never silently fall back to mock advice; no-data live results use `state: "empty"` with no fabricated recommendation.
+- **Off-season is a pre-call dashboard state for now.** The dashboard `off_season` status prevents normal UI calls to live Omen during the regular-season gap. B2 may add a direct POST-level off-season envelope as defensive API behavior, but the frontend contract should not depend on direct POST calls in off-season.
+- **Recovery analytics is deferred until after B2/B4.** Do not add analytics in the unified backend implementation. First stabilize the route internals and migrated UI state names, then add analytics after real-account QA proves the recovery payloads do not capture provider credential material.
+- **Current live recommendation scope remains start/sit first.** Waiver/trade/schedule/weather/travel/TV/matchup context can appear as labeled evidence, but current live Omen only produces a `start_sit` recommendation. Expanding decision types is a B2+ implementation decision with tests and signal-honesty requirements.
+
 ## Decisions Added 2026-07-13 (Retro — Omen Promo Video Lessons Learned)
 
 - **Promo video work exists at `Brand/promos/omen-coming-soon/` and was previously undiscoverable from `Direction/`.** Nothing in `decision_log.md`, `current_sprint.md`, or `agent_inbox.md` referenced it before this entry; the only reason it surfaced is Justin supplying the exact path. **Going forward, any promo/video work must get at least a one-line pointer logged here** so future sessions can find it without being told.

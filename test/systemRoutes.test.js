@@ -303,6 +303,8 @@ test("GET /api/platform-status reports readiness without leaking LLM URL", async
   assert.equal(res.body.dependencies.llm.public_url_exposed, false);
   assert.equal(res.body.endpoints.omen_of_the_week.method, "POST");
   assert.equal(res.body.endpoints.omen_of_the_week.path, "/api/omen/mvp-move");
+  assert.equal(res.body.endpoints.omen_of_the_week.status, "mock_ready_live_auth_gated");
+  assert.equal(res.body.endpoints.omen_of_the_week.note.includes("Pro subscription"), false);
 
   const serialized = JSON.stringify(res.body);
   assert.equal(serialized.includes("ollama.internal"), false);

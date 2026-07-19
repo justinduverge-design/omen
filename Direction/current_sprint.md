@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-18  
+**Last updated:** 2026-07-19
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -103,28 +103,33 @@ For every pulled item:
 - **Cost:** medium
 - **Blocked by:** none
 - **Agent-buildable:** yes
+- **Status:** Completed 2026-07-19 on branch `codex/b1-unified-omen-recommendation-contract`.
 - **Recommended surface:** Claude for contract synthesis or Codex for code-grounded contract analysis; not exclusive ownership
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `product-gap-analysis-session`, `workflow-tree-spec`, `slops-ai-integration-review`, `security-privacy-evidence`, `slops-context-markdown`
 - **Done when:** one recommendation contract defines how existing Omen of the Week and `POST /api/optimizer/mvp-move` become one system; mock/off-season/no-data fallback policy and recovery-analytics timing are decided; `Blueprints/api-routes.md` and decision log agree.
-- **Evidence:** contract diff, Have/Need/Gap analysis, state tree, AI integration review, decision receipt.
-- **Do not touch:** production route behavior in this design item.
+- **Evidence:** `Direction/reviews/2026-07-19-b1-unified-omen-recommendation-contract.md`, `Direction/reviews/2026-07-19-ai-integration-omen-recommendation-contract.md`, `Direction/reviews/2026-07-19-b1-security-privacy-evidence.md`, `Blueprints/handoffs/2026-07-19-b1-unified-omen-recommendation-contract.md`.
+- **Do not touch:** recommendation route behavior in this design item; only safe contract metadata may be reconciled.
 
 ### B2 — Implement unified Omen recommendation layer
 
 - **Priority:** P1
 - **Cost:** large
-- **Blocked by:** B1 complete
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
+- **Status:** Completed locally 2026-07-19 on branch `codex/b2-unified-omen-phase-plan`; not pushed, merged, deployed, or production-smoked.
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
-- **Done when:** there is one non-competing recommendation path; auth, live/mock/off-season/error states match B1; deterministic fallback remains honest; tests/build/audit pass.
-- **Evidence:** intended RED, GREEN, broader suite, API contract, AI/security reviews, handoff.
+- **Spec:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`
+- **Phase plan:** B2A route-level contract guard; B2B internal recommendation boundary; B2C `DecisionBrief` field completeness. Keep as one branch only if the diff stays focused; otherwise split B2A first.
+- **Field need:** every Omen envelope must preserve `contract_version`, `state`, `feature`, `mode`, `request_id`, `generated_at`, safe `platform`/`league`/`team`, `signals`, `recommendation`, `alternatives`, `warnings`, and safe `error` where applicable. Success recommendations must expose title/move, impact, confidence, risk, explanation, and signal honesty fields per the B2 spec.
+- **Done when:** there is one non-competing recommendation path; direct live POST cannot silently fall back to mock; auth, live/mock/off-season/empty/recovery/error states match B1; field needs above are tested; deterministic fallback remains honest; tests/build/audit pass.
+- **Evidence:** intended RED, GREEN, broader suite, API contract, AI/security reviews, handoff, field-completeness test.
 - **Do not touch:** cloud spend, provider credentials, SQL, or deploy without separate approval.
 
 ### B3 — DecisionBrief composition
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** B1 contract shape
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes; component-only PR first
 - **Recommended surface:** Jules for the bounded component brief; Codex/Claude may execute if available
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
@@ -136,7 +141,7 @@ For every pulled item:
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** B2 and B3
+- **Blocked by:** B3; B2 backend implementation is complete locally and still needs merge/deploy before production UI migration claims.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `demo-mode-pre-empty-state`, `slops-ux-copy`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`, `slops-verify`
 - **Done when:** `/omen` uses the unified contract and standard composition/states; live/mock/stale/off-season/disconnected are explicit; recommendation is visually dominant; desktop/mobile light/dark checks have no P0/P1.
@@ -237,7 +242,7 @@ For every pulled item:
 
 - **Priority:** P2
 - **Cost:** medium
-- **Blocked by:** B1 contract should be stable first
+- **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `slops-investigate`, `slops-ai-integration-review`, `planning-pass`, `slops-tdd`, `slops-quality-baseline`, `slops-code-review`
 - **Done when:** measured bottleneck is identified; one bounded optimization is implemented or a no-change recommendation is documented; output correctness and fallback behavior do not regress.
@@ -301,7 +306,7 @@ For every pulled item:
 
 - **Priority:** P0 operating-system improvement
 - **Cost:** small addition to the next implementation task
-- **Blocked by:** pair with B1, B3, C1, C2, or D1
+- **Blocked by:** complete; paired with B1 on 2026-07-19.
 - **Skills:** `slops-repo-inspector`, `planning-pass`, plus the selected task’s full bundle; `slops-retro` after closeout
 - **Done when:** plan names skills and N/A reasons; handoff records actual results/gaps; usage ledger links evidence; at least one skill improvement is accepted or explicitly judged unnecessary.
 - **Evidence:** plan, skill receipt, ledger row, retro decision.

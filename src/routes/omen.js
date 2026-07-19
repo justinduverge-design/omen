@@ -4,12 +4,15 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
+const { isOffSeason } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
 const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
   buildOmenMvpMoveResponse,
   authenticateOmenRequest,
+  offSeasonMvpResponse,
 } = require("../services/omen");
 const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
@@ -20,6 +23,10 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const LLM_ELIGIBLE_STATES = new Set(["success", "empty"]);
 const LLM_BLOCKED_STATES = new Set([
   "platform_disconnected",
+  "off_season",
+  "pending_live_engine",
+  "yahoo_reauth_required",
+  "sleeper_league_context_missing",
   "espn_reauth_required",
   "espn_league_context_missing",
   "espn_import_blocked",
@@ -278,11 +285,15 @@ async function liveOmenResult(req) {
   }
 
   try {
+    if (isOffSeason()) {
+      return offSeasonMvpResponse();
+    }
     return await buildLiveOmenMvpMoveForUser(user.id);
   } catch (e) {
     return {
       status: 500,
       body: {
+        contract_version: LIVE_CONTRACT_VERSION,
         state: "error",
         feature: "omen_mvp_move",
         mode: "live",

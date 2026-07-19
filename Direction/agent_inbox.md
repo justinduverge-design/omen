@@ -1,13 +1,13 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-18  
+**Refreshed:** 2026-07-19
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
 
 No pinned implementation task.
 
-The current docs-only task is **sprint grooming + skill routing** on branch `docs/sprint-grooming-skill-routing`. It must not mutate app code, packages, SQL, deploy configuration, secrets, or production infrastructure.
+Last completed pull: **B2 - Implement unified Omen recommendation layer** on branch `codex/b2-unified-omen-phase-plan`.
 
 ## Open PR gates
 
@@ -27,28 +27,21 @@ The current docs-only task is **sprint grooming + skill routing** on branch `doc
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-design-system-pack`, `slops-ui-ux-audit`
 - **Next action:** produce approve/revise/close recommendation and reconciliation table.
 
-## Recommended next pulls
+## Auto-Populated Top 5
+
+Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
 
 These are recommendations, not hard ownership assignments. Any capable agent may execute them after reading the named skill procedures.
 
-### 1. B1 — Unified Omen recommendation contract
-
-- **Why first:** prevents duplicate recommendation systems and stops UI work from migrating onto a contract that is about to change.
-- **Priority / cost / blocker:** P0 / medium / none
-- **Recommended execution surface:** Claude for synthesis or Codex for code-grounded contract tracing
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `product-gap-analysis-session`, `workflow-tree-spec`, `slops-ai-integration-review`, `security-privacy-evidence`, `slops-context-markdown`
-- **Pair with:** F3 company-baseline skill-receipt pilot
-- **Output:** one API/state contract, mock/off-season fallback decision, recovery-analytics timing decision.
-
-### 2. B3 — DecisionBrief component
+### 1. B3 — DecisionBrief component
 
 - **Why next:** the core recommendation surface is still missing while its supporting primitives now exist.
-- **Priority / cost / blocker:** P0 / medium / B1 contract shape
+- **Priority / cost / blocker:** P0 / medium / none; B1 contract complete.
 - **Recommended execution surface:** Jules for a strictly component-only Phase A PR
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
 - **Output:** canonical composition, variants, accessibility evidence, no page migration.
 
-### 3. C1 — Draft Assistant primitive migration
+### 2. C1 — Draft Assistant primitive migration
 
 - **Why next:** component dependencies are already on `main`; this is a contained Phase B migration with high user value.
 - **Priority / cost / blocker:** P1 / medium / none
@@ -56,7 +49,7 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
 - **Output:** canonical inputs/selection/player/metric/state components with recommendation math unchanged.
 
-### 4. C2 — Connect League primitive migration
+### 3. C2 — Connect League primitive migration
 
 - **Why next:** PlatformConnectionCard and the public ESPN guide are already merged; the page can now consolidate without inventing new behavior.
 - **Priority / cost / blocker:** P1 / medium / none
@@ -64,7 +57,7 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `workflow-tree-spec`, `slops-git-flow`, `slops-tdd`, `security-privacy-evidence`, `slops-legal-spot-check`, `slops-ux-copy`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
 - **Output:** standard connection cards and recovery states with zero cookie-value exposure.
 
-### 5. D1 — Real `GET /api/trade/pulse`
+### 4. D1 — Real `GET /api/trade/pulse`
 
 - **Why next:** removes stale hand-authored buy-low advice and turns an honesty gap into a real data contract.
 - **Priority / cost / blocker:** P1 / medium / none
@@ -72,11 +65,18 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `pre-build-research`, `slops-data-ingest-plan`, `slops-git-flow`, `slops-tdd`, `demo-mode-pre-empty-state`, `security-privacy-evidence`, `slops-quality-baseline`, `slops-code-review`
 - **Output:** computed endpoint, explicit fallback, tested empty/error/stale paths, honest UI status.
 
+### 5. D2 — `AI_PROVIDER` $0-cap control
+
+- **Why next:** founder decision is logged at a $0 cloud cap; the backend can now hard-fail or disable cloud execution without new spend.
+- **Priority / cost / blocker:** P1 / medium / none
+- **Recommended execution surface:** Codex
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-ai-integration-review`, `slops-financial-sketch`, `slops-git-flow`, `slops-tdd`, `security-privacy-evidence`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** local remains default; any cloud provider path cannot spend money and exposes only safe status.
+
 ## Next after the top five
 
-- **D2 — `AI_PROVIDER` $0-cap control:** P1, medium; local-only fail-closed behavior.
 - **C3 — Football Command Center migration:** P1, large; confirm no hot-file conflict.
-- **B2/B4 — Unified Omen implementation + page migration:** after B1/B3.
+- **B4 — Omen page migration:** after B3 and B2 merge/deploy.
 - **E1 — Mobile scope decision:** P0 decision memo; resolves full-app vs relay-only conflict.
 - **F1 — Service-key Supabase audit:** P1 Verify-lane item; Justin must pin.
 
@@ -86,8 +86,8 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 - **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
 - **PR #132:** proposed only; do not implement its typography/cursor/background changes before approval.
 - **PR #140:** visual review required; no automatic merge or app wiring.
-- **B3 DecisionBrief:** waits on B1 contract shape to prevent rework.
-- **B2/B4 unified implementation and Omen migration:** wait on B1 and B3.
+- **B3 DecisionBrief:** B1 contract is complete; no contract blocker remains.
+- **B4 unified Omen migration:** waits on B3 and for B2 to merge/deploy before production UI migration claims.
 - **C4 public-front-door migration:** waits on A2 visual-direction decision or an explicit current-North-Star-only authorization.
 - **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision.
 - **iOS Phase 5.3:** requires explicit approval before any `connection_mode` production schema action.

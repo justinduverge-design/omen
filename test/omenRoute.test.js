@@ -63,17 +63,40 @@ function baseRequest(overrides = {}) {
 }
 
 function assertEnvelope(body, state) {
+  assert.equal(typeof body.contract_version, "string");
+  assert.ok(body.contract_version.length > 0);
   assert.equal(body.state, state);
   assert.equal(body.feature, "omen_mvp_move");
   assert.ok(body.mode);
   assert.ok(body.request_id);
   assert.ok(body.generated_at);
-  assert.ok(body.platform);
-  assert.ok(body.league);
-  assert.ok(body.team);
+  assert.ok(Object.hasOwn(body, "platform"));
+  assert.ok(Object.hasOwn(body, "league"));
+  assert.ok(Object.hasOwn(body, "team"));
   assert.ok(body.signals);
   assert.ok(Array.isArray(body.alternatives));
   assert.ok(Array.isArray(body.warnings));
+}
+
+function assertSuccessRecommendation(recommendation) {
+  assert.equal(typeof recommendation.id, "string");
+  assert.equal(recommendation.type, "start_sit");
+  assert.equal(typeof recommendation.title, "string");
+  assert.equal(typeof recommendation.move, "string");
+  assert.ok(recommendation.primary_player);
+  assert.ok(Object.hasOwn(recommendation, "comparison_player"));
+  assert.equal(typeof recommendation.expected_value_delta.points, "number");
+  assert.equal(typeof recommendation.expected_value_delta.label, "string");
+  assert.equal(typeof recommendation.confidence.score, "number");
+  assert.equal(typeof recommendation.confidence.label, "string");
+  assert.equal(typeof recommendation.confidence.rationale, "string");
+  assert.ok(["low", "medium", "high"].includes(recommendation.risk.level));
+  assert.ok(Array.isArray(recommendation.risk.reasons));
+  assert.equal(typeof recommendation.explanation.summary, "string");
+  assert.equal(typeof recommendation.explanation.why_it_matters, "string");
+  assert.equal(typeof recommendation.explanation.risk, "string");
+  assert.equal(typeof recommendation.explanation.confidence, "string");
+  assert.ok(Array.isArray(recommendation.explanation.data_used));
 }
 
 function assertSignal(signal) {
@@ -108,10 +131,7 @@ test("POST /api/omen/mvp-move returns success response envelope", async () => {
 
   assert.equal(res.status, 200);
   assertEnvelope(res.body, "success");
-  assert.equal(res.body.recommendation.type, "start_sit");
-  assert.equal(typeof res.body.recommendation.confidence.score, "number");
-  assert.equal(res.body.recommendation.risk.level, "medium");
-  assert.equal(typeof res.body.recommendation.explanation.summary, "string");
+  assertSuccessRecommendation(res.body.recommendation);
   Object.values(res.body.signals).forEach(assertSignal);
 });
 
