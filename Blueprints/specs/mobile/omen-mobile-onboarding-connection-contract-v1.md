@@ -1,6 +1,6 @@
 # Omen Mobile Onboarding and Connection Contract v1
 
-**Status:** Proposed M0 contract — founder review required (revised 2026-07-19 per M0a review + sign-in audit)  
+**Status:** **Approved M0 contract** (Justin, 2026-07-19) — revised per M0a review + sign-in audit  
 **Date:** 2026-07-19  
 **Owner:** Native mobile foundation  
 **Purpose:** Define the first successful user path before native screens are built.  

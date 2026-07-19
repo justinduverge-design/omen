@@ -11,11 +11,13 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**Current next task:** M0b — establish the controlled native canvas and agent capability baseline. Read `omen-native-agent-capabilities-canvas-v1.md`, then turn the approved Design House into a reviewable token/component/screen registry. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, change Figma permissions, or claim that ESPN is mobile-ready.
+**M0a is approved (Justin, 2026-07-19).** `omen-mobile-onboarding-connection-contract-v1.md` is now an approved contract. M0b and M0c are **unblocked**. Evidence: `Direction/reviews/2026-07-19-m0a-onboarding-connection-contract-review.md` and `2026-07-19-m0a-signin-flow-audit.md`.
 
-No pinned implementation task.
+**Current next task:** M0b — mobile design-system contract. Read `omen-native-agent-capabilities-canvas-v1.md` and `omen-native-design-house-v1.md`, then turn them into a reviewable token/component/screen registry. **Source is the Markdown specs** — the Figma Design House is still a stub (`00 — Start Here` only), so treat Figma as a pending cross-reference, not the source. Planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, change Figma permissions, or claim ESPN is mobile-ready.
 
-Last completed pull: **B2 - Implement unified Omen recommendation layer** on branch `codex/b2-unified-omen-phase-plan`.
+**In parallel:** M0c — native app-shell/auth/API contract — is also unblocked and owns the concrete auth spec deferred from M0a (native ID-token vs system-browser+PKCE vs email-OTP; Yahoo deep-link return; provider state→backend mapping; connect/validate idempotency; secure token storage). Consider pinning F2 (`ready` vs `pending_live_engine`) alongside M0c.
+
+Last completed pull: **M0a — Onboarding and connection contract review** on branch `docs/m0a-onboarding-connection-review` (approved; not yet pushed/merged).
 
 ## Open PR gates
 
