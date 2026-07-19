@@ -13,11 +13,11 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
 
-**Current next task:** **M1-F — Native Figma token and foundation-library setup** (P0). Populate only `02 — Tokens & Themes` and `03 — Components` in the official Design House from the approved registry and M1 briefs. Include semantic `focus-ring`, the locked Alegreya Sans/Alegreya/DM Mono roles, and the existing foundation-component anatomy/state/accessibility/iOS/Android mapping. Do not invent a new token, component, or screen pattern; do not scaffold native projects (M2), write native code, touch APIs/providers, or publish the Figma library without founder/design-steward approval.
+**Current next task:** **M2 — Native app-shell project scaffolding** (P0). Prepare a plan for the approved iOS SwiftUI and Android Kotlin/Jetpack Compose project structure, session boundary, demo mode, navigation shell, and release-safe configuration separation. M1-F is complete; do not create project files, add dependencies, touch auth/provider APIs, use Apple/Google credentials, or change production configuration until the M2 plan is approved.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M1 first two native foundation build briefs** (focus-ring and typography; local branch `codex/m1-native-foundation-briefs`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
+Last completed pull: **M1-F — Native Figma token and foundation-library setup** (Figma nodes `13:2` / `14:2`; local branch `codex/m1-figma-foundation-library`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
 
 ## Open PR gates
 
