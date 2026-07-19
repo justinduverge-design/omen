@@ -13,11 +13,11 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
 
-**Current next task:** **M2 — Native app-shell project scaffolding** (P0). Prepare a plan for the approved iOS SwiftUI and Android Kotlin/Jetpack Compose project structure, session boundary, demo mode, navigation shell, and release-safe configuration separation. M1-F is complete; do not create project files, add dependencies, touch auth/provider APIs, use Apple/Google credentials, or change production configuration until the M2 plan is approved.
+**Current next task:** **M2-E — Native build-environment decision** (P0). Choose a non-purchase iOS build/validation path and an Android toolchain plan. The current Windows workspace has no Swift/Xcode, Java/Gradle, Android SDK, or ADB; Justin will not buy a Mac. Define owner, cost posture, device/CI evidence, and residual limitation. Do not scaffold native projects, install tools, create hosted-service spend, use store credentials, or change production configuration without separate approval.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M1-F — Native Figma token and foundation-library setup** (Figma nodes `13:2` / `14:2`; local branch `codex/m1-figma-foundation-library`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
+Last completed pull: **M2-F — Native app-shell screen contracts** (Figma nodes `17:12` / `17:13`; local branch `codex/m2-app-shell-contracts`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
 
 ## Open PR gates
 

@@ -600,3 +600,7 @@
 - **Native typography is locked to Alegreya Sans, Alegreya, and DM Mono.** Alegreya Sans owns UI/headings/controls; Alegreya owns long-form reading copy; DM Mono owns scores, structured numeric values, and code-adjacent data. Do not revive Cinzel or Inter for native Omen UI.
 - **Team-color tokens and team skins are out of the phone MVP.** Keep brass, verdigris, crimson, and semantic status roles stable. Team skins remain a future founder decision after core accessibility and parity.
 - **M0b is inventory/rules; M1 is build briefs.** M0b documents tokens, component registry, states, accessibility, typography, platform differences, and theme boundaries. Per-component SwiftUI/Compose briefs and any component code start in M1.
+
+## Decisions Added 2026-07-19 (Native build environment)
+
+- **Do not require a Mac purchase for Omen native delivery.** Justin does not have a Mac capable of running Xcode and will not buy one. Native contracts and Figma work may continue on the current Windows workspace; M2 project scaffolding needs a separately selected, non-purchase iOS build/validation path and Android toolchain plan before code begins. Do not assume a paid hosted-Mac service or create cloud spend without explicit approval.
