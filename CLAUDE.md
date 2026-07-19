@@ -29,6 +29,18 @@ If a file is missing, continue and mention it.
 - `Blueprints/api-routes.md` — API contracts
 - `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
 
+## Native mobile read gate
+
+For any native iPhone, Android, mobile design-system, mobile onboarding, provider-connection, or mobile release task, read these before planning or code:
+
+1. `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
+2. `Blueprints/specs/mobile/omen-native-design-house-v1.md`
+3. `Blueprints/specs/mobile/omen-native-delivery-governance-v1.md`
+4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
+5. Relevant approved Figma screen/component and API/state contract
+
+Do not start native feature code when any of those sources are missing or conflict. Flag the gap instead.
+
 ## Kickoff
 
 Paste `Blueprints/prompts/kickoff-frontend-claude.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
