@@ -11,7 +11,7 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**Current next task:** M0a — review and split `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` into the Omen auth, provider-state API, native navigation, Sleeper proof, Yahoo OAuth proof, ESPN feasibility, and Demo Mode briefs. Use `omen-native-design-house-v1.md` and `omen-native-delivery-governance-v1.md` as mandatory companion authorities. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, or claim that ESPN is mobile-ready.
+**Current next task:** M0b — establish the controlled native canvas and agent capability baseline. Read `omen-native-agent-capabilities-canvas-v1.md`, then turn the approved Design House into a reviewable token/component/screen registry. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, change Figma permissions, or claim that ESPN is mobile-ready.
 
 No pinned implementation task.
 
@@ -36,6 +36,8 @@ Last completed pull: **B2 - Implement unified Omen recommendation layer** on bra
 - **Next action:** produce approve/revise/close recommendation and reconciliation table.
 
 ## Auto-Populated Top 5
+
+**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the pinned M0b task above or an explicitly pinned M0a/M0c mobile-contract brief instead.
 
 Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
 

@@ -212,3 +212,10 @@ Omen should feel like a personal fantasy front office that happens to live nativ
 > The board is clear. The move is visible. The risk is honest. You know what to do next.
 
 Not like a dashboard, not like a sportsbook, and not like a webpage stuffed inside an app.
+
+
+## 13. Controlled canvas
+
+The official canvas is [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) (file key `mWjrAKPi4JSIP5lAmGAtB3`). Its pages, ownership, approval path, and Figma integrity rules are governed by `omen-native-agent-capabilities-canvas-v1.md`.
+
+Agents begin at `00 — Start Here`. A visual pattern must be approved as a component on `03 — Components` before it appears on an iOS or Android screen.
