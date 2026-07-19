@@ -604,3 +604,9 @@
 ## Decisions Added 2026-07-19 (Native build environment)
 
 - **Do not require a Mac purchase for Omen native delivery.** Justin does not have a Mac capable of running Xcode and will not buy one. Native contracts and Figma work may continue on the current Windows workspace; M2 project scaffolding needs a separately selected, non-purchase iOS build/validation path and Android toolchain plan before code begins. Do not assume a paid hosted-Mac service or create cloud spend without explicit approval.
+- **M2-E selected local Android plus zero-billed iOS simulator validation.** Android uses the Studio-managed SDK, ADB, emulator, and `Medium_Phone` Android 17/API 37.1 profile verified on this Windows machine. The iOS path is a future non-signing GitHub-hosted macOS simulator job, only when explicitly approved and only within included Actions capacity; if that capacity is unavailable, it blocks rather than incurs spend. No local Xcode, signing, TestFlight, store account, or real-iPhone validation is implied.
+
+## Decisions Added 2026-07-19 (M2 native app-shell scaffold)
+
+- **M2 is a compile-safe shell, not a provider or release implementation.** The new SwiftUI and Compose projects share the approved bundle/deep-link identifier, safe placeholder environment values, local demo entry, session state seam, and top-level navigation placeholders. They do not contain provider OAuth, secure-token persistence, backend calls, signing identities, App Store configuration, secrets, or production URLs.
+- **Android is locally verified; iOS remains CI-gated.** The Android debug APK builds and launches on the local emulator. Because this Windows workspace has no Xcode-capable Mac, iOS project compilation must wait for a separately authorized, no-billed-usage macOS simulator CI job. This is a validation gap, not permission to add CI, signing, or TestFlight work.

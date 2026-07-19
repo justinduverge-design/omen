@@ -38,3 +38,10 @@ client/dist/
 client/node_modules/
 frontend/dist/
 frontend/node_modules/
+
+# Native local tooling
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/**/build/
+mobile/ios/**/DerivedData/
+mobile/ios/**/.swiftpm/

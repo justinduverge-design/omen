@@ -13,7 +13,9 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
 
-**Current next task:** **M2-E — Native build-environment decision** (P0). Choose a non-purchase iOS build/validation path and an Android toolchain plan. The current Windows workspace has no Swift/Xcode, Java/Gradle, Android SDK, or ADB; Justin will not buy a Mac. Define owner, cost posture, device/CI evidence, and residual limitation. Do not scaffold native projects, install tools, create hosted-service spend, use store credentials, or change production configuration without separate approval.
+**Last completed pull:** **M2 — Native app-shell project scaffolding** (P0). iOS SwiftUI and Android Compose shells now have safe environment seams, local demo entry, session/navigation placeholders, and `com.slopssaloon.omen` deep-link registration. Android debug build plus local emulator install/launch passed. iOS compilation remains a future non-signing macOS CI action; no signing, store, provider, or credential action occurred. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`.
+
+**Current next task:** **M3 — Native vertical slice** (P1) needs an explicit scoped authorization. It must prove the approved Welcome → Demo → Sign in → Command Center → Omen path on both shells without adding provider integration, credentials, signing, store work, or a production change.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
