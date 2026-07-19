@@ -38,10 +38,10 @@ The sprint defines M0a done when *"Omen sign-in, demo escape hatch, provider sta
 
 ## 3. Required revisions
 
-### R1 — Reconcile the Welcome promise copy (blocking for approval)
+### R1 — Reconcile the Welcome promise copy — RESOLVED
 
-The contract §4 uses **"See the move before the league does."** Current shipped web `Landing.jsx` copy (Phase 1.10B, 2026-06-25) is **"See the result before it happens."** A third variant, **"Know the move,"** survives in a stale QA driver assertion (`known_issues.md` line 34). The mobile contract must not silently introduce a third canonical promise.
-**Disposition needed:** pick one canonical Welcome/hero promise for Omen across web + native, route the wording through `slops-ux-copy`, and update the contract to cite it rather than coin a new line.
+The contract §4 uses **"See the move before the league does."** Current shipped web `Landing.jsx` copy (Phase 1.10B, 2026-06-25) is **"See the result before it happens."** A third variant, **"Know the move,"** survives in a stale QA driver assertion (`known_issues.md` line 34).
+**Disposition (Justin, 2026-07-19):** the canonical product promise is **"See the move before the league does."** The mobile contract §4.1 wording stands. The shipped web `Landing.jsx` line becomes the one to realign when web work resumes (paused under the native pivot). No new coinage remains.
 
 ### R2 — Name the deep-link + Yahoo-callback dependency explicitly
 
