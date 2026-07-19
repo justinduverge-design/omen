@@ -2,6 +2,11 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (Dev-Tool Audit Remediation)
+
+- **Promptfoo is pinned to `0.121.19` and `adm-zip` is overridden to `0.6.0`.** The dev-only Promptfoo evaluation chain previously resolved vulnerable `adm-zip@0.5.x`; the explicit root override keeps `onnxruntime-node` on the patched release until Promptfoo updates its own range.
+- **The override is validated, not assumed.** Clean `npm ci`, full backend tests, frontend build, Promptfoo mock evaluation, and both production and full dependency audits pass. No runtime source, production dependency, auth, provider, schema, or deploy behavior changed.
+
 ## Decisions Added 2026-07-19 (M0c — App-Shell/Auth/API Contract Approved)
 
 - **M0c is approved.** `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` defines the native app shell (navigation/route table), auth/session (three mechanisms + Keychain/Keystore), deep links, safe provider-state API mapping, idempotency, demo mode, and environment boundaries. The full M0 contract pack (M0a/M0b/M0c) is now approved; **M1 is unblocked**.
