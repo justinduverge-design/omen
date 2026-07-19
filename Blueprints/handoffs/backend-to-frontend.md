@@ -6,6 +6,23 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## M0-BE F2 — Omen readiness truth (2026-07-19)
+
+Status: Implemented locally on `codex/m0be-f2-status-truth`; not pushed, merged, deployed, or production-smoked.
+
+Native and web clients use `GET /api/dashboard/summary` as the one Omen readiness source:
+
+- `ready`: an active Yahoo, Sleeper, or ESPN connection has the provider-specific context needed to attempt `POST /api/omen/mvp-move`.
+- `pending_live_engine`: a platform row is active but lacks that context.
+- `off_season`: usable context exists but the shared NFL calendar is off-season.
+- `needs_platform`: no active platform connection exists.
+
+`ready` does not guarantee a recommendation. Call the canonical POST only for `ready`, then render its existing `success`, `empty`, or safe recovery state. Do not infer a second provider-readiness rule in native code.
+
+Implementation: `src/services/omenReadiness.js` is shared by dashboard classification and Sleeper/ESPN MVP selection. Yahoo preserves its existing live-route recovery selection semantics.
+
+Verification: focused readiness/dashboard/live-MVP tests 25/25; full `npm test` 395/395. No response fields, routes, credential flows, schema, or provider calls changed.
+
 ## B1 Unified Omen Recommendation Contract — 2026-07-19
 
 Feature name: Unified Omen recommendation contract.

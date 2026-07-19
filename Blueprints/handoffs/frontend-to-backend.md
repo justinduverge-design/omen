@@ -8,7 +8,7 @@ Codex/backend reads this file before backend work and responds in `backend-to-fr
 
 ## 2026-07-19 — Native mobile backend requirements (from approved M0c)
 
-Source contract: `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` (Approved). These four are foundational for the native apps, especially before any real connected-league screen (M3).
+Source contracts: `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` (Approved) and `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` (shared implementation contract). These four are foundational for the native apps, especially before any real connected-league screen (M3).
 
 **Delivery shape (Justin):** one owner, **one shared API/state contract + one acceptance-test matrix authored first**, then **four small PRs** (not one giant PR). Pin F2 first.
 

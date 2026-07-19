@@ -5,7 +5,7 @@
 **Owner:** Native mobile foundation
 **Purpose:** Define the native app shell (navigation + environments), the auth/session contract, deep links, the safe provider-state API, idempotency, and demo mode — the concrete engineering contract deferred from the approved M0a onboarding contract.
 **Applies to:** SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
-**Companions:** `omen-mobile-onboarding-connection-contract-v1.md` (**Approved**), `omen-native-design-system-registry-v1.md` (**Approved**), `omen-native-mobile-foundation-v1.md` (v1), `omen-native-agent-capabilities-canvas-v1.md` (v1).
+**Companions:** `omen-mobile-onboarding-connection-contract-v1.md` (**Approved**), `omen-native-design-system-registry-v1.md` (**Approved**), `omen-native-mobile-foundation-v1.md` (v1), `omen-native-agent-capabilities-canvas-v1.md` (v1), `omen-native-backend-state-contract-v1.md` (M0-BE shared implementation contract).
 **Grounded in backend truth:** `Blueprints/api-routes.md` (platform/connect/dashboard/omen routes), `Direction/context.md` Current Build Truth, `Direction/facts-of-record.md`.
 
 > **Figma reality:** the Design House (`mWjrAKPi4JSIP5lAmGAtB3`) is a stub (`00 — Start Here`). This Markdown is the behavioral source of truth.

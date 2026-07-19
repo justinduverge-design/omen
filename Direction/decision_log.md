@@ -7,6 +7,13 @@
 - **Promptfoo is pinned to `0.121.19` and `adm-zip` is overridden to `0.6.0`.** The dev-only Promptfoo evaluation chain previously resolved vulnerable `adm-zip@0.5.x`; the explicit root override keeps `onnxruntime-node` on the patched release until Promptfoo updates its own range.
 - **The override is validated, not assumed.** Clean `npm ci`, full backend tests, frontend build, Promptfoo mock evaluation, and both production and full dependency audits pass. No runtime source, production dependency, auth, provider, schema, or deploy behavior changed.
 
+## Decisions Added 2026-07-19 (M0-BE F2 — Omen Readiness Truth)
+
+- **Dashboard is the single app-shell readiness source.** `GET /api/dashboard/summary` owns `tools.omen_of_the_week.status`; native and web clients call canonical `POST /api/omen/mvp-move` only for `ready`.
+- **`ready` means a safe live attempt, not a guaranteed recommendation.** An active Yahoo, Sleeper, or ESPN connection with provider-specific usable context is `ready`; the POST may still return its existing `success`, `empty`, or safe recovery state. An active but incomplete connection is `pending_live_engine`; `off_season` applies only after usable context; no active connection is `needs_platform`.
+- **Sleeper/ESPN eligibility now comes from one shared backend rule.** `src/services/omenReadiness.js` is consumed by dashboard classification and live-MVP selection so the two cannot drift. Yahoo preserves its existing live-route recovery selection semantics.
+- **The M0-BE contract/matrix is now authoritative for the four backend PRs.** See `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md`; Yahoo deep-link return, provider-state API, and idempotent connection work remain separate PRs.
+
 ## Decisions Added 2026-07-19 (M0c — App-Shell/Auth/API Contract Approved)
 
 - **M0c is approved.** `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` defines the native app shell (navigation/route table), auth/session (three mechanisms + Keychain/Keystore), deep links, safe provider-state API mapping, idempotency, demo mode, and environment boundaries. The full M0 contract pack (M0a/M0b/M0c) is now approved; **M1 is unblocked**.

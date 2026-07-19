@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const { isOmenReadyConnection } = require("./omenReadiness");
 const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -58,17 +59,14 @@ function selectUsableYahooMvpConnection(connections = []) {
 function selectUsableSleeperMvpConnection(connections = []) {
   return connections.find((row) =>
     row.platform === "sleeper"
-    && row.platform_username
-    && hasUsableLeagueId(row)
+    && isOmenReadyConnection(row)
   ) || null;
 }
 
 function selectUsableEspnMvpConnection(connections = []) {
   return connections.find((row) =>
     row.platform === "espn"
-    && row.espn_secret_id
-    && row.swid_secret_id
-    && hasUsableLeagueId(row)
+    && isOmenReadyConnection(row)
   ) || null;
 }
 
