@@ -11,7 +11,7 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**Current next task:** M0 — turn the approved foundation into small contract briefs: mobile screen map, token/theme contract, component registry, mobile API/state matrix, onboarding/navigation flow, and ESPN mobile-scope decision. This is planning only; do not create native projects, touch web pages, deploy, alter secrets, or decide provider flows by assumption.
+**Current next task:** M0a — review and split `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` into the Omen auth, provider-state API, native navigation, Sleeper proof, Yahoo OAuth proof, ESPN feasibility, and Demo Mode briefs. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, or claim that ESPN is mobile-ready.
 
 No pinned implementation task.
 
