@@ -38,7 +38,8 @@ For any native iPhone, Android, mobile design-system, mobile onboarding, provide
 3. `Blueprints/specs/mobile/omen-native-delivery-governance-v1.md`
 4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
 5. `Blueprints/specs/mobile/omen-native-agent-capabilities-canvas-v1.md`
-6. Relevant approved Figma screen/component and API/state contract
+6. `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
+7. Relevant approved Figma screen/component and API/state contract
 
 Do not start native feature code when any of those sources are missing or conflict. Flag the gap instead.
 
