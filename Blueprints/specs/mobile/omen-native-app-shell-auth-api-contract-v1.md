@@ -1,6 +1,6 @@
 # Omen Native App-Shell / Auth / API Contract v1 (M0c)
 
-**Status:** Proposed M0c contract — founder review required
+**Status:** **Approved M0c contract** (Justin, 2026-07-19)
 **Date:** 2026-07-19
 **Owner:** Native mobile foundation
 **Purpose:** Define the native app shell (navigation + environments), the auth/session contract, deep links, the safe provider-state API, idempotency, and demo mode — the concrete engineering contract deferred from the approved M0a onboarding contract.
@@ -80,9 +80,9 @@ Top-level destinations (limited): **Command Center · Omen · Trade · Draft · 
 
 ## 3. Deep-link contract
 
-- **Custom URL scheme:** `omen://` (proposed — see §12 decision). Optionally add iOS Universal Links / Android App Links later for https deep links.
-- **Registered return paths:** `omen://auth/callback` (Yahoo OAuth return), `omen://auth/verify` (email confirm if used). Registered as Supabase redirect URLs and in the native app manifests/entitlements.
-- **Backend change required:** `GET /api/yahoo/callback` currently redirects to the **web** Account page. For native, the callback must return to the registered deep link (or a mobile-aware return that hands control back to the app). This is a backend requirement (§11), not yet implemented.
+- **Custom URL scheme:** `com.slopssaloon.omen://` (reverse-DNS — approved 2026-07-19; collision-resistant and not user-facing). Add verified iOS Universal Links / Android App Links (https) later. A custom scheme is the appropriate first auth-callback pattern and is supported by both Apple and Supabase. [Apple: custom URL scheme](https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app) · [Supabase native deep linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking)
+- **Registered return paths:** `com.slopssaloon.omen://auth/callback` (Yahoo OAuth return), `com.slopssaloon.omen://auth/verify` (email confirm if used). Registered as Supabase redirect URLs and in the native app manifests/entitlements.
+- **Backend change required:** `GET /api/yahoo/callback` currently redirects to the **web** Account page. For native, the callback must return to `com.slopssaloon.omen://auth/callback` (or a mobile-aware return that hands control back to the app). This is a backend requirement (§11), not yet implemented.
 - **Robustness (from M0a §6/§7):** app backgrounding/termination during return must recover; a killed app relaunched via deep link resumes the correct connection stage; double-invocation is idempotent (§5).
 
 ## 4. Safe provider-state API
@@ -155,13 +155,13 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 3. **Idempotency verification** (and implementation if needed) of connect/validate, keyed by client request ID.
 4. **F2 resolution** — one status truth for `ready` vs `pending_live_engine` for connected Sleeper/ESPN users.
 
-None of these are implemented here; they are contract requirements for a separate, approved backend task.
+**Delivery shape (Justin, 2026-07-19):** one owner, **one shared API/state contract**, and **one acceptance-test matrix** across all four — but delivered as **four small PRs**, not one large risky PR. The shared contract and test matrix are authored once before the first PR; each PR lands one requirement against them.
 
-## 12. Open decisions requested
+## 12. Decisions — RESOLVED (Justin, 2026-07-19)
 
-1. **URL scheme:** approve `omen://` as the custom scheme (and whether to also pursue Universal/App Links now or later). *(Recommended: `omen://` now, https app links later.)*
-2. **Pin F2** alongside M0c so the status-truth dependency is resolved before the vertical slice (M3). *(Recommended: yes.)*
-3. **Backend requirements §11** — confirm these route to the backend lane as a bundled task, not implemented under any M0/M1 design item. *(Recommended: yes.)*
+1. **URL scheme:** ✅ **`com.slopssaloon.omen://`** (reverse-DNS custom scheme; collision-resistant, not user-facing). Verified https Universal/App Links added later. Callback: `com.slopssaloon.omen://auth/callback` (§3).
+2. **Pin F2:** ✅ yes — pinned alongside M0c; a screen cannot honestly show "connected/ready/syncing" while the backend definition is ambiguous. Must resolve before M3.
+3. **Backend requirements §11:** ✅ routed to the backend lane as **one owner + one shared API/state contract + one acceptance-test matrix, delivered as four small PRs** (not one giant PR).
 
 ## 13. Evidence
 

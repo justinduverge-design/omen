@@ -11,13 +11,13 @@
 
 Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
 
-**M0a + M0b approved (Justin, 2026-07-19).** `omen-mobile-onboarding-connection-contract-v1.md` and `omen-native-design-system-registry-v1.md` are approved contracts. Evidence: `Direction/reviews/2026-07-19-m0a-*`, and the registry itself.
+**M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`.
 
-**Current next task:** M0c — native app-shell/auth/API contract. Owns the concrete auth spec deferred from M0a: native ID-token (Apple/Google) vs system-browser+PKCE (Yahoo) vs email-OTP; Yahoo deep-link return (not built — callback returns to web today); provider state-machine→backend mapping; connect/validate idempotency; secure token storage; navigation/session/demo/environment boundaries. **Recommend pinning F2** (`ready` vs `pending_live_engine`) alongside it. Planning/contract only; no native projects, web pages, deploy, secrets, or Figma-permission changes.
+**Current next task:** M1 — native design-system implementation plan. Write small SwiftUI + Compose foundation-component build briefs from the approved `omen-native-design-system-registry-v1.md`. **First two per registry §7:** add the semantic `focus-ring` token (non-color: visible outline + native focus/selection, never brass-alone) and lock the Alegreya stack (Sans/serif/DM Mono). Planning/briefs only; no native project scaffolding yet (that is M2).
 
-**Then M1** — native design-system implementation plan: small SwiftUI/Compose foundation-component build briefs from the approved registry. First per registry §7: add semantic `focus-ring` (non-color) and lock the Alegreya stack. Blocked by M0c for the app-shell pieces but foundation-component briefs can begin from the registry.
+**In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M0b — Native design-system registry** on branch `docs/m0b-native-design-system-registry` (approved). M0a merged via PR #148.
+Last completed pull: **M0c — App-shell/auth/API contract** on branch `docs/m0c-app-shell-auth-api-contract` (approved). M0a→PR #148, M0b→PR #150 (both merged).
 
 ## Open PR gates
 

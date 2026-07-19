@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (M0c — App-Shell/Auth/API Contract Approved)
+
+- **M0c is approved.** `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` defines the native app shell (navigation/route table), auth/session (three mechanisms + Keychain/Keystore), deep links, safe provider-state API mapping, idempotency, demo mode, and environment boundaries. The full M0 contract pack (M0a/M0b/M0c) is now approved; **M1 is unblocked**.
+- **Custom URL scheme is reverse-DNS: `com.slopssaloon.omen://`** (callback `com.slopssaloon.omen://auth/callback`). Chosen over bare `omen://` — collision-resistant, not user-facing. Verified https Universal/App Links come later. Custom scheme is the appropriate first auth-callback pattern (Apple + Supabase support it).
+- **F2 is pinned (P0).** A native screen cannot honestly show connected/ready/syncing while `ready` vs `pending_live_engine` is ambiguous. F2 must resolve before the M3 vertical slice and before the backend bundle lands.
+- **Four native backend requirements are foundational M0c requirements**, routed to the backend lane via `frontend-to-backend.md`: (1) mobile-aware Yahoo OAuth deep-link return, (2) safe provider-state API with opaque error codes, (3) connect/validate idempotency by request ID, (4) F2 status-truth resolution.
+- **Delivery shape for the backend bundle:** one owner, one shared API/state contract, one acceptance-test matrix authored first — then **four small PRs**, not one giant risky PR.
+- **No native code under M0c.** Native scaffolding is M2; foundation-component briefs are M1; per-screen work is M3/M4.
+
 ## Decisions Added 2026-07-19 (M0b — Native Design-System Registry Approved)
 
 - **M0b is approved.** `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md` is the approved native token/component registry. M1 (component build briefs) builds from it. Native tokens **mirror the existing web `--color-*` contract** so web/SwiftUI/Compose stay one system.
