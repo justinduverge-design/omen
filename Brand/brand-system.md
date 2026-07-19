@@ -1,6 +1,6 @@
 # Omen Brand System
 
-**Status:** Canonical | Last updated: 2026-06-22
+**Status:** Canonical | Last updated: 2026-07-19
 **Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
 **Logos:** canonical asset set at `logos/` (13 files) — primary emblem (shield), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), full brand board, and PNG preview sheet. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
@@ -153,7 +153,13 @@ between unrelated display and reading fonts.
 
 **Feel:** Dark, strategic, observant, premium. No clutter. No neon sports bar energy. Presentation-worthy at full scale.
 
-**Animation:** Subtle. 150ms ease-in-out for state changes. No bouncy or game-like motion.
+**Native platform expression:** Omen is one design house, expressed through the phone’s own language. iPhone uses SwiftUI and Apple-native behavior; Android uses Kotlin/Jetpack Compose and Material 3. The shared brand owns hierarchy, copy, semantic color roles, and component intent—not identical pixels.
+
+**iPhone Liquid Glass:** Treat Apple’s Liquid Glass as a native material for navigation, tab bars, toolbars, compact action controls, search, and transient sheets. It is not an all-purpose Omen card style. Decision briefs, provider data, errors, recovery instructions, and long reading copy stay on calm, high-legibility Omen surfaces. Respect Reduce Transparency and use the platform fallback rather than hand-built fake blur.
+
+**Android material:** Use Material 3’s adaptive layout and feedback behavior. Do not port iPhone glass to Android or let dynamic color override Omen’s semantic status colors.
+
+**Animation:** Subtle and functional. 150–250ms feedback/progress as appropriate to the platform. Motion reveals state change; it never delays a task, becomes game-like spectacle, or hides loading.
 
 **Accessibility:** Color is never the only differentiator — confidence and risk always carry labels. WCAG AA minimum contrast. All interactive elements keyboard-navigable. Focus rings: visible, gold accent, consistent across themes.
 

@@ -23,6 +23,18 @@ One short instruction per task. The folder carries the context; you approve the 
 4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions.
 5. **Agent leaves a skill receipt** — records evidence in `Blueprints/playbooks/skill-usage-ledger.md` and routes any procedure gap through the retro/backlog.
 
+## Native mobile design loop
+
+For any iPhone, Android, onboarding, provider, native component, or mobile release task, the normal five steps are expanded by `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`:
+
+1. Read the native source-of-truth stack and the approved Figma node.
+2. Define the state/API/security contract before visual or code work.
+3. Research current Apple/Android behavior when it is uncertain.
+4. Make the Figma/component contract, then build the smallest approved native slice.
+5. Attach device, accessibility, state, Figma, and security evidence before review.
+
+The iPhone path uses Liquid Glass only at system-chrome/control boundaries. Android remains Material 3-native. A visual concept is not implementation approval until it has the required state and evidence contract.
+
 ## Pin override
 
 If you want a specific task no matter what the auto-pull surfaces:

@@ -71,6 +71,16 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 | `slops-mobile-smoke` | Required for UI implementation | Automated phone viewport check before real-device gate | Viewport findings and screenshots |
 | `slops-product-pulse` | Required post-live cadence | 24h/7d/30d operating review or post-release measurement | Usage/performance/error/follow-up report |
 
+## Native mobile execution bundle
+
+Native tasks use the controlled sequence in `native-mobile-design-delivery-workflow-v1.md`.
+
+- **Design contract:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-design-system-pack`; add `slops-taste`, `slops-ux-copy`, `workflow-tree-spec`, and `pre-build-research` when the task needs them.
+- **Screen/component implementation:** core implementation bundle plus `slops-mobile-smoke` and `slops-ui-ux-audit`.
+- **Auth/provider/onboarding:** implementation bundle plus `workflow-tree-spec`, `security-privacy-evidence`, and `rbac-risk-review`; add `slops-legal-spot-check`, `demo-mode-pre-empty-state`, and `slops-verify` when triggered.
+- **Real-device/release:** `slops-verify`, `mobile-first-qa-playbook`, `slops-quality-baseline`; add `slops-ship`, `slops-canary`, and `slops-retro` at the authorized release gate.
+- **Figma runtime tools:** when available, use `figma-use` for controlled canvas changes, `figma-swiftui` for iOS translation, and `figma-generate-library` before reusable Figma components. These do not replace the SLOPS evidence gates.
+
 ## Coverage Rule
 
 The routing matrix must contain exactly one row for every entry in the L0 Current SLOPS Skills table, including parked and retired entries. Verification fails on a missing or duplicate name.
