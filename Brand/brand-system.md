@@ -143,13 +143,11 @@ Plain English. No jargon without explanation. Be precise — vague language erod
 **Updated:** Aged Brass `#A67C2E` replaces Antique Gold `#B8952A` for a more weathered, premium feel.
 
 **Typography:**
-- Headings, display, Omen card titles, labels, buttons: Alegreya Sans
+- Headings, display, Omen card titles, labels, buttons, and controls: Alegreya Sans
 - Body text and long-form reading copy: Alegreya
+- Scores, structured numeric values, and code-adjacent data: DM Mono
 
-Do not use Cormorant Garamond. It has been replaced by the Alegreya family pair:
-Alegreya Sans for headings and UI, Alegreya for body text. The two faces share
-letter proportions and curves, so the interface feels harmonious instead of split
-between unrelated display and reading fonts.
+Do not use Cormorant Garamond, Cinzel, or Inter as Omen product typography. The locked system is Alegreya Sans for headings/UI, Alegreya for reading copy, and DM Mono for numeric/code-adjacent data. The Alegreya pair shares letter proportions and curves, so the interface feels harmonious instead of split between unrelated display and reading fonts.
 
 **Feel:** Dark, strategic, observant, premium. No clutter. No neon sports bar energy. Presentation-worthy at full scale.
 
@@ -161,7 +159,7 @@ between unrelated display and reading fonts.
 
 **Animation:** Subtle and functional. 150–250ms feedback/progress as appropriate to the platform. Motion reveals state change; it never delays a task, becomes game-like spectacle, or hides loading.
 
-**Accessibility:** Color is never the only differentiator — confidence and risk always carry labels. WCAG AA minimum contrast. All interactive elements keyboard-navigable. Focus rings: visible, gold accent, consistent across themes.
+**Accessibility:** Color is never the only differentiator — confidence and risk always carry labels. WCAG AA minimum contrast. All interactive elements keyboard-navigable. Focus treatment: a semantic `focus-ring` token with a visible outline plus appropriate focus/selection behavior. Brass may be part of the expression, but color alone is never the sole indicator.
 
 ---
 
