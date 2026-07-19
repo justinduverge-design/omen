@@ -1,85 +1,149 @@
 # Omen Agent Inbox
 
-**Refreshed 2026-07-12 (Claude kickoff auto-populate).** Prior Active Task, Team theme removal, is confirmed shipped: PR #114 merged to `main` (`616a840`), verified via GitHub before pulling new work. Removed as active, not re-pulled. Per the prior refresh's Top 5, pulled **Phase 4.20d — Store metadata, privacy-label, and gambling/DFS copy audit (P1)** next. Complete locally on branch `claude/omen-kickoff-t71pkn`: full-file review of `Landing.jsx`, `OmenLanding.jsx`, `Onboarding.jsx`, `README.md` found no gambling/DFS/wagering language; found and fixed two high-severity unqualified-platform-claim gaps (Onboarding's "Supported platforms" card, README's platform/status tables) by adding the Phase 4.16 packet's already-approved attribution clause. `npm run build` clean; `npm test` unchanged from pre-change baseline (183/253, pre-existing failures). Not pushed/merged/deployed. Evidence: `Direction/reviews/2026-07-12-store-metadata-privacy-gambling-copy-audit.md`. Handoff: `Blueprints/handoffs/2026-07-12-phase4-20d-store-metadata-copy-audit.md`.
-**Refreshed 2026-07-08 (Phase 4.20c reviewer/demo access playbook complete locally; kickoff auto-populate; #2 mobile kill-switch confirmed shipped and merged).** Phase 4.20a merged to `main` via PR #91 (squash `9506ea5`). Pulled **Phase 4.20c — Reviewer / demo access documentation (P0)** next, per the prior refresh's Top 5. Complete locally on branch `claude/omen-kickoff-439aq7` (branch restarted from `origin/main` after the 4.20a squash-merge): new `Blueprints/playbooks/app-store-reviewer-access.md` documents sending reviewers to the public, no-auth `/demo` route plus secondary `/trade`/`/draft` surfaces, and states plainly that the authenticated dashboard has no reviewer bypass. Evidence in `Blueprints/handoffs/2026-07-08-app-store-reviewer-access.md`. New active task set below is the next unstarted item from the prior Top 5: **Phase 4.20d — Store metadata, privacy-label, and gambling/DFS copy audit (P1)**.
-**Refreshed 2026-07-08 (Phase 4.20a mobile-build kill-switch complete locally; kickoff auto-populate; #1 vault fix confirmed shipped).** The 2026-07-06 Active Task (Vault secretId plaintext logging fix) is confirmed shipped — PR #87 merged/deployed 2026-07-07, per `Blueprints/handoffs/2026-07-06-vault-secretid-logging-fix.md` — so it is removed as active and not re-pulled. Per that handoff's own "Next Step" line and this inbox's prior #2 ranking, pulled **Phase 4.20a — Mobile-build kill-switch layer (P0)** next. Complete locally on branch `claude/omen-kickoff-439aq7`: new `VITE_APP_STORE_BUILD` flag suppresses Stripe checkout/portal, all "Omen Pro" copy, and ESPN connect (including recovery/reconnect bypasses) in app-store builds; Yahoo/Sleeper unaffected. Evidence in `Blueprints/handoffs/2026-07-08-app-store-kill-switch.md`. New active task set below is the next unstarted item from the prior Top 5: **Phase 4.20c — Reviewer / demo access documentation (P0)**.
-**Refreshed 2026-07-07 (Claude kickoff auto-populate).** Vault secretId plaintext logging fix (P0 security), the prior Active Task, is confirmed shipped: PR #87 squash-merged to `main` as `aaf4ca6`, deploy run `28835705215` green, post-deploy health/ready reverified. Evidence: `Blueprints/handoffs/2026-07-06-vault-secretid-logging-fix.md`. No pin present in this file. Re-ran the auto-populate mechanic against `current_sprint.md`'s current unchecked items — see refreshed Top 5 and new Active Task below.
-**Refreshed 2026-07-05 (Phase 2.13 Trade Analyzer Strategy + Mock Buy Low content rewrite complete, merged, deploy triggered).** Phase 2.13 closed on branch `frontend/phase2-13-trade-strategy-copy`: all 4 `TRADE_TIPS` bullets rewritten (Justin picked Option C), 3 of 5 Mock Buy Low `reason` lines rewritten, Depth bullet no longer ends with "Build roster depth now." Evidence in `Blueprints/handoffs/2026-07-05-phase2-13-trade-strategy-copy-rewrite.md`. Discovered and filed a new Decisions-lane item: `tradePulse.js` has no data-refresh mechanism despite its own "updated each preseason" copy. No pinned task remains — next unchecked items per `current_sprint.md` lead with Phase 2.14 (Standings team-switching UX).
-**Refreshed 2026-07-05 (Phase 2.12 Trade Analyzer form redesign complete locally).** Phase 2.12 is complete on `codex/phase2-12-trade-form-redesign`: `/trade` now uses position buttons instead of dropdowns, sends explicit scoring format, exposes an honest Multi-team net-side mode, adds a desktop swap cue, VORP help, and a shared MockBanner for buy-low targets. Evidence is in `Blueprints/handoffs/2026-07-05-phase2-12-trade-form-redesign.md`.
-**Refreshed 2026-07-05 (Phase 2.11 signal-honesty labels complete locally).** Phase 2.11 is complete on `codex/phase2-11-signal-honesty-labels`: Omen recommendation signals now render as visible Live / Stub / Mock / Unavailable input-honesty labels using data-source tokens, with public demo signals display-normalized to Mock. Evidence is in `Blueprints/handoffs/2026-07-05-phase2-11-signal-honesty-labels.md`. No push, merge, deploy, backend route, schema, auth, provider, package, env, or SQL change happened.
-**Refreshed 2026-07-05 (Codex kickoff auto-populate).** No pinned task. Phase 1.15 and Phase 2.18 are complete locally per latest handoffs, so they are not re-pulled. Next active build item is Phase 2.11 — FP1 signal-honesty labels. Current repo branch at kickoff: `tooling/authenticated-route-driver`; worktree clean.
-**Refreshed 2026-07-05 (Phase 2.18 Waiver Wire route activation complete locally; after Phase 2.10 trade share card merged via PR #80).** Phase 2.18 is complete locally on `frontend/phase2-18-waiver-wire-activation`: `/waiver` is routed and nav-reachable, the doctrine-stale `ProGate` is removed, position chips use the shared helper, and the page's Tailwind literals are swept onto design-system tokens. Evidence is in `Blueprints/handoffs/2026-07-05-phase2-18-waiver-wire-activation.md`. Phase 2.10 (trade share card) is confirmed merged to `origin/main` via PR #80 (`6cd554b`) — local `main` fast-forwarded to match. Phase 2.9 is complete on `codex/phase2-9-account-delete-ui`. Phase 1.14 is complete: PR #75 and PR #76 deploy runs both completed successfully. Phase 1.13 is complete and merged via PR #75.
-**Refreshed 2026-07-05 (Phase 1.15 post-deploy visual smoke complete locally; Phase 2.10 trade share card complete locally; Phase 2.9 account delete UI conflict resolution; after Phase 1.14 deploy verification and canonical off-season signal).** Phase 1.15 is complete locally on `codex/phase1-15-post-deploy-visual-smoke`: deploy workflow now has a public-route logo smoke for `/`, `/about`, and `/login`, and `/login` now uses the transparent Omen lockup image. Evidence is in `Blueprints/handoffs/2026-07-05-phase1-15-post-deploy-visual-smoke.md`. Phase 2.10 is complete locally on `frontend/phase2-10-trade-share-card`: `/trade` can create a public share link, `/trade/share/:hash` renders the public card, and `/api/trade/share/:hash/og.svg` serves the server-side OG SVG. Evidence is in `Blueprints/handoffs/2026-07-04-phase2-10-trade-share-card.md`. Phase 2.9 is complete on `codex/phase2-9-account-delete-ui`: `/account` now exposes Omen data deletion through the mounted `/api/user/delete` route, with evidence in `Blueprints/handoffs/2026-07-04-phase2-9-account-delete-ui.md`. Phase 1.14 is complete: PR #75 and PR #76 deploy runs both completed successfully, current prod serves the transparent Omen lockup bundle/asset, and `.github/workflows/deploy.yml` has a post-health bundle-level logo verification step. Phase 1.13 is complete and merged via PR #75; remaining mobile/ARIA polish items are follow-ups, not Phase 1.13 blockers. The Cowork mobile-QA P1s are resolved or routed through the rate-limit and canonical off-season work now in `origin/main`.
+**Refreshed:** 2026-07-18  
+**Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
-## Active Task
+## Active task
 
-No pinned task. Phase 4.20b public legal/support pages completed locally on 2026-07-13; see `Blueprints/handoffs/2026-07-13-phase4-20b-public-legal-support-pages.md`.
-No pinned task. The orphaned `src/omen_gdpr.js` cleanup is complete locally on `codex/p1-retire-orphan-gdpr` (code commit `26441a1`); see `Blueprints/handoffs/2026-07-13-orphaned-gdpr-module-retirement.md`.
+No pinned implementation task.
 
-## Auto-Populated Top 5
+The current docs-only task is **sprint grooming + skill routing** on branch `docs/sprint-grooming-skill-routing`. It must not mutate app code, packages, SQL, deploy configuration, secrets, or production infrastructure.
 
-**Refreshed 2026-07-13 (Codex kickoff auto-populate).** No pin is present. The Phase 4.20b public legal/support-pages work is complete locally; the next unblocked agent-buildable P1 is the orphaned GDPR module cleanup. Verify-lane work remains surfaced but is not auto-pulled under the standing rule.
+## Open PR gates
 
-1. **Delete or archive orphaned `src/omen_gdpr.js` (P1).** Duplicates the same plaintext secret-id logging bug (already fixed in `platforms.js`) plus a stale confirmation phrase; confirmed not `require`d anywhere. Cost: small. Blocked-by: none.
-2. **Service-key Supabase route scoping audit (P1).** Verify every route using `config.supabaseServiceKey` scopes queries by `user_id` with a cross-user-isolation test. Cost: medium. Blocked-by: none.
-3. **V1 — First company-baseline skill-receipt pilot.** Apply the baseline without changing product scope of whatever item it wraps. Cost: medium. Blocked-by: none (pairs naturally with whichever item above is pulled next).
-4. **Fix stale `Blueprints/demo-mode.md` status line.** Discovered during Phase 4.20c: says "frontend `/demo` implementation pending," but the frontend shipped in Phase 2.7 (2026-06-19). Cost: small (one-line doc fix). Blocked-by: none.
-5. **Phase 4.21 — Swap public logo asset to canonical transparent lockup (P1).** `frontend/public/omen-horizontal-lockup.png` is the flattened black-background export from the 2026-07-03 logo-suite-swap; `SLOPS/slops-saloon/omen/logos/omen-horizontal-lockup-transparent.png` is the already-canonical RGBA replacement (same 763x248 dimensions, verified alpha 0-255). Swap the public asset + its three references (`Header.jsx`, `Landing.jsx`, `OmenLanding.jsx`) to the transparent source; closes the P1 follow-up logged in `Blueprints/handoffs/2026-07-03-logo-suite-swap-handoff.md`. Cost: small. Blocked-by: none.
+### PR #140 — SVG logo masters
 
-**Surfaced but not pulled (blocked):** Phase 4.20 integration (blocked on 4.20a–d landing, all now unblocked/complete-or-queued); Tuesday scoring enablement (unblocked for founder approval 2026-07-12; still needs an approved Supabase dry-run immediately before the env flip); Phase 2.19 win-streak ladder (blocked on backend win-streak contract); Phase 2.20 chant-render (blocked on 6 verified team chants + textures). Phase 4.20b and Phase 3.15 are no longer blocked — see 2026-07-12 decision-log batch below.
+- **State:** draft, open, mergeable
+- **Gate:** Justin visual approval plus SVG/UI/code review
+- **Do not auto-merge.**
+- **Skills:** `slops-repo-inspector`, `slops-design-system-pack`, `slops-ui-ux-audit`, `slops-code-review`, `slops-quality-baseline`, `slops-git-flow`
+- **Next action:** inspect full/simple/favicon/app-icon cuts at large and small sizes; approve or return concrete revision findings.
 
-**Deprioritized from this refresh (no explicit priority tag, ranked below P0/P1/P2 items):** Phase 2.15 (Account subscription card removal, small), Phase 3.14 (Skeleton states for narration zones, small), Phase 2.14 (Standings team-switching UX, medium), Phase 2.16 (IDP/defensive-player drafting prep, large).
+### PR #132 — Master Design System Blueprint v1
 
-**Not auto-pulled (excluded lanes, per standing rule):** Service-key Supabase route scoping audit (Verify lane, P1) — surfaced here only as a reminder it exists; Justin must explicitly pin it to activate.
+- **State:** draft, open, currently not mergeable
+- **Gate:** Justin approval of proposed typography, cursor, background, and asset-pipeline direction; reconcile with PR #140 and newer UI work.
+- **Do not auto-merge or implement proposed runtime changes.**
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-design-system-pack`, `slops-ui-ux-audit`
+- **Next action:** produce approve/revise/close recommendation and reconciliation table.
 
-## Blockers Surfaced
+## Recommended next pulls
 
-- **Phase 2.12 (Trade Analyzer form redesign)** is complete locally. `/trade` now uses position buttons instead of dropdowns, sends scoring format, exposes honest Multi-team net-side mode, and has browser evidence under `output/playwright/phase2-12-trade-form-redesign/`.
-- **Phase 2.11 (FP1 signal-honesty labels)** is complete locally. Omen recommendation signals now render as visible input-honesty labels on the shared recommendation view, using data-source tokens and plain statuses (`Live`, `Stub`, `Mock`, `Unavailable`). Public demo `status: "demo"` signals display as Mock / preview. Evidence: `Blueprints/handoffs/2026-07-05-phase2-11-signal-honesty-labels.md`.
-- **Phase 2.18 (Waiver Wire route activation)** is complete locally. `/waiver` is routed behind `ProtectedRoute`, nav-reachable from the Header Tools section, the Pro-gate branch is removed, and the page is fully on design-system tokens. Known gap: no authenticated light/dark screenshot evidence (sandbox limitation, documented in the handoff).
-- **Phase 2.10 (trade share card)** is merged to `origin/main` via PR #80 (`6cd554b`). Trade Analyzer can create public share links, `/trade/share/:hash` renders the public card, and `/api/trade/share/:hash/og.svg` provides the server-side OG image. Browser evidence is under `output/playwright/phase2-10-trade-share-card/`.
-- **Phase 2.9 (account delete UI)** is complete. `/account` exposes the mounted `DELETE /api/user/delete` route with the exact `DELETE MY OMEN DATA` confirmation phrase, sign-out redirect, login completion notice, and desktop/mobile screenshot evidence.
-- **Phase 1.14 (prod deploy stale for logo swap)** is complete and merged. Current prod serves the transparent lockup bundle/asset; the deploy workflow now fails future runs if the production bundle lacks the transparent lockup reference.
-- **Phase 1.15 (post-deploy visual smoke on prod)** is complete locally, not pushed/merged/deployed. The deploy workflow now has the public-route logo smoke, and `/login` was aligned to the transparent lockup image after browser QA found current prod was still text-only.
-- **Phase 1.13 (iOS Safari mobile QA sweep)** is complete and merged to `main` via PR #75. The sprint doc now reflects Justin's correction: real Safari WebDriver evidence and the remediation/discrete-fix handoffs satisfy the phase; remaining mobile/ARIA polish is tracked as separate follow-up work, not a Phase 1.13 blocker.
-- **Both Cowork mobile-QA P1s are resolved or routed.** (a) Unhandled 429 raw-JSON leak — root cause was `src/server.js`'s general rate limiter mounted globally instead of scoped to `/api/*`; fixed and live-verified with static assets exempt while API limiting remains active. (b) Standings-fails-to-load — canonical off-season signal now lets `GET /api/league/standings` return a successful empty standings envelope during off-season before provider calls. Contract: `Blueprints/handoffs/backend-to-frontend.md` ("Canonical Off-Season Signal — 2026-07-04").
-- **Phase 1.9 (metallic tier treatment)** is complete and merged to `main`. Applied only to the Draft Assistant card-header ordinal pill per locked footer structure. Appearance-tile metallic add-on stays out of scope, unbuilt.
-- **Phase 1.12 (gray contrast pass + Standings refinements)** is complete and merged to `main`. Retired Hall of Records username target closed as documentation debt (page retired to `/ledger`, no replacement surface invented).
-- **Phase 3.12 production enablement** is complete. Live `/api/ready` reports the LLM bridge as `configured_private`; no URL is exposed.
-- **Phase 3.15 (`AI_PROVIDER=local|cloud` toggle)** is unblocked as of 2026-07-12 — Justin approved a $0 cap (local model only; see decision log). Cloud provider path must hard-fail/stay disabled since $0 authorizes no cloud spend.
-- **Tuesday scoring enablement** remains gated on approved Supabase dry-run validation and explicit scoring enablement approval. Keep `OMEN_CRON_SCORING_ENABLED=false`.
-- **Phase 1.5d (post-win pulse animation)** is complete as single-win behavior; authenticated visual screenshot/mobile-smoke evidence remains a follow-up gap.
-- **Win-streak reward ladder (Phase 2.19)** is documented but blocked on the new backend win-streak summary contract (`current_sprint.md` Backend — Behind launch readiness).
-- **Phase 4.16 provider legal packet** is complete as review-only open-agreements source material. Justin approved publishing 2026-07-12, pending a final wording verification pass folded into Phase 4.20b's build task.
-- **Phase 1.7 (platform brand color emphasis)** is complete and merged. Sleeper's brand hex has no confirmed public source; flagged for Justin if he has Sleeper's actual brand kit.
-- **Phase 1.8 (confidence gradient endpoints)** is complete and merged. The crimson floor's non-text contrast against the dark track (1.45:1) is below WCAG 1.4.11's 3:1 guideline, accepted as a documented tradeoff since both confidence bars always show the score as text.
-- **Phase 2.20 (chant-render implementation)** is blocked on at least 6 teams' chants verified via `design-md-author` plus initial texture assets — do not pull yet.
-- **Decisions-lane items from the 2026-07-03 doctrine merge — resolved 2026-07-12.** Marketing pillars: left as provisional, no action. Retire baked-black logo fallback: sequenced behind Phase 4.21 (the actual asset swap) landing first, then a ~1-2 week prod soak. Corvus-reference audit: still open, untouched. See `current_sprint.md` Decisions lane and the 2026-07-12 decision-log batch for full detail.
-- **2026-07-12 batch decision review (Justin).** Resolved 9 open Decisions-lane/blocker items in one pass: ESPN mobile posture (extension-referral onboarding, not native capture — new build item filed), Stripe (full removal target, not just mobile-gating — new Tech Debt item filed pending scope confirmation), AI_PROVIDER $0 cap (Phase 3.15 unblocked), Tuesday scoring (approved, added to active queue), Phase 4.20b/4.16 (approved to publish pending wording check), marketing pillars (leave as-is), mvp-move merge (merge decided — new build item filed), logo fallback retirement (sequenced behind Phase 4.21), Trade Analyzer buy-low refresh (build real endpoint — new build item filed). Sleeper brand hex could not be verified — this sandbox's network policy blocks outbound fetches to arbitrary domains (confirmed via proxy status, not a retry-fixable issue). Full detail: `Direction/decision_log.md` "Decisions Added 2026-07-12 (Justin — batch decision review on open blockers)".
-- **Doc debt closed:** `current_sprint.md` Frontend Phase 1 now has one completed Phase 1.13 entry. Deferred mobile/ARIA polish remains named as follow-up scope rather than blocking the phase checkbox.
-- **Doc debt:** `current_sprint.md` Frontend Phase 1 has three overlapping Phase 1.13 bullet entries (in-progress detail, an older duplicate stub, and the Cowork audit note) that should get consolidated into one entry next time someone closes out 1.13 fully.
+These are recommendations, not hard ownership assignments. Any capable agent may execute them after reading the named skill procedures.
 
-## Standing Route
+### 1. B1 — Unified Omen recommendation contract
 
-```text
-SLOPS/
-  slops-saloon/
-    omen/
-```
+- **Why first:** prevents duplicate recommendation systems and stops UI work from migrating onto a contract that is about to change.
+- **Priority / cost / blocker:** P0 / medium / none
+- **Recommended execution surface:** Claude for synthesis or Codex for code-grounded contract tracing
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `product-gap-analysis-session`, `workflow-tree-spec`, `slops-ai-integration-review`, `security-privacy-evidence`, `slops-context-markdown`
+- **Pair with:** F3 company-baseline skill-receipt pilot
+- **Output:** one API/state contract, mock/off-season fallback decision, recovery-analytics timing decision.
 
-## Active Notes
+### 2. B3 — DecisionBrief component
 
-- This repo is the Omen product repo. The old nested `Corvus/` folder is retired.
-- Product handoffs live in `Blueprints/handoffs/`.
-- Product context lives in `Direction/`.
-- Division context lives one layer up. OS context is in the sibling `slops-os/` checkout in this workspace.
-- Worktree was clean before this refresh; local `main` fast-forwarded cleanly to `origin/main` (`339da00`), no local commits were at risk.
+- **Why next:** the core recommendation surface is still missing while its supporting primitives now exist.
+- **Priority / cost / blocker:** P0 / medium / B1 contract shape
+- **Recommended execution surface:** Jules for a strictly component-only Phase A PR
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** canonical composition, variants, accessibility evidence, no page migration.
 
-## Do Not Touch Unless Explicitly Asked
+### 3. C1 — Draft Assistant primitive migration
+
+- **Why next:** component dependencies are already on `main`; this is a contained Phase B migration with high user value.
+- **Priority / cost / blocker:** P1 / medium / none
+- **Recommended execution surface:** Codex; Jules may execute only with a tightly bounded page-migration brief
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** canonical inputs/selection/player/metric/state components with recommendation math unchanged.
+
+### 4. C2 — Connect League primitive migration
+
+- **Why next:** PlatformConnectionCard and the public ESPN guide are already merged; the page can now consolidate without inventing new behavior.
+- **Priority / cost / blocker:** P1 / medium / none
+- **Recommended execution surface:** Codex for behavior-preserving migration; Claude for copy/legal reconciliation if needed
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `workflow-tree-spec`, `slops-git-flow`, `slops-tdd`, `security-privacy-evidence`, `slops-legal-spot-check`, `slops-ux-copy`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** standard connection cards and recovery states with zero cookie-value exposure.
+
+### 5. D1 — Real `GET /api/trade/pulse`
+
+- **Why next:** removes stale hand-authored buy-low advice and turns an honesty gap into a real data contract.
+- **Priority / cost / blocker:** P1 / medium / none
+- **Recommended execution surface:** Codex
+- **Skills:** `slops-repo-inspector`, `planning-pass`, `pre-build-research`, `slops-data-ingest-plan`, `slops-git-flow`, `slops-tdd`, `demo-mode-pre-empty-state`, `security-privacy-evidence`, `slops-quality-baseline`, `slops-code-review`
+- **Output:** computed endpoint, explicit fallback, tested empty/error/stale paths, honest UI status.
+
+## Next after the top five
+
+- **D2 — `AI_PROVIDER` $0-cap control:** P1, medium; local-only fail-closed behavior.
+- **C3 — Football Command Center migration:** P1, large; confirm no hot-file conflict.
+- **B2/B4 — Unified Omen implementation + page migration:** after B1/B3.
+- **E1 — Mobile scope decision:** P0 decision memo; resolves full-app vs relay-only conflict.
+- **F1 — Service-key Supabase audit:** P1 Verify-lane item; Justin must pin.
+
+## Current blockers and gates
+
+- **Tuesday scoring:** production flag remains false until approved no-write dry-run and explicit production-change approval.
+- **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
+- **PR #132:** proposed only; do not implement its typography/cursor/background changes before approval.
+- **PR #140:** visual review required; no automatic merge or app wiring.
+- **B3 DecisionBrief:** waits on B1 contract shape to prevent rework.
+- **B2/B4 unified implementation and Omen migration:** wait on B1 and B3.
+- **C4 public-front-door migration:** waits on A2 visual-direction decision or an explicit current-North-Star-only authorization.
+- **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision.
+- **iOS Phase 5.3:** requires explicit approval before any `connection_mode` production schema action.
+- **Win-streak UI:** waits on backend win-streak contract.
+- **Baked-black fallback deletion:** wait until at least 2026-07-28 and a clean production soak after PR #120.
+- **Post-live learning:** waits on Release Done, seven stable days, and `slops-product-pulse`.
+
+## Closed or removed from pull consideration
+
+Do not repull these:
+
+- orphaned GDPR module cleanup — merged PR #119;
+- Stripe billing and residual checkout removal — merged PRs #117/#118;
+- transparent lockup swap — merged PR #120 and present in current source;
+- public legal/support pages — merged PR #121;
+- ESPN public guide, extension/store assets, and promo cut — merged PR #122; test fix PR #123;
+- UI North Star — merged PR #124;
+- canonical primitive/component Phase A sequence and Trade Analyzer migration — merged PRs #125–#139;
+- team-based runtime theming — removed PR #114; do not revive per-team design/chant work as active sprint scope.
+
+## Agent selection guidance
+
+- **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements.
+- **Codex:** behavior-preserving page migrations, backend/API/data work, regression tests, and implementation verification.
+- **Claude:** doctrine/spec reconciliation, product-gap analysis, recommendation-contract synthesis, copy/legal review, and large-context planning.
+- These are tool-fit recommendations, not permanent ownership. Readiness, blockers, and skill availability decide the pull.
+
+## Required kickoff output
+
+Before implementation, the agent must print:
+
+1. task ID and exact scope;
+2. priority, cost, blockers, and done-when;
+3. selected skills and N/A reasons;
+4. files expected to change;
+5. test/evidence plan;
+6. do-not-touch boundaries;
+7. branch name and serialization/hot-file check.
+
+## Required closeout output
+
+The handoff must include:
+
+- actual files changed;
+- intended RED, GREEN, broader tests/build/audit results as applicable;
+- UI/security/legal/AI evidence as applicable;
+- actual skills used, skipped, substituted, or weak;
+- one concrete skill improvement or an explicit “no correction needed” verdict;
+- branch/commit/PR/deploy status without implying local work is live.
+
+## Do not touch unless explicitly pinned
 
 - `AGENT.md`, `CLAUDE.md`
 - `.env`, secrets, or credentials
-- Deploy config
-- Package files
-- SQL or migrations
-- Production infrastructure
+- deploy configuration or production infrastructure
+- package files or dependencies
+- SQL, Supabase schema/migrations, or production data
+- Apple credentials
+- production flags or deploy actions
