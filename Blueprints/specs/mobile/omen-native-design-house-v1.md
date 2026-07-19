@@ -86,7 +86,7 @@ No screen-level raw colors, arbitrary spacing, or ad hoc typography.
 
 | Layer | Meaning | Examples | May vary by theme pack? |
 |---|---|---|---|
-| Core semantic | stable role meaning | text, surface, border, focus, success, risk, disabled | rarely |
+| Core semantic | stable role meaning | text, surface, border, focus ring, success, risk, disabled | rarely |
 | Brand expression | Omen atmosphere | brass accent, verdigris signal, glow, hero lighting | yes |
 | Component alias | component role | decision-card surface, primary-button fill, connection panel | controlled |
 | Theme pack | bounded visual mode | Core, Blackout, Whiteout, Playoff Gold | yes |
@@ -96,7 +96,7 @@ Initial modes:
 - Core Omen dark
 - Core Omen light/system
 
-Future packs are not built until the core system passes accessibility and cross-platform parity.
+Future packs are not built until the core system passes accessibility and cross-platform parity. Team-color tokens and team skins are not part of the phone MVP.
 
 ## 6. Platform rules
 
@@ -169,6 +169,16 @@ Every approved component has:
 - Android Compose mapping;
 - screenshot reference;
 - owner and version.
+
+### M0b inventory boundary
+
+M0b inventories the components, tokens, states, accessibility rules, typography mappings, and iOS/Android differences. It does not create per-component implementation briefs or native component code. Those briefs begin in M1.
+
+### Focus and typography lock
+
+- `focus-ring` is a semantic core token. Its contract requires a visible outline plus platform-appropriate focus/selection behavior; it cannot rely on color alone.
+- **Alegreya Sans** is the UI, heading, and control hierarchy; **Alegreya** is for longer reading copy; **DM Mono** is for scores, structured numeric values, and code-adjacent data.
+- Cinzel and Inter are not Omen-native typography.
 
 ## 9. Onboarding is a product flow, not a splash sequence
 

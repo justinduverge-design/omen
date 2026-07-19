@@ -1,6 +1,6 @@
 # Omen Native Mobile Foundation v1
 
-**Status:** Proposed active contract — founder-approved direction, pending merge  
+**Status:** Active founder-approved contract  
 **Date:** 2026-07-19  
 **Scope:** Native iPhone and Android product foundations, shared design/system contracts, screen parity, and delivery sequence.  
 **Out of scope:** Web-page migrations, production deployment, Apple/Google account setup, provider credential changes, or recreating the backend.
@@ -55,7 +55,7 @@ Tokens are semantic names, never hard-coded colors in a screen.
 
 | Layer | Example | Can a skin change it? |
 |---|---|---|
-| Core semantic | text primary, surface, border, focus, success, risk | rarely; role meaning stays stable |
+| Core semantic | text primary, surface, border, focus ring, success, risk | rarely; role meaning stays stable |
 | Brand expression | accent, glow, hero lighting, metallic highlight | yes, by approved theme pack |
 | Component alias | button primary, card decision, chip position, panel recovery | controlled |
 | Campaign/skin | playoff brass, rivalry crimson, draft-night lighting | yes, bounded and temporary |
@@ -191,7 +191,7 @@ Create and approve:
 - App Store/Play compliance decision for ESPN.
 
 ### M1 — design-system foundation
-Build token layers plus the smallest foundation-component set in SwiftUI and Compose. No feature screen until Button, FormField, Card, state surfaces, navigation, and theme behavior are proven.
+Build token layers plus the smallest foundation-component set in SwiftUI and Compose. M1 adds the semantic focus-ring token and platform mappings: visible outline plus focus/selection behavior, never color alone. No feature screen until Button, FormField, Card, state surfaces, navigation, focus behavior, and theme behavior are proven.
 
 ### M2 — app shells
 Create iOS and Android app projects, Supabase session boundary, demo mode, navigation shell, and release-safe configuration separation.
@@ -205,6 +205,13 @@ Add Trade Room, Draft Room, League, and Connections one feature at a time with c
 
 ### M5 — skins and visual elevation
 Only after core screens and accessibility pass: introduce approved Omen-owned theme packs. Team skins remain a separate future decision.
+
+## 10a. Ratified M0b/M1 decisions — 2026-07-19
+
+- **Focus:** M1 adds a semantic `focus-ring` token. It must provide a visible outline and platform-appropriate focus/selection behavior; brass alone is not sufficient.
+- **Typography:** Alegreya Sans (UI/headings/controls), Alegreya (long-form reading), and DM Mono (numeric/code-adjacent values) are locked. Cinzel and Inter are not native Omen typography.
+- **Theming:** no team-color tokens or team skins ship in the phone MVP. Semantic status roles remain stable; team skins are a later founder decision.
+- **Sequence:** M0b is inventory and rules only. Per-component SwiftUI/Compose build briefs belong in M1.
 
 ## 11. Current pause and allowed work
 
