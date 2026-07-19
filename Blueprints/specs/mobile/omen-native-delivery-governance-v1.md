@@ -42,7 +42,8 @@ No step may silently replace an earlier contract.
 | Current work selection | `Direction/agent_inbox.md` and `Direction/current_sprint.md` |
 | Backend route truth | `Blueprints/api-routes.md` and current route tests |
 | Security/provider constraints | `Direction/facts-of-record.md`, decision log, and security handoffs |
-| Visual screen anatomy | approved Figma component/screen library |
+| Visual screen anatomy | approved Figma component/screen library in [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) |
+| Agent authority and tool boundaries | `omen-native-agent-capabilities-canvas-v1.md` |
 
 If an artifact conflicts with a newer approved authority, stop and flag the conflict.
 
@@ -140,7 +141,11 @@ Every closeout must write:
 - whether a new contract, component, or token is needed;
 - branch/PR/merge/deploy status.
 
-## 9. The protection principle
+## 9. Access enforcement
+
+The capability/canvas contract defines the least-privilege policy. Before agents receive access, the founder or administrator must match it with GitHub branch protection, protected deployment environments, Figma role-based sharing, isolated secrets, and founder-controlled store accounts. Policy alone is not technical access control.
+
+## 10. The protection principle
 
 The goal is not to restrict agents for the sake of it. The goal is to let them move quickly inside a clear field:
 
