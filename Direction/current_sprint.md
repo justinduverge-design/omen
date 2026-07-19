@@ -37,7 +37,7 @@ For every pulled item:
 
 ## Native Mobile Pivot — 2026-07-19 (Founder direction)
 
-**Authority:** `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` is the proposed native-mobile contract. It becomes active after Justin reviews this PR.
+**Authority:** `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` and its companion mobile contracts are active native-mobile direction.
 
 ### Immediate operating override
 
@@ -46,6 +46,10 @@ For every pulled item:
 - **Native targets:** iPhone uses SwiftUI; Android uses Kotlin + Jetpack Compose. Do not start React Native.
 - **No native code until M0 contracts are approved.** The next work is contract-first: mobile screen map, token/theme system, component registry, state/API matrix, onboarding/navigation spec, and ESPN mobile decision.
 - **No app-store action yet.** Apple/Google accounts, release configuration, provider flows, DNS/deploy, SQL, and secrets remain gated.
+
+### Agent tools and canvas
+
+All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-capabilities-canvas-v1.md` and the official [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3). These define the approved visual workspace, role lanes, least-privilege baseline, and technical access-enforcement checklist. No agent may assume access to secrets, production, provider data, Figma library publishing, or store accounts.
 
 ### Active mobile program
 
