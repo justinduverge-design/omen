@@ -1,14 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Badge from '../components/ui/Badge.jsx';
+import Button from '../components/ui/Button.jsx';
 import { Card } from '../components/ui/Card.jsx';
+import Chip from '../components/ui/Chip.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
+import Input from '../components/ui/Input.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import PlayerChip from '../components/ui/PlayerChip.jsx';
+import SegmentedControl from '../components/ui/SegmentedControl.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';
 import { apiFetch } from '../lib/api.js';
 import { PRIVATE_FIXTURE_KEYS, isPrivateFixtureEnabled } from '../lib/privateFixtureMode.js';
-import { positionChipStyle } from '../lib/positionChip.js';
 import { confidenceBarStyle } from '../lib/confidenceGradient.js';
 import { metallicTierStyle } from '../lib/metallicTier.js';
 import { useTheme } from '../lib/themeMode.js';
+
+const CHIP_POSITION_TONES = new Set(['qb', 'rb', 'wr', 'te', 'k', 'def']);
 
 const SCORING_FORMATS = [
   { value: 'ppr', label: 'PPR' },
@@ -48,34 +55,13 @@ function getConnectedPlatform(platforms) {
   return null;
 }
 
-function RiskBadge({ risk }) {
-  const styles = {
-    low: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    medium: null,
-    high: 'border-red-400/30 bg-red-400/10 text-red-300',
-  };
-  const colorClass = styles[risk] ?? null;
-  const mediumStyle = colorClass === null
-    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }
-    : undefined;
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize${colorClass ? ` ${colorClass}` : ''}`}
-      style={mediumStyle}
-    >
-      {risk} risk
-    </span>
-  );
-}
+const RISK_BADGE_TONES = { low: 'success', medium: 'warning', high: 'risk' };
 
-function PositionBadge({ position }) {
+function RiskBadge({ risk }) {
   return (
-    <span
-      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
-      style={positionChipStyle(position)}
-    >
-      {position}
-    </span>
+    <Badge tone={RISK_BADGE_TONES[risk] ?? 'neutral'} className="capitalize">
+      {risk} risk
+    </Badge>
   );
 }
 
@@ -186,23 +172,20 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums"
             style={tierStyle ?? { borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
           >
             {rec.rank}
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{rec.player.name}</p>
-              <PositionBadge position={rec.player.position} />
-              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{rec.player.team}</p>
-            </div>
+          <div className="min-w-0 flex flex-wrap items-center gap-2">
+            <PlayerChip name={rec.player.name} position={rec.player.position} />
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{rec.player.team}</p>
           </div>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
-          <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}>
+          <Badge tone="neutral">
             {REC_TYPE_LABELS[rec.recommendation_type] ?? rec.recommendation_type}
-          </span>
+          </Badge>
           <RiskBadge risk={rec.risk_level} />
         </div>
       </div>
@@ -223,7 +206,7 @@ function RecommendationCard({ rec, adpMap, adpLoading, connectedPlatform }) {
         <ol className="space-y-2">
           {rec.reasoning.map((line, i) => (
             <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: 'var(--color-text-primary)' }}>
-              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums" style={{ borderColor: 'var(--color-team-accent)', background: 'var(--color-accent-muted)', color: 'var(--color-team-accent)' }}>
                 {i + 1}
               </span>
               {line}
@@ -282,20 +265,6 @@ export default function DraftAssistant({ platforms }) {
   const [adpLoading, setAdpLoading] = useState(false);
   const [fixture, setFixture] = useState(null);
   const { mode, team: teamAbbr } = useTheme();
-  const scoringFormatRefs = useRef([]);
-
-  function handleScoringFormatKeyDown(event, index) {
-    const { key } = event;
-    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(key)) return;
-    event.preventDefault();
-    let nextIndex = index;
-    if (key === 'ArrowRight' || key === 'ArrowDown') nextIndex = (index + 1) % SCORING_FORMATS.length;
-    else if (key === 'ArrowLeft' || key === 'ArrowUp') nextIndex = (index - 1 + SCORING_FORMATS.length) % SCORING_FORMATS.length;
-    else if (key === 'Home') nextIndex = 0;
-    else if (key === 'End') nextIndex = SCORING_FORMATS.length - 1;
-    setScoringFormat(SCORING_FORMATS[nextIndex].value);
-    scoringFormatRefs.current[nextIndex]?.focus();
-  }
 
   const cry = useMemo(() => {
     if (mode !== 'team' || !teamAbbr) return null;
@@ -434,60 +403,44 @@ export default function DraftAssistant({ platforms }) {
         onSubmit={handleSubmit}
       >
         <fieldset>
-          <legend id="scoring-format-legend" className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
+          <legend className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
             Scoring Format
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-labelledby="scoring-format-legend">
-            {SCORING_FORMATS.map(({ value, label }, index) => {
-              const isSelected = scoringFormat === value;
-              return (
-                <button
-                  key={value}
-                  ref={(el) => { scoringFormatRefs.current[index] = el; }}
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={isSelected ? 0 : -1}
-                  className="min-h-[44px] rounded-md border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-                  style={isSelected
-                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
-                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-                  type="button"
-                  onClick={() => setScoringFormat(value)}
-                  onKeyDown={(e) => handleScoringFormatKeyDown(e, index)}
-                >
+          <div className="mt-2">
+            <SegmentedControl
+              value={scoringFormat}
+              onValueChange={setScoringFormat}
+              size="lg"
+              className="flex flex-wrap"
+              aria-label="Scoring Format"
+            >
+              {SCORING_FORMATS.map(({ value, label }) => (
+                <SegmentedControl.Item key={value} value={value}>
                   {label}
-                </button>
-              );
-            })}
+                </SegmentedControl.Item>
+              ))}
+            </SegmentedControl>
           </div>
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
-            Draft Position (1–12)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-              max="12"
-              min="1"
-              type="number"
-              value={draftPosition}
-              onChange={(e) => setDraftPosition(e.target.value)}
-            />
-          </label>
+          <Input
+            label="Draft Position (1–12)"
+            max="12"
+            min="1"
+            type="number"
+            value={draftPosition}
+            onChange={(e) => setDraftPosition(e.target.value)}
+          />
 
-          <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>
-            Current Round (1–15)
-            <input
-              className="mt-2 w-full min-h-[44px] rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--color-team-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-primary)' }}
-              max="15"
-              min="1"
-              type="number"
-              value={round}
-              onChange={(e) => setRound(e.target.value)}
-            />
-          </label>
+          <Input
+            label="Current Round (1–15)"
+            max="15"
+            min="1"
+            type="number"
+            value={round}
+            onChange={(e) => setRound(e.target.value)}
+          />
         </div>
 
         <fieldset>
@@ -500,37 +453,33 @@ export default function DraftAssistant({ platforms }) {
           <div className="mt-2 flex flex-wrap gap-2">
             {POSITION_NEEDS.map((pos) => {
               const isSelected = needs.has(pos);
+              const posKey = pos.toLowerCase();
+              const tone = isSelected
+                ? (CHIP_POSITION_TONES.has(posKey) ? `pos-${posKey}` : 'accent')
+                : 'neutral';
               return (
                 <button
                   key={pos}
                   aria-pressed={isSelected}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-team-accent)]"
-                  style={isSelected
-                    ? { borderColor: 'var(--color-team-accent)', background: 'var(--color-team-accent)', color: 'var(--color-text-on-accent)' }
-                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
                   type="button"
                   onClick={() => toggleNeed(pos)}
                 >
-                  {pos}
+                  <Chip tone={tone} size="md">{pos}</Chip>
                 </button>
               );
             })}
           </div>
         </fieldset>
 
-        <button
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-md bg-[var(--color-team-accent)] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={loading || (fixtureActive && !fixture)}
+        <Button
           type="submit"
+          size="lg"
+          loading={loading}
+          disabled={loading || (fixtureActive && !fixture)}
         >
-          {loading && (
-            <span
-              aria-hidden="true"
-              className="h-4 w-4 animate-spin motion-reduce:hidden rounded-full border-2 border-black/30 border-t-black"
-            />
-          )}
           {loading ? 'Analyzing...' : hasSubmitted ? 'Run Again' : 'Get Recommendation'}
-        </button>
+        </Button>
       </form>
 
       {loading && <LoadingRecommendations />}

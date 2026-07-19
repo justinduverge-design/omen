@@ -6,6 +6,7 @@ const BADGE_TONES = {
   stale: 'var(--color-data-stub)',
   unavailable: 'var(--color-data-unavailable)',
   success: 'var(--color-risk-low)',
+  warning: 'var(--color-risk-medium)',
   risk: 'var(--color-risk-high)',
   neutral: 'var(--color-text-secondary)'
 };
