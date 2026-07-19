@@ -6,6 +6,15 @@ Implement the B1 contract without creating a second Omen recommendation system.
 
 B2 is backend/internal-contract work. It should make `POST /api/omen/mvp-move` easier to trust, test, and migrate into `DecisionBrief`, while preserving current route behavior unless the field needs below explicitly say otherwise.
 
+## Implementation Status
+
+Implemented locally on `codex/b2-unified-omen-phase-plan` on 2026-07-19.
+
+- B2A shipped direct authenticated POST `off_season` defense before live generation.
+- B2B kept the existing internal recommendation boundaries; no new builder file was extracted because the focused B2 diff did not justify another abstraction.
+- B2C shipped field-completeness tests for mock/dev and live Omen MVP envelopes.
+- Recovery analytics, UI migration, SQL, packages, provider credentials, and deploy remain out of scope.
+
 ## Source Contract
 
 Primary source:

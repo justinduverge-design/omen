@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-07-12
+Last updated: 2026-07-19
 
 `/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
@@ -42,7 +42,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/yahoo/callback` | redirect | No | Yahoo OAuth callback; redirects to Account connect. |
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
 | `DELETE` | `/api/platforms/:platform` | disconnect response | Yes | Disconnects `yahoo`, `sleeper`, or `espn`. |
-| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. |
+| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
 | `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |

@@ -181,6 +181,86 @@ Frontend guidance:
 - B3 can design `DecisionBrief` against these field needs, but should not assume B2 is implemented until the B2 handoff replaces this plan with verification evidence.
 - B4 should still wait for B2 and B3.
 
+## B2 Unified Omen Recommendation Layer — 2026-07-19
+
+Feature name: Unified Omen recommendation layer.
+
+Status: Implemented locally on branch `codex/b2-unified-omen-phase-plan`. Not pushed, merged, deployed, or production-smoked.
+
+Method and path:
+
+```text
+POST /api/omen/mvp-move
+```
+
+Request body:
+
+- Live UI request remains `{}`.
+- Mock/dev preview still requires `use_mock_data: true` or `mock_state`.
+- Frontend should still call `GET /api/dashboard/summary` first and call the POST only when `tools.omen_of_the_week.status === "ready"`.
+
+Response contract changes:
+
+- Every mock/demo/live Omen MVP envelope now includes `contract_version`.
+- Live envelopes use `contract_version: "2026-05-18.omen-live.v1"`.
+- Mock/dev envelopes use the existing mock contract version.
+- Direct authenticated live POST now returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18.
+- `state: "off_season"` always has `recommendation: null`, `mode: "live"`, safe calendar-only `signals.roster`, `explanation`, `confidence`, `alternatives: []`, and `warnings`.
+- Live POST still returns `401` before off-season handling when the bearer token is missing or invalid.
+- Live mode still never silently falls back to mock advice.
+
+Example direct off-season response:
+
+```json
+{
+  "contract_version": "2026-05-18.omen-live.v1",
+  "state": "off_season",
+  "feature": "omen_mvp_move",
+  "mode": "live",
+  "platform": {
+    "name": "unknown",
+    "status": "off_season",
+    "recovery": null
+  },
+  "recommendation": null,
+  "signals": {
+    "roster": {
+      "status": "unavailable",
+      "used": false,
+      "source": "nfl_calendar",
+      "message": "Omen does not generate live lineup advice outside the NFL regular season."
+    }
+  }
+}
+```
+
+Implementation notes:
+
+- B2A shipped as route-level defense plus service-level defense. The route authenticates first, then checks `isOffSeason()`, then skips live generation.
+- B2B did not extract a new recommendation-builder file. Existing helpers already separate base envelope, platform recovery, live signals, and lineup-swap mapping; adding a second abstraction would not reduce complexity in this diff.
+- B2C shipped field-completeness assertions for success, empty, platform recovery, ESPN recovery, error, and off-season states.
+- No analytics, new AI provider path, provider credential path, SQL, package, deployment, or UI migration was added.
+
+Files changed:
+
+- `src/routes/omen.js`
+- `src/services/omen.js`
+- `test/omenRoute.test.js`
+- `test/omenMvpLiveRoute.test.js`
+- `test/omenMvpLiveService.test.js`
+- `Blueprints/specs/omen-mvp-move.md`
+- `Blueprints/api-routes.md`
+- `Direction/reviews/2026-07-19-b2-ai-integration-review.md`
+- `Direction/reviews/2026-07-19-b2-security-privacy-evidence.md`
+- `Blueprints/audits/2026-07-19-b2-unified-omen-recommendation-layer-code-review.md`
+- `Blueprints/handoffs/2026-07-19-b2-unified-omen-recommendation-layer.md`
+
+Frontend action needed:
+
+- B3 `DecisionBrief` may rely on `contract_version` being present on Omen MVP envelopes.
+- B3/B4 should render `off_season` as a no-advice state and must not show recommendation UI when `recommendation` is null.
+- Keep dashboard-first gating; the direct POST `off_season` response is defensive API behavior, not a reason for UI to call Omen during the off-season.
+
 ## Canonical Off-Season Signal — 2026-07-04
 
 Feature name: Canonical off-season signal for dashboard + league standings.

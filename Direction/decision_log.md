@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (B2 — Unified Omen Recommendation Layer)
+
+- **Direct authenticated Omen POST now has an off-season defense.** `POST /api/omen/mvp-move` still authenticates first, then returns `state: "off_season"` with `recommendation: null` before live generation when the shared NFL calendar is outside weeks 1-18. Dashboard-first gating remains the normal frontend contract; this is defensive API behavior for callers that bypass the dashboard.
+- **Every Omen MVP envelope now carries `contract_version`.** Live envelopes use `2026-05-18.omen-live.v1`; mock/dev envelopes use the existing mock contract version. B3/B4 should branch on `state` first and treat `mode` plus `contract_version` as explicit truth labels.
+- **No new B2 recommendation builder file was added.** The existing service already separates base envelopes, platform recovery, live signal construction, and lineup-swap mapping. B2 kept those boundaries and added tests rather than creating another abstraction with no behavioral payoff.
+- **Live recommendation scope remains `start_sit`.** B2 did not add waiver/trade generation, recovery analytics, provider credential changes, AI/cloud spend, SQL, packages, UI migration, or deploy behavior.
+
 ## Decisions Added 2026-07-19 (B1 — Unified Omen Recommendation Contract)
 
 - **`POST /api/omen/mvp-move` is the only canonical Omen recommendation route.** `POST /api/optimizer/mvp-move` is not a competing tier and should not be rebuilt as a fallback or enrichment surface; it remains a `410 legacy_route_retired` compatibility response pointing callers to `/api/omen/mvp-move`.

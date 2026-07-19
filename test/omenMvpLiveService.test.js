@@ -40,6 +40,7 @@ function loadOmenService({
   espnRoster,
   swaps,
   vaultSecrets = { espnSecret: "espn-s2", swidSecret: "{swid}" },
+  offSeason = false,
 } = {}) {
   const servicePath = require.resolve("../src/services/omen");
   delete require.cache[servicePath];
@@ -141,6 +142,16 @@ function loadOmenService({
         }],
       };
     }
+    if (request === "./nflSchedule" && parent?.filename === servicePath) {
+      return {
+        getCurrentNflWeekContext: () => ({
+          season: 2026,
+          week: 8,
+          season_type: "regular",
+        }),
+        isOffSeason: () => offSeason,
+      };
+    }
     if (request === "../adapters/sleeper" && parent?.filename === servicePath) {
       return {
         buildNormalizedRoster: async (leagueId, username, week) => {
@@ -221,15 +232,87 @@ function loadOmenService({
   }
 }
 
+function assertLiveEnvelope(body, state) {
+  assert.equal(body.contract_version, "2026-05-18.omen-live.v1");
+  assert.equal(body.state, state);
+  assert.equal(body.feature, "omen_mvp_move");
+  assert.equal(body.mode, "live");
+  assert.ok(body.request_id);
+  assert.ok(body.generated_at);
+  assert.ok(Object.hasOwn(body, "platform"));
+  assert.ok(Object.hasOwn(body, "league"));
+  assert.ok(Object.hasOwn(body, "team"));
+  assert.ok(body.signals && typeof body.signals === "object");
+  assert.ok(Object.hasOwn(body, "recommendation"));
+  assert.ok(Array.isArray(body.alternatives));
+  assert.ok(Array.isArray(body.warnings));
+}
+
+function assertSignal(signal) {
+  assert.ok(["live", "stub", "mock", "demo", "unavailable"].includes(signal.status));
+  assert.equal(typeof signal.used, "boolean");
+  assert.equal(typeof signal.source, "string");
+  assert.equal(typeof signal.message, "string");
+}
+
+function assertSuccessRecommendation(recommendation) {
+  assert.equal(typeof recommendation.id, "string");
+  assert.equal(recommendation.type, "start_sit");
+  assert.equal(typeof recommendation.title, "string");
+  assert.equal(typeof recommendation.move, "string");
+  assert.ok(recommendation.primary_player);
+  assert.ok(Object.hasOwn(recommendation, "comparison_player"));
+  assert.equal(typeof recommendation.expected_value_delta.points, "number");
+  assert.equal(typeof recommendation.expected_value_delta.label, "string");
+  assert.equal(typeof recommendation.confidence.score, "number");
+  assert.equal(typeof recommendation.confidence.label, "string");
+  assert.equal(typeof recommendation.confidence.rationale, "string");
+  assert.ok(["low", "medium", "high"].includes(recommendation.risk.level));
+  assert.ok(Array.isArray(recommendation.risk.reasons));
+  assert.equal(typeof recommendation.explanation.summary, "string");
+  assert.equal(typeof recommendation.explanation.why_it_matters, "string");
+  assert.equal(typeof recommendation.explanation.risk, "string");
+  assert.equal(typeof recommendation.explanation.confidence, "string");
+  assert.ok(Array.isArray(recommendation.explanation.data_used));
+}
+
 test("buildLiveOmenMvpMoveForUser returns platform_disconnected without platform rows", async () => {
   const { service } = loadOmenService();
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "platform_disconnected");
   assert.equal(result.body.state, "platform_disconnected");
   assert.equal(result.body.feature, "omen_mvp_move");
   assert.equal(result.body.recommendation, null);
   assert.equal(result.body.platform.recovery.code, "connect_platform");
+  Object.values(result.body.signals).forEach(assertSignal);
+});
+
+test("buildLiveOmenMvpMoveForUser returns off_season before platform adapter calls", async () => {
+  const { service, state } = loadOmenService({
+    offSeason: true,
+    connections: [{
+      user_id: "user-1",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "sleeper-league-1",
+      platform_username: "sleepy",
+    }],
+  });
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "off_season");
+  assert.equal(result.body.recommendation, null);
+  assert.equal(result.body.platform.status, "off_season");
+  assert.equal(result.body.signals.roster.source, "nfl_calendar");
+  assert.equal(result.body.confidence.score, 100);
+  assert.deepEqual(state.yahooCalls, []);
+  assert.deepEqual(state.rosterCalls, []);
+  assert.deepEqual(state.sleeperCalls, []);
+  assert.deepEqual(state.espnCalls, []);
+  assert.deepEqual(state.vaultCalls, []);
 });
 
 test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_move envelope", async () => {
@@ -245,12 +328,15 @@ test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_mo
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
   assert.equal(result.body.state, "success");
   assert.equal(result.body.platform.name, "sleeper");
   assert.equal(result.body.league.id, "sleeper-league-1");
   assert.equal(result.body.team.id, "sleeper-roster-7");
   assert.equal(result.body.recommendation.type, "start_sit");
+  assertSuccessRecommendation(result.body.recommendation);
   assert.equal(result.body.signals.roster.source, "sleeper_roster");
+  Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.sleeperCalls[0].leagueId, "sleeper-league-1");
   assert.deepEqual(state.yahooCalls, []);
 });
@@ -267,10 +353,12 @@ test("buildLiveOmenMvpMoveForUser keeps Yahoo pending when the token is not usab
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "yahoo_reauth_required");
   assert.equal(result.body.state, "yahoo_reauth_required");
   assert.equal(result.body.platform.name, "yahoo");
   assert.equal(result.body.recommendation, null);
   assert.equal(result.body.platform.recovery.code, "yahoo_reauth_required");
+  Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.yahooCalls, []);
   assert.deepEqual(state.rosterCalls, []);
 });
@@ -288,6 +376,7 @@ test("buildLiveOmenMvpMoveForUser maps Yahoo lineup swap into omen_mvp_move enve
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
   assert.equal(result.body.state, "success");
   assert.equal(result.body.feature, "omen_mvp_move");
   assert.equal(result.body.mode, "live");
@@ -295,10 +384,12 @@ test("buildLiveOmenMvpMoveForUser maps Yahoo lineup swap into omen_mvp_move enve
   assert.equal(result.body.league.id, "414.l.12345");
   assert.equal(result.body.team.id, "414.t.7");
   assert.equal(result.body.recommendation.type, "start_sit");
+  assertSuccessRecommendation(result.body.recommendation);
   assert.equal(result.body.recommendation.primary_player.name, "Bench Breakout");
   assert.equal(result.body.recommendation.comparison_player.name, "Starter Wideout");
   assert.equal(result.body.recommendation.expected_value_delta.points, 4);
   assert.equal(result.body.signals.roster.status, "live");
+  Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.yahooCalls, ["user-1"]);
   assert.equal(state.rosterCalls[0].leagueId, "414.l.12345");
 });
@@ -317,10 +408,14 @@ test("buildLiveOmenMvpMoveForUser returns empty state when Yahoo has no lineup e
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "empty");
   assert.equal(result.body.state, "empty");
   assert.equal(result.body.feature, "omen_mvp_move");
   assert.equal(result.body.recommendation, null);
   assert.equal(result.body.signals.roster.status, "live");
+  assert.equal(typeof result.body.explanation.summary, "string");
+  assert.equal(typeof result.body.confidence.score, "number");
+  Object.values(result.body.signals).forEach(assertSignal);
 });
 
 test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move envelope", async () => {
@@ -338,12 +433,15 @@ test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move 
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
   assert.equal(result.body.state, "success");
   assert.equal(result.body.platform.name, "espn");
   assert.equal(result.body.league.id, "12345");
   assert.equal(result.body.team.id, "7");
   assert.equal(result.body.recommendation.type, "start_sit");
+  assertSuccessRecommendation(result.body.recommendation);
   assert.equal(result.body.signals.roster.source, "espn_roster");
+  Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.vaultCalls, ["espnSecret", "swidSecret"]);
   assert.equal(state.espnCalls[0].opts.teamId, "7");
 });
@@ -363,9 +461,11 @@ test("buildLiveOmenMvpMoveForUser returns ESPN reauth recovery when Vault secret
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "espn_reauth_required");
   assert.equal(result.body.state, "espn_reauth_required");
   assert.equal(result.body.platform.name, "espn");
   assert.equal(result.body.platform.recovery.code, "espn_reauth_required");
   assert.equal(result.body.recommendation, null);
+  Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.espnCalls, []);
 });

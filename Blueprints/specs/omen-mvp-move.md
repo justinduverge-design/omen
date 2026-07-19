@@ -82,7 +82,7 @@ Live request policy:
 - Explicit mock/preview requests are allowed only with `use_mock_data: true` or `mock_state`, and must stay visibly labeled as mock/preview wherever rendered.
 - Live mode must never silently fall back to mock data.
 - No-data live results use `state: "empty"` with `recommendation: null`, not fabricated advice.
-- Off-season should be handled before the POST call by the dashboard `off_season` status. A future direct POST `off_season` envelope may be added in B2 as a defensive route-level guard, but the frontend should not need it to avoid off-season advice.
+- Off-season should be handled before the POST call by the dashboard `off_season` status. B2 also adds a defensive direct POST `off_season` envelope for authenticated API callers that bypass the dashboard gate, but the frontend should not need it to avoid off-season advice.
 
 Current live decision scope:
 
@@ -154,6 +154,7 @@ Frontend should branch on `state` first.
 
 ```json
 {
+  "contract_version": "2026-05-18.omen-live.v1",
   "state": "success",
   "feature": "omen_mvp_move",
   "mode": "hybrid",
@@ -406,6 +407,38 @@ Use this when Omen has enough data but no move clears the recommendation thresho
   },
   "signals": {},
   "warnings": []
+}
+```
+
+## Off-Season State
+
+Use this when an authenticated direct live POST bypasses the dashboard gate while the shared NFL calendar is outside regular-season weeks 1-18.
+
+The frontend should still use `GET /api/dashboard/summary.tools.omen_of_the_week.status === "off_season"` as the normal pre-call gate.
+
+```json
+{
+  "contract_version": "2026-05-18.omen-live.v1",
+  "state": "off_season",
+  "feature": "omen_mvp_move",
+  "mode": "live",
+  "recommendation": null,
+  "platform": {
+    "name": "unknown",
+    "status": "off_season",
+    "recovery": null
+  },
+  "signals": {
+    "roster": {
+      "status": "unavailable",
+      "used": false,
+      "source": "nfl_calendar",
+      "message": "Omen does not generate live lineup advice outside the NFL regular season."
+    }
+  },
+  "warnings": [
+    "Live MVP Move is paused outside the NFL regular season."
+  ]
 }
 ```
 

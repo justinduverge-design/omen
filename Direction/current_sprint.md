@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-18  
+**Last updated:** 2026-07-19
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -116,6 +116,7 @@ For every pulled item:
 - **Cost:** large
 - **Blocked by:** none; B1 contract complete.
 - **Agent-buildable:** yes
+- **Status:** Completed locally 2026-07-19 on branch `codex/b2-unified-omen-phase-plan`; not pushed, merged, deployed, or production-smoked.
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-ai-integration-review`, `security-privacy-evidence`, `demo-mode-pre-empty-state`, `slops-quality-baseline`, `slops-code-review`
 - **Spec:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`
 - **Phase plan:** B2A route-level contract guard; B2B internal recommendation boundary; B2C `DecisionBrief` field completeness. Keep as one branch only if the diff stays focused; otherwise split B2A first.
@@ -140,7 +141,7 @@ For every pulled item:
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** B2 and B3
+- **Blocked by:** B3; B2 backend implementation is complete locally and still needs merge/deploy before production UI migration claims.
 - **Agent-buildable:** yes
 - **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `demo-mode-pre-empty-state`, `slops-ux-copy`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`, `slops-verify`
 - **Done when:** `/omen` uses the unified contract and standard composition/states; live/mock/stale/off-season/disconnected are explicit; recommendation is visually dominant; desktop/mobile light/dark checks have no P0/P1.

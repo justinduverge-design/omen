@@ -11,6 +11,7 @@ const express = require("express");
 
 function liveEnvelope() {
   return {
+    contract_version: "2026-05-18.omen-live.v1",
     state: "success",
     feature: "omen_mvp_move",
     mode: "live",
@@ -23,8 +24,13 @@ function liveEnvelope() {
       roster: { status: "live", used: true, source: "yahoo_roster", message: "Roster imported." },
     },
     recommendation: {
+      id: "live_omen_start_sit_test",
       type: "start_sit",
       title: "Start Bench Breakout over Starter Wideout",
+      move: "Move Bench Breakout into your WR slot and bench Starter Wideout.",
+      primary_player: { id: "bench-1", name: "Bench Breakout", position: "WR", team: "PHI" },
+      comparison_player: { id: "starter-1", name: "Starter Wideout", position: "WR", team: "DAL" },
+      expected_value_delta: { points: 4, label: "meaningful" },
       confidence: { score: 82, label: "medium_high", rationale: "Live edge." },
       risk: { level: "low", reasons: ["Live route test."] },
       explanation: {
@@ -42,6 +48,7 @@ function liveEnvelope() {
 
 function authEnvelope(message = "Missing bearer token") {
   return {
+    contract_version: "2026-05-18.omen-live.v1",
     state: "error",
     feature: "omen_mvp_move",
     mode: "live",
@@ -69,7 +76,44 @@ function authEnvelope(message = "Missing bearer token") {
   };
 }
 
-function loadOmenRouter() {
+function offSeasonEnvelope() {
+  return {
+    contract_version: "2026-05-18.omen-live.v1",
+    state: "off_season",
+    feature: "omen_mvp_move",
+    mode: "live",
+    request_id: "omen_req_offseason",
+    generated_at: "2026-07-19T00:00:00.000Z",
+    platform: { name: "unknown", status: "off_season", recovery: null },
+    league: null,
+    team: null,
+    signals: {
+      roster: {
+        status: "unavailable",
+        used: false,
+        source: "nfl_calendar",
+        message: "Omen does not generate live lineup advice outside the NFL regular season.",
+      },
+    },
+    recommendation: null,
+    alternatives: [],
+    warnings: ["Live MVP Move is paused outside the NFL regular season."],
+    explanation: {
+      summary: "Omen is paused until the NFL regular season starts.",
+      why_it_matters: "Live lineup recommendations need current weekly matchups and active rosters.",
+      risk: "Showing stale offseason advice would be misleading.",
+      confidence: "Confidence is high that no live weekly move should be generated right now.",
+      data_used: ["NFL calendar"],
+    },
+    confidence: {
+      score: 100,
+      label: "high",
+      rationale: "The shared NFL calendar is outside the regular season window.",
+    },
+  };
+}
+
+function loadOmenRouter({ offSeason = false } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
@@ -90,6 +134,7 @@ function loadOmenRouter() {
           return { id: "user-1" };
         },
         authRequiredMvpResponse: (message) => ({ status: 401, body: authEnvelope(message) }),
+        offSeasonMvpResponse: () => ({ status: 200, body: offSeasonEnvelope() }),
         buildLiveOmenMvpMoveForUser: async (userId) => {
           state.liveUserIds.push(userId);
           return { status: 200, body: liveEnvelope() };
@@ -113,6 +158,9 @@ function loadOmenRouter() {
     }
     if (request === "../services/matchupService" && parent?.filename === routePath) {
       return { getDvpContext: async () => null };
+    }
+    if (request === "../services/nflSchedule" && parent?.filename === routePath) {
+      return { isOffSeason: () => offSeason };
     }
     return originalLoad.call(this, request, parent, isMain);
   };
@@ -178,6 +226,21 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+});
+
+test("POST /api/omen/mvp-move returns off_season before live generation for authorized users", async () => {
+  const { app, state } = buildApp({ offSeason: true });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.contract_version, "2026-05-18.omen-live.v1");
+  assert.equal(res.body.state, "off_season");
+  assert.equal(res.body.mode, "live");
+  assert.equal(res.body.recommendation, null);
+  assert.equal(res.body.signals.roster.status, "unavailable");
+  assert.deepEqual(state.liveUserIds, []);
 });
 
 test("POST /api/omen/mvp-move skips LLM by default for live empty-body requests", async () => {
