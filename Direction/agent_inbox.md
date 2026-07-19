@@ -5,6 +5,14 @@
 
 ## Active task
 
+## 📌 Native Mobile Pivot — founder direction (2026-07-19)
+
+**Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion are paused while Omen is re-planned as a real SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
+
+Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
+
+**Current next task:** M0a — review and split `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` into the Omen auth, provider-state API, native navigation, Sleeper proof, Yahoo OAuth proof, ESPN feasibility, and Demo Mode briefs. This is planning and evidence only; do not create native projects, touch web pages, deploy, alter secrets, or claim that ESPN is mobile-ready.
+
 No pinned implementation task.
 
 Last completed pull: **B2 - Implement unified Omen recommendation layer** on branch `codex/b2-unified-omen-phase-plan`.

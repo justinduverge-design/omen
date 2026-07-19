@@ -35,6 +35,31 @@ For every pulled item:
 - mark unavailable required skills as `SKIPPED` or `SUBSTITUTED`, never silently passed;
 - route repeated skill failures through `slops-retro` and, when justified, `slops-skill-author`.
 
+## Native Mobile Pivot — 2026-07-19 (Founder direction)
+
+**Authority:** `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` is the proposed native-mobile contract. It becomes active after Justin reviews this PR.
+
+### Immediate operating override
+
+- **Pause** all new web page migrations and new web-only primitive work. This pauses B3/B4's web composition/page implementation and all C-lane web UI work, including Draft, Connect League, Football, Landing, and trade-page migrations.
+- **Keep** the existing web app and safe backend work. The API, auth, demo, recommendation contract, platform safety, tests, and production maintenance are foundations for native apps; do not rip them out or treat the web UI as a wrapper target.
+- **Native targets:** iPhone uses SwiftUI; Android uses Kotlin + Jetpack Compose. Do not start React Native.
+- **No native code until M0 contracts are approved.** The next work is contract-first: mobile screen map, token/theme system, component registry, state/API matrix, onboarding/navigation spec, and ESPN mobile decision.
+- **No app-store action yet.** Apple/Google accounts, release configuration, provider flows, DNS/deploy, SQL, and secrets remain gated.
+
+### Active mobile program
+
+| ID | Work | Priority | Blocked by | Done when |
+|---|---|---|---|---|
+| M0a | Onboarding and connection contract | P0 | Justin review | Omen sign-in, demo escape hatch, provider state machine, reliability rules, Sleeper/Yahoo proof paths, and ESPN mobile gate are approved or revised. |
+| M0b | Mobile design-system contract | P0 | M0a | Tokens, component registry, accessibility, theme packs, and platform-specific implementation rules are approved. |
+| M0c | Native app-shell/API contract | P0 | M0a | Navigation, auth/session deep links, demo mode, safe provider-state API, and environment boundaries are approved. |
+| M1 | Native design-system implementation plan | P0 | M0 | Small SwiftUI and Compose foundation-component briefs define tokens, accessibility, variants, and evidence. |
+| M2 | Native app-shell contracts | P0 | M0 | iOS/Android project structure, auth/session, demo, navigation, environment, and store-safe configuration contracts are approved. |
+| M3 | Native vertical slice | P1 | M1 + M2 | Both apps prove Welcome → Demo → Sign in → Command Center → Omen states with contract parity. |
+| M4 | Native feature delivery | P1 | M3 | Trade, Draft, League, and Connections ship one contract-backed feature at a time. |
+| M5 | Theme packs / skins | P2 | M4 | Core Omen themes and accessibility pass; approved Omen-owned packs can be added without role-token drift. |
+
 ## Current state
 
 - Production is live on KVM1; `/api/health` and `/api/ready` were healthy at the latest verified baseline.

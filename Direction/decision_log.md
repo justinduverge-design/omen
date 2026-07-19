@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (Native Mobile Pivot)
+
+- **Omen will be planned as real native mobile products, not a web wrapper.** The intended stacks are SwiftUI for iPhone and Kotlin + Jetpack Compose for Android. The existing React web app remains a service/API client and maintenance surface.
+- **New web page migrations and web-only primitive expansion are paused.** Existing web code is not being deleted. Safe backend/API contract work continues because native clients depend on it.
+- **Mobile work is contract-first.** No native screen should begin until the screen map, token/theme hierarchy, component registry, navigation/onboarding behavior, state/API matrix, and mobile ESPN scope have an approved contract.
+- **Skins are architecture now, not production scope now.** Semantic role tokens stay stable; future Omen-owned theme packs may alter brand-expression and controlled component-alias tokens only. Team skins remain a later decision.
+- **ESPN mobile scope remains a gate.** No direct cookie-entry experience is assumed for App Store or Google Play distribution without a separately approved, safe provider-flow decision.
+
+
 ## Decisions Added 2026-07-19 (B2 — Unified Omen Recommendation Layer)
 
 - **Direct authenticated Omen POST now has an off-season defense.** `POST /api/omen/mvp-move` still authenticates first, then returns `state: "off_season"` with `recommendation: null` before live generation when the shared NFL calendar is outside weeks 1-18. Dashboard-first gating remains the normal frontend contract; this is defensive API behavior for callers that bypass the dashboard.
