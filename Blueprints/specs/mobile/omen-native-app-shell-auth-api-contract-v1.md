@@ -60,7 +60,7 @@ These destinations must not duplicate each other. The distinction is behavioral,
 
 | Destination | Core job | Owns | May preview / link to |
 |---|---|---|---|
-| **Command Center** | **Orient and prioritize.** “What matters for this selected team and league right now?” | League/team switcher; **Waiver Watch** urgency (deadline, roster need, injury/bye-week openings, trending opportunity); compact league pulse (matchup, record, standing, meaningful stats); the most recent 1–3 Ledger entries | The full waiver analysis, Start/Sit decision workspace, and complete Ledger in Omen |
+| **Command Center** | **Orient and prioritize.** “What matters for this selected team and league right now?” | League/team switcher; **current matchup and record** directly beneath the context strip; then **Waiver Watch** urgency (deadline, roster need, injury/bye-week openings, trending opportunity); compact league pulse (standing, meaningful stats); the most recent 1–3 Ledger entries | The full waiver analysis, Start/Sit decision workspace, and complete Ledger in Omen |
 | **Omen** | **Advise and explain.** “Help me make the move.” | Full **Start/Sit** workspace; full waiver recommendation analysis (add/drop, alternatives, confidence, reasoning); complete Ledger/history and outcomes | Not applicable — this is the decision workspace |
 | **Trade** | **Evaluate a proposed trade.** | Public Trade Analyzer and its reasoning | Relevant player/league context only where it clarifies the trade |
 | **League** | **Explore league context.** | Roster, matchup, standings, connected-league context, and seasonal Draft entry | Omen analysis when a user asks for a recommendation |
@@ -99,6 +99,8 @@ For a dynasty/keeper team, the urgent briefing contains exactly three ranked ide
 The Long-Horizon Moves may be developmental adds, future-value stashes, or other recommendations whose value extends beyond the current scoring period. They make Omen accountable to both the user’s present matchup and their long-term roster health.
 
 For redraft leagues, do not fabricate dynasty framing. Show a long-horizon item only when it is a genuinely relevant forward-looking stash; otherwise keep the briefing focused on the best immediate move and honest current-season opportunities.
+
+**Command Center hierarchy:** directly below the persistent team/league context strip, show the selected team’s **current matchup and record**. Waiver Watch follows it. This establishes the current league situation before asking the user to act.
 
 **Command Center rule:** It may say “Waiver wire is moving — review this opportunity,” but it must not reproduce the full add/drop recommendation, reasoning, or Ledger. Tapping a Command Center priority opens the relevant Omen workspace in the already-selected team/league context.
 
@@ -217,7 +219,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 6. **Command Center vs. Omen:** ✅ Command Center orients and prioritizes the selected league/team, led by Waiver Watch urgency and a short Ledger preview. Omen is the full decision workspace: Start/Sit, full waiver analysis, reasoning/confidence, and the complete Ledger. A Command Center priority deep-links into the relevant Omen workspace; it does not duplicate it (Justin, 2026-07-20).
 7. **Waiver Watch cadence:** ✅ Tuesday–Wednesday is an urgent alert/briefing; Thursday–Monday is a calm ranked opportunity list. When live league waiver-deadline metadata is available, it takes precedence so urgency matches that league’s actual schedule (Justin, 2026-07-20).
 8. **Urgent briefing composition:** ✅ For dynasty/keeper teams, show one immediate Best Move plus two Long-Horizon Moves, so Omen serves both this week and long-term roster health. Redraft users receive long-horizon content only when a genuinely relevant forward-looking stash exists; Omen must not invent dynasty framing (Justin, 2026-07-20).
-9. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A persistent, visually prominent Omen-owned context strip below each personalized page title makes the active roster explicit and lets the user switch or connect another league; its native sheet is organized by platform, then alphabetically by league name within each platform, with the active selection marked. Trade may optionally use the selection for personalized analysis but remains usable without it. It must be high-salience without team-color theming, flashing, or disruptive animation (Justin, 2026-07-20).
+9. **Command Center hierarchy:** ✅ Directly below the persistent team/league context strip, show the selected team’s current matchup and record; Waiver Watch follows it. Current state precedes recommendations (Justin, 2026-07-20).
+10. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A persistent, visually prominent Omen-owned context strip below each personalized page title makes the active roster explicit and lets the user switch or connect another league; its native sheet is organized by platform, then alphabetically by league name within each platform, with the active selection marked. Trade may optionally use the selection for personalized analysis but remains usable without it. It must be high-salience without team-color theming, flashing, or disruptive animation (Justin, 2026-07-20).
 
 ## 13. Evidence
 
