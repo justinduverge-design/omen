@@ -76,6 +76,18 @@ Waiver Watch follows a weekly rhythm for a typical weekly-waiver league:
 
 When Omen has the selected league’s actual `waiver_deadline_at` metadata, that deadline takes precedence over the calendar default: shift the urgent briefing window to the relevant pre-deadline period. This preserves the intended Tuesday/Wednesday rhythm for common leagues while remaining honest for leagues with a different waiver schedule.
 
+#### Urgent briefing composition
+
+For a dynasty/keeper team, the urgent briefing contains exactly three ranked ideas:
+
+1. **Best Move** — the single highest-priority immediate waiver action for the selected roster and league.
+2. **Long-Horizon Move 1**
+3. **Long-Horizon Move 2**
+
+The Long-Horizon Moves may be developmental adds, future-value stashes, or other recommendations whose value extends beyond the current scoring period. They make Omen accountable to both the user’s present matchup and their long-term roster health.
+
+For redraft leagues, do not fabricate dynasty framing. Show a long-horizon item only when it is a genuinely relevant forward-looking stash; otherwise keep the briefing focused on the best immediate move and honest current-season opportunities.
+
 **Command Center rule:** It may say “Waiver wire is moving — review this opportunity,” but it must not reproduce the full add/drop recommendation, reasoning, or Ledger. Tapping a Command Center priority opens the relevant Omen workspace in the already-selected team/league context.
 
 **Omen rule:** Start/Sit belongs to Omen. The Ledger’s complete, accountable record—recommendation, timestamp, reasoning, confidence, and later outcome—belongs to Omen; Command Center shows only a short recent preview.
@@ -192,6 +204,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 5. **League vs. Account:** ✅ League is the fourth top-level destination (roster, matchup, standings, connected-league context, and Draft entry). Account is contextual profile/avatar navigation for personal and administrative controls; it is not combined with League or shown as a permanent tab (Justin, 2026-07-20).
 6. **Command Center vs. Omen:** ✅ Command Center orients and prioritizes the selected league/team, led by Waiver Watch urgency and a short Ledger preview. Omen is the full decision workspace: Start/Sit, full waiver analysis, reasoning/confidence, and the complete Ledger. A Command Center priority deep-links into the relevant Omen workspace; it does not duplicate it (Justin, 2026-07-20).
 7. **Waiver Watch cadence:** ✅ Tuesday–Wednesday is an urgent alert/briefing; Thursday–Monday is a calm ranked opportunity list. When live league waiver-deadline metadata is available, it takes precedence so urgency matches that league’s actual schedule (Justin, 2026-07-20).
+8. **Urgent briefing composition:** ✅ For dynasty/keeper teams, show one immediate Best Move plus two Long-Horizon Moves, so Omen serves both this week and long-term roster health. Redraft users receive long-horizon content only when a genuinely relevant forward-looking stash exists; Omen must not invent dynasty framing (Justin, 2026-07-20).
 
 ## 13. Evidence
 
