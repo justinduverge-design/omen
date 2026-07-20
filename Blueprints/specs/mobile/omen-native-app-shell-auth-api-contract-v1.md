@@ -106,6 +106,12 @@ For redraft leagues, do not fabricate dynasty framing. Show a long-horizon item 
 
 **Omen rule:** Start/Sit belongs to Omen. The Ledger’s complete, accountable record—recommendation, timestamp, reasoning, confidence, and later outcome—belongs to Omen; Command Center shows only a short recent preview.
 
+### 1.7 Rivalry History — post-beta direction
+
+**Rivalry History is explicitly out of beta scope.** After beta, Omen intends to offer a matchup-detail view with confirmed continuing-league head-to-head history, such as all-time record versus the current opponent and recent meetings.
+
+Public positioning may describe it as **“Coming after beta for compatible connected leagues.”** Do not promise equal historical coverage across providers until each provider adapter has proven access, season-to-season continuity, and manager identity matching. This is a planned capability, not a beta launch commitment.
+
 ## 2. Auth & session contract
 
 ### 2.1 Three mechanisms (from the approved M0a sign-in audit)
@@ -221,6 +227,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 8. **Urgent briefing composition:** ✅ For dynasty/keeper teams, show one immediate Best Move plus two Long-Horizon Moves, so Omen serves both this week and long-term roster health. Redraft users receive long-horizon content only when a genuinely relevant forward-looking stash exists; Omen must not invent dynasty framing (Justin, 2026-07-20).
 9. **Command Center hierarchy:** ✅ Directly below the persistent team/league context strip, show the selected team’s current matchup and record; Waiver Watch follows it. Current state precedes recommendations (Justin, 2026-07-20).
 10. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A persistent, visually prominent Omen-owned context strip below each personalized page title makes the active roster explicit and lets the user switch or connect another league; its native sheet is organized by platform, then alphabetically by league name within each platform, with the active selection marked. Trade may optionally use the selection for personalized analysis but remains usable without it. It must be high-salience without team-color theming, flashing, or disruptive animation (Justin, 2026-07-20).
+11. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
