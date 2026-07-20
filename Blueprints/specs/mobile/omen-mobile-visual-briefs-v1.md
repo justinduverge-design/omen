@@ -891,3 +891,67 @@ Bottom actions: Adjust offer, Start over, Share verdict, and optional Save for l
 | Shared result | Only user-reviewed public payload. |
 
 **Founder approval:** Trade uses calm verdict language, immediate/long-term/risk framing, smallest credible counter path, and user-reviewed sharing after verdict (Justin, 2026-07-20).
+
+
+---
+
+## 10. Global team/league switcher
+
+**Purpose:** Make the active roster unmistakable and switch all personalized Omen surfaces together. The strip switches context; Account manages connections.
+
+### 10.1 Persistent context strip
+
+```
+COMMAND CENTER
+
+JUSTIN TITANS
+Dynasty Dogs · Sleeper                         Switch ▾
+```
+
+- Team is primary; league and platform are secondary.
+- Switch/disclosure makes the control visibly tappable.
+- Omen-owned contrast, restrained brass detail, and adequate padding create salience without team-color skins, logo walls, flashing, or motion.
+- Present on Command Center, Omen, League, Waiver Analysis, Start/Sit, and Ledger. Trade remains neutral unless user explicitly opts into context.
+
+### 10.2 Native selection sheet
+
+```
+SWITCH TEAM & LEAGUE
+
+SLEEPER
+
+Dynasty Dogs
+Justin Titans                                   ✓
+
+Family League
+Titans Too
+
+YAHOO
+
+Work League
+Justin Titans
+
+───────────────
+Connect another league
+Manage connected leagues
+```
+
+- Group by platform, then league name alphabetically within platform.
+- Keep platform-group order stable across visits.
+- Within rows, show team and league clearly; selected team/league has a visible checkmark and selected surface.
+- If a user has multiple teams in a league, retain that league grouping while exposing each team.
+- Long names truncate gracefully but remain accessible in full labels.
+- No color-only platform/selection distinction.
+- Connect another league and Manage connected leagues remain secondary actions at bottom.
+
+### 10.3 Switching and connection behavior
+
+On selection: dismiss natively, update strip immediately, refresh current surface with stable named skeleton (for example, “Reading Work League…”), and apply selected context atomically to Command Center, Omen, League, Waiver Watch, and Ledger. Cancel/discard stale requests for the prior context.
+
+A reconnect-required connection may enter only a named limited/recovery state; stale recommendations never appear current. No raw provider error, credential, cookie, or token value is exposed.
+
+Empty state explains the value of connection and offers Connect Sleeper/Yahoo or Try demo; it never becomes a dead dashboard or forces sign-in inside the selector.
+
+Persist selection by stable provider/league/team identifiers when authenticated session permits. Native sheets/lists use accessible labels containing team, league, and platform, plus native focus/back/dismiss behavior.
+
+**Founder approval:** prominent persistent context strip; native selector grouped by platform then alphabetically by league; switching follows the active roster across personalized areas (Justin, 2026-07-20).
