@@ -717,3 +717,98 @@ No provider credentials, raw league data, or hidden personal context is attached
 Recommendation snapshots and outcome data are stored separately. Timestamps include a clear time zone and all scoring comparisons honor the selected league’s actual scoring format.
 
 **Founder approval:** Ledger detail is calm, factual, immutable, evidence-auditable, and never self-congratulatory (Justin, 2026-07-20).
+
+
+---
+
+## 8. Trade — public-first builder
+
+**Purpose:** Omen’s lowest-friction front door: a user brings an offer and asks for analysis. It is distinct from Omen’s proactive recommendation engine.
+
+### 8.1 Layout and default context
+
+```
+TRADE
+
+NEUTRAL ANALYSIS                          Personalize →
+
+YOU GIVE
++ Add player
+
+YOU GET
++ Add player
+
+Add picks or future assets
+                    Analyze trade →
+```
+
+- Works without account or connected league.
+- Starts in clearly labelled **Neutral analysis**.
+- Personalization is offered, never required.
+- User can always tell whether Omen uses neutral assumptions or their selected league.
+- Sharing is never requested before a completed verdict.
+
+### 8.2 Offer surfaces
+
+Use equal, stacked **You Give** / **You Get** surfaces:
+
+```
+YOU GIVE
+
+Justin Jefferson
+WR · MIN
+
+2027 2nd-round pick
+Dynasty asset
+
++ Add player or asset
+```
+
+- Equal visual weight; no pre-verdict implication that one side wins.
+- Compact player/asset rows match other Omen comparisons.
+- Picks/future assets appear only in a supported dynasty/keeper or neutral asset context.
+- Removal controls are clear and reversible.
+- No player-headshot gallery, card-pack aesthetic, or giant football imagery.
+
+### 8.3 Adding assets and personalization
+
+Add-player opens native sheets. Personalized search may prioritize selected-roster/league entities; neutral search remains broad and makes no ownership/availability claim.
+
+```
+PERSONALIZE THIS TRADE
+
+Analyze for:
+Justin Titans · Dynasty Dogs · Sleeper
+
+Uses league scoring, roster construction,
+and dynasty/keeper settings when available.
+
+Use personalized analysis
+Continue neutral
+```
+
+- Global selected context may prefill, but is never silently imposed.
+- User may switch back to neutral analysis.
+- If applicable settings cannot be verified, say so and retain neutral analysis.
+
+### 8.4 Analyze and state behavior
+
+`Analyze trade` activates only when both sides have valid assets. Submit shows a result-shaped skeleton with named operation copy; it must preserve the exact offer on failure.
+
+| State | Required behavior |
+|---|---|
+| Empty | Equal You Give / You Get invitation. |
+| Partial offer | Explain what is missing. |
+| Neutral | Visible neutral label; no roster/league claims. |
+| Personalized | Visible selected league and applicable settings. |
+| Unsupported asset | Explain that this asset type cannot yet be evaluated. |
+| Connection issue | Preserve offer; offer retry, reconnect, or neutral analysis. |
+| Shareable result | Available only after completed verdict. |
+
+### 8.5 Guardrails
+
+- A future personalized This Week’s Omen trade suggestion may deep-link here with a prefilled offer only after issue #162’s live personalized-trade acceptance proof.
+- Apple Shortcuts and poll-sharing remain post-beta/V2.
+- Private roster/league details never enter a public share link without explicit review and consent.
+
+**Founder approval:** Trade is public-first, neutral by default, optionally personalized, and verdict-before-share (Justin, 2026-07-20).
