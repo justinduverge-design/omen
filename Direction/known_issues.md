@@ -25,6 +25,10 @@ Last updated: 2026-07-19
 - Tuesday scoring is executable but intentionally gated behind `OMEN_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.
 - Legacy `src/omen_gdpr.js` remains present with historical account-deletion copy; the mounted `/api/user` route is `src/routes/userPrivacy.js` and uses `"DELETE MY OMEN DATA"`.
 
+## Figma / Design-House Notes
+
+- **Enumerate Figma pages with `use_figma`, not `get_metadata` alone (found 2026-07-20).** A no-`nodeId` `get_metadata` call on `mWjrAKPi4JSIP5lAmGAtB3` returned only the first page (`00 — Start Here`), which briefly read as "foundation boards missing." A `use_figma` read of `figma.root.children` confirmed all seven pages and the M1-F/M2-F boards (`13:2`, `14:2`, `17:12`, `17:13`) are present as the registry claims. Confirm page inventory via `figma.root.children` before concluding anything is missing.
+
 ## Documentation Risks
 
 - Current context should come from `Direction/` and `Blueprints/handoffs/`.

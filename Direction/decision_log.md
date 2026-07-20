@@ -2,6 +2,24 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-20 (M1-P Figma screen-contract pass — APPROVED)
+
+- **Justin approved the full M1-P Figma screen-contract pass** (`01 — Principles & References`; 3 `03 — Components` proposals; 10 low-fi screen contracts across `04`/`05`; 4 golden-screen pairs; `06 — QA & Evidence`, 14 entries) after the two founder decisions below were applied. All 14 `06` entries and the 3 `03` proposal badges were updated in Figma from `PENDING`/`PROPOSAL — NOT APPROVED` to `APPROVED — Justin, 2026-07-20`.
+- **Context Strip, Matchup Spine, and Evidence Disclosure are now approved compositions**, added to `omen-native-design-system-registry-v1.md` §3.2 (Omen compositions table) with a pointer to their Figma anatomy/variants/tokens documentation.
+- **M1-P P2 (shared foundation primitives) and P3 (first Omen compositions) are unblocked.** SwiftUI `DesignSystem` and Android `core:designsystem` module work may begin against the approved registry and Figma contracts.
+
+## Decisions Added 2026-07-20 (M1-P Figma screen-contract pass — founder review)
+
+- **Compound-named flows must be separate screen contracts, not a single wireframe with stacked stages (Justin, 2026-07-20).** "Omen lead + Start/Sit detail" and "Trade builder + verdict" were originally each compressed into one wireframe with two labeled stages. Justin rejected this. Rebuilt as four independent screen contracts — Omen lead (This Week's Omen), Start/Sit detail, Trade builder, Trade verdict — each with its own primary + alternate state, matching how they behave as separate navigable screens in the real app. The golden-screen set followed the same split: "This Week's Omen / Start-Sit" became two golden pairs (Golden — Omen lead, Golden — Start/Sit detail), bringing the golden count to 4, a deliberate deviation from the spec's literal "3 golden pairs" — flagged transparently in the `06 — QA & Evidence` board rather than left as a silent miss.
+- **Account auth-provider label reflects the account's actual chosen sign-in mechanism, never a platform default (Justin, 2026-07-20).** The Android Account wireframe originally showed "Signed in with Google" opposite the iOS wireframe's "Signed in with Apple," implying the label is platform-derived. Justin corrected this: the same sample account shows the same mechanism on both platforms, because the label is account data, not device-derived UI. Fixed in the Android wireframe (`30:322`) and documented as a resolved rule in the `06` QA entry for Account → Connected Leagues, so a future feature build doesn't reintroduce the platform-default assumption.
+- All four affected `06 — QA & Evidence` entries (plus the two new split entries and two new golden entries) now record these as **Resolved** decisions rather than open questions. Node IDs: see `Blueprints/handoffs/2026-07-20-m1p-figma-reference-and-proposals.md`.
+
+## Note Added 2026-07-20 (M1-P Figma — foundation boards verified present; false-alarm correction)
+
+- **The M1-F/M2-F foundation boards ARE present in `mWjrAKPi4JSIP5lAmGAtB3`, exactly as the registry claims.** Verified via `use_figma` (`figma.root.children`): `02 — Tokens & Themes` → frame `13:2` "M1 — Core Tokens & Typography"; `03 — Components` → frame `14:2` "M1 — Foundation Component Registry"; `04 — iOS Screens` → `17:12` "M2 — iOS App Shell Contract"; `05 — Android Screens` → `17:13` "M2 — Android App Shell Contract". All seven pages `00`–`06` exist.
+- **A transient tool artifact caused a false discrepancy earlier this session.** The Figma MCP `get_metadata` call with no `nodeId` returned only the first page (`00 — Start Here`), which read as "the file is nearly empty." A `use_figma` read enumerating `figma.root.children` showed the full page tree. **Lesson:** confirm Figma page inventory with a `use_figma` `figma.root.children` read, not `get_metadata` alone, before concluding boards are missing.
+- **No rebuild is needed.** M1-P proceeds with its original scope: fill the empty `01 — Principles & References` (`1:2`) and `06 — QA & Evidence` (`1:7`) pages and add the three `03 — Components` proposals (Context Strip, Matchup Spine, Evidence Disclosure) per `m1-figma-screen-contract-pass-v1.md`.
+
 ## Decisions Added 2026-07-19 (M3-A Native Auth Scaffolding — Android)
 
 - **M3-A is built config-independent first, behind interfaces.** `AuthRepository`, `GoogleIdTokenProvider`, and `SecureSessionStore` are interfaces with a network-free `FakeAuthRepository` and an in-memory store, so the full sign-in state machine, session, and app UI are built and JVM-tested (25 tests) with no live Supabase/Google config. Live Supabase + Credential Manager wiring is a follow-up PR gated only on the Google Web client ID.

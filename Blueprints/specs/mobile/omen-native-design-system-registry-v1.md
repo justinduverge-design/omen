@@ -159,6 +159,11 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **StepGuide** | guided connection steps | steps[] | default, active-step | ListRow, Badge |
 | **MarketingHero** | public/onboarding hero | promise, CTAs | default | display type, CTAGroup |
 | **CTAGroup** | grouped calls to action | actions[] | default | Button set |
+| **Context Strip** | persistent selected team/league/platform strip + switcher entry point | team, league, platform, switch control | connected, recovery/reconnect-required, empty, multi-team-in-league | ListRow-style container + `.sheet` (iOS) / `ModalBottomSheet` (Android) |
+| **Matchup Spine** | Omen-owned vertical head-to-head layout for the Matchup Hero | selected team, opponent, scores/records, one What to Watch signal | before games, live, final, no matchup/off-season (+ narrow-width rail collapse) | Card + numeric (DM Mono) type role |
+| **Evidence Disclosure** | collapsed answer-first recommendation that expands to categorized evidence on demand | verdict/move, compact comparison rows, categorized evidence (league fact, player/game fact, current status, Omen inference, limitation) | clear decision, close decision, player unavailable, incomplete data, games started, off-season | Card + inline/`.sheet` (iOS) or inline/`ModalBottomSheet` (Android) expansion |
+
+**Context Strip, Matchup Spine, and Evidence Disclosure approved 2026-07-20 (Justin)** via the M1-P Figma screen-contract pass proposals (Figma `03 — Components`, nodes `25:2`/`25:26`/`25:50` in `mWjrAKPi4JSIP5lAmGAtB3`). Full anatomy, variants/states, tokens, accessibility, and iOS/Android expression are documented on those Figma boards and in `Blueprints/handoffs/2026-07-20-m1p-figma-reference-and-proposals.md`; this table row is the registry pointer, not a restatement.
 
 **Canonical product promise wired into MarketingHero / Welcome:** "See the move before the league does." (Justin, 2026-07-19.)
 
