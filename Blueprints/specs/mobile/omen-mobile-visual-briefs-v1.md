@@ -451,3 +451,76 @@ Do not represent an inference as provider fact, nor hide an incomplete/stale inp
 - Current live v1 remains Start/Sit-first. Waiver and personalized Trade lead types stay unavailable until issue #162’s live-data acceptance proof is complete.
 
 **Founder approval:** This Week’s Omen gives the answer immediately with evidence on tap; factual, calm, nonjudgmental language; workspace matching the returned decision type is visually promoted (Justin, 2026-07-20).
+
+
+---
+
+## 5. Omen → Start/Sit detail
+
+**Purpose:** Prove a Start/Sit recommendation through a calm, comparable evidence surface. This is a comparison desk, not a player-card casino.
+
+### 5.1 Approved default presentation — compact player rows
+
+The page opens directly on the relevant selected-roster decision:
+
+```
+START / SIT
+
+START DEVONTA SMITH
+over Chris Olave
+
+For Justin Titans · Dynasty Dogs
+Week 7 · Sunday
+```
+
+Use compact, connected player rows as the first view:
+
+```
+OMEN RECOMMENDS
+
+START DEVONTA SMITH                    CONFIDENCE: MODERATE
+WR · PHI · Sun 4:25 PM
+
+OVER CHRIS OLAVE
+WR · NO · Sun 1:00 PM
+
+WHY OMEN LEANS SMITH
+• Higher projected output in this league’s scoring.
+• More favorable verified matchup context.
+• Later kickoff preserves flexibility in a close matchup.
+
+WHAT COULD CHANGE THIS
+Olave’s final injury status or a late Philadelphia weather update.
+
+View evidence →
+```
+
+- Recommendation answer comes first.
+- The recommended player is the upper/primary compact row; the alternative is the connected lower row.
+- A subtle comparison spine may connect the two, echoing the Matchup Hero without becoming a “versus” game screen.
+- The first view does **not** show a dense stat grid, player headshots, a carousel, or a large roster table.
+- Full per-player statistics, source detail, projections, assumptions, and comparison data appear only after the explicit **View evidence** action.
+- The user can return from evidence to the same recommendation snapshot without losing context.
+
+### 5.2 Evidence language
+
+| Category | Example |
+|---|---|
+| League fact | “This league awards 0.5 PPR.” |
+| Player/game fact | “Smith plays Sunday at 4:25 PM.” |
+| Current status | “Olave is questionable as of Friday practice.” |
+| Omen inference | “The available data favors Smith.” |
+| Limitation | “Weather forecast confidence is moderate.” |
+
+Never merge facts, projections, or model inference into an unsupported single claim.
+
+### 5.3 Control and outcome rules
+
+- Default to the highest-priority unresolved lineup decision, then let the user switch roster slots or manually compare eligible players.
+- Do not silently change a provider lineup. For beta, Omen advises; the user controls the actual roster action.
+- Use a calm acknowledgement such as “I’m starting Smith,” “Keep reviewing,” or “Open league lineup.”
+- After kickoff, preserve the immutable recommendation snapshot for Ledger; show live/final context separately and never rewrite the original recommendation.
+- Use “What could change this” for the one or two conditions genuinely capable of changing the call. It is evidence-based, not generic hedging.
+- Clear decision, close decision, player unavailable, incomplete data, games started, and off-season all need honest named states; no forced recommendation when evidence is insufficient.
+
+**Founder approval:** compact player rows are the Start/Sit first view; dense statistics remain behind an intentional View evidence expansion (Justin, 2026-07-20).
