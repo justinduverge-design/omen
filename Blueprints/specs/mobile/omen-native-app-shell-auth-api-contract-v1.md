@@ -65,7 +65,17 @@ These destinations must not duplicate each other. The distinction is behavioral,
 | **Trade** | **Evaluate a proposed trade.** | Public Trade Analyzer and its reasoning | Relevant player/league context only where it clarifies the trade |
 | **League** | **Explore league context.** | Roster, matchup, standings, connected-league context, and seasonal Draft entry | Omen analysis when a user asks for a recommendation |
 
-### 1.5 Waiver Watch cadence
+### 1.5 Global team/league context
+
+Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
+
+- Each personalized destination shows a compact context control containing the selected team name, league name, and platform identifier.
+- Tapping it opens a native platform sheet that lists every connected team/league and offers **Connect another league**.
+- The selected context persists across tab changes and app relaunches when the stored session permits.
+- Command Center, Omen, and League never silently use different selected teams.
+- Trade remains usable without a connected league; when a league is selected, it may offer to use that context for personalized analysis, but must state this clearly and let the user change it.
+
+### 1.6 Waiver Watch cadence
 
 Waiver Watch follows a weekly rhythm for a typical weekly-waiver league:
 
@@ -205,6 +215,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 6. **Command Center vs. Omen:** ✅ Command Center orients and prioritizes the selected league/team, led by Waiver Watch urgency and a short Ledger preview. Omen is the full decision workspace: Start/Sit, full waiver analysis, reasoning/confidence, and the complete Ledger. A Command Center priority deep-links into the relevant Omen workspace; it does not duplicate it (Justin, 2026-07-20).
 7. **Waiver Watch cadence:** ✅ Tuesday–Wednesday is an urgent alert/briefing; Thursday–Monday is a calm ranked opportunity list. When live league waiver-deadline metadata is available, it takes precedence so urgency matches that league’s actual schedule (Justin, 2026-07-20).
 8. **Urgent briefing composition:** ✅ For dynasty/keeper teams, show one immediate Best Move plus two Long-Horizon Moves, so Omen serves both this week and long-term roster health. Redraft users receive long-horizon content only when a genuinely relevant forward-looking stash exists; Omen must not invent dynasty framing (Justin, 2026-07-20).
+9. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A compact native context selector makes the active roster explicit and lets the user switch or connect another league; Trade may optionally use the selection for personalized analysis but remains usable without it (Justin, 2026-07-20).
 
 ## 13. Evidence
 
