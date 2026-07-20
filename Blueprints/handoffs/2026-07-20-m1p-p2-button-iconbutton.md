@@ -31,8 +31,9 @@ change was included.
 ## Limitation and next gate
 
 Windows has no Xcode toolchain. The new iOS Button/IconButton files are now properly referenced
-by the project, but this commit still needs the existing unsigned macOS `ios-ci.yml` build signal
-after an explicitly authorized push. Do not merge before that green run.
+by the project and the existing unsigned macOS `ios-ci.yml` build passed on 2026-07-20: run
+`29788177311`, **Build OmenIOS (simulator, unsigned)**, 41s. The run emitted only the unrelated
+`actions/checkout@v4` Node.js 20 deprecation annotation. No merge approval is implied.
 
 ## Next recommended slice
 
