@@ -6,9 +6,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 /**
- * `Modifier.border` draws inside existing layout bounds, so chaining it never changes a
- * component's measured size — these tests only lock the identity/element-count contract from
- * m1-focus-ring-build-brief-v1.md §3 ("Adds a visible outline without changing layout size").
+ * The ring is drawn as an inset overlay after content via `drawWithContent` (a single draw
+ * element, not `Modifier.border`). Material controls clip an outward ring, while this overlay
+ * remains visible on filled variants without changing measured layout size. These tests lock the
+ * identity/element-count contract only; the visual treatment is proven by gallery screenshots.
  */
 class OmenFocusRingTest {
 
@@ -27,13 +28,13 @@ class OmenFocusRingTest {
     }
 
     @Test
-    fun `focused adds a two-layer outline without replacing the base modifier`() {
+    fun `focused adds a draw element without replacing the base modifier`() {
         val result = Modifier.omenFocusRing(
             focused = true,
             color = OmenDarkColors.focusRing,
             haloColor = OmenDarkColors.focusRingHalo,
         )
         assertNotEquals(Modifier, result)
-        assertEquals(2, result.elementCount())
+        assertEquals(1, result.elementCount())
     }
 }

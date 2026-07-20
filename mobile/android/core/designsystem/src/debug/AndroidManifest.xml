@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only manifest fragment. AGP merges this into the debug variant only — the gallery
+  Activity below never ships in a release build. See DesignSystemGalleryActivity.kt.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".gallery.DesignSystemGalleryActivity"
+            android:exported="true"
+            android:label="Omen Design System Gallery (debug)"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
