@@ -18,7 +18,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -29,6 +32,10 @@ import com.slopssaloon.omen.core.designsystem.component.OmenButtonTone
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonTone
+import com.slopssaloon.omen.core.designsystem.component.OmenFormField
+import com.slopssaloon.omen.core.designsystem.component.OmenPicker
+import com.slopssaloon.omen.core.designsystem.component.OmenTextField
+import com.slopssaloon.omen.core.designsystem.component.OmenTextFieldVariant
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -97,6 +104,52 @@ private fun GalleryScreen() {
                 OmenButton("Sm", {}, size = OmenButtonSize.Sm)
                 OmenButton("Md", {}, size = OmenButtonSize.Md)
                 OmenButton("Lg", {}, size = OmenButtonSize.Lg)
+            }
+        },
+        Section("Form controls — default, error, success, disabled") {
+            var email by remember { mutableStateOf("") }
+            var format by remember { mutableStateOf("Standard") }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OmenFormField(label = "Email", hint = "We use this only to send your sign-in code.") {
+                    OmenTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "Email",
+                        placeholder = "you@example.com",
+                        variant = OmenTextFieldVariant.Email,
+                    )
+                }
+                OmenFormField(label = "Invite code", errorMessage = "That code is not valid yet.") {
+                    OmenTextField(
+                        value = "OMEN-2026",
+                        onValueChange = {},
+                        label = "Invite code",
+                        isError = true,
+                    )
+                }
+                OmenFormField(label = "League name", successMessage = "League name is available.") {
+                    OmenTextField(
+                        value = "Sunday Slate",
+                        onValueChange = {},
+                        label = "League name",
+                    )
+                }
+                OmenFormField(label = "Scoring format", hint = "You can change this later.") {
+                    OmenPicker(
+                        label = "Scoring format",
+                        selectedOption = format,
+                        options = listOf("Standard", "Half PPR", "PPR"),
+                        onOptionSelected = { format = it },
+                    )
+                }
+                OmenFormField(label = "Locked field") {
+                    OmenTextField(
+                        value = "Already connected",
+                        onValueChange = {},
+                        label = "Connection status",
+                        enabled = false,
+                    )
+                }
             }
         },
     )
