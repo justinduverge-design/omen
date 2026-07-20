@@ -106,6 +106,20 @@ For redraft leagues, do not fabricate dynasty framing. Show a long-horizon item 
 
 **Omen rule:** Start/Sit belongs to Omen. The Ledger’s complete, accountable record—recommendation, timestamp, reasoning, confidence, and later outcome—belongs to Omen; Command Center shows only a short recent preview.
 
+### 1.6.1 Omen page lead — This Week’s Omen
+
+The lead of the Omen page is **This Week’s Omen**: one clearly stated, highest-value move for the selected team and league. It is the product’s central promise—not a generic alert and not a tool menu.
+
+Its intent is to help the user improve the team **today and across the season**, while remaining evidence-honest:
+
+- It leads with the move, then why it matters, risk, confidence, and data used.
+- It identifies the decision type (for example, Start/Sit or waiver pickup) and opens its full analysis when tapped.
+- It may explain longer-horizon or dynasty impact only when the league format and available evidence genuinely support that claim.
+- It must never frame a weekly Start/Sit call as a proven long-term roster improvement when the evidence supports only the current matchup.
+- Below the lead sit clear paths to **Start/Sit**, **Waiver Analysis**, and the **Ledger**. They are deep workspaces, not competitors for the headline.
+
+Current implementation reality: the canonical `POST /api/omen/mvp-move` route supplies this one-move concept, but live v1 currently produces only Start/Sit. Waiver and other recommendation types remain unavailable/stubbed until their data paths are truly implemented; the native UI must label that honestly.
+
 ### 1.7 Rivalry History — post-beta direction
 
 **Rivalry History is explicitly out of beta scope.** After beta, Omen intends to offer a matchup-detail view with confirmed continuing-league head-to-head history, such as all-time record versus the current opponent and recent meetings.
@@ -227,7 +241,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 8. **Urgent briefing composition:** ✅ For dynasty/keeper teams, show one immediate Best Move plus two Long-Horizon Moves, so Omen serves both this week and long-term roster health. Redraft users receive long-horizon content only when a genuinely relevant forward-looking stash exists; Omen must not invent dynasty framing (Justin, 2026-07-20).
 9. **Command Center hierarchy:** ✅ Directly below the persistent team/league context strip, show the selected team’s current matchup and record; Waiver Watch follows it. Current state precedes recommendations (Justin, 2026-07-20).
 10. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A persistent, visually prominent Omen-owned context strip below each personalized page title makes the active roster explicit and lets the user switch or connect another league; its native sheet is organized by platform, then alphabetically by league name within each platform, with the active selection marked. Trade may optionally use the selection for personalized analysis but remains usable without it. It must be high-salience without team-color theming, flashing, or disruptive animation (Justin, 2026-07-20).
-11. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+11. **Omen page lead:** ✅ This Week’s Omen is the page’s central, one highest-value move for the selected team and league. It aims to help the team today and across the season, but claims long-horizon/dynasty impact only when format and evidence support it; current live v1 availability must remain honestly labeled. Start/Sit, Waiver Analysis, and Ledger sit beneath as deep workspaces (Justin, 2026-07-20).
+12. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
