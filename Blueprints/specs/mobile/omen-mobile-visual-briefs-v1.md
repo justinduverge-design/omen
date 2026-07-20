@@ -368,3 +368,86 @@ Before release, the feature requires:
 6. Founder review of the first live examples on iPhone and Android.
 
 Travel and rest may add context to a matchup. They do not create automatic Start/Sit, waiver, or trade recommendations by themselves.
+
+
+---
+
+## 4. Omen Page — This Week’s Omen lead card
+
+**Purpose:** Omen’s signature surface states the one highest-value move for the selected team and league. It answers immediately, then makes the evidence inspectable. It is the intelligence layer above Command Center and League—not a generic dashboard or an “AI reveal” mechanic.
+
+### 4.1 Page order
+
+1. `Omen` title + persistent selected team/league context strip.
+2. **This Week’s Omen** lead card.
+3. Visually promoted workspace matching the lead decision type.
+4. Quieter paths to Start/Sit, Waiver Analysis, and Ledger.
+
+A personalized Trade recommendation may become the lead only after the canonical Omen engine supports it with live, selected-league evidence. It opens the existing Trade flow in that context; it does not add a fourth permanent Omen workspace.
+
+### 4.2 Approved card anatomy
+
+```
+THIS WEEK’S OMEN                              WAIVER
+
+Add Tyrone Tracy Jr.
+for immediate RB depth and a credible longer-term role path.
+
+WHY THIS MATTERS
+Your RB room is thin for Week 7, and Tracy’s usage
+increased over the last two games.
+
+Confidence: Moderate     Risk: role volatility
+
+Review waiver analysis →
+```
+
+| Element | Requirement |
+|---|---|
+| Decision type | Small but unmistakable Start/Sit, Waiver, or Trade label. |
+| Plain-English move | Largest type: the answer first. |
+| Why this matters | One concise selected-roster/week rationale. |
+| Evidence preview | One or two factual inputs; facts stay distinguishable from Omen inference. |
+| Confidence + risk | Evidence-bound qualifier, never a guarantee or decorative “AI score.” |
+| CTA | Opens the matching deeper workspace with the selected context preserved. |
+
+### 4.3 Facts versus Omen inference
+
+The lead shows a short summary; the detail view provides complete evidence, sources, assumptions, alternatives, and limitations.
+
+```
+WHY THIS MATTERS
+Fact · Your opponent has two Monday-night players remaining.
+Fact · Smith projects higher under this league’s scoring.
+Omen’s read · Starting Smith improves your flexibility if the matchup stays close.
+```
+
+Do not represent an inference as provider fact, nor hide an incomplete/stale input behind stronger copy.
+
+### 4.4 Visual behavior
+
+- The lead is the strongest Omen-page surface: deep-charcoal layer, bone-white action text, restrained aged-brass structure.
+- A subtle lace-derived directional mark/divider is allowed. Do not use mystical/oracle imagery, football clip art, reveal motion, pulses, looping glow, or “thinking” theater.
+- Start/Sit uses neutral/brass structural emphasis. Waiver may use verdigris only when availability is verified. Trade remains brass/neutral, not celebratory green. Crimson marks real risk, deadline, injury concern, or downside only.
+- The promoted workspace follows the actual decision type; other workspaces remain available but quieter.
+- Hierarchy, position, and surface treatment—not flashing or animation—create emphasis.
+
+### 4.5 State behavior
+
+| State | Required Omen expression |
+|---|---|
+| Available | Immediate recommendation plus short evidence preview. |
+| Close call | Plain language: “The available data slightly favors…” |
+| Insufficient data | State what cannot be confirmed and offer the safest useful next action. |
+| No high-value move | “No single move stands out for this roster right now.” Keep available workspaces reachable. |
+| Off-season | Supported strategic/draft/dynasty context only; never weekly Start/Sit fabrication. |
+| Engine limitation | Clearly label unavailable recommendation types until their live data paths exist. |
+
+### 4.6 Integrity and interaction rules
+
+- Every recommendation snapshot contains selected team/league context, timestamp, evidence, confidence/risk, and decision type before the detail opens; it is recorded for the Ledger.
+- The user never pulls to reveal, waits through a fabricated processing sequence, or must interpret a mysterious score.
+- Detail always offers explanation, alternatives, applicable action path, and contextual feedback after the user can inspect the evidence.
+- Current live v1 remains Start/Sit-first. Waiver and personalized Trade lead types stay unavailable until issue #162’s live-data acceptance proof is complete.
+
+**Founder approval:** This Week’s Omen gives the answer immediately with evidence on tap; factual, calm, nonjudgmental language; workspace matching the returned decision type is visually promoted (Justin, 2026-07-20).
