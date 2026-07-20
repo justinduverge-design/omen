@@ -38,4 +38,4 @@
 
 ## Do-not-treat-as-live
 
-Local branch only. Nothing pushed, merged, or deployed. The stray untracked `Blueprints/handoffs/2026-07-19-primitive-migration-session.md` predates this session and was left untouched.
+Local branch only. Nothing pushed, merged, or deployed.

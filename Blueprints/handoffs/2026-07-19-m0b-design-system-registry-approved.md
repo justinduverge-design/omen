@@ -43,4 +43,4 @@ After M0a approval (PR #148 merged), built and got approval for **M0b** — the 
 
 ## Do-not-treat-as-live
 
-Local branch only until pushed/merged. The Figma Design House remains a stub (`00 — Start Here`); Markdown is source of truth. The stray untracked `Blueprints/handoffs/2026-07-19-primitive-migration-session.md` predates this session, untouched.
+Local branch only until pushed/merged. The Figma Design House remains a stub (`00 — Start Here`); Markdown is source of truth.

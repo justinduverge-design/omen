@@ -51,7 +51,6 @@ Procedure gap found: no correction needed. The registry's explicit M0b-to-M1 bou
 
 - Branch: `codex/m1-native-foundation-briefs`
 - Commit / PR / push / merge / deploy: none.
-- Unrelated pre-existing untracked file preserved: `Blueprints/handoffs/2026-07-19-primitive-migration-session.md`.
 
 ## Next safe action
 

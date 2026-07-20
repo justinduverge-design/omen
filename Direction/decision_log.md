@@ -600,3 +600,18 @@
 - **Native typography is locked to Alegreya Sans, Alegreya, and DM Mono.** Alegreya Sans owns UI/headings/controls; Alegreya owns long-form reading copy; DM Mono owns scores, structured numeric values, and code-adjacent data. Do not revive Cinzel or Inter for native Omen UI.
 - **Team-color tokens and team skins are out of the phone MVP.** Keep brass, verdigris, crimson, and semantic status roles stable. Team skins remain a future founder decision after core accessibility and parity.
 - **M0b is inventory/rules; M1 is build briefs.** M0b documents tokens, component registry, states, accessibility, typography, platform differences, and theme boundaries. Per-component SwiftUI/Compose briefs and any component code start in M1.
+
+## Decisions Added 2026-07-19 (Native build environment)
+
+- **Do not require a Mac purchase for Omen native delivery.** Justin does not have a Mac capable of running Xcode and will not buy one. Native contracts and Figma work may continue on the current Windows workspace; M2 project scaffolding needs a separately selected, non-purchase iOS build/validation path and Android toolchain plan before code begins. Do not assume a paid hosted-Mac service or create cloud spend without explicit approval.
+- **M2-E selected local Android plus zero-billed iOS simulator validation.** Android uses the Studio-managed SDK, ADB, emulator, and `Medium_Phone` Android 17/API 37.1 profile verified on this Windows machine. The iOS path is a future non-signing GitHub-hosted macOS simulator job, only when explicitly approved and only within included Actions capacity; if that capacity is unavailable, it blocks rather than incurs spend. No local Xcode, signing, TestFlight, store account, or real-iPhone validation is implied.
+
+## Decisions Added 2026-07-19 (M2 native app-shell scaffold)
+
+- **M2 is a compile-safe shell, not a provider or release implementation.** The new SwiftUI and Compose projects share the approved bundle/deep-link identifier, safe placeholder environment values, local demo entry, session state seam, and top-level navigation placeholders. They do not contain provider OAuth, secure-token persistence, backend calls, signing identities, App Store configuration, secrets, or production URLs.
+- **Android is locally verified; iOS remains CI-gated.** The Android debug APK builds and launches on the local emulator. Because this Windows workspace has no Xcode-capable Mac, iOS project compilation must wait for a separately authorized, no-billed-usage macOS simulator CI job. This is a validation gap, not permission to add CI, signing, or TestFlight work.
+
+## Decisions Added 2026-07-19 (M3 auth boundary)
+
+- **The M3 sign-in surface is an explicitly temporary local placeholder.** It may never be described as authentication, account creation, provider connection, or release-ready behavior. It exists only to prove the local vertical-slice navigation and must remain visibly labeled until M3-A replaces it.
+- **M3-A native authentication proof is mandatory before an external/native release.** The required scope is iOS Sign in with Apple plus email OTP, Android Credential Manager plus email OTP, Keychain/Keystore-backed session storage, named auth failure/recovery states, and safe real-device evidence. It requires separate founder authorization for public Supabase/auth configuration; provider connection, signing, and store release remain separate gates.

@@ -13,11 +13,15 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
 
-**Current next task:** **M1-F — Native Figma token and foundation-library setup** (P0). Populate only `02 — Tokens & Themes` and `03 — Components` in the official Design House from the approved registry and M1 briefs. Include semantic `focus-ring`, the locked Alegreya Sans/Alegreya/DM Mono roles, and the existing foundation-component anatomy/state/accessibility/iOS/Android mapping. Do not invent a new token, component, or screen pattern; do not scaffold native projects (M2), write native code, touch APIs/providers, or publish the Figma library without founder/design-steward approval.
+**Last completed pull:** **M2 — Native app-shell project scaffolding** (P0). iOS SwiftUI and Android Compose shells now have safe environment seams, local demo entry, session/navigation placeholders, and `com.slopssaloon.omen` deep-link registration. Android debug build plus local emulator install/launch passed. iOS compilation remains a future non-signing macOS CI action; no signing, store, provider, or credential action occurred. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`.
+
+**Last completed pull:** **M3 — Native vertical slice** (P1), local/demo-only. Welcome, Demo, a visibly temporary local sign-in placeholder, Command Center, and mock/recovery Omen states have parity in the two shells. It makes no real auth/provider/store claim. Evidence: `Blueprints/handoffs/2026-07-19-m3-native-vertical-slice.md`.
+
+**Current next task:** **M3-A — Native authentication proof** (P0) is **required, not optional, before any external/native release.** It replaces the M3 placeholder with native auth plus email OTP and safe session storage. It needs separate founder authority for Supabase/public auth configuration and real-device validation; it must not expand into provider connection, signing, or store release work.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M1 first two native foundation build briefs** (focus-ring and typography; local branch `codex/m1-native-foundation-briefs`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
+Last completed pull: **M2-F — Native app-shell screen contracts** (Figma nodes `17:12` / `17:13`; local branch `codex/m2-app-shell-contracts`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
 
 ## Open PR gates
 

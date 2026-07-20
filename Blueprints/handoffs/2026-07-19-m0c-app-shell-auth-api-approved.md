@@ -41,4 +41,4 @@ Completed the M0 contract pack. After M0a (PR #148) and M0b (PR #150) merged, wr
 
 ## Do-not-treat-as-live
 
-Local branch only until pushed/merged. The 4 backend requirements are contract requirements, **not implemented**. Figma Design House still a stub. Stray untracked `2026-07-19-primitive-migration-session.md` predates this session, untouched. A remote branch `docs/native-m0b-ratifications` appeared during an earlier fetch — not created by this session; flag for Justin.
+Local branch only until pushed/merged. The 4 backend requirements are contract requirements, **not implemented**. Figma Design House still a stub. A remote branch `docs/native-m0b-ratifications` appeared during an earlier fetch — not created by this session; flag for Justin.
