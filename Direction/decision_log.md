@@ -615,3 +615,9 @@
 
 - **The M3 sign-in surface is an explicitly temporary local placeholder.** It may never be described as authentication, account creation, provider connection, or release-ready behavior. It exists only to prove the local vertical-slice navigation and must remain visibly labeled until M3-A replaces it.
 - **M3-A native authentication proof is mandatory before an external/native release.** The required scope is iOS Sign in with Apple plus email OTP, Android Credential Manager plus email OTP, Keychain/Keystore-backed session storage, named auth failure/recovery states, and safe real-device evidence. It requires separate founder authorization for public Supabase/auth configuration; provider connection, signing, and store release remain separate gates.
+
+## Decisions Added 2026-07-19 (Apple Sign in provisioning)
+
+- **Founder completed the Apple-provider configuration needed for M3-A without expanding the release scope.** Omen has a primary native App ID, a Supabase-facing Services ID, and an enabled Supabase Apple provider. Private key material and the generated OAuth secret remain outside Git and agent context.
+- **Apple secret rotation is an operating requirement.** The generated OAuth secret expires after six months; the founder must rotate it before 2027-01-19 using the retained private key. Native iOS build, signing, TestFlight, store submission, and real-device proof remain separately gated.
+- **The Apple capability catalogue is deferred V2 discovery, not an entitlement backlog.** Each proposed capability requires product value, privacy, App Review, operational, battery, and cost analysis before it is enabled.
