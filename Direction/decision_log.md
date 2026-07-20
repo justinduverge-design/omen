@@ -610,3 +610,8 @@
 
 - **M2 is a compile-safe shell, not a provider or release implementation.** The new SwiftUI and Compose projects share the approved bundle/deep-link identifier, safe placeholder environment values, local demo entry, session state seam, and top-level navigation placeholders. They do not contain provider OAuth, secure-token persistence, backend calls, signing identities, App Store configuration, secrets, or production URLs.
 - **Android is locally verified; iOS remains CI-gated.** The Android debug APK builds and launches on the local emulator. Because this Windows workspace has no Xcode-capable Mac, iOS project compilation must wait for a separately authorized, no-billed-usage macOS simulator CI job. This is a validation gap, not permission to add CI, signing, or TestFlight work.
+
+## Decisions Added 2026-07-19 (M3 auth boundary)
+
+- **The M3 sign-in surface is an explicitly temporary local placeholder.** It may never be described as authentication, account creation, provider connection, or release-ready behavior. It exists only to prove the local vertical-slice navigation and must remain visibly labeled until M3-A replaces it.
+- **M3-A native authentication proof is mandatory before an external/native release.** The required scope is iOS Sign in with Apple plus email OTP, Android Credential Manager plus email OTP, Keychain/Keystore-backed session storage, named auth failure/recovery states, and safe real-device evidence. It requires separate founder authorization for public Supabase/auth configuration; provider connection, signing, and store release remain separate gates.

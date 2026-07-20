@@ -15,7 +15,9 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **Last completed pull:** **M2 — Native app-shell project scaffolding** (P0). iOS SwiftUI and Android Compose shells now have safe environment seams, local demo entry, session/navigation placeholders, and `com.slopssaloon.omen` deep-link registration. Android debug build plus local emulator install/launch passed. iOS compilation remains a future non-signing macOS CI action; no signing, store, provider, or credential action occurred. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`.
 
-**Current next task:** **M3 — Native vertical slice** (P1) needs an explicit scoped authorization. It must prove the approved Welcome → Demo → Sign in → Command Center → Omen path on both shells without adding provider integration, credentials, signing, store work, or a production change.
+**Last completed pull:** **M3 — Native vertical slice** (P1), local/demo-only. Welcome, Demo, a visibly temporary local sign-in placeholder, Command Center, and mock/recovery Omen states have parity in the two shells. It makes no real auth/provider/store claim. Evidence: `Blueprints/handoffs/2026-07-19-m3-native-vertical-slice.md`.
+
+**Current next task:** **M3-A — Native authentication proof** (P0) is **required, not optional, before any external/native release.** It replaces the M3 placeholder with native auth plus email OTP and safe session storage. It needs separate founder authority for Supabase/public auth configuration and real-device validation; it must not expand into provider connection, signing, or store release work.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 

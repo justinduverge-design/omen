@@ -27,8 +27,18 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(read("mobile/android/app/src/main/AndroidManifest.xml"), /com\.slopssaloon\.omen/);
   assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppEnvironment.swift"), /apiBaseURL/);
   assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/core/network/AppEnvironment.kt"), /apiBaseUrl/);
-  assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift"), /Enter demo/);
-  assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt"), /Enter demo/);
+  assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift"), /Try Demo/);
+  assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt"), /Try Demo/);
   assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt"), /NavigationBar/);
+  for (const relativePath of [
+    "mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift",
+    "mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt",
+  ]) {
+    const screen = read(relativePath);
+    assert.match(screen, /Try Demo/);
+    assert.match(screen, /Get started/);
+    assert.match(screen, /Mock recommendation/);
+    assert.match(screen, /Connection needs attention/);
+  }
   assert.doesNotMatch(read("mobile/android/app/build.gradle.kts"), /SUPABASE_SERVICE_KEY|OAUTH.*SECRET|ESPN.*COOKIE/);
 });

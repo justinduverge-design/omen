@@ -5,6 +5,7 @@ final class SessionStore: ObservableObject {
     enum State: Equatable {
         case loading
         case signedOut
+        case authPlaceholder
         case signedIn(userID: String)
     }
 
@@ -17,4 +18,7 @@ final class SessionStore: ObservableObject {
     func enterDemo() {
         state = .signedIn(userID: "demo-local")
     }
+
+    func beginSignIn() { state = .authPlaceholder }
+    func continueWithPlaceholderSignIn() { state = .signedIn(userID: "local-preview") }
 }
