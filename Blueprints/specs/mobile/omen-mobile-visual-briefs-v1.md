@@ -955,3 +955,88 @@ Empty state explains the value of connection and offers Connect Sleeper/Yahoo or
 Persist selection by stable provider/league/team identifiers when authenticated session permits. Native sheets/lists use accessible labels containing team, league, and platform, plus native focus/back/dismiss behavior.
 
 **Founder approval:** prominent persistent context strip; native selector grouped by platform then alphabetically by league; switching follows the active roster across personalized areas (Justin, 2026-07-20).
+
+
+---
+
+## 11. Account → Connected Leagues
+
+**Purpose:** The calm management surface for provider health and connection actions. The global switcher changes active context; this screen manages the connections underneath it.
+
+### 11.1 Account placement and provider rows
+
+Connected Leagues is the first actionable Account section beneath concise Profile identity.
+
+```
+ACCOUNT
+
+Justin Duverge
+Signed in with Apple
+
+CONNECTED LEAGUES
+
+Sleeper                                     Connected
+2 leagues · Last updated just now           →
+
+Yahoo                                       Needs reconnect
+1 league · Action required                  →
+
+ESPN                                        Not connected
+Availability depends on mobile support      →
+```
+
+Each provider receives one grouped row/card, not a large card per league.
+
+| State | Required expression | Primary action |
+|---|---|---|
+| Connected | Calm status, league count, last successful sync. | Manage |
+| Syncing | Named operation: “Updating league context…” | No duplicate connect action |
+| Needs reconnect | Clear brass/attention state, plain explanation. | Reconnect |
+| Not connected | Neutral status. | Connect |
+| Unsupported on mobile | Calm limitation explanation. | Learn why / safe alternative |
+| Temporary problem | Preserve last safe state and explain recovery. | Retry |
+
+Routine reconnect is not a crimson “failure”; crimson remains for material risk.
+
+### 11.2 Provider detail, connect, reconnect, disconnect
+
+Connected provider detail opens in a native sheet:
+
+```
+SLEEPER
+
+Connected
+2 leagues available
+
+Dynasty Dogs
+Justin Titans                                Active
+
+Family League
+Titans Too
+
+Last updated: Today · 9:42 PM
+
+Refresh connection
+Disconnect Sleeper
+```
+
+- Connected leagues sort alphabetically; current global selection is marked Active.
+- Refresh is explicit, not a fake live-sync control.
+- Selecting a league may hand off to global-switcher behavior, but provider detail remains a management surface.
+- No OAuth tokens, ESPN cookies, raw API/provider errors, or internal sync details appear.
+
+Unconnected/reconnect flows explain benefit/impact in plain language and launch the approved native provider connection flow. No embedded OAuth WebView or custom secret-entry form is permitted.
+
+Disconnect confirmation names affected leagues, distinguishes provider disconnection from Omen-account deletion, never defaults the destructive action, and updates global selection/affected screens into named needs-connection states.
+
+### 11.3 ESPN and implementation rules
+
+- ESPN remains feasibility-gated on native mobile. No direct cookie-entry UI exists in the app.
+- If a store-safe mobile connection method is unavailable, say so instead of rendering a broken Connect button.
+- Sleeper/Yahoo remain primary first-run connection paths.
+- Provider status comes from safe machine-readable state with opaque error codes.
+- Connect/reconnect actions are idempotent; retries/double taps cannot duplicate connections.
+- Status has accessible text/icon treatment beyond color.
+- A failing provider never blocks Account/Profile or support access.
+
+**Founder approval:** Connected Leagues is the first actionable Account section with calm provider management, safe reconnect/disconnect behavior, and no direct ESPN-cookie entry (Justin, 2026-07-20).
