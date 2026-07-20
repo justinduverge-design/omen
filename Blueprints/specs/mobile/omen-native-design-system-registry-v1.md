@@ -8,7 +8,7 @@
 **Companions:** `omen-native-mobile-foundation-v1.md` (v1, 2026-07-19), `omen-native-design-house-v1.md` (v1, 2026-07-19), `omen-mobile-onboarding-connection-contract-v1.md` (**Approved**, 2026-07-19), `omen-native-agent-capabilities-canvas-v1.md` (v1, 2026-07-19).
 **Grounded in existing web design authority:** `Blueprints/specs/design/component-lock-v1.md` (locked web component grammar), `Blueprints/specs/omen-ux-ui-design-system-v1.md` (base palette hexes + dark/light token names — the CSS in `frontend/src/index.css` is the source of truth), `Brand/brand-system.md`.
 
-> **Figma reality (2026-07-19):** the official Design House (`mWjrAKPi4JSIP5lAmGAtB3`) currently contains only `00 — Start Here`. This Markdown is the working source of truth; Figma pages `02 — Tokens & Themes` / `03 — Components` are a pending cross-reference to be populated as the registry is approved (Justin's direction: connect Figma, use the Markdowns as documentation/guidance).
+> **Figma reality (reconciled 2026-07-20):** the official Design House (`mWjrAKPi4JSIP5lAmGAtB3`) contains governed foundation boards: `02 — Tokens & Themes` node `13:2`, `03 — Components` node `14:2`, iOS app-shell contract node `17:12`, and Android app-shell contract node `17:13`. Markdown remains the behavioral/governance source of truth until the M1-P Figma screen-contract pass adds approved reference annotations, component proposals, and screen contracts. See `m1-figma-screen-contract-pass-v1.md`.
 
 ---
 
@@ -203,7 +203,7 @@ New composition patterns must be proposed on Figma `03 — Components` before ap
 - Bottom navigation for stable top-level destinations; rail/large-screen adaptation when justified.
 
 ### 6.3 Navigation (shared map, native expression)
-Top-level: Command Center, Omen, Trade, Draft, League/Account (consolidated). Provider connection, player detail, confirmation, filtering, recovery are nested flows or sheets — never permanent top-level tabs. iOS = tab bar + stacks + sheets; Android = bottom nav + Compose nav + platform back.
+Top-level: **Command Center, Omen, Trade, League**. Draft is a strong **seasonal** destination reached through League and promoted from Command Center when relevant; it is not a permanent tab. Account is reached through a contextual profile/avatar control, not top-level navigation. Provider connection, player detail, confirmation, filtering, and recovery are nested flows or sheets. iOS = tab bar + stacks + sheets; Android = bottom navigation + Compose navigation + platform back. M0c and `omen-mobile-visual-briefs-v1.md` are authoritative for this map.
 
 ---
 
@@ -219,7 +219,7 @@ Top-level: Command Center, Omen, Trade, Draft, League/Account (consolidated). Pr
 - Per-component anatomy, exact SwiftUI/Compose APIs, and evidence → **M1**.
 - Auth/session/provider-state API and deep links → **M0c**.
 - Motion/animation spec beyond reduce-motion rule → later.
-- Actual Figma token/component pages → to be populated post-approval.
+- Additional Figma reference annotations, component proposals, and screen contracts → `m1-figma-screen-contract-pass-v1.md`; no unapproved component pattern may bypass that pass.
 
 ## 9. Evidence
 
