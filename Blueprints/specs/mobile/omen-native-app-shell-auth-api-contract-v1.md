@@ -118,7 +118,7 @@ Its intent is to help the user improve the team **today and across the season**,
 - It must never frame a weekly Start/Sit call as a proven long-term roster improvement when the evidence supports only the current matchup.
 - Below the lead sit clear paths to **Start/Sit**, **Waiver Analysis**, and the **Ledger**. They are deep workspaces, not competitors for the headline.
 
-Current implementation reality: the canonical `POST /api/omen/mvp-move` route supplies this one-move concept, but live v1 currently produces only Start/Sit. Waiver and other recommendation types remain unavailable/stubbed until their data paths are truly implemented; the native UI must label that honestly.
+Current implementation reality: the canonical `POST /api/omen/mvp-move` route supplies this one-move concept, but live v1 currently produces only Start/Sit. Completing live Waiver and personalized Trade intelligence under this same canonical route is a founder P0 backend priority: GitHub issue #162. Waiver and other recommendation types remain unavailable/stubbed until their data paths are truly implemented; the native UI must label that honestly.
 
 ### 1.7 Rivalry History — post-beta direction
 
