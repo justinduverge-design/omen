@@ -524,3 +524,99 @@ Never merge facts, projections, or model inference into an unsupported single cl
 - Clear decision, close decision, player unavailable, incomplete data, games started, and off-season all need honest named states; no forced recommendation when evidence is insufficient.
 
 **Founder approval:** compact player rows are the Start/Sit first view; dense statistics remain behind an intentional View evidence expansion (Justin, 2026-07-20).
+
+
+---
+
+## 6. Omen → Waiver Analysis detail
+
+**Purpose:** Turn Command Center’s Waiver Watch into a complete, selected-roster decision: best available move, its roster cost, its immediate and supported long-horizon value, and credible alternatives.
+
+### 6.1 Page order
+
+1. `Waiver Analysis` title + persistent selected team/league context strip.
+2. Verified deadline and availability status.
+3. **Best Move**.
+4. Why this move fits.
+5. What it costs / add-drop logic.
+6. Alternatives.
+7. Long-horizon context where genuinely supported.
+8. Ledger/feedback and safe external action.
+
+### 6.2 Best Move
+
+```
+WAIVER ANALYSIS                         Deadline Wed · 3:00 AM
+
+OMEN RECOMMENDS
+
+ADD TYRONE TRACY JR.
+RB · NYG · Availability confirmed
+
+DROP [Player Name]
+Your lowest-impact RB depth option for this week and this roster.
+
+Why now
+Your RB room is thin for Week 7, and Tracy’s recent role
+gives him the strongest immediate path among available options.
+
+Review roster fit ↓
+```
+
+- Add is the clearest action; recommended Drop sits directly beneath when one is required and evidence-supported.
+- Player rows use the compact comparison grammar approved for Start/Sit.
+- Availability and deadline appear only when confirmed for the selected league.
+- Do not imply claim success.
+- Do not expose FAAB amount, waiver priority, or claim probability unless Omen has verified the league’s waiver system and the capability is truly implemented.
+
+### 6.3 Evidence sections
+
+**Why this fits your roster** may use the following evidence-backed categories:
+
+| Category | Question answered |
+|---|---|
+| Immediate need | Does the move solve this week’s or near-term roster gap? |
+| Current role | Why is this player relevant now? |
+| Season value | Is there a supported reason to care beyond this scoring period? |
+
+**What this costs** states the downside of the recommended drop, not only the add’s upside:
+
+```
+WHAT THIS COSTS
+
+Dropping Player X removes:
+• Your WR5 depth during Week 8.
+
+Why Omen accepts that cost:
+• Player X has no current starting path.
+• Tracy addresses a more immediate roster need.
+```
+
+If no defensible low-cost drop exists, say so plainly and offer alternatives; never force a drop.
+
+### 6.4 Alternatives and long horizon
+
+- Show two or three alternatives maximum, each with one sentence explaining its tradeoff.
+- Rank only after availability and roster relevance are verified.
+- Do not render a generic top-50 waiver list.
+- In dynasty/keeper leagues, Long-Horizon Context distinguishes current role from future possibility and explains the specific supported factors.
+- In redraft, show long-horizon content only for a real relevant stash; otherwise omit it.
+
+### 6.5 Actions, Ledger, and states
+
+- Beta’s primary action is **Open league waivers**, not automatic claim submission.
+- Before leaving, Omen records recommendation, selected context, availability/deadline state, add/drop logic, and evidence as an immutable Ledger snapshot.
+- `Claim pending` appears only when true; Omen never assumes the user submitted a claim.
+- Contextual feedback is voluntary.
+
+| State | Required behavior |
+|---|---|
+| Confirmed opportunity | Show availability, deadline, add/drop logic, and alternatives. |
+| Availability unknown | State that Omen cannot confirm free-agent status; neutral analysis only where safe. |
+| Claim processed | Refresh the opportunity list and preserve prior Ledger snapshot. |
+| No low-cost drop | State that no low-cost drop is clear; do not force a move. |
+| No credible move | “No waiver move stands out for this roster right now.” |
+| Off-season | Supported dynasty/draft opportunity only; no weekly urgency. |
+| Engine limitation | Keep full analysis unavailable until live player-pool/roster logic is complete. |
+
+**Founder approval:** Waiver Analysis leads with Best Move, supported add/drop logic, immediate and long-horizon evidence where justified, alternatives, and user-controlled league-waiver action (Justin, 2026-07-20).
