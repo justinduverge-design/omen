@@ -5,17 +5,14 @@
 
 ## 0. One-time: Google Play emulator
 
-The default `Medium_Phone` AVD is an AOSP image with **no Google Play services**, so Credential Manager Google sign-in cannot run there. A Play-services system image is installed (`system-images;android-37.1;google_apis_playstore_ps16k;x86_64`). Create a Play AVD:
+The default `Medium_Phone` AVD is an AOSP image with **no Google Play services**, so Credential Manager Google sign-in cannot run there. A Play-services system image **is** installed (`system-images;android-37.1;google_apis_playstore_ps16k;x86_64`), but this workspace's SDK has **no `cmdline-tools`/`avdmanager`** (only `platform-tools`, `emulator`, and system-images), so the AVD must be created from **Android Studio → Device Manager → Create device → pick a Play-store-enabled Pixel image → android-37.1 (Google Play)**. Name it `Omen_Play`.
 
+If you later install `cmdline-tools` (`sdkmanager "cmdline-tools;latest"`), the CLI equivalent is:
 ```bash
-SDK="$HOME/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/Android/Sdk"
-"$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n Omen_Play \
-  -k "system-images;android-37.1;google_apis_playstore_ps16k;x86_64" -d pixel_7
-# boot:
-"$SDK/emulator/emulator.exe" -avd Omen_Play
+avdmanager create avd -n Omen_Play -k "system-images;android-37.1;google_apis_playstore_ps16k;x86_64" -d pixel_7
 ```
 
-(Or in Android Studio → Device Manager → Create device → pick a Play-store-enabled image.) Then **Settings → Accounts → Add account → Google** and sign in with a test Google account. This account sign-in is the human step an agent cannot perform.
+Boot it, then **Settings → Accounts → Add account → Google** and sign in with a test Google account. This account sign-in is the human step an agent cannot perform (credential entry is prohibited).
 
 ## 1. Build & install
 
