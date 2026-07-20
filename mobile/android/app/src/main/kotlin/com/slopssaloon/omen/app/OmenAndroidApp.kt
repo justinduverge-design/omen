@@ -27,7 +27,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
+import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
+import com.slopssaloon.omen.core.auth.AccountDeletion
+import com.slopssaloon.omen.core.auth.AccountDeletionOutcome
+import com.slopssaloon.omen.core.auth.AccountRepository
 import com.slopssaloon.omen.core.auth.AuthEvent
 import com.slopssaloon.omen.core.auth.AuthFailure
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
@@ -73,6 +77,7 @@ fun OmenAndroidApp() {
         if (env.googleSignInConfigured) CredentialManagerGoogleIdTokenProvider(context, env.googleWebClientId)
         else UnconfiguredGoogleIdTokenProvider()
     }
+    val accountRepo: AccountRepository = remember { OkHttpAccountRepository(env.apiBaseUrl) }
     val sessionState by sessionManager.state.collectAsState()
 
     LaunchedEffect(Unit) { sessionManager.restore() }
@@ -82,6 +87,10 @@ fun OmenAndroidApp() {
     var code by remember { mutableStateOf("") }
     var showAuth by remember { mutableStateOf(false) }
     var selectedDestination by remember { mutableStateOf("Command") }
+    var showDelete by remember { mutableStateOf(false) }
+    var deletePhrase by remember { mutableStateOf("") }
+    var deleteMessage by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf(false) }
 
     fun dispatch(event: AuthEvent) {
         val next = AuthFlowReducer.reduce(flow, event)
@@ -155,7 +164,38 @@ fun OmenAndroidApp() {
                     Button(onClick = { showAuth = true }) { Text("Get started") }
                 }
 
-                is SessionState.SignedIn -> Column(Modifier.padding(24.dp)) {
+                is SessionState.SignedIn -> if (showDelete) {
+                    DeleteAccountScreen(
+                        phrase = deletePhrase,
+                        requiredPhrase = AccountDeletion.REQUIRED_PHRASE,
+                        message = deleteMessage,
+                        deleting = deleting,
+                        onPhraseChange = { deletePhrase = it },
+                        onConfirm = {
+                            deleteMessage = null
+                            deleting = true
+                            scope.launch {
+                                val token = store.load()?.accessToken
+                                val outcome = if (token.isNullOrBlank()) AccountDeletionOutcome.Unauthorized
+                                else accountRepo.deleteAccount(token, deletePhrase)
+                                deleting = false
+                                when (outcome) {
+                                    AccountDeletionOutcome.Deleted -> {
+                                        showDelete = false; deletePhrase = ""; deleteMessage = null
+                                        sessionManager.signOut()
+                                    }
+                                    AccountDeletionOutcome.InvalidConfirmation ->
+                                        deleteMessage = "The phrase must exactly match. Nothing was deleted."
+                                    AccountDeletionOutcome.Unauthorized ->
+                                        deleteMessage = "Your session expired. Sign in again to delete your account."
+                                    is AccountDeletionOutcome.RetryableError ->
+                                        deleteMessage = "Couldn't reach the server. Nothing was deleted — try again."
+                                }
+                            }
+                        },
+                        onCancel = { showDelete = false; deletePhrase = ""; deleteMessage = null },
+                    )
+                } else Column(Modifier.padding(24.dp)) {
                     Text(
                         when (selectedDestination) {
                             "Command" -> "Omen Command Center\nSigned in as ${s.userId}."
@@ -164,6 +204,9 @@ fun OmenAndroidApp() {
                         },
                     )
                     OutlinedButton(onClick = { sessionManager.signOut() }) { Text("Sign out") }
+                    if (s.userId != SessionManager.DEMO_USER_ID) {
+                        OutlinedButton(onClick = { showDelete = true }) { Text("Delete account") }
+                    }
                     NavigationBar {
                         listOf("Command", "Omen", "Trade", "Draft", "League").forEach { destination ->
                             NavigationBarItem(
@@ -239,6 +282,34 @@ private fun AuthFlow(
         }
 
         OutlinedButton(onClick = onBack) { Text("Back") }
+    }
+}
+
+@Composable
+private fun DeleteAccountScreen(
+    phrase: String,
+    requiredPhrase: String,
+    message: String?,
+    deleting: Boolean,
+    onPhraseChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(Modifier.padding(24.dp)) {
+        Text("Delete your Omen account")
+        Text("This permanently deletes your account and data. It cannot be undone.")
+        Text("Type $requiredPhrase to confirm.")
+        OutlinedTextField(
+            value = phrase,
+            onValueChange = onPhraseChange,
+            label = { Text("Confirmation phrase") },
+        )
+        if (message != null) Text(message)
+        Button(
+            onClick = onConfirm,
+            enabled = !deleting && AccountDeletion.isConfirmed(phrase),
+        ) { Text(if (deleting) "Deleting…" else "Permanently delete account") }
+        OutlinedButton(onClick = onCancel, enabled = !deleting) { Text("Cancel") }
     }
 }
 

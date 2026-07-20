@@ -57,6 +57,14 @@ Justin confirmed the Google Web client ID (`40496165411-…`, in git-ignored `lo
 
 **Still needs real-device interactive proof:** a full Google sign-in requires a Play-services emulator/device with a signed-in Google account (the AOSP `Medium_Phone` image has no Play services); a full email-OTP round trip requires reading the code from a real inbox. Neither was exercised to avoid sending mail / needing a Google account. In-app account deletion surface (M0c §2.3) and iOS remain outstanding.
 
+## Update — remaining-items pass (same session, 2026-07-19)
+
+Addressed the three follow-ups per feasibility:
+
+- **#2 In-app account deletion — BUILT.** `AccountDeletion` (exact phrase `DELETE MY OMEN DATA`, pure) + `mapDeleteStatus` + `AccountRepository` in `core:auth`; `OkHttpAccountRepository` (`DELETE /api/user/delete`, Bearer session token, client-side phrase guard) in app; SwiftUI-parity delete confirmation screen wired into the signed-in shell, gated off demo sessions; on success → sign out. **+3 unit tests (37 total).** Needs a real `omen.apiBaseUrl` (still the `https://example.invalid` placeholder) for a live delete call — set to KVM1 API base only when intended.
+- **#1 Interactive real-device proof — RUNBOOK (`mobile/contracts/m3a-interactive-qa-runbook.md`).** A Google Play system image is installed (`google_apis_playstore_ps16k;x86_64`), so a Play-services AVD is creatable (command in the runbook). The interactive Google account sign-in + reading the OTP email are human/founder steps — agents cannot enter Google credentials or read a personal inbox — so this is a manual QA pass with a defined case matrix + security checks.
+- **#3 iOS — PARITY SPEC (`Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md`).** Windows can't compile Swift; rather than ship unverifiable code, the spec maps every shipped Android artifact to its iOS equivalent (Keychain store, Sign in with Apple, GoTrue via URLSession) with XCTest/simulator acceptance criteria for authorized non-signing macOS CI.
+
 ## Parity status
 
 - **iOS:** NOT built. No macOS/Xcode on this Windows workspace; iOS Sign in with Apple + OTP + Keychain remain for authorized non-signing macOS CI. Contract parity is preserved (`AuthMechanism.APPLE_ID_TOKEN`, shared state names).

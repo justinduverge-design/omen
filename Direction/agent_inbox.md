@@ -21,7 +21,9 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **M3-A live Android wiring landed (2026-07-19, same session).** Google Web client ID provisioned + added to Supabase Client IDs. Real `SupabaseAuthRepository` (OkHttp/org.json GoTrue, no SDK) + `CredentialManagerGoogleIdTokenProvider` wired behind the interfaces; app uses live repo/provider when configured. 34 unit tests; `assembleDebug` green; live Supabase smoke = HTTP 400 (reachable, anon key accepted); emulator shows live label + "Continue with Google".
 
-**M3-A remaining (next pull):** (1) **real-device interactive proof** — Google sign-in needs a Play-services emulator/device with a signed-in Google account (AOSP `Medium_Phone` has none); email-OTP round trip needs a real inbox; (2) **in-app account deletion** surface (M0c §2.3, phrase `DELETE MY OMEN DATA`); (3) **iOS** implementation on authorized non-signing macOS CI. Must not expand into provider connection, signing, or store release work.
+**M3-A follow-ups addressed (2026-07-19, same session):** ✅ **In-app account deletion built** (`AccountDeletion` + `OkHttpAccountRepository`, `DELETE /api/user/delete`, phrase-gated, demo-excluded; 37 unit tests). 📋 **Interactive QA runbook** (`mobile/contracts/m3a-interactive-qa-runbook.md`) — Play AVD is creatable; Google account sign-in + OTP-inbox steps are founder/human QA. 📋 **iOS parity spec** (`Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md`) for macOS CI.
+
+**M3-A truly remaining:** (1) run the interactive QA pass on a Play-services device (founder/human — needs a Google account + real inbox) and set a real `omen.apiBaseUrl` to exercise live delete; (2) implement iOS from the parity spec on authorized non-signing macOS CI. Must not expand into provider connection, signing, or store release work.
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
