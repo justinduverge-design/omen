@@ -65,6 +65,17 @@ These destinations must not duplicate each other. The distinction is behavioral,
 | **Trade** | **Evaluate a proposed trade.** | Public Trade Analyzer and its reasoning | Relevant player/league context only where it clarifies the trade |
 | **League** | **Explore league context.** | Roster, matchup, standings, connected-league context, and seasonal Draft entry | Omen analysis when a user asks for a recommendation |
 
+### 1.4.1 League page hierarchy
+
+The League page explains the selected team’s situation; it must not duplicate Command Center’s quick triage or Omen’s recommendation engine.
+
+1. **This Week’s Matchup** — selected team versus opponent, including the current/projection state and key starters.
+2. **What to Watch** — two or three concise factors that could swing this matchup.
+3. **Relevant football context** — injuries, bye weeks, weather, game-time changes, or football news only when it affects the selected roster or matchup; never a generic news feed.
+4. **League Pulse** — standings, points-for, playoff position, streak, waiver deadline, and meaningful league activity, with routes to deeper standings/activity views.
+
+The order is intentional: matchup → potential swing factors → the football information behind those factors → wider league context.
+
 ### 1.5 Global team/league context
 
 Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
@@ -244,7 +255,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 9. **Command Center hierarchy:** ✅ Directly below the persistent team/league context strip, show the selected team’s current matchup and record; Waiver Watch follows it. Current state precedes recommendations (Justin, 2026-07-20).
 10. **Global team/league context:** ✅ One persistent selected team/league follows the user across Command Center, Omen, League, Waiver Watch, and the Ledger. A persistent, visually prominent Omen-owned context strip below each personalized page title makes the active roster explicit and lets the user switch or connect another league; its native sheet is organized by platform, then alphabetically by league name within each platform, with the active selection marked. Trade may optionally use the selection for personalized analysis but remains usable without it. It must be high-salience without team-color theming, flashing, or disruptive animation (Justin, 2026-07-20).
 11. **Omen page lead:** ✅ This Week’s Omen is the page’s central, one highest-value move for the selected team and league. It aims to help the team today and across the season, but claims long-horizon/dynasty impact only when format and evidence support it; current live v1 availability must remain honestly labeled. The answer—decision type, move, why, confidence, and risk—appears immediately; full explanation/evidence/alternatives are available on tap, with no reveal or game-like delay. Start/Sit, Waiver Analysis, and Ledger sit beneath as deep workspaces; the one matching the returned decision type is visually promoted as the natural next step (Justin, 2026-07-20).
-12. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+12. **League page hierarchy:** ✅ This Week’s Matchup → What to Watch → relevant football context → League Pulse. Football context appears only when it affects the selected roster/matchup; it is not a generic news feed. League explains the situation, while Command Center triages it and Omen recommends the move (Justin, 2026-07-20).
+13. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
