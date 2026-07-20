@@ -103,6 +103,21 @@ Feedback rules:
 - **General product feedback** lives in Account’s Help Improve Omen section, where a user can voluntarily share an issue, idea, or experience.
 - Feedback must use a safe contract: no provider credentials, raw cookies, or sensitive league data are prefilled or transmitted; clearly state any context that will be attached.
 
+### 1.4.4 Cross-page states and off-season mode
+
+All pages use the same intentional state language. A state may alter a page’s contents, but it must not erase the page’s job or leave the user at a dead end.
+
+| State | Required experience |
+|---|---|
+| **Loading** | Page-shaped skeleton plus a named operation (for example, “Reading your league”), never an unexplained blank screen or indefinite spinner. |
+| **Needs connection** | Explain the benefit in context and offer Connect / Reconnect / Try Demo; never show a dead dashboard. |
+| **Limited data** | Show what is known, what cannot yet be confirmed, and the safest next step. Do not fill missing live data with mock advice. |
+| **Recovery** | State the problem in plain English, preserve safe in-progress work where possible, and offer Retry / Reconnect / choose another league. |
+| **Demo** | Offer a useful, clearly labeled experience with safely isolated fixtures; never mix demo and live data. |
+| **Off-season** | Keep Omen strategically useful rather than blank: draft preparation when relevant, dynasty/keeper long-horizon context when supported, league/off-season context, and an honest note that live weekly Omen returns in season. |
+
+**Off-season guardrail:** the live weekly recommendation route must still honor the existing `off_season` state and must not generate or imply live weekly Start/Sit advice. Strategic/off-season content appears only when its data and scope are genuinely available; otherwise explain the season state and offer the next useful destination.
+
 ### 1.5 Global team/league context
 
 Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
@@ -285,7 +300,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 12. **League page hierarchy:** ✅ This Week’s Matchup → What to Watch → relevant football context → League Pulse. Football context appears only when it affects the selected roster/matchup; it is not a generic news feed. League explains the situation, while Command Center triages it and Omen recommends the move (Justin, 2026-07-20).
 13. **Trade page ownership:** ✅ Trade is public-first and zero-friction: build/submit a trade without account or league context, then opt into a selected-team/league personalized analysis when available. Verdict precedes share; the existing public share flow is post-verdict. Apple Shortcuts and social trade-poll creation are deferred to post-beta/V2 (Justin, 2026-07-20).
 14. **Account + feedback:** ✅ Account is a calm native settings space: Profile → Connected Leagues → Preferences → Data & Privacy → Support & Help Improve Omen → separated Danger Zone. Feedback is always easy but never nagging: contextual feedback stays with Omen calls; voluntary general product feedback lives in Account, with safe no-credential/no-sensitive-data handling (Justin, 2026-07-20).
-15. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+15. **Cross-page states + off-season:** ✅ Every page uses intentional Loading, Needs connection, Limited data, Recovery, Demo, and Off-season states—named operations, useful next steps, no silent mock/fake advice. Off-season is a calm strategic mode for supported draft/dynasty/league context, never fabricated live weekly Omen advice (Justin, 2026-07-20).
+16. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
