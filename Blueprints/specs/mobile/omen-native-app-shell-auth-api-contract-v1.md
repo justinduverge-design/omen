@@ -86,6 +86,23 @@ Trade is a fast, zero-friction analysis tool—distinct from Omen’s proactive 
 - **Sharing follows the verdict:** the existing public share flow remains available after analysis, never before it or in place of the verdict.
 - **Post-beta/V2:** Apple Shortcuts integration and social trade-poll creation are deferred. They must not delay beta; any future share/poll design should be cross-platform-aware and preserve the user’s explicit control over public trade content.
 
+### 1.4.3 Account page ownership
+
+Account is a calm native settings space, not a second fantasy dashboard. It is entered through the contextual profile/avatar control and does not need the selected team/league context strip.
+
+1. **Profile** — account identity and sign-in method; concise, not a hero/dashboard treatment.
+2. **Connected Leagues** — the first actionable section: platform connection cards grouped by Yahoo, Sleeper, and ESPN; clear connected/reconnect/unavailable states; safe add, reconnect, and disconnect actions.
+3. **Preferences** — Omen dark/light/system appearance and relevant accessibility preferences.
+4. **Data & Privacy** — safe explanation of data use, export, and applicable consent controls.
+5. **Support & Help Improve Omen** — help, provider-connection recovery, report an issue, and a clearly available **Share feedback** entry point.
+6. **Danger Zone** — in-app account deletion, visually and structurally separated at the bottom.
+
+Feedback rules:
+- Do not use nags, forced surveys, repeated rating prompts, or interruptions during a user’s main task.
+- **Recommendation-specific feedback** remains close to This Week’s Omen and its detail workspace, where users can say whether the call helped.
+- **General product feedback** lives in Account’s Help Improve Omen section, where a user can voluntarily share an issue, idea, or experience.
+- Feedback must use a safe contract: no provider credentials, raw cookies, or sensitive league data are prefilled or transmitted; clearly state any context that will be attached.
+
 ### 1.5 Global team/league context
 
 Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
@@ -267,7 +284,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 11. **Omen page lead:** ✅ This Week’s Omen is the page’s central, one highest-value move for the selected team and league. It aims to help the team today and across the season, but claims long-horizon/dynasty impact only when format and evidence support it; current live v1 availability must remain honestly labeled. The answer—decision type, move, why, confidence, and risk—appears immediately; full explanation/evidence/alternatives are available on tap, with no reveal or game-like delay. Start/Sit, Waiver Analysis, and Ledger sit beneath as deep workspaces; the one matching the returned decision type is visually promoted as the natural next step (Justin, 2026-07-20).
 12. **League page hierarchy:** ✅ This Week’s Matchup → What to Watch → relevant football context → League Pulse. Football context appears only when it affects the selected roster/matchup; it is not a generic news feed. League explains the situation, while Command Center triages it and Omen recommends the move (Justin, 2026-07-20).
 13. **Trade page ownership:** ✅ Trade is public-first and zero-friction: build/submit a trade without account or league context, then opt into a selected-team/league personalized analysis when available. Verdict precedes share; the existing public share flow is post-verdict. Apple Shortcuts and social trade-poll creation are deferred to post-beta/V2 (Justin, 2026-07-20).
-14. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+14. **Account + feedback:** ✅ Account is a calm native settings space: Profile → Connected Leagues → Preferences → Data & Privacy → Support & Help Improve Omen → separated Danger Zone. Feedback is always easy but never nagging: contextual feedback stays with Omen calls; voluntary general product feedback lives in Account, with safe no-credential/no-sensitive-data handling (Justin, 2026-07-20).
+15. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
