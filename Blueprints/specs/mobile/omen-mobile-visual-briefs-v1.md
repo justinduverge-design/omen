@@ -1040,3 +1040,115 @@ Disconnect confirmation names affected leagues, distinguishes provider disconnec
 - A failing provider never blocks Account/Profile or support access.
 
 **Founder approval:** Connected Leagues is the first actionable Account section with calm provider management, safe reconnect/disconnect behavior, and no direct ESPN-cookie entry (Justin, 2026-07-20).
+
+
+---
+
+## 12. Account — remaining settings and ESPN browser-helper explanation
+
+### 12.1 Calm Account settings structure
+
+Account remains a native, grouped settings space:
+
+```
+ACCOUNT
+
+Justin Duverge
+Signed in with Apple
+
+PREFERENCES
+Appearance                                  System  →
+Accessibility                               →
+
+DATA & PRIVACY
+How Omen uses your data                     →
+Export my data                              →
+
+SUPPORT & HELP IMPROVE OMEN
+Help center                                  →
+Share feedback                              →
+Report an issue                              →
+
+DANGER ZONE
+Delete Omen account                         →
+```
+
+- Profile is concise: identity, sign-in method, and normal Sign out action. It is not a hero/dashboard.
+- Appearance supports System, Omen Dark, and Omen Light through native selection controls.
+- Accessibility honors platform motion/transparency settings first; do not create conflicting in-app overrides.
+- Data & Privacy uses plain-language explanation, deliberate export request/status, and real consent controls only where supported.
+- Help Improve Omen offers voluntary Feedback, Feature idea, and Something is not working. Current app version/screen attachment may be optional; selected league name defaults off. Credentials, cookies, raw league/roster data, and hidden session data never attach automatically.
+- No rating nags, forced surveys, or interruption of active fantasy work.
+- Danger Zone is separate. Account deletion uses the approved confirmation phrase **DELETE MY OMEN DATA**, never defaults the destructive control, distinguishes provider disconnect from account deletion, then ends authenticated session after completion.
+
+### 12.2 Why ESPN needs a desktop browser helper
+
+Sleeper and Yahoo use their available supported connection paths. ESPN requires a different bridge because a normal Omen web/mobile screen cannot read the ESPN Fantasy browser session values needed to connect a user’s league.
+
+User-facing explanation:
+
+```
+CONNECT ESPN
+
+ESPN connects differently from Sleeper and Yahoo.
+
+Omen ESPN Connect is a free Chrome and Edge browser helper
+that you run on a computer while signed in to ESPN Fantasy.
+It detects your league and securely pre-fills Omen’s ESPN
+connection form.
+
+You review the details and choose Connect yourself.
+Omen never submits the connection for you.
+```
+
+The primary user-facing name is **Omen ESPN Connect** or **ESPN browser helper**. Do not lead with the internal phrase “cookie extension”; a separate transparency link explains the necessary browser permission plainly.
+
+### 12.3 Transparency detail — Learn how it works
+
+```
+HOW ESPN CONNECTION WORKS
+
+1. Sign in to ESPN Fantasy in Chrome or Edge on your computer.
+2. Open Omen ESPN Connect on your team page.
+3. The helper detects the league and temporarily pre-fills Omen’s
+   existing ESPN connection form.
+4. Review the details, then select Connect in Omen.
+
+Why browser permission is needed
+ESPN keeps the required league-session information in your browser.
+The helper uses it only to pre-fill Omen’s connection form.
+
+Omen ESPN Connect does not submit the form for you.
+```
+
+Implementation/security requirements behind this copy:
+
+- The helper reads the user’s own `espn_s2`/`SWID` values only from the active Chrome/Edge browser session and uses the detected league ID from the ESPN team-page URL.
+- It stages those values in browser session storage only long enough to pre-fill Omen’s existing form; the staged copy is cleared after handoff and when browser session ends.
+- The helper contains no third-party analytics/logging path for these values. Connection data reaches Omen only after the user reviews the populated form and explicitly selects Omen’s own Connect action.
+- Never display the raw values in Omen, helper screens, logs, analytics, support reports, screenshots, or share payloads.
+- Copy must be reviewed whenever extension behavior/permissions change; user-facing transparency must stay technically exact.
+
+### 12.4 Chrome/Edge store-review and mobile states
+
+The Chrome and Edge extensions are **submitted for store review**. Until each store approves/publishes the extension, Omen must use a truthful availability state:
+
+```
+ESPN BROWSER HELPER
+
+Omen ESPN Connect has been submitted to the Chrome Web Store
+and Microsoft Edge Add-ons.
+
+Install links will appear here when your browser’s store listing
+is available.
+
+Learn how ESPN connection works →
+```
+
+- Do not show an install button/link until the corresponding store listing is actually live.
+- Once live, show the correct browser-specific installation link and a `Continue on computer` handoff from mobile.
+- On iPhone/Android, explain that ESPN connection requires Chrome or Edge on a computer; do not present direct cookie entry, embedded OAuth, or a broken mobile Connect control.
+- On desktop web, the helper route may guide installation, ESPN sign-in, team-page detection, prefill, user review, and explicit Omen Connect.
+- Store-review/published state is configuration-backed and separately tracked for Chrome and Edge; never hardcode “available.”
+
+**Founder approval:** Account explains ESPN’s desktop browser-helper requirement plainly; the helper pre-fills but never submits; precise permission/transparency detail is accessible; Chrome/Edge submission status remains truthful until store listings are live (Justin, 2026-07-20).
