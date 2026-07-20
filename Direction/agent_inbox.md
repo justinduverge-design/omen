@@ -21,8 +21,6 @@ Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before select
 
 **In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
 
-Last completed pull: **M2-F — Native app-shell screen contracts** (Figma nodes `17:12` / `17:13`; local branch `codex/m2-app-shell-contracts`). M0a→PR #148, M0b→PR #150, M0b ratifications→PR #149 (all merged); M0c reconciled onto current `main`.
-
 ## Open PR gates
 
 ### PR #140 — SVG logo masters
@@ -43,7 +41,7 @@ Last completed pull: **M2-F — Native app-shell screen contracts** (Figma nodes
 
 ## Auto-Populated Top 5
 
-**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the current next task (M1) above, or an explicitly pinned M-lane brief instead.
+**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the current next task (M3-A) above, or an explicitly pinned M-lane brief instead.
 
 Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
 
