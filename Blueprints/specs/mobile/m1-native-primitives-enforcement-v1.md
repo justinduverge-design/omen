@@ -4,7 +4,7 @@
 **Date:** 2026-07-20  
 **Owner:** Native mobile foundation  
 **Applies to:** SwiftUI iPhone and Kotlin/Jetpack Compose Android  
-**Companions:** `omen-native-design-system-registry-v1.md`, `omen-native-mobile-foundation-v1.md`, `omen-mobile-visual-briefs-v1.md`, `native-mobile-design-delivery-workflow-v1.md`
+**Companions:** `m1-native-reference-library-v1.md`, `m1-figma-screen-contract-pass-v1.md`, `omen-native-design-system-registry-v1.md`, `omen-native-mobile-foundation-v1.md`, `omen-mobile-visual-briefs-v1.md`, `native-mobile-design-delivery-workflow-v1.md`
 
 ## Purpose
 
@@ -14,16 +14,19 @@ This program is a gate for new M4 feature-screen construction. It does not retro
 
 ## Delivery sequence
 
-### P1 — Reconcile authority
+### P1 — Reconcile authority and establish Figma inputs
 
-Before component code:
+**Completed in the Figma-readiness documentation package, 2026-07-20:**
 
-- Align the registry navigation wording with approved M0c: Command Center, Omen, Trade, League; Draft seasonal; Account behind profile.
-- Align Figma/capability status wording with current completed M1-F/M2-F boards.
-- Confirm the capability canvas is active operating authority or explicitly revise its status.
-- Record one reading order for every native task.
+- Registry navigation wording aligns with approved M0c: Command Center, Omen, Trade, League; Draft seasonal; Account behind profile.
+- Registry Figma status aligns with completed M1-F/M2-F boards.
+- Capability canvas is marked active operating authority.
+- `m1-native-reference-library-v1.md` establishes approved source order and external-reference limits.
+- `m1-figma-screen-contract-pass-v1.md` is the required visual pass before P2/P3 component implementation.
 
 ### P2 — Shared foundation primitives
+
+Blocked by founder approval of the M1 Figma screen-contract pass.
 
 Build only in iOS `DesignSystem` and Android `core:designsystem` modules:
 
