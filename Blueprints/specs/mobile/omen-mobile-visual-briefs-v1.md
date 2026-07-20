@@ -297,3 +297,74 @@ Each enhancement ships only when it has:
 
 This order gives Omen useful seasonal intelligence early, while treating probability and scenario math as work that must earn trust.
 
+
+
+---
+
+## 3. Travel & Schedule Context — approved direction
+
+Travel and rest are relevant football context when they materially affect the selected roster or matchup. They belong in **League → Relevant Football Context** and may appear as a single Command Center/Matchup Hero “What to Watch” fact when they are the most meaningful current signal.
+
+### 3.1 What Omen may show
+
+```
+TRAVEL & REST
+
+Los Angeles at New England · Sunday 1:00 PM ET
+Cross-country away game · short-rest week
+The Rams’ reported travel plan is to arrive Saturday.
+```
+
+Use only the facts that matter:
+
+| Signal | Example expression | Required evidence |
+|---|---|---|
+| Short week | “Playing Thursday after a Sunday game.” | Verified NFL schedule/rest interval. |
+| Long rest / bye | “Coming off a bye week.” | Verified NFL schedule. |
+| Time-zone change | “Cross-country away game: Pacific to Eastern.” | Verified game location/time zone and team location. |
+| International travel | “International game with an extended travel window.” | Verified schedule and official/reputable travel reporting. |
+| Consecutive road stretch | “Third straight road game.” | Verified NFL schedule. |
+| Reported travel timing | “The team’s reported plan is to arrive Saturday.” | Dated, attributable report for this week’s trip. |
+| Disruption | “Travel conditions may be affected by a verified delay.” | Credible, current reporting; do not speculate from forecasts alone. |
+
+### 3.2 Team travel habits: useful, but never folklore
+
+A club’s reported routine—such as choosing to travel later or earlier than another team—may be useful context. It must be presented as a **reported operational plan**, not a fixed team trait or a causal football conclusion.
+
+- Good: “The Rams’ reported plan is to arrive Saturday.”  
+- Good: “This team commonly uses a late-arrival approach; this week’s plan is unconfirmed.” *(Only in a detail view with dated source and explicit uncertainty.)*
+- Not allowed: “The Rams always travel late, so start their opponent.”  
+- Not allowed: “Late travel means the offense will struggle.”  
+- Not allowed: an undated “team travel tendency” treated as live fact.
+
+The current week’s confirmed plan always outweighs historical routine. If no current, attributable report exists, omit travel-timing commentary entirely.
+
+### 3.3 Visual treatment
+
+Travel/rest appears as a compact contextual row—not a new prediction card:
+
+```
+RELEVANT FOOTBALL CONTEXT
+
+TRAVEL & REST
+Cross-country away game · short-rest week
+Reported arrival: Saturday · Source updated Fri 4:12 PM
+```
+
+- Use a neutral travel/rest icon plus text; color is not required.
+- Include source freshness in the detail view whenever travel-plan reporting is shown.
+- Keep the summary to one or two lines on League; a tap may reveal source, schedule sequence, and known limitations.
+- A travel/rest fact can link to an affected player/game detail, but not directly to a recommendation unless Omen’s separate analysis has evidence to support one.
+
+### 3.4 Evidence and release gates
+
+Before release, the feature requires:
+
+1. A verified NFL schedule/rest calculation for every displayed short/long-rest and road-stretch signal.
+2. A source policy for operational travel reporting: official club/league information or attributable, current, reputable reporting.
+3. Timestamped source storage and visible stale/unknown states.
+4. Test fixtures for normal away games, short weeks, byes, cross-time-zone trips, international games, and no-report scenarios.
+5. A no-signal default: Omen remains silent rather than guessing a travel plan.
+6. Founder review of the first live examples on iPhone and Android.
+
+Travel and rest may add context to a matchup. They do not create automatic Start/Sit, waiver, or trade recommendations by themselves.
