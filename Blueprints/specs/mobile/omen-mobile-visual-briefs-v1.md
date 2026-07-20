@@ -1239,3 +1239,72 @@ Explore League                Review Draft prep
 - State copy remains calm, factual, nonjudgmental: what is known, what is not confirmed, and safest next step.
 
 **Founder approval:** loading, demo, needs-connection, limited-data, recovery, no-meaningful-move, and off-season states are intentional, evidence-honest native experiences (Justin, 2026-07-20).
+
+
+---
+
+## 14. League → Standings & Activity
+
+**Purpose:** The deeper League context behind compact League Pulse: show official position, meaningful movement, and what matters without forcing a raw transaction feed or dashboard.
+
+### 14.1 Standings and Playoff Picture
+
+```
+STANDINGS                                  Full standings →
+
+PLAYOFF PICTURE
+3rd of 12 · Currently in a playoff spot
+2 games clear of the cut line
+
+RK   TEAM                  REC       PF
+1    Marcus's Team         7–0      764.2
+2    Team Name             6–1      741.8
+3    Justin Titans         6–1      721.4
+4    Team Name             5–2      698.6
+...
+```
+
+- Selected team stays visible and receives subtle Omen-owned selected-row treatment.
+- Default columns: rank, team, record, points for.
+- Points against, divisions, median record, or other metrics appear only where league format makes them materially relevant.
+- Official provider rank/standing logic is source of truth; Omen does not reorder a league.
+- Full standings opens a deeper native list; default League view remains compact.
+- Playoff Picture begins with verified current position, not probability. “Why this matters,” cut-line math, clinch, elimination, and likelihood all follow pre-midseason capability/format/evidence gates.
+
+### 14.2 Meaningful League Activity
+
+```
+AROUND THE LEAGUE
+
+WAIVERS
+Marcus’s Team added Player A.
+
+TRADES
+Team Name traded Player B for Player C.
+
+STANDINGS
+Two teams are tied for the final playoff spot.
+
+View all league activity →
+```
+
+- At most three meaningful updates, grouped by category (Waivers, Trades, Standings), not raw timestamp feed.
+- Prioritize competition, playoff position, or selected-roster relevance.
+- Factual items link deeper only when provider data supports it.
+- Never generic NFL news, social feed, or opinionated power ranking.
+- Only show information normally visible to league members through connected provider; public/demo/share surfaces redact real league-manager detail unless user explicitly chooses otherwise.
+
+### 14.3 States and build rules
+
+| State | Required behavior |
+|---|---|
+| Standings available/activity partial | Show standings and name unavailable activity portion. |
+| Playoff settings unknown | Show current rank/record; omit unsupported cut-line math. |
+| No meaningful activity | “No major league activity to flag right now.” |
+| Refresh delayed | Preserve dated standings and show freshness. |
+| Off-season | Supported prior-season final standings/history or clean omission. |
+| Demo | Clearly label standings/activity as sample fixtures. |
+
+Use clean native list/table behavior, tabular/mono numeric alignment, natural scrolling, and no nested scroll traps. Team detail opens only to league-visible context with provider/privacy support.
+
+**Founder approval:** League uses compact official standings, verified playoff context, and up to three meaningful factual activity signals (Justin, 2026-07-20).
