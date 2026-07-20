@@ -65,6 +65,17 @@ These destinations must not duplicate each other. The distinction is behavioral,
 | **Trade** | **Evaluate a proposed trade.** | Public Trade Analyzer and its reasoning | Relevant player/league context only where it clarifies the trade |
 | **League** | **Explore league context.** | Roster, matchup, standings, connected-league context, and seasonal Draft entry | Omen analysis when a user asks for a recommendation |
 
+### 1.5 Waiver Watch cadence
+
+Waiver Watch follows a weekly rhythm for a typical weekly-waiver league:
+
+| Window | Command Center expression | Purpose |
+|---|---|---|
+| **Tuesday–Wednesday** | **Urgent alert / briefing** | Make the user aware of material waiver opportunities and the approaching deadline without pretending every item is equally urgent. |
+| **Thursday–Monday** | **Calm ranked opportunity list** | Let the user browse worthwhile adds and emerging opportunities without alarm-state language. |
+
+When Omen has the selected league’s actual `waiver_deadline_at` metadata, that deadline takes precedence over the calendar default: shift the urgent briefing window to the relevant pre-deadline period. This preserves the intended Tuesday/Wednesday rhythm for common leagues while remaining honest for leagues with a different waiver schedule.
+
 **Command Center rule:** It may say “Waiver wire is moving — review this opportunity,” but it must not reproduce the full add/drop recommendation, reasoning, or Ledger. Tapping a Command Center priority opens the relevant Omen workspace in the already-selected team/league context.
 
 **Omen rule:** Start/Sit belongs to Omen. The Ledger’s complete, accountable record—recommendation, timestamp, reasoning, confidence, and later outcome—belongs to Omen; Command Center shows only a short recent preview.
@@ -180,6 +191,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 4. **Draft navigation:** ✅ Draft is a strong **seasonal** destination inside League and promoted from Command Center during draft-relevant periods; it is **not** a permanent everyday top-level tab (Justin, 2026-07-20).
 5. **League vs. Account:** ✅ League is the fourth top-level destination (roster, matchup, standings, connected-league context, and Draft entry). Account is contextual profile/avatar navigation for personal and administrative controls; it is not combined with League or shown as a permanent tab (Justin, 2026-07-20).
 6. **Command Center vs. Omen:** ✅ Command Center orients and prioritizes the selected league/team, led by Waiver Watch urgency and a short Ledger preview. Omen is the full decision workspace: Start/Sit, full waiver analysis, reasoning/confidence, and the complete Ledger. A Command Center priority deep-links into the relevant Omen workspace; it does not duplicate it (Justin, 2026-07-20).
+7. **Waiver Watch cadence:** ✅ Tuesday–Wednesday is an urgent alert/briefing; Thursday–Monday is a calm ranked opportunity list. When live league waiver-deadline metadata is available, it takes precedence so urgency matches that league’s actual schedule (Justin, 2026-07-20).
 
 ## 13. Evidence
 
