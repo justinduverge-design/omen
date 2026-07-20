@@ -620,3 +620,100 @@ If no defensible low-cost drop exists, say so plainly and offer alternatives; ne
 | Engine limitation | Keep full analysis unavailable until live player-pool/roster logic is complete. |
 
 **Founder approval:** Waiver Analysis leads with Best Move, supported add/drop logic, immediate and long-horizon evidence where justified, alternatives, and user-controlled league-waiver action (Justin, 2026-07-20).
+
+
+---
+
+## 7. Omen → Ledger detail
+
+**Purpose:** The receipt for one Omen call: what Omen said, what evidence it had then, what the user did when safely known, and what happened. It is a historical record, never a rewritten recap.
+
+### 7.1 Page structure
+
+1. Back to Ledger.
+2. Call type + state.
+3. Immutable recommendation snapshot.
+4. Evidence available at the time.
+5. User action, when safely known.
+6. Observed outcome.
+7. Fairness/limitation note.
+8. Voluntary feedback and related route.
+
+```
+LEDGER
+
+WEEK 6 · START / SIT                         RESOLVED
+
+Omen recommended
+Start DeVonta Smith over Chris Olave
+
+For Justin Titans · Dynasty Dogs
+Issued Friday, Oct 11 · 4:12 PM ET
+
+WHAT OMEN KNEW THEN
+• Smith projected higher in this league’s scoring.
+• Olave was questionable after limited practice.
+• The matchup was projected within 4.2 points.
+
+OMEN’S READ
+The available data favored Smith in a close matchup.
+
+WHAT HAPPENED
+Smith: 18.4 points
+Olave: 11.2 points
+
+Observed outcome aligned with the recommendation.
+```
+
+### 7.2 Snapshot and evidence rules
+
+- The snapshot shows exact recommendation, selected team/league, scoring period, timestamp, and call type; it never changes after kickoff/new information.
+- Compact comparison-row grammar remains the default; full original inputs are behind `View full evidence from this moment`.
+- Evidence distinguishes league context, player/game facts, model inputs/freshness, Omen inference, and known limitations.
+- Do not use later information to make an earlier recommendation look smarter.
+
+### 7.3 User action and outcome
+
+Only show user action when safely known:
+
+- “You marked: I’m starting Smith.”
+- “Omen could not confirm whether you changed your lineup.”
+- “Claim submission was not confirmed.”
+
+| Call | Appropriate observed outcome |
+|---|---|
+| Start/Sit | Final league-scoring results plus fair comparison statement when valid. |
+| Waiver | Claim status if known; later roster/player context without a fake one-week verdict. |
+| Trade | User action if known and immediate roster/value context; no instant certainty label. |
+| Superseded | Preserve original call and identify/timestamp the replacement. |
+
+Use measured status language: “Observed outcome aligned with the recommendation,” “The difference was narrow,” “Final result could not be verified,” or “A late injury made this comparison incomplete.” No WIN/LOSS marks, grades, streaks, celebration, or self-congratulation.
+
+### 7.4 Timeline and feedback
+
+A subtle vertical brass timeline may show issuance, meaningful availability updates, game start, and outcome recording. It establishes sequence without suggesting later information was known earlier.
+
+Feedback is voluntary and contextual:
+
+```
+Was this recommendation useful?
+Yes · Not really · Tell us more
+```
+
+No provider credentials, raw league data, or hidden personal context is attached without clear user disclosure.
+
+### 7.5 States and integrity
+
+| State | Required behavior |
+|---|---|
+| Pending | Original call plus what event/result is awaited. |
+| Active | Verified live context without altering original call. |
+| Resolved | Observed result plus fairness-qualified comparison. |
+| Data incomplete | Explain which final input/result cannot be verified. |
+| Superseded | Preserve original and replacement timestamps. |
+| User action unknown | State unknown; never infer compliance. |
+| Off-season | Historical calls remain readable; no fabricated weekly updates. |
+
+Recommendation snapshots and outcome data are stored separately. Timestamps include a clear time zone and all scoring comparisons honor the selected league’s actual scoring format.
+
+**Founder approval:** Ledger detail is calm, factual, immutable, evidence-auditable, and never self-congratulatory (Justin, 2026-07-20).
