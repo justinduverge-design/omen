@@ -1308,3 +1308,71 @@ View all league activity →
 Use clean native list/table behavior, tabular/mono numeric alignment, natural scrolling, and no nested scroll traps. Team detail opens only to league-visible context with provider/privacy support.
 
 **Founder approval:** League uses compact official standings, verified playoff context, and up to three meaningful factual activity signals (Justin, 2026-07-20).
+
+
+---
+
+## 15. Seasonal Draft
+
+**Purpose:** A major seasonal Omen capability, reached through Command Center and League when relevant—not a permanent everyday tab. Draft Assistant is a preparation and seasonal tool.
+
+### 15.1 Entry and hierarchy
+
+When relevant, Command Center/League promote verified upcoming/active draft context:
+
+```
+DRAFT SEASON
+
+Dynasty Dogs drafts in 12 days
+Sunday, Aug 31 · 8:00 PM ET
+
+Prepare for draft →
+```
+
+Draft Prep order: selected context strip; Draft Status; Your Draft Plan; League Rules; Draft Board only when a real data path exists; Readiness/missing-data state.
+
+### 15.2 Draft Prep and plan
+
+```
+DRAFT PREP
+
+Justin Titans · Dynasty Dogs · Sleeper
+
+DRAFT STATUS
+12-team · Superflex · Dynasty
+Draft pick: 1.05
+Sunday, Aug 31 · 8:00 PM ET
+
+YOUR DRAFT PLAN
+Build a plan for this league’s scoring,
+roster rules, and draft position.
+
+Start draft prep →
+```
+
+Draft Plan follows Omen’s answer/evidence grammar: plain-language guidance, visible format/assumptions, concise “What could change this,” then full evidence/alternatives on tap. No “must draft,” “league-winning,” or fake certainty.
+
+### 15.3 Board and live-draft scope
+
+Draft Board is never a generic top-300 list presented as contextual intelligence.
+
+| State | Required behavior |
+|---|---|
+| Upcoming draft | Verified time/format plus preparation entry. |
+| Active + live data | Current pick/board context and evidence-bound guidance. |
+| Active + no live data | Preparation context; state that live board cannot be confirmed. |
+| Complete | Route to roster review, League, and season Omen context. |
+| No scheduled draft | Do not promote Draft; use League for relevant setup. |
+| Demo | Clearly labelled fixture draft data. |
+
+**Scope:** Draft Prep (rules, position, roster-construction guidance, evidence-bound plan) is core. Live on-the-clock assistance appears only after provider/league proof of current board/pick access. No simulated live board, fake on-clock state, or generic ranking masquerading as league-specific advice.
+
+### 15.4 Visual rules
+
+- Omen deep-charcoal/bone/brass system; no colorful “war room” or stock board aesthetic.
+- Draft pick/time use tabular numerals.
+- Verified On the Clock may receive stronger hierarchy, but no flashing timer/urgency theater.
+- Compact evidence rows match Start/Sit/Waiver Analysis.
+- All routes preserve selected team/league context.
+
+**Founder approval:** Draft is a strong seasonal destination, with evidence-bound Draft Prep now and live on-clock assistance only after real provider data support (Justin, 2026-07-20).
