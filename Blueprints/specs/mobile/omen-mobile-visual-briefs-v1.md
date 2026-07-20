@@ -1376,3 +1376,79 @@ Draft Board is never a generic top-300 list presented as contextual intelligence
 - All routes preserve selected team/league context.
 
 **Founder approval:** Draft is a strong seasonal destination, with evidence-bound Draft Prep now and live on-clock assistance only after real provider data support (Justin, 2026-07-20).
+
+
+---
+
+## 16. Onboarding and provider connection
+
+**Purpose:** Get a user to their first useful Omen moment with minimal friction. Demo remains available before sign-in; real provider paths are native, safe, recoverable, and honest.
+
+### 16.1 Welcome and authenticated choice
+
+```
+OMEN
+
+Fantasy decisions, explained clearly.
+
+Try a sample league to see how Omen works,
+or connect your own league when you’re ready.
+
+Try demo                    Get started
+```
+
+After authentication, explain connection value and offer Connect a league / Explore demo first. No carousel, feature checklist, forced provider connection, or provider-logo wall before user chooses a path.
+
+### 16.2 Provider choice and flows
+
+```
+CONNECT A LEAGUE
+
+SLEEPER
+Fastest way to get started                    Connect →
+
+YAHOO
+Connect through Yahoo securely                Connect →
+
+ESPN
+Requires Omen ESPN Connect on a computer      Learn more →
+```
+
+- Sleeper/Yahoo are primary first-run paths.
+- Sleeper uses verified username discovery then user league selection; loading names the operation and never guesses league names.
+- Yahoo launches approved system-browser OAuth, returns to the app at correct saved stage, and recovers from background/reopen/cancel safely.
+- ESPN uses the previously approved desktop-browser-helper handoff. Mobile has no direct cookie entry, embedded OAuth, or broken Connect button. Store-review availability remains truthful.
+- Safe provider state, opaque error codes, idempotent connection actions, and native back/resume behavior are mandatory.
+
+### 16.3 Connection state and success
+
+```
+CONNECTING YAHOO
+
+Confirming your account and league…
+You can safely return to this screen if needed.
+```
+
+Use one named current stage rather than decorative multi-step theater. On success:
+
+```
+DYNASTY DOGS IS CONNECTED
+
+Justin Titans is now your active Omen context.
+
+Open Command Center
+Connect another league
+```
+
+Set global selected team/league immediately, route primary action to Command Center, and keep secondary multi-league path available.
+
+| State | Required expression |
+|---|---|
+| Demo | Sample mode, no credentials, never mixed with real data. |
+| Canceled | “Connection was canceled. Nothing was changed.” |
+| Needs reconnect | Explain fresh-data limitation and route to reconnect. |
+| Provider unavailable | State limitation; offer another provider/demo. |
+| Incomplete | Preserve safe progress; resume/choose league. |
+| Recovery | Plain explanation plus Retry / Back / another provider. |
+
+**Founder approval:** native, low-friction, demo-first-capable onboarding; Sleeper/Yahoo primary paths; safe ESPN desktop-helper handoff; idempotent/recoverable provider connection (Justin, 2026-07-20).
