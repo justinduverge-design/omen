@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-20 (M1-P P2 Button + IconButton)
+
+- **Material focus rings must be drawn as an inset post-content overlay.** Device evidence showed
+  the attempted outward Compose ring was clipped by filled Material controls. The approved
+  semantic halo + crisp-stroke treatment now renders inside the target after its content, which
+  keeps it visible without changing layout. Keyboard Tab verification on the Android gallery is
+  the evidence; no product screen was changed.
+
 ## Decision Added 2026-07-20 (M1-P P2 — Shared Native Design-System Token Layer)
 
 - **First M1-P P2 slice is tokens, not components.** Rather than starting all 13 foundation

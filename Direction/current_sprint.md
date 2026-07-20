@@ -74,6 +74,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **M1-P is the next native P0 gate:** shared primitives/compositions and a dual-platform component gallery must be approved before new M4 feature-screen construction.
 
+- **M1-P P2 progress (2026-07-20):** Button + IconButton are locally committed on
+  `claude/m1p-p2-designsystem-tokens`; Android passed 18 unit tests, 7 emulator tests, app
+  assembly/install, and keyboard-focus gallery evidence. The newly wired iOS controls await an
+  authorized push for unsigned CI validation. Evidence:
+  `Blueprints/handoffs/2026-07-20-m1p-p2-button-iconbutton.md`.
+
 ## Current state
 
 - Production is live on KVM1; `/api/health` and `/api/ready` were healthy at the latest verified baseline.
