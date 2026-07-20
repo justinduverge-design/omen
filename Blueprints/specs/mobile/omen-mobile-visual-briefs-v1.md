@@ -206,3 +206,94 @@ No win-rate badge, streak, boastful copy, celebration, or leaderboard belongs in
 - Matchup Hero: vertical head-to-head spine with right-side What to Watch rail; records beside team names: Justin, 2026-07-20.
 - Waiver Watch: urgent briefing Tue/Wed; calm ranked opportunity list Thu–Mon; Best Move plus two long-horizon moves for dynasty/keeper context: Justin, 2026-07-20.
 - Ledger: accountable, factual preview; no confidence theater or self-congratulatory scoring: Justin, 2026-07-20.
+
+
+---
+
+## 2. Pre-midseason League Intelligence Enhancements
+
+**Release intent:** These are post-beta improvements intended to be individually releasable before midseason where their provider data, calculation rules, and validation evidence are ready. They do **not** block beta and must not appear as live capability before they are proven for the selected league/provider.
+
+### 2.1 Playoff picture — explainable, not performative
+
+League Pulse may evolve from a basic current-position label into a small **Playoff Picture** module:
+
+```
+PLAYOFF PICTURE
+3rd of 12 · Currently in a playoff spot
+2 games clear of the cut line
+Next meaningful shift: a win keeps you above Marcus’s Team
+```
+
+Release in stages:
+
+| Capability | User-facing expression | Required proof |
+|---|---|---|
+| Current playoff status | “Currently in a playoff spot” / “1 win outside the playoff line” | Verified league standings, playoff-team count, divisions, and tiebreaker configuration. |
+| Cut-line distance | “2 games clear of the cut line” | Same verified format data plus correct handling of ties. |
+| Clinch/elimination status | “Can clinch a playoff spot this week” | Exhaustive scenario calculation and test fixtures; must explain the condition. |
+| Playoff likelihood | “Playoff likelihood: 78%” | A documented model, input freshness, format-specific validation, plain-language methodology, and a safe unavailable state. |
+
+A percentage must never appear as unexplained magic. Where a full model is unavailable, use verified position and cut-line language instead.
+
+### 2.2 Short explanation layer
+
+Each meaningful League Pulse metric gets an optional **Why this matters** line. It gives context without turning Command Center into a tutorial:
+
+- “Two games clear of the cut line: a loss this week does not remove you from a playoff spot.”
+- “Points for is the active tiebreaker in this league.”
+- “A Week 8 win would move you above Marcus’s Team if their matchup result holds.”
+- “Projection is close; this result could affect the playoff order.”
+
+Rules:
+
+- One sentence maximum.
+- State the format/source dependency where it changes the meaning.
+- Distinguish a verified league fact from a conditional scenario.
+- Do not show a scenario until all stated assumptions are known.
+
+### 2.3 Standing movement and matchup stakes
+
+Add a concise, verified **This Week’s Stakes** fact when it changes how the matchup feels:
+
+| Feature | Example | Guardrail |
+|---|---|---|
+| Live standing movement | “A win moves you to 2nd if Marcus’s Team loses.” | Only show with current concurrent matchup data and explicit condition. |
+| Points-for movement | “You are 18.6 points behind 2nd in points for.” | Only when points-for is meaningful in the league’s tiebreaker/standings configuration. |
+| Clinch path | “You clinch with a win and a loss by Team X.” | Link to explanation; no partial or unverified scenario math. |
+| Elimination risk | “A loss could eliminate you if Team X wins.” | Same exhaustive validation requirement as clinch. |
+| Rivalry note | “Coming after beta for compatible connected leagues.” | Historical head-to-head remains post-beta; no inferred manager identity or provider-parity promise. |
+
+### 2.4 League activity signals
+
+The compact “Around the League” bulletin may gain provider-supported signals:
+
+- Meaningful waiver claims that affect the selected roster’s competitive context.
+- Completed trades that shift a contender’s roster.
+- Playoff-line changes after weekly results.
+- Verified league deadlines, including trade deadline and playoff start.
+
+It must not become a generic NFL news feed, an exhaustive transaction log, or an opinionated power ranking. Show one or two facts maximum, then route to League for more.
+
+### 2.5 Delivery and integrity gates
+
+Each enhancement ships only when it has:
+
+1. **Format capability matrix** — what Sleeper, Yahoo, and ESPN can reliably provide for this exact feature.
+2. **League-settings normalization** — playoff teams, divisions, schedules, median matchups, tiebreakers, scoring period, and deadline rules are known or safely marked unavailable.
+3. **Deterministic test fixtures** — ordinary, tied, division, median-matchup, clinch, and elimination cases.
+4. **Explainability copy** — one plain-language explanation and a “not available” state.
+5. **Provider-specific live-data proof** — no global claim of parity based on one provider.
+6. **Founder review** — visual proof on iPhone and Android before release.
+
+### 2.6 Priority order
+
+1. Verified current playoff status + cut-line distance.
+2. One-sentence “Why this matters” explanations.
+3. This Week’s Stakes / conditional standing movement.
+4. Verified league activity signals.
+5. Clinch/elimination scenarios.
+6. Explainable playoff-likelihood model.
+
+This order gives Omen useful seasonal intelligence early, while treating probability and scenario math as work that must earn trust.
+
