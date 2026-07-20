@@ -2,6 +2,35 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-20 (M1-P P2 — Shared Native Design-System Token Layer)
+
+- **First M1-P P2 slice is tokens, not components.** Rather than starting all 13 foundation
+  components across both platforms at once, the first PR builds only the shared token layer
+  (color, typography, spacing, `focus-ring`) that every component will consume — matching the
+  sprint's own rule that a large item should split into small PRs. Button/IconButton are the
+  next slice.
+- **`focus-ring` is implemented as a two-layer halo + stroke**, not a single 40%-alpha ring.
+  Registry §2.2 names the token "focus indicator (accent @ 40%)"; a literal single-layer 40%
+  stroke risked failing the brief's own AA-visible acceptance requirement. Both iOS and Android
+  now draw a crisp full-opacity `accent` stroke plus a soft `accent`-at-40%-alpha halo underneath
+  — same two-layer shape on both platforms. Flagged as a judgment call for Justin to revisit if
+  the literal single-layer reading was intended instead.
+- **Font-family fallback preserves the sans/serif/mono role shape, not real Alegreya files.**
+  Font-file acquisition remains a separately approved, not-yet-made decision (both M1 build
+  briefs §7). Android resolves Alegreya Sans/Alegreya/DM Mono to `FontFamily.SansSerif/Serif/
+  Monospace`; iOS resolves to `UIFontDescriptor.SystemDesign.default/serif/monospaced`. Either
+  swap is a one-line change once real font files land — no call site references a family
+  directly.
+- **iOS Swift code is written but not compile-verified.** This session has no macOS/Xcode
+  toolchain. The four new Swift files and a hand-edited `project.pbxproj` (new `A2…` ID block
+  added to the existing hand-authored `A1…` scheme, matching its exact pattern) use only
+  long-stable, documented APIs, reviewed carefully — but this is a disclosed gap, not a proven
+  build. `.github/workflows/ios-ci.yml` builds `mobile/ios/**` on push/PR and is the next real
+  compile signal once this branch is pushed. Android is fully verified: `./gradlew
+  :core:designsystem:testDebugUnitTest` 18/18 and `:app:assembleDebug` both green.
+- Evidence: `Blueprints/handoffs/2026-07-20-m1p-p2-designsystem-tokens.md`. Branch
+  `claude/m1p-p2-designsystem-tokens`, not pushed, merged, or deployed.
+
 ## Decision Added 2026-07-20 (M1-P Figma screen-contract pass — APPROVED)
 
 - **Justin approved the full M1-P Figma screen-contract pass** (`01 — Principles & References`; 3 `03 — Components` proposals; 10 low-fi screen contracts across `04`/`05`; 4 golden-screen pairs; `06 — QA & Evidence`, 14 entries) after the two founder decisions below were applied. All 14 `06` entries and the 3 `03` proposal badges were updated in Figma from `PENDING`/`PROPOSAL — NOT APPROVED` to `APPROVED — Justin, 2026-07-20`.
