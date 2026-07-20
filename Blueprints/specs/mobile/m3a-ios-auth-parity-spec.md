@@ -31,8 +31,11 @@
 - **Email OTP**: 6-digit code via the same GoTrue `/otp` + `/verify` REST calls; no magic link.
 - Session tokens in **Keychain** only.
 
+## macOS CI (in place)
+`.github/workflows/ios-ci.yml` builds the `OmenIOS` scheme on `macos-14` against the iOS Simulator SDK with signing disabled, triggered only on `mobile/ios/**` changes + manual dispatch (narrow to limit runner minutes — M2-E "non-billed capacity" intent). A shared scheme (`OmenIOS.xcodeproj/xcshareddata/xcschemes/OmenIOS.xcscheme`) is committed so CI has a stable target. When the iOS unit-test target lands, switch the workflow's `build` to `test` with a concrete simulator destination.
+
 ## Acceptance (macOS CI, non-signing)
-1. `xcodebuild -scheme OmenIOS -destination 'generic/platform=iOS Simulator' build` succeeds.
+1. `xcodebuild -scheme OmenIOS -destination 'generic/platform=iOS Simulator' build` succeeds (now wired in `ios-ci.yml`).
 2. XCTest: AuthFlow reducer, validators, SupabaseAuthRepository mapping (fake transport), SessionManager expiry, AccountDeletion phrase — parity with the 37 Android unit tests.
 3. Simulator screenshots: Welcome → Sign in with Apple / email OTP → Command Center → delete confirmation.
 4. Security: no token in console logs; Keychain item is `ThisDeviceOnly`; opaque errors only.
