@@ -1152,3 +1152,90 @@ Learn how ESPN connection works →
 - Store-review/published state is configuration-backed and separately tracked for Chrome and Edge; never hardcode “available.”
 
 **Founder approval:** Account explains ESPN’s desktop browser-helper requirement plainly; the helper pre-fills but never submits; precise permission/transparency detail is accessible; Chrome/Edge submission status remains truthful until store listings are live (Justin, 2026-07-20).
+
+
+---
+
+## 13. Shared loading, demo, recovery, and off-season states
+
+**Purpose:** Every state preserves the page’s job, explains what Omen knows/cannot do, and gives one useful next action. No state may feel like a mockup, dead end, or “AI thinking” performance.
+
+### 13.1 Shared anatomy and loading
+
+```
+[ Status label ]
+
+Clear plain-language title
+
+One short explanation of what Omen knows,
+what it cannot do yet, and why.
+
+Primary action          Secondary action
+```
+
+- Named status, one primary action, optional quiet secondary route.
+- No mascots, sad illustrations, flashing warning signs, or fabricated-progress animation.
+- First load uses page-shaped skeletons and named operation copy (for example, “Reading Dynasty Dogs…”), never a blank screen/full-page spinner.
+- Refresh retains last safe content with nonblocking freshness status. Unknown/stale freshness is named rather than presented as live.
+- Reduced-motion mode uses static skeleton alternatives; motion never carries state alone.
+
+### 13.2 Required states
+
+| State | Required expression |
+|---|---|
+| **Demo Mode** | Persistent Demo label; safely isolated sample data; clear “not connected to your fantasy account” copy; no implication of real provider write. |
+| **Needs connection** | Explain page-specific value, offer Connect a league / Try demo, never an empty dead dashboard. |
+| **Limited data** | Preserve known data; compact banner on affected module; identify what cannot be confirmed; never fabricate availability, odds, or outcome. |
+| **Recovery** | Plain named condition plus Retry, Reconnect, or Choose another league; preserve safe historical records where appropriate; never raw provider/HTTP/token/cookie text. |
+| **No meaningful move** | Valid Omen outcome: no filler recommendation; route to analysis/league context. |
+| **Off-season** | Calm supported strategy/draft/dynasty/league-history mode, never fabricated live weekly advice. |
+
+### 13.3 Canonical examples
+
+```
+DEMO MODE
+Example: Harbor League · Week 7
+This is sample league data. It is not connected to your fantasy account.
+Connect a league              Continue exploring
+```
+
+```
+YAHOO NEEDS RECONNECT
+Omen cannot refresh this Yahoo connection right now.
+Your prior Ledger records remain available.
+Reconnect Yahoo               Choose another league
+```
+
+```
+NO SINGLE MOVE STANDS OUT
+Omen does not see a waiver move that materially improves this roster right now.
+Review waiver analysis        View league context
+```
+
+```
+OFF-SEASON MODE
+Live weekly Omen returns when the NFL season begins.
+For this league, Omen can currently help with supported draft preparation,
+dynasty/keeper context, and available league history.
+Explore League                Review Draft prep
+```
+
+### 13.4 Off-season page mapping
+
+| Page | Required off-season expression |
+|---|---|
+| Command Center | Season status + supported long-horizon context; no fake Matchup Hero. |
+| Omen | Draft/dynasty/roster strategy only when evidence supports it. |
+| Trade | Remains available with explicit current assumptions. |
+| League | Supported prior-season history, draft entry, and league settings. |
+| Ledger | Historical calls remain readable; no fabricated weekly updates. |
+
+### 13.5 Cross-screen integrity rules
+
+- State is scoped: an unavailable Waiver Watch cannot erase valid Matchup Hero or Ledger content.
+- Context strip never silently changes in recovery/error state.
+- Cached/snapshot content is visibly dated.
+- All states support native screen readers and iOS/Android text scaling.
+- State copy remains calm, factual, nonjudgmental: what is known, what is not confirmed, and safest next step.
+
+**Founder approval:** loading, demo, needs-connection, limited-data, recovery, no-meaningful-move, and off-season states are intentional, evidence-honest native experiences (Justin, 2026-07-20).
