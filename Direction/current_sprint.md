@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-20
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -160,6 +160,18 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** there is one non-competing recommendation path; direct live POST cannot silently fall back to mock; auth, live/mock/off-season/empty/recovery/error states match B1; field needs above are tested; deterministic fallback remains honest; tests/build/audit pass.
 - **Evidence:** intended RED, GREEN, broader suite, API contract, AI/security reviews, handoff, field-completeness test.
 - **Do not touch:** cloud spend, provider credentials, SQL, or deploy without separate approval.
+
+### B2-D — Complete the canonical Omen engine: live Waiver + Trade intelligence
+
+- **Priority:** P0
+- **Cost:** large
+- **Blocked by:** reconcile/land the current B2 implementation first; then provider-specific live-data capability proof.
+- **Agent-buildable:** yes, in small backend PRs after a shared API/state contract and test matrix.
+- **Source of truth:** GitHub issue #162. Omen is the one core tool: the canonical `POST /api/omen/mvp-move` route must safely honor the selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
+- **Skills:** core implementation + `slops-ai-integration-review`, `slops-data-ingest-plan`, `security-privacy-evidence`, `rbac-risk-review`, `slops-code-review`
+- **Done when:** #162 acceptance evidence is complete: server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
+- **Evidence:** shared contract/test matrix, focused PR receipts, provider capability proof, live-mode honesty tests, security review, handoff.
+- **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
 
 ### B3 — DecisionBrief composition
 
