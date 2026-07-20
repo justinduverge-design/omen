@@ -68,15 +68,14 @@ etc. are the next slice, consuming this token layer.
   (`implementation(project(":core:designsystem"))`, already present pre-M2). `JAVA_HOME` had to
   be set to the Android Studio-bundled JBR (`C:\Program Files\Android\Android Studio\jbr`) — no
   other environment change.
-- **iOS: known gap, disclosed rather than silently skipped.** This session has no macOS/Xcode
-  toolchain, so the four Swift files and the hand-edited `project.pbxproj` are **not compiled or
-  test-verified here**. All APIs used are long-stable, documented SwiftUI/UIKit (`Font(_
-  font: UIFont)`, `UIFontMetrics`, `UIFontDescriptor.SystemDesign`, `UIColor(dynamicProvider:)`,
-  `.tracking(_:)`, `.textCase(_:)`, `Font.monospacedDigit()`) reviewed carefully against known
-  signatures, and the `pbxproj` edit mirrors the existing four-file pattern exactly with a fresh,
-  non-colliding ID block — but this is a real, not a proven, gap. First real compile signal is
-  `.github/workflows/ios-ci.yml` (builds `mobile/ios/**` on push/PR) once this branch is pushed,
-  or a future macOS session.
+- **iOS: compile gap closed via CI, 2026-07-20 (same day).** This session has no macOS/Xcode
+  toolchain, so the four Swift files and the hand-edited `project.pbxproj` could not be compiled
+  locally. `claude/m1p-p2-designsystem-tokens` was pushed to `origin`, triggering
+  `.github/workflows/ios-ci.yml` run
+  [`29784250139`](https://github.com/justinduverge-design/omen/actions/runs/29784250139) —
+  **`Build OmenIOS (simulator, unsigned)` passed in 33s**, all steps green, no errors on the new
+  files or the `pbxproj` edit. Only annotation is an unrelated Node.js-20-deprecation notice on
+  `actions/checkout@v4`. Branch is pushed, **not merged** — no PR opened.
 - No device/accessibility evidence (VoiceOver/TalkBack, Dynamic Type/font-scale screenshots,
   focused-state screenshots) was captured — both build briefs' §6 "Acceptance evidence" lists are
   explicitly scoped to *"the later implementation PR"* that puts these tokens on real interactive
@@ -143,9 +142,8 @@ store, or production action. Not pushed, merged, or deployed.
 
 ## Next recommended step
 
-1. Push `claude/m1p-p2-designsystem-tokens` (needs your go-ahead) to get the `ios-ci.yml` build
-   signal on the Swift code.
-2. Next M1-P P2 slice: Button + IconButton (first interactive controls, per the focus-ring
-   brief's §4 required-coverage list) in both `DesignSystem`/`core:designsystem`, consuming this
-   token layer — that's also where the first real focused-state screenshots/VoiceOver/TalkBack
-   evidence from both briefs' §6 becomes possible.
+Both platforms now have a green build. Next M1-P P2 slice: Button + IconButton (first
+interactive controls, per the focus-ring brief's §4 required-coverage list) in both
+`DesignSystem`/`core:designsystem`, consuming this token layer — that's also where the first
+real focused-state screenshots/VoiceOver/TalkBack evidence from both briefs' §6 becomes
+possible. Branch remains unmerged pending your review.

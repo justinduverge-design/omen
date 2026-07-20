@@ -21,15 +21,15 @@
   Monospace`; iOS resolves to `UIFontDescriptor.SystemDesign.default/serif/monospaced`. Either
   swap is a one-line change once real font files land — no call site references a family
   directly.
-- **iOS Swift code is written but not compile-verified.** This session has no macOS/Xcode
-  toolchain. The four new Swift files and a hand-edited `project.pbxproj` (new `A2…` ID block
-  added to the existing hand-authored `A1…` scheme, matching its exact pattern) use only
-  long-stable, documented APIs, reviewed carefully — but this is a disclosed gap, not a proven
-  build. `.github/workflows/ios-ci.yml` builds `mobile/ios/**` on push/PR and is the next real
-  compile signal once this branch is pushed. Android is fully verified: `./gradlew
-  :core:designsystem:testDebugUnitTest` 18/18 and `:app:assembleDebug` both green.
+- **iOS Swift code compile-verified via CI same day.** The branch was pushed to get a real build
+  signal on the four new Swift files and the hand-edited `project.pbxproj` (new `A2…` ID block
+  added to the existing hand-authored `A1…` scheme). `.github/workflows/ios-ci.yml` run
+  `29784250139` — `Build OmenIOS (simulator, unsigned)` passed in 33s, no errors. Android was
+  already fully verified locally: `./gradlew :core:designsystem:testDebugUnitTest` 18/18 and
+  `:app:assembleDebug` both green.
 - Evidence: `Blueprints/handoffs/2026-07-20-m1p-p2-designsystem-tokens.md`. Branch
-  `claude/m1p-p2-designsystem-tokens`, not pushed, merged, or deployed.
+  `claude/m1p-p2-designsystem-tokens` pushed to `origin`, **not merged** — no PR opened, not
+  deployed.
 
 ## Decision Added 2026-07-20 (M1-P Figma screen-contract pass — APPROVED)
 
