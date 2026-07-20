@@ -1452,3 +1452,55 @@ Set global selected team/league immediately, route primary action to Command Cen
 | Recovery | Plain explanation plus Retry / Back / another provider. |
 
 **Founder approval:** native, low-friction, demo-first-capable onboarding; Sleeper/Yahoo primary paths; safe ESPN desktop-helper handoff; idempotent/recoverable provider connection (Justin, 2026-07-20).
+
+
+---
+
+## 17. Native visual QA and build-acceptance gate
+
+A native screen is not done because it compiles. It is accepted only when it proves the approved Omen brief on both iPhone and Android.
+
+### 17.1 Required proof
+
+| Proof | Requirement |
+|---|---|
+| Primary state | Normal connected state using approved hierarchy/copy. |
+| Alternate state | Most relevant loading, limited-data, recovery, empty, demo, or off-season state. |
+| Context safety | Correct active team/league is visible where required. |
+| Native behavior | Platform-appropriate navigation, sheet, back/dismiss, and touch behavior. |
+| Accessibility | Text scaling, screen-reader labels/focus, and non-color state cues. |
+| Motion | Standard transition plus reduced-motion equivalent. |
+| Resilience | Long player/team/league names, scores, and timestamps remain usable. |
+| Data honesty | Fixture/demo label or provider/live-data proof; no mock presented as real. |
+
+Before founder review, attach iPhone primary + alternate captures, Android primary + alternate captures, a short recording for material sheet/context/connection transitions, and the exact provider/league/demo fixture used.
+
+### 17.2 Acceptance and founder gate
+
+Each screen receives a screen-specific checklist that names its approved hierarchy and non-negotiables. A screen fails if it shows wrong roster context, conceals stale/stub/demo data as live, exposes provider secrets/raw errors, fabricates an outcome, or creates provider action/share behavior without explicit user control.
+
+Handoff must state:
+
+```
+What is ready:
+What remains unavailable:
+Which provider/data paths were proven:
+Which states were visually reviewed:
+Known limitations:
+Links to iPhone + Android proof:
+```
+
+Shared Omen tokens/typography/semantic colors are mandatory; no one-off hardcoded colors, retired fonts, team-color repaint, broadcast/card-casino/oracle aesthetic, or motion theater. iOS and Android share information architecture and intent while using their own native controls/behavior.
+
+### 17.3 Build sequence
+
+1. Reusable native primitives and tokens.
+2. Command Center vertical slice.
+3. Team/league context switching safety.
+4. Omen → Start/Sit → Ledger.
+5. Waiver Analysis after live backend capability proof.
+6. Trade public-first flow.
+7. League, Draft, Account, and connection surfaces.
+8. This visual QA gate on every major route.
+
+**Founder approval:** native screen completion requires visual, behavior, accessibility, state, and data-honesty proof on both iPhone and Android (Justin, 2026-07-20).
