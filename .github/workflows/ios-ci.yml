@@ -1,0 +1,50 @@
+# Non-signing iOS simulator CI for the native SwiftUI app (M2-E decision:
+# GitHub macOS simulator CI, included/non-billed capacity, no signing).
+#
+# COST NOTE: macOS runners bill at a higher multiplier on private repos. This
+# workflow is deliberately narrow — it runs ONLY when mobile/ios changes or on
+# manual dispatch — to keep runner-minute usage minimal. Do not broaden the
+# triggers without founder approval.
+#
+# It compiles the OmenIOS scheme against the iOS Simulator SDK with signing
+# disabled. When an iOS unit-test target is added (per the M3-A iOS parity
+# spec), switch `build` to `test` and add a concrete simulator destination.
+
+name: iOS CI
+
+on:
+  push:
+    paths:
+      - "mobile/ios/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    paths:
+      - "mobile/ios/**"
+      - ".github/workflows/ios-ci.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (iOS Simulator, no signing)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project mobile/ios/OmenIOS/OmenIOS.xcodeproj
+
+      - name: Build OmenIOS (simulator, unsigned)
+        run: |
+          xcodebuild build \
+            -project mobile/ios/OmenIOS/OmenIOS.xcodeproj \
+            -scheme OmenIOS \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
