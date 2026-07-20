@@ -118,6 +118,25 @@ All pages use the same intentional state language. A state may alter a page’s 
 
 **Off-season guardrail:** the live weekly recommendation route must still honor the existing `off_season` state and must not generate or imply live weekly Start/Sit advice. Strategic/off-season content appears only when its data and scope are genuinely available; otherwise explain the season state and offer the next useful destination.
 
+### 1.4.5 Motion and transition rules
+
+Motion clarifies a change of context, hierarchy, or outcome. It is never decoration, a loading disguise, or an “AI thinking” performance.
+
+| Situation | Required behavior |
+|---|---|
+| **Navigation / sheets** | Use platform-native transitions: iOS navigation stack, tab, and sheet behavior on iPhone; Android Compose/Material navigation and sheet behavior on Android. Do not force one platform’s motion onto the other. |
+| **This Week’s Omen arrives or changes** | One restrained content entrance/settle is allowed to establish the new recommendation. The move is immediately readable; no reveal sequence, looping glow, particle effect, or delayed answer. |
+| **Promoted matching workspace** | A subtle surface/position emphasis may guide attention to the matching Start/Sit, Waiver, or Trade path. It must not pulse repeatedly, flash, or hijack focus. |
+| **Waiver urgency / status changes** | Use static hierarchy, copy, color-plus-icon, and spacing first. A single transition on a real state change is acceptable; urgency must never depend on flashing or continuous motion. |
+| **Loading / refresh** | Use page-shaped skeletons and named status copy. Never use motion to imply progress that Omen cannot verify. |
+| **Errors, recovery, and danger actions** | Prioritize clear copy and stable controls. No shake animation, alarm effect, or celebratory motion. |
+| **Success / completed action** | A brief, restrained confirmation is allowed, then settle into the resulting state. |
+
+**Accessibility non-negotiables:**
+- Honor iOS Reduce Motion and Android animator-duration-scale. In reduced-motion mode, state changes are immediate/static; spinners, scale/slide effects, shimmer, parallax, looping emphasis, and decorative transitions have static equivalents.
+- Motion must never be the only indication of state, focus, urgency, or completion.
+- Honor iOS Reduce Transparency: Liquid Glass surfaces fall back to opaque material as already required by the native design registry.
+
 ### 1.5 Global team/league context
 
 Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
@@ -301,7 +320,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 13. **Trade page ownership:** ✅ Trade is public-first and zero-friction: build/submit a trade without account or league context, then opt into a selected-team/league personalized analysis when available. Verdict precedes share; the existing public share flow is post-verdict. Apple Shortcuts and social trade-poll creation are deferred to post-beta/V2 (Justin, 2026-07-20).
 14. **Account + feedback:** ✅ Account is a calm native settings space: Profile → Connected Leagues → Preferences → Data & Privacy → Support & Help Improve Omen → separated Danger Zone. Feedback is always easy but never nagging: contextual feedback stays with Omen calls; voluntary general product feedback lives in Account, with safe no-credential/no-sensitive-data handling (Justin, 2026-07-20).
 15. **Cross-page states + off-season:** ✅ Every page uses intentional Loading, Needs connection, Limited data, Recovery, Demo, and Off-season states—named operations, useful next steps, no silent mock/fake advice. Off-season is a calm strategic mode for supported draft/dynasty/league context, never fabricated live weekly Omen advice (Justin, 2026-07-20).
-16. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+16. **Motion:** ✅ Motion clarifies genuine context, hierarchy, or outcome changes. Navigation/sheets use platform-native motion; Omen content motion is restrained and one-time. No reveal theatrics, flashing, looping emphasis, fake-progress motion, or cross-platform imitation. Reduced-motion and reduce-transparency static fallbacks are required (Justin, 2026-07-20).
+17. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
