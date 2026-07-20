@@ -30,7 +30,7 @@ Shared: contracts + API models. Not shared: UI. No feature module defines shadow
 
 ### 1.2 Navigation (native expression of the M0b/foundation map)
 
-Top-level destinations (limited): **Command Center · Omen · Trade · League/Account (consolidated)**. **Draft is a strong seasonal destination, not a permanent everyday tab:** it is reachable through League and promoted prominently from Command Center when the user’s league is in a draft-relevant period. Everything else (provider connect, player detail, confirmation, filtering, recovery, onboarding) is a nested stack push or a sheet — never a permanent top-level tab.
+Top-level destinations (limited): **Command Center · Omen · Trade · League**. **Draft is a strong seasonal destination, not a permanent everyday tab:** it is reachable through League and promoted prominently from Command Center when the user’s league is in a draft-relevant period. **Account** (profile, connections, privacy, appearance, support, and account deletion) is reached through a contextual profile/avatar control, not top-level navigation. Everything else (provider connect, player detail, confirmation, filtering, recovery, onboarding) is a nested stack push or a sheet — never a permanent top-level tab.
 
 | Platform | Container | Focused tasks | Back/resume |
 |---|---|---|---|
@@ -51,8 +51,8 @@ Top-level destinations (limited): **Command Center · Omen · Trade · League/Ac
 | `omen` | Omen | yes | calls `POST /api/omen/mvp-move` |
 | `trade` | Trade Room | no (public) | Trade Analyzer is free/public |
 | `draft` | Draft Room | yes | Seasonal destination; reached through League and promoted from Command Center during a draft-relevant period, not a permanent tab. |
-| `league` | League/Standings | yes | |
-| `account` | Account/Connections | yes | includes in-app account deletion |
+| `league` | League | yes | Roster, matchup, standings, connected-league context, and seasonal Draft entry. Fourth top-level destination. |
+| `account` | Account/Connections | yes | Reached from a contextual profile/avatar control; profile, providers, privacy, appearance, support, and in-app account deletion. |
 
 ## 2. Auth & session contract
 
@@ -163,6 +163,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 2. **Pin F2:** ✅ yes — pinned alongside M0c; a screen cannot honestly show "connected/ready/syncing" while the backend definition is ambiguous. Must resolve before M3.
 3. **Backend requirements §11:** ✅ routed to the backend lane as **one owner + one shared API/state contract + one acceptance-test matrix, delivered as four small PRs** (not one giant PR).
 4. **Draft navigation:** ✅ Draft is a strong **seasonal** destination inside League and promoted from Command Center during draft-relevant periods; it is **not** a permanent everyday top-level tab (Justin, 2026-07-20).
+5. **League vs. Account:** ✅ League is the fourth top-level destination (roster, matchup, standings, connected-league context, and Draft entry). Account is contextual profile/avatar navigation for personal and administrative controls; it is not combined with League or shown as a permanent tab (Justin, 2026-07-20).
 
 ## 13. Evidence
 
