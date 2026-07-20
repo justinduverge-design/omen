@@ -812,3 +812,82 @@ Continue neutral
 - Private roster/league details never enter a public share link without explicit review and consent.
 
 **Founder approval:** Trade is public-first, neutral by default, optionally personalized, and verdict-before-share (Justin, 2026-07-20).
+
+
+---
+
+## 9. Trade — verdict
+
+**Purpose:** State what the offer means in clear, calm language, then show the smallest credible adjustment that could improve it. Verdict precedes sharing.
+
+### 9.1 Result hierarchy
+
+```
+TRADE VERDICT                         NEUTRAL ANALYSIS
+
+CLOSE — NEEDS CONTEXT
+
+You gain the stronger weekly starter.
+You give up more long-term value.
+
+Why this is close
+• Your side gains immediate WR production.
+• The other side gains a younger core asset.
+• Neutral analysis cannot evaluate your roster depth.
+
+Review full reasoning →
+```
+
+- The context label is always visible. Neutral analysis must not masquerade as personalized roster advice.
+- Personalized results state selected team/league and explain supported roster-fit reasoning without exposing unnecessary private data in shareable surfaces.
+- Default result is readable; full figures, ranks, source dates, assumptions, and methodology remain behind `Review full reasoning`.
+
+### 9.2 Approved verdict vocabulary
+
+| Verdict | Meaning |
+|---|---|
+| **Favors you** | Available evidence materially favors the user’s side. |
+| **Close — needs context** | Values are near enough that format, roster, or preference changes the answer. |
+| **You give up too much** | The user’s outgoing value/risk is materially higher than the return. |
+| **Insufficient data** | Omen cannot responsibly evaluate the offer in this context. |
+
+Do not use grades, “robbery,” “league winner,” “smash accept,” or emotional certainty language.
+
+### 9.3 Value and counter path
+
+Use three compact evidence sections: **Immediate Value**, **Long-Term Value**, and **Risk**. Each starts with a plain-language conclusion and expands to evidence on demand.
+
+```
+MAKE IT FAIRER
+
+Ask for a 2027 2nd-round pick back.
+
+That narrows the long-term value gap while preserving
+the starter upgrade you want.
+
+Adjust this offer →
+```
+
+- Recommend the smallest credible adjustment, not an unrelated replacement trade.
+- If no small adjustment is honest, state that a larger restructure is needed.
+- Never imply the other manager will accept a counteroffer.
+
+### 9.4 Sharing, actions, and state integrity
+
+Bottom actions: Adjust offer, Start over, Share verdict, and optional Save for later.
+
+- Share appears only after verdict and opens a review step.
+- User chooses what becomes public: players only, verdict, reasoning summary, or none of their personalized roster context.
+- Apple Shortcut/poll formats remain post-beta/V2.
+- Saved analysis preserves exact offer plus analysis context/timestamp.
+
+| State | Required behavior |
+|---|---|
+| Neutral verdict | State assumptions and limitation. |
+| Personalized verdict | Name selected context and applicable format. |
+| Close offer | Explain one or two deciding factors. |
+| Unsupported settings | Safe fallback or visible limitation. |
+| Incomplete player data | Name incomplete input; do not force verdict. |
+| Shared result | Only user-reviewed public payload. |
+
+**Founder approval:** Trade uses calm verdict language, immediate/long-term/risk framing, smallest credible counter path, and user-reviewed sharing after verdict (Justin, 2026-07-20).
