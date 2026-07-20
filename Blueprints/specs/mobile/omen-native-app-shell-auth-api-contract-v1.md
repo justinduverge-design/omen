@@ -137,6 +137,18 @@ Motion clarifies a change of context, hierarchy, or outcome. It is never decorat
 - Motion must never be the only indication of state, focus, urgency, or completion.
 - Honor iOS Reduce Transparency: Liquid Glass surfaces fall back to opaque material as already required by the native design registry.
 
+### 1.4.6 Mobile copy and voice
+
+Omen’s mobile voice is **calm, factual, and nonjudgmental**. It makes a clear recommendation without performing certainty, trash talk, or a hot-take personality.
+
+- State the recommendation plainly, then identify why it matters, risk, confidence, and data used.
+- Separate **facts** (for example, roster status, league setting, injury designation, projection source) from Omen’s **inference** (the recommendation drawn from those facts).
+- Use measured language: “Omen recommends…”, “The available data favors…”, “This is a close call because…”, “Omen cannot confirm…”.
+- Do not use hyperbole, shame, fear-of-missing-out language, fake urgency, insults toward the user/opponent, or claims of certainty that the evidence cannot support.
+- Loading, recovery, and limited-data copy explains the actual condition and next action without blame.
+- Confidence is evidence-bound: a score/label must include a concise rationale and must not masquerade as a guarantee.
+- If evidence is unavailable, incomplete, stubbed, or stale, say so visibly rather than compensating with stronger voice.
+
 ### 1.5 Global team/league context
 
 Omen maintains **one persistent selected team/league context** for all personalized areas. Changing it updates the context for **Command Center, Omen, League, Waiver Watch, and the Ledger** together. A user must never wonder which roster a recommendation belongs to.
@@ -321,7 +333,8 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 14. **Account + feedback:** ✅ Account is a calm native settings space: Profile → Connected Leagues → Preferences → Data & Privacy → Support & Help Improve Omen → separated Danger Zone. Feedback is always easy but never nagging: contextual feedback stays with Omen calls; voluntary general product feedback lives in Account, with safe no-credential/no-sensitive-data handling (Justin, 2026-07-20).
 15. **Cross-page states + off-season:** ✅ Every page uses intentional Loading, Needs connection, Limited data, Recovery, Demo, and Off-season states—named operations, useful next steps, no silent mock/fake advice. Off-season is a calm strategic mode for supported draft/dynasty/league context, never fabricated live weekly Omen advice (Justin, 2026-07-20).
 16. **Motion:** ✅ Motion clarifies genuine context, hierarchy, or outcome changes. Navigation/sheets use platform-native motion; Omen content motion is restrained and one-time. No reveal theatrics, flashing, looping emphasis, fake-progress motion, or cross-platform imitation. Reduced-motion and reduce-transparency static fallbacks are required (Justin, 2026-07-20).
-17. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
+17. **Mobile voice:** ✅ Calm, factual, and nonjudgmental. Omen states a recommendation and evidence-bound confidence without opinionated/trash-talk/hot-take performance; it distinguishes facts from inference and says when evidence is incomplete or unavailable (Justin, 2026-07-20).
+18. **Rivalry History:** ✅ Post-beta feature direction, not beta scope. Omen may publicly signal it as coming for compatible connected leagues, but must not promise provider parity until historical adapter access, continuing-league continuity, and manager identity matching are proven (Justin, 2026-07-20).
 
 ## 13. Evidence
 
