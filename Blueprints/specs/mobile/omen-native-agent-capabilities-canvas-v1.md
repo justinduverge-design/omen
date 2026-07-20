@@ -1,6 +1,6 @@
 # Omen Native Agent Capabilities & Canvas v1
 
-**Status:** Proposed active operating contract  
+**Status:** Active operating contract  
 **Date:** 2026-07-19  
 **Purpose:** Give agents a clear, least-privilege lane for building the native Omen apps without exposing users, production, provider credentials, or store accounts.
 
