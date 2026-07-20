@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decisions Added 2026-07-19 (M3-A Native Auth Scaffolding — Android)
+
+- **M3-A is built config-independent first, behind interfaces.** `AuthRepository`, `GoogleIdTokenProvider`, and `SecureSessionStore` are interfaces with a network-free `FakeAuthRepository` and an in-memory store, so the full sign-in state machine, session, and app UI are built and JVM-tested (25 tests) with no live Supabase/Google config. Live Supabase + Credential Manager wiring is a follow-up PR gated only on the Google Web client ID.
+- **Session tokens use AndroidKeyStore directly, not `androidx.security-crypto`.** `AndroidKeystoreSessionStore` encrypts with an AES-256/GCM key held in AndroidKeyStore and stores only ciphertext+IV in app-private prefs — satisfying M0c §2.2 "Keystore-backed storage" while adding **zero** new supply-chain dependency. Corrupt/rotated payloads fail safe to "no session."
+- **Public client config lives only in git-ignored `local.properties`, injected via `BuildConfig`.** The Supabase anon key (RLS-protected public config) is never committed or echoed; the Google Web client ID defaults empty and the Google button reports "not configured" honestly until provisioned.
+- **iOS auth is contract-parity only this cycle.** Sign in with Apple + Keychain remain for authorized non-signing macOS CI; the Windows workspace cannot compile or device-prove iOS. Android SDK for this workspace lives under the Codex sandbox path.
+- **Live wiring uses OkHttp + org.json against GoTrue REST, not the Supabase Kotlin SDK.** `OkHttpGoTrueTransport` calls `/auth/v1/otp`, `/verify`, `/token?grant_type=id_token|refresh_token` directly behind the `GoTrueTransport` seam — small auditable dependency surface (added: `androidx.credentials` 1.3.0, `googleid` 1.1.1, `okhttp` 4.12.0), and the repository outcome-mapping stays JVM-unit-tested with a fake transport (34 tests). Google uses Credential Manager with a SHA-256-hashed nonce (raw nonce forwarded to Supabase). Verified live: bogus refresh + malformed OTP both return HTTP 400 (reachable, anon key accepted); emulator shows the live label + "Continue with Google".
+- Evidence: `Blueprints/handoffs/2026-07-19-m3a-native-auth-scaffolding.md`. Branch `codex/m3a-native-auth-proof`, not pushed/merged.
+
 ## Decisions Added 2026-07-19 (CI Lockfile Repair)
 
 - **The clean-CI resolver is the release authority for the root lockfile.** Two merge-triggered quality jobs failed before deployment because `npm ci` found missing transitive records that a local installation did not surface. The lockfile was regenerated without changing the dependency manifest or runtime code, then validated with the same clean-resolver path.

@@ -1,10 +1,20 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Public client config from git-ignored local.properties (never hardcoded, never committed).
+// The Supabase anon key is RLS-protected public config; the Google Web client ID is optional
+// until provisioned (empty string => Google sign-in reports "not configured" honestly).
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun cfg(key: String): String = (localProps.getProperty(key) ?: "").trim()
 
 android {
     namespace = "com.slopssaloon.omen"
@@ -22,6 +32,9 @@ android {
         debug {
             buildConfigField("String", "OMEN_API_BASE_URL", "\"https://example.invalid\"")
             buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
+            buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
+            buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
+            buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
         }
         create("staging") {
             initWith(getByName("debug"))
@@ -33,6 +46,9 @@ android {
             isMinifyEnabled = false
             buildConfigField("String", "OMEN_API_BASE_URL", "\"https://example.invalid\"")
             buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
+            buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
+            buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
+            buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
         }
     }
 
@@ -62,6 +78,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.okhttp)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
