@@ -2,6 +2,51 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-20 (M1-P P2 TextField/FormField/Picker)
+
+- **Form feedback remains a composed wrapper, while platform controls stay native.** `OmenFormField`
+  owns the label, hint, error, and success message; `OmenTextField` and `OmenPicker` use SwiftUI
+  and Material 3 input controls with token-backed styling and native focus/semantics. This avoids
+  a custom input clone or a new Figma pattern, while keeping validation message association and
+  TalkBack/VoiceOver state explicit.
+
+## Decision Added 2026-07-20 (M1-P P2 Button + IconButton)
+
+- **Material focus rings must be drawn as an inset post-content overlay.** Device evidence showed
+  the attempted outward Compose ring was clipped by filled Material controls. The approved
+  semantic halo + crisp-stroke treatment now renders inside the target after its content, which
+  keeps it visible without changing layout. Keyboard Tab verification on the Android gallery is
+  the evidence; no product screen was changed.
+
+## Decision Added 2026-07-20 (M1-P P2 — Shared Native Design-System Token Layer)
+
+- **First M1-P P2 slice is tokens, not components.** Rather than starting all 13 foundation
+  components across both platforms at once, the first PR builds only the shared token layer
+  (color, typography, spacing, `focus-ring`) that every component will consume — matching the
+  sprint's own rule that a large item should split into small PRs. Button/IconButton are the
+  next slice.
+- **`focus-ring` is implemented as a two-layer halo + stroke**, not a single 40%-alpha ring.
+  Registry §2.2 names the token "focus indicator (accent @ 40%)"; a literal single-layer 40%
+  stroke risked failing the brief's own AA-visible acceptance requirement. Both iOS and Android
+  now draw a crisp full-opacity `accent` stroke plus a soft `accent`-at-40%-alpha halo underneath
+  — same two-layer shape on both platforms. Flagged as a judgment call for Justin to revisit if
+  the literal single-layer reading was intended instead.
+- **Font-family fallback preserves the sans/serif/mono role shape, not real Alegreya files.**
+  Font-file acquisition remains a separately approved, not-yet-made decision (both M1 build
+  briefs §7). Android resolves Alegreya Sans/Alegreya/DM Mono to `FontFamily.SansSerif/Serif/
+  Monospace`; iOS resolves to `UIFontDescriptor.SystemDesign.default/serif/monospaced`. Either
+  swap is a one-line change once real font files land — no call site references a family
+  directly.
+- **iOS Swift code compile-verified via CI same day.** The branch was pushed to get a real build
+  signal on the four new Swift files and the hand-edited `project.pbxproj` (new `A2…` ID block
+  added to the existing hand-authored `A1…` scheme). `.github/workflows/ios-ci.yml` run
+  `29784250139` — `Build OmenIOS (simulator, unsigned)` passed in 33s, no errors. Android was
+  already fully verified locally: `./gradlew :core:designsystem:testDebugUnitTest` 18/18 and
+  `:app:assembleDebug` both green.
+- Evidence: `Blueprints/handoffs/2026-07-20-m1p-p2-designsystem-tokens.md`. Branch
+  `claude/m1p-p2-designsystem-tokens` pushed to `origin`, **not merged** — no PR opened, not
+  deployed.
+
 ## Decision Added 2026-07-20 (M1-P Figma screen-contract pass — APPROVED)
 
 - **Justin approved the full M1-P Figma screen-contract pass** (`01 — Principles & References`; 3 `03 — Components` proposals; 10 low-fi screen contracts across `04`/`05`; 4 golden-screen pairs; `06 — QA & Evidence`, 14 entries) after the two founder decisions below were applied. All 14 `06` entries and the 3 `03` proposal badges were updated in Figma from `PENDING`/`PROPOSAL — NOT APPROVED` to `APPROVED — Justin, 2026-07-20`.
