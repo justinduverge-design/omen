@@ -46,6 +46,8 @@ import com.slopssaloon.omen.core.designsystem.component.OmenTextFieldVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformBadge
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -207,6 +209,13 @@ private fun GalleryScreen() {
             Column {
                 OmenListRow(title = "Weekly Omen", subtitle = "Your matchup recommendation")
                 OmenListRow(title = "Sunday Slate", subtitle = "Sleeper · 12 teams", onClick = {})
+            }
+        },
+        Section("PlatformBadge — Sleeper / Yahoo / ESPN") {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OmenPlatformBadge(OmenPlatform.Sleeper)
+                OmenPlatformBadge(OmenPlatform.Yahoo)
+                OmenPlatformBadge(OmenPlatform.Espn)
             }
         },
     )
