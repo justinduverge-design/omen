@@ -46,7 +46,14 @@ Replaced the M3 static local-preview placeholder (`SessionStore`, inline `AppShe
 
 ## Verification
 
-**Honest limitation:** this environment has no macOS/Xcode/Swift toolchain (Linux container), matching the situation the Android-session handoff already flagged for the *previous* (Windows) session — so, exactly as that handoff did for iOS, this pass could not run `xcodebuild` locally. Per `Blueprints/specs/mobile/omen-native-build-environment-v1.md` (M2-E), the authorized verification path for iOS is non-signing GitHub macOS simulator CI, which now runs `xcodebuild test` on every push to this branch. **Treat this PR as unverified until `ios-ci.yml` is green on it** — I subscribed to the PR's CI/review events and will fix any build/test failures CI surfaces.
+**Honest limitation:** this environment has no macOS/Xcode/Swift toolchain (Linux container), matching the situation the Android-session handoff already flagged for the *previous* (Windows) session — so, exactly as that handoff did for iOS, this pass could not run `xcodebuild` locally. Per `Blueprints/specs/mobile/omen-native-build-environment-v1.md` (M2-E), the authorized verification path for iOS is non-signing GitHub macOS simulator CI.
+
+**Update — CI is green (same day, 2026-07-21).** The first `ios-ci.yml` run failed and surfaced three real, hand-editing-a-pbxproj-by-hand mistakes, each fixed in a small follow-up commit and re-verified by the next CI run:
+1. `TEST_HOST`/`BUNDLE_LOADER` pointed at `OmenIOS.app/OmenIOS`; the app target's actual `PRODUCT_NAME` is `Omen`, so the built bundle is `Omen.app` with executable `Omen`.
+2. All 6 test files did `@testable import OmenIOS`; same root cause — the importable Swift module name comes from `PRODUCT_NAME` (`Omen`), not the target name. Fixed to `@testable import Omen`.
+3. The app target's Debug configuration was missing `ENABLE_TESTABILITY = YES`, so the `Omen` module wasn't compiled with `-enable-testing` and `@testable import` failed with "module 'Omen' was not compiled for testing" even once the name was correct.
+
+`xcodebuild test -scheme OmenIOS -destination 'platform=iOS Simulator,name=iPhone 16'` now passes (both duplicate push/pull_request CI runs green, ~1m40s each). PR #171 (draft) is otherwise clean/mergeable with no open review threads as of this update.
 
 What *was* checked locally without a compiler:
 - Every new/changed Swift file was hand-written against the exact, previously-read source of the design-system components it composes (`OmenButton`, `OmenTextField`, `OmenFormField`, `OmenModalSheet`, `OmenStateSurface`, `OmenCard`, `OmenTypography`, `OmenColor`, `OmenSpacing`) — no guessed APIs.
