@@ -51,7 +51,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M0c | Native app-shell/auth/API contract | P0 | M0a | ✅ Approved 2026-07-19. Surfaces 4 backend requirements to `frontend-to-backend.md`. |
 | M1 | Native design-system implementation plan | P0 | M0b + M0c | In progress. Governed by M1-P. |
 | M1-F | Native Figma token and foundation-library setup | P0 | M1 focus-ring + typography briefs | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m1-figma-foundation-library.md`; Figma nodes `13:2` / `14:2`. |
-| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 In progress. Figma screen-contract pass approved 2026-07-20. P2 foundations merged through ListRow: PR #165 tokens/controls/fields, PR #166 Card/Badge/Chip, PR #167 Modal, PR #168 State Surfaces, PR #169 ListRow. **Remaining P2:** PlatformBadge and ConfirmationDialog. Then P4 gallery/enforcement before P3 product compositions. |
+| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 In progress. Figma screen-contract pass approved 2026-07-20. **P2 foundations complete:** PR #165 tokens/controls/fields, PR #166 Card/Badge/Chip, PR #167 Modal, PR #168 State Surfaces, PR #169 ListRow, PR #174 PlatformBadge, PR #175 ConfirmationDialog, PR #176 platform legibility tokens + fill-on-platform PlatformBadge. **Next:** P4 gallery/enforcement, then P3 product compositions. |
 | M2-F | Native app-shell screen contracts | P0 | M1-F | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-app-shell-contracts.md`; Figma nodes `17:12` / `17:13`. |
 | M2-E | Native build-environment decision | P0 | M2-F | ✅ Completed 2026-07-19. Android Studio/SDK/ADB/emulator verified; iOS path is unsigned GitHub macOS simulator CI. |
 | M2 | Native app-shell project scaffolding | P0 | M0 + M2-F + M2-E | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`. |
@@ -64,12 +64,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ## Next build order
 
-1. **M1-P P2 PlatformBadge foundation** — shared iOS SwiftUI + Android Compose primitive, no provider behavior.
-2. **M1-P P2 ConfirmationDialog foundation** — shared confirmation/destructive-action primitive, no account-deletion copy change unless explicitly approved.
-3. **M1-P P4 dual-platform gallery/enforcement** — prove primitives render, prevent feature-local primitive clones, and document allowed composition use.
-4. **F2 status truth** — resolve `ready` vs `pending_live_engine` wording/runtime contract before M0-BE expands.
-5. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
-6. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame.
+1. **M1-P P4 dual-platform gallery/enforcement** — prove primitives render, prevent feature-local primitive clones, and document allowed composition use.
+2. **F2 status truth** — resolve `ready` vs `pending_live_engine` wording/runtime contract before M0-BE expands.
+3. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
+4. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame.
 
 ## Current state
 
@@ -125,33 +123,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ## M. Native mobile execution lane
 
-### M1P-Next-1 — PlatformBadge foundation
+### M1P-Next-1 — PlatformBadge foundation — ✅ merged PR #174 (2026-07-21); legibility tokens + fill-on-platform follow-up merged PR #176.
 
-- **Priority:** P0
-- **Cost:** small/medium
-- **Blocked by:** M1-P P2 ListRow merged; no blocker remains
-- **Agent-buildable:** yes
-- **Skills:** core implementation + UI / UX + design contract bundle; security gates N/A unless provider data or credentials are touched
-- **Done when:** one approved PlatformBadge primitive exists in both SwiftUI and Compose, mapped to the registry, rendered in debug/gallery context, accessible without color-only distinction, and tested on Android plus unsigned iOS CI.
-- **Evidence:** focused native tests, Android build/device evidence, unsigned iOS CI, dated handoff, Done Ledger row, skill receipt.
-- **Do not touch:** provider connect flows, provider credentials, platform state semantics, production, SQL, or store configuration.
-
-### M1P-Next-2 — ConfirmationDialog foundation
-
-- **Priority:** P0
-- **Cost:** small/medium
-- **Blocked by:** PlatformBadge can run before or after if hot files do not conflict
-- **Agent-buildable:** yes
-- **Skills:** core implementation + UI / UX + design contract bundle; security/privacy review only if account deletion or destructive-data copy changes
-- **Done when:** one shared native confirmation/destructive-action primitive exists in SwiftUI and Compose, has reduced-motion/focus/keyboard/accessibility behavior, and is covered by tests and gallery evidence.
-- **Evidence:** focused native tests, Android build/device evidence, unsigned iOS CI, dated handoff, Done Ledger row, skill receipt.
-- **Do not touch:** exact account deletion phrase `DELETE MY OMEN DATA`, backend delete route, privacy copy, production, SQL, or store configuration without explicit approval.
+### M1P-Next-2 — ConfirmationDialog foundation — ✅ merged PR #175 (2026-07-21).
 
 ### M1P-P4 — Dual-platform gallery and enforcement
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** M1-P P2 primitives complete: tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow/PlatformBadge/ConfirmationDialog
+- **Blocked by:** M1-P P2 primitives complete (tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow/PlatformBadge/ConfirmationDialog) — ✅ unblocked 2026-07-21
 - **Agent-buildable:** yes
 - **Done when:** gallery proves every approved primitive and first approved compositions; implementation guardrails prevent feature-local primitive clones; Figma contract and code registry agree; no M4 screen construction starts before approval.
 - **Evidence:** Android gallery/device evidence, iOS unsigned CI/gallery evidence where possible, enforcement test or static audit, dated handoff, Done Ledger row.
