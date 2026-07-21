@@ -1,0 +1,99 @@
+import XCTest
+
+/// M1-P P4 enforcement: files under `OmenIOS/App/` must compose approved shared `Omen*`
+/// primitives from `DesignSystem/`, not clone raw SwiftUI primitives or color literals.
+///
+/// Banned in feature/app-shell code:
+///   - `Button(`, `TextField(`, `SecureField(`, `Alert(`, `TextEditor(`
+///   - `Color(red:`, `Color(hue:`, `Color(hex:`, `Color(0x`, `Color("<asset>")`
+///
+/// The `DesignSystem/` module is out of scope because it *is* the primitive layer — its
+/// files are allowed and expected to touch raw SwiftUI to implement Omen primitives.
+///
+/// Allowlist. `allowlistedRelativePaths` names files intentionally exempted; each entry MUST
+/// document why and when it will be retired. Today the list is empty.
+///
+/// Why this is a scanner and not SwiftLint yet. The iOS target has no SwiftLint config;
+/// adding one is a larger change. A source-scanning XCTest proves the rule today and is
+/// deletable when SwiftLint rules land later.
+final class PrimitiveEnforcementTests: XCTestCase {
+
+    func testAppSourcesUseOmenPrimitivesInsteadOfRawSwiftUIOrColorLiterals() throws {
+        let root = try repoAppSourcesRoot()
+        let bannedPrimitives = [
+            #"\bButton\("#,
+            #"\bTextField\("#,
+            #"\bSecureField\("#,
+            #"\bAlert\("#,
+            #"\bTextEditor\("#,
+        ]
+        let bannedColors = [
+            #"\bColor\(red:"#,
+            #"\bColor\(hue:"#,
+            #"\bColor\(hex:"#,
+            #"\bColor\(0x"#,
+            #"\bColor\("[^"]+"\)"#,
+        ]
+        let bannedPatterns = (bannedPrimitives + bannedColors).map {
+            try! NSRegularExpression(pattern: $0)
+        }
+
+        var violations: [String] = []
+        let enumerator = FileManager.default.enumerator(atPath: root.path)
+        while let relative = enumerator?.nextObject() as? String {
+            guard relative.hasSuffix(".swift") else { continue }
+            if Self.allowlistedRelativePaths.contains(relative.replacingOccurrences(of: "\\", with: "/")) {
+                continue
+            }
+            let file = root.appendingPathComponent(relative)
+            let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+            for pattern in bannedPatterns {
+                let range = NSRange(text.startIndex..., in: text)
+                if pattern.firstMatch(in: text, range: range) != nil {
+                    violations.append("\(relative): raw usage of \(pattern.pattern) — use an Omen* primitive from DesignSystem/")
+                    break
+                }
+            }
+        }
+
+        if !violations.isEmpty {
+            XCTFail(
+                """
+                M1-P P4 primitive enforcement failed. Compose from DesignSystem/'s Omen* primitives.
+                Allowlist a file only with a written reason + retirement plan in \
+                PrimitiveEnforcementTests.allowlistedRelativePaths.
+
+                \(violations.joined(separator: "\n"))
+                """
+            )
+        }
+    }
+
+    // MARK: helpers
+
+    /// Files exempted from this check. Each entry MUST document why and when it will be
+    /// retired. Adding to this list is a design-steward decision, not a build fix. Empty
+    /// today; iOS app-shell code was already Omen*-only when P4 landed.
+    private static let allowlistedRelativePaths: Set<String> = []
+
+    /// Locates `OmenIOS/OmenIOS/App` from this test file. Uses `#file` so this works from
+    /// both Xcode and command-line `xcodebuild` runs.
+    private func repoAppSourcesRoot() throws -> URL {
+        let thisFile = URL(fileURLWithPath: #file)
+        // .../OmenIOS/OmenIOSTests/PrimitiveEnforcementTests.swift -> .../OmenIOS/OmenIOS/App
+        let iosProjectRoot = thisFile
+            .deletingLastPathComponent() // OmenIOSTests/
+            .deletingLastPathComponent() // OmenIOS/
+        let root = iosProjectRoot
+            .appendingPathComponent("OmenIOS")
+            .appendingPathComponent("App")
+        guard FileManager.default.fileExists(atPath: root.path) else {
+            throw NSError(
+                domain: "PrimitiveEnforcementTests",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "OmenIOS/App source root not found at \(root.path)"]
+            )
+        }
+        return root
+    }
+}

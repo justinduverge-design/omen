@@ -24,15 +24,19 @@ Read these before selecting work:
 
 **M1-P Figma screen-contract pass approved.** The Native Design House now includes principles/references, tokens/themes, component registry/proposals, iOS screen contracts, Android screen contracts, golden screens, and QA/evidence boards. Treat the Figma work as contract evidence, not permission to freestyle feature screens.
 
-**M1-P P2 foundations merged through ListRow.** Merged evidence:
+**M1-P P2 + P4 complete.** Merged evidence:
 
 - PR #165 — tokens, Button/IconButton, TextField/FormField/Picker
 - PR #166 — Card, Badge, Chip
 - PR #167 — Modal / Sheet
 - PR #168 — State Surfaces
 - PR #169 — ListRow
+- PR #174 — PlatformBadge
+- PR #175 — ConfirmationDialog
+- PR #176 — platform legibility tokens + fill-on-platform PlatformBadge
+- Branch `claude/m1p-p4-gallery-enforcement` — SwiftUI `DesignSystemGalleryView` (debug-only) + Android `PrimitiveEnforcementTest` + iOS `PrimitiveEnforcementTests`; registry §3.2 amended; `OmenAndroidApp.kt` allowlisted with retirement plan (retires with first M4 feature screen). PR pending push.
 
-**Remaining M1-P P2:** PlatformBadge and ConfirmationDialog. After those, run M1-P P4 dual-platform gallery/enforcement before P3 product compositions or M4 feature screens.
+**Next:** M1-P P3 product compositions (PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList) before M4 feature screens. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
 
 **M3-A native auth implementation is merged on both platforms.** Android auth landed in PR #157. iOS auth landed in PR #171. PR #172 fixed the post-merge native scaffold regression test after the iOS screens split out of `AppShellView.swift`. Real-device interactive QA remains founder/human.
 
@@ -42,41 +46,36 @@ Read these before selecting work:
 
 ## Recommended next pull
 
-### 1. M1P-Next-1 — PlatformBadge foundation
+### 1. F2 — Resolve `ready` vs `pending_live_engine`
 
-- **Why next:** ListRow is done; PlatformBadge is now the next missing shared native primitive before gallery/enforcement.
-- **Priority / cost / blocker:** P0 / small-medium / none
-- **Recommended execution surface:** Codex or Claude Code with native file access; keep the PR small.
-- **Skills:** core implementation + UI / UX + design contract bundle; security gates N/A unless provider data or credentials are touched.
-- **Output:** SwiftUI + Compose PlatformBadge primitive, registry mapping, debug/gallery rendering where available, accessibility proof, Android test/build evidence, unsigned iOS CI, handoff, Done Ledger row, skill receipt.
-- **Do not touch:** provider connect flows, provider credentials, platform state semantics, production, SQL, store configuration.
-
-### 2. M1P-Next-2 — ConfirmationDialog foundation
-
-- **Why next:** destructive/confirmation flows need one shared native primitive before Account/provider flows expand.
-- **Priority / cost / blocker:** P0 / small-medium / can run before or after PlatformBadge if hot files do not conflict
-- **Recommended execution surface:** Codex or Claude Code with native file access.
-- **Skills:** core implementation + UI / UX + design contract bundle; security/privacy review only if account-deletion copy or destructive-data copy changes.
-- **Output:** SwiftUI + Compose ConfirmationDialog primitive, focus/reduced-motion/accessibility behavior, Android test/build evidence, unsigned iOS CI, handoff, Done Ledger row, skill receipt.
-- **Do not touch:** exact account-deletion phrase `DELETE MY OMEN DATA`, backend delete route, privacy copy, production, SQL, store configuration.
-
-### 3. M1P-P4 — Dual-platform gallery and enforcement
-
-- **Why next:** once P2 is complete, the project needs an enforcement layer so agents cannot clone primitives inside feature screens.
-- **Priority / cost / blocker:** P0 / medium / PlatformBadge + ConfirmationDialog complete
-- **Output:** dual-platform gallery/evidence and static/test enforcement against feature-local primitive clones.
-
-### 4. F2 — Resolve `ready` vs `pending_live_engine`
-
-- **Why next:** it gates M0-BE and native provider-state truth.
+- **Why next:** pinned P0; gates M0-BE and native provider-state truth. M1-P P2/P4 are done and no longer top the queue.
 - **Priority / cost / blocker:** P0 / small / none; pinned
 - **Output:** source-of-truth trace and doc diff only unless behavior change is separately approved.
 
-### 5. M0-BE-0 — Backend shared contract and acceptance matrix
+### 2. M0-BE-0 — Backend shared contract and acceptance matrix
 
-- **Why next:** M0c surfaced backend requirements, but implementation should not start before one shared state/API contract and test matrix.
+- **Why next:** M0c surfaced backend requirements; implementation must not start before one shared state/API contract and acceptance-test matrix.
 - **Priority / cost / blocker:** P0 / medium / F2 first
 - **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
+
+### 3. M1P-P3 — Product compositions
+
+- **Why next:** now that P2 primitives + P4 enforcement are in place, PlayerRow / DecisionBrief shell / PlatformConnectionCard / ConnectionStatusBadge / MetricStrip / ConfidenceBar / RiskPanel / SignalList unblock M4 feature screens.
+- **Priority / cost / blocker:** P0 / medium / unblocked for the listed compositions; Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2.
+- **Output:** shared SwiftUI + Compose compositions per registry §3.2, gallery entries, tests, handoff, Done Ledger row, skill receipt.
+- **Do not touch:** provider connect flows, provider credentials, production, SQL, store configuration.
+
+### 4. M3A-QA — Native auth real-device QA
+
+- **Why next:** M3-A implementation is merged on both platforms; only human-gated interactive QA remains.
+- **Priority / cost / blocker:** P0 / small, human-gated / founder credential + inbox access
+- **Output:** sanitized QA matrix from `mobile/contracts/m3a-interactive-qa-runbook.md` for Android and iOS; agent may prep matrix only.
+
+### 5. A1 — Review and disposition PR #140 (SVG logo masters)
+
+- **Why next:** founder/review gate still open; visual review + concrete findings or approval.
+- **Priority / cost / blocker:** P0 / small / Justin visual approval
+- **Output:** approve/revise recommendation with per-cut findings.
 
 ## Open PR gates
 
@@ -110,7 +109,7 @@ Safe backend work may continue when it does not touch production/provider creden
 - **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
 - **PR #132:** proposed only; do not implement typography/cursor/background changes before approval.
 - **PR #140:** visual review required; no automatic merge or app wiring.
-- **M4 feature screens:** blocked until M1-P P2 primitives and P4 gallery/enforcement close.
+- **M4 feature screens:** blocked until M1-P P3 product compositions land. P2 primitives + P4 gallery/enforcement are complete.
 - **M0-BE:** blocked by F2 status truth first.
 - **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision and explicit store/provider gates.
 - **Win-streak UI:** waits on backend win-streak contract.
@@ -130,7 +129,8 @@ Do not repull these:
 - M3-A Android implementation — merged PR #157;
 - M3A-iOS implementation — merged PR #171;
 - M3A post-merge scaffold regression fix — merged PR #172;
-- M1-P P2 token/control/field/Card/Badge/Chip/Modal/StateSurface/ListRow foundations — merged PRs #165-#169;
+- M1-P P2 primitive foundations complete — merged PRs #165-#169, #174 (PlatformBadge), #175 (ConfirmationDialog), #176 (platform legibility tokens);
+- M1-P P4 dual-platform gallery + primitive enforcement — built on `claude/m1p-p4-gallery-enforcement`, PR pending push;
 - orphaned GDPR module cleanup — merged PR #119;
 - Stripe billing and residual checkout removal — merged PRs #117/#118;
 - transparent lockup swap — merged PR #120 and present in current source;

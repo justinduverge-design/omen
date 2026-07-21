@@ -169,6 +169,13 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 
 New composition patterns must be proposed on Figma `03 — Components` before appearing in an iOS/Android screen (capability canvas §6).
 
+**P4 enforcement (2026-07-21).** Feature and app-shell code must compose the approved `Omen*` primitives above and MUST NOT clone raw platform primitives. The rule is enforced by two source-scanning tests that run in the standard test task:
+
+- Android — `mobile/android/core/designsystem/src/test/kotlin/com/slopssaloon/omen/core/designsystem/enforcement/PrimitiveEnforcementTest.kt` scans `mobile/android/app/src/main/kotlin/**` (and any future `mobile/android/feature/**`) and fails on raw `androidx.compose.material3.Button`/`Card`/`TextField`/`AlertDialog`/`Chip` imports or raw `Color(0xNNNNNNNN)` literals.
+- iOS — `mobile/ios/OmenIOS/OmenIOSTests/PrimitiveEnforcementTests.swift` scans `mobile/ios/OmenIOS/OmenIOS/App/**` and fails on raw SwiftUI `Button(`/`TextField(`/`SecureField(`/`Alert(`/`TextEditor(` call sites or raw `Color(red:|hue:|hex:|0x|"asset")` literals.
+
+Both tests keep an explicit `ALLOWLISTED_FILES` / `allowlistedRelativePaths` list; each entry must document why and when it retires. Adding a file is a design-steward decision, not a build fix. Gallery evidence lives at `mobile/android/core/designsystem/src/debug/kotlin/.../gallery/DesignSystemGalleryActivity.kt` and `mobile/ios/OmenIOS/OmenIOS/DesignSystem/DesignSystemGalleryView.swift` (both debug-only).
+
 ---
 
 ## 4. Accessibility rules (apply to every component)
