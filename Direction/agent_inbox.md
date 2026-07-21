@@ -1,118 +1,118 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-19
+**Refreshed:** 2026-07-21
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
 
-## 📌 Native Mobile Pivot — founder direction (2026-07-19)
+## 📌 Native Mobile Pivot — founder direction
 
-**Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion are paused while Omen is re-planned as a real SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
+**Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion are paused while Omen is planned and built as a real SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
 
-Read `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` before selecting work.
+Read these before selecting work:
 
-**M0 contract pack approved (Justin, 2026-07-19).** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are all approved contracts. **F2 is now pinned** (P0) — one status truth for `ready` vs `pending_live_engine`. Ratified boundaries: `focus-ring` is a semantic non-color accessibility contract; Alegreya Sans/Alegreya/DM Mono are locked; team colors are out of the phone MVP.
+- `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
+- `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md`
+- `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md`
+- `Blueprints/specs/mobile/m1-native-primitives-enforcement-v1.md`
+- `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
+- Official Figma: `https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3`
 
-**M1-P Figma screen-contract pass approved (Justin, 2026-07-20).** P2/P3 unblocked. P2 foundations through ListRow are merged: PR #165 (tokens/controls/fields), #166 (Card/Badge/Chip), #167 (Modal), #168 (State Surfaces), and #169 (ListRow). Latest ListRow evidence: Android 17/17 connected tests + app assembly, unsigned iOS simulator CI run `29791872304` passed for `a8aa7e3`. Remaining P2 slices: PlatformBadge and ConfirmationDialog; then P4 gallery/enforcement. Evidence: `Blueprints/handoffs/2026-07-20-m1p-p2-*.md`.
+## Current truth — 2026-07-21
 
-**Last completed pull:** **M2 — Native app-shell project scaffolding** (P0). iOS SwiftUI and Android Compose shells now have safe environment seams, local demo entry, session/navigation placeholders, and `com.slopssaloon.omen` deep-link registration. Android debug build plus local emulator install/launch passed. iOS compilation remains a future non-signing macOS CI action; no signing, store, provider, or credential action occurred. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`.
+**M0 contract pack approved.** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are approved contracts. F2 is pinned P0 as the single status-truth blocker for the native backend bundle. Ratified boundaries remain: semantic `focus-ring`; Alegreya Sans / Alegreya / DM Mono locked; team colors are out of the phone MVP.
 
-**Last completed pull:** **M3 — Native vertical slice** (P1), local/demo-only. Welcome, Demo, a visibly temporary local sign-in placeholder, Command Center, and mock/recovery Omen states have parity in the two shells. It makes no real auth/provider/store claim. Evidence: `Blueprints/handoffs/2026-07-19-m3-native-vertical-slice.md`.
+**M1-P Figma screen-contract pass approved.** The Native Design House now includes principles/references, tokens/themes, component registry/proposals, iOS screen contracts, Android screen contracts, golden screens, and QA/evidence boards. Treat the Figma work as contract evidence, not permission to freestyle feature screens.
 
-**M3-A in progress (Android scaffolding landed 2026-07-19).** Founder granted M3-A authority. Config-independent Android auth foundation built and JVM-tested (25 tests, `assembleDebug` green, emulator screenshots): expanded `SessionState`, `AndroidKeystoreSessionStore` (AES/GCM, no new dep), `SessionManager`, `AuthRepository`+`FakeAuthRepository`, opaque `AuthOutcome`, validators, `GoogleIdTokenProvider` seam, pure `AuthFlow` reducer, and app-shell wiring with BuildConfig-injected public config from git-ignored `local.properties`. Branch `codex/m3a-native-auth-proof` (not pushed). Evidence: `Blueprints/handoffs/2026-07-19-m3a-native-auth-scaffolding.md`.
+**M1-P P2 foundations merged through ListRow.** Merged evidence:
 
-**M3-A live Android wiring landed (2026-07-19, same session).** Google Web client ID provisioned + added to Supabase Client IDs. Real `SupabaseAuthRepository` (OkHttp/org.json GoTrue, no SDK) + `CredentialManagerGoogleIdTokenProvider` wired behind the interfaces; app uses live repo/provider when configured. 34 unit tests; `assembleDebug` green; live Supabase smoke = HTTP 400 (reachable, anon key accepted); emulator shows live label + "Continue with Google".
+- PR #165 — tokens, Button/IconButton, TextField/FormField/Picker
+- PR #166 — Card, Badge, Chip
+- PR #167 — Modal / Sheet
+- PR #168 — State Surfaces
+- PR #169 — ListRow
 
-**M3-A follow-ups addressed (2026-07-19, same session):** ✅ **In-app account deletion built** (`AccountDeletion` + `OkHttpAccountRepository`, `DELETE /api/user/delete`, phrase-gated, demo-excluded; 37 unit tests). 📋 **Interactive QA runbook** (`mobile/contracts/m3a-interactive-qa-runbook.md`) — Play AVD is creatable; Google account sign-in + OTP-inbox steps are founder/human QA. 📋 **iOS parity spec** (`Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md`) for macOS CI.
+**Remaining M1-P P2:** PlatformBadge and ConfirmationDialog. After those, run M1-P P4 dual-platform gallery/enforcement before P3 product compositions or M4 feature screens.
 
-**M3-A truly remaining:** (1) run the interactive QA pass on a Play-services device (founder/human — needs a Google account + real inbox) and set a real `omen.apiBaseUrl` to exercise live delete; (2) ~~implement iOS from the parity spec on authorized non-signing macOS CI~~ — **iOS implemented 2026-07-21 (GitHub issue #159), pending CI verification** (no local macOS toolchain to compile with this pass; `ios-ci.yml` now runs `xcodebuild test` on the PR — treat unverified until green). Evidence: `Blueprints/handoffs/2026-07-21-m3a-ios-auth-implementation.md`. (3) same real-device interactive QA gate now needed for iOS Sign in with Apple + OTP. Must not expand into provider connection, signing, or store release work.
+**M3-A native auth implementation is merged on both platforms.** Android auth landed in PR #157. iOS auth landed in PR #171. PR #172 fixed the post-merge native scaffold regression test after the iOS screens split out of `AppShellView.swift`. Real-device interactive QA remains founder/human.
 
-**In parallel (backend lane):** M0-BE — the 4 backend requirements from M0c §11, now in `Blueprints/handoffs/frontend-to-backend.md`. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then **four small PRs**. **F2 first.**
+**M3A-QA remains open.** Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion with real `omen.apiBaseUrl`; iOS still needs real-device Sign in with Apple + OTP-inbox QA. Agents may prepare the matrix, but cannot complete credential/inbox work.
+
+**M0-BE remains open.** The 4 backend requirements from M0c §11 are now in `Blueprints/handoffs/frontend-to-backend.md`: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. F2 first.
+
+## Recommended next pull
+
+### 1. M1P-Next-1 — PlatformBadge foundation
+
+- **Why next:** ListRow is done; PlatformBadge is now the next missing shared native primitive before gallery/enforcement.
+- **Priority / cost / blocker:** P0 / small-medium / none
+- **Recommended execution surface:** Codex or Claude Code with native file access; keep the PR small.
+- **Skills:** core implementation + UI / UX + design contract bundle; security gates N/A unless provider data or credentials are touched.
+- **Output:** SwiftUI + Compose PlatformBadge primitive, registry mapping, debug/gallery rendering where available, accessibility proof, Android test/build evidence, unsigned iOS CI, handoff, Done Ledger row, skill receipt.
+- **Do not touch:** provider connect flows, provider credentials, platform state semantics, production, SQL, store configuration.
+
+### 2. M1P-Next-2 — ConfirmationDialog foundation
+
+- **Why next:** destructive/confirmation flows need one shared native primitive before Account/provider flows expand.
+- **Priority / cost / blocker:** P0 / small-medium / can run before or after PlatformBadge if hot files do not conflict
+- **Recommended execution surface:** Codex or Claude Code with native file access.
+- **Skills:** core implementation + UI / UX + design contract bundle; security/privacy review only if account-deletion copy or destructive-data copy changes.
+- **Output:** SwiftUI + Compose ConfirmationDialog primitive, focus/reduced-motion/accessibility behavior, Android test/build evidence, unsigned iOS CI, handoff, Done Ledger row, skill receipt.
+- **Do not touch:** exact account-deletion phrase `DELETE MY OMEN DATA`, backend delete route, privacy copy, production, SQL, store configuration.
+
+### 3. M1P-P4 — Dual-platform gallery and enforcement
+
+- **Why next:** once P2 is complete, the project needs an enforcement layer so agents cannot clone primitives inside feature screens.
+- **Priority / cost / blocker:** P0 / medium / PlatformBadge + ConfirmationDialog complete
+- **Output:** dual-platform gallery/evidence and static/test enforcement against feature-local primitive clones.
+
+### 4. F2 — Resolve `ready` vs `pending_live_engine`
+
+- **Why next:** it gates M0-BE and native provider-state truth.
+- **Priority / cost / blocker:** P0 / small / none; pinned
+- **Output:** source-of-truth trace and doc diff only unless behavior change is separately approved.
+
+### 5. M0-BE-0 — Backend shared contract and acceptance matrix
+
+- **Why next:** M0c surfaced backend requirements, but implementation should not start before one shared state/API contract and test matrix.
+- **Priority / cost / blocker:** P0 / medium / F2 first
+- **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
 
 ## Open PR gates
 
 ### PR #140 — SVG logo masters
 
-- **State:** draft, open, mergeable
+- **State:** draft/open at last recorded review
 - **Gate:** Justin visual approval plus SVG/UI/code review
 - **Do not auto-merge.**
-- **Skills:** `slops-repo-inspector`, `slops-design-system-pack`, `slops-ui-ux-audit`, `slops-code-review`, `slops-quality-baseline`, `slops-git-flow`
 - **Next action:** inspect full/simple/favicon/app-icon cuts at large and small sizes; approve or return concrete revision findings.
 
 ### PR #132 — Master Design System Blueprint v1
 
-- **State:** draft, open, currently not mergeable
+- **State:** draft/open at last recorded review
 - **Gate:** Justin approval of proposed typography, cursor, background, and asset-pipeline direction; reconcile with PR #140 and newer UI work.
 - **Do not auto-merge or implement proposed runtime changes.**
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-design-system-pack`, `slops-ui-ux-audit`
 - **Next action:** produce approve/revise/close recommendation and reconciliation table.
 
-## Auto-Populated Top 5
+## Suppressed while Native Mobile Pivot is active
 
-**Suppressed while the Native Mobile Pivot is active.** Items B3 through C5 below are historical web recommendations, not selectable work. Do not run kickoff against them; pull the current next task (M3-A) above, or an explicitly pinned M-lane brief instead.
+Do not run kickoff against the old Auto-Populated Top 5 web recommendations. B3/B4/C1-C5 remain historical web work and are paused unless Justin explicitly reopens them.
 
-Generated 2026-07-19 from `Direction/current_sprint.md` after excluding founder/review gates, verify-only items that require Justin pinning, and production-mutation work. Blocked downstream items remain visible with their blocker called out.
+Safe backend work may continue when it does not touch production/provider credentials without approval:
 
-These are recommendations, not hard ownership assignments. Any capable agent may execute them after reading the named skill procedures.
-
-### 1. B3 — DecisionBrief component
-
-- **Why next:** the core recommendation surface is still missing while its supporting primitives now exist.
-- **Priority / cost / blocker:** P0 / medium / none; B1 contract complete.
-- **Recommended execution surface:** Jules for a strictly component-only Phase A PR
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** canonical composition, variants, accessibility evidence, no page migration.
-
-### 2. C1 — Draft Assistant primitive migration
-
-- **Why next:** component dependencies are already on `main`; this is a contained Phase B migration with high user value.
-- **Priority / cost / blocker:** P1 / medium / none
-- **Recommended execution surface:** Codex; Jules may execute only with a tightly bounded page-migration brief
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** canonical inputs/selection/player/metric/state components with recommendation math unchanged.
-
-### 3. C2 — Connect League primitive migration
-
-- **Why next:** PlatformConnectionCard and the public ESPN guide are already merged; the page can now consolidate without inventing new behavior.
-- **Priority / cost / blocker:** P1 / medium / none
-- **Recommended execution surface:** Codex for behavior-preserving migration; Claude for copy/legal reconciliation if needed
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `workflow-tree-spec`, `slops-git-flow`, `slops-tdd`, `security-privacy-evidence`, `slops-legal-spot-check`, `slops-ux-copy`, `slops-ui-ux-audit`, `slops-mobile-smoke`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** standard connection cards and recovery states with zero cookie-value exposure.
-
-### 4. D1 — Real `GET /api/trade/pulse`
-
-- **Why next:** removes stale hand-authored buy-low advice and turns an honesty gap into a real data contract.
-- **Priority / cost / blocker:** P1 / medium / none
-- **Recommended execution surface:** Codex
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `pre-build-research`, `slops-data-ingest-plan`, `slops-git-flow`, `slops-tdd`, `demo-mode-pre-empty-state`, `security-privacy-evidence`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** computed endpoint, explicit fallback, tested empty/error/stale paths, honest UI status.
-
-### 5. D2 — `AI_PROVIDER` $0-cap control
-
-- **Why next:** founder decision is logged at a $0 cloud cap; the backend can now hard-fail or disable cloud execution without new spend.
-- **Priority / cost / blocker:** P1 / medium / none
-- **Recommended execution surface:** Codex
-- **Skills:** `slops-repo-inspector`, `planning-pass`, `slops-ai-integration-review`, `slops-financial-sketch`, `slops-git-flow`, `slops-tdd`, `security-privacy-evidence`, `slops-quality-baseline`, `slops-code-review`
-- **Output:** local remains default; any cloud provider path cannot spend money and exposes only safe status.
-
-## Next after the top five
-
-- **C3 — Football Command Center migration:** P1, large; confirm no hot-file conflict.
-- **B4 — Omen page migration:** after B3 and B2 merge/deploy.
-- **E1 — Mobile scope decision:** P0 decision memo; resolves full-app vs relay-only conflict.
-- **F1 — Service-key Supabase audit:** P1 Verify-lane item; Justin must pin.
+- B2-D — canonical Omen engine: live Waiver + personalized Trade intelligence
+- D1 — real `GET /api/trade/pulse`
+- D2 — `AI_PROVIDER=local|cloud` control with $0 cap
 
 ## Current blockers and gates
 
 - **Tuesday scoring:** production flag remains false until approved no-write dry-run and explicit production-change approval.
 - **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
-- **PR #132:** proposed only; do not implement its typography/cursor/background changes before approval.
+- **PR #132:** proposed only; do not implement typography/cursor/background changes before approval.
 - **PR #140:** visual review required; no automatic merge or app wiring.
-- **B3 DecisionBrief:** B1 contract is complete; no contract blocker remains.
-- **B4 unified Omen migration:** waits on B3 and for B2 to merge/deploy before production UI migration claims.
-- **C4 public-front-door migration:** waits on A2 visual-direction decision or an explicit current-North-Star-only authorization.
-- **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision.
-- **iOS Phase 5.3:** requires explicit approval before any `connection_mode` production schema action.
+- **M4 feature screens:** blocked until M1-P P2 primitives and P4 gallery/enforcement close.
+- **M0-BE:** blocked by F2 status truth first.
+- **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision and explicit store/provider gates.
 - **Win-streak UI:** waits on backend win-streak contract.
 - **Baked-black fallback deletion:** wait until at least 2026-07-28 and a clean production soak after PR #120.
 - **Post-live learning:** waits on Release Done, seven stable days, and `slops-product-pulse`.
@@ -121,19 +121,29 @@ These are recommendations, not hard ownership assignments. Any capable agent may
 
 Do not repull these:
 
+- M0a/M0b/M0c native contracts — approved;
+- M1-F Figma token/foundation setup — completed;
+- M2-F app-shell screen contracts — completed;
+- M2-E native build-environment decision — completed;
+- M2 native app-shell project scaffolding — completed;
+- M3 local/demo native vertical slice — completed;
+- M3-A Android implementation — merged PR #157;
+- M3A-iOS implementation — merged PR #171;
+- M3A post-merge scaffold regression fix — merged PR #172;
+- M1-P P2 token/control/field/Card/Badge/Chip/Modal/StateSurface/ListRow foundations — merged PRs #165-#169;
 - orphaned GDPR module cleanup — merged PR #119;
 - Stripe billing and residual checkout removal — merged PRs #117/#118;
 - transparent lockup swap — merged PR #120 and present in current source;
 - public legal/support pages — merged PR #121;
 - ESPN public guide, extension/store assets, and promo cut — merged PR #122; test fix PR #123;
 - UI North Star — merged PR #124;
-- canonical primitive/component Phase A sequence and Trade Analyzer migration — merged PRs #125–#139;
+- canonical web primitive/component Phase A sequence and Trade Analyzer migration — merged PRs #125-#139, but follow-on web migrations are paused;
 - team-based runtime theming — removed PR #114; do not revive per-team design/chant work as active sprint scope.
 
 ## Agent selection guidance
 
 - **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements.
-- **Codex:** behavior-preserving page migrations, backend/API/data work, regression tests, and implementation verification.
+- **Codex:** native implementation, behavior-preserving backend/API/data work, regression tests, and implementation verification.
 - **Claude:** doctrine/spec reconciliation, product-gap analysis, recommendation-contract synthesis, copy/legal review, and large-context planning.
 - These are tool-fit recommendations, not permanent ownership. Readiness, blockers, and skill availability decide the pull.
 
