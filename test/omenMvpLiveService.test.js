@@ -341,6 +341,63 @@ test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_mo
   assert.deepEqual(state.yahooCalls, []);
 });
 
+test("buildLiveOmenMvpMoveForUser uses the owned selected context instead of provider priority", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-yahoo",
+      user_id: "user-1",
+      platform: "yahoo",
+      is_active: true,
+      league_id: "414.l.12345",
+      token_secret_id: "secret-id",
+    }, {
+      id: "context-sleeper",
+      user_id: "user-1",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "sleeper-league-2",
+      platform_username: "sleepy",
+    }],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-sleeper",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
+  assert.equal(result.body.platform.name, "sleeper");
+  assert.equal(result.body.league.id, "sleeper-league-2");
+  assert.deepEqual(state.sleeperCalls.map((call) => call.leagueId), ["sleeper-league-2"]);
+  assert.deepEqual(state.yahooCalls, []);
+});
+
+test("buildLiveOmenMvpMoveForUser fails closed when the selected context is unavailable", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-yahoo",
+      user_id: "user-1",
+      platform: "yahoo",
+      is_active: true,
+      league_id: "414.l.12345",
+      token_secret_id: "secret-id",
+    }],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "foreign-or-inactive-context",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "context_unavailable");
+  assert.equal(result.body.recommendation, null);
+  assert.equal(result.body.error.code, "omen_context_unavailable");
+  assert.equal(Object.hasOwn(result.body, "context_id"), false);
+  assert.deepEqual(state.yahooCalls, []);
+  assert.deepEqual(state.sleeperCalls, []);
+  assert.deepEqual(state.espnCalls, []);
+});
+
 test("buildLiveOmenMvpMoveForUser keeps Yahoo pending when the token is not usable", async () => {
   const { service, state } = loadOmenService({
     connections: [{
