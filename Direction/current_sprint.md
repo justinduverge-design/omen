@@ -51,7 +51,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M0c | Native app-shell/auth/API contract | P0 | M0a | ✅ Approved 2026-07-19. Surfaces 4 backend requirements to `frontend-to-backend.md`. |
 | M1 | Native design-system implementation plan | P0 | M0b + M0c | In progress. Governed by M1-P. |
 | M1-F | Native Figma token and foundation-library setup | P0 | M1 focus-ring + typography briefs | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m1-figma-foundation-library.md`; Figma nodes `13:2` / `14:2`. |
-| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 In progress. Figma screen-contract pass approved 2026-07-20. P2 foundations merged through ListRow: PR #165 tokens/controls/fields, PR #166 Card/Badge/Chip, PR #167 Modal, PR #168 State Surfaces, PR #169 ListRow. **Remaining P2:** PlatformBadge and ConfirmationDialog. Then P4 gallery/enforcement before P3 product compositions. |
+| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 P2 + P4 complete. **P2 foundations:** PRs #165–#169 (tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow), #174 PlatformBadge, #175 ConfirmationDialog, #176 platform legibility tokens + fill-on-platform PlatformBadge. **P4 gallery + enforcement:** SwiftUI `DesignSystemGalleryView` (debug-only), Android `PrimitiveEnforcementTest`, iOS `PrimitiveEnforcementTests`; registry §3.2 amended. `OmenAndroidApp.kt` allowlisted with written retirement plan (retires with first M4 feature screen). **Next:** P3 product compositions before M4 feature screens. |
 | M2-F | Native app-shell screen contracts | P0 | M1-F | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-app-shell-contracts.md`; Figma nodes `17:12` / `17:13`. |
 | M2-E | Native build-environment decision | P0 | M2-F | ✅ Completed 2026-07-19. Android Studio/SDK/ADB/emulator verified; iOS path is unsigned GitHub macOS simulator CI. |
 | M2 | Native app-shell project scaffolding | P0 | M0 + M2-F + M2-E | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`. |
@@ -59,17 +59,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M3-A | Native authentication proof | P0 | M3 + founder auth-config authority | ✅ Android and iOS implementation merged. Android PR #157. iOS PR #171. PR #172 repaired the post-merge split-screen scaffold regression test. Real-device interactive QA remains separate. |
 | M3A-QA | Native auth interactive real-device QA | P0 | M3-A Android + iOS implementations | Founder/human QA. Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion, and an equivalent iOS real-device Sign in with Apple + OTP pass. Agent-blocked: credential entry and inbox reading. |
 | M0-BE | Native backend requirements bundle | P0 | F2 first | 4 reqs from M0c §11: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2 status truth. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. |
-| M4 | Native feature delivery | P1 | M1-P shared primitives/compositions approved | Blocked. Trade, Draft, League, and Connections ship one contract-backed feature at a time after M1-P P2 + P4 close. No feature screen may introduce a new primitive while M1-P is incomplete. |
+| M4 | Native feature delivery | P1 | M1-P P3 product compositions approved | Blocked. Trade, Draft, League, and Connections ship one contract-backed feature at a time after M1-P P3 lands. P2 + P4 are complete. No feature screen may introduce a new primitive; enforcement scanners (Android + iOS) will fail the build if one does. |
 | M5 | Theme packs / skins | P2 | M4 | Deferred. Core Omen themes and accessibility first. |
 
 ## Next build order
 
-1. **M1-P P2 PlatformBadge foundation** — shared iOS SwiftUI + Android Compose primitive, no provider behavior.
-2. **M1-P P2 ConfirmationDialog foundation** — shared confirmation/destructive-action primitive, no account-deletion copy change unless explicitly approved.
-3. **M1-P P4 dual-platform gallery/enforcement** — prove primitives render, prevent feature-local primitive clones, and document allowed composition use.
-4. **F2 status truth** — resolve `ready` vs `pending_live_engine` wording/runtime contract before M0-BE expands.
-5. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
-6. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame.
+1. **F2 status truth** — resolve `ready` vs `pending_live_engine` wording/runtime contract before M0-BE expands.
+2. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
+3. **M1-P P3 product compositions** — PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
+4. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame; landing an M4 feature screen also retires `OmenAndroidApp.kt`'s enforcement allowlist entry.
 
 ## Current state
 
@@ -125,36 +123,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ## M. Native mobile execution lane
 
-### M1P-Next-1 — PlatformBadge foundation
+### M1P-Next-1 — PlatformBadge foundation — ✅ merged PR #174 (2026-07-21); legibility tokens + fill-on-platform follow-up merged PR #176.
 
-- **Priority:** P0
-- **Cost:** small/medium
-- **Blocked by:** M1-P P2 ListRow merged; no blocker remains
-- **Agent-buildable:** yes
-- **Skills:** core implementation + UI / UX + design contract bundle; security gates N/A unless provider data or credentials are touched
-- **Done when:** one approved PlatformBadge primitive exists in both SwiftUI and Compose, mapped to the registry, rendered in debug/gallery context, accessible without color-only distinction, and tested on Android plus unsigned iOS CI.
-- **Evidence:** focused native tests, Android build/device evidence, unsigned iOS CI, dated handoff, Done Ledger row, skill receipt.
-- **Do not touch:** provider connect flows, provider credentials, platform state semantics, production, SQL, or store configuration.
+### M1P-Next-2 — ConfirmationDialog foundation — ✅ merged PR #175 (2026-07-21).
 
-### M1P-Next-2 — ConfirmationDialog foundation
-
-- **Priority:** P0
-- **Cost:** small/medium
-- **Blocked by:** PlatformBadge can run before or after if hot files do not conflict
-- **Agent-buildable:** yes
-- **Skills:** core implementation + UI / UX + design contract bundle; security/privacy review only if account deletion or destructive-data copy changes
-- **Done when:** one shared native confirmation/destructive-action primitive exists in SwiftUI and Compose, has reduced-motion/focus/keyboard/accessibility behavior, and is covered by tests and gallery evidence.
-- **Evidence:** focused native tests, Android build/device evidence, unsigned iOS CI, dated handoff, Done Ledger row, skill receipt.
-- **Do not touch:** exact account deletion phrase `DELETE MY OMEN DATA`, backend delete route, privacy copy, production, SQL, or store configuration without explicit approval.
-
-### M1P-P4 — Dual-platform gallery and enforcement
-
-- **Priority:** P0
-- **Cost:** medium
-- **Blocked by:** M1-P P2 primitives complete: tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow/PlatformBadge/ConfirmationDialog
-- **Agent-buildable:** yes
-- **Done when:** gallery proves every approved primitive and first approved compositions; implementation guardrails prevent feature-local primitive clones; Figma contract and code registry agree; no M4 screen construction starts before approval.
-- **Evidence:** Android gallery/device evidence, iOS unsigned CI/gallery evidence where possible, enforcement test or static audit, dated handoff, Done Ledger row.
+### M1P-P4 — Dual-platform gallery and enforcement — ✅ built 2026-07-21 on `claude/m1p-p4-gallery-enforcement`. SwiftUI `DesignSystemGalleryView` (debug-only), Android `PrimitiveEnforcementTest` (JUnit source scanner in `:core:designsystem`), iOS `PrimitiveEnforcementTests` (XCTest source scanner in `OmenIOSTests`). Registry §3.2 amended. `OmenAndroidApp.kt` allowlisted with retirement plan. Evidence: `Blueprints/handoffs/2026-07-21-m1p-p4-gallery-enforcement.md`.
 
 ### M3A-QA — Native auth real-device QA
 
