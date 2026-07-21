@@ -23,6 +23,7 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const LLM_ELIGIBLE_STATES = new Set(["success", "empty"]);
 const LLM_BLOCKED_STATES = new Set([
   "platform_disconnected",
+  "context_unavailable",
   "off_season",
   "pending_live_engine",
   "yahoo_reauth_required",
@@ -288,7 +289,9 @@ async function liveOmenResult(req) {
     if (isOffSeason()) {
       return offSeasonMvpResponse();
     }
-    return await buildLiveOmenMvpMoveForUser(user.id);
+    return await buildLiveOmenMvpMoveForUser(user.id, {
+      contextId: req.body?.context_id,
+    });
   } catch (e) {
     return {
       status: 500,

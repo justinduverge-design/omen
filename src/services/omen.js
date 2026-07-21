@@ -268,7 +268,7 @@ async function authenticateOmenRequest(authHeader) {
 async function getActivePlatformConnections(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
-    .select("platform,league_id,platform_username,is_active,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id")
+    .select("id,platform,league_id,platform_username,is_active,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id")
     .eq("user_id", userId)
     .eq("is_active", true);
 
@@ -600,6 +600,29 @@ function platformDisconnectedMvpResponse() {
   });
   response.signals = {
     roster: unavailableSignal("platform_adapter", "No connected fantasy platform roster is available."),
+  };
+  return { status: 200, body: response };
+}
+
+function contextUnavailableMvpResponse() {
+  const message = "The selected league is no longer available. Choose an active connected league and try again.";
+  const response = liveBaseEnvelope({
+    platform: "unknown",
+    platformStatus: "context_unavailable",
+    recovery: {
+      code: "select_active_league",
+      message,
+      cta: "Select League",
+    },
+    state: "context_unavailable",
+  });
+  response.signals = {
+    roster: unavailableSignal("selected_context", message),
+  };
+  response.error = {
+    code: "omen_context_unavailable",
+    message,
+    retryable: false,
   };
   return { status: 200, body: response };
 }
@@ -984,15 +1007,22 @@ function espnRecoveryFromError(connection, err) {
   });
 }
 
-async function buildLiveOmenMvpMoveForUser(userId) {
+async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   if (isOffSeason()) return offSeasonMvpResponse();
 
   const connections = await getActivePlatformConnections(userId);
   if (!connections.length) return platformDisconnectedMvpResponse();
 
-  const connectedPlatforms = connections.map(safePlatformSummary);
-  const connection = pickLiveMvpConnection(connections);
-  if (!connection) return incompleteConnectionResponse(connections);
+  const hasRequestedContext = contextId !== null && contextId !== undefined;
+  const selectedContextId = typeof contextId === "string" ? contextId.trim() : "";
+  const scopedConnections = hasRequestedContext
+    ? connections.filter((candidate) => candidate.id === selectedContextId)
+    : connections;
+  if (hasRequestedContext && !scopedConnections.length) return contextUnavailableMvpResponse();
+
+  const connectedPlatforms = scopedConnections.map(safePlatformSummary);
+  const connection = pickLiveMvpConnection(scopedConnections);
+  if (!connection) return incompleteConnectionResponse(scopedConnections);
 
   const week = currentNflWeek();
   let roster;

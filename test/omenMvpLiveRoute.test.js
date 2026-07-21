@@ -121,6 +121,7 @@ function loadOmenRouter({ offSeason = false } = {}) {
     authHeaders: [],
     llmPayloads: [],
     liveUserIds: [],
+    liveRequests: [],
   };
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -135,8 +136,9 @@ function loadOmenRouter({ offSeason = false } = {}) {
         },
         authRequiredMvpResponse: (message) => ({ status: 401, body: authEnvelope(message) }),
         offSeasonMvpResponse: () => ({ status: 200, body: offSeasonEnvelope() }),
-        buildLiveOmenMvpMoveForUser: async (userId) => {
+        buildLiveOmenMvpMoveForUser: async (userId, options) => {
           state.liveUserIds.push(userId);
+          state.liveRequests.push({ userId, options });
           return { status: 200, body: liveEnvelope() };
         },
         buildOmenMvpMoveResponse: () => ({ status: 200, body: liveEnvelope() }),
@@ -226,6 +228,23 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+});
+
+test("POST /api/omen/mvp-move forwards the selected opaque context to live generation", async () => {
+  const { app, state } = buildApp();
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: {
+      context_id: "context-sleeper",
+      include_signals: { llm_reasoning: false, matchup_dvp: false },
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(state.liveRequests, [{
+    userId: "user-1",
+    options: { contextId: "context-sleeper" },
+  }]);
 });
 
 test("POST /api/omen/mvp-move returns off_season before live generation for authorized users", async () => {
