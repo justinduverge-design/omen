@@ -42,7 +42,10 @@ struct OmenCard<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(background)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(border, lineWidth: 1))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(border, style: StrokeStyle(lineWidth: 1, dash: variant == .empty ? [4, 4] : []))
+            )
             .accessibilityValue(variant == .error ? "Error" : "")
     }
 }
