@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 /// Mirrors Android `FakeAuthRepositoryTest.kt` (5 tests).
 final class FakeAuthRepositoryTests: XCTestCase {

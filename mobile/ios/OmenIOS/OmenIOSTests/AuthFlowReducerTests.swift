@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 /// Mirrors Android `AuthFlowReducerTest.kt` (9 tests). Apple-flow cases replace the Android
 /// suite's Google-flow cases (`googleHappyPath`, `googleUnavailableGuidesToEmail`) — same shape,

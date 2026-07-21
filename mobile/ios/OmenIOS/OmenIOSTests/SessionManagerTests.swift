@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 /// Mirrors Android `SessionManagerTest.kt` (6 tests).
 @MainActor

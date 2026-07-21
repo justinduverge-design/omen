@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 /// Mirrors Android `ValidatorsTest.kt` (5 tests).
 final class ValidatorsTests: XCTestCase {

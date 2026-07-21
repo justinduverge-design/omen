@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 private final class FakeTransport: GoTrueTransport {
     var otpResult: TransportResult = .ok

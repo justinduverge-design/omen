@@ -1,5 +1,5 @@
 import XCTest
-@testable import OmenIOS
+@testable import Omen
 
 /// Mirrors Android `AccountDeletionTest.kt` (3 tests).
 final class AccountDeletionTests: XCTestCase {
