@@ -6,9 +6,10 @@
 # manual dispatch — to keep runner-minute usage minimal. Do not broaden the
 # triggers without founder approval.
 #
-# It compiles the OmenIOS scheme against the iOS Simulator SDK with signing
-# disabled. When an iOS unit-test target is added (per the M3-A iOS parity
-# spec), switch `build` to `test` and add a concrete simulator destination.
+# Runs the OmenIOSTests unit-test target (host app OmenIOS) against a concrete
+# iOS Simulator destination, signing disabled, per the M3-A iOS auth parity
+# spec (GitHub issue #159). Pins an explicit Xcode version rather than relying
+# on the runner image's changing default, per that spec's CI requirement.
 
 name: iOS CI
 
@@ -28,23 +29,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build (iOS Simulator, no signing)
+  test:
+    name: Unit tests (iOS Simulator, no signing)
     runs-on: macos-14
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
+      # Explicit Xcode selection so the toolchain doesn't silently drift with
+      # runner image updates. Bump this version (and re-verify it's available
+      # on macos-14) if a future image drops it.
+      - name: Select Xcode 16.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
       - name: Show toolchain
         run: |
           xcodebuild -version
+          swift --version
           xcodebuild -list -project mobile/ios/OmenIOS/OmenIOS.xcodeproj
 
-      - name: Build OmenIOS (simulator, unsigned)
+      - name: Run OmenIOSTests (simulator, unsigned)
         run: |
-          xcodebuild build \
+          xcodebuild test \
             -project mobile/ios/OmenIOS/OmenIOS.xcodeproj \
             -scheme OmenIOS \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO

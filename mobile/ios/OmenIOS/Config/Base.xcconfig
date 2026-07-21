@@ -1,0 +1,14 @@
+// Public, non-secret build configuration for OmenIOS.
+//
+// This file is committed and defines safe defaults so `xcodebuild` (including unsigned CI)
+// always has a valid config to build against. Real Supabase URL/anon key values belong in a
+// git-ignored `Local.xcconfig` in this same directory (see `Local.xcconfig.example`) — the iOS
+// analog of Android's `local.properties`. Never put a secret (service-role key, OAuth client
+// secret, etc.) in either file: only a public API base URL and a public Supabase URL/anon key
+// ever belong here.
+
+OMEN_API_BASE_URL = https:$()//example.invalid
+OMEN_SUPABASE_URL =
+OMEN_SUPABASE_ANON_KEY =
+
+#include? "Local.xcconfig"

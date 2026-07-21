@@ -45,3 +45,4 @@ mobile/android/local.properties
 mobile/android/**/build/
 mobile/ios/**/DerivedData/
 mobile/ios/**/.swiftpm/
+mobile/ios/**/Config/Local.xcconfig

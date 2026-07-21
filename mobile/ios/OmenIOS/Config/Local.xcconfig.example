@@ -1,0 +1,10 @@
+// Copy this file to `Local.xcconfig` (git-ignored) in the same directory and fill in real,
+// public values for local development. Do not commit `Local.xcconfig`.
+//
+// OMEN_SUPABASE_URL and OMEN_SUPABASE_ANON_KEY are the public Supabase project URL and anon
+// key (safe to ship in a client build — Supabase RLS enforces access control server-side).
+// Never put a service-role key or any other secret here.
+
+OMEN_API_BASE_URL = https:$()//your-local-or-staging-api.example.com
+OMEN_SUPABASE_URL = https:$()//your-project.supabase.co
+OMEN_SUPABASE_ANON_KEY = your-public-anon-key
