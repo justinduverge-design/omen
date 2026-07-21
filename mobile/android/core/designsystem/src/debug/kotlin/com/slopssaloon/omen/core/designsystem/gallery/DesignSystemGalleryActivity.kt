@@ -43,6 +43,8 @@ import com.slopssaloon.omen.core.designsystem.component.OmenFormField
 import com.slopssaloon.omen.core.designsystem.component.OmenPicker
 import com.slopssaloon.omen.core.designsystem.component.OmenTextField
 import com.slopssaloon.omen.core.designsystem.component.OmenTextFieldVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -188,6 +190,16 @@ private fun GalleryScreen() {
                         enabled = false,
                     )
                 }
+            }
+        },
+        Section("State surfaces — honest empty/loading/error/connection/data states") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OmenStateSurface(OmenStateSurfaceKind.Empty, "No lineup selected", "Choose a league to see your matchup.")
+                OmenStateSurface(OmenStateSurfaceKind.Loading, "Analyzing your matchup…", "Checking the latest roster and schedule signals.")
+                OmenStateSurface(OmenStateSurfaceKind.Error, "Unable to refresh this matchup", "Try again when your connection is available.")
+                OmenStateSurface(OmenStateSurfaceKind.Disconnected, "League disconnected", "Reconnect Sleeper to restore live context.")
+                OmenStateSurface(OmenStateSurfaceKind.Stale, "Showing your last sync", "This league data may be out of date.")
+                OmenStateSurface(OmenStateSurfaceKind.Mock, "Demo analysis", "These values are sample data, not live advice.")
             }
         },
     )

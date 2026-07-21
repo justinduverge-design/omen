@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -44,14 +48,28 @@ fun OmenCard(
     }
     val borderColor = if (variant == OmenCardVariant.Error) colors.data.riskHigh else toneBorder
 
+    val cardModifier = modifier.then(
+        if (variant == OmenCardVariant.Empty) {
+            Modifier.drawBehind {
+                drawRoundRect(
+                    color = colors.border,
+                    cornerRadius = CornerRadius(12.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))),
+                )
+            }
+        } else {
+            Modifier
+        },
+    )
+
     Surface(
-        modifier = modifier.then(
+        modifier = cardModifier.then(
             if (variant == OmenCardVariant.Error) Modifier.semantics { stateDescription = "Error" } else Modifier,
         ),
         shape = RoundedCornerShape(12.dp),
         color = background,
         contentColor = colors.textPrimary,
-        border = BorderStroke(1.dp, borderColor),
+        border = if (variant == OmenCardVariant.Empty) null else BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) { Box(Modifier.padding(contentPadding)) { content() } }
