@@ -693,3 +693,9 @@
 - **Founder completed the Apple-provider configuration needed for M3-A without expanding the release scope.** Omen has a primary native App ID, a Supabase-facing Services ID, and an enabled Supabase Apple provider. Private key material and the generated OAuth secret remain outside Git and agent context.
 - **Apple secret rotation is an operating requirement.** The generated OAuth secret expires after six months; the founder must rotate it before 2027-01-19 using the retained private key. Native iOS build, signing, TestFlight, store submission, and real-device proof remain separately gated.
 - **The Apple capability catalogue is deferred V2 discovery, not an entitlement backlog.** Each proposed capability requires product value, privacy, App Review, operational, battery, and cost analysis before it is enabled.
+
+## Decisions Added 2026-07-20 (M1-P P2 ListRow)
+
+- **ListRow is the shared row primitive, not a feature-specific player row.** It carries title/subtitle text, optional leading/trailing slots, enabled/display-only behavior, and native interactive semantics. Feature-specific rows such as PlayerRow remain later compositions that consume this foundation instead of cloning row styling.
+- **iOS ListRow uses a Button only when an action exists.** Display-only rows render as static content, while action rows preserve native button accessibility. This mirrors Android's optional clickable ListItem behavior and keeps non-interactive list content from advertising a false action.
+- **SwiftUI stored view slots are plain stored values.** The `@ViewBuilder` annotations live on initializer closures only; storing built `Leading` and `Trailing` values avoids a compile-risk pattern and was validated by unsigned simulator CI.
