@@ -80,6 +80,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
   CI run `29788913948` passed in 32s. Evidence:
   `Blueprints/handoffs/2026-07-20-m1p-p2-form-controls.md`.
 
+- **M1-P P2 ListRow progress (2026-07-20):** Shared native ListRow foundation is
+  complete on branch `codex/m1p-p2-list-row` / PR #169. Android RED proved the
+  row was absent, then `:core:designsystem:connectedDebugAndroidTest` passed
+  17/17 on `Medium_Phone` Android 17 and `:app:assembleDebug` passed. Unsigned
+  iOS simulator CI run `29791872304` passed for commit `a8aa7e3`. Evidence:
+  `Blueprints/handoffs/2026-07-20-m1p-p2-list-row.md`.
+
 ## Current state
 
 - Production is live on KVM1; `/api/health` and `/api/ready` were healthy at the latest verified baseline.
