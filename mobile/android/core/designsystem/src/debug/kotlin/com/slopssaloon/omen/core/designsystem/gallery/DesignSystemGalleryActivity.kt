@@ -30,9 +30,13 @@ import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonTone
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenBadge
+import com.slopssaloon.omen.core.designsystem.component.OmenBadgeTone
 import com.slopssaloon.omen.core.designsystem.component.OmenCard
 import com.slopssaloon.omen.core.designsystem.component.OmenCardTone
 import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenChip
+import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonTone
 import com.slopssaloon.omen.core.designsystem.component.OmenFormField
@@ -123,6 +127,20 @@ private fun GalleryScreen() {
                 }
                 OmenCard(variant = OmenCardVariant.Preview, tone = OmenCardTone.Risk) {
                     Text("Preview / risk", style = OmenTheme.typography.body.toTextStyle())
+                }
+            }
+        },
+        Section("Badge + Chip — semantic labels and selected state") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OmenBadge("Live", OmenBadgeTone.Live)
+                    OmenBadge("Mock", OmenBadgeTone.Mock)
+                    OmenBadge("Risk", OmenBadgeTone.Risk)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OmenChip("RB", OmenChipTone.Rb)
+                    OmenChip("Sleeper", OmenChipTone.Sleeper, selected = true, onClick = {})
+                    OmenChip("Demo", OmenChipTone.Demo, enabled = false, onClick = {})
                 }
             }
         },
