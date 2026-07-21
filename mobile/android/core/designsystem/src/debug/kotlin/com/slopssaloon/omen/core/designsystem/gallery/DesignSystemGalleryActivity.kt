@@ -45,6 +45,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenTextField
 import com.slopssaloon.omen.core.designsystem.component.OmenTextFieldVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
+import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -200,6 +201,12 @@ private fun GalleryScreen() {
                 OmenStateSurface(OmenStateSurfaceKind.Disconnected, "League disconnected", "Reconnect Sleeper to restore live context.")
                 OmenStateSurface(OmenStateSurfaceKind.Stale, "Showing your last sync", "This league data may be out of date.")
                 OmenStateSurface(OmenStateSurfaceKind.Mock, "Demo analysis", "These values are sample data, not live advice.")
+            }
+        },
+        Section("ListRow — display and interactive") {
+            Column {
+                OmenListRow(title = "Weekly Omen", subtitle = "Your matchup recommendation")
+                OmenListRow(title = "Sunday Slate", subtitle = "Sleeper · 12 teams", onClick = {})
             }
         },
     )
