@@ -2,6 +2,22 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-21 (M3A-iOS: Apple replaces Google as iOS's primary native mechanism)
+
+- **iOS's native ID-token mechanism is Sign in with Apple, not Google**, mirroring Android's
+  `AuthMechanism`/`AuthFlow`/`SupabaseAuthRepository` shapes but swapping the provider — required
+  by App Store 4.8 (Sign in with Apple must be offered whenever any third-party/social login is).
+  `GoTrueTransport.signInWithIDToken` is generalized over a `provider` string (`"apple"`) rather
+  than a Google-only method so the same GoTrue endpoint/mapping logic serves both platforms.
+- **No manual session encryption on iOS.** Keychain Services encrypts item data at rest, so
+  `KeychainSessionStore` stores session fields directly (Keychain's own `kSecAttrAccessible`
+  protection class), unlike Android's `AndroidKeystoreSessionStore`, which must manually AES/GCM
+  a plaintext `SharedPreferences` value. Documented as an intentional platform difference, not a
+  shortcut — see `Blueprints/handoffs/2026-07-21-m3a-ios-auth-implementation.md`.
+- **Public iOS build config follows Android's `local.properties` pattern**: a committed
+  `Config/Base.xcconfig` with safe/empty defaults `#include?`s a git-ignored `Config/Local.xcconfig`
+  for real Supabase URL/anon key values. Never a secret in either file.
+
 ## Decision Added 2026-07-21 (M1-P P2 foundation slicing)
 
 - **Keep native P2 as small, independently mergeable primitives.** Card, Badge/Chip, Modal, and

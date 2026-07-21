@@ -1,42 +1,49 @@
 import SwiftUI
 
 struct AppShellView: View {
-    @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var sessionManager: SessionManager
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    @Environment(\.omenEnvironment) private var environment
+    @State private var showSignIn = false
 
     var body: some View {
         Group {
-            switch session.state {
+            switch sessionManager.state {
             case .loading:
-                ProgressView("Loading Omen")
+                OmenStateSurface(kind: .loading, title: "Loading Omen", message: "Checking your session.")
+                    .padding(OmenSpacing.step24)
+
             case .signedOut:
-                VStack(spacing: 16) {
-                    Text("Welcome to Omen")
-                    Text("See the move before the league does.")
-                    Button("Try Demo") {
-                        session.enterDemo()
+                if showSignIn {
+                    SignInView(
+                        viewModel: authViewModel,
+                        onBack: {
+                            showSignIn = false
+                            authViewModel.reset()
+                        }
+                    )
+                } else {
+                    WelcomeView(
+                        demoModeEnabled: environment.demoModeEnabled,
+                        onTryDemo: { sessionManager.onDemo() },
+                        onGetStarted: { showSignIn = true }
+                    )
+                }
+
+            case .needsReauth:
+                SignInView(
+                    viewModel: authViewModel,
+                    reauthPrompt: true,
+                    onSignOut: {
+                        sessionManager.signOut()
+                        authViewModel.reset()
                     }
-                    Button("Get started") { session.beginSignIn() }
-                }
-            case .authPlaceholder:
-                VStack(spacing: 16) {
-                    Text("Sign in to Omen")
-                    Text("Sign-in wiring comes after this local vertical slice.")
-                    Button("Continue with local preview") { session.continueWithPlaceholderSignIn() }
-                }
-            case .signedIn:
-                TabView {
-                    Text("Command Center\nDemo mode is active.").tabItem { Label("Command", systemImage: "sparkles") }
-                    VStack(spacing: 12) {
-                        Text("Mock recommendation")
-                        Text("Start Jordan Addison over the flex alternative.")
-                        Text("Connection needs attention: connect a league for live Omen.")
-                    }.tabItem { Label("Omen", systemImage: "bolt.fill") }
-                    Text("Trade").tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
-                    Text("Draft").tabItem { Label("Draft", systemImage: "list.number") }
-                    Text("League & Account").tabItem { Label("League", systemImage: "person.crop.circle") }
-                }
+                )
+
+            case .signedIn(let userID):
+                CommandCenterView(userID: userID, sessionManager: sessionManager)
             }
         }
-        .task { session.markSignedOut() }
+        .task { sessionManager.restore() }
     }
 }
