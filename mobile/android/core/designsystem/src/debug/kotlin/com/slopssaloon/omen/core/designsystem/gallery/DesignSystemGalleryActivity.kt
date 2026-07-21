@@ -37,6 +37,8 @@ import com.slopssaloon.omen.core.designsystem.component.OmenCardTone
 import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenChip
 import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
+import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationDialog
+import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonTone
 import com.slopssaloon.omen.core.designsystem.component.OmenFormField
@@ -217,6 +219,33 @@ private fun GalleryScreen() {
                 OmenPlatformBadge(OmenPlatform.Yahoo)
                 OmenPlatformBadge(OmenPlatform.Espn)
             }
+        },
+        Section("ConfirmationDialog — default and destructive (tap to preview)") {
+            var showDefault by remember { mutableStateOf(false) }
+            var showDestructive by remember { mutableStateOf(false) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OmenButton("Show default", { showDefault = true })
+                OmenButton("Show destructive", { showDestructive = true }, variant = OmenButtonVariant.Danger)
+            }
+            OmenConfirmationDialog(
+                visible = showDefault,
+                title = "Leave draft?",
+                message = "Your picks will be lost.",
+                confirmLabel = "Leave",
+                cancelLabel = "Stay",
+                onConfirm = { showDefault = false },
+                onDismiss = { showDefault = false },
+            )
+            OmenConfirmationDialog(
+                visible = showDestructive,
+                title = "Delete lineup?",
+                message = "This cannot be undone.",
+                confirmLabel = "Delete",
+                cancelLabel = "Cancel",
+                onConfirm = { showDestructive = false },
+                onDismiss = { showDestructive = false },
+                variant = OmenConfirmationVariant.Destructive,
+            )
         },
     )
 
