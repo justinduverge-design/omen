@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-20 (M1-P P2 TextField/FormField/Picker)
+
+- **Form feedback remains a composed wrapper, while platform controls stay native.** `OmenFormField`
+  owns the label, hint, error, and success message; `OmenTextField` and `OmenPicker` use SwiftUI
+  and Material 3 input controls with token-backed styling and native focus/semantics. This avoids
+  a custom input clone or a new Figma pattern, while keeping validation message association and
+  TalkBack/VoiceOver state explicit.
+
 ## Decision Added 2026-07-20 (M1-P P2 Button + IconButton)
 
 - **Material focus rings must be drawn as an inset post-content overlay.** Device evidence showed
