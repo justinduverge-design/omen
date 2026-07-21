@@ -61,4 +61,28 @@ class OmenColorTest {
         assertEquals(OmenDarkColors.data.platformEspn, OmenLightColors.data.platformEspn)
         assertEquals(OmenDarkColors.data.demoText, OmenLightColors.data.demoText)
     }
+
+    @Test
+    fun `platform chip legibility overrides match registry`() {
+        assertEquals(Color(0xFF0F70B0), OmenDarkColors.data.platformSleeperChip)
+        assertEquals(Color(0xFF410093), OmenDarkColors.data.platformYahooChip)
+        assertEquals(Color(0xFFB21826), OmenDarkColors.data.platformEspnChip)
+    }
+
+    @Test
+    fun `platform chip and on-platform tokens are invariant across themes`() {
+        assertEquals(OmenDarkColors.data.platformSleeperChip, OmenLightColors.data.platformSleeperChip)
+        assertEquals(OmenDarkColors.data.platformYahooChip, OmenLightColors.data.platformYahooChip)
+        assertEquals(OmenDarkColors.data.platformEspnChip, OmenLightColors.data.platformEspnChip)
+        assertEquals(OmenDarkColors.data.onPlatformSleeper, OmenLightColors.data.onPlatformSleeper)
+        assertEquals(OmenDarkColors.data.onPlatformYahoo, OmenLightColors.data.onPlatformYahoo)
+        assertEquals(OmenDarkColors.data.onPlatformEspn, OmenLightColors.data.onPlatformEspn)
+    }
+
+    @Test
+    fun `on-platform foregrounds are pure white`() {
+        assertEquals(Color(0xFFFFFFFF), OmenDarkColors.data.onPlatformSleeper)
+        assertEquals(Color(0xFFFFFFFF), OmenDarkColors.data.onPlatformYahoo)
+        assertEquals(Color(0xFFFFFFFF), OmenDarkColors.data.onPlatformEspn)
+    }
 }

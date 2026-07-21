@@ -51,6 +51,17 @@ enum OmenColor {
         static let platformSleeper = invariant(0x1FA3E8)
         static let platformYahoo = invariant(0x410093)
         static let platformEspn = invariant(0xC81E2C)
+        // Registry §2.3 `-chip` legibility overrides: chip fills tuned so `onPlatform*`
+        // white text meets WCAG AA at chip typography. Sleeper base is ~2.5:1 vs white —
+        // darken to #0F70B0 for ~5.5:1. Yahoo already ~15:1. ESPN darken to #B21826
+        // for ~7:1 safety margin. Invariant across themes.
+        static let platformSleeperChip = invariant(0x0F70B0)
+        static let platformYahooChip = invariant(0x410093)
+        static let platformEspnChip = invariant(0xB21826)
+        // Registry §2.3 `on-platform-*` foregrounds: text-on-chip color. Invariant.
+        static let onPlatformSleeper = invariant(0xFFFFFF)
+        static let onPlatformYahoo = invariant(0xFFFFFF)
+        static let onPlatformEspn = invariant(0xFFFFFF)
         static let demoText = invariant(0x7DD3FC)
         static let demoTextSecondary = invariant(0xBAE6FD, alpha: 0.8)
     }

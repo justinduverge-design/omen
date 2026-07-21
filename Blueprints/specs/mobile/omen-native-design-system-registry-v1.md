@@ -74,7 +74,7 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 | Data source | `data-live #34C759`, `data-stub #FF9F0A`, `data-mock #636366`, `data-unavailable #3A3A3C` | drives Live/Stub/Mock/Unavailable labels |
 | Confidence gradient | `confidence-floor #701020` → `confidence-ceiling #206F3A` | score always printed as redundant text |
 | Position chips | `pos-rb/#34D399 wr/#60A5FA qb/#FB923C te/#C084FC def/#F472B6 k/#A3A3A3` | colorblind-validated |
-| Platform brand | `platform-sleeper #1FA3E8`, `platform-yahoo #410093`, `platform-espn #C81E2C` + `-chip` legibility overrides + `on-platform-*` | never on button chrome; lives on PlatformBadge |
+| Platform brand | `platform-sleeper #1FA3E8`, `platform-yahoo #410093`, `platform-espn #C81E2C`; chip legibility overrides `platform-sleeper-chip #0F70B0`, `platform-yahoo-chip #410093`, `platform-espn-chip #B21826`; `on-platform-sleeper/yahoo/espn #FFFFFF` | never on button chrome; lives on PlatformBadge; chip fills tuned for WCAG AA (>=4.5:1) against white |
 | Demo accent | `demo-text #7DD3FC`, `demo-text-secondary rgba(186,230,253,.8)` | demo fixtures only; mock/live badge required |
 
 **Rule:** team theming, moment overlays, and theme packs run in surfaces, accents, chip fills, and chant frames — never in this data-semantic layer.

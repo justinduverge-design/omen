@@ -58,6 +58,22 @@ data class OmenDataSemanticColors(
     val platformSleeper: Color,
     val platformYahoo: Color,
     val platformEspn: Color,
+    /**
+     * Registry §2.3 `-chip` legibility overrides: the fill color to use when a platform
+     * label sits on a filled pill/chip (PlatformBadge). Tuned so [onPlatformSleeper]/
+     * [onPlatformYahoo]/[onPlatformEspn] meet WCAG AA (>=4.5:1) at chip typography.
+     * Invariant across themes — brand identity does not drift with theme packs.
+     */
+    val platformSleeperChip: Color,
+    val platformYahooChip: Color,
+    val platformEspnChip: Color,
+    /**
+     * Registry §2.3 `on-platform-*` foregrounds: the text color to draw on top of a
+     * `platform-*-chip` fill. Invariant across themes.
+     */
+    val onPlatformSleeper: Color,
+    val onPlatformYahoo: Color,
+    val onPlatformEspn: Color,
     val demoText: Color,
     val demoTextSecondary: Color,
 )
@@ -81,6 +97,15 @@ private val darkDataSemantics = OmenDataSemanticColors(
     platformSleeper = Color(0xFF1FA3E8),
     platformYahoo = Color(0xFF410093),
     platformEspn = Color(0xFFC81E2C),
+    // Chip-fill legibility overrides: white-text contrast targets. Sleeper base #1FA3E8 is
+    // ~2.5:1 vs white — darken to #0F70B0 for ~5.5:1. Yahoo base is already dark enough
+    // (~15:1). ESPN base is borderline ~4.7:1; a slight darken to #B21826 gives ~7:1.
+    platformSleeperChip = Color(0xFF0F70B0),
+    platformYahooChip = Color(0xFF410093),
+    platformEspnChip = Color(0xFFB21826),
+    onPlatformSleeper = Color(0xFFFFFFFF),
+    onPlatformYahoo = Color(0xFFFFFFFF),
+    onPlatformEspn = Color(0xFFFFFFFF),
     demoText = Color(0xFF7DD3FC),
     demoTextSecondary = Color(0xCCBAE6FD),
 )

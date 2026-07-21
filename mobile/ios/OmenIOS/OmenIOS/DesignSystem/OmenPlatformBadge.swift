@@ -3,21 +3,27 @@ import SwiftUI
 /// Registry §3.1 PlatformBadge: provider identity label. The literal name always renders —
 /// color is a redundant signal, never the only signal (registry §4; facts-of-record #7).
 ///
-/// Scope note (2026-07-21): registry §2.3 also names `-chip` legibility overrides and
-/// `on-platform-*` foreground tokens that are not yet defined in `OmenColor`. This primitive
-/// uses the same tinted-surface recipe as `OmenBadge` so it passes AA on both surface1 and
-/// bg without depending on tokens that don't exist yet. Swap to fill-on-platform once the
-/// registry token expansion lands.
+/// Fill-on-platform treatment: uses registry §2.3 invariant `-chip` legibility overrides for
+/// the fill + `on-platform-*` foregrounds tuned so white text meets WCAG AA at chip
+/// typography (Sleeper darkened; Yahoo and ESPN near or at base).
 enum OmenPlatform { case sleeper, yahoo, espn }
 
 struct OmenPlatformBadge: View {
     let platform: OmenPlatform
 
-    private var platformColor: Color {
+    private var fill: Color {
         switch platform {
-        case .sleeper: return OmenColor.Data.platformSleeper
-        case .yahoo:   return OmenColor.Data.platformYahoo
-        case .espn:    return OmenColor.Data.platformEspn
+        case .sleeper: return OmenColor.Data.platformSleeperChip
+        case .yahoo:   return OmenColor.Data.platformYahooChip
+        case .espn:    return OmenColor.Data.platformEspnChip
+        }
+    }
+
+    private var onFill: Color {
+        switch platform {
+        case .sleeper: return OmenColor.Data.onPlatformSleeper
+        case .yahoo:   return OmenColor.Data.onPlatformYahoo
+        case .espn:    return OmenColor.Data.onPlatformEspn
         }
     }
 
@@ -32,10 +38,10 @@ struct OmenPlatformBadge: View {
     var body: some View {
         Text(label)
             .omenTextStyle(OmenTypography.chip)
-            .foregroundStyle(platformColor)
+            .foregroundStyle(onFill)
             .padding(.horizontal, OmenSpacing.step8)
             .padding(.vertical, OmenSpacing.step4)
-            .background(platformColor.opacity(0.15))
+            .background(fill)
             .clipShape(Capsule())
     }
 }

@@ -11,17 +11,14 @@ import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
- * Registry §3.1 PlatformBadge: provider identity label using the invariant `platform-*` tokens
- * from registry §2.3. The literal provider name always renders — color is a redundant signal,
- * never the only signal (registry §4 accessibility contract; facts-of-record #7 rule that
- * data source must be labeled, not implied).
+ * Registry §3.1 PlatformBadge: provider identity label using the invariant `platform-*-chip`
+ * fill + `on-platform-*` foreground tokens from registry §2.3. The literal provider name
+ * always renders — color is a redundant signal, never the only signal (registry §4
+ * accessibility contract; facts-of-record #7).
  *
- * Scope note (2026-07-21): registry §2.3 also names `-chip` legibility overrides and
- * `on-platform-*` foreground tokens, but those are not yet defined in [OmenColor.kt]. This
- * primitive uses the same tinted-surface recipe as [OmenBadge] (platform color at 15% alpha
- * fill, platform color as text) so it passes AA on both surface1 and bg without depending on
- * tokens that don't exist yet. Swap to fill-on-platform once the registry token expansion
- * lands.
+ * Fill-on-platform treatment: `-chip` overrides tune the base brand color so that the
+ * `on-platform-*` white text meets WCAG AA at chip typography (Sleeper is darkened; Yahoo
+ * and ESPN are near or at base).
  */
 enum class OmenPlatform { Sleeper, Yahoo, Espn }
 
@@ -30,10 +27,16 @@ fun OmenPlatformBadge(
     platform: OmenPlatform,
     modifier: Modifier = Modifier,
 ) {
-    val platformColor: Color = when (platform) {
-        OmenPlatform.Sleeper -> OmenTheme.color.data.platformSleeper
-        OmenPlatform.Yahoo -> OmenTheme.color.data.platformYahoo
-        OmenPlatform.Espn -> OmenTheme.color.data.platformEspn
+    val data = OmenTheme.color.data
+    val fill: Color = when (platform) {
+        OmenPlatform.Sleeper -> data.platformSleeperChip
+        OmenPlatform.Yahoo -> data.platformYahooChip
+        OmenPlatform.Espn -> data.platformEspnChip
+    }
+    val onFill: Color = when (platform) {
+        OmenPlatform.Sleeper -> data.onPlatformSleeper
+        OmenPlatform.Yahoo -> data.onPlatformYahoo
+        OmenPlatform.Espn -> data.onPlatformEspn
     }
     val label = when (platform) {
         OmenPlatform.Sleeper -> "Sleeper"
@@ -44,8 +47,8 @@ fun OmenPlatformBadge(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
-        color = platformColor.copy(alpha = 0.15f),
-        contentColor = platformColor,
+        color = fill,
+        contentColor = onFill,
     ) {
         Text(
             text = label,
