@@ -27,18 +27,30 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(read("mobile/android/app/src/main/AndroidManifest.xml"), /com\.slopssaloon\.omen/);
   assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppEnvironment.swift"), /apiBaseURL/);
   assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/core/network/AppEnvironment.kt"), /apiBaseUrl/);
-  assert.match(read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift"), /Try Demo/);
-  assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt"), /Try Demo/);
-  assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt"), /NavigationBar/);
-  for (const relativePath of [
-    "mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift",
-    "mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt",
-  ]) {
-    const screen = read(relativePath);
-    assert.match(screen, /Try Demo/);
-    assert.match(screen, /Get started/);
-    assert.match(screen, /Mock recommendation/);
-    assert.match(screen, /Connection needs attention/);
-  }
+
+  // iOS split the M3 placeholder's single AppShellView into per-screen files
+  // (M3A-iOS, #159). Check the shell actually wires each screen in, and check
+  // each screen's expected copy in its own source, separately — concatenating
+  // the files would let the shell silently stop rendering a screen while its
+  // now-unreachable copy still "passed" the assertion.
+  const appShellSource = read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift");
+  assert.match(appShellSource, /WelcomeView\(/);
+  assert.match(appShellSource, /CommandCenterView\(/);
+
+  const welcomeSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/WelcomeView.swift");
+  assert.match(welcomeSource, /Try Demo/);
+  assert.match(welcomeSource, /Get started/);
+
+  const commandCenterSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/CommandCenterView.swift");
+  assert.match(commandCenterSource, /Mock recommendation/);
+  assert.match(commandCenterSource, /Connection needs attention/);
+
+  const androidShell = read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt");
+  assert.match(androidShell, /Try Demo/);
+  assert.match(androidShell, /Get started/);
+  assert.match(androidShell, /Mock recommendation/);
+  assert.match(androidShell, /Connection needs attention/);
+  assert.match(androidShell, /NavigationBar/);
+
   assert.doesNotMatch(read("mobile/android/app/build.gradle.kts"), /SUPABASE_SERVICE_KEY|OAUTH.*SECRET|ESPN.*COOKIE/);
 });
