@@ -2,6 +2,16 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-21 (M1-P P2 foundation slicing)
+
+- **Keep native P2 as small, independently mergeable primitives.** Card, Badge/Chip, Modal, and
+  State Surfaces landed as separate reviewed changes (PRs #166–#168). The remaining P2 sequence
+  is ListRow, PlatformBadge, then ConfirmationDialog; no P3 composition or M4 feature screen may
+  fill a missing primitive locally.
+- **Empty remains distinct from Error.** The shared Card empty variant uses a dashed token-colored
+  outline; Error retains risk treatment; six State Surface kinds remain separately named and
+  announced rather than collapsing recoverable, stale, mock, and empty data.
+
 ## Decision Added 2026-07-20 (M1-P P2 TextField/FormField/Picker)
 
 - **Form feedback remains a composed wrapper, while platform controls stay native.** `OmenFormField`
