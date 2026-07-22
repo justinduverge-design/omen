@@ -47,3 +47,7 @@ Every native Figma/component PR cites:
 - any observation source only as a named behavior insight, never as a copied visual reference.
 
 No agent may add a visual pattern based only on external research.
+
+## 5. Resource-alignment addendum
+
+For practical alignment with official Apple and Google/Material production and design resources — Apple Design Resources, iOS & iPadOS UI Kit, SF Symbols, Icon Composer, Apple App Icon Template, Product Bezels, Material 3 in Compose, Material 3 Adaptive, Material Symbols, Android adaptive icon guidance, and Compose design systems guidance — see `m1-native-resource-alignment-addendum-v1.md`. That addendum sits below every source in §1's authority order and does not modify this document's authority order, approved implementation references, or observation policy. Agents must cite it before selecting real icons, app icons, store screenshots, product bezels, or any production mobile visual asset.
