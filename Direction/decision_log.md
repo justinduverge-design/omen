@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-22 (F2 doc reconciliation closes the status-truth pin)
+
+- **F2 is closed.** Runtime was already unified 2026-07-19 in `src/services/omenReadiness.js` and codified by the M0-BE F2 contract. The 2026-07-22 doc pass on branch `claude/f2-status-truth` corrected six stale wording sites where legacy 2026-05-25/26 handoffs and mobile specs still framed `pending_live_engine` as "engine unbuilt" or claimed Sleeper/ESPN always return it. No runtime, response shape, or test change; docs only.
+- **Canonical meaning:** `pending_live_engine` = active connection lacks the provider-specific context required for a safe live attempt (placeholder league_id, expired Yahoo token, Sleeper without username, ESPN missing SWID or ESPN secret). It is not a generic provider failure and not a claim about engine existence. Sleeper and ESPN live engines shipped and return live `success`/`empty` when the connection has usable context.
+- **Historical clarity preserved.** Stale lines are struck through with a superseded note pointing at the M0-BE F2 authority, rather than deleted, so review readers can trace how the meaning evolved.
+- **M0-BE-0 is now unblocked** and becomes the recommended next pull.
+
 ## Decision Added 2026-07-21 (M3A-iOS: Apple replaces Google as iOS's primary native mechanism)
 
 - **iOS's native ID-token mechanism is Sign in with Apple, not Google**, mirroring Android's
