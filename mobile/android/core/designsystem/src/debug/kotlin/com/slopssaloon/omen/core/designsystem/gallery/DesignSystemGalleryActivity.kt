@@ -37,8 +37,17 @@ import com.slopssaloon.omen.core.designsystem.component.OmenCardTone
 import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenChip
 import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBar
 import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationDialog
 import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
+import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
+import com.slopssaloon.omen.core.designsystem.component.OmenMetricStrip
+import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
+import com.slopssaloon.omen.core.designsystem.component.OmenRiskPanel
+import com.slopssaloon.omen.core.designsystem.component.OmenSignalItem
+import com.slopssaloon.omen.core.designsystem.component.OmenSignalList
+import com.slopssaloon.omen.core.designsystem.component.OmenSignalSource
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonTone
 import com.slopssaloon.omen.core.designsystem.component.OmenFormField
@@ -219,6 +228,39 @@ private fun GalleryScreen() {
                 OmenPlatformBadge(OmenPlatform.Yahoo)
                 OmenPlatformBadge(OmenPlatform.Espn)
             }
+        },
+        Section("ConfidenceBar — labeled and unlabeled") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OmenConfidenceBar(score = 72, label = "Confidence")
+                OmenConfidenceBar(score = 15, label = "Confidence")
+                OmenConfidenceBar(score = 100)
+            }
+        },
+        Section("RiskPanel — low / medium / high") {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OmenRiskPanel(level = OmenRiskLevel.Low, reasons = listOf("Bench depth is strong.", "Weather stable."))
+                OmenRiskPanel(level = OmenRiskLevel.Medium, reasons = listOf("Backup RB questionable.", "Weather uncertain."))
+                OmenRiskPanel(level = OmenRiskLevel.High, reasons = listOf("Starter ruled out.", "Kicker on the road in wind."))
+            }
+        },
+        Section("MetricStrip — value + delta + optional confidence") {
+            OmenMetricStrip(
+                items = listOf(
+                    OmenMetricItem(label = "Projected", value = "142.6", delta = "+4.1", deltaDirection = OmenMetricDelta.Positive, confidence = 72),
+                    OmenMetricItem(label = "Opponent", value = "128.4", delta = "−2.3", deltaDirection = OmenMetricDelta.Negative),
+                    OmenMetricItem(label = "Ceiling", value = "168.2"),
+                ),
+            )
+        },
+        Section("SignalList — live / stub / mock / unavailable") {
+            OmenSignalList(
+                signals = listOf(
+                    OmenSignalItem(label = "Yahoo roster snapshot", source = OmenSignalSource.Live, detail = "Refreshed 4 minutes ago."),
+                    OmenSignalItem(label = "Opponent projections", source = OmenSignalSource.Stub, detail = "Backfilled from last week."),
+                    OmenSignalItem(label = "Weather forecast", source = OmenSignalSource.Mock, detail = "Demo fixture."),
+                    OmenSignalItem(label = "Vegas totals", source = OmenSignalSource.Unavailable, detail = "Provider silent this window."),
+                ),
+            )
         },
         Section("ConfirmationDialog — default and destructive (tap to preview)") {
             var showDefault by remember { mutableStateOf(false) }
