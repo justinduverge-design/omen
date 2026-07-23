@@ -1,0 +1,181 @@
+# Reusable visual-evidence CI for native Omen screens.
+#
+# Both platforms launch the app with a `OMEN_SCREENSHOT_SCENARIO` argument. The app
+# reads it on startup and, when the value matches a registered scenario, short-circuits
+# into a deterministic in-app fixture (no session, no network, no fabricated provider
+# state). The workflow then captures a screenshot and uploads it as a named artifact.
+#
+# Adding a scenario for a future M4 screen means adding one entry to
+# `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/screenshot/ScreenshotScenarios.kt`
+# and its iOS twin, plus one row to each matrix below. No other workflow change.
+#
+# Artifact naming: `visual-evidence-<platform>-<scenario-slug>` — the scenario slug is
+# platform-agnostic so iOS/Android pairs share the suffix.
+#
+# COST NOTE: macOS runners bill at a higher multiplier on private repos. Triggers are
+# scoped to mobile changes only.
+
+name: Native visual evidence
+
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/native-visual-evidence.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/native-visual-evidence.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: native-visual-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-screenshots:
+    name: iOS screenshot · ${{ matrix.scenario }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - command-center.demo-connected
+          - command-center.disconnected
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
+      - name: Build OmenIOS.app (simulator, unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project mobile/ios/OmenIOS/OmenIOS.xcodeproj \
+            -scheme OmenIOS \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Boot iPhone 16 simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          DEVICE_ID=$(xcrun simctl create "omen-screenshot-sim" "iPhone 16" || xcrun simctl list devices | awk '/iPhone 16 \(/{print $NF; exit}' | tr -d '()')
+          echo "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          # Cosmetic settle for status-bar overrides.
+          xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --dataNetwork wifi --wifiBars 3 --batteryState charged --batteryLevel 100 || true
+
+      - name: Install and launch app with scenario
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find build/ios/Build/Products -name "Omen.app" -type d | head -n1)
+          test -n "$APP_PATH"
+          xcrun simctl install "${{ steps.sim.outputs.device_id }}" "$APP_PATH"
+          # Launch with the scenario as a launch argument. The app's OmenIOSApp
+          # reads ProcessInfo.processInfo.arguments and short-circuits into the
+          # ScreenshotScenarioHost.
+          xcrun simctl launch --console-pty "${{ steps.sim.outputs.device_id }}" com.slopssaloon.omen -OMEN_SCREENSHOT_SCENARIO "$SCENARIO" &
+          # Deterministic settle — no network, no animations to wait on beyond
+          # the initial layout pass.
+          sleep 8
+
+      - name: Capture screenshot
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/screenshots
+          OUT="build/screenshots/${SCENARIO}.png"
+          xcrun simctl io "${{ steps.sim.outputs.device_id }}" screenshot --type=png "$OUT"
+          test -s "$OUT"
+          ls -la "$OUT"
+
+      - name: Upload iOS screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence-ios-${{ matrix.scenario }}
+          path: build/screenshots/${{ matrix.scenario }}.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Shut down simulator
+        if: always()
+        run: xcrun simctl shutdown "${{ steps.sim.outputs.device_id }}" || true
+
+  android-screenshots:
+    name: Android screenshot · ${{ matrix.scenario }}
+    # macos-14 host so KVM/HAXM is available for the emulator runner.
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [34]
+        scenario:
+          - command-center.demo-connected
+          - command-center.disconnected
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle/wrapper/gradle-wrapper.properties', 'mobile/android/gradle/libs.versions.toml') }}
+
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Boot emulator + capture screenshot
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          working-directory: mobile/android
+          script: |
+            set -euo pipefail
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -W \
+              -n com.slopssaloon.omen/.MainActivity \
+              --es OMEN_SCREENSHOT_SCENARIO "$SCENARIO"
+            # Deterministic settle — no network, no animations.
+            sleep 6
+            mkdir -p ../../build/screenshots
+            adb exec-out screencap -p > "../../build/screenshots/${SCENARIO}.png"
+            test -s "../../build/screenshots/${SCENARIO}.png"
+
+      - name: Upload Android screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence-android-${{ matrix.scenario }}
+          path: build/screenshots/${{ matrix.scenario }}.png
+          if-no-files-found: error
+          retention-days: 30

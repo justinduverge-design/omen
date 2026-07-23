@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-22 (M4 Command Center v1)
+**Last updated:** 2026-07-23 (M4 Command Center v1.1 corrective in progress)
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -59,7 +59,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M3-A | Native authentication proof | P0 | M3 + founder auth-config authority | ✅ Android and iOS implementation merged. Android PR #157. iOS PR #171. PR #172 repaired the post-merge split-screen scaffold regression test. Real-device interactive QA remains separate. |
 | M3A-QA | Native auth interactive real-device QA | P0 | M3-A Android + iOS implementations | Founder/human QA. Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion, and an equivalent iOS real-device Sign in with Apple + OTP pass. Agent-blocked: credential entry and inbox reading. |
 | M0-BE | Native backend requirements bundle | P0 | F2 first | 4 reqs from M0c §11: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2 status truth. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. |
-| M4 | Native feature delivery | P1 | none (unblocked 2026-07-22) | 🟡 **v1 Command Center on both platforms in progress on `claude/m4-command-center`.** Screen assembly lives at app/feature layer (`app/feature/commandcenter/` on Android, `App/CommandCenter/` on iOS), composed only from approved primitives + P3 compositions. `OmenAndroidApp.kt` allowlist entry retired; two auth surfaces extracted into `app/auth/OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` and tracked under **M4-Auth** for eventual retirement. Local Material Symbols vector drawables imported for all 5 nav tabs (option (d) — official Google artwork, no dependency added). Trade / Draft / Omen tab content and further feature screens follow. |
+| M4 | Native feature delivery | P1 | none (unblocked 2026-07-22) | 🟡 **v1 shipped 2026-07-22 (PR #185, merged), v1.1 corrective in progress on `claude/m4-command-center-v1.1`.** v1.1 corrects four P1 Codex findings on the merged v1: (1) permanent nav is Command · Omen · Trade · League (not …·Draft·Account); (2) Command Center follows mobile-visual-briefs §1.1 hierarchy — header + Context Strip + Matchup Hero + honest placeholders for Waiver Watch / Ledger preview / League Pulse; (3) real users never see `demoConnected` — the shell branches on `SessionManager.DEMO_USER_ID`; (4) no-op connection actions removed. Two approved §3.2 compositions (Context Strip node `25:2`, Matchup Spine node `25:26`) built in this pass — reusable across future screens. Draft is seasonal inside League; Account is a contextual header profile control. Reusable visual-evidence CI (`.github/workflows/native-visual-evidence.yml`) captures iOS simulator + Android emulator screenshots for named scenarios. Follow-up items filed: M4-CC-WaiverWatch, M4-CC-LedgerPreview, M4-CC-LeaguePulse (Figma-first), and M4-Omen-Screen. |
 | M5 | Theme packs / skins | P2 | M4 | Deferred. Core Omen themes and accessibility first. |
 
 ## Next build order
@@ -156,6 +156,42 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Agent-buildable:** yes
 - **Done when:** one backend-owned API/state contract and acceptance-test matrix covers Yahoo deep-link return, safe provider-state API, connect idempotency, and the resolved F2 truth before implementation PRs start.
 - **Do not touch:** provider credentials, production data, deploy, SQL, or environment variables without separate approval.
+
+### M4-CC-WaiverWatch — Waiver Watch composition + wiring
+
+- **Priority:** P1
+- **Cost:** medium
+- **Blocked by:** Figma-approved Waiver Watch proposal on `03 — Components` (does not exist yet — needs a §3.2 approval pass first)
+- **Agent-buildable:** partial — the Figma proposal is founder-gated; once approved, the composition + wiring is agent-buildable
+- **Scope:** replace the "Waiver Watch is landing next" placeholder in `OmenCommandCenterScreen` with the approved Waiver Watch composition per mobile-visual-briefs §1.3 (Tuesday–Wednesday urgent briefing + Thursday–Monday calm opportunity list). Registered required states: pending, processed, availability-unknown, no-credible-move, not-connected, off-season.
+- **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
+
+### M4-CC-LedgerPreview — Ledger preview composition + wiring
+
+- **Priority:** P1
+- **Cost:** small–medium
+- **Blocked by:** Figma-approved Ledger preview proposal on `03 — Components`
+- **Agent-buildable:** partial — same shape as M4-CC-WaiverWatch
+- **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
+- **Do not touch:** the ledger data model (owned by backend), real move outcomes without verified sources.
+
+### M4-CC-LeaguePulse — League Pulse composition + wiring
+
+- **Priority:** P2
+- **Cost:** small–medium
+- **Blocked by:** Figma-approved League Pulse proposal on `03 — Components` (no visual brief §1.6 exists yet — needs both a founder-approved brief and Figma pass)
+- **Agent-buildable:** no until the brief and Figma proposal exist
+- **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
+- **Do not touch:** invented league-activity data; ship an empty state until real events flow in.
+
+### M4-Omen-Screen — Omen destination that owns the full DecisionBrief
+
+- **Priority:** P1
+- **Cost:** medium
+- **Blocked by:** none once M4 CC v1.1 lands (unblocks the Omen tab)
+- **Agent-buildable:** yes
+- **Scope:** the Omen tab currently renders an honest "coming next" state surface. Build the real Omen destination screen assembly that owns the full `OmenDecisionBrief` (all 8 state surfaces already shipped in P3). Assembly lives at `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/omen/` and iOS `App/Omen/`.
+- **Do not touch:** the DecisionBrief primitive itself (already approved); live wiring blocked on M0-BE-0.
 
 ### M4-Auth — Omen-primitive-native auth surfaces (retirement item)
 

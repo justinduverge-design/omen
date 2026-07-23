@@ -33,10 +33,22 @@ struct OmenIOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppShellView()
-                .environmentObject(sessionManager)
-                .environmentObject(authViewModel)
-                .environment(\.omenEnvironment, .fromBundle)
+            // Screenshot short-circuit — when the native-visual-evidence CI workflow
+            // launches with `-OMEN_SCREENSHOT_SCENARIO <slug>` or the env-var equivalent,
+            // mount only the requested scenario. No session, no network. Unknown or
+            // missing key falls through to the normal production shell. Cannot be
+            // triggered by an end user — no UI surface exposes this launch argument.
+            if let scenarioKey = ScreenshotScenarios.active(
+                from: ProcessInfo.processInfo.environment,
+                arguments: ProcessInfo.processInfo.arguments
+            ), ScreenshotScenarios.isKnown(scenarioKey) {
+                ScreenshotScenarioHost(scenarioKey: scenarioKey)
+            } else {
+                AppShellView()
+                    .environmentObject(sessionManager)
+                    .environmentObject(authViewModel)
+                    .environment(\.omenEnvironment, .fromBundle)
+            }
         }
     }
 }
