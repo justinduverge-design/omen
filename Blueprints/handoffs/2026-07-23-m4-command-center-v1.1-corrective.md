@@ -95,7 +95,10 @@ Symbol when the next drawable pass lands.
 ## Visual-evidence CI — artifact names and capture states
 
 **Workflow:** `.github/workflows/native-visual-evidence.yml`
-**Trigger:** any PR / push touching `mobile/**` or the workflow file; also `workflow_dispatch`.
+**Trigger:** `workflow_dispatch` only. Screenshots are for founder visual review, not every push — run via GitHub Actions → "Native visual evidence" → Run workflow, or `gh workflow run native-visual-evidence.yml --ref <branch>`.
+**Android runner:** `ubuntu-latest` (KVM-accelerated; standard cost multiplier, ~10× cheaper than `macos-14` per minute on private repos). iOS jobs stay on `macos-14`.
+**Concurrency:** `cancel-in-progress: true` on both this workflow and `ios-ci.yml` — new commits cancel obsolete runs for the same ref.
+**iOS CI trigger scope:** `ios-ci.yml` now runs on `pull_request` targeting `main` and `push` to `main`; feature-branch pushes are covered by the PR trigger and no longer double-billed.
 
 **Scenarios (captured this run):**
 

@@ -14,11 +14,17 @@
 name: iOS CI
 
 on:
+  # Run on main-branch pushes (post-merge sanity) and on PRs targeting main.
+  # Feature-branch pushes are covered by the pull_request trigger — running both
+  # would double macOS-runner cost per commit. `workflow_dispatch` remains for
+  # on-demand reruns.
   push:
+    branches: [main]
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
   pull_request:
+    branches: [main]
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
