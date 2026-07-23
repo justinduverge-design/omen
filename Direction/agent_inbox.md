@@ -54,15 +54,13 @@ Read these before selecting work:
 - **Priority / cost / blocker:** P0 / medium / none
 - **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
 
-### 2. M1P-P3 — Product compositions (3 batches)
+### 2. M1P-P3 — Product compositions ✅ implementation complete (all 3 batches)
 
-- **Batch 1 status:** 🟡 in progress on `claude/m1p-p3-compositions` — ConfidenceBar, RiskPanel, MetricStrip, SignalList. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-metric-primitives.md`.
-- **Batch 2 status:** 🟡 in progress on `claude/m1p-p3-batch-2` (stacked on Batch 1) — PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-connection-primitives.md`.
-- **Batch 3 (next):** DecisionBrief shell. Preparation brief authored at `Blueprints/specs/mobile/m1-p-p3-decision-brief-shell-brief-v1.md` — API, 8 state surfaces, composition matrix, open questions all captured.
-- Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2 (separate track).
-- **Priority / cost / blocker:** P0 / medium / Batch 3 unblocked once Batches 1 + 2 review.
-- **Output:** shared SwiftUI + Compose compositions per registry §3.2, gallery entries, tests, handoff, Done Ledger row, skill receipt.
-- **Do not touch:** provider connect flows, provider credentials, production, SQL, store configuration.
+- **Batch 1** on `claude/m1p-p3-compositions` — ConfidenceBar, RiskPanel, MetricStrip, SignalList. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-metric-primitives.md`.
+- **Batch 2** on `claude/m1p-p3-batch-2` (stacked) — PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-connection-primitives.md`.
+- **Batch 3** on `claude/m1p-p3-batch-3` (stacked) — DecisionBrief shell, all 8 state surfaces. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-decision-brief-shell.md`.
+- **All three branches waiting on merge.** M4 feature screens unblock as soon as the stack lands.
+- Context Strip / Matchup Spine / Evidence Disclosure remain on the Figma-first track per registry §3.2 (separate future work).
 
 ### 3. M3A-QA — Native auth real-device QA
 
