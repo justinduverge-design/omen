@@ -318,6 +318,20 @@ private fun GalleryScreen() {
                 )
             }
         },
+        Section("Command Center — screen assembly (feature layer) · fixture note only") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "OmenCommandCenterScreen lives at " +
+                        "mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/" +
+                        "feature/commandcenter/OmenCommandCenterScreen.kt and is exercised " +
+                        "in the running app (SignedIn → Command tab). It's a feature-layer " +
+                        "screen assembly, not a DS component, so it is intentionally not " +
+                        "rendered inside the DS gallery — showing the running app is the " +
+                        "correct evidence surface for this screen.",
+                    color = OmenTheme.color.textSecondary,
+                )
+            }
+        },
         Section("DecisionBrief — success / stale / mock / empty / loading / error / disconnected / off-season") {
             val payload = OmenDecisionBriefPayload(
                 verdict = "Start Christian McCaffrey",

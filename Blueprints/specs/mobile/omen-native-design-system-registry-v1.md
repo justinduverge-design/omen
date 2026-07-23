@@ -169,6 +169,10 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 
 New composition patterns must be proposed on Figma `03 — Components` before appearing in an iOS/Android screen (capability canvas §6).
 
+**M4 screen assemblies (2026-07-22).** Feature screens that combine approved primitives + P3 compositions live at the app/feature layer, not in `:core:designsystem` — the DS module stays product-agnostic. The first such assembly is:
+
+- **OmenCommandCenterScreen** — signed-in landing surface. Android: `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/commandcenter/OmenCommandCenterScreen.kt`. iOS: `mobile/ios/OmenIOS/OmenIOS/App/CommandCenter/OmenCommandCenterScreen.swift`. Consumes PlatformConnectionCard + ConnectionStatusBadge + PlatformBadge + DecisionBrief + typography/spacing tokens. Approved screen assembly, not a design-system component; not added to §3.1 or §3.2.
+
 **P4 enforcement (2026-07-21).** Feature and app-shell code must compose the approved `Omen*` primitives above and MUST NOT clone raw platform primitives. The rule is enforced by two source-scanning tests that run in the standard test task:
 
 - Android — `mobile/android/core/designsystem/src/test/kotlin/com/slopssaloon/omen/core/designsystem/enforcement/PrimitiveEnforcementTest.kt` scans `mobile/android/app/src/main/kotlin/**` (and any future `mobile/android/feature/**`) and fails on raw `androidx.compose.material3.Button`/`Card`/`TextField`/`AlertDialog`/`Chip` imports or raw `Color(0xNNNNNNNN)` literals.

@@ -11,16 +11,11 @@ struct CommandCenterView: View {
 
     var body: some View {
         TabView {
-            OmenStateSurface(
-                kind: isDemo ? .mock : .empty,
-                title: "Command Center",
-                message: isDemo
-                    ? "Demo mode is active. Nothing here is live."
-                    : "Connect a league to see your Omen of the Week."
+            OmenCommandCenterScreen(
+                state: isDemo
+                    ? OmenCommandCenterFixtures.demoConnected
+                    : OmenCommandCenterFixtures.demoDisconnected
             )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
             .tabItem { Label("Command", systemImage: "sparkles") }
 
             VStack(alignment: .leading, spacing: OmenSpacing.step12) {

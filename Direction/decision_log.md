@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-22 (M4 Command Center v1 — first feature-screen shape + Android nav-icon option (d))
+
+- **Feature-screen layer is app/feature/, not `:core:designsystem`.** `OmenCommandCenterScreen` lives at `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/commandcenter/` and `mobile/ios/OmenIOS/OmenIOS/App/CommandCenter/`. Registry §3.2 pointer identifies it as an approved screen assembly consuming the DS, not a DS component. Precedent for all future M4 screens.
+- **Android navigation iconography = local Material Symbols vector drawables (option (d)).** Google's current guidance is that the `androidx.compose.material.icons` library (Icons.Filled.*) is no longer maintained/recommended for new production iconography, and `material-icons-extended` is not appropriate for new work. Instead, we import official Google Font Icons XML from `google/material-design-icons` (Apache-2.0) and store them at `mobile/android/app/src/main/res/drawable/`. FILL=1 Outlined-style; baked-in `android:tint` removed so Compose applies Omen semantic tokens. Symmetric icons keep `android:autoMirrored` off; only `format_list_numbered` (Draft) is auto-mirrored. Cite: native resource-alignment addendum §4.
+- **`OmenAndroidApp.kt` retired from primitive-enforcement allowlist.** Refactored to swap raw `Button`/`OutlinedButton`/`OutlinedTextField` for `OmenButton`, delete the raw-color `MaterialTheme(darkColorScheme(...))` block in favor of `OmenTheme { … }`, and delegate the two remaining raw-Material-3 surfaces (`OmenAuthFlow`, `OmenDeleteAccountScreen`) to their own files.
+- **M4-Auth is a single-event retirement item.** Two allowlisted files (`OmenAuthFlow.kt`, `OmenDeleteAccountScreen.kt`) exit together when the Omen-primitive-native auth pass lands. Non-expansion covenant: no third auth file joins the allowlist without opening a separately-tracked retirement item.
+- **`:app:` androidTest deferred, not silently claimed.** The `:app:` module has no androidTest deps wired; an initial Compose render test was authored then removed rather than left uncompilable. Reintroducing it needs a small `build.gradle.kts` dep addition (gated). Recorded as a follow-up in the skill ledger.
+
 ## Decision Added 2026-07-22 (M1-P P3 Batch 3 DecisionBrief shell — API + open-question resolutions)
 
 - **Feedback slot is a slot, not structured props.** `@Composable` / `@ViewBuilder` accepts whatever feedback UI the consuming feature wants (thumbs, stars, HITL survey) without rippling change through the shell.

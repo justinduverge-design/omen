@@ -1,18 +1,17 @@
 package com.slopssaloon.omen.app
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -22,10 +21,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import com.slopssaloon.omen.R
+import com.slopssaloon.omen.app.auth.OmenAuthFlow
+import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
 import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
@@ -33,7 +35,6 @@ import com.slopssaloon.omen.core.auth.AccountDeletion
 import com.slopssaloon.omen.core.auth.AccountDeletionOutcome
 import com.slopssaloon.omen.core.auth.AccountRepository
 import com.slopssaloon.omen.core.auth.AuthEvent
-import com.slopssaloon.omen.core.auth.AuthFailure
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.auth.AuthRepository
@@ -42,6 +43,11 @@ import com.slopssaloon.omen.core.auth.GoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.GoogleIdTokenResult
 import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
+import com.slopssaloon.omen.core.designsystem.component.OmenButton
+import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
+import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import com.slopssaloon.omen.core.network.AppEnvironment
 import com.slopssaloon.omen.core.session.AndroidKeystoreSessionStore
 import com.slopssaloon.omen.core.session.SecureSessionStore
@@ -51,11 +57,15 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * M3-A scaffolding surface. The session is restored from Keystore-backed secure storage on
- * launch, and "Get started" drives the real [AuthFlowReducer] state machine. Until the live
- * Supabase + Credential Manager wiring lands (pending the Google Web client ID), the sign-in
- * calls run against [FakeAuthRepository] and Google reports "not configured" — this is a
- * labeled local flow, never a claim of live authentication.
+ * M3-A / M4 app shell. Session is restored from Keystore-backed secure storage on launch,
+ * "Get started" drives the real [AuthFlowReducer], and the signed-in destination hosts the
+ * approved [OmenCommandCenterScreen] (feature layer). Auth surfaces are delegated to
+ * [OmenAuthFlow] and [OmenDeleteAccountScreen], which are individually allowlisted under
+ * M4-Auth and retire together in a future Omen-primitive-native auth pass.
+ *
+ * As of M4 Command Center v1, this file uses no banned raw Material 3 primitives or raw
+ * `Color(0xNN…)` literals — theming flows through [OmenTheme] which internally wraps
+ * `MaterialTheme`. Enforcement scanner: unconditional.
  */
 @Composable
 fun OmenAndroidApp() {
@@ -65,7 +75,6 @@ fun OmenAndroidApp() {
     val clock = { System.currentTimeMillis() / 1000 }
     val store: SecureSessionStore = remember { AndroidKeystoreSessionStore(context) }
     val sessionManager = remember { SessionManager(store, clock) }
-    // Live Supabase/Credential-Manager when public config is present; safe local fake otherwise.
     val repo: AuthRepository = remember {
         if (env.supabaseConfigured) {
             SupabaseAuthRepository(OkHttpGoTrueTransport(env.supabaseUrl, env.supabaseAnonKey), store, clock)
@@ -86,7 +95,7 @@ fun OmenAndroidApp() {
     var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var showAuth by remember { mutableStateOf(false) }
-    var selectedDestination by remember { mutableStateOf("Command") }
+    var selectedDestination by remember { mutableStateOf(NavDestination.Command) }
     var showDelete by remember { mutableStateOf(false) }
     var deletePhrase by remember { mutableStateOf("") }
     var deleteMessage by remember { mutableStateOf<String?>(null) }
@@ -103,14 +112,14 @@ fun OmenAndroidApp() {
             is AuthFlowState.LaunchingGoogle -> scope.launch {
                 when (val tokenResult = googleProvider.getIdToken(rawNonce = UUID.randomUUID().toString())) {
                     is GoogleIdTokenResult.Token -> {
-                        dispatch(AuthEvent.GoogleTokenResult(tokenResult)) // → ExchangingGoogleToken (UI)
+                        dispatch(AuthEvent.GoogleTokenResult(tokenResult))
                         dispatch(
                             AuthEvent.GoogleExchangeResult(
                                 repo.signInWithGoogleIdToken(tokenResult.idToken, tokenResult.rawNonce),
                             ),
                         )
                     }
-                    else -> dispatch(AuthEvent.GoogleTokenResult(tokenResult)) // → Failed
+                    else -> dispatch(AuthEvent.GoogleTokenResult(tokenResult))
                 }
             }
             is AuthFlowState.Authenticated -> {
@@ -122,28 +131,38 @@ fun OmenAndroidApp() {
         }
     }
 
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Color(0xFFA67C2E),
-            onPrimary = Color(0xFF0A0A0B),
-            background = Color(0xFF0A0A0B),
-            onBackground = Color(0xFFF5F0E8),
-            surface = Color(0xFF1C1C1E),
-            onSurface = Color(0xFFF5F0E8),
-        ),
-    ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+    OmenTheme {
+        Surface(modifier = Modifier.fillMaxSize(), color = OmenTheme.color.bg) {
             when (val s = sessionState) {
-                SessionState.Loading -> Text("Loading Omen", Modifier.padding(24.dp))
+                SessionState.Loading -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Loading,
+                    title = "Loading Omen",
+                    message = "Restoring your session.",
+                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+                )
 
-                SessionState.NeedsReauth -> Column(Modifier.padding(24.dp)) {
-                    Text("Please sign in again")
-                    Text("Your Omen session expired. Sign in to continue.")
-                    Button(onClick = { showAuth = true; sessionManager.signOut() }) { Text("Sign in") }
+                SessionState.NeedsReauth -> Column(
+                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+                    verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+                ) {
+                    Text(
+                        text = "Please sign in again",
+                        style = OmenTheme.typography.h2.toTextStyle(),
+                        color = OmenTheme.color.textPrimary,
+                    )
+                    Text(
+                        text = "Your Omen session expired. Sign in to continue.",
+                        style = OmenTheme.typography.body.toTextStyle(),
+                        color = OmenTheme.color.textSecondary,
+                    )
+                    OmenButton(
+                        text = "Sign in",
+                        onClick = { showAuth = true; sessionManager.signOut() },
+                    )
                 }
 
                 SessionState.SignedOut -> if (showAuth) {
-                    AuthFlow(
+                    OmenAuthFlow(
                         state = flow,
                         email = email,
                         code = code,
@@ -157,17 +176,27 @@ fun OmenAndroidApp() {
                         onReset = { dispatch(AuthEvent.Reset) },
                         onBack = { showAuth = false; dispatch(AuthEvent.Reset) },
                     )
-                } else Column(Modifier.padding(24.dp)) {
-                    Text("Welcome to Omen")
-                    Text("See the move before the league does.")
-                    Button(onClick = { sessionManager.onDemo() }) { Text("Try Demo") }
-                    Button(onClick = { showAuth = true }) { Text("Get started") }
+                } else Column(
+                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+                    verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+                ) {
+                    Text(
+                        text = "Welcome to Omen",
+                        style = OmenTheme.typography.h1.toTextStyle(),
+                        color = OmenTheme.color.textPrimary,
+                    )
+                    Text(
+                        text = "See the move before the league does.",
+                        style = OmenTheme.typography.body.toTextStyle(),
+                        color = OmenTheme.color.textSecondary,
+                    )
+                    OmenButton(text = "Try Demo", onClick = { sessionManager.onDemo() }, variant = OmenButtonVariant.Secondary)
+                    OmenButton(text = "Get started", onClick = { showAuth = true })
                 }
 
                 is SessionState.SignedIn -> if (showDelete) {
-                    DeleteAccountScreen(
+                    OmenDeleteAccountScreen(
                         phrase = deletePhrase,
-                        requiredPhrase = AccountDeletion.REQUIRED_PHRASE,
                         message = deleteMessage,
                         deleting = deleting,
                         onPhraseChange = { deletePhrase = it },
@@ -195,132 +224,125 @@ fun OmenAndroidApp() {
                         },
                         onCancel = { showDelete = false; deletePhrase = ""; deleteMessage = null },
                     )
-                } else Column(Modifier.padding(24.dp)) {
-                    Text(
-                        when (selectedDestination) {
-                            "Command" -> "Omen Command Center\nSigned in as ${s.userId}."
-                            "Omen" -> "Mock recommendation\nStart Jordan Addison over the flex alternative.\nConnection needs attention: connect a league for live Omen."
-                            else -> selectedDestination
-                        },
+                } else Scaffold(
+                    containerColor = OmenTheme.color.bg,
+                    bottomBar = { OmenBottomNav(selectedDestination) { selectedDestination = it } },
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                    ) {
+                        SignedInDestination(
+                            destination = selectedDestination,
+                            userId = s.userId,
+                            onSignOut = { sessionManager.signOut() },
+                            onDelete = { showDelete = true }.takeIf { s.userId != SessionManager.DEMO_USER_ID },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Top-level destinations for the signed-in shell. Mirrors iOS `CommandCenterView` tabs. */
+private enum class NavDestination(
+    val label: String,
+    val iconRes: Int,
+    val contentDescription: String,
+) {
+    Command(
+        label = "Command",
+        iconRes = R.drawable.ic_nav_command,
+        contentDescription = "Command Center",
+    ),
+    Omen(
+        label = "Omen",
+        iconRes = R.drawable.ic_nav_omen,
+        contentDescription = "Omen of the Week",
+    ),
+    Trade(
+        label = "Trade",
+        iconRes = R.drawable.ic_nav_trade,
+        contentDescription = "Trade Analyzer",
+    ),
+    Draft(
+        label = "Draft",
+        iconRes = R.drawable.ic_nav_draft,
+        contentDescription = "Draft Assistant",
+    ),
+    Account(
+        label = "Account",
+        iconRes = R.drawable.ic_nav_account,
+        contentDescription = "Account settings",
+    ),
+}
+
+@Composable
+private fun OmenBottomNav(selected: NavDestination, onSelect: (NavDestination) -> Unit) {
+    NavigationBar(
+        containerColor = OmenTheme.color.surface1,
+        contentColor = OmenTheme.color.textPrimary,
+    ) {
+        for (destination in NavDestination.entries) {
+            NavigationBarItem(
+                selected = destination == selected,
+                onClick = { onSelect(destination) },
+                icon = {
+                    Icon(
+                        painter = painterResource(id = destination.iconRes),
+                        contentDescription = destination.contentDescription,
                     )
-                    OutlinedButton(onClick = { sessionManager.signOut() }) { Text("Sign out") }
-                    if (s.userId != SessionManager.DEMO_USER_ID) {
-                        OutlinedButton(onClick = { showDelete = true }) { Text("Delete account") }
-                    }
-                    NavigationBar {
-                        listOf("Command", "Omen", "Trade", "Draft", "League").forEach { destination ->
-                            NavigationBarItem(
-                                selected = selectedDestination == destination,
-                                onClick = { selectedDestination = destination },
-                                icon = { Text(destination.take(1)) },
-                                label = { Text(destination) },
-                            )
-                        }
-                    }
-                }
-            }
+                },
+                label = {
+                    Text(
+                        text = destination.label,
+                        style = OmenTheme.typography.label.toTextStyle(),
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = OmenTheme.color.accent,
+                    selectedTextColor = OmenTheme.color.accent,
+                    indicatorColor = OmenTheme.color.accentMuted,
+                    unselectedIconColor = OmenTheme.color.textSecondary,
+                    unselectedTextColor = OmenTheme.color.textSecondary,
+                ),
+            )
         }
     }
 }
 
 @Composable
-private fun AuthFlow(
-    state: AuthFlowState,
-    email: String,
-    code: String,
-    live: Boolean,
-    googleConfigured: Boolean,
-    onEmailChange: (String) -> Unit,
-    onCodeChange: (String) -> Unit,
-    onSubmitEmail: () -> Unit,
-    onSubmitCode: () -> Unit,
-    onGoogle: () -> Unit,
-    onReset: () -> Unit,
-    onBack: () -> Unit,
+private fun SignedInDestination(
+    destination: NavDestination,
+    userId: String,
+    onSignOut: () -> Unit,
+    onDelete: (() -> Unit)?,
 ) {
-    Column(Modifier.padding(24.dp)) {
-        Text("Sign in to Omen")
-        Text(
-            if (live) "Sign in with your email code or Google."
-            else "Local auth flow (fake backend) — live Supabase wiring pending config.",
+    when (destination) {
+        NavDestination.Command -> OmenCommandCenterScreen(
+            state = OmenCommandCenterFixtures.demoConnected,
         )
-
-        when (state) {
-            is AuthFlowState.AwaitingOtp, is AuthFlowState.VerifyingOtp -> {
-                Text("Enter the 6-digit code sent to $email")
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = onCodeChange,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    label = { Text("6-digit code") },
-                )
-                Button(
-                    onClick = onSubmitCode,
-                    enabled = state is AuthFlowState.AwaitingOtp,
-                ) { Text(if (state is AuthFlowState.VerifyingOtp) "Verifying…" else "Verify code") }
-            }
-            else -> {
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = onEmailChange,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    label = { Text("Email") },
-                )
-                Button(
-                    onClick = onSubmitEmail,
-                    enabled = state !is AuthFlowState.RequestingOtp,
-                ) { Text(if (state is AuthFlowState.RequestingOtp) "Sending code…" else "Email me a code") }
-                OutlinedButton(onClick = onGoogle) {
-                    Text(if (googleConfigured) "Continue with Google" else "Google (not configured)")
-                }
+        NavDestination.Omen, NavDestination.Trade, NavDestination.Draft -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Empty,
+            title = "${destination.label} coming next",
+            message = "This tab lands in a follow-up M4 slice.",
+            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+        )
+        NavDestination.Account -> Column(
+            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+        ) {
+            Text(
+                text = "Signed in as $userId",
+                style = OmenTheme.typography.body.toTextStyle(),
+                color = OmenTheme.color.textPrimary,
+            )
+            OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
+            if (onDelete != null) {
+                OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
             }
         }
-
-        if (state is AuthFlowState.Failed) {
-            Text(failureMessage(state.reason))
-            Button(onClick = onReset) { Text("Try again") }
-        }
-
-        OutlinedButton(onClick = onBack) { Text("Back") }
     }
-}
-
-@Composable
-private fun DeleteAccountScreen(
-    phrase: String,
-    requiredPhrase: String,
-    message: String?,
-    deleting: Boolean,
-    onPhraseChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Column(Modifier.padding(24.dp)) {
-        Text("Delete your Omen account")
-        Text("This permanently deletes your account and data. It cannot be undone.")
-        Text("Type $requiredPhrase to confirm.")
-        OutlinedTextField(
-            value = phrase,
-            onValueChange = onPhraseChange,
-            label = { Text("Confirmation phrase") },
-        )
-        if (message != null) Text(message)
-        Button(
-            onClick = onConfirm,
-            enabled = !deleting && AccountDeletion.isConfirmed(phrase),
-        ) { Text(if (deleting) "Deleting…" else "Permanently delete account") }
-        OutlinedButton(onClick = onCancel, enabled = !deleting) { Text("Cancel") }
-    }
-}
-
-private fun failureMessage(reason: AuthFailure): String = when (reason) {
-    AuthFailure.INVALID_EMAIL -> "That email doesn't look right. Check it and try again."
-    AuthFailure.INVALID_CODE -> "That code didn't match. Re-enter it or request a new one."
-    AuthFailure.CANCELED -> "Sign-in canceled. You can try again anytime."
-    AuthFailure.NETWORK -> "Network problem. Check your connection and retry."
-    AuthFailure.TIMEOUT -> "That took too long. Retry when you're ready."
-    AuthFailure.SERVER -> "Something went wrong on our side. Try again, or use another sign-in method."
-    AuthFailure.GOOGLE_UNAVAILABLE -> "Google sign-in isn't available on this build. Use email instead."
-    AuthFailure.NEEDS_REAUTH -> "Your session expired. Please sign in again."
-    AuthFailure.UNKNOWN -> "Couldn't complete sign-in. Try again, or contact support."
 }
