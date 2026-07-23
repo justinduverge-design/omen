@@ -6,6 +6,10 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## M0-BE-3 — Yahoo native return (2026-07-23)
+
+Native starts use authenticated `POST /api/yahoo/auth` with `{ "league_id": "optional", "native_return": true }`. The server records only this fixed intent. After Yahoo returns to the existing HTTPS callback and the server verifies state/exchanges tokens, the browser redirects to `com.slopssaloon.omen://auth/callback?status=connected`; a verified consent denial returns `?status=cancelled`. No OAuth artifacts appear in the deep link. Web starts and web completion remain unchanged. Invalid, expired, and duplicate state return a safe `400` without a deep-link redirect.
+
 ## M0-BE-2 — Idempotent native Sleeper connect (2026-07-23)
 
 Status: implemented locally on `backend/m0be-idempotent-connect`; not pushed, merged, deployed, or production-smoked.
