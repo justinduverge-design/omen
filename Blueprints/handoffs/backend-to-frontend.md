@@ -6,6 +6,38 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## M0-BE-2 — Idempotent native Sleeper connect (2026-07-23)
+
+Status: implemented locally on `backend/m0be-idempotent-connect`; not pushed, merged, deployed, or production-smoked.
+
+Native callers may add `request_id` to the existing authenticated endpoint:
+
+```json
+POST /api/platforms/sleeper/connect
+{
+  "sleeper_username": "sleepy",
+  "league_id": "league-1",
+  "request_id": "opaque-client-generated-id"
+}
+```
+
+`request_id` is optional for legacy compatibility. When supplied, it must be an opaque 16–128-character string matching `[A-Za-z0-9_-]`; do not encode user, league, provider, token, or cookie data. Generate one ID per user intent and reuse it only for retries/resume of that same intent.
+
+First successful response adds these fields:
+
+```json
+{
+  "connected": true,
+  "platform": "sleeper",
+  "request_id": "opaque-client-generated-id",
+  "replayed": false
+}
+```
+
+For 10 minutes, a completed duplicate returns the same safe response with `replayed: true` and performs no second connection write. An in-progress duplicate returns `409` with `connection_request_in_progress`; invalid IDs return `422 invalid_request_id`; unavailable replay storage returns `503 connection_replay_unavailable`. If replay completion fails after the existing connection write, wait/retry within the bounded window: the in-progress record stays inert instead of risking a duplicate. Never surface Redis or provider error text to the user. Yahoo mobile OAuth and ESPN native flow remain unchanged.
+
+Verification: `node --test test/platforms.test.js` 20/20; detailed scope and baseline limits are in `Blueprints/handoffs/2026-07-23-m0-be-2-idempotent-connect.md`.
+
 ## M0-BE-1 — Native provider-state API (2026-07-23)
 
 Status: implemented locally on `backend/m0be-provider-state-api`; not yet pushed, merged, deployed, or production-smoked.
