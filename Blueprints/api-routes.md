@@ -36,6 +36,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
 | `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. No `subscription` field — Omen is free, no billing gate. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
+| `GET` | `/api/platforms/state` | `platform-provider-state.v1` | Yes | Additive native provider-flow state: opaque state, recovery action, and error code only; never credentials, OAuth artifacts, or Vault IDs. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |
 | `GET` | `/api/yahoo/auth` | redirect | Yes | Yahoo OAuth start. |
