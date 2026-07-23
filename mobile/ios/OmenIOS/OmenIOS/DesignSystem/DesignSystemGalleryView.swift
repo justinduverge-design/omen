@@ -248,6 +248,38 @@ struct DesignSystemGalleryView: View {
                     }
                 }
 
+                section("DecisionBrief — success / stale / mock / empty / loading / error / disconnected / off-season") {
+                    let payload = OmenDecisionBriefPayload(
+                        verdict: "Start Christian McCaffrey",
+                        move: "Bench Ken Walker for the RB1 slot.",
+                        impact: "+4.1 projected over your bench.",
+                        confidence: 72,
+                        risk: .low,
+                        riskReasons: ["McCaffrey full-practice Fri.", "Weather stable in SF."],
+                        explanation: ["49ers implied 27 against a bottom-5 rush defense."],
+                        metrics: [
+                            OmenMetricItem(label: "Projected", value: "22.4", delta: "+4.1", deltaDirection: .positive),
+                            OmenMetricItem(label: "Ceiling", value: "31.8"),
+                        ],
+                        signals: [
+                            OmenSignalItem(label: "Yahoo roster snapshot", source: .live, detail: "Refreshed 4 minutes ago."),
+                        ],
+                        alternatives: [
+                            OmenDecisionBriefAlternative(name: "Ken Walker III", position: .rb, team: "SEA", meta: "Limited practice"),
+                        ]
+                    )
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenDecisionBrief(state: .success(payload))
+                        OmenDecisionBrief(state: .stale(payload, lastSynced: "12 minutes ago"))
+                        OmenDecisionBrief(state: .mock(payload))
+                        OmenDecisionBrief(state: .empty("Your lineup is already optimal."))
+                        OmenDecisionBrief(state: .loading)
+                        OmenDecisionBrief(state: .error("The recommendation engine timed out.", retry: {}))
+                        OmenDecisionBrief(state: .disconnected(connect: {}))
+                        OmenDecisionBrief(state: .offSeason)
+                    }
+                }
+
                 section("ConfirmationDialog — default and destructive (tap to preview)") {
                     HStack(spacing: OmenSpacing.step8) {
                         OmenButton(title: "Show default", action: { showDefaultConfirm = true })

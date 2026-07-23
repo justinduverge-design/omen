@@ -40,6 +40,10 @@ import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
 import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBar
 import com.slopssaloon.omen.core.designsystem.component.OmenConnectionStatus
 import com.slopssaloon.omen.core.designsystem.component.OmenConnectionStatusBadge
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBrief
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefAlternative
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatformConnectionCard
 import com.slopssaloon.omen.core.designsystem.component.OmenPlayerChip
 import com.slopssaloon.omen.core.designsystem.component.OmenPlayerRow
@@ -312,6 +316,37 @@ private fun GalleryScreen() {
                     actionLabel = "Connect ESPN",
                     onAction = {},
                 )
+            }
+        },
+        Section("DecisionBrief — success / stale / mock / empty / loading / error / disconnected / off-season") {
+            val payload = OmenDecisionBriefPayload(
+                verdict = "Start Christian McCaffrey",
+                move = "Bench Ken Walker for the RB1 slot.",
+                impact = "+4.1 projected over your bench.",
+                confidence = 72,
+                risk = OmenRiskLevel.Low,
+                riskReasons = listOf("McCaffrey full-practice Fri.", "Weather stable in SF."),
+                explanation = listOf("49ers implied 27 against a bottom-5 rush defense."),
+                metrics = listOf(
+                    OmenMetricItem(label = "Projected", value = "22.4", delta = "+4.1", deltaDirection = OmenMetricDelta.Positive),
+                    OmenMetricItem(label = "Ceiling", value = "31.8"),
+                ),
+                signals = listOf(
+                    OmenSignalItem(label = "Yahoo roster snapshot", source = OmenSignalSource.Live, detail = "Refreshed 4 minutes ago."),
+                ),
+                alternatives = listOf(
+                    OmenDecisionBriefAlternative(name = "Ken Walker III", position = OmenPosition.RB, team = "SEA", meta = "Limited practice"),
+                ),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OmenDecisionBrief(state = OmenDecisionBriefState.Success(payload))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Stale(payload, lastSynced = "12 minutes ago"))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Mock(payload))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Empty("Your lineup is already optimal."))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Loading)
+                OmenDecisionBrief(state = OmenDecisionBriefState.Error("The recommendation engine timed out.", onRetry = {}))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Disconnected(onConnect = {}))
+                OmenDecisionBrief(state = OmenDecisionBriefState.OffSeason)
             }
         },
         Section("ConfirmationDialog — default and destructive (tap to preview)") {

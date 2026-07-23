@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-22 (M1-P P3 Batch 3 DecisionBrief shell — API + open-question resolutions)
+
+- **Feedback slot is a slot, not structured props.** `@Composable` / `@ViewBuilder` accepts whatever feedback UI the consuming feature wants (thumbs, stars, HITL survey) without rippling change through the shell.
+- **Alternatives list is unbounded.** Upstream trims before handing in; the shell renders whatever `alternatives` contains. No cap or "and N more" affordance today.
+- **Stale banner sits inside the outer Card, above the payload.** Small badge + one-line "Showing your last sync · <time>" line under the Card top edge. Keeps scan order intact.
+- **Outer-Card rule adjusted from the brief.** `OmenStateSurface` renders its own Card, so wrapping in a second Card would double-nest. Shell delegates: Success / Stale / Mock wrap themselves in `OmenCard`; Empty / Loading / Error / Disconnected / OffSeason let the state surface be the Card. Same visual result (one Card wrapper) either way. Documented inline in the shell source.
+- **Copy in state surfaces is scaffold, not final UX.** Real per-screen copy lands via `slops-ux-copy` when M4 features arrive.
+
 ## Decision Added 2026-07-22 (M1-P P3 Batch 2 connection-primitive shape + Batch 3 shell contract)
 
 - **One `OmenConnectionStatus` enum for both ConnectionStatusBadge and PlatformConnectionCard.** Registry §3.2 named two overlapping vocabularies (badge: connected/disconnected/reauth/recovery; card: adds error/pending). Unifying prevents native clients from inventing a second status truth.
