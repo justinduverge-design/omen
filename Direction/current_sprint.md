@@ -201,7 +201,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Cost:** medium — two independent implementations landed in one review pass
 - **Blocked by:** none (Supabase provider list confirmed 2026-07-23: Email, Apple, Google already wired; Discord + Passkeys enabled and unwired)
 - **Agent-buildable:** yes
-- **Confirmed Supabase state (project `xyudxfhqejbwvjngiwhw`, 2026-07-23):** Email ✅, Google ✅, Apple ✅, Discord ✅, Passkeys ✅ enabled. Phone, SAML 2.0, Web3 Wallet, Azure, Bitbucket disabled. Remaining providers not screenshotted; treat visible list as canonical for this pass.
+- **Confirmed Supabase state (project `xyudxfhqejbwvjngiwhw`, 2026-07-23):** Email ✅, Google ✅, Apple ✅, Discord ✅, Passkeys ✅ enabled. All others (Phone, SAML 2.0, Web3 Wallet, Azure, Bitbucket, and everything below Google on the provider list) disabled — founder-confirmed nothing else is toggled on. Roster is complete for this pass.
 - **Motivation:** founder direction 2026-07-23 — Supabase has more identity than the two buttons currently exposed. Broaden the sign-in card without inflating it.
 
 #### Sub-scope A — Discord (shared OAuth seam)
@@ -215,7 +215,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - Not `signInWithOAuth`. Uses `signInWithWebAuthn` via platform APIs: Android Credential Manager passkey flow (same API as Google Credential Manager — new provider option), iOS `ASAuthorizationPlatformPublicKeyCredentialProvider`.
 - Add a `PasskeyProvider` seam on both platforms, distinct from OAuth. New `AuthEvent.PasskeyRequested` / `PasskeyResult` branch on the state machine.
 - Add "Sign in with a passkey" `OmenButton(Primary, tone=Omen)` above the email/Google/SIWA tier (fastest returning-user path — deserves top slot after first pairing).
-- First-time pairing: prompt to save a passkey after a successful email OTP or OAuth sign-in. Follow-up decision on placement.
+- First-time pairing prompts in **both** places (confirmed 2026-07-23): (i) a one-time "Save a passkey?" sheet right after a successful email OTP / Google / Apple / Discord sign-in on a device that has no passkey yet — dismissable, remembers dismissal so it doesn't re-nag; (ii) an always-available "Passkeys" section in Account settings to add, list, and remove passkeys per device.
 
 #### Shared done-when
 
