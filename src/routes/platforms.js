@@ -19,6 +19,7 @@ const espnAdapter = require("../adapters/espn");
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
+const PROVIDER_STATE_CONTRACT_VERSION = "platform-provider-state.v1";
 
 function nowIso() {
   return new Date().toISOString();
@@ -163,6 +164,50 @@ function platformStatusContract(rows) {
         leagues: [],
       },
     },
+  };
+}
+
+function providerState(platform, row) {
+  const base = { platform, state: "not_started", recovery_action: "start_connection", error_code: null };
+  if (!row?.is_active) return base;
+
+  if (platform === "yahoo") {
+    if (!row.token_secret_id) {
+      return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "yahoo_oauth_context_missing" };
+    }
+    if (!row.league_id) {
+      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "yahoo_league_context_missing" };
+    }
+  }
+
+  if (platform === "sleeper") {
+    if (!row.platform_username) {
+      return { ...base, state: "resolving_account", recovery_action: "retry", error_code: "sleeper_account_context_missing" };
+    }
+    if (!row.league_id) {
+      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "sleeper_league_context_missing" };
+    }
+  }
+
+  if (platform === "espn") {
+    if (!row.espn_secret_id || !row.swid_secret_id) {
+      return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "espn_connection_context_missing" };
+    }
+    if (!row.league_id) {
+      return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "espn_league_context_missing" };
+    }
+  }
+
+  return { platform, state: "connected", recovery_action: null, error_code: null };
+}
+
+function providerStateContract(rows) {
+  const byPlatform = new Map((rows || []).map((row) => [row.platform, row]));
+  return {
+    contract_version: PROVIDER_STATE_CONTRACT_VERSION,
+    providers: Object.fromEntries(
+      [...VALID_PLATFORMS].map((platform) => [platform, providerState(platform, byPlatform.get(platform))])
+    ),
   };
 }
 
@@ -314,6 +359,21 @@ router.get("/status", requireAuth, async (req, res, next) => {
   } catch (e) {
     logger.error("Platform status lookup failed", { err: e.message });
     return next(e);
+  }
+});
+
+router.get("/state", requireAuth, async (req, res) => {
+  try {
+    const rows = await getPlatformConnectionRows(req.user.id);
+    return res.json(providerStateContract(rows));
+  } catch (e) {
+    logger.error("Provider state contract lookup failed");
+    return res.status(503).json({
+      contract_version: PROVIDER_STATE_CONTRACT_VERSION,
+      state: "retryable_error",
+      recovery_action: "retry",
+      error_code: "provider_state_unavailable",
+    });
   }
 });
 

@@ -1,7 +1,7 @@
 # Omen Native Backend State Contract v1 (M0-BE)
 
 **Status:** Active implementation contract
-**Date:** 2026-07-19
+**Date:** 2026-07-19 (M0-BE-0 execution plan reconciled 2026-07-23)
 **Owner:** Codex / backend lane
 **Scope:** The four backend requirements surfaced by approved M0c. This contract and its acceptance matrix are authored once before the four small implementation PRs.
 
@@ -47,12 +47,22 @@ An active connection for any provider that meets its row is eligible for `ready`
 
 ## Acceptance Matrix
 
-| Requirement / PR | Acceptance evidence | Status |
-| --- | --- | --- |
-| F2 — readiness truth | Dashboard tests cover no connection, incomplete Yahoo/Sleeper/ESPN, usable Yahoo/Sleeper/ESPN, and off-season precedence; dashboard and MVP selection share the Sleeper/ESPN eligibility rule. Yahoo preserves its existing live-route recovery selection. | This PR |
-| 1 — Yahoo mobile return | Callback supports the registered deep link or approved mobile-aware handoff; cancel, deny, background, termination, and duplicate callback tests are safe and idempotent. | Deferred PR |
-| 2 — provider-state API | Machine-readable M0a state mapping uses opaque error codes; no raw provider text, cookie, or token is exposed. | Deferred PR |
-| 3 — connect idempotency | Client request ID prevents duplicate connect/validate effects across double-taps, retries, and resumes. | Deferred PR |
+| Requirement / PR | Contract acceptance | Deterministic evidence | Safety boundary | Status |
+| --- | --- | --- | --- | --- |
+| F2 — readiness truth | Dashboard returns `needs_platform`, `pending_live_engine`, `off_season`, or `ready` from the shared eligibility rule; native calls the MVP route only for `ready`. | `test/omenReadiness.test.js`, `test/dashboardSummary.test.js`, and live-MVP route/service tests cover no connection, incomplete and usable Yahoo/Sleeper/ESPN, plus off-season precedence. | No response adds a credential, secret reference, or raw provider error. | Complete; runtime authority is `src/services/omenReadiness.js`. |
+| M0-BE-1 — safe provider-state API | Add an authenticated, additive machine-readable provider-state response that maps the M0a state machine and returns only documented opaque error codes. Existing `GET /api/platforms` callers remain compatible. | Route tests cover every documented state, an unknown/internal provider failure, missing auth, and an assertion that serialized bodies contain no token/cookie/Vault fields. | No raw provider text, OAuth state/verifier, ESPN cookie, or Vault identifier in the response/log fixture. | Next implementation PR. |
+| M0-BE-2 — request-id idempotency | Every native-supported connection/validation mutation accepts one bounded client request ID and repeat delivery produces one durable connection effect and a safe replay response. | Route/service tests prove double-tap, retry after response loss, and resumed duplicate request; distinct request IDs remain independent. | No request ID may encode account, league, token, cookie, or provider data; no schema, deploy, or production mutation in this PR without a new approval. | Follows M0-BE-1. |
+| M0-BE-3 — Yahoo mobile-aware return | The approved Yahoo system-browser flow returns through `com.slopssaloon.omen://auth/callback` only after verified OAuth state; cancel/deny/expired/duplicate callbacks enter safe recovery. | `test/yahooAuthRoute.test.js` covers web compatibility, native intent, missing/invalid/expired state, deny/cancel, duplicate callback, and safe deep-link location. | Never put the OAuth code, state, token, league name, or user identifier in the deep link or error response. | Follows M0-BE-2; external OAuth/current-platform research is required before code. |
+
+## Delivery Sequence and PR Briefs
+
+The completed F2 slice is the first of the four small PRs. The remaining sequence is intentionally additive and is not a license to widen provider behavior.
+
+1. **M0-BE-1 — Safe provider-state API.** Allowed files are `src/routes/platforms.js`, its focused tests, `Blueprints/api-routes.md`, and the two backend/frontend handoffs. Add `GET /api/platforms/state` rather than changing the meaning of `GET /api/platforms`. Its response must contain `contract_version`, provider name, M0a state, safe recovery action, and optional opaque error code. It must derive readiness from the existing F2 authority, not duplicate it. Do not touch Yahoo token exchange, ESPN cookie handling, SQL, or native UI.
+2. **M0-BE-2 — Idempotent native connect/validate.** Before changing a route, inventory the durable effects of Yahoo auth start/callback and Sleeper connect. Define a replay record only if existing platform-connection upserts cannot provide correct replay semantics. Scope ESPN out of native mobile delivery until its approved store-safe path exists. Do not add a schema migration, new provider credential flow, or user-visible raw error.
+3. **M0-BE-3 — Yahoo mobile-aware return.** First produce the current-primary-source research note required by the provider/OAuth boundary. Preserve the existing web callback as an explicit compatibility path. Bind any native return intent to the server-verified OAuth transaction; do not accept arbitrary redirect URLs or place authorization artifacts in the app deep link.
+
+Each PR must update `Blueprints/handoffs/backend-to-frontend.md` with its exact request/response shape and test evidence. The execution record is `Blueprints/handoffs/2026-07-23-m0-be-shared-contract-matrix.md`.
 
 ## Security and RBAC Evidence
 

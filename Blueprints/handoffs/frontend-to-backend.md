@@ -19,6 +19,8 @@ Source contracts: `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contra
 
 Security invariant across all four: no secret, OAuth token, or ESPN cookie value in responses, logs, or error text (facts-of-record #6).
 
+**M0-BE-1 response (2026-07-23):** `GET /api/platforms/state` is now available as the additive authenticated contract `platform-provider-state.v1`. It returns one persisted, server-observable state per Yahoo/Sleeper/ESPN provider: `not_started`, `resolving_account`, `choosing_league`, `needs_reauth`, or `connected`, plus an opaque `error_code` and safe `recovery_action`. Browser/OAuth in-flight states remain client orchestration and are not invented from a stored connection row. Internal lookup failure returns only `503 retryable_error / provider_state_unavailable`. See `Blueprints/handoffs/2026-07-23-m0-be-1-provider-state-api.md`.
+
 ## Active Context
 
 Last updated: 2026-06-02 (Tier 2 frontend deployed; docs reconciled post-PR-#22)

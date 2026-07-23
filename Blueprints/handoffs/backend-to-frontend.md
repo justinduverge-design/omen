@@ -6,6 +6,52 @@ Codex/backend writes completed or proposed backend contracts here.
 
 Claude/frontend reads this file before wiring UI to backend behavior.
 
+## M0-BE-1 — Native provider-state API (2026-07-23)
+
+Status: implemented locally on `backend/m0be-provider-state-api`; not yet pushed, merged, deployed, or production-smoked.
+
+Endpoint:
+
+```text
+GET /api/platforms/state
+Authorization: Bearer <Omen session token>
+```
+
+Success response (`platform-provider-state.v1`):
+
+```json
+{
+  "contract_version": "platform-provider-state.v1",
+  "providers": {
+    "yahoo": {
+      "platform": "yahoo",
+      "state": "needs_reauth",
+      "recovery_action": "reauthenticate",
+      "error_code": "yahoo_oauth_context_missing"
+    }
+  }
+}
+```
+
+Each provider entry is one of `not_started`, `resolving_account`, `choosing_league`, `needs_reauth`, or `connected`. Use `recovery_action` (`start_connection`, `retry`, `choose_league`, `reauthenticate`, or `null`) rather than deriving state from HTTP errors. `error_code` is opaque and may be `null`.
+
+This route describes persisted server-observable state only. Native browser/OAuth in-flight states (`authorizing`, `awaiting_return`, cancel, and resume UI) remain client orchestration until the Yahoo callback slice supplies its verified transition contract.
+
+Failure response:
+
+```json
+{
+  "contract_version": "platform-provider-state.v1",
+  "state": "retryable_error",
+  "recovery_action": "retry",
+  "error_code": "provider_state_unavailable"
+}
+```
+
+It never includes raw provider text, cookies, tokens, OAuth state/verifier, or Vault identifiers. Existing `GET /api/platforms` behavior is unchanged.
+
+Verification: `node --test test/platforms.test.js` 17/17. Full-suite and audit baseline limitations are recorded in the M0-BE-1 handoff.
+
 ## M0-BE F2 — Omen readiness truth (2026-07-19)
 
 Status: Implemented locally on `codex/m0be-f2-status-truth`; not pushed, merged, deployed, or production-smoked.
