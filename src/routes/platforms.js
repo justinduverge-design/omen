@@ -9,6 +9,7 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
@@ -20,9 +21,51 @@ const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 const PROVIDER_STATE_CONTRACT_VERSION = "platform-provider-state.v1";
+const CONNECTION_REPLAY_TTL_SECONDS = 10 * 60;
+const NATIVE_REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function createConnectionReplayStore() {
+  if (!config.redisUrl || !config.redisToken) return null;
+  return new Redis({ url: config.redisUrl, token: config.redisToken });
+}
+
+function connectionReplayKey(userId, requestId) {
+  return `omen:connection-replay:${userId}:sleeper:${requestId}`;
+}
+
+function parseReplayRecord(raw) {
+  if (!raw) return null;
+  return typeof raw === "string" ? JSON.parse(raw) : raw;
+}
+
+async function startConnectionReplay({ userId, requestId }) {
+  const redis = createConnectionReplayStore();
+  if (!redis) return { kind: "unavailable" };
+
+  const key = connectionReplayKey(userId, requestId);
+  const existing = parseReplayRecord(await redis.get(key));
+  if (existing?.status === "complete") return { kind: "replay", redis, key, response: existing.response };
+  if (existing?.status === "in_progress") return { kind: "in_progress" };
+
+  const acquired = await redis.set(key, JSON.stringify({ status: "in_progress" }), {
+    nx: true,
+    ex: CONNECTION_REPLAY_TTL_SECONDS,
+  });
+  if (acquired) return { kind: "started", redis, key };
+
+  const raced = parseReplayRecord(await redis.get(key));
+  if (raced?.status === "complete") return { kind: "replay", redis, key, response: raced.response };
+  return { kind: "in_progress" };
+}
+
+async function completeConnectionReplay(replay, response) {
+  await replay.redis.set(replay.key, JSON.stringify({ status: "complete", response }), {
+    ex: CONNECTION_REPLAY_TTL_SECONDS,
+  });
 }
 
 function stripWrappingQuotes(value) {
@@ -413,11 +456,42 @@ router.post("/sleeper/resolve", requireAuth, async (req, res, next) => {
 });
 
 router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
+  const requestId = req.body?.request_id == null ? null : String(req.body.request_id).trim();
+  let replay = null;
+  let connectionSaved = false;
   try {
     const username = String(req.body?.sleeper_username || req.body?.username || "").trim();
     const leagueId = String(req.body?.league_id || "").trim();
     if (!username) return res.status(422).json({ error: "sleeper_username required" });
     if (!leagueId) return res.status(422).json({ error: "league_id required" });
+    if (requestId && !NATIVE_REQUEST_ID_PATTERN.test(requestId)) {
+      return res.status(422).json({ error: "Invalid request_id", code: "invalid_request_id" });
+    }
+
+    if (requestId) {
+      try {
+        replay = await startConnectionReplay({ userId: req.user.id, requestId });
+      } catch {
+        logger.error("Sleeper connection replay storage failed");
+        return res.status(503).json({
+          error: "Connection request replay is temporarily unavailable",
+          code: "connection_replay_unavailable",
+        });
+      }
+      if (replay.kind === "unavailable") {
+        return res.status(503).json({
+          error: "Connection request replay is temporarily unavailable",
+          code: "connection_replay_unavailable",
+        });
+      }
+      if (replay.kind === "in_progress") {
+        return res.status(409).json({
+          error: "Connection request is already in progress",
+          code: "connection_request_in_progress",
+        });
+      }
+      if (replay.kind === "replay") return res.json({ ...replay.response, replayed: true });
+    }
 
     await ensureAppUser(req.user);
 
@@ -442,14 +516,29 @@ router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
     }, { onConflict: "user_id,platform" });
 
     if (error) throw new Error(`Sleeper connection upsert failed: ${error.message}`);
-    return res.json({
+    connectionSaved = true;
+    const response = {
       connected: true,
       status: "connected",
       platform: "sleeper",
       username: sleeperUser.username || username,
       league_id: leagueId,
-    });
+      ...(requestId ? { request_id: requestId, replayed: false } : {}),
+    };
+    if (replay?.kind === "started") {
+      try {
+        await completeConnectionReplay(replay, response);
+      } catch {
+        logger.error("Sleeper connection replay storage failed");
+        return res.status(503).json({
+          error: "Connection request replay is temporarily unavailable",
+          code: "connection_replay_unavailable",
+        });
+      }
+    }
+    return res.json(response);
   } catch (e) {
+    if (replay?.kind === "started" && !connectionSaved) await replay.redis.del(replay.key).catch(() => null);
     logger.error("Sleeper connect failed", { err: e.message });
     return next(e);
   }

@@ -106,6 +106,10 @@ function loadPlatformsRouter({
   vaultDeleteError,
   platformLookupError,
   rejectAuth = false,
+  redisStore = new Map(),
+  redisUnavailable = false,
+  redisErrorMessage = "redis unavailable",
+  redisFailOnSet = null,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -121,13 +125,40 @@ function loadPlatformsRouter({
     logs: [],
     vaultDeleteError,
     platformLookupError,
+    redisStore,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
+  let redisSetCalls = 0;
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "@supabase/supabase-js" && parent?.filename === routePath) {
       return { createClient: () => fakeSupabase };
+    }
+    if (request === "../config" && parent?.filename === routePath) {
+      return { redisUrl: "https://redis.example", redisToken: "test-redis-token" };
+    }
+    if (request === "@upstash/redis" && parent?.filename === routePath) {
+      return {
+        Redis: class MockRedis {
+          async get(key) {
+            if (redisUnavailable) throw new Error(redisErrorMessage);
+            return state.redisStore.get(key) || null;
+          }
+          async set(key, value, options = {}) {
+            if (redisUnavailable) throw new Error(redisErrorMessage);
+            redisSetCalls += 1;
+            if (redisFailOnSet === redisSetCalls) throw new Error(redisErrorMessage);
+            if (options.nx && state.redisStore.has(key)) return null;
+            state.redisStore.set(key, value);
+            return "OK";
+          }
+          async del(key) {
+            state.redisStore.delete(key);
+            return 1;
+          }
+        },
+      };
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
@@ -462,6 +493,103 @@ test("POST /api/platforms/sleeper/connect bootstraps app user before saving conn
   assert.equal(state.upserts[0].payload.platform, "sleeper");
   assert.equal(state.upserts[0].payload.platform_user_id, "sleeper-user-1");
   assert.equal(state.upserts[0].options.onConflict, "user_id,platform");
+});
+
+test("POST /api/platforms/sleeper/connect replays one completed native request without a second durable effect", async () => {
+  const { app, state } = buildApp();
+  const body = {
+    sleeper_username: "sleepy",
+    league_id: "league-1",
+    request_id: "native-connect-request-0001",
+  };
+
+  const first = await request(app, "/api/platforms/sleeper/connect", { method: "POST", body });
+  const second = await request(app, "/api/platforms/sleeper/connect", { method: "POST", body });
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.replayed, false);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.replayed, true);
+  assert.equal(second.body.request_id, "native-connect-request-0001");
+  assert.equal(state.upserts.length, 1);
+  assert.equal(JSON.stringify(second.body).includes("test-slops-user"), false);
+});
+
+test("POST /api/platforms/sleeper/connect fails closed for invalid or unavailable native request replay", async () => {
+  const invalid = buildApp();
+  const invalidRes = await request(invalid.app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "league-1", request_id: "bad id" },
+  });
+  assert.equal(invalidRes.status, 422);
+  assert.deepEqual(invalidRes.body, { error: "Invalid request_id", code: "invalid_request_id" });
+  assert.equal(invalid.state.upserts.length, 0);
+
+  const unavailable = buildApp({
+    redisUnavailable: true,
+    redisErrorMessage: "redis token=super-secret-token",
+  });
+  const unavailableRes = await request(unavailable.app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "league-1", request_id: "native-connect-request-0002" },
+  });
+  assert.equal(unavailableRes.status, 503);
+  assert.deepEqual(unavailableRes.body, {
+    error: "Connection request replay is temporarily unavailable",
+    code: "connection_replay_unavailable",
+  });
+  assert.equal(unavailable.state.upserts.length, 0);
+  assert.equal(JSON.stringify(unavailable.state.logs).includes("super-secret-token"), false);
+});
+
+test("POST /api/platforms/sleeper/connect keeps in-progress duplicates inert and distinct request IDs independent", async () => {
+  const inProgressId = "native-connect-request-0003";
+  const inProgress = buildApp({
+    redisStore: new Map([[
+      `omen:connection-replay:test-slops-user:sleeper:${inProgressId}`,
+      JSON.stringify({ status: "in_progress" }),
+    ]]),
+  });
+  const inProgressRes = await request(inProgress.app, "/api/platforms/sleeper/connect", {
+    method: "POST",
+    body: { sleeper_username: "sleepy", league_id: "league-1", request_id: inProgressId },
+  });
+  assert.equal(inProgressRes.status, 409);
+  assert.equal(inProgressRes.body.code, "connection_request_in_progress");
+  assert.equal(inProgress.state.upserts.length, 0);
+
+  const independent = buildApp();
+  for (const requestId of ["native-connect-request-0004", "native-connect-request-0005"]) {
+    const res = await request(independent.app, "/api/platforms/sleeper/connect", {
+      method: "POST",
+      body: { sleeper_username: "sleepy", league_id: "league-1", request_id: requestId },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.replayed, false);
+  }
+  assert.equal(independent.state.upserts.length, 2);
+});
+
+test("POST /api/platforms/sleeper/connect holds a retry inert if replay completion fails after the connection write", async () => {
+  const { app, state } = buildApp({
+    redisFailOnSet: 2,
+    redisErrorMessage: "redis token=super-secret-token",
+  });
+  const body = {
+    sleeper_username: "sleepy",
+    league_id: "league-1",
+    request_id: "native-connect-request-0006",
+  };
+
+  const first = await request(app, "/api/platforms/sleeper/connect", { method: "POST", body });
+  const retry = await request(app, "/api/platforms/sleeper/connect", { method: "POST", body });
+
+  assert.equal(first.status, 503);
+  assert.equal(first.body.code, "connection_replay_unavailable");
+  assert.equal(retry.status, 409);
+  assert.equal(retry.body.code, "connection_request_in_progress");
+  assert.equal(state.upserts.length, 1);
+  assert.equal(JSON.stringify(state.logs).includes("super-secret-token"), false);
 });
 
 test("POST /api/sleeper/connect returns 400 for nonexistent username", async () => {
