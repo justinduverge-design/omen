@@ -51,7 +51,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M0c | Native app-shell/auth/API contract | P0 | M0a | ✅ Approved 2026-07-19. Surfaces 4 backend requirements to `frontend-to-backend.md`. |
 | M1 | Native design-system implementation plan | P0 | M0b + M0c | In progress. Governed by M1-P. |
 | M1-F | Native Figma token and foundation-library setup | P0 | M1 focus-ring + typography briefs | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m1-figma-foundation-library.md`; Figma nodes `13:2` / `14:2`. |
-| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 P2 + P4 complete. **P2 foundations:** PRs #165–#169 (tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow), #174 PlatformBadge, #175 ConfirmationDialog, #176 platform legibility tokens + fill-on-platform PlatformBadge. **P4 gallery + enforcement:** SwiftUI `DesignSystemGalleryView` (debug-only), Android `PrimitiveEnforcementTest`, iOS `PrimitiveEnforcementTests`; registry §3.2 amended. `OmenAndroidApp.kt` allowlisted with written retirement plan (retires with first M4 feature screen). **Next:** P3 product compositions before M4 feature screens. |
+| M1-P | Native primitives + component enforcement | P0 | M1-F + Figma screen-contract pass | 🟡 P2 + P4 complete; **P3 Batch 1 in progress**. **P2 foundations:** PRs #165–#169 (tokens/controls/fields/Card/Badge/Chip/Modal/StateSurfaces/ListRow), #174 PlatformBadge, #175 ConfirmationDialog, #176 platform legibility tokens + fill-on-platform PlatformBadge. **P4 gallery + enforcement:** SwiftUI `DesignSystemGalleryView` (debug-only), Android `PrimitiveEnforcementTest`, iOS `PrimitiveEnforcementTests`; registry §3.2 amended. `OmenAndroidApp.kt` allowlisted with written retirement plan (retires with first M4 feature screen). **P3 Batch 1 (metric primitives):** ConfidenceBar, RiskPanel, MetricStrip, SignalList on `claude/m1p-p3-compositions`. **Next:** P3 Batch 2 (PlayerRow, ConnectionStatusBadge, PlatformConnectionCard), then Batch 3 (DecisionBrief shell). |
 | M2-F | Native app-shell screen contracts | P0 | M1-F | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-app-shell-contracts.md`; Figma nodes `17:12` / `17:13`. |
 | M2-E | Native build-environment decision | P0 | M2-F | ✅ Completed 2026-07-19. Android Studio/SDK/ADB/emulator verified; iOS path is unsigned GitHub macOS simulator CI. |
 | M2 | Native app-shell project scaffolding | P0 | M0 + M2-F + M2-E | ✅ Completed 2026-07-19. Evidence: `Blueprints/handoffs/2026-07-19-m2-native-app-shell-scaffold.md`. |
@@ -128,6 +128,16 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M1P-Next-2 — ConfirmationDialog foundation — ✅ merged PR #175 (2026-07-21).
 
 ### M1P-P4 — Dual-platform gallery and enforcement — ✅ built 2026-07-21 on `claude/m1p-p4-gallery-enforcement`. SwiftUI `DesignSystemGalleryView` (debug-only), Android `PrimitiveEnforcementTest` (JUnit source scanner in `:core:designsystem`), iOS `PrimitiveEnforcementTests` (XCTest source scanner in `OmenIOSTests`). Registry §3.2 amended. `OmenAndroidApp.kt` allowlisted with retirement plan. Evidence: `Blueprints/handoffs/2026-07-21-m1p-p4-gallery-enforcement.md`.
+
+### M1P-P3 — Product compositions (3 batches)
+
+- **Priority:** P0
+- **Cost:** medium (batched)
+- **Blocked by:** none for the 8 unblocked compositions; Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail (not in scope for these batches).
+- **Batch 1 — Metric primitives:** 🟡 in progress on `claude/m1p-p3-compositions`. ConfidenceBar, RiskPanel, MetricStrip, SignalList shipped on both platforms with gallery entries, Android connected tests, and iOS XCTest contract tests. Android `:core:designsystem:compileDebugKotlin` + `testDebugUnitTest` + `:core:designsystem:assembleDebug` + `:app:assembleDebug` green. Primitive-enforcement scanners still green. iOS unsigned simulator CI validates on push.
+- **Batch 2 (next):** PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard.
+- **Batch 3 (final):** DecisionBrief shell — integrates Batch 1 + provider state; all 8 state surfaces.
+- **Do not touch:** provider connect flows, provider credentials, `OmenAndroidApp.kt` M2 scaffold (retires with first M4 feature screen, not P3), SQL, store configuration.
 
 ### M3A-QA — Native auth real-device QA
 

@@ -54,10 +54,12 @@ Read these before selecting work:
 - **Priority / cost / blocker:** P0 / medium / none
 - **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
 
-### 2. M1P-P3 — Product compositions
+### 2. M1P-P3 — Product compositions (3 batches)
 
-- **Why next:** now that P2 primitives + P4 enforcement are in place, PlayerRow / DecisionBrief shell / PlatformConnectionCard / ConnectionStatusBadge / MetricStrip / ConfidenceBar / RiskPanel / SignalList unblock M4 feature screens.
-- **Priority / cost / blocker:** P0 / medium / unblocked for the listed compositions; Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2.
+- **Batch 1 status:** 🟡 in progress on `claude/m1p-p3-compositions` — ConfidenceBar, RiskPanel, MetricStrip, SignalList shipped on both platforms with gallery entries and tests. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-metric-primitives.md`.
+- **Next Batches:** Batch 2 = PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard. Batch 3 = DecisionBrief shell. Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2 (separate track).
+- **Why next:** P2 primitives + P4 enforcement are in place; P3 compositions unblock M4 feature screens.
+- **Priority / cost / blocker:** P0 / medium / unblocked for the 8 listed compositions.
 - **Output:** shared SwiftUI + Compose compositions per registry §3.2, gallery entries, tests, handoff, Done Ledger row, skill receipt.
 - **Do not touch:** provider connect flows, provider credentials, production, SQL, store configuration.
 

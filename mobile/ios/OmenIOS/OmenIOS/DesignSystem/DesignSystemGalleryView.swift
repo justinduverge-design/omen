@@ -172,6 +172,39 @@ struct DesignSystemGalleryView: View {
                     }
                 }
 
+                section("ConfidenceBar — labeled and unlabeled") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                        OmenConfidenceBar(score: 72, label: "Confidence")
+                        OmenConfidenceBar(score: 15, label: "Confidence")
+                        OmenConfidenceBar(score: 100)
+                    }
+                }
+
+                section("RiskPanel — low / medium / high") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenRiskPanel(level: .low, reasons: ["Bench depth is strong.", "Weather stable."])
+                        OmenRiskPanel(level: .medium, reasons: ["Backup RB questionable.", "Weather uncertain."])
+                        OmenRiskPanel(level: .high, reasons: ["Starter ruled out.", "Kicker on the road in wind."])
+                    }
+                }
+
+                section("MetricStrip — value + delta + optional confidence") {
+                    OmenMetricStrip(items: [
+                        OmenMetricItem(label: "Projected", value: "142.6", delta: "+4.1", deltaDirection: .positive, confidence: 72),
+                        OmenMetricItem(label: "Opponent", value: "128.4", delta: "−2.3", deltaDirection: .negative),
+                        OmenMetricItem(label: "Ceiling", value: "168.2"),
+                    ])
+                }
+
+                section("SignalList — live / stub / mock / unavailable") {
+                    OmenSignalList(signals: [
+                        OmenSignalItem(label: "Yahoo roster snapshot", source: .live, detail: "Refreshed 4 minutes ago."),
+                        OmenSignalItem(label: "Opponent projections", source: .stub, detail: "Backfilled from last week."),
+                        OmenSignalItem(label: "Weather forecast", source: .mock, detail: "Demo fixture."),
+                        OmenSignalItem(label: "Vegas totals", source: .unavailable, detail: "Provider silent this window."),
+                    ])
+                }
+
                 section("ConfirmationDialog — default and destructive (tap to preview)") {
                     HStack(spacing: OmenSpacing.step8) {
                         OmenButton(title: "Show default", action: { showDefaultConfirm = true })

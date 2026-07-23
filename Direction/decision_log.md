@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-22 (M1-P P3 batching + Batch 1 metric-primitive shape)
+
+- **P3 ships in 3 batches, not 8 PRs.** Batch 1: ConfidenceBar / RiskPanel / MetricStrip / SignalList (metric family). Batch 2: PlayerRow / ConnectionStatusBadge / PlatformConnectionCard (identity + connection family). Batch 3: DecisionBrief shell (integration). Context Strip / Matchup Spine / Evidence Disclosure remain a separate Figma-first track per registry §3.2 approval trail.
+- **Metric-family API invariants (locked for Batches 2/3):** every composition surfaces a redundant text label so meaning survives grayscale (registry §1, §2.3, §4); enums are the label source (callers cannot suppress it). ConfidenceBar clamps out-of-range scores rather than trapping. MetricStrip delta directions map to the risk-invariant color family (`risk-low` / `risk-high`) rather than a new success/danger alias — preserves the "green = healthy" reading across DecisionBrief, MetricStrip, and RiskPanel.
+- **RiskPanel medium tone deferred.** No `risk-medium` Badge tone exists yet; Medium maps to Neutral so the "Medium risk" text still speaks. Adding a proper Medium fill is a follow-up Badge extension, not a P3 blocker.
+- **iOS pbxproj remains hand-edited.** No conversion to SwiftPM / xcodegen in this PR. Batch 1 registered 4 sources + 1 test source with unique `PBXBuildFile`/`PBXFileReference` IDs; recorded as a procedure gap for future batches.
+
 ## Decision Added 2026-07-22 (F2 doc reconciliation closes the status-truth pin)
 
 - **F2 is closed.** Runtime was already unified 2026-07-19 in `src/services/omenReadiness.js` and codified by the M0-BE F2 contract. The 2026-07-22 doc pass on branch `claude/f2-status-truth` corrected six stale wording sites where legacy 2026-05-25/26 handoffs and mobile specs still framed `pending_live_engine` as "engine unbuilt" or claimed Sleeper/ESPN always return it. No runtime, response shape, or test change; docs only.
