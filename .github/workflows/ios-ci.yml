@@ -2,9 +2,9 @@
 # GitHub macOS simulator CI, included/non-billed capacity, no signing).
 #
 # COST NOTE: macOS runners bill at a higher multiplier on private repos. This
-# workflow is deliberately narrow — it runs ONLY when mobile/ios changes or on
-# manual dispatch — to keep runner-minute usage minimal. Do not broaden the
-# triggers without founder approval.
+# workflow is deliberately narrow — it runs for relevant pull requests, on
+# main after merge, or on manual dispatch — to keep runner-minute usage
+# minimal. Do not broaden the triggers without founder approval.
 #
 # Runs the OmenIOSTests unit-test target (host app OmenIOS) against a concrete
 # iOS Simulator destination, signing disabled, per the M3-A iOS auth parity
@@ -20,6 +20,8 @@ on:
   # on-demand reruns.
   push:
     branches: [main]
+    branches:
+      - main
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
