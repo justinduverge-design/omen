@@ -248,6 +248,17 @@ struct DesignSystemGalleryView: View {
                     }
                 }
 
+                section("Command Center — screen assembly (feature layer) · connected / disconnected / reauth") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoConnected)
+                            .frame(maxHeight: 900)
+                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoDisconnected)
+                            .frame(maxHeight: 700)
+                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoReauth)
+                            .frame(maxHeight: 700)
+                    }
+                }
+
                 section("DecisionBrief — success / stale / mock / empty / loading / error / disconnected / off-season") {
                     let payload = OmenDecisionBriefPayload(
                         verdict: "Start Christian McCaffrey",

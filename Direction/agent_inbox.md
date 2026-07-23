@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-22
+**Refreshed:** 2026-07-22 (M4 Command Center v1)
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
@@ -54,7 +54,13 @@ Read these before selecting work:
 - **Priority / cost / blocker:** P0 / medium / none
 - **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
 
-### 2. M1P-P3 — Product compositions ✅ implementation complete (all 3 batches)
+### 2. M4 Command Center v1 — first feature screen ✅ implementation complete
+
+- **Branch:** `claude/m4-command-center`. Screen assembly at app/feature layer on both platforms; consumes approved primitives + P3 compositions only. `OmenAndroidApp.kt` allowlist entry retired. Local Material Symbols vector drawables for all 5 nav tabs (official Google artwork, no dependency added).
+- **M4-Auth (new retirement item):** two extracted auth files (`OmenAuthFlow.kt`, `OmenDeleteAccountScreen.kt`) allowlisted with a single-event exit; see sprint entry.
+- **Evidence:** `Blueprints/handoffs/2026-07-22-m4-command-center-v1.md`.
+
+### 3. M1P-P3 — Product compositions ✅ implementation complete (all 3 batches)
 
 - **Batch 1** on `claude/m1p-p3-compositions` — ConfidenceBar, RiskPanel, MetricStrip, SignalList. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-metric-primitives.md`.
 - **Batch 2** on `claude/m1p-p3-batch-2` (stacked) — PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-connection-primitives.md`.
@@ -62,13 +68,13 @@ Read these before selecting work:
 - **All three branches waiting on merge.** M4 feature screens unblock as soon as the stack lands.
 - Context Strip / Matchup Spine / Evidence Disclosure remain on the Figma-first track per registry §3.2 (separate future work).
 
-### 3. M3A-QA — Native auth real-device QA
+### 4. M3A-QA — Native auth real-device QA
 
 - **Why next:** M3-A implementation is merged on both platforms; only human-gated interactive QA remains.
 - **Priority / cost / blocker:** P0 / small, human-gated / founder credential + inbox access
 - **Output:** sanitized QA matrix from `mobile/contracts/m3a-interactive-qa-runbook.md` for Android and iOS; agent may prep matrix only.
 
-### 4. A1 — Review and disposition PR #140 (SVG logo masters)
+### 5. A1 — Review and disposition PR #140 (SVG logo masters)
 
 - **Why next:** founder/review gate still open; visual review + concrete findings or approval.
 - **Priority / cost / blocker:** P0 / small / Justin visual approval

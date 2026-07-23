@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-22
+**Last updated:** 2026-07-22 (M4 Command Center v1)
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -59,7 +59,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M3-A | Native authentication proof | P0 | M3 + founder auth-config authority | ✅ Android and iOS implementation merged. Android PR #157. iOS PR #171. PR #172 repaired the post-merge split-screen scaffold regression test. Real-device interactive QA remains separate. |
 | M3A-QA | Native auth interactive real-device QA | P0 | M3-A Android + iOS implementations | Founder/human QA. Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion, and an equivalent iOS real-device Sign in with Apple + OTP pass. Agent-blocked: credential entry and inbox reading. |
 | M0-BE | Native backend requirements bundle | P0 | F2 first | 4 reqs from M0c §11: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2 status truth. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. |
-| M4 | Native feature delivery | P1 | M1-P P3 product compositions approved | Blocked. Trade, Draft, League, and Connections ship one contract-backed feature at a time after M1-P P3 lands. P2 + P4 are complete. No feature screen may introduce a new primitive; enforcement scanners (Android + iOS) will fail the build if one does. |
+| M4 | Native feature delivery | P1 | none (unblocked 2026-07-22) | 🟡 **v1 Command Center on both platforms in progress on `claude/m4-command-center`.** Screen assembly lives at app/feature layer (`app/feature/commandcenter/` on Android, `App/CommandCenter/` on iOS), composed only from approved primitives + P3 compositions. `OmenAndroidApp.kt` allowlist entry retired; two auth surfaces extracted into `app/auth/OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` and tracked under **M4-Auth** for eventual retirement. Local Material Symbols vector drawables imported for all 5 nav tabs (option (d) — official Google artwork, no dependency added). Trade / Draft / Omen tab content and further feature screens follow. |
 | M5 | Theme packs / skins | P2 | M4 | Deferred. Core Omen themes and accessibility first. |
 
 ## Next build order
@@ -67,7 +67,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 1. ~~**F2 status truth**~~ ✅ Resolved 2026-07-19 (runtime) + 2026-07-22 (doc reconciliation on branch `claude/f2-status-truth`). Runtime authority: `src/services/omenReadiness.js`. Contract: `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2.
 2. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
 3. **M1-P P3 product compositions** — PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
-4. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame; landing an M4 feature screen also retires `OmenAndroidApp.kt`'s enforcement allowlist entry.
+4. **M4 feature screens** — v1 Command Center in progress on `claude/m4-command-center`. `OmenAndroidApp.kt` allowlist entry retired; auth surfaces tracked under **M4-Auth** for follow-up retirement. Next M4 slices: Trade / Draft / Omen tab content, then the M4-Auth pass.
 
 ## Current state
 
@@ -152,10 +152,23 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Priority:** P0
 - **Cost:** medium
-- **Blocked by:** F2 status truth first
-- **Agent-buildable:** yes after F2
+- **Blocked by:** none (F2 resolved 2026-07-22)
+- **Agent-buildable:** yes
 - **Done when:** one backend-owned API/state contract and acceptance-test matrix covers Yahoo deep-link return, safe provider-state API, connect idempotency, and the resolved F2 truth before implementation PRs start.
 - **Do not touch:** provider credentials, production data, deploy, SQL, or environment variables without separate approval.
+
+### M4-Auth — Omen-primitive-native auth surfaces (retirement item)
+
+- **Priority:** P1
+- **Cost:** small–medium
+- **Blocked by:** none (created 2026-07-22 alongside M4 Command Center v1)
+- **Agent-buildable:** yes
+- **Scope:** replace the two files listed below with compositions built from approved Omen primitives (`OmenTextField`, `OmenFormField`, `OmenButton`, `OmenConfirmationDialog`, `OmenCard`, `OmenStateSurface`) so both leave the primitive-enforcement allowlist together.
+  - `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenAuthFlow.kt`
+  - `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenDeleteAccountScreen.kt`
+- **Done when (single event — no partial exit):** both files are refactored to use only approved Omen primitives, both entries are removed from `PrimitiveEnforcementTest.ALLOWLISTED_FILES` in the same PR, the scanner is still green, and both surfaces build + render on Android.
+- **Non-expansion covenant:** M4-Auth is the *only* future exemption path for these two files. No third auth file may join the allowlist without opening a separately-tracked retirement item.
+- **Do not touch:** auth wiring itself (session/store/reducer/repos), Supabase config, credentials, deploy.
 
 ## B. Backend/recommendation lane — safe work only while native pivot is active
 
