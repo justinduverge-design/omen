@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-22
 **Branch:** `claude/m4-command-center`
-**PR:** _pending push_
+**PR:** [#185](https://github.com/justinduverge-design/omen/pull/185)
+**Head commit:** `7d12be9`
 **Base:** `main` @ `6831d20`
 
 ## Scope
@@ -99,7 +100,7 @@ Two files remain allowlisted under a **single** tracked retirement item written 
 - **Android compile / test / assemble:** `:core:designsystem:testDebugUnitTest` (primitive-enforcement scanner green with the new allowlist shape), `:core:designsystem:assembleDebug`, `:app:assembleDebug` — all BUILD SUCCESSFUL.
 - **`:app:` androidTest:** currently unwired (no runner deps declared in `mobile/android/app/build.gradle.kts`). An initial `OmenCommandCenterScreenTest.kt` was authored, then removed because adding androidTest deps is a gated `build.gradle.kts` change and this PR must not modify dependencies. Test evidence recorded as a follow-up in the skill ledger.
 - **Android instrumentation on device / Studio-managed AVD:** **not run in this session** — no Studio-managed ADB path exposed to this shell. **Not claimed passed.** Required-evidence pointer: launch the app on any Play-services API 34+ AVD or real device, sign in (or Try Demo), and verify (a) all 5 nav tabs render their Material Symbols icons at 24dp with selected/unselected Omen-token tints; (b) the Command tab renders the connected fixture; (c) tapping other tabs shows the "coming next" state surface.
-- **iOS:** local Xcode toolchain unavailable in this shell. **Treated as pending verification on `main`** — the unsigned simulator CI (`ios-ci.yml`) exercises `OmenCommandCenterScreenTests` and the full app build on push.
+- **iOS:** local Xcode toolchain unavailable in this shell, but the unsigned simulator CI (`ios-ci.yml`) ran on PR push and passed: run [29971377232](https://github.com/justinduverge-design/omen/actions/runs/29971377232/job/89093916854) (pull_request) and run [29971359888](https://github.com/justinduverge-design/omen/actions/runs/29971359888/job/89093866553) (push), both **✅ SUCCESS** — full app build + `OmenCommandCenterScreenTests` green.
 - `git diff --check` clean.
 
 ## Accessibility checks (both platforms)
@@ -132,7 +133,7 @@ Real product copy (once live wiring lands) will get a full `slops-ux-copy` pass 
 
 ## Boundaries honored
 
-No provider connect flows, provider credentials, auth wiring changes (session/store/reducer untouched), backend, SQL, secrets, `.env`, DNS, Nginx, signing/store/release, dependency or package change (no `material-icons-extended`, no androidTest deps added), Figma library publish, team-runtime-theming, `frontend/` web, or real network calls. No push, PR, merge, or deploy.
+No provider connect flows, provider credentials, auth wiring changes (session/store/reducer untouched), backend, SQL, secrets, `.env`, DNS, Nginx, signing/store/release, dependency or package change (no `material-icons-extended`, no androidTest deps added), Figma library publish, team-runtime-theming, `frontend/` web, or real network calls. Branch push + PR #185 opened per approval; no merge or deploy performed before approval.
 
 ## Skills
 
