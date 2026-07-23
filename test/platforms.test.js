@@ -38,6 +38,10 @@ class FakeQuery {
   }
 
   execute() {
+    if (this.operation === "select" && this.state.platformLookupError) {
+      return { data: null, error: { message: this.state.platformLookupError } };
+    }
+
     if (this.operation === "delete") {
       const rowsToDelete = new Set(this.applyFilters());
       this.state.rows = this.state.rows.filter((row) => !rowsToDelete.has(row));
@@ -100,6 +104,8 @@ function loadPlatformsRouter({
   espnError,
   espnValid = true,
   vaultDeleteError,
+  platformLookupError,
+  rejectAuth = false,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -114,6 +120,7 @@ function loadPlatformsRouter({
     appUsers: [],
     logs: [],
     vaultDeleteError,
+    platformLookupError,
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -124,7 +131,8 @@ function loadPlatformsRouter({
     }
     if (request === "../middleware/auth" && parent?.filename === routePath) {
       return {
-        requireAuth: (req, _res, next) => {
+        requireAuth: (req, res, next) => {
+          if (rejectAuth) return res.status(401).json({ error: "Missing bearer token" });
           req.user = { id: "test-slops-user", email: "user@example.com" };
           next();
         },
@@ -313,6 +321,103 @@ test("GET /api/platforms returns UX contract with manual and selected league met
     team_name: null,
     leagues: [],
   });
+});
+
+test("GET /api/platforms/state returns safe machine-readable states from persisted connection context", async () => {
+  const { app } = buildApp({
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "yahoo",
+        is_active: true,
+        league_id: "414.l.1",
+      },
+      {
+        user_id: "test-slops-user",
+        platform: "sleeper",
+        is_active: true,
+        platform_username: "sleepy",
+      },
+      {
+        user_id: "test-slops-user",
+        platform: "espn",
+        is_active: true,
+        espn_secret_id: "espn-secret-id",
+        swid_secret_id: "swid-secret-id",
+        league_id: "12345",
+      },
+    ],
+  });
+
+  const res = await request(app, "/api/platforms/state");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.contract_version, "platform-provider-state.v1");
+  assert.deepEqual(res.body.providers.yahoo, {
+    platform: "yahoo",
+    state: "needs_reauth",
+    recovery_action: "reauthenticate",
+    error_code: "yahoo_oauth_context_missing",
+  });
+  assert.deepEqual(res.body.providers.sleeper, {
+    platform: "sleeper",
+    state: "choosing_league",
+    recovery_action: "choose_league",
+    error_code: "sleeper_league_context_missing",
+  });
+  assert.deepEqual(res.body.providers.espn, {
+    platform: "espn",
+    state: "connected",
+    recovery_action: null,
+    error_code: null,
+  });
+  assert.equal(JSON.stringify(res.body).includes("espn-secret-id"), false);
+  assert.equal(JSON.stringify(res.body).includes("swid-secret-id"), false);
+});
+
+test("GET /api/platforms/state reports not_started and resolving_account without inferring an HTTP error", async () => {
+  const { app } = buildApp({
+    rows: [{
+      user_id: "test-slops-user",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "league-1",
+    }],
+  });
+
+  const res = await request(app, "/api/platforms/state");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.providers.yahoo, {
+    platform: "yahoo",
+    state: "not_started",
+    recovery_action: "start_connection",
+    error_code: null,
+  });
+  assert.deepEqual(res.body.providers.sleeper, {
+    platform: "sleeper",
+    state: "resolving_account",
+    recovery_action: "retry",
+    error_code: "sleeper_account_context_missing",
+  });
+});
+
+test("GET /api/platforms/state rejects missing auth and fails closed on an internal lookup error", async () => {
+  const unauthenticated = buildApp({ rejectAuth: true });
+  const unauthenticatedRes = await request(unauthenticated.app, "/api/platforms/state");
+  assert.equal(unauthenticatedRes.status, 401);
+
+  const unavailable = buildApp({ platformLookupError: "token=should-not-leak" });
+  const unavailableRes = await request(unavailable.app, "/api/platforms/state");
+  assert.equal(unavailableRes.status, 503);
+  assert.deepEqual(unavailableRes.body, {
+    contract_version: "platform-provider-state.v1",
+    state: "retryable_error",
+    recovery_action: "retry",
+    error_code: "provider_state_unavailable",
+  });
+  assert.equal(JSON.stringify(unavailableRes.body).includes("should-not-leak"), false);
+  assert.equal(JSON.stringify(unavailable.state.logs).includes("should-not-leak"), false);
 });
 
 test("POST /api/platforms/sleeper/resolve returns leagues for username-first flow", async () => {
