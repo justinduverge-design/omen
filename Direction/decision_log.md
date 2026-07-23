@@ -780,3 +780,8 @@
 - **iOS enforcement allowlist starts empty.** The iOS `App/` subtree was already `Omen*`-only when P4 landed. Any future exemption must document a written reason + retirement plan in `PrimitiveEnforcementTests.allowlistedRelativePaths`, same standard as the Android side.
 - **Debug-only gallery on both platforms.** The SwiftUI gallery is wrapped in `#if DEBUG`; the Android gallery activity lives in the `debug` source-set. Release binaries carry no gallery code.
 - **Skill improvement candidate:** the negative-check-then-restore verification pattern (temporarily disable the allowlist, confirm the scanner fails, restore) is worth adding to `slops-code-review` for any future scanner-style test. Not blocking this PR.
+
+## Decisions Added 2026-07-23 (M0-BE-2 native connection retries)
+
+- **Native Sleeper connect uses a bounded Redis replay record rather than a schema change.** The existing `platform_connections` upsert prevents duplicate rows but cannot return a safe first-response replay after response loss. The already-configured Redis dependency records an authenticated user/request ID outcome for 10 minutes, avoiding new provider credentials, migrations, or production-data action. Replay-store unavailability fails closed before the connection write; the timeout is deliberately not described as indefinite idempotency.
+- **Yahoo and ESPN stay out of the retry implementation.** Yahoo's OAuth transaction/return has different authorization-artifact and web-compatibility obligations, so it remains M0-BE-3 behind current primary-source research. ESPN has no approved native-store path and is unchanged.

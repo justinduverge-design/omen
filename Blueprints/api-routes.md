@@ -38,7 +38,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `GET` | `/api/platforms/state` | `platform-provider-state.v1` | Yes | Additive native provider-flow state: opaque state, recovery action, and error code only; never credentials, OAuth artifacts, or Vault IDs. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
-| `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. |
+| `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. Native callers may add an opaque bounded `request_id`; completed retries replay safely for 10 minutes, while replay-store failures fail closed. |
 | `GET` | `/api/yahoo/auth` | redirect | Yes | Yahoo OAuth start. |
 | `GET` | `/api/yahoo/callback` | redirect | No | Yahoo OAuth callback; redirects to Account connect. |
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
