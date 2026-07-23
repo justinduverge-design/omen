@@ -5,6 +5,16 @@
 
 ## Active task
 
+## 📌 Next agent pull — M4-Auth-Providers-v1 (blocked)
+
+Fresh session should pick up **M4-Auth-Providers-v1** (Discord OAuth + Passkeys/WebAuthn on both platforms) once the three blockers in `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md` clear:
+
+1. PR #195 (implementation brief) approved + merged.
+2. `androidx.browser` dep add approved.
+3. Supabase dashboard verifications (redirect URL + passkey RP ID) confirmed by founder.
+
+Single source of truth for implementation: `Blueprints/specs/mobile/m4-auth-providers-v1-brief.md`. Sprint entry: `Direction/current_sprint.md` → M lane → M4-Auth-Providers-v1.
+
 ## 📌 Native Mobile Pivot — founder direction
 
 **Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion are paused while Omen is planned and built as a real SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
