@@ -38,6 +38,12 @@ import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenChip
 import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
 import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBar
+import com.slopssaloon.omen.core.designsystem.component.OmenConnectionStatus
+import com.slopssaloon.omen.core.designsystem.component.OmenConnectionStatusBadge
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformConnectionCard
+import com.slopssaloon.omen.core.designsystem.component.OmenPlayerChip
+import com.slopssaloon.omen.core.designsystem.component.OmenPlayerRow
+import com.slopssaloon.omen.core.designsystem.component.OmenPosition
 import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationDialog
 import com.slopssaloon.omen.core.designsystem.component.OmenConfirmationVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
@@ -261,6 +267,52 @@ private fun GalleryScreen() {
                     OmenSignalItem(label = "Vegas totals", source = OmenSignalSource.Unavailable, detail = "Provider silent this window."),
                 ),
             )
+        },
+        Section("PlayerRow + PlayerChip") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OmenPlayerRow(name = "Christian McCaffrey", position = OmenPosition.RB, team = "SF", meta = "Q vs Dal, 4:25p ET")
+                OmenPlayerRow(name = "Justin Jefferson", position = OmenPosition.WR, team = "MIN", meta = "vs GB, 1:00p ET", onClick = {})
+                OmenPlayerRow(name = "Patrick Mahomes", position = OmenPosition.QB, team = "KC")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OmenPlayerChip(name = "Kelce", position = OmenPosition.TE)
+                    OmenPlayerChip(name = "49ers D/ST", position = OmenPosition.DEF)
+                }
+            }
+        },
+        Section("ConnectionStatusBadge — all six states") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.Connected)
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.Disconnected)
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.NeedsReauth)
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.Error)
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.Pending)
+                OmenConnectionStatusBadge(status = OmenConnectionStatus.Recovering)
+            }
+        },
+        Section("PlatformConnectionCard — connected / reauth / disconnected") {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OmenPlatformConnectionCard(
+                    platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Sleeper,
+                    status = OmenConnectionStatus.Connected,
+                    description = "Last synced 4 minutes ago.",
+                    actionLabel = "Manage league",
+                    onAction = {},
+                )
+                OmenPlatformConnectionCard(
+                    platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Yahoo,
+                    status = OmenConnectionStatus.NeedsReauth,
+                    description = "Reconnect to restore this week's roster.",
+                    actionLabel = "Reconnect Yahoo",
+                    onAction = {},
+                )
+                OmenPlatformConnectionCard(
+                    platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Espn,
+                    status = OmenConnectionStatus.Disconnected,
+                    description = "Connect ESPN to see your live matchup.",
+                    actionLabel = "Connect ESPN",
+                    onAction = {},
+                )
+            }
         },
         Section("ConfirmationDialog — default and destructive (tap to preview)") {
             var showDefault by remember { mutableStateOf(false) }

@@ -205,6 +205,49 @@ struct DesignSystemGalleryView: View {
                     ])
                 }
 
+                section("PlayerRow + PlayerChip") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        OmenPlayerRow(name: "Christian McCaffrey", position: .rb, team: "SF", meta: "Q vs Dal, 4:25p ET")
+                        OmenPlayerRow(name: "Justin Jefferson", position: .wr, team: "MIN", meta: "vs GB, 1:00p ET", action: {})
+                        OmenPlayerRow(name: "Patrick Mahomes", position: .qb, team: "KC")
+                        HStack(spacing: OmenSpacing.step8) {
+                            OmenPlayerChip(name: "Kelce", position: .te)
+                            OmenPlayerChip(name: "49ers D/ST", position: .def)
+                        }
+                    }
+                }
+
+                section("ConnectionStatusBadge — all six states") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        OmenConnectionStatusBadge(status: .connected)
+                        OmenConnectionStatusBadge(status: .disconnected)
+                        OmenConnectionStatusBadge(status: .needsReauth)
+                        OmenConnectionStatusBadge(status: .error)
+                        OmenConnectionStatusBadge(status: .pending)
+                        OmenConnectionStatusBadge(status: .recovering)
+                    }
+                }
+
+                section("PlatformConnectionCard — connected / reauth / disconnected") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenPlatformConnectionCard(
+                            platform: .sleeper, status: .connected,
+                            description: "Last synced 4 minutes ago.",
+                            actionLabel: "Manage league", onAction: {}
+                        )
+                        OmenPlatformConnectionCard(
+                            platform: .yahoo, status: .needsReauth,
+                            description: "Reconnect to restore this week's roster.",
+                            actionLabel: "Reconnect Yahoo", onAction: {}
+                        )
+                        OmenPlatformConnectionCard(
+                            platform: .espn, status: .disconnected,
+                            description: "Connect ESPN to see your live matchup.",
+                            actionLabel: "Connect ESPN", onAction: {}
+                        )
+                    }
+                }
+
                 section("ConfirmationDialog — default and destructive (tap to preview)") {
                     HStack(spacing: OmenSpacing.step8) {
                         OmenButton(title: "Show default", action: { showDefaultConfirm = true })

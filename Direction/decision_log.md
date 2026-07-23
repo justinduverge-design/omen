@@ -2,6 +2,14 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-22 (M1-P P3 Batch 2 connection-primitive shape + Batch 3 shell contract)
+
+- **One `OmenConnectionStatus` enum for both ConnectionStatusBadge and PlatformConnectionCard.** Registry §3.2 named two overlapping vocabularies (badge: connected/disconnected/reauth/recovery; card: adds error/pending). Unifying prevents native clients from inventing a second status truth.
+- **PlayerChip label folds position abbreviation into the label** (`RB · Christian McCaffrey`). Preserves the "color is never alone" rule in the compact form where color contrast on backgrounds is less reliable.
+- **PlatformConnectionCard card tone stays neutral for Error / NeedsReauth.** The ConnectionStatusBadge (Risk tone) carries the urgency; action button escalates to Danger variant. Whole-card red would over-signal for a compact status surface and clash with future DecisionBrief tone use.
+- **Button variant escalation contract:** `NeedsReauth` and `Error` → `Danger` variant; everything else → `Primary`. Same on both platforms.
+- **DecisionBrief shell contract authored ahead of implementation** (`Blueprints/specs/mobile/m1-p-p3-decision-brief-shell-brief-v1.md`) so Batch 3 starts from a settled state-surface list (all 8), field set, composition matrix, and open-question ledger — reduces implementation-time thrash.
+
 ## Decision Added 2026-07-22 (M1-P P3 batching + Batch 1 metric-primitive shape)
 
 - **P3 ships in 3 batches, not 8 PRs.** Batch 1: ConfidenceBar / RiskPanel / MetricStrip / SignalList (metric family). Batch 2: PlayerRow / ConnectionStatusBadge / PlatformConnectionCard (identity + connection family). Batch 3: DecisionBrief shell (integration). Context Strip / Matchup Spine / Evidence Disclosure remain a separate Figma-first track per registry §3.2 approval trail.
