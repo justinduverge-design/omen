@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-22 (M4 Command Center v1)
+**Last updated:** 2026-07-23 (M0-BE-0 shared contract and acceptance matrix)
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -58,14 +58,14 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 | M3 | Native vertical slice | P1 | M1 + M2 | ✅ Completed 2026-07-19 as local/demo-only. This is not authentication. Evidence: `Blueprints/handoffs/2026-07-19-m3-native-vertical-slice.md`. |
 | M3-A | Native authentication proof | P0 | M3 + founder auth-config authority | ✅ Android and iOS implementation merged. Android PR #157. iOS PR #171. PR #172 repaired the post-merge split-screen scaffold regression test. Real-device interactive QA remains separate. |
 | M3A-QA | Native auth interactive real-device QA | P0 | M3-A Android + iOS implementations | Founder/human QA. Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion, and an equivalent iOS real-device Sign in with Apple + OTP pass. Agent-blocked: credential entry and inbox reading. |
-| M0-BE | Native backend requirements bundle | P0 | F2 first | 4 reqs from M0c §11: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2 status truth. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. |
+| M0-BE | Native backend requirements bundle | P0 | M0-BE-1 first | F2 plus three outstanding requirements: Yahoo deep-link return, safe provider-state API, and connect idempotency. M0-BE-0 completed the shared contract/matrix; the remaining work is three small PRs. |
 | M4 | Native feature delivery | P1 | none (unblocked 2026-07-22) | 🟡 **v1 Command Center on both platforms in progress on `claude/m4-command-center`.** Screen assembly lives at app/feature layer (`app/feature/commandcenter/` on Android, `App/CommandCenter/` on iOS), composed only from approved primitives + P3 compositions. `OmenAndroidApp.kt` allowlist entry retired; two auth surfaces extracted into `app/auth/OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` and tracked under **M4-Auth** for eventual retirement. Local Material Symbols vector drawables imported for all 5 nav tabs (option (d) — official Google artwork, no dependency added). Trade / Draft / Omen tab content and further feature screens follow. |
 | M5 | Theme packs / skins | P2 | M4 | Deferred. Core Omen themes and accessibility first. |
 
 ## Next build order
 
 1. ~~**F2 status truth**~~ ✅ Resolved 2026-07-19 (runtime) + 2026-07-22 (doc reconciliation on branch `claude/f2-status-truth`). Runtime authority: `src/services/omenReadiness.js`. Contract: `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2.
-2. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
+2. **M0-BE backend bundle** — M0-BE-0 shared API/state contract + acceptance matrix is complete; implement M0-BE-1, M0-BE-2, then M0-BE-3 as three small backend PRs.
 3. **M1-P P3 product compositions** — PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
 4. **M4 feature screens** — v1 Command Center in progress on `claude/m4-command-center`. `OmenAndroidApp.kt` allowlist entry retired; auth surfaces tracked under **M4-Auth** for follow-up retirement. Next M4 slices: Trade / Draft / Omen tab content, then the M4-Auth pass.
 
@@ -148,14 +148,43 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** Android Play-services AVD or real device proves Google sign-in, email OTP, session restore, account deletion, and log safety; iOS real device proves Sign in with Apple, email OTP, session restore, account deletion, and log safety.
 - **Evidence:** sanitized QA matrix; no screenshots/logs containing credentials or tokens.
 
-### M0-BE-0 — Native backend shared contract and acceptance matrix
+### M0-BE-0 — Native backend shared contract and acceptance matrix ✅ Completed 2026-07-23
 
 - **Priority:** P0
 - **Cost:** medium
 - **Blocked by:** none (F2 resolved 2026-07-22)
 - **Agent-buildable:** yes
-- **Done when:** one backend-owned API/state contract and acceptance-test matrix covers Yahoo deep-link return, safe provider-state API, connect idempotency, and the resolved F2 truth before implementation PRs start.
-- **Do not touch:** provider credentials, production data, deploy, SQL, or environment variables without separate approval.
+- **Evidence:** `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md`, `Blueprints/handoffs/2026-07-23-m0-be-shared-contract-matrix.md`, and `Direction/reviews/2026-07-23-m0-be-security-rbac-review.md`.
+
+### M0-BE-1 — Safe provider-state API
+
+- **Priority:** P0
+- **Cost:** medium
+- **Blocked by:** none
+- **Agent-buildable:** yes
+- **Scope:** Add authenticated, additive `GET /api/platforms/state` mapped to the M0a state machine with opaque codes and safe recovery actions. Preserve existing `GET /api/platforms` behavior.
+- **Done when:** focused route tests cover all documented states, missing auth, unknown/internal failure, and prohibited-field absence; frontend/backend handoff records the exact shape.
+- **Do not touch:** OAuth callback behavior, ESPN cookie handling, SQL, provider credentials, deploy, or native UI.
+
+### M0-BE-2 — Idempotent native connect/validate
+
+- **Priority:** P0
+- **Cost:** medium
+- **Blocked by:** M0-BE-1 contract review
+- **Agent-buildable:** yes
+- **Scope:** Bind bounded client request IDs to authenticated native-supported connection/validation mutations and prove safe replay semantics.
+- **Done when:** double-tap, retry-after-response-loss, and resume tests prove one durable effect per user/request ID; distinct IDs remain independent.
+- **Do not touch:** ESPN native flow, schema/migrations, provider credentials, deploy, or production data.
+
+### M0-BE-3 — Yahoo mobile-aware OAuth return
+
+- **Priority:** P0
+- **Cost:** medium
+- **Blocked by:** M0-BE-2 and current-primary-source OAuth research
+- **Agent-buildable:** yes
+- **Scope:** Add verified native return support while preserving the current web callback compatibility path.
+- **Done when:** callback tests cover native intent, web compatibility, cancel/deny, invalid/expired/duplicate state, and no OAuth artifact in the deep link.
+- **Do not touch:** arbitrary redirects, OAuth/provider credentials, store configuration, SQL, deploy, or production.
 
 ### M4-Auth — Omen-primitive-native auth surfaces (retirement item)
 

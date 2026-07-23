@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-22 (M4 Command Center v1)
+**Refreshed:** 2026-07-23 (M0-BE-0 complete; M0-BE-1 next)
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
@@ -44,15 +44,15 @@ Read these before selecting work:
 
 **M3A-QA remains open.** Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion with real `omen.apiBaseUrl`; iOS still needs real-device Sign in with Apple + OTP-inbox QA. Agents may prepare the matrix, but cannot complete credential/inbox work.
 
-**M0-BE remains open.** The 4 backend requirements from M0c §11 are now in `Blueprints/handoffs/frontend-to-backend.md`: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. F2 first.
+**M0-BE-0 complete 2026-07-23.** The shared backend contract, acceptance matrix, and security/RBAC review are recorded in `Blueprints/handoffs/2026-07-23-m0-be-shared-contract-matrix.md`. F2 remains resolved. The remaining work is three small PRs: provider-state API, request-id idempotency, then Yahoo mobile-aware return.
 
 ## Recommended next pull
 
-### 1. M0-BE-0 — Backend shared contract and acceptance matrix
+### 1. M0-BE-1 — Safe provider-state API
 
-- **Why next:** F2 is resolved; M0-BE-0 is now unblocked and is the last gate before the four small M0-BE PRs.
+- **Why next:** M0-BE-0 is complete and M0-BE-1 establishes the additive safe state contract the next two slices depend on.
 - **Priority / cost / blocker:** P0 / medium / none
-- **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
+- **Output:** authenticated `GET /api/platforms/state`, opaque-state/secret-absence test matrix, and exact frontend handoff.
 
 ### 2. M4 Command Center v1 — first feature screen ✅ implementation complete
 
