@@ -57,7 +57,7 @@ Read these before selecting work:
 ### 2. M4 Command Center v1 — first feature screen ✅ implementation complete
 
 - **Branch:** `claude/m4-command-center`. Screen assembly at app/feature layer on both platforms; consumes approved primitives + P3 compositions only. `OmenAndroidApp.kt` allowlist entry retired. Local Material Symbols vector drawables for all 5 nav tabs (official Google artwork, no dependency added).
-- **M4-Auth (new retirement item):** two extracted auth files (`OmenAuthFlow.kt`, `OmenDeleteAccountScreen.kt`) allowlisted with a single-event exit; see sprint entry.
+- **M4-Auth (retirement item):** ✅ 2026-07-23 — both auth files refactored to compose approved Omen primitives; `PrimitiveEnforcementTest.ALLOWLISTED_FILES` now empty. Branch `claude/m4-auth-primitive-retirement` waiting on push/merge. Evidence: `Blueprints/handoffs/2026-07-23-m4-auth-primitive-retirement.md`.
 - **Evidence:** `Blueprints/handoffs/2026-07-22-m4-command-center-v1.md`.
 
 ### 3. M1P-P3 — Product compositions ✅ implementation complete (all 3 batches)

@@ -1,30 +1,30 @@
 package com.slopssaloon.omen.app.auth
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.core.auth.AuthFailure
 import com.slopssaloon.omen.core.auth.AuthFlowState
+import com.slopssaloon.omen.core.designsystem.component.OmenButton
+import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenCard
+import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenFormField
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
+import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
+import com.slopssaloon.omen.core.designsystem.component.OmenTextField
+import com.slopssaloon.omen.core.designsystem.component.OmenTextFieldVariant
+import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
- * Extracted from `OmenAndroidApp.kt` to isolate its remaining raw-Material-3 surface so
- * the app-shell file can leave the primitive-enforcement allowlist.
- *
- * This file is intentionally allowlisted in
- * [com.slopssaloon.omen.core.designsystem.enforcement.PrimitiveEnforcementTest].
- * Its retirement is tracked as sprint item **M4-Auth**: replace `Button` /
- * `OutlinedButton` / `OutlinedTextField` with `OmenButton` / `OmenTextField` /
- * `OmenFormField` in an Omen-primitive-native auth pass. Exit condition is a single
- * event — this file AND `OmenDeleteAccountScreen.kt` both leave the allowlist together
- * when the redesigned surfaces land and the scanner is still green.
+ * M4-Auth pass: composes only approved Omen primitives from `:core:designsystem` so this file
+ * (and its sibling [OmenDeleteAccountScreen]) can leave `PrimitiveEnforcementTest.ALLOWLISTED_FILES`.
  */
 @Composable
 fun OmenAuthFlow(
@@ -41,50 +41,98 @@ fun OmenAuthFlow(
     onReset: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Column(Modifier.padding(24.dp)) {
-        Text("Sign in to Omen")
-        Text(
-            if (live) "Sign in with your email code or Google."
-            else "Local auth flow (fake backend) — live Supabase wiring pending config.",
-        )
+    OmenCard(
+        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+        variant = OmenCardVariant.Solid,
+        contentPadding = PaddingValues(OmenTheme.spacing.cardInterior),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
+            Text(
+                text = "Sign in to Omen",
+                style = OmenTheme.typography.h1.toTextStyle(),
+                color = OmenTheme.color.textPrimary,
+            )
+            Text(
+                text = if (live) "Sign in with your email code or Google."
+                else "Local auth flow (fake backend) — live Supabase wiring pending config.",
+                style = OmenTheme.typography.body.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+            )
 
-        when (state) {
-            is AuthFlowState.AwaitingOtp, is AuthFlowState.VerifyingOtp -> {
-                Text("Enter the 6-digit code sent to $email")
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = onCodeChange,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    label = { Text("6-digit code") },
-                )
-                Button(
-                    onClick = onSubmitCode,
-                    enabled = state is AuthFlowState.AwaitingOtp,
-                ) { Text(if (state is AuthFlowState.VerifyingOtp) "Verifying…" else "Verify code") }
-            }
-            else -> {
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = onEmailChange,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    label = { Text("Email") },
-                )
-                Button(
-                    onClick = onSubmitEmail,
-                    enabled = state !is AuthFlowState.RequestingOtp,
-                ) { Text(if (state is AuthFlowState.RequestingOtp) "Sending code…" else "Email me a code") }
-                OutlinedButton(onClick = onGoogle) {
-                    Text(if (googleConfigured) "Continue with Google" else "Google (not configured)")
+            when (state) {
+                is AuthFlowState.AwaitingOtp, is AuthFlowState.VerifyingOtp -> {
+                    OmenFormField(
+                        label = "6-digit code",
+                        hint = "Enter the 6-digit code sent to $email",
+                    ) {
+                        OmenTextField(
+                            value = code,
+                            onValueChange = onCodeChange,
+                            label = "6-digit code",
+                            variant = OmenTextFieldVariant.Number,
+                            enabled = state is AuthFlowState.AwaitingOtp,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    OmenButton(
+                        text = if (state is AuthFlowState.VerifyingOtp) "Verifying…" else "Verify code",
+                        onClick = onSubmitCode,
+                        variant = OmenButtonVariant.Primary,
+                        enabled = state is AuthFlowState.AwaitingOtp,
+                        loading = state is AuthFlowState.VerifyingOtp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                else -> {
+                    OmenFormField(label = "Email") {
+                        OmenTextField(
+                            value = email,
+                            onValueChange = onEmailChange,
+                            label = "Email",
+                            variant = OmenTextFieldVariant.Email,
+                            enabled = state !is AuthFlowState.RequestingOtp,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    OmenButton(
+                        text = if (state is AuthFlowState.RequestingOtp) "Sending code…" else "Email me a code",
+                        onClick = onSubmitEmail,
+                        variant = OmenButtonVariant.Primary,
+                        enabled = state !is AuthFlowState.RequestingOtp,
+                        loading = state is AuthFlowState.RequestingOtp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OmenButton(
+                        text = if (googleConfigured) "Continue with Google" else "Google (not configured)",
+                        onClick = onGoogle,
+                        variant = OmenButtonVariant.Secondary,
+                        enabled = googleConfigured,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
-        }
 
-        if (state is AuthFlowState.Failed) {
-            Text(authFailureMessage(state.reason))
-            Button(onClick = onReset) { Text("Try again") }
-        }
+            if (state is AuthFlowState.Failed) {
+                OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Error,
+                    title = "Sign-in didn't complete",
+                    message = authFailureMessage(state.reason),
+                )
+                OmenButton(
+                    text = "Try again",
+                    onClick = onReset,
+                    variant = OmenButtonVariant.Primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
-        OutlinedButton(onClick = onBack) { Text("Back") }
+            OmenButton(
+                text = "Back",
+                onClick = onBack,
+                variant = OmenButtonVariant.Tertiary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
