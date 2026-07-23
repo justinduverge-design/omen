@@ -195,16 +195,37 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** compact rows render for both connected + disconnected states on both platforms, Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android, detail sheet handles the Manage/Connect actions, primitive-enforcement scanner still green, connected tests + `:app:assembleDebug` + iOS unsigned CI green.
 - **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
 
-### M4-Auth-Providers — Expand OAuth provider surface (Discord, others)
+### M4-Auth-Providers-v1 — Discord OAuth + Passkeys (WebAuthn)
 
 - **Priority:** P1
-- **Cost:** medium (first provider = shared OAuth seam; each subsequent provider = config-only add)
-- **Blocked by:** founder confirmation of which OAuth providers are toggled on in Supabase Studio for project `xyudxfhqejbwvjngiwhw` and which are in-scope for the phone MVP
-- **Agent-buildable:** yes, once the provider list is confirmed
-- **Scope:** add a shared `SupabaseOAuthProvider` seam on both platforms that runs `signInWithOAuth(provider=…)` through Chrome Custom Tabs (Android) / `ASWebAuthenticationSession` (iOS) with PKCE, returning to the already-registered `com.slopssaloon.omen://auth/callback` deep link. Extend `AuthFlowState` + `AuthEvent` with a generic `OAuthRequested(providerId)` branch (do not add a per-provider state). Add one `OmenButton(Secondary)` per configured provider under a "More ways to sign in" divider on `OmenAuthFlow`. Native tier (Google on Android, SIWA on iOS, email OTP) stays as the prominent primary CTAs.
-- **Motivation:** founder note 2026-07-23 — Supabase has more providers configured (Discord + others) than the two currently exposed in the UI. Broader identity surface without inflating the auth card.
-- **Done when:** shared OAuth seam ships on both platforms with the confirmed provider list; deep-link callback exchanges the code for a session and lands in the app; `OmenAuthFlow` renders the additional buttons only when their provider is configured; primitive-enforcement scanner still green; if >4 providers, a bottom-sheet picker replaces the stacked buttons.
-- **Policy note:** Apple App Store rule 4.8 already satisfied — SIWA is present on iOS, so adding third-party social login on iOS carries no new obligation.
+- **Cost:** medium — two independent implementations landed in one review pass
+- **Blocked by:** none (Supabase provider list confirmed 2026-07-23: Email, Apple, Google already wired; Discord + Passkeys enabled and unwired)
+- **Agent-buildable:** yes
+- **Confirmed Supabase state (project `xyudxfhqejbwvjngiwhw`, 2026-07-23):** Email ✅, Google ✅, Apple ✅, Discord ✅, Passkeys ✅ enabled. Phone, SAML 2.0, Web3 Wallet, Azure, Bitbucket disabled. Remaining providers not screenshotted; treat visible list as canonical for this pass.
+- **Motivation:** founder direction 2026-07-23 — Supabase has more identity than the two buttons currently exposed. Broaden the sign-in card without inflating it.
+
+#### Sub-scope A — Discord (shared OAuth seam)
+
+- Add a shared `SupabaseOAuthProvider` seam on both platforms that runs `signInWithOAuth(provider="discord")` through Chrome Custom Tabs (Android) / `ASWebAuthenticationSession` (iOS) with PKCE, returning to the already-registered `com.slopssaloon.omen://auth/callback` deep link (Yahoo OAuth already uses it — no new deep-link plumbing).
+- Extend `AuthFlowState` + `AuthEvent` with a generic `OAuthRequested(providerId)` / `OAuthReturned(providerId, outcome)` branch (do not add a per-provider state — the seam supports future providers with a config-only add).
+- Add one `OmenButton(Secondary)` "Continue with Discord" under a "More ways to sign in" divider on `OmenAuthFlow`. Native tier (Google on Android, SIWA on iOS, email OTP) stays as prominent primary CTAs.
+
+#### Sub-scope B — Passkeys (WebAuthn — different technology)
+
+- Not `signInWithOAuth`. Uses `signInWithWebAuthn` via platform APIs: Android Credential Manager passkey flow (same API as Google Credential Manager — new provider option), iOS `ASAuthorizationPlatformPublicKeyCredentialProvider`.
+- Add a `PasskeyProvider` seam on both platforms, distinct from OAuth. New `AuthEvent.PasskeyRequested` / `PasskeyResult` branch on the state machine.
+- Add "Sign in with a passkey" `OmenButton(Primary, tone=Omen)` above the email/Google/SIWA tier (fastest returning-user path — deserves top slot after first pairing).
+- First-time pairing: prompt to save a passkey after a successful email OTP or OAuth sign-in. Follow-up decision on placement.
+
+#### Shared done-when
+
+- Both surfaces ship on Android + iOS in one PR.
+- `OmenAuthFlow` renders each new button only when its provider is available (Discord button gated on Supabase config presence; Passkey button gated on `PasskeyProvider.isSupported`).
+- Deep-link callback exchanges the Discord code for a session and lands in the app.
+- Passkey pairing on a fresh device produces a working credential; subsequent sign-in uses the passkey without an OTP round-trip.
+- Primitive-enforcement scanner still green. Connected tests + `:app:assembleDebug` + iOS unsigned CI green.
+
+- **Policy note:** Apple App Store rule 4.8 already satisfied — SIWA is present on iOS.
 - **Do not touch:** provider client secrets (stay in Supabase Studio, never in the repo); Yahoo OAuth (separate provider-connect flow, not sign-in); Apple credentials; deploy.
 
 ### M4-Omen-Screen — Omen destination that owns the full DecisionBrief
