@@ -30,8 +30,33 @@ const yahooAdapter            = require("../adapters/yahoo");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
+const NATIVE_RETURN_VERIFIER_PREFIX = "omen-native-return-v1:";
+const NATIVE_CALLBACK_URL = "com.slopssaloon.omen://auth/callback";
 
-async function createYahooAuthStart(req, leagueId) {
+function encodeOAuthVerifier(leagueId, nativeReturn) {
+  if (!nativeReturn) return leagueId;
+  return `${NATIVE_RETURN_VERIFIER_PREFIX}${JSON.stringify({ league_id: leagueId || null })}`;
+}
+
+function decodeOAuthVerifier(verifier) {
+  if (typeof verifier !== "string" || !verifier.startsWith(NATIVE_RETURN_VERIFIER_PREFIX)) {
+    return { leagueId: verifier || null, nativeReturn: false };
+  }
+  try {
+    const metadata = JSON.parse(verifier.slice(NATIVE_RETURN_VERIFIER_PREFIX.length));
+    return { leagueId: metadata?.league_id || null, nativeReturn: true };
+  } catch {
+    return { leagueId: null, nativeReturn: true };
+  }
+}
+
+function oauthCompletionRedirect(nativeReturn, status) {
+  if (nativeReturn) return `${NATIVE_CALLBACK_URL}?status=${status}`;
+  if (status === "connected") return `${config.appBaseUrl}/account/connect?connected=yahoo`;
+  return `${config.appBaseUrl}/account/connect?error=yahoo_access_denied`;
+}
+
+async function createYahooAuthStart(req, leagueId, nativeReturn = false) {
   const userId = req.user.id;
   await ensureAppUser(req.user);
 
@@ -40,7 +65,7 @@ async function createYahooAuthStart(req, leagueId) {
     state,
     platform: "yahoo",
     user_id: userId,
-    verifier: leagueId,
+    verifier: encodeOAuthVerifier(leagueId, nativeReturn),
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   });
   if (error) throw new Error(`OAuth state persistence failed: ${error.message}`);
@@ -62,7 +87,7 @@ router.get("/auth", requireAuth, async (req, res, next) => {
 router.post("/auth", requireAuth, async (req, res, next) => {
   try {
     const leagueId = req.body?.leagueId || req.body?.league_id || null;
-    const { url } = await createYahooAuthStart(req, leagueId);
+    const { url } = await createYahooAuthStart(req, leagueId, req.body?.native_return === true);
     return res.json({ url });
   } catch (e) {
     logger.error("Yahoo OAuth authorize failed", { err: e.message });
@@ -72,8 +97,8 @@ router.post("/auth", requireAuth, async (req, res, next) => {
 
 router.get("/callback", async (req, res, next) => {
   try {
-    const { code, state } = req.query;
-    if (!code || !state) return res.status(400).json({ error: "Missing code or state" });
+    const { code, state, error: providerError } = req.query;
+    if (!state || (!code && !providerError)) return res.status(400).json({ error: "Missing code or state" });
 
     const { data: oauthRow, error } = await supabase
       .from("oauth_state")
@@ -89,11 +114,17 @@ router.get("/callback", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid or expired OAuth state" });
     }
 
+    const { leagueId, nativeReturn } = decodeOAuthVerifier(oauthRow.verifier);
+    if (providerError) {
+      await supabase.from("oauth_state").delete().eq("state", state);
+      return res.redirect(oauthCompletionRedirect(nativeReturn, "cancelled"));
+    }
+
     const tokens = await exchangeYahooCode(code);
-    await persistYahooTokens(oauthRow.user_id, tokens, oauthRow.verifier || null);
+    await persistYahooTokens(oauthRow.user_id, tokens, leagueId);
     await supabase.from("oauth_state").delete().eq("state", state);
 
-    return res.redirect(`${config.appBaseUrl}/account/connect?connected=yahoo`);
+    return res.redirect(oauthCompletionRedirect(nativeReturn, "connected"));
   } catch (e) {
     logger.error("Yahoo OAuth callback failed", { err: e.message });
     return next(e);

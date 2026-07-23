@@ -237,6 +237,24 @@ test("POST /api/yahoo/auth returns auth URL and bootstraps app user", async () =
   assert.deepEqual(res.body, { url: `https://yahoo.example/oauth?state=${state.upserts[0].state}` });
 });
 
+test("POST /api/yahoo/auth records only the fixed native-return intent", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/yahoo/auth", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: {
+      leagueId: "league-1",
+      native_return: true,
+      return_to: "https://attacker.example/steal",
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.upserts.length, 1);
+  assert.equal(state.upserts[0].verifier.startsWith("omen-native-return-v1:"), true);
+  assert.equal(state.upserts[0].verifier.includes("attacker.example"), false);
+});
+
 test("GET /api/yahoo/callback redirects back to account connect onboarding", async () => {
   const { app, state } = buildApp({
     oauthRows: [{
@@ -262,4 +280,64 @@ test("GET /api/yahoo/callback redirects back to account connect onboarding", asy
     leagueId: "league-1",
   });
   assert.equal(state.deletes[0].state, "valid-state");
+});
+
+test("GET /api/yahoo/callback returns a verified native start to the fixed deep link without OAuth artifacts", async () => {
+  const { app, state } = buildApp({
+    oauthRows: [{
+      state: "valid-native-state",
+      platform: "yahoo",
+      user_id: "test-slops-user",
+      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    }],
+  });
+  const res = await request(app, "/api/yahoo/callback?code=secret-code&state=valid-native-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "com.slopssaloon.omen://auth/callback?status=connected");
+  assert.equal(res.headers.get("location").includes("secret-code"), false);
+  assert.equal(res.headers.get("location").includes("valid-native-state"), false);
+  assert.deepEqual(state.persists[0].leagueId, "league-1");
+});
+
+test("GET /api/yahoo/callback returns a safe fixed native cancellation and consumes the transaction", async () => {
+  const { app, state } = buildApp({
+    oauthRows: [{
+      state: "cancel-native-state",
+      platform: "yahoo",
+      user_id: "test-slops-user",
+      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    }],
+  });
+  const res = await request(app, "/api/yahoo/callback?error=access_denied&state=cancel-native-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "com.slopssaloon.omen://auth/callback?status=cancelled");
+  assert.equal(state.exchanges.length, 0);
+  assert.equal(state.persists.length, 0);
+  assert.equal(state.deletes[0].state, "cancel-native-state");
+});
+
+test("GET /api/yahoo/callback rejects invalid, expired, and duplicate native states without a deep-link redirect", async () => {
+  const expired = buildApp({
+    oauthRows: [{
+      state: "expired-native-state",
+      platform: "yahoo",
+      user_id: "test-slops-user",
+      verifier: 'omen-native-return-v1:{"league_id":"league-1"}',
+      expires_at: new Date(Date.now() - 60_000).toISOString(),
+    }],
+  });
+  const invalid = await request(expired.app, "/api/yahoo/callback?code=secret-code&state=unknown-state");
+  const expiredRes = await request(expired.app, "/api/yahoo/callback?code=secret-code&state=expired-native-state");
+  const duplicate = await request(expired.app, "/api/yahoo/callback?code=secret-code&state=expired-native-state");
+
+  for (const res of [invalid, expiredRes, duplicate]) {
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, "Invalid or expired OAuth state");
+  }
+  assert.equal(expired.state.exchanges.length, 0);
+  assert.equal(expired.state.persists.length, 0);
 });
