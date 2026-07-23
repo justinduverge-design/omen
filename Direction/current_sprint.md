@@ -184,6 +184,29 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
 - **Do not touch:** invented league-activity data; ship an empty state until real events flow in.
 
+### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
+
+- **Priority:** P1
+- **Cost:** small–medium
+- **Blocked by:** Figma-first §3.2 proposal for the compact row shape (does not exist yet — needs a founder-approved brief and node)
+- **Agent-buildable:** partial — founder-gated on the Figma pass; once approved, composition + wiring is agent-buildable
+- **Scope:** compact each `OmenPlatformConnectionCard` on Command Center to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` for connected, `[PlatformBadge] Yahoo · Not connected [Connect]` for disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
+- **Motivation:** founder feedback 2026-07-23 — current cards take too much vertical real estate; "we want Omen to be very easy to see on its page. We gotta sell here."
+- **Done when:** compact rows render for both connected + disconnected states on both platforms, Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android, detail sheet handles the Manage/Connect actions, primitive-enforcement scanner still green, connected tests + `:app:assembleDebug` + iOS unsigned CI green.
+- **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
+
+### M4-Auth-Providers — Expand OAuth provider surface (Discord, others)
+
+- **Priority:** P1
+- **Cost:** medium (first provider = shared OAuth seam; each subsequent provider = config-only add)
+- **Blocked by:** founder confirmation of which OAuth providers are toggled on in Supabase Studio for project `xyudxfhqejbwvjngiwhw` and which are in-scope for the phone MVP
+- **Agent-buildable:** yes, once the provider list is confirmed
+- **Scope:** add a shared `SupabaseOAuthProvider` seam on both platforms that runs `signInWithOAuth(provider=…)` through Chrome Custom Tabs (Android) / `ASWebAuthenticationSession` (iOS) with PKCE, returning to the already-registered `com.slopssaloon.omen://auth/callback` deep link. Extend `AuthFlowState` + `AuthEvent` with a generic `OAuthRequested(providerId)` branch (do not add a per-provider state). Add one `OmenButton(Secondary)` per configured provider under a "More ways to sign in" divider on `OmenAuthFlow`. Native tier (Google on Android, SIWA on iOS, email OTP) stays as the prominent primary CTAs.
+- **Motivation:** founder note 2026-07-23 — Supabase has more providers configured (Discord + others) than the two currently exposed in the UI. Broader identity surface without inflating the auth card.
+- **Done when:** shared OAuth seam ships on both platforms with the confirmed provider list; deep-link callback exchanges the code for a session and lands in the app; `OmenAuthFlow` renders the additional buttons only when their provider is configured; primitive-enforcement scanner still green; if >4 providers, a bottom-sheet picker replaces the stacked buttons.
+- **Policy note:** Apple App Store rule 4.8 already satisfied — SIWA is present on iOS, so adding third-party social login on iOS carries no new obligation.
+- **Do not touch:** provider client secrets (stay in Supabase Studio, never in the repo); Yahoo OAuth (separate provider-connect flow, not sign-in); Apple credentials; deploy.
+
 ### M4-Omen-Screen — Omen destination that owns the full DecisionBrief
 
 - **Priority:** P1
