@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-22
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -64,7 +64,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ## Next build order
 
-1. **F2 status truth** — resolve `ready` vs `pending_live_engine` wording/runtime contract before M0-BE expands.
+1. ~~**F2 status truth**~~ ✅ Resolved 2026-07-19 (runtime) + 2026-07-22 (doc reconciliation on branch `claude/f2-status-truth`). Runtime authority: `src/services/omenReadiness.js`. Contract: `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2.
 2. **M0-BE backend bundle** — shared API/state contract + acceptance matrix first, then the four small backend PRs.
 3. **M1-P P3 product compositions** — PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
 4. **M4 feature screens** — only after shared primitives/compositions are approved and the Figma contract is cited frame-by-frame; landing an M4 feature screen also retires `OmenAndroidApp.kt`'s enforcement allowlist entry.
@@ -186,13 +186,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** Justin pin
 - **Done when:** every service-key route has route/query/scoping-column/test mapping; any unscoped query becomes a P0 defect with a failing isolation test.
 
-### F2 — Resolve `ready` vs `pending_live_engine` documentation conflict
+### F2 — Resolve `ready` vs `pending_live_engine` documentation conflict — ✅ Resolved
 
 - **Priority:** P0, pinned 2026-07-19
-- **Cost:** small
-- **Blocked by:** none; this gates M0-BE
-- **Done when:** runtime and all active contracts use one status truth for connected Sleeper/ESPN users; stale wording is corrected without changing behavior unless separately approved.
-- **Evidence:** source-of-truth trace and doc diff.
+- **Runtime resolution:** 2026-07-19 via `src/services/omenReadiness.js` + M0-BE F2 contract.
+- **Doc reconciliation:** 2026-07-22 on branch `claude/f2-status-truth` — corrected stale wording in `Blueprints/handoffs/backend-to-frontend.md` (3 lines), `Blueprints/agent_handoff.md` (1 line), `Blueprints/specs/mobile/omen-native-app-shell-auth-api-contract-v1.md` (§4.3, §11 item 4), `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` (§4 step 6), and `Blueprints/handoffs/frontend-to-backend.md` (request 4).
+- **Behavior change:** none.
+- **Evidence:** `Blueprints/handoffs/2026-07-22-f2-status-truth.md`.
 
 ### F4 — ESPN public handoff production verification
 

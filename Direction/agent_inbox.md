@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-21
+**Refreshed:** 2026-07-22
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task
@@ -18,9 +18,11 @@ Read these before selecting work:
 - `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
 - Official Figma: `https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3`
 
-## Current truth — 2026-07-21
+## Current truth — 2026-07-22
 
-**M0 contract pack approved.** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are approved contracts. F2 is pinned P0 as the single status-truth blocker for the native backend bundle. Ratified boundaries remain: semantic `focus-ring`; Alegreya Sans / Alegreya / DM Mono locked; team colors are out of the phone MVP.
+**F2 status truth resolved.** Runtime unified 2026-07-19 in `src/services/omenReadiness.js`; doc reconciliation completed 2026-07-22 on branch `claude/f2-status-truth`. `pending_live_engine` = "active connection lacks the provider-specific context required for a safe live attempt" (not "engine unbuilt"). Canonical contract: `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2. M0-BE-0 is unblocked.
+
+**M0 contract pack approved.** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are approved contracts. Ratified boundaries remain: semantic `focus-ring`; Alegreya Sans / Alegreya / DM Mono locked; team colors are out of the phone MVP.
 
 **M1-P Figma screen-contract pass approved.** The Native Design House now includes principles/references, tokens/themes, component registry/proposals, iOS screen contracts, Android screen contracts, golden screens, and QA/evidence boards. Treat the Figma work as contract evidence, not permission to freestyle feature screens.
 
@@ -46,32 +48,26 @@ Read these before selecting work:
 
 ## Recommended next pull
 
-### 1. F2 — Resolve `ready` vs `pending_live_engine`
+### 1. M0-BE-0 — Backend shared contract and acceptance matrix
 
-- **Why next:** pinned P0; gates M0-BE and native provider-state truth. M1-P P2/P4 are done and no longer top the queue.
-- **Priority / cost / blocker:** P0 / small / none; pinned
-- **Output:** source-of-truth trace and doc diff only unless behavior change is separately approved.
-
-### 2. M0-BE-0 — Backend shared contract and acceptance matrix
-
-- **Why next:** M0c surfaced backend requirements; implementation must not start before one shared state/API contract and acceptance-test matrix.
-- **Priority / cost / blocker:** P0 / medium / F2 first
+- **Why next:** F2 is resolved; M0-BE-0 is now unblocked and is the last gate before the four small M0-BE PRs.
+- **Priority / cost / blocker:** P0 / medium / none
 - **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
 
-### 3. M1P-P3 — Product compositions
+### 2. M1P-P3 — Product compositions
 
 - **Why next:** now that P2 primitives + P4 enforcement are in place, PlayerRow / DecisionBrief shell / PlatformConnectionCard / ConnectionStatusBadge / MetricStrip / ConfidenceBar / RiskPanel / SignalList unblock M4 feature screens.
 - **Priority / cost / blocker:** P0 / medium / unblocked for the listed compositions; Context Strip / Matchup Spine / Evidence Disclosure need Figma-first proposals per registry §3.2.
 - **Output:** shared SwiftUI + Compose compositions per registry §3.2, gallery entries, tests, handoff, Done Ledger row, skill receipt.
 - **Do not touch:** provider connect flows, provider credentials, production, SQL, store configuration.
 
-### 4. M3A-QA — Native auth real-device QA
+### 3. M3A-QA — Native auth real-device QA
 
 - **Why next:** M3-A implementation is merged on both platforms; only human-gated interactive QA remains.
 - **Priority / cost / blocker:** P0 / small, human-gated / founder credential + inbox access
 - **Output:** sanitized QA matrix from `mobile/contracts/m3a-interactive-qa-runbook.md` for Android and iOS; agent may prep matrix only.
 
-### 5. A1 — Review and disposition PR #140 (SVG logo masters)
+### 4. A1 — Review and disposition PR #140 (SVG logo masters)
 
 - **Why next:** founder/review gate still open; visual review + concrete findings or approval.
 - **Priority / cost / blocker:** P0 / small / Justin visual approval

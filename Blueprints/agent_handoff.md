@@ -88,7 +88,7 @@ Do not touch `Archive\quarantine`.
 - Pro subscription is required.
 - Connected platform is required.
 - Yahoo is the first live source.
-- Sleeper and ESPN return `pending_live_engine` until their live Omen engines are ready.
+- ~~Sleeper and ESPN return `pending_live_engine` until their live Omen engines are ready.~~ **Superseded 2026-05-26 / F2 resolution 2026-07-19.** Sleeper and ESPN live engines shipped. Any provider returns `pending_live_engine` only when the active connection lacks the provider-specific context required for a safe live attempt (see `Blueprints/handoffs/backend-to-frontend.md` M0-BE F2 section).
 - Response envelope remains `omen_mvp_move`.
 
 **Backend — dashboard and subscription contract:**

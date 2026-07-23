@@ -264,9 +264,9 @@ The M0a state machine (`not_started → authorizing → awaiting_return → reso
 
 **Backend requirement:** a safe, machine-readable provider-state response that maps to these states with **opaque error codes only** (no raw provider text, no cookie/token values). The native client derives its state screens from that response; it must not infer state from HTTP errors alone. Until this exists, native connect uses the current coarse status and treats missing granularity as `validating_connection` / `retryable_error` conservatively.
 
-### 4.3 Dashboard status truth (F2 dependency)
+### 4.3 Dashboard status truth (F2 — resolved 2026-07-19)
 
-The `connected → Omen ready` transition uses the single dashboard status truth being resolved in Verify item **F2** (`ready` vs `pending_live_engine`). Native must adopt whichever one truth F2 settles — do not hardcode a second meaning. **Recommend pinning F2 with M0c.**
+The `connected → Omen ready` transition uses the single dashboard status truth settled by Verify item **F2**: an active Yahoo/Sleeper/ESPN connection with the provider-specific context required for a safe live attempt is `ready`; an active connection lacking that context is `pending_live_engine`; no active connection is `needs_platform`; `off_season` supersedes `ready` only when usable context exists. `ready` does not promise a recommendation — call `POST /api/omen/mvp-move` only for `ready`, then render its `success`, `empty`, or safe recovery envelope. Provider-eligibility rows live in `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2 and the M0-BE F2 section of `Blueprints/handoffs/backend-to-frontend.md`. Native must not infer a second readiness meaning. Runtime: `src/services/omenReadiness.js`.
 
 ### 4.4 ESPN
 
@@ -311,7 +311,7 @@ Approved when: navigation/route table, the three-mechanism auth + session-storag
 1. **Mobile-aware Yahoo OAuth return** to the registered `omen://auth/callback` deep link (today returns to web Account).
 2. **Safe provider-state response** mapping to the M0a state machine with opaque error codes (no raw provider text / no cookie values).
 3. **Idempotency verification** (and implementation if needed) of connect/validate, keyed by client request ID.
-4. **F2 resolution** — one status truth for `ready` vs `pending_live_engine` for connected Sleeper/ESPN users.
+4. ~~**F2 resolution** — one status truth for `ready` vs `pending_live_engine` for connected Sleeper/ESPN users.~~ ✅ Resolved 2026-07-19 by `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` and `src/services/omenReadiness.js`; three requirements above remain open.
 
 **Delivery shape (Justin, 2026-07-19):** one owner, **one shared API/state contract**, and **one acceptance-test matrix** across all four — but delivered as **four small PRs**, not one large risky PR. The shared contract and test matrix are authored once before the first PR; each PR lands one requirement against them.
 

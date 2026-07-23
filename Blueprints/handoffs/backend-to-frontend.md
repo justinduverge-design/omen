@@ -2540,7 +2540,7 @@ Current live Omen behavior:
 - Missing or invalid bearer token returns `401` with `error.code: "omen_auth_required"`.
 - Missing subscription returns `402` with `error.code: "omen_subscription_required"`.
 - No active platform connection returns `state: "platform_disconnected"`.
-- Sleeper-only, ESPN-only, placeholder Yahoo league, or unusable Yahoo token returns `state: "pending_live_engine"` rather than fake advice.
+- A connection lacking the provider-specific context required for a safe live attempt (placeholder Yahoo league, unusable Yahoo token, Sleeper without username or league_id, ESPN missing SWID or ESPN secret reference) returns `state: "pending_live_engine"` rather than fake advice. Sleeper and ESPN connections with usable context return live `success`/`empty` like Yahoo. See the M0-BE F2 authority at the top of this file for the current provider-eligibility rule.
 - Usable Yahoo connection plus active subscription can return live `state: "success"` with a Yahoo lineup-swap recommendation.
 - Usable Yahoo connection plus no optimizer edge can return live `state: "empty"`.
 - Unexpected live generation failure returns `500` with `error.code: "omen_live_generation_failed"` and `retryable: true`.
@@ -2598,7 +2598,7 @@ Omen context:
 - Frontend should not pass platform, league, team, season, week, or scoring format for Yahoo v1.
 - Backend infers the current Yahoo-first live context from auth and stored platform connections.
 - Do not build a league/platform selector for Yahoo Omen v1.
-- Sleeper and ESPN connections should render `pending_live_engine` until their live Omen engines exist.
+- ~~Sleeper and ESPN connections should render `pending_live_engine` until their live Omen engines exist.~~ **Superseded 2026-05-26 / F2 resolution 2026-07-19.** Sleeper and ESPN live engines shipped and return live `success`/`empty` when the connection has usable provider context; `pending_live_engine` now only means an active connection lacks that context. See the M0-BE F2 authority at the top of this file.
 
 ## Stripe Account Subscription Contract
 
@@ -3440,7 +3440,7 @@ Dashboard Omen tool statuses:
 - `status: "ready"` means platform context and subscription are present. Show the Omen CTA.
 - `status: "needs_platform"` means no usable connected league exists. Show "Connect a league" and link to `/account/connect`.
 - `status: "needs_subscription"` means a usable platform path exists, but the user is not subscribed. Show UpgradeState.
-- `status: "pending_live_engine"` means a platform row exists, but the current live Omen engine cannot honestly produce a real recommendation from that connection yet. Show a connected-but-not-ready state, not fake advice.
+- `status: "pending_live_engine"` means an active connection exists but lacks the provider-specific context needed for a safe live attempt (e.g. placeholder league_id, expired Yahoo token, Sleeper without username, ESPN missing SWID/secret). Show a connected-but-not-ready state, not fake advice. Provider-eligibility rows live in the M0-BE F2 section at the top of this file. **Historical note:** the earlier "engine cannot honestly produce" framing referred to Sleeper/ESPN engines being unbuilt in May 2026; those engines shipped, so this status is now about connection context, not engine existence.
 
 Current backend behavior:
 

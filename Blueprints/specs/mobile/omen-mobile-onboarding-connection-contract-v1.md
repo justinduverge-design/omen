@@ -77,7 +77,7 @@ Visual reference audit targets:
 6. **First useful destination**
    - Connected: Command Center with connection confirmation and a clear Omen entry.
    - Not connected: Demo Mode / connection recovery, never a dead dashboard.
-   - The "connected → Omen ready" transition uses the single dashboard status truth being resolved in Verify item **F2** (`ready` vs `pending_live_engine`); native must not adopt a second status meaning.
+   - The "connected → Omen ready" transition uses the single dashboard status truth settled by Verify item **F2** (resolved 2026-07-19): active connection with usable provider context → `ready`; active connection lacking that context → `pending_live_engine`. See `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2 and `src/services/omenReadiness.js`. Native must not adopt a second status meaning.
 
 ## 5. Provider policy matrix
 
