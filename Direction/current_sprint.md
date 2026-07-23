@@ -193,18 +193,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Scope:** the Omen tab currently renders an honest "coming next" state surface. Build the real Omen destination screen assembly that owns the full `OmenDecisionBrief` (all 8 state surfaces already shipped in P3). Assembly lives at `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/omen/` and iOS `App/Omen/`.
 - **Do not touch:** the DecisionBrief primitive itself (already approved); live wiring blocked on M0-BE-0.
 
-### M4-Auth — Omen-primitive-native auth surfaces (retirement item)
+### ~~M4-Auth — Omen-primitive-native auth surfaces (retirement item)~~ ✅ 2026-07-23
 
-- **Priority:** P1
-- **Cost:** small–medium
-- **Blocked by:** none (created 2026-07-22 alongside M4 Command Center v1)
-- **Agent-buildable:** yes
-- **Scope:** replace the two files listed below with compositions built from approved Omen primitives (`OmenTextField`, `OmenFormField`, `OmenButton`, `OmenConfirmationDialog`, `OmenCard`, `OmenStateSurface`) so both leave the primitive-enforcement allowlist together.
-  - `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenAuthFlow.kt`
-  - `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenDeleteAccountScreen.kt`
-- **Done when (single event — no partial exit):** both files are refactored to use only approved Omen primitives, both entries are removed from `PrimitiveEnforcementTest.ALLOWLISTED_FILES` in the same PR, the scanner is still green, and both surfaces build + render on Android.
-- **Non-expansion covenant:** M4-Auth is the *only* future exemption path for these two files. No third auth file may join the allowlist without opening a separately-tracked retirement item.
-- **Do not touch:** auth wiring itself (session/store/reducer/repos), Supabase config, credentials, deploy.
+- Both auth files refactored to compose only approved Omen primitives (`OmenCard`, `OmenFormField`, `OmenTextField`, `OmenButton`, `OmenStateSurface`); `PrimitiveEnforcementTest.ALLOWLISTED_FILES` now empty. Scanner + `:app:assembleDebug` both green. Public composable signatures preserved (no caller changes in `OmenAndroidApp.kt`). Branch `claude/m4-auth-primitive-retirement` — waiting on push/merge. Evidence: `Blueprints/handoffs/2026-07-23-m4-auth-primitive-retirement.md`. Non-expansion covenant retained in the test's companion doc block.
 
 ## B. Backend/recommendation lane — safe work only while native pivot is active
 

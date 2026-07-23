@@ -80,26 +80,16 @@ class PrimitiveEnforcementTest {
          * Files exempted from this check. Each entry MUST document why and when it will be
          * retired. Adding to this list is a design-steward decision, not a build fix.
          *
-         * Both entries below are tracked under sprint item **M4-Auth** in
-         * `Direction/current_sprint.md`. Exit condition is a single event: BOTH files leave
-         * this list together when the Omen-primitive-native auth surfaces land and the
-         * scanner is still green. No third auth file may join this list without opening a
-         * separately-tracked retirement item — the M4-Auth plan is the only exemption path
-         * for these two files.
-         *
-         * - `app/auth/OmenAuthFlow.kt` — extracted 2026-07-22 from OmenAndroidApp.kt to
-         *   isolate raw `Button`/`OutlinedButton`/`OutlinedTextField` usage. Retires with
-         *   M4-Auth.
-         * - `app/auth/OmenDeleteAccountScreen.kt` — extracted 2026-07-22 alongside
-         *   OmenAuthFlow. Retires with M4-Auth.
-         *
          * Retired 2026-07-22: `OmenAndroidApp.kt` (M4 Command Center v1 landed the primitive
          * rewrite and swapped its MaterialTheme wrapper for OmenTheme).
+         *
+         * Retired 2026-07-23: `app/auth/OmenAuthFlow.kt` and
+         * `app/auth/OmenDeleteAccountScreen.kt` (M4-Auth pass; both surfaces now compose
+         * approved Omen primitives — OmenCard, OmenFormField, OmenTextField, OmenButton,
+         * OmenStateSurface). Per the M4-Auth non-expansion covenant, no new auth file may
+         * join this list without opening a separately-tracked retirement item.
          */
-        private val ALLOWLISTED_FILES = listOf(
-            "app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenAuthFlow.kt",
-            "app/src/main/kotlin/com/slopssaloon/omen/app/auth/OmenDeleteAccountScreen.kt",
-        )
+        private val ALLOWLISTED_FILES = emptyList<String>()
 
         private val BANNED_M3_PRIMITIVES = listOf(
             "Button",

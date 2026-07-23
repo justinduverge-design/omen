@@ -2,6 +2,15 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-23 (M4-Auth — allowlist retired, single-event exit)
+
+- **`PrimitiveEnforcementTest.ALLOWLISTED_FILES` is now empty.** `OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` both refactored to compose only approved Omen primitives (`OmenCard`, `OmenFormField`, `OmenTextField`, `OmenButton`, `OmenStateSurface`) and exited the allowlist together in the same PR, satisfying the 2026-07-22 non-expansion covenant.
+- **Failed-sign-in copy now uses `OmenStateSurface(kind=Error)`** rather than a bare `Text`, so the error is honestly framed as a data state and inherits the design-system's risk styling + `stateDescription = "Error"` semantics.
+- **Delete-screen validation `message` now routes into `OmenFormField.errorMessage`**, so it inherits the polite live-region announcement and the field-error styling contract instead of a raw untitled `Text` line.
+- **Google-button disabled state made honest.** Old code left the button clickable with a caveat label ("Google (not configured)"); new code sets `enabled = googleConfigured` so the disabled state matches reality.
+- **Composable signatures preserved** — `OmenAuthFlow(...)` and `OmenDeleteAccountScreen(...)` unchanged, no `OmenAndroidApp.kt` edit required. The retirement was a pure primitive swap; behavior wiring untouched.
+- **Non-expansion covenant restated in the enforcement test's doc block** — no third auth file may join the (now-empty) allowlist without opening a separately-tracked retirement item.
+
 ## Decision Added 2026-07-23 (M4 Command Center v1.1 corrective — Codex review resolutions)
 
 - **Command Center orients and prioritizes; it does not duplicate Omen's decision workspace.** v1 wrongly rendered the full `OmenDecisionBrief` inside Command Center. v1.1 removes it — the DecisionBrief moves to a future Omen destination (M4-Omen-Screen). Command Center's approved hierarchy per mobile-visual-briefs §1.1: header + profile control → Context Strip → Matchup Hero → Waiver Watch → Ledger preview → League Pulse.
