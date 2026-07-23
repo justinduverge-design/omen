@@ -6,14 +6,26 @@ const test = require("node:test");
 const express = require("express");
 const tradeRoutes = require("../src/routes/trade");
 
-function buildApp() {
+function buildApp(router = tradeRoutes) {
   const app = express();
   app.use(express.json());
-  app.use("/api/trade", tradeRoutes);
+  app.use("/api/trade", router);
   app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ error: err.message });
   });
   return app;
+}
+
+async function get(app, path) {
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}${path}`);
+    return { status: res.status, body: await res.json() };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 }
 
 async function request(app, { body, headers = {} } = {}) {
@@ -44,6 +56,34 @@ test("POST /api/trade/compare requires send array", async () => {
 
   assert.equal(res.status, 400);
   assert.equal(res.body.error, "send must be a non-empty array");
+});
+
+test("GET /api/trade/pulse is explicitly unavailable without live ADP", async () => {
+  const router = tradeRoutes.createTradeRouter({ tradePulseRedisClient: null });
+  const res = await get(buildApp(router), "/api/trade/pulse");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "unavailable");
+  assert.equal(res.body.is_mock, false);
+  assert.deepEqual(res.body.buy_low, []);
+  assert.deepEqual(res.body.sell_high, []);
+});
+
+test("GET /api/trade/pulse maps live weighted ADP into source-labeled targets", async () => {
+  const router = tradeRoutes.createTradeRouter({
+    tradePulseRedisClient: {},
+    tradePulseBuilder: async () => ({
+      weighted_players: [{ name: "Value Receiver", position: "WR", team: "DET", adp: 44.2 }],
+    }),
+  });
+  const res = await get(buildApp(router), "/api/trade/pulse");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "live");
+  assert.equal(res.body.is_mock, false);
+  assert.equal(res.body.source_status, "live_adp");
+  assert.deepEqual(res.body.buy_low, [{
+    name: "Value Receiver", position: "WR", team: "DET",
+    reason: "Consensus ADP supports a value review before your league prices it in.",
+  }]);
 });
 
 test("POST /api/trade/compare requires receive array", async () => {

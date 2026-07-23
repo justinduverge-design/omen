@@ -2,7 +2,10 @@
 
 const crypto = require("node:crypto");
 const express = require("express");
+const { Redis } = require("@upstash/redis");
+const config = require("../config");
 const llm = require("../services/llm");
+const { buildLiveAdpResponse } = require("../services/adp");
 const {
   DEFAULT_SHARE_TTL_SECONDS,
   createDefaultTradeShareStore,
@@ -16,6 +19,9 @@ const TRADE_SHARE_CONTRACT = "trade-share.v1";
 const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SENSITIVE_FIELD_RE = /(cookie|espn_s2|swid|token|secret|authorization|password)/i;
+const tradePulseRedis = config.isProd && config.redisUrl && config.redisToken
+  ? new Redis({ url: config.redisUrl, token: config.redisToken })
+  : null;
 
 function isPlainObject(value) {
   return value != null && typeof value === "object" && !Array.isArray(value);
@@ -163,8 +169,32 @@ function createTradeRouter({
   tradeShareStore = createDefaultTradeShareStore(),
   generateHash = () => crypto.randomUUID(),
   now = () => new Date(),
+  tradePulseBuilder = buildLiveAdpResponse,
+  tradePulseRedisClient = tradePulseRedis,
 } = {}) {
   const router = express.Router();
+
+  router.get("/pulse", async (_req, res) => {
+    const unavailable = () => res.json({
+      contract_version: "trade-pulse.v1", status: "unavailable", is_mock: false,
+      source_status: "live_adp_unavailable", buy_low: [], sell_high: [],
+    });
+    if (!tradePulseRedisClient) return unavailable();
+    try {
+      const adp = await tradePulseBuilder({ redis: tradePulseRedisClient, format: "ppr", teams: 12, year: new Date().getFullYear() });
+      const players = Array.isArray(adp.weighted_players) ? adp.weighted_players.slice(0, 5) : [];
+      return res.json({
+        contract_version: "trade-pulse.v1", status: "live", is_mock: false,
+        source_status: "live_adp", generated_at: new Date().toISOString(),
+        buy_low: players.map((player) => ({
+          name: player.name, position: player.position, team: player.team,
+          reason: "Consensus ADP supports a value review before your league prices it in.",
+        })), sell_high: [],
+      });
+    } catch {
+      return unavailable();
+    }
+  });
 
   router.post("/compare", async (req, res, next) => {
     try {
