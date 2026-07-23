@@ -318,6 +318,74 @@ private fun GalleryScreen() {
                 )
             }
         },
+        Section("Context Strip — selected / reauth / multi-team / empty") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                com.slopssaloon.omen.core.designsystem.component.OmenContextStrip(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenContextStripState.Selected(
+                        platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Sleeper,
+                        leagueName = "Sunday Slate",
+                        teamName = "Justin Titans",
+                    ),
+                    onSwitch = {},
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenContextStrip(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenContextStripState.NeedsRecovery(
+                        platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Yahoo,
+                        leagueName = "Sunday Slate",
+                        teamName = "Justin Titans",
+                        reason = "Session expired",
+                    ),
+                    onSwitch = {},
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenContextStrip(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenContextStripState.MultiTeamHint(
+                        platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Sleeper,
+                        leagueName = "Sunday Slate",
+                        teamName = "Justin Titans",
+                        otherTeamCount = 2,
+                    ),
+                    onSwitch = {},
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenContextStrip(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenContextStripState.Empty,
+                    onSwitch = {},
+                )
+            }
+        },
+        Section("Matchup Hero — live / before / final / no matchup") {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                com.slopssaloon.omen.core.designsystem.component.OmenMatchupHero(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState.Live(
+                        selectedTeam = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Justin Titans", "6–1", "64.8"),
+                        opponent = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Marcus Team", "5–2", "58.1"),
+                        projectedFinish = "119.6–114.2",
+                        whatToWatch = "Opponent has two players remaining Monday night.",
+                    ),
+                    onOpen = {},
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenMatchupHero(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState.BeforeGames(
+                        selectedTeam = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Justin Titans", "6–1", "119.6"),
+                        opponent = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Marcus Team", "5–2", "114.2"),
+                        startTime = "Sun 1:00p ET",
+                        whatToWatch = null,
+                    ),
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenMatchupHero(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState.Final(
+                        selectedTeam = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Justin Titans", "6–1", "128.4"),
+                        opponent = com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam("Marcus Team", "5–2", "121.7"),
+                        resultSummary = "You won 128.4 to 121.7.",
+                        whatToWatch = null,
+                    ),
+                )
+                com.slopssaloon.omen.core.designsystem.component.OmenMatchupHero(
+                    state = com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState.NoMatchup(
+                        reason = "No matchup this week — bye.",
+                    ),
+                )
+            }
+        },
         Section("Command Center — screen assembly (feature layer) · fixture note only") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(

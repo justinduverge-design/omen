@@ -248,13 +248,46 @@ struct DesignSystemGalleryView: View {
                     }
                 }
 
+                section("Context Strip — selected / reauth / multi-team / empty") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                        OmenContextStrip(state: .selected(platform: .sleeper, leagueName: "Sunday Slate", teamName: "Justin Titans"), onSwitch: {})
+                        OmenContextStrip(state: .needsRecovery(platform: .yahoo, leagueName: "Sunday Slate", teamName: "Justin Titans", reason: "Session expired"), onSwitch: {})
+                        OmenContextStrip(state: .multiTeamHint(platform: .sleeper, leagueName: "Sunday Slate", teamName: "Justin Titans", otherTeamCount: 2), onSwitch: {})
+                        OmenContextStrip(state: .empty, onSwitch: {})
+                    }
+                }
+
+                section("Matchup Hero — live / before / final / no matchup") {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                        OmenMatchupHero(state: .live(
+                            selectedTeam: OmenMatchupTeam(name: "Justin Titans", record: "6–1", scoreText: "64.8"),
+                            opponent: OmenMatchupTeam(name: "Marcus Team", record: "5–2", scoreText: "58.1"),
+                            projectedFinish: "119.6–114.2",
+                            whatToWatch: "Opponent has two players remaining Monday night."
+                        ), onOpen: {})
+                        OmenMatchupHero(state: .beforeGames(
+                            selectedTeam: OmenMatchupTeam(name: "Justin Titans", record: "6–1", scoreText: "119.6"),
+                            opponent: OmenMatchupTeam(name: "Marcus Team", record: "5–2", scoreText: "114.2"),
+                            startTime: "Sun 1:00p ET",
+                            whatToWatch: nil
+                        ))
+                        OmenMatchupHero(state: .final(
+                            selectedTeam: OmenMatchupTeam(name: "Justin Titans", record: "6–1", scoreText: "128.4"),
+                            opponent: OmenMatchupTeam(name: "Marcus Team", record: "5–2", scoreText: "121.7"),
+                            resultSummary: "You won 128.4 to 121.7.",
+                            whatToWatch: nil
+                        ))
+                        OmenMatchupHero(state: .noMatchup(reason: "No matchup this week — bye."))
+                    }
+                }
+
                 section("Command Center — screen assembly (feature layer) · connected / disconnected / reauth") {
                     VStack(alignment: .leading, spacing: OmenSpacing.step16) {
                         OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoConnected)
                             .frame(maxHeight: 900)
-                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoDisconnected)
+                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.realDisconnected)
                             .frame(maxHeight: 700)
-                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoReauth)
+                        OmenCommandCenterScreen(state: OmenCommandCenterFixtures.realLoading)
                             .frame(maxHeight: 700)
                     }
                 }

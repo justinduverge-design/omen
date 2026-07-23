@@ -171,7 +171,14 @@ New composition patterns must be proposed on Figma `03 — Components` before ap
 
 **M4 screen assemblies (2026-07-22).** Feature screens that combine approved primitives + P3 compositions live at the app/feature layer, not in `:core:designsystem` — the DS module stays product-agnostic. The first such assembly is:
 
-- **OmenCommandCenterScreen** — signed-in landing surface. Android: `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/commandcenter/OmenCommandCenterScreen.kt`. iOS: `mobile/ios/OmenIOS/OmenIOS/App/CommandCenter/OmenCommandCenterScreen.swift`. Consumes PlatformConnectionCard + ConnectionStatusBadge + PlatformBadge + DecisionBrief + typography/spacing tokens. Approved screen assembly, not a design-system component; not added to §3.1 or §3.2.
+- **OmenCommandCenterScreen** — signed-in landing surface. Android: `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/commandcenter/OmenCommandCenterScreen.kt`. iOS: `mobile/ios/OmenIOS/OmenIOS/App/CommandCenter/OmenCommandCenterScreen.swift`. Approved screen assembly, not a design-system component; not added to §3.1 or §3.2.
+
+**v1.1 corrective (2026-07-23) — hierarchy per mobile-visual-briefs §1.1**: OmenCommandCenterScreen orients and prioritizes the selected roster's week; it does NOT duplicate Omen's full decision workspace. The full DecisionBrief lives on the Omen destination, not Command Center. v1.1 hierarchy: header (title + profile control) → OmenContextStrip → OmenMatchupHero → Waiver Watch placeholder → Ledger preview placeholder → League Pulse placeholder. Waiver Watch / Ledger preview / League Pulse remain Figma-first follow-ups (sprint items M4-CC-WaiverWatch, M4-CC-LedgerPreview, M4-CC-LeaguePulse) because no approved §3.2 Figma proposal exists yet.
+
+**§3.2 compositions implemented in the v1.1 corrective pass:**
+
+- **Context Strip** (Figma node `25:2`, approved 2026-07-20) — `OmenContextStrip` at `mobile/android/core/designsystem/src/main/kotlin/com/slopssaloon/omen/core/designsystem/component/OmenContextStrip.kt` and `mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenContextStrip.swift`. Four states: selected, needs-recovery, empty, multi-team-hint. Reusable across future screens that need the persistent selection strip.
+- **Matchup Spine** (Figma node `25:26`, approved 2026-07-20) — `OmenMatchupHero` at the matching DS paths. Four temporal states: before-games, live, final, no-matchup. Narrow-width rail collapse via `BoxWithConstraints`/`GeometryReader`. Reusable.
 
 **P4 enforcement (2026-07-21).** Feature and app-shell code must compose the approved `Omen*` primitives above and MUST NOT clone raw platform primitives. The rule is enforced by two source-scanning tests that run in the standard test task:
 

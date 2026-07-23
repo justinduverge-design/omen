@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-22 (M4 Command Center v1)
+**Refreshed:** 2026-07-23 (M4 Command Center v1.1 corrective)
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## Active task

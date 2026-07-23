@@ -1,25 +1,48 @@
 import SwiftUI
 
-/// Registry §3.2 approved **screen assembly** (feature layer) — not a design-system
-/// component. Composes approved primitives (Card/Badge/Button/StateSurface/typography +
-/// spacing tokens) and P3 compositions (PlatformConnectionCard, ConnectionStatusBadge,
-/// PlatformBadge, DecisionBrief) into the signed-in Command Center landing surface. Lives
-/// in `App/CommandCenter/` so the DesignSystem module stays product-agnostic.
+/// Registry §3.2 approved **screen assembly** (feature layer). Rebuilt for v1.1 per
+/// mobile-visual-briefs §1.1 to orient and prioritize the selected roster's week — it
+/// does NOT duplicate Omen's full decision workspace. The full DecisionBrief lives on the
+/// Omen destination, not here.
 ///
-/// V1 renders fixture data with visible mock labels; live wiring
-/// (dashboard-summary polling + POST /api/omen/mvp-move) is a separate task. Every state
-/// path (all six OmenConnectionStatus values × all eight OmenDecisionBriefState surfaces)
-/// can be exercised by swapping the fixture payload — the screen has no data-fetching
-/// branches of its own.
+/// v1.1 hierarchy:
+///   1. Header (page title + profile control)
+///   2. Persistent OmenContextStrip (approved node 25:2)
+///   3. OmenMatchupHero / Matchup Spine (approved node 25:26)
+///   4. Waiver Watch placeholder — blocked follow-up M4-CC-WaiverWatch
+///   5. Ledger preview placeholder — blocked follow-up M4-CC-LedgerPreview
+///   6. League Pulse placeholder — blocked follow-up M4-CC-LeaguePulse
+///
+/// Callers own the state and choose an honest fixture (demo mode vs real signed-in user).
+/// This composition never selects a "connected" fixture on its own — exposing
+/// demo-connected provider claims to a real user would violate facts-of-record #7.
 struct OmenCommandCenterScreen: View {
     let state: OmenCommandCenterState
+    let onSwitchContext: (() -> Void)?
+    let onOpenMatchup: (() -> Void)?
+    let onOpenAccount: (() -> Void)?
+
+    init(
+        state: OmenCommandCenterState,
+        onSwitchContext: (() -> Void)? = nil,
+        onOpenMatchup: (() -> Void)? = nil,
+        onOpenAccount: (() -> Void)? = nil
+    ) {
+        self.state = state
+        self.onSwitchContext = onSwitchContext
+        self.onOpenMatchup = onOpenMatchup
+        self.onOpenAccount = onOpenAccount
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
                 header
-                platformsSection
-                omenSection
+                OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
+                OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
+                waiverWatchPlaceholder
+                ledgerPlaceholder
+                leaguePulsePlaceholder
             }
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step24)
@@ -29,40 +52,57 @@ struct OmenCommandCenterScreen: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-            Text("Command Center")
-                .omenTextStyle(OmenTypography.eyebrow)
-                .foregroundStyle(OmenColor.textSecondary)
-            Text(state.greeting)
-                .omenTextStyle(OmenTypography.h1)
-                .foregroundStyle(OmenColor.textPrimary)
-            if let leagueScope = state.leagueScope {
-                Text(leagueScope)
-                    .omenTextStyle(OmenTypography.body)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                Text("Command Center")
+                    .omenTextStyle(OmenTypography.eyebrow)
                     .foregroundStyle(OmenColor.textSecondary)
+                Text(state.greeting)
+                    .omenTextStyle(OmenTypography.h1)
+                    .foregroundStyle(OmenColor.textPrimary)
+            }
+            Spacer(minLength: OmenSpacing.step8)
+            if let onOpenAccount {
+                Button(action: onOpenAccount) {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 24))
+                        .foregroundStyle(OmenColor.textPrimary)
+                }
+                .accessibilityLabel("Account and profile")
             }
         }
     }
 
-    private var platformsSection: some View {
+    private var waiverWatchPlaceholder: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("Your platforms")
-            ForEach(state.platforms) { platform in
-                OmenPlatformConnectionCard(
-                    platform: platform.platform,
-                    status: platform.status,
-                    description: platform.description,
-                    actionLabel: platform.actionLabel,
-                    onAction: platform.onAction
-                )
-            }
+            sectionLabel("Waiver Watch")
+            OmenStateSurface(
+                kind: .empty,
+                title: "Waiver Watch is landing next",
+                message: "Blocked on the Figma-approved Waiver Watch proposal (sprint item M4-CC-WaiverWatch)."
+            )
         }
     }
 
-    private var omenSection: some View {
+    private var ledgerPlaceholder: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("This week's Omen")
-            OmenDecisionBrief(state: state.decision)
+            sectionLabel("The Ledger")
+            OmenStateSurface(
+                kind: .empty,
+                title: "The Ledger is landing next",
+                message: "Blocked on the Figma-approved Ledger preview proposal (sprint item M4-CC-LedgerPreview)."
+            )
+        }
+    }
+
+    private var leaguePulsePlaceholder: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            sectionLabel("League Pulse")
+            OmenStateSurface(
+                kind: .empty,
+                title: "League Pulse is landing next",
+                message: "Blocked on the Figma-approved League Pulse proposal (sprint item M4-CC-LeaguePulse)."
+            )
         }
     }
 
@@ -73,154 +113,46 @@ struct OmenCommandCenterScreen: View {
     }
 }
 
-/// Immutable view state for `OmenCommandCenterScreen`. Feature callers build one of
-/// these from whatever data source is authoritative (fixture, dashboard-summary
-/// response, demo mode). The screen renders honestly for every combination without
-/// inspecting the source.
+/// Immutable view state.
 struct OmenCommandCenterState {
     let greeting: String
-    let leagueScope: String?
-    let platforms: [OmenCommandCenterPlatform]
-    let decision: OmenDecisionBriefState
+    let context: OmenContextStripState
+    let matchup: OmenMatchupHeroState
 }
 
-struct OmenCommandCenterPlatform: Identifiable {
-    let id = UUID()
-    let platform: OmenPlatform
-    let status: OmenConnectionStatus
-    let description: String?
-    let actionLabel: String?
-    let onAction: (() -> Void)?
-
-    init(
-        platform: OmenPlatform,
-        status: OmenConnectionStatus,
-        description: String? = nil,
-        actionLabel: String? = nil,
-        onAction: (() -> Void)? = nil
-    ) {
-        self.platform = platform
-        self.status = status
-        self.description = description
-        self.actionLabel = actionLabel
-        self.onAction = onAction
-    }
-}
-
-/// Static demo fixtures for gallery, previews, and until the live wiring lands. Every
-/// state here is visibly labeled (Mock DecisionBrief variant, mock connection copy) so
-/// nothing can be mistaken for a live recommendation. Fixture strings are scaffold copy
-/// — real product copy lands in the live-wiring pass with a proper `slops-ux-copy`
-/// review.
+/// Fixture registry. Every fixture is explicitly labelled by its variable name; none
+/// mints a "connected provider" claim for a real user. Screenshot workflow and
+/// `Try Demo` session both consume these; a real signed-in user without connected
+/// context sees `realDisconnected` until live wiring exists.
 enum OmenCommandCenterFixtures {
-    private static let samplePayload = OmenDecisionBriefPayload(
-        verdict: "Start Christian McCaffrey",
-        move: "Bench Ken Walker for the RB1 slot.",
-        impact: "+4.1 projected over your bench.",
-        confidence: 72,
-        risk: .low,
-        riskReasons: ["McCaffrey full-practice Fri.", "Weather stable in SF."],
-        explanation: [
-            "49ers implied 27 against a bottom-5 rush defense.",
-            "Ken Walker limited practice with an ankle.",
-        ],
-        metrics: [
-            OmenMetricItem(label: "Projected", value: "22.4", delta: "+4.1", deltaDirection: .positive),
-            OmenMetricItem(label: "Ceiling", value: "31.8"),
-        ],
-        signals: [
-            OmenSignalItem(label: "Yahoo roster snapshot", source: .live, detail: "Refreshed 4 minutes ago."),
-            OmenSignalItem(label: "Opponent defense grade", source: .stub),
-        ],
-        alternatives: [
-            OmenDecisionBriefAlternative(name: "Ken Walker III", position: .rb, team: "SEA", meta: "Limited practice"),
-        ]
-    )
-
     static let demoConnected = OmenCommandCenterState(
-        greeting: "This week's move is ready.",
-        leagueScope: "Sunday Slate · Sleeper · 12 teams",
-        platforms: [
-            OmenCommandCenterPlatform(
-                platform: .sleeper, status: .connected,
-                description: "Last synced 4 minutes ago.",
-                actionLabel: "Manage league", onAction: {}
-            ),
-            OmenCommandCenterPlatform(
-                platform: .yahoo, status: .disconnected,
-                description: "Connect Yahoo to blend the two rosters.",
-                actionLabel: "Connect Yahoo", onAction: {}
-            ),
-        ],
-        decision: .mock(samplePayload)
+        greeting: "Demo · this week's move is ready.",
+        context: .selected(platform: .sleeper, leagueName: "Demo Slate (mock league)", teamName: "Demo Titans"),
+        matchup: .live(
+            selectedTeam: OmenMatchupTeam(name: "Demo Titans", record: "6–1", scoreText: "64.8"),
+            opponent: OmenMatchupTeam(name: "Demo Rivals", record: "5–2", scoreText: "58.1"),
+            projectedFinish: "119.6–114.2",
+            whatToWatch: "Opponent has two demo players remaining Monday night."
+        )
     )
 
-    static let demoDisconnected = OmenCommandCenterState(
-        greeting: "Connect a league to see your Omen.",
-        leagueScope: nil,
-        platforms: [
-            OmenCommandCenterPlatform(
-                platform: .sleeper, status: .disconnected,
-                description: "Fastest way in — Sleeper username only.",
-                actionLabel: "Connect Sleeper", onAction: {}
-            ),
-            OmenCommandCenterPlatform(
-                platform: .yahoo, status: .disconnected,
-                description: "Official OAuth in your system browser.",
-                actionLabel: "Connect Yahoo", onAction: {}
-            ),
-        ],
-        decision: .disconnected(connect: {})
+    /// Honest disconnected state — what a real signed-in user without a connected
+    /// league sees. No fabricated provider status, no fake matchup, no no-op CTA.
+    static let realDisconnected = OmenCommandCenterState(
+        greeting: "Connect a league to see your matchup.",
+        context: .empty,
+        matchup: .noMatchup(reason: "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.")
     )
 
-    static let demoReauth = OmenCommandCenterState(
-        greeting: "Sunday Slate needs a reconnect.",
-        leagueScope: "Sunday Slate · Yahoo · 12 teams",
-        platforms: [
-            OmenCommandCenterPlatform(
-                platform: .yahoo, status: .needsReauth,
-                description: "Reconnect to restore this week's roster.",
-                actionLabel: "Reconnect Yahoo", onAction: {}
-            ),
-        ],
-        decision: .error("Yahoo session expired before we could read your roster.", retry: {})
-    )
-
-    static let demoLoading = OmenCommandCenterState(
-        greeting: "Working on this week's move…",
-        leagueScope: "Sunday Slate · Sleeper · 12 teams",
-        platforms: [
-            OmenCommandCenterPlatform(
-                platform: .sleeper, status: .connected,
-                description: "Last synced 4 minutes ago."
-            ),
-        ],
-        decision: .loading
-    )
-
-    static let demoOffSeason = OmenCommandCenterState(
-        greeting: "Season's between reps.",
-        leagueScope: "Sunday Slate · Sleeper · 12 teams",
-        platforms: [
-            OmenCommandCenterPlatform(
-                platform: .sleeper, status: .connected,
-                description: "Ready for Week 1."
-            ),
-        ],
-        decision: .offSeason
+    /// Honest loading state — session restore or dashboard-summary in flight.
+    static let realLoading = OmenCommandCenterState(
+        greeting: "Restoring your session…",
+        context: .empty,
+        matchup: .noMatchup(reason: "Loading…")
     )
 }
 
 #if DEBUG
-#Preview("Connected + Mock Omen") {
-    OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoConnected)
-}
-
-#Preview("Disconnected") {
-    OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoDisconnected)
-}
-
-#Preview("Needs reauth + error") {
-    OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoReauth)
-}
+#Preview("CC — demo connected") { OmenCommandCenterScreen(state: OmenCommandCenterFixtures.demoConnected) }
+#Preview("CC — real disconnected") { OmenCommandCenterScreen(state: OmenCommandCenterFixtures.realDisconnected) }
 #endif

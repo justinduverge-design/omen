@@ -45,6 +45,7 @@ import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenModalSheet
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -100,6 +101,7 @@ fun OmenAndroidApp() {
     var deletePhrase by remember { mutableStateOf("") }
     var deleteMessage by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
 
     fun dispatch(event: AuthEvent) {
         val next = AuthFlowReducer.reduce(flow, event)
@@ -235,9 +237,24 @@ fun OmenAndroidApp() {
                     ) {
                         SignedInDestination(
                             destination = selectedDestination,
+                            isDemo = s.userId == SessionManager.DEMO_USER_ID,
+                            onOpenAccount = { showAccountSheet = true },
+                        )
+                    }
+                    OmenModalSheet(
+                        visible = showAccountSheet,
+                        onDismissRequest = { showAccountSheet = false },
+                        title = "Account",
+                    ) {
+                        AccountSheetBody(
                             userId = s.userId,
-                            onSignOut = { sessionManager.signOut() },
-                            onDelete = { showDelete = true }.takeIf { s.userId != SessionManager.DEMO_USER_ID },
+                            onSignOut = {
+                                showAccountSheet = false
+                                sessionManager.signOut()
+                            },
+                            onDelete = if (s.userId != SessionManager.DEMO_USER_ID) {
+                                { showAccountSheet = false; showDelete = true }
+                            } else null,
                         )
                     }
                 }
@@ -246,7 +263,17 @@ fun OmenAndroidApp() {
     }
 }
 
-/** Top-level destinations for the signed-in shell. Mirrors iOS `CommandCenterView` tabs. */
+/**
+ * Top-level destinations for the signed-in shell — Command · Omen · Trade · League, per
+ * M0c §12.5 approved navigation contract. Draft is a *seasonal* destination reached
+ * through League and promoted from Command Center during draft-relevant periods; it is
+ * NOT a permanent tab. Account is contextual, reached via the Command Center header
+ * profile control (see [OmenCommandCenterScreen]'s `onOpenAccount`), NOT a permanent tab.
+ *
+ * The `ic_nav_draft.xml` and `ic_nav_account.xml` drawables remain checked in for the
+ * seasonal Draft reintroduction inside League and the Account header affordance
+ * respectively — neither is orphaned.
+ */
 private enum class NavDestination(
     val label: String,
     val iconRes: Int,
@@ -267,15 +294,15 @@ private enum class NavDestination(
         iconRes = R.drawable.ic_nav_trade,
         contentDescription = "Trade Analyzer",
     ),
-    Draft(
-        label = "Draft",
-        iconRes = R.drawable.ic_nav_draft,
-        contentDescription = "Draft Assistant",
-    ),
-    Account(
-        label = "Account",
+    League(
+        label = "League",
+        // Registry §3.2 uses OmenPlatformBadge for league identity — a permanent nav icon
+        // still needs one shared glyph across all leagues, so we reuse the account_circle
+        // silhouette as a neutral "group / league" pointer until a dedicated Material
+        // Symbol lands. Follow-up: pick a `groups` / `group_work` symbol under addendum §4
+        // when we add another local drawable (out of scope for corrective v1.1).
         iconRes = R.drawable.ic_nav_account,
-        contentDescription = "Account settings",
+        contentDescription = "League",
     ),
 }
 
@@ -316,33 +343,51 @@ private fun OmenBottomNav(selected: NavDestination, onSelect: (NavDestination) -
 @Composable
 private fun SignedInDestination(
     destination: NavDestination,
+    isDemo: Boolean,
+    onOpenAccount: () -> Unit,
+) {
+    when (destination) {
+        NavDestination.Command -> OmenCommandCenterScreen(
+            state = if (isDemo) OmenCommandCenterFixtures.demoConnected
+            else OmenCommandCenterFixtures.realDisconnected,
+            onOpenAccount = onOpenAccount,
+        )
+        NavDestination.Omen -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Empty,
+            title = "Omen is landing next",
+            message = "The full Omen decision workspace ships in the M4-Omen-Screen slice.",
+            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+        )
+        NavDestination.Trade -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Empty,
+            title = "Trade is landing next",
+            message = "Trade Analyzer arrives in the M4-Trade-Screen slice.",
+            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+        )
+        NavDestination.League -> OmenStateSurface(
+            kind = OmenStateSurfaceKind.Empty,
+            title = "League is landing next",
+            message = "League roster/matchup/standings, plus seasonal Draft entry, arrive in the M4-League-Screen slice.",
+            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+        )
+    }
+}
+
+@Composable
+private fun AccountSheetBody(
     userId: String,
     onSignOut: () -> Unit,
     onDelete: (() -> Unit)?,
 ) {
-    when (destination) {
-        NavDestination.Command -> OmenCommandCenterScreen(
-            state = OmenCommandCenterFixtures.demoConnected,
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        Text(
+            text = "Signed in as $userId",
+            style = OmenTheme.typography.body.toTextStyle(),
+            color = OmenTheme.color.textPrimary,
         )
-        NavDestination.Omen, NavDestination.Trade, NavDestination.Draft -> OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "${destination.label} coming next",
-            message = "This tab lands in a follow-up M4 slice.",
-            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-        )
-        NavDestination.Account -> Column(
-            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
-        ) {
-            Text(
-                text = "Signed in as $userId",
-                style = OmenTheme.typography.body.toTextStyle(),
-                color = OmenTheme.color.textPrimary,
-            )
-            OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
-            if (onDelete != null) {
-                OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
-            }
+        OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
+        if (onDelete != null) {
+            OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
         }
     }
 }
