@@ -29,10 +29,9 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/core/network/AppEnvironment.kt"), /apiBaseUrl/);
 
   // iOS split the M3 placeholder's single AppShellView into per-screen files
-  // (M3A-iOS, #159). Check the shell actually wires each screen in, and check
-  // each screen's expected copy in its own source, separately — concatenating
-  // the files would let the shell silently stop rendering a screen while its
-  // now-unreachable copy still "passed" the assertion.
+  // (M3A-iOS, #159). M4 moved signed-in Command content into the feature-layer
+  // OmenCommandCenterScreen. The shell must wire that composition in; it must
+  // not retain copy from the retired placeholder implementation.
   const appShellSource = read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift");
   assert.match(appShellSource, /WelcomeView\(/);
   assert.match(appShellSource, /CommandCenterView\(/);
@@ -42,14 +41,14 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   assert.match(welcomeSource, /Get started/);
 
   const commandCenterSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/CommandCenterView.swift");
-  assert.match(commandCenterSource, /Mock recommendation/);
-  assert.match(commandCenterSource, /Connection needs attention/);
+  assert.match(commandCenterSource, /OmenCommandCenterScreen\(/);
+  assert.match(commandCenterSource, /OmenStateSurface\(/);
 
   const androidShell = read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt");
   assert.match(androidShell, /Try Demo/);
   assert.match(androidShell, /Get started/);
-  assert.match(androidShell, /Mock recommendation/);
-  assert.match(androidShell, /Connection needs attention/);
+  assert.match(androidShell, /OmenCommandCenterScreen\(/);
+  assert.match(androidShell, /OmenStateSurface\(/);
   assert.match(androidShell, /NavigationBar/);
 
   assert.doesNotMatch(read("mobile/android/app/build.gradle.kts"), /SUPABASE_SERVICE_KEY|OAUTH.*SECRET|ESPN.*COOKIE/);
