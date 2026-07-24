@@ -18,6 +18,14 @@ const cors      = require("cors");
 const rateLimit = require("express-rate-limit");
 const config    = require("../config");
 
+const PERMISSIONS_POLICY = [
+  "camera=()",
+  "geolocation=()",
+  "microphone=()",
+  "payment=()",
+  "usb=()",
+].join(", ");
+
 // ── helmet ────────────────────────────────────────────────────────
 // Sets ~12 hardening headers (X-Frame-Options, HSTS, X-Content-Type-Options,
 // Referrer-Policy, etc.) plus a minimal same-origin CSP for the bundled SPA.
@@ -49,6 +57,14 @@ const helmetMiddleware = helmet({
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
 });
+
+function permissionsPolicyMiddleware(_req, res, next) {
+  // Omen has no camera, microphone, geolocation, payment, or USB feature.
+  // Explicitly deny them so a future browser-side regression cannot request
+  // these capabilities without an intentional policy change.
+  res.setHeader("Permissions-Policy", PERMISSIONS_POLICY);
+  next();
+}
 
 // ── CORS ──────────────────────────────────────────────────────────
 // Default-deny with sensible same-origin shortcut. Vite-built SPAs use
@@ -126,9 +142,11 @@ const publicToolRateLimit = rateLimit({
 });
 
 module.exports = {
+  PERMISSIONS_POLICY,
   helmetMiddleware,
   corsMiddleware,
   generalRateLimit,
   authRateLimit,
+  permissionsPolicyMiddleware,
   publicToolRateLimit,
 };
