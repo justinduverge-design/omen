@@ -558,14 +558,20 @@ export default function ConnectLeague() {
     if (!checkingAuth) fetchPlatforms();
   }, [checkingAuth]);
 
+  function markOnboardingDone() {
+    localStorage.setItem('omen.onboarding.done', 'true');
+  }
+
   function handleSkip() {
     // Consume any stored ?next= and discard it — skip means go to dashboard
     consumeNextUrl();
+    markOnboardingDone();
     navigate('/football', { replace: true });
   }
 
   function handleContinue() {
     const dest = consumeNextUrl();
+    markOnboardingDone();
     navigate(dest, { replace: true });
   }
 

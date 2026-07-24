@@ -5,7 +5,11 @@ import { Card } from '../components/ui/Card.jsx';
 
 const DONE_KEY = 'omen.onboarding.done';
 const LEGACY_DONE_KEY = 'corvus.onboarding.done';
-const CONNECTED_STATUSES = new Set(['ready', 'pending_live_engine']);
+const PLATFORM_KEYS = ['sleeper', 'yahoo', 'espn'];
+
+function hasConnectedPlatform(data) {
+  return PLATFORM_KEYS.some((platform) => data?.platforms?.[platform]?.connected === true);
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -220,11 +224,10 @@ export default function Onboarding() {
       navigate('/football', { replace: true });
       return;
     }
-    // Returning user on new device — check if already connected and skip to complete
-    apiFetch('/api/dashboard/summary')
+    // Returning users may have a valid connection before live recommendations are ready.
+    apiFetch('/api/platforms')
       .then((data) => {
-        const status = data?.tools?.omen_of_the_week?.status;
-        if (CONNECTED_STATUSES.has(status)) {
+        if (hasConnectedPlatform(data)) {
           setStep(2);
         }
       })
@@ -235,9 +238,8 @@ export default function Onboarding() {
     setChecking(true);
     setNoConnection(false);
     try {
-      const data = await apiFetch('/api/dashboard/summary');
-      const status = data?.tools?.omen_of_the_week?.status;
-      if (CONNECTED_STATUSES.has(status)) {
+      const data = await apiFetch('/api/platforms');
+      if (hasConnectedPlatform(data)) {
         setStep(2);
       } else {
         setNoConnection(true);
