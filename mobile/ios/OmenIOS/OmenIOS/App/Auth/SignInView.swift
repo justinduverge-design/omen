@@ -45,6 +45,21 @@ struct SignInView: View {
                     }
                 }
 
+                // M4-Auth-Providers-v1 §4 — first user of the provider-agnostic OAuth seam.
+                // Only rendered when Supabase config is present; hidden entirely otherwise so
+                // the auth surface stays clean on unconfigured / demo builds. Passkey button
+                // deliberately absent — see M4-Auth-Passkeys-Onramp follow-up.
+                if viewModel.discordSignInAvailable {
+                    OmenButton(
+                        title: "Continue with Discord",
+                        action: { viewModel.signInWithOAuth(providerId: "discord") },
+                        variant: .secondary,
+                        size: .lg,
+                        enabled: !isBusy,
+                        loading: isDiscordBusy
+                    )
+                }
+
                 OmenFormField(label: "Email", errorMessage: emailErrorMessage) {
                     OmenTextField(
                         value: $viewModel.emailField,
@@ -102,7 +117,8 @@ struct SignInView: View {
 
     private var isBusy: Bool {
         switch viewModel.flowState {
-        case .requestingOtp, .verifyingOtp, .launchingApple, .exchangingAppleToken:
+        case .requestingOtp, .verifyingOtp, .launchingApple, .exchangingAppleToken,
+             .launchingOAuth, .exchangingOAuthCode:
             return true
         default:
             return false
@@ -113,6 +129,15 @@ struct SignInView: View {
         switch viewModel.flowState {
         case .launchingApple, .exchangingAppleToken:
             return true
+        default:
+            return false
+        }
+    }
+
+    private var isDiscordBusy: Bool {
+        switch viewModel.flowState {
+        case .launchingOAuth(let providerId), .exchangingOAuthCode(let providerId):
+            return providerId == "discord"
         default:
             return false
         }

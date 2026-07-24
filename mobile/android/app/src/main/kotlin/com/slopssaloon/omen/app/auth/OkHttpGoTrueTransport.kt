@@ -58,12 +58,25 @@ class OkHttpGoTrueTransport(
             expectSession = true,
         )
 
-    // M4-Auth-Providers-v1 §9 step 5 — real HTTP wiring lands with the platform impls.
-    // Returning 501 keeps the module compiling and surfaces a clean retryable-server outcome
-    // through SupabaseAuthRepository until then, so no UI ever thinks these paths silently work.
-
+    // M4-Auth-Providers-v1 §9 step 5b — Supabase PKCE code exchange.
+    // POST /auth/v1/token?grant_type=pkce with { auth_code, code_verifier } → session tokens
+    // (mirrors the JS SDK's `exchangeCodeForSession`). `providerId` isn't in the request body —
+    // Supabase already knows the provider from the ceremony started at /auth/v1/authorize.
     override suspend fun exchangeOAuthCode(providerId: String, code: String, codeVerifier: String): TransportResult =
-        TransportResult.HttpError(501)
+        post(
+            "$base/auth/v1/token?grant_type=pkce",
+            JSONObject().put("auth_code", code).put("code_verifier", codeVerifier),
+            expectSession = true,
+        )
+
+    // M4-Auth-Providers-v1: passkey (WebAuthn) transport wiring deferred per session decision
+    // 2026-07-24 — Supabase's passkey feature is experimental with no stable public REST shape
+    // (the JS/Swift SDKs are the only supported clients, gated behind `@_spi(Experimental)`).
+    // Shipping unstable reverse-engineered endpoints would break silently the next time Supabase
+    // iterates. Follow-up: `M4-Auth-Passkeys-Onramp` in the sprint queue. The transport keeps
+    // 501 stubs so `SupabaseAuthRepository` surfaces retryable-server outcomes — nothing silently
+    // works, and `PasskeyProvider.isSupported = false` (via `UnsupportedPasskeyProvider`) means
+    // the UI never even renders a passkey button.
 
     override suspend fun startPasskeyChallenge(): TransportResult = TransportResult.HttpError(501)
 

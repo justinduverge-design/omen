@@ -30,7 +30,9 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
+import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
+import com.slopssaloon.omen.app.auth.OAuthCallbackBus
 import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
 import com.slopssaloon.omen.core.auth.AccountDeletion
@@ -43,8 +45,11 @@ import com.slopssaloon.omen.core.auth.AuthRepository
 import com.slopssaloon.omen.core.auth.FakeAuthRepository
 import com.slopssaloon.omen.core.auth.GoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.GoogleIdTokenResult
+import com.slopssaloon.omen.core.auth.OAuthCallback
 import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
+import com.slopssaloon.omen.core.auth.SupabaseOAuthProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
+import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenModalSheet
@@ -89,6 +94,15 @@ fun OmenAndroidApp() {
         if (env.googleSignInConfigured) CredentialManagerGoogleIdTokenProvider(context, env.googleWebClientId)
         else UnconfiguredGoogleIdTokenProvider()
     }
+    // Discord OAuth ships in M4-Auth-Providers-v1 as the first user of the provider-agnostic
+    // seam. `isConfigured("discord")` is optimistic (Supabase's anon key can't tell us whether
+    // a provider is enabled server-side); the transport 404 mapping in SupabaseAuthRepository
+    // catches an actually-disabled provider and surfaces OAUTH_PROVIDER_NOT_CONFIGURED.
+    val oauthProvider: SupabaseOAuthProvider = remember {
+        if (env.supabaseConfigured) AndroidChromeTabsOAuthProvider(context, env.supabaseUrl)
+        else UnconfiguredSupabaseOAuthProvider()
+    }
+    val discordConfigured = remember(oauthProvider) { oauthProvider.isConfigured("discord") }
     val accountRepo: AccountRepository = remember { OkHttpAccountRepository(env.apiBaseUrl) }
     val sessionState by sessionManager.state.collectAsState()
 
@@ -126,12 +140,72 @@ fun OmenAndroidApp() {
                     else -> dispatch(AuthEvent.GoogleTokenResult(tokenResult))
                 }
             }
+            is AuthFlowState.LaunchingOAuth -> scope.launch {
+                // Fire and forget — the callback deep link arrives via OAuthCallbackBus below.
+                oauthProvider.launch(next.providerId)
+            }
+            is AuthFlowState.ExchangingOAuthCode -> Unit // driven by the callback collector
             is AuthFlowState.Authenticated -> {
                 sessionManager.onAuthenticated(next.session)
                 showAuth = false
                 flow = AuthFlowState.Idle
             }
             else -> Unit
+        }
+    }
+
+    // Collect OAuth deep-link callbacks fed by MainActivity.onNewIntent. When one arrives
+    // while we are in LaunchingOAuth for providerId=X, validate `state`, dispatch
+    // OAuthCallbackReceived (→ ExchangingOAuthCode), then run the code exchange and dispatch
+    // the terminal OAuthExchangeResult. If we get a callback in any other state, we surface
+    // OAUTH_CALLBACK_MISMATCH through the reducer.
+    LaunchedEffect(oauthProvider) {
+        OAuthCallbackBus.callbacks.collect { uri ->
+            val providerId = (flow as? AuthFlowState.LaunchingOAuth)?.providerId ?: run {
+                // Not launching anything — feed a mismatch so any stale callback fails safely.
+                dispatch(
+                    AuthEvent.OAuthCallbackReceived(
+                        providerId = "unknown",
+                        code = uri.getQueryParameter("code").orEmpty(),
+                        state = uri.getQueryParameter("state").orEmpty(),
+                    ),
+                )
+                return@collect
+            }
+            when (val parsed = oauthProvider.parseCallback(
+                providerId = providerId,
+                code = uri.getQueryParameter("code"),
+                state = uri.getQueryParameter("state"),
+            )) {
+                is OAuthCallback.Valid -> {
+                    dispatch(
+                        AuthEvent.OAuthCallbackReceived(
+                            providerId = providerId,
+                            code = parsed.code,
+                            state = uri.getQueryParameter("state").orEmpty(),
+                        ),
+                    )
+                    dispatch(
+                        AuthEvent.OAuthExchangeResult(
+                            providerId = providerId,
+                            outcome = repo.exchangeOAuthCode(
+                                providerId = providerId,
+                                code = parsed.code,
+                                codeVerifier = parsed.codeVerifier,
+                            ),
+                        ),
+                    )
+                }
+                OAuthCallback.Mismatch, OAuthCallback.Malformed -> {
+                    dispatch(
+                        AuthEvent.OAuthCallbackReceived(
+                            providerId = "unknown", // triggers OAUTH_CALLBACK_MISMATCH branch
+                            code = uri.getQueryParameter("code").orEmpty(),
+                            state = uri.getQueryParameter("state").orEmpty(),
+                        ),
+                    )
+                }
+            }
         }
     }
 
@@ -172,11 +246,13 @@ fun OmenAndroidApp() {
                         code = code,
                         live = env.supabaseConfigured,
                         googleConfigured = env.googleSignInConfigured,
+                        discordConfigured = discordConfigured,
                         onEmailChange = { email = it },
                         onCodeChange = { code = it },
                         onSubmitEmail = { dispatch(AuthEvent.EmailSubmitted(email)) },
                         onSubmitCode = { dispatch(AuthEvent.OtpSubmitted(code)) },
                         onGoogle = { dispatch(AuthEvent.GoogleRequested) },
+                        onDiscord = { dispatch(AuthEvent.OAuthRequested(providerId = "discord")) },
                         onReset = { dispatch(AuthEvent.Reset) },
                         onBack = { showAuth = false; dispatch(AuthEvent.Reset) },
                     )

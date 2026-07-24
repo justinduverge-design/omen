@@ -33,11 +33,13 @@ fun OmenAuthFlow(
     code: String,
     live: Boolean,
     googleConfigured: Boolean,
+    discordConfigured: Boolean = false,
     onEmailChange: (String) -> Unit,
     onCodeChange: (String) -> Unit,
     onSubmitEmail: () -> Unit,
     onSubmitCode: () -> Unit,
     onGoogle: () -> Unit,
+    onDiscord: () -> Unit = {},
     onReset: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -109,6 +111,27 @@ fun OmenAuthFlow(
                         enabled = googleConfigured,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // M4-Auth-Providers-v1 §3 — first user of the provider-agnostic OAuth seam.
+                    // Rendered only when Supabase config is present; hidden entirely otherwise so
+                    // the auth surface stays clean on unconfigured / demo builds. Passkey button
+                    // deliberately absent — see M4-Auth-Passkeys-Onramp follow-up.
+                    if (discordConfigured) {
+                        Text(
+                            text = "More ways to sign in",
+                            style = OmenTheme.typography.label.toTextStyle(),
+                            color = OmenTheme.color.textSecondary,
+                        )
+                        OmenButton(
+                            text = "Continue with Discord",
+                            onClick = onDiscord,
+                            variant = OmenButtonVariant.Secondary,
+                            enabled = state !is AuthFlowState.LaunchingOAuth &&
+                                state !is AuthFlowState.ExchangingOAuthCode,
+                            loading = state is AuthFlowState.LaunchingOAuth ||
+                                state is AuthFlowState.ExchangingOAuthCode,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
 

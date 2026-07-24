@@ -13,20 +13,24 @@ struct OmenIOSApp: App {
 
         let repository: AuthRepository
         let appleProvider: AppleIDTokenProviding
+        let oauthProvider: SupabaseOAuthProvider
         if environment.supabaseConfigured, let supabaseURL = environment.supabaseURL, let anonKey = environment.supabaseAnonKey {
             let transport = URLSessionGoTrueTransport(supabaseURL: supabaseURL, anonKey: anonKey)
             repository = SupabaseAuthRepository(transport: transport, sessionStore: sessionStore)
             appleProvider = NativeAppleIDTokenProvider()
+            oauthProvider = ASWebAuthenticationOAuthProvider(supabaseURL: supabaseURL)
         } else {
             // No Supabase config for this build (e.g. local/demo) — fall back to a network-free
             // fake rather than silently claiming a live auth path that can't work.
             repository = FakeAuthRepository()
             appleProvider = UnconfiguredAppleIDTokenProvider()
+            oauthProvider = UnconfiguredSupabaseOAuthProvider()
         }
 
         _authViewModel = StateObject(wrappedValue: AuthViewModel(
             repository: repository,
             appleProvider: appleProvider,
+            oauthProvider: oauthProvider,
             sessionManager: manager
         ))
     }
@@ -48,6 +52,13 @@ struct OmenIOSApp: App {
                     .environmentObject(sessionManager)
                     .environmentObject(authViewModel)
                     .environment(\.omenEnvironment, .fromBundle)
+                    // M4-Auth-Providers-v1: Supabase → Discord → Supabase → deep-link callback
+                    // returns here. Feed the URL to the view model to complete the OAuth
+                    // ceremony (validate CSRF state, exchange PKCE code for session).
+                    .onOpenURL { url in
+                        guard url.scheme == "com.slopssaloon.omen", url.host == "auth" else { return }
+                        authViewModel.handleOAuthCallback(url)
+                    }
             }
         }
     }

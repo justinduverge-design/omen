@@ -12,15 +12,23 @@ final class AuthViewModel: ObservableObject {
 
     private let repository: AuthRepository
     private let appleProvider: AppleIDTokenProviding
+    private let oauthProvider: SupabaseOAuthProvider
     private let sessionManager: SessionManager
 
-    init(repository: AuthRepository, appleProvider: AppleIDTokenProviding, sessionManager: SessionManager) {
+    init(
+        repository: AuthRepository,
+        appleProvider: AppleIDTokenProviding,
+        oauthProvider: SupabaseOAuthProvider,
+        sessionManager: SessionManager
+    ) {
         self.repository = repository
         self.appleProvider = appleProvider
+        self.oauthProvider = oauthProvider
         self.sessionManager = sessionManager
     }
 
     var appleSignInAvailable: Bool { appleProvider.isConfigured }
+    var discordSignInAvailable: Bool { oauthProvider.isConfigured(providerId: "discord") }
 
     func submitEmail() {
         dispatch(.emailSubmitted(email: emailField))
@@ -53,6 +61,51 @@ final class AuthViewModel: ObservableObject {
             dispatch(.appleExchangeResult(outcome: outcome))
             authenticateSessionManagerIfNeeded()
         }
+    }
+
+    /// Kick off Discord (or any provider-agnostic OAuth) via `SupabaseOAuthProvider`. The
+    /// deep-link callback lands in `OmenIOSApp` `.onOpenURL` and is fed to
+    /// `handleOAuthCallback(_:)` below to complete the ceremony.
+    func signInWithOAuth(providerId: String) {
+        dispatch(.oauthRequested(providerId: providerId))
+        Task {
+            _ = await oauthProvider.launch(providerId: providerId)
+            // Result is intentionally discarded — success is driven by the callback URL;
+            // .notConfigured / .failed / .unavailable become terminal via the reducer only
+            // if the callback never arrives, which the app-shell timeout handles.
+        }
+    }
+
+    /// Called from `OmenIOSApp` `.onOpenURL` when a `com.slopssaloon.omen://auth/callback`
+    /// deep link arrives. Validates state via the provider seam, then runs the code exchange.
+    func handleOAuthCallback(_ url: URL) {
+        guard let providerId = launchingProviderId else {
+            // Callback arrived while we're not launching anything — surface as mismatch so a
+            // stray link can't quietly succeed.
+            dispatch(.oauthCallbackReceived(providerId: "unknown", code: url.queryValue("code") ?? "", state: url.queryValue("state") ?? ""))
+            return
+        }
+        let parsed = oauthProvider.parseCallback(
+            providerId: providerId,
+            code: url.queryValue("code"),
+            state: url.queryValue("state")
+        )
+        switch parsed {
+        case .valid(let code, let codeVerifier):
+            dispatch(.oauthCallbackReceived(providerId: providerId, code: code, state: url.queryValue("state") ?? ""))
+            Task {
+                let outcome = await repository.exchangeOAuthCode(providerId: providerId, code: code, codeVerifier: codeVerifier)
+                dispatch(.oauthExchangeResult(providerId: providerId, outcome: outcome))
+                authenticateSessionManagerIfNeeded()
+            }
+        case .mismatch, .malformed:
+            dispatch(.oauthCallbackReceived(providerId: "unknown", code: url.queryValue("code") ?? "", state: url.queryValue("state") ?? ""))
+        }
+    }
+
+    private var launchingProviderId: String? {
+        if case .launchingOAuth(let providerId) = flowState { return providerId }
+        return nil
     }
 
     func reset() {
