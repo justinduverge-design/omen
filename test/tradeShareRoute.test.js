@@ -1,5 +1,8 @@
 "use strict";
 
+process.env.SUPABASE_URL ||= "https://example.supabase.co";
+process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
+
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const test = require("node:test");
