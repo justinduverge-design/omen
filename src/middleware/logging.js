@@ -47,15 +47,39 @@ const logger = winston.createLogger({
   ],
 });
 
+function safeRequestPath(req) {
+  const rawUrl = req.originalUrl || req.url || req.path || "/";
+
+  try {
+    return new URL(rawUrl, "http://omen.local").pathname;
+  } catch (_error) {
+    return String(rawUrl).split("?", 1)[0] || "/";
+  }
+}
+
+function accessLogFormat(tokens, req, res) {
+  const remoteAddress = tokens["remote-addr"](req, res) || "-";
+  const timestamp = tokens.date(req, res, "clf") || "-";
+  const method = tokens.method(req, res) || "-";
+  const protocol = tokens["http-version"](req, res) || "-";
+  const status = tokens.status(req, res) || "-";
+  const contentLength = tokens.res(req, res, "content-length") || "-";
+  const responseTime = tokens["response-time"](req, res) || "-";
+
+  // Query strings can contain OAuth codes, CSRF state, and provider credentials.
+  // Keep the route and operational response fields, but never put query data,
+  // referrers, or user agents into the access log.
+  return `${remoteAddress} - - [${timestamp}] "${method} ${safeRequestPath(req)} HTTP/${protocol}" ${status} ${contentLength} ${responseTime}ms`;
+}
+
 // Morgan -> Winston bridge.
-// In production, the `combined` format adds user-agent and referer for forensics.
 // Health checks are skipped — they hit every few seconds and would drown signal.
 const httpLogger = morgan(
-  config.isProd ? "combined" : "dev",
+  config.isProd ? accessLogFormat : "dev",
   {
     stream: { write: (msg) => logger.info(msg.trim()) },
     skip:   (req, res) => req.path === "/api/health" || Boolean(res.locals.__skipBodyLog),
   }
 );
 
-module.exports = { logger, httpLogger };
+module.exports = { accessLogFormat, logger, httpLogger, safeRequestPath };
