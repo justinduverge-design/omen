@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.auth
 
 import com.slopssaloon.omen.core.auth.GoTrueTransport
+import com.slopssaloon.omen.core.auth.PasskeyResult
 import com.slopssaloon.omen.core.auth.TransportResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,6 +57,21 @@ class OkHttpGoTrueTransport(
             JSONObject().put("refresh_token", refreshToken),
             expectSession = true,
         )
+
+    // M4-Auth-Providers-v1 §9 step 5 — real HTTP wiring lands with the platform impls.
+    // Returning 501 keeps the module compiling and surfaces a clean retryable-server outcome
+    // through SupabaseAuthRepository until then, so no UI ever thinks these paths silently work.
+
+    override suspend fun exchangeOAuthCode(providerId: String, code: String, codeVerifier: String): TransportResult =
+        TransportResult.HttpError(501)
+
+    override suspend fun startPasskeyChallenge(): TransportResult = TransportResult.HttpError(501)
+
+    override suspend fun verifyPasskeyAssertion(assertion: PasskeyResult.Assertion): TransportResult =
+        TransportResult.HttpError(501)
+
+    override suspend fun registerPasskey(credential: PasskeyResult.Assertion): TransportResult =
+        TransportResult.HttpError(501)
 
     private suspend fun post(url: String, body: JSONObject, expectSession: Boolean): TransportResult =
         withContext(Dispatchers.IO) {

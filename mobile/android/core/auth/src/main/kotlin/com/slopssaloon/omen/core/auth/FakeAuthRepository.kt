@@ -13,10 +13,16 @@ import com.slopssaloon.omen.core.session.Session
 class FakeAuthRepository(
     private val validCode: String = "123456",
     private val googleConfigured: Boolean = true,
+    private val oauthConfiguredProviders: Set<String> = setOf("discord"),
+    private val passkeyConfigured: Boolean = true,
     var requestOtpOutcome: AuthOutcome? = null,
     var verifyOtpOutcome: AuthOutcome? = null,
     var googleOutcome: AuthOutcome? = null,
     var refreshOutcome: AuthOutcome? = null,
+    var oauthExchangeOutcome: AuthOutcome? = null,
+    var passkeyChallengeOutcome: PasskeyChallenge? = null,
+    var passkeySignInOutcome: AuthOutcome? = null,
+    var passkeyRegisterOutcome: AuthOutcome? = null,
 ) : AuthRepository {
 
     var signedOut: Boolean = false
@@ -41,6 +47,31 @@ class FakeAuthRepository(
     }
 
     override suspend fun refresh(): AuthOutcome = refreshOutcome ?: AuthOutcome.NeedsReauth
+
+    override suspend fun exchangeOAuthCode(providerId: String, code: String, codeVerifier: String): AuthOutcome {
+        oauthExchangeOutcome?.let { return it }
+        return if (providerId in oauthConfiguredProviders) {
+            AuthOutcome.Success(fakeSession("oauth:$providerId"))
+        } else {
+            AuthOutcome.OAuthProviderNotConfigured
+        }
+    }
+
+    override suspend fun startPasskeyChallenge(): PasskeyChallenge {
+        passkeyChallengeOutcome?.let { return it }
+        return if (passkeyConfigured) PasskeyChallenge.Ok(challenge = "fake-challenge")
+        else PasskeyChallenge.Failed(RetryableCode.UNKNOWN)
+    }
+
+    override suspend fun signInWithPasskey(assertion: PasskeyResult.Assertion): AuthOutcome {
+        passkeySignInOutcome?.let { return it }
+        return AuthOutcome.Success(fakeSession("passkey:${assertion.credentialId}"))
+    }
+
+    override suspend fun registerPasskey(credential: PasskeyResult.Assertion): AuthOutcome {
+        passkeyRegisterOutcome?.let { return it }
+        return AuthOutcome.Success(fakeSession("passkey-register:${credential.credentialId}"))
+    }
 
     override suspend fun signOut() { signedOut = true }
 

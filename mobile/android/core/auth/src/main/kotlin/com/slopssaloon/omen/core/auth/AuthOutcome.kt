@@ -28,6 +28,18 @@ sealed interface AuthOutcome {
 
     /** Transient failure (network/timeout/server). Safe to retry. Carries an opaque code only. */
     data class RetryableError(val code: RetryableCode) : AuthOutcome
+
+    /**
+     * OAuth deep-link `state` did not match the value the app generated before opening the
+     * browser — CSRF defense per M4-Auth-Providers-v1 brief §2.3. Never carries the received value.
+     */
+    data object OAuthCallbackMismatch : AuthOutcome
+
+    /**
+     * Supabase reports the OAuth provider is not enabled in this project. Defensive; the UI should
+     * already gate the button on provider availability (brief §2.3).
+     */
+    data object OAuthProviderNotConfigured : AuthOutcome
 }
 
 /** Opaque, log-safe categories for a retryable failure. Never a raw provider message. */

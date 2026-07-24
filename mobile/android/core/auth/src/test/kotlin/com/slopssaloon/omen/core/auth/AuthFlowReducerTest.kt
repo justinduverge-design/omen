@@ -78,4 +78,120 @@ class AuthFlowReducerTest {
     @Test fun resetReturnsToIdle() {
         assertEquals(AuthFlowState.Idle, reduce(AuthFlowState.Failed(AuthFailure.NETWORK), AuthEvent.Reset))
     }
+
+    // M4-Auth-Providers-v1 §6.1 — OAuth reducer
+
+    @Test fun oauthRequestedEntersLaunching() {
+        assertEquals(
+            AuthFlowState.LaunchingOAuth("discord"),
+            reduce(AuthFlowState.Idle, AuthEvent.OAuthRequested("discord")),
+        )
+    }
+
+    @Test fun oauthCallbackReceivedEntersExchange() {
+        val launching = AuthFlowState.LaunchingOAuth("discord")
+        assertEquals(
+            AuthFlowState.ExchangingOAuthCode("discord"),
+            reduce(launching, AuthEvent.OAuthCallbackReceived("discord", code = "c", state = "s")),
+        )
+    }
+
+    @Test fun oauthCallbackProviderMismatchIsRejected() {
+        val launching = AuthFlowState.LaunchingOAuth("discord")
+        // A stray callback claiming a different providerId while launching Discord must not
+        // silently proceed; the reducer routes to a named failure so the UI can recover.
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.OAUTH_CALLBACK_MISMATCH),
+            reduce(launching, AuthEvent.OAuthCallbackReceived("github", code = "c", state = "s")),
+        )
+    }
+
+    @Test fun oauthExchangeSuccessAuthenticates() {
+        val exchanging = AuthFlowState.ExchangingOAuthCode("discord")
+        val s = reduce(exchanging, AuthEvent.OAuthExchangeResult("discord", AuthOutcome.Success(session)))
+        assertIs<AuthFlowState.Authenticated>(s)
+    }
+
+    @Test fun oauthCallbackMismatchFromExchangeMapsToNamedFailure() {
+        val exchanging = AuthFlowState.ExchangingOAuthCode("discord")
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.OAUTH_CALLBACK_MISMATCH),
+            reduce(exchanging, AuthEvent.OAuthExchangeResult("discord", AuthOutcome.OAuthCallbackMismatch)),
+        )
+    }
+
+    @Test fun oauthProviderNotConfiguredMapsToNamedFailure() {
+        val launching = AuthFlowState.LaunchingOAuth("discord")
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.OAUTH_PROVIDER_NOT_CONFIGURED),
+            reduce(launching, AuthEvent.OAuthExchangeResult("discord", AuthOutcome.OAuthProviderNotConfigured)),
+        )
+    }
+
+    @Test fun oauthRetryableExchangeErrorMapsToNamedFailure() {
+        val exchanging = AuthFlowState.ExchangingOAuthCode("discord")
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.NETWORK),
+            reduce(
+                exchanging,
+                AuthEvent.OAuthExchangeResult("discord", AuthOutcome.RetryableError(RetryableCode.NETWORK)),
+            ),
+        )
+    }
+
+    // M4-Auth-Providers-v1 §6.1 — Passkey reducer
+
+    @Test fun passkeyRequestedEntersLaunching() {
+        assertEquals(AuthFlowState.LaunchingPasskey, reduce(AuthFlowState.Idle, AuthEvent.PasskeyRequested))
+    }
+
+    @Test fun passkeyAssertionEntersExchange() {
+        val assertion = PasskeyResult.Assertion(
+            credentialId = "cred-1",
+            clientDataJson = "cdj",
+            authenticatorData = "auth",
+            signature = "sig",
+            userHandle = "u1",
+        )
+        assertEquals(
+            AuthFlowState.ExchangingPasskeyAssertion,
+            reduce(AuthFlowState.LaunchingPasskey, AuthEvent.PasskeyAssertionResult(assertion)),
+        )
+    }
+
+    @Test fun passkeyNoCredentialMapsToNamedFailure() {
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.PASSKEY_NO_CREDENTIAL),
+            reduce(
+                AuthFlowState.LaunchingPasskey,
+                AuthEvent.PasskeyAssertionResult(PasskeyResult.NoCredential),
+            ),
+        )
+    }
+
+    @Test fun passkeyUnavailableMapsToNamedFailure() {
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.PASSKEY_UNAVAILABLE),
+            reduce(
+                AuthFlowState.LaunchingPasskey,
+                AuthEvent.PasskeyAssertionResult(PasskeyResult.Unavailable),
+            ),
+        )
+    }
+
+    @Test fun passkeyCancelIsNamedNotFatal() {
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.CANCELED),
+            reduce(
+                AuthFlowState.LaunchingPasskey,
+                AuthEvent.PasskeyAssertionResult(PasskeyResult.Canceled),
+            ),
+        )
+    }
+
+    @Test fun passkeyExchangeSuccessAuthenticates() {
+        val exchanging = AuthFlowState.ExchangingPasskeyAssertion
+        val s = reduce(exchanging, AuthEvent.PasskeyExchangeResult(AuthOutcome.Success(session)))
+        assertIs<AuthFlowState.Authenticated>(s)
+    }
 }

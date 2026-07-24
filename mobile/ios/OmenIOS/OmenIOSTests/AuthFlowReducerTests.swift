@@ -73,4 +73,103 @@ final class AuthFlowReducerTests: XCTestCase {
         let state = AuthFlowReducer.reduce(state: .failed(reason: .network), event: .reset)
         XCTAssertEqual(state, .idle)
     }
+
+    // M4-Auth-Providers-v1 §6.1 — OAuth reducer
+
+    func testOAuthRequestedEntersLaunching() {
+        let state = AuthFlowReducer.reduce(state: .idle, event: .oauthRequested(providerId: "discord"))
+        XCTAssertEqual(state, .launchingOAuth(providerId: "discord"))
+    }
+
+    func testOAuthCallbackReceivedEntersExchange() {
+        let state = AuthFlowReducer.reduce(
+            state: .launchingOAuth(providerId: "discord"),
+            event: .oauthCallbackReceived(providerId: "discord", code: "c", state: "s")
+        )
+        XCTAssertEqual(state, .exchangingOAuthCode(providerId: "discord"))
+    }
+
+    func testOAuthCallbackProviderMismatchIsRejected() {
+        // Stray callback naming a different providerId while launching Discord is a routing/CSRF
+        // anomaly, not a normal recoverable event.
+        let state = AuthFlowReducer.reduce(
+            state: .launchingOAuth(providerId: "discord"),
+            event: .oauthCallbackReceived(providerId: "github", code: "c", state: "s")
+        )
+        XCTAssertEqual(state, .failed(reason: .oauthCallbackMismatch))
+    }
+
+    func testOAuthExchangeSuccessAuthenticates() {
+        let state = AuthFlowReducer.reduce(
+            state: .exchangingOAuthCode(providerId: "discord"),
+            event: .oauthExchangeResult(providerId: "discord", outcome: .success(session: session))
+        )
+        XCTAssertEqual(state, .authenticated(session: session))
+    }
+
+    func testOAuthCallbackMismatchFromExchangeMapsToNamedFailure() {
+        let state = AuthFlowReducer.reduce(
+            state: .exchangingOAuthCode(providerId: "discord"),
+            event: .oauthExchangeResult(providerId: "discord", outcome: .oauthCallbackMismatch)
+        )
+        XCTAssertEqual(state, .failed(reason: .oauthCallbackMismatch))
+    }
+
+    func testOAuthProviderNotConfiguredMapsToNamedFailure() {
+        let state = AuthFlowReducer.reduce(
+            state: .launchingOAuth(providerId: "discord"),
+            event: .oauthExchangeResult(providerId: "discord", outcome: .oauthProviderNotConfigured)
+        )
+        XCTAssertEqual(state, .failed(reason: .oauthProviderNotConfigured))
+    }
+
+    func testOAuthRetryableExchangeErrorMapsToNamedFailure() {
+        let state = AuthFlowReducer.reduce(
+            state: .exchangingOAuthCode(providerId: "discord"),
+            event: .oauthExchangeResult(providerId: "discord", outcome: .retryableError(code: .network))
+        )
+        XCTAssertEqual(state, .failed(reason: .network))
+    }
+
+    // M4-Auth-Providers-v1 §6.1 — Passkey reducer
+
+    func testPasskeyRequestedEntersLaunching() {
+        let state = AuthFlowReducer.reduce(state: .idle, event: .passkeyRequested)
+        XCTAssertEqual(state, .launchingPasskey)
+    }
+
+    func testPasskeyAssertionEntersExchange() {
+        let assertion = PasskeyResult.Assertion(
+            credentialID: "cred-1",
+            clientDataJSON: "cdj",
+            authenticatorData: "auth",
+            signature: "sig",
+            userHandle: "u1"
+        )
+        let state = AuthFlowReducer.reduce(state: .launchingPasskey, event: .passkeyAssertionResult(.assertion(assertion)))
+        XCTAssertEqual(state, .exchangingPasskeyAssertion)
+    }
+
+    func testPasskeyNoCredentialMapsToNamedFailure() {
+        let state = AuthFlowReducer.reduce(state: .launchingPasskey, event: .passkeyAssertionResult(.noCredential))
+        XCTAssertEqual(state, .failed(reason: .passkeyNoCredential))
+    }
+
+    func testPasskeyUnavailableMapsToNamedFailure() {
+        let state = AuthFlowReducer.reduce(state: .launchingPasskey, event: .passkeyAssertionResult(.unavailable))
+        XCTAssertEqual(state, .failed(reason: .passkeyUnavailable))
+    }
+
+    func testPasskeyCancelIsNamedNotFatal() {
+        let state = AuthFlowReducer.reduce(state: .launchingPasskey, event: .passkeyAssertionResult(.canceled))
+        XCTAssertEqual(state, .failed(reason: .canceled))
+    }
+
+    func testPasskeyExchangeSuccessAuthenticates() {
+        let state = AuthFlowReducer.reduce(
+            state: .exchangingPasskeyAssertion,
+            event: .passkeyExchangeResult(outcome: .success(session: session))
+        )
+        XCTAssertEqual(state, .authenticated(session: session))
+    }
 }

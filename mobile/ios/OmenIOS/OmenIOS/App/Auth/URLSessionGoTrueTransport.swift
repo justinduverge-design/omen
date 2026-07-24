@@ -44,6 +44,26 @@ final class URLSessionGoTrueTransport: GoTrueTransport {
         )
     }
 
+    // M4-Auth-Providers-v1 §9 step 5 — real HTTP wiring lands with the platform impls.
+    // Returning 501 keeps the module compiling and surfaces a clean retryable-server outcome
+    // through SupabaseAuthRepository until then, so no UI ever thinks these paths silently work.
+
+    func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> TransportResult {
+        .httpError(status: 501)
+    }
+
+    func startPasskeyChallenge() async -> TransportResult {
+        .httpError(status: 501)
+    }
+
+    func verifyPasskeyAssertion(assertion: PasskeyResult.Assertion) async -> TransportResult {
+        .httpError(status: 501)
+    }
+
+    func registerPasskey(credential: PasskeyResult.Assertion) async -> TransportResult {
+        .httpError(status: 501)
+    }
+
     private func send(path: String, query: [URLQueryItem] = [], body: [String: Any], expectSession: Bool) async -> TransportResult {
         guard var components = URLComponents(url: supabaseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
             return .malformed
