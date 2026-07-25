@@ -5,15 +5,20 @@
 
 ## Active task
 
-## 📌 Next agent pull — M4-Auth-Providers-v1 (blocked)
+## 📌 Next agent pull — Unblock PR #198 when GitHub Actions billing returns (August 2026)
 
-Fresh session should pick up **M4-Auth-Providers-v1** (Discord OAuth + Passkeys/WebAuthn on both platforms) once the three blockers in `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md` clear:
+**M4-Auth-Providers-v1 pivoted to Discord-only + shipped on `claude/m4-auth-providers-v1`** (PR [#198](https://github.com/justinduverge-design/omen/pull/198), draft). Full session decision + evidence: `Blueprints/handoffs/2026-07-24-m4-auth-providers-v1-discord-shipped-passkey-deferred.md`.
 
-1. PR #195 (implementation brief) approved + merged.
-2. `androidx.browser` dep add approved.
-3. Supabase dashboard verifications (redirect URL + passkey RP ID) confirmed by founder.
+**What ships in v1:** Discord OAuth on Android (Chrome Custom Tabs) + iOS (`ASWebAuthenticationSession`), PKCE + CSRF-state seams, provider-agnostic contract-layer (Step 4), Passkey types + reducer branches gated behind `UnsupportedPasskeyProvider` so no passkey UI renders. Android verified locally green. **iOS CI blocked on GitHub Actions billing** ("recent account payments have failed or your spending limit needs to be increased") since 2026-07-24.
 
-Single source of truth for implementation: `Blueprints/specs/mobile/m4-auth-providers-v1-brief.md`. Sprint entry: `Direction/current_sprint.md` → M lane → M4-Auth-Providers-v1.
+**What to do when Actions billing is restored:**
+1. Trigger `.github/workflows/ios-ci.yml` re-run on `claude/m4-auth-providers-v1` (`gh workflow run ios-ci.yml --ref claude/m4-auth-providers-v1` or push a trivial re-trigger commit).
+2. If green: mark PR #198 ready for review; land it.
+3. If red: agent addresses whatever iOS CI surfaces (project.pbxproj registration, missing import, exhaustive-switch, etc.) and re-runs.
+
+**Passkeys are NOT part of v1.** Filed as `M4-Auth-Passkeys-Onramp` in the M lane — blocked on Supabase publishing stable public WebAuthn REST OR founder approving `supabase-swift` + `supabase-kt` SDK adoption (breaks the M0c "no Supabase SDK" doctrine, so it's a real decision).
+
+Sprint entry: `Direction/current_sprint.md` → M lane → M4-Auth-Providers-v1. Original brief (pre-pivot, still authoritative for the seam architecture): `Blueprints/specs/mobile/m4-auth-providers-v1-brief.md`.
 
 ## 📌 Native Mobile Pivot — founder direction
 

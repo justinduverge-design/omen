@@ -195,12 +195,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** compact rows render for both connected + disconnected states on both platforms, Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android, detail sheet handles the Manage/Connect actions, primitive-enforcement scanner still green, connected tests + `:app:assembleDebug` + iOS unsigned CI green.
 - **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
 
-### M4-Auth-Providers-v1 — Discord OAuth + Passkeys (WebAuthn)
+### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
 
 - **Priority:** P1
-- **Cost:** medium — two independent implementations landed in one review pass
-- **Blocked by:** none (Supabase provider list confirmed 2026-07-23: Email, Apple, Google already wired; Discord + Passkeys enabled and unwired)
-- **Agent-buildable:** yes
+- **Cost:** medium
+- **Status:** 🟡 Discord slice built on `claude/m4-auth-providers-v1` (PR [#198](https://github.com/justinduverge-design/omen/pull/198), draft). Android verified locally (`:app:assembleDebug` + `:core:auth:testDebugUnitTest` + primitive-enforcement scanner all green). **iOS CI blocked on GitHub Actions billing since 2026-07-24** — macOS runner rejected with "recent account payments have failed or your spending limit needs to be increased." Passkeys pivoted out of this pass — see below. Session decision handoff: `Blueprints/handoffs/2026-07-24-m4-auth-providers-v1-discord-shipped-passkey-deferred.md`.
+- **Blocked by:** GitHub Actions billing restored (expected August 2026); iOS CI green on `claude/m4-auth-providers-v1`. No code work remaining.
+- **Agent-buildable:** review + merge only until CI unblocks; then trivial re-run.
 - **Confirmed Supabase state (project `xyudxfhqejbwvjngiwhw`, 2026-07-23):** Email ✅, Google ✅, Apple ✅, Discord ✅, Passkeys ✅ enabled. All others (Phone, SAML 2.0, Web3 Wallet, Azure, Bitbucket, and everything below Google on the provider list) disabled — founder-confirmed nothing else is toggled on. Roster is complete for this pass.
 - **Motivation:** founder direction 2026-07-23 — Supabase has more identity than the two buttons currently exposed. Broaden the sign-in card without inflating it.
 
@@ -227,6 +228,20 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Policy note:** Apple App Store rule 4.8 already satisfied — SIWA is present on iOS.
 - **Do not touch:** provider client secrets (stay in Supabase Studio, never in the repo); Yahoo OAuth (separate provider-connect flow, not sign-in); Apple credentials; deploy.
+
+### M4-Auth-Passkeys-Onramp — Wire WebAuthn passkeys once Supabase publishes stable REST
+
+- **Priority:** P2
+- **Cost:** medium — same shape as the Discord slice but for passkey ceremonies
+- **Blocked by:** either (a) Supabase publishes a stable public REST endpoint for WebAuthn (currently experimental, undocumented — SDK-only), OR (b) founder approves adding `supabase-swift` + `supabase-kt` SDKs just for passkeys (breaks the M0c "no Supabase SDK" doctrine).
+- **Agent-buildable:** yes once blocker clears.
+- **Contract layer already landed:** M4-Auth-Providers-v1 Step 4 shipped `PasskeyProvider` + `PasskeyResult` + `PasskeyChallenge` + reducer branches on both platforms, gated behind `UnsupportedPasskeyProvider` so no UI renders a passkey button today. Wiring is a one-file swap when unblocked.
+- **Scope when unblocked:**
+  - Android: `CredentialManagerPasskeyProvider` in :app (real Credential Manager passkey ceremonies via `androidx.credentials`); real HTTP for `startPasskeyChallenge` / `verifyPasskeyAssertion` / `registerPasskey` in `OkHttpGoTrueTransport`.
+  - iOS: `ASAuthorizationPlatformPasskeyProvider` in App/Auth (real `ASAuthorizationPlatformPublicKeyCredentialProvider` ceremonies); real HTTP for the 3 passkey methods in `URLSessionGoTrueTransport`.
+  - Both platforms: "Sign in with a passkey" button above email/Google/Apple/Discord when `PasskeyProvider.isSupported`; PasskeysSection in Account settings; post-sign-in one-time pairing sheet with persistent dismissal.
+- **Why deferred (2026-07-24):** Supabase passkey feature is `@_spi(Experimental)` with `"API may change without notice."` The JS/Swift SDKs are the only supported clients — no public REST shape. Shipping reverse-engineered endpoints against an unstable experimental feature would break silently the next time Supabase iterates. Discord OAuth uses standard PKCE (public, stable) so it shipped in v1 alone.
+- **Do not touch:** the Step 4 contract layer (already merged/pending merge), Yahoo OAuth, provider secrets, deploy, production.
 
 ### M4-Omen-Screen — Omen destination that owns the full DecisionBrief
 
