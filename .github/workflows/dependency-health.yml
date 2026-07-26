@@ -39,7 +39,6 @@ jobs:
       - name: Report development dependency advisories
         run: npm audit --audit-level=low
   frontend-production-audit:
-    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
