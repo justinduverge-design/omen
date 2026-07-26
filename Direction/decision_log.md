@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-26 (Dependency health and SLOPS Prompt Guard)
+
+- **Production dependency advisories are a hard failure at every severity.** The repository now runs `npm audit --omit=dev --audit-level=low` on dependency pull requests and weekly. This corrected the runtime `body-parser` advisory and prevents accepting a new low-severity production advisory merely because the deploy workflow's former moderate threshold did not flag it.
+- **Promptfoo is wrapped, not forked.** `SLOPS Prompt Guard` is the repository-owned command/workflow surface around Promptfoo: deterministic fixtures validate and block relevant pull requests; provider-dependent evaluation is manual and visible but non-blocking. Omen does not publish or maintain a Promptfoo fork.
+- **Current audit debt remains explicit.** The latest available `promptfoo@0.121.19` still brings 15 development-only root-audit advisories; the separate frontend package has 2 production moderate React Router advisories and 6 total. Dependabot update PRs and weekly visible audits keep this debt from disappearing into normal CI noise. The follow-up is a React Router migration plus an upstream Promptfoo fixed release or a compatibility-proven dependency-light SLOPS runner, never broad transitive overrides selected only to silence `npm audit`.
+- **New dependency debt must have a receipt.** Dependency-changing pull requests must identify purpose, scope, license/source, production audit result, full-audit delta, advisory owner/review date, and temporary-tool removal condition. Dependency Review rejects newly introduced high-severity risk before merge.
+
 ## Decision Added 2026-07-23 (M4-Auth — allowlist retired, single-event exit)
 
 - **`PrimitiveEnforcementTest.ALLOWLISTED_FILES` is now empty.** `OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` both refactored to compose only approved Omen primitives (`OmenCard`, `OmenFormField`, `OmenTextField`, `OmenButton`, `OmenStateSurface`) and exited the allowlist together in the same PR, satisfying the 2026-07-22 non-expansion covenant.
