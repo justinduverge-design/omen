@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - run: npm ci
       - name: Block every production dependency advisory
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - run: npm ci
       - name: Report development dependency advisories
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm --prefix frontend ci
@@ -57,9 +57,92 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm --prefix frontend ci
       - name: Report frontend development dependency advisories
         run: npm --prefix frontend audit --audit-level=low
+  dependency-inbox:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs:
+      - production-audit
+      - development-audit
+      - frontend-production-audit
+      - frontend-development-audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Update the quiet weekly Dependency Inbox
+        uses: actions/github-script@v8
+        env:
+          ROOT_PRODUCTION_AUDIT: ${{ needs.production-audit.result }}
+          ROOT_DEVELOPMENT_AUDIT: ${{ needs.development-audit.result }}
+          FRONTEND_PRODUCTION_AUDIT: ${{ needs.frontend-production-audit.result }}
+          FRONTEND_DEVELOPMENT_AUDIT: ${{ needs.frontend-development-audit.result }}
+        with:
+          script: |
+            const marker = '<!-- omen-dependency-inbox -->';
+            const title = 'Dependency Inbox';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const dependencyPullRequests = pullRequests.filter((pullRequest) =>
+              pullRequest.labels.some((label) =>
+                ['dependencies', 'security'].includes(label.name.toLowerCase())
+              )
+            );
+            const auditRows = [
+              ['Root production', process.env.ROOT_PRODUCTION_AUDIT],
+              ['Root development', process.env.ROOT_DEVELOPMENT_AUDIT],
+              ['Frontend production', process.env.FRONTEND_PRODUCTION_AUDIT],
+              ['Frontend development', process.env.FRONTEND_DEVELOPMENT_AUDIT],
+            ].map(([name, result]) => `| ${name} | ${result === 'success' ? 'clear' : result} |`).join('\n');
+            const dependencyRows = dependencyPullRequests.length
+              ? dependencyPullRequests.map((pullRequest) => `- #${pullRequest.number} ${pullRequest.title}`).join('\n')
+              : '- None open.';
+            const body = `${marker}
+            ## Dependency Inbox
+
+            Quiet weekly maintenance board. This issue is updated in place; it never mentions users, sends emails, auto-merges, or starts Jules.
+
+            ### Audit status
+
+            | Check | Result |
+            | --- | --- |
+            ${auditRows}
+
+            ### Open dependency pull requests
+
+            ${dependencyRows}
+
+            ### Triage
+
+            1. **Act now:** a failed production audit or a security advisory.
+            2. **Review this week:** compatible patch/minor dependency PRs.
+            3. **Plan:** major-version updates; create a scoped issue.
+            4. **Delegate selectively:** create a scoped issue from one PR and manually add the \`jules\` label only after reviewing its prompt.
+
+            Last refreshed: ${new Date().toISOString()}`.replace(/^ {12}/gm, '').trim() + '\n';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => issue.title === title && issue.body?.includes(marker));
+            if (existing) {
+              if (existing.body !== body) {
+                await github.rest.issues.update({ owner, repo, issue_number: existing.number, body });
+              }
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }

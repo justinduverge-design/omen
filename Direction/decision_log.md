@@ -9,6 +9,11 @@
 - **Vite advances to v7, not v8.** Vite 7.3.6, plugin-react 5.2.0, and PostCSS 8.5.23 clear the tooling advisories without introducing the separate Vite 8/Rolldown migration.
 - **Audit baseline is now zero across both packages.** Root and frontend full audits and production-only audits are zero at closeout. Future advisories are governed by the dependency-health controls already committed on this branch.
 
+## Decision Added 2026-07-26 (Quiet dependency inbox and Jules delegation)
+
+- **Dependency awareness is a quiet board, not an email firehose.** The scheduled check updates one `Dependency Inbox` issue in place with audit status and open dependency pull requests. It never mentions users, sends application email, auto-merges, or creates a new issue each week.
+- **Jules is manually delegated per bounded update.** A reviewed issue receives the `jules` label only after a human selects one dependency PR/advisory and accepts its task prompt. Jules may investigate, test, and propose a PR, but cannot merge, deploy, alter secrets, or receive the weekly inbox as an unbounded task.
+
 ## Decision Added 2026-07-26 (Dependency health and SLOPS Prompt Guard)
 
 - **Production dependency advisories are a hard failure at every severity.** The repository now runs `npm audit --omit=dev --audit-level=low` on dependency pull requests and weekly. This corrected the runtime `body-parser` advisory and prevents accepting a new low-severity production advisory merely because the deploy workflow's former moderate threshold did not flag it.
