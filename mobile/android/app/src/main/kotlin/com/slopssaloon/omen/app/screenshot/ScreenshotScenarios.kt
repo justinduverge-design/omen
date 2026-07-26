@@ -19,6 +19,8 @@ import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
+import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -50,10 +52,31 @@ object ScreenshotScenarios {
             label = "Command Center — real user, disconnected",
             render = { CommandCenterInShell(demo = false) },
         ),
+        "omen.demo" to ScreenshotScenario(
+            label = "Omen — demo/mock decision",
+            render = { OmenInShell(demo = true) },
+        ),
+        "omen.disconnected" to ScreenshotScenario(
+            label = "Omen — real user, disconnected",
+            render = { OmenInShell(demo = false) },
+        ),
     )
 
     fun isKnown(key: String?): Boolean = key != null && entries.containsKey(key)
     fun get(key: String): ScreenshotScenario = entries.getValue(key)
+}
+
+@Composable
+private fun OmenInShell(demo: Boolean) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Omen) {} },
+    ) { innerPadding ->
+        OmenDecisionScreen(
+            state = if (demo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
 }
 
 data class ScreenshotScenario(

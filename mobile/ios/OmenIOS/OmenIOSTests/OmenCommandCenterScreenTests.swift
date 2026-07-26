@@ -71,6 +71,8 @@ final class OmenCommandCenterScreenTests: XCTestCase {
     func testScreenshotScenariosResolveExpectedKeys() {
         XCTAssertTrue(ScreenshotScenarios.isKnown("command-center.demo-connected"))
         XCTAssertTrue(ScreenshotScenarios.isKnown("command-center.disconnected"))
+        XCTAssertTrue(ScreenshotScenarios.isKnown("omen.demo"))
+        XCTAssertTrue(ScreenshotScenarios.isKnown("omen.disconnected"))
         XCTAssertFalse(ScreenshotScenarios.isKnown("command-center.no-such-fixture"))
         XCTAssertFalse(ScreenshotScenarios.isKnown(nil))
     }

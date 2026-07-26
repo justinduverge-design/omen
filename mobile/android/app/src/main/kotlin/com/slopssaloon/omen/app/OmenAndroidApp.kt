@@ -28,6 +28,8 @@ import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
+import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
 import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
@@ -352,11 +354,8 @@ private fun SignedInDestination(
             else OmenCommandCenterFixtures.realDisconnected,
             onOpenAccount = onOpenAccount,
         )
-        NavDestination.Omen -> OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "Omen is landing next",
-            message = "The full Omen decision workspace ships in the M4-Omen-Screen slice.",
-            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+        NavDestination.Omen -> OmenDecisionScreen(
+            state = if (isDemo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
         )
         NavDestination.Trade -> OmenStateSurface(
             kind = OmenStateSurfaceKind.Empty,

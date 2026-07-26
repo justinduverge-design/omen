@@ -22,6 +22,14 @@ enum ScreenshotScenarios {
             label: "Command Center — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.disconnected")) }
         ),
+        "omen.demo": ScreenshotScenario(
+            label: "Omen — demo/mock decision",
+            content: { AnyView(FauxShell(scenarioKey: "omen.demo")) }
+        ),
+        "omen.disconnected": ScreenshotScenario(
+            label: "Omen — real user, disconnected",
+            content: { AnyView(FauxShell(scenarioKey: "omen.disconnected")) }
+        ),
     ]
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -69,14 +77,7 @@ private struct FauxShell: View {
             OmenCommandCenterScreen(state: commandState)
                 .tabItem { Label("Command", systemImage: "sparkles") }
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "Omen is landing next",
-                message: "The full Omen decision workspace ships in the M4-Omen-Screen slice."
-            )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
+            OmenDecisionScreen(state: omenState)
             .tabItem { Label("Omen", systemImage: "bolt.fill") }
 
             OmenStateSurface(
@@ -106,6 +107,13 @@ private struct FauxShell: View {
         case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
         case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
         default: return OmenCommandCenterFixtures.realDisconnected
+        }
+    }
+
+    private var omenState: OmenDecisionBriefState {
+        switch scenarioKey {
+        case "omen.demo": return OmenDecisionFixtures.demo
+        default: return OmenDecisionFixtures.realDisconnected
         }
     }
 }

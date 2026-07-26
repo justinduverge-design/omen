@@ -1,0 +1,63 @@
+package com.slopssaloon.omen.app.feature.omen
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBrief
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefAlternative
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
+import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
+import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
+import com.slopssaloon.omen.core.designsystem.component.OmenPosition
+import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
+import com.slopssaloon.omen.core.designsystem.component.OmenSignalItem
+import com.slopssaloon.omen.core.designsystem.component.OmenSignalSource
+import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+
+/** M4 Omen destination assembly. It owns state selection; DecisionBrief owns rendering. */
+@Composable
+fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(OmenTheme.color.bg)
+            .verticalScroll(rememberScrollState())
+            .padding(OmenTheme.spacing.cardInterior),
+    ) {
+        Text(
+            text = "Omen",
+            style = OmenTheme.typography.h1.toTextStyle(),
+            color = OmenTheme.color.textPrimary,
+            modifier = Modifier.padding(bottom = OmenTheme.spacing.step16),
+        )
+        OmenDecisionBrief(state = state, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** Deterministic, explicitly mock fixture. It is never selected for a real account. */
+object OmenDecisionFixtures {
+    val demo = OmenDecisionBriefState.Mock(
+        OmenDecisionBriefPayload(
+            verdict = "Start Christian McCaffrey",
+            move = "Bench Ken Walker for the RB1 slot.",
+            impact = "+4.1 projected over your bench.",
+            confidence = 72,
+            risk = OmenRiskLevel.Low,
+            riskReasons = listOf("Full practice Friday."),
+            explanation = listOf("The matchup and usage signals favor McCaffrey this week."),
+            metrics = listOf(OmenMetricItem("Projected", "22.4", "+4.1", OmenMetricDelta.Positive)),
+            signals = listOf(OmenSignalItem("Demo roster snapshot", OmenSignalSource.Mock)),
+            alternatives = listOf(OmenDecisionBriefAlternative("Ken Walker III", OmenPosition.RB, "SEA", "Limited practice")),
+        ),
+    )
+
+    val realDisconnected = OmenDecisionBriefState.Disconnected()
+}

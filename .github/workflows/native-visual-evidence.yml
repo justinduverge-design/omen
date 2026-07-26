@@ -38,6 +38,8 @@ jobs:
         scenario:
           - command-center.demo-connected
           - command-center.disconnected
+          - omen.demo
+          - omen.disconnected
     steps:
       - uses: actions/checkout@v4
 
@@ -124,6 +126,8 @@ jobs:
         scenario:
           - command-center.demo-connected
           - command-center.disconnected
+          - omen.demo
+          - omen.disconnected
     steps:
       - uses: actions/checkout@v4
 
