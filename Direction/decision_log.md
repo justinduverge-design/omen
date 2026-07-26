@@ -2,6 +2,25 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-26 (Debt remediation — SLOPS Prompt Guard and Router 8)
+
+- **Promptfoo is retired from Omen.** Its 598-package development tree and 15 advisories are replaced by a dependency-free Node runner (`evals/slops-prompt-guard.mjs`) that preserves the existing three prompts, two deterministic fixtures, and 18 assertions. No provider smoke, credential, network call, fork, or transitive override remains.
+- **Frontend routing is on the supported clean path.** Omen moves from React Router DOM v6 to React Router v8.3.0 and React 19.2.7. The app uses declarative routing only, so every DOM-router import changes mechanically to `react-router`; public browser smoke covers `/`, `/privacy`, and the `/corvus` → `/about` redirect.
+- **Vite advances to v7, not v8.** Vite 7.3.6, plugin-react 5.2.0, and PostCSS 8.5.23 clear the tooling advisories without introducing the separate Vite 8/Rolldown migration.
+- **Audit baseline is now zero across both packages.** Root and frontend full audits and production-only audits are zero at closeout. Future advisories are governed by the dependency-health controls already committed on this branch.
+
+## Decision Added 2026-07-26 (Quiet dependency inbox and Jules delegation)
+
+- **Dependency awareness is a quiet board, not an email firehose.** The scheduled check updates one `Dependency Inbox` issue in place with audit status and open dependency pull requests. It never mentions users, sends application email, auto-merges, or creates a new issue each week.
+- **Jules is manually delegated per bounded update.** A reviewed issue receives the `jules` label only after a human selects one dependency PR/advisory and accepts its task prompt. Jules may investigate, test, and propose a PR, but cannot merge, deploy, alter secrets, or receive the weekly inbox as an unbounded task.
+
+## Decision Added 2026-07-26 (Dependency health and SLOPS Prompt Guard)
+
+- **Production dependency advisories are a hard failure at every severity.** The repository now runs `npm audit --omit=dev --audit-level=low` on dependency pull requests and weekly. This corrected the runtime `body-parser` advisory and prevents accepting a new low-severity production advisory merely because the deploy workflow's former moderate threshold did not flag it.
+- **Promptfoo was wrapped, not forked, pending remediation.** The initial `SLOPS Prompt Guard` workflow was repository-owned and used deterministic fixtures while the provider-dependent evaluation remained manual and non-blocking. Omen did not publish or maintain a Promptfoo fork. This interim decision is superseded by the 2026-07-26 retirement decision above.
+- **The then-current audit debt was explicitly documented.** At the time of this entry, `promptfoo@0.121.19` carried 15 development-only root-audit advisories and the frontend carried React Router advisories. The same-day remediation above replaces Promptfoo, upgrades the frontend stack, and returns both full and production-only audits to zero.
+- **New dependency debt must have a receipt.** Dependency-changing pull requests must identify purpose, scope, license/source, production audit result, full-audit delta, advisory owner/review date, and temporary-tool removal condition. Dependency Review rejects newly introduced high-severity risk before merge.
+
 ## Decision Added 2026-07-23 (M4-Auth — allowlist retired, single-event exit)
 
 - **`PrimitiveEnforcementTest.ALLOWLISTED_FILES` is now empty.** `OmenAuthFlow.kt` and `OmenDeleteAccountScreen.kt` both refactored to compose only approved Omen primitives (`OmenCard`, `OmenFormField`, `OmenTextField`, `OmenButton`, `OmenStateSurface`) and exited the allowlist together in the same PR, satisfying the 2026-07-22 non-expansion covenant.

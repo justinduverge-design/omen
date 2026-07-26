@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { Card } from '../components/ui/Card.jsx';
 import { NFL_TEAMS } from '../data/nflTeams.js';

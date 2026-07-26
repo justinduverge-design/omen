@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { setDataMode } from '../lib/dataMode.js';
 import TradeAnalyzer from './TradeAnalyzer.jsx';

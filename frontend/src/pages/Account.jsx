@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import PlatformConnections from '../components/platforms/PlatformConnections.jsx';
 import { apiFetch } from '../lib/api.js';

@@ -12,7 +12,7 @@
  * (the backend service is similarly isolated).
  */
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { setDataMode } from '../lib/dataMode.js';

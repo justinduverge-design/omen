@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';

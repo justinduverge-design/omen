@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import OmenFeedback from '../components/omen/OmenFeedback.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';

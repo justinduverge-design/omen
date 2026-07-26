@@ -1,11 +1,14 @@
-name: LLM Prompt Regression Tests
+name: SLOPS Prompt Guard
 on:
   pull_request:
     paths:
       - 'src/prompts/**'
-      - 'evals/promptfoo/**'
+      - 'evals/**'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
 jobs:
-  eval:
+  deterministic-fixtures:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -13,7 +16,7 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci
-      - name: Run promptfoo evals
-        run: timeout 240 npx promptfoo eval --config evals/promptfoo/promptfooconfig.yaml || true
-        env:
-          OLLAMA_BASE_URL: ${{ secrets.OLLAMA_BASE_URL }}
+      - name: Validate mock evaluation contract
+        run: npm run evals:validate
+      - name: Run deterministic prompt regression fixtures
+        run: npm run evals:mock

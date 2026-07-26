@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { supabase } from '../../lib/supabase.js';
 import { useFocusTrap } from '../../lib/useFocusTrap.js';
 

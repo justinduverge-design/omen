@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { NFL_TEAMS } from '../../data/nflTeams.js';
 import { apiFetch } from '../../lib/api.js';
 import { useTheme } from '../../lib/themeMode.js';

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import PublicInfoLayout, { InfoSection } from '../components/layout/PublicInfoLayout.jsx';
 
 export default function DeleteAccount() {

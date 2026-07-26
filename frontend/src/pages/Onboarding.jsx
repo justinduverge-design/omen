@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { Card } from '../components/ui/Card.jsx';
 
