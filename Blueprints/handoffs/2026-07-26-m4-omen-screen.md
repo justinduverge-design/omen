@@ -15,6 +15,7 @@ Replace the native Omen-tab placeholder with the approved DecisionBrief destinat
 
 - Android: `:core:designsystem:testDebugUnitTest` — passed.
 - Android: `:app:assembleDebug` — passed.
+- Android API 36 emulator: captured and visually inspected `omen.demo` and `omen.disconnected` PNGs under `mobile/android/build/screenshots/`; both show the intended selected Omen tab and their respective demo/recovery states.
 - `git diff --check` — passed.
 - iOS compile/tests and screenshot workflow: deferred until GitHub iOS capacity returns in August, per founder direction. No iOS-green claim is made.
 
@@ -30,6 +31,6 @@ Change type: native screen assembly.
 
 Skills invoked: `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-quality-baseline`, `slops-code-review`.
 
-Conditional skills: `slops-tdd` was weak because this slice composes a tested existing primitive and has no app-level Android unit-test seam; `slops-mobile-smoke` and `slops-ui-ux-audit` are web-oriented and substituted by Android native build/enforcement checks. iOS visual evidence is intentionally deferred.
+Conditional skills: `slops-tdd` was weak because this slice composes a tested existing primitive and has no app-level Android unit-test seam; `slops-mobile-smoke` and `slops-ui-ux-audit` are web-oriented and substituted by Android native build/enforcement checks plus API 36 emulator screenshots. iOS visual evidence is intentionally deferred.
 
 Procedure gap found: no correction needed; native app-screen assembly needs a first-class local screenshot/test harness independent of GitHub macOS capacity.
