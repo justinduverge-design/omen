@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "cron": "node src/omen_tuesday_cron.js",
-    "test": "node --test"
+    "test": "node --test",
+    "evals:validate": "npx --no-install promptfoo validate --config evals/promptfoo/promptfooconfig.mock.yaml",
+    "evals:mock": "npx --no-install promptfoo eval --config evals/promptfoo/promptfooconfig.mock.yaml"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
