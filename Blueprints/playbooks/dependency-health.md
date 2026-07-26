@@ -7,7 +7,7 @@ Keep third-party dependency debt visible, owned, and reviewable before it reache
 ## Controls
 
 - `Dependency Review` rejects pull requests that introduce a high-severity dependency advisory.
-- `Dependency Health` blocks every root production advisory, including low severity, on dependency pull requests and each Monday at 14:17 UTC. The known frontend React Router findings remain a visible non-blocking job until their separately approved major-version migration lands.
+- `Dependency Health` blocks every root and frontend production advisory, including low severity, on dependency pull requests and each Monday at 14:17 UTC.
 - The same workflow reports development-tool advisories as a visible non-blocking signal until their owning tool can be updated or removed.
 - Dependabot opens grouped weekly update pull requests for npm and GitHub Actions. It never auto-merges them.
 - `SLOPS Prompt Guard` validates and runs its dependency-free deterministic fixtures as a required pull-request check. It has no provider, credential, or network dependency.

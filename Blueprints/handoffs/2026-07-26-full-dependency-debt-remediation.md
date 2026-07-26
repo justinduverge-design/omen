@@ -20,6 +20,7 @@ Clear the remaining root Promptfoo and frontend Router/tooling advisories withou
 - Frontend production build: passed; existing chunk-size warning remains.
 - Browser smoke: `/`, `/privacy`, and `/corvus` → `/about` passed.
 - Root and frontend full/production-only audits: all 0 vulnerabilities.
+- Root and frontend production-audit CI jobs are both strict gates at low severity.
 - `git diff --check`: passed.
 
 ## Files of Interest
