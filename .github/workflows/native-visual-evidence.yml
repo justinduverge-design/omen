@@ -39,7 +39,7 @@ jobs:
           - command-center.demo-connected
           - command-center.disconnected
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode 16.2
         uses: maxim-lobanov/setup-xcode@v1
@@ -125,7 +125,7 @@ jobs:
           - command-center.demo-connected
           - command-center.disconnected
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # KVM permissions — reactivecircus/android-emulator-runner@v2 boots a hardware-
       # accelerated x86_64 emulator on Ubuntu runners via /dev/kvm. The runner image
