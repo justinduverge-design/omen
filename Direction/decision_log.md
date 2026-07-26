@@ -2,6 +2,13 @@
 
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
+## Decision Added 2026-07-26 (Debt remediation — SLOPS Prompt Guard and Router 8)
+
+- **Promptfoo is retired from Omen.** Its 598-package development tree and 15 advisories are replaced by a dependency-free Node runner (`evals/slops-prompt-guard.mjs`) that preserves the existing three prompts, two deterministic fixtures, and 18 assertions. No provider smoke, credential, network call, fork, or transitive override remains.
+- **Frontend routing is on the supported clean path.** Omen moves from React Router DOM v6 to React Router v8.3.0 and React 19.2.7. The app uses declarative routing only, so every DOM-router import changes mechanically to `react-router`; public browser smoke covers `/`, `/privacy`, and the `/corvus` → `/about` redirect.
+- **Vite advances to v7, not v8.** Vite 7.3.6, plugin-react 5.2.0, and PostCSS 8.5.23 clear the tooling advisories without introducing the separate Vite 8/Rolldown migration.
+- **Audit baseline is now zero across both packages.** Root and frontend full audits and production-only audits are zero at closeout. Future advisories are governed by the dependency-health controls already committed on this branch.
+
 ## Decision Added 2026-07-26 (Dependency health and SLOPS Prompt Guard)
 
 - **Production dependency advisories are a hard failure at every severity.** The repository now runs `npm audit --omit=dev --audit-level=low` on dependency pull requests and weekly. This corrected the runtime `body-parser` advisory and prevents accepting a new low-severity production advisory merely because the deploy workflow's former moderate threshold did not flag it.
