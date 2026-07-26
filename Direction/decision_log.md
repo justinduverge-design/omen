@@ -813,3 +813,8 @@
 
 - **Native Sleeper connect uses a bounded Redis replay record rather than a schema change.** The existing `platform_connections` upsert prevents duplicate rows but cannot return a safe first-response replay after response loss. The already-configured Redis dependency records an authenticated user/request ID outcome for 10 minutes, avoiding new provider credentials, migrations, or production-data action. Replay-store unavailability fails closed before the connection write; the timeout is deliberately not described as indefinite idempotency.
 - **Yahoo and ESPN stay out of the retry implementation.** Yahoo's OAuth transaction/return has different authorization-artifact and web-compatibility obligations, so it remains M0-BE-3 behind current primary-source research. ESPN has no approved native-store path and is unchanged.
+
+## Decisions Added 2026-07-26 (B2-D2 guarded Yahoo waiver fallback)
+
+- **Yahoo waiver advice is availability-based until a projection-capable source is proven.** The existing Yahoo available-player path is ordered by Yahoo average rank but does not provide a weekly projection. Canonical Omen may therefore suggest only a live same-position replacement for an OUT/IR starter, with a null point delta and explicit unavailable-projection signal; it must not imply a projection-backed ranking.
+- **Yahoo waiver retrieval fails closed.** If the selected-context availability request fails or lacks an eligible replacement, canonical Omen returns no advice rather than the legacy optimizer's mock waiver fixture. Real-account capability proof remains blocked on Yahoo Fantasy API reapproval.
