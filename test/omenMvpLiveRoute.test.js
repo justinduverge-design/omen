@@ -46,6 +46,25 @@ function liveEnvelope() {
   };
 }
 
+function waiverEnvelope() {
+  const body = liveEnvelope();
+  body.recommendation = {
+    ...body.recommendation,
+    id: "live_omen_yahoo_waiver_test",
+    type: "waiver_pickup",
+    primary_player: { id: "waiver-1", name: "Available Wideout", position: "WR", team: "DAL" },
+    comparison_player: { id: "out-1", name: "Out Wideout", position: "WR", team: "PHI" },
+    expected_value_delta: { points: null, label: "unavailable" },
+  };
+  body.signals.matchup_dvp = {
+    status: "stub",
+    used: false,
+    source: "pending_nflverse_data",
+    message: "Not used for waiver replacements.",
+  };
+  return body;
+}
+
 function authEnvelope(message = "Missing bearer token") {
   return {
     contract_version: "2026-05-18.omen-live.v1",
@@ -113,13 +132,14 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false } = {}) {
+function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
   const state = {
     authHeaders: [],
     llmPayloads: [],
+    dvpLookups: [],
     liveUserIds: [],
     liveRequests: [],
   };
@@ -139,9 +159,9 @@ function loadOmenRouter({ offSeason = false } = {}) {
         buildLiveOmenMvpMoveForUser: async (userId, options) => {
           state.liveUserIds.push(userId);
           state.liveRequests.push({ userId, options });
-          return { status: 200, body: liveEnvelope() };
+          return { status: 200, body: liveResponse() };
         },
-        buildOmenMvpMoveResponse: () => ({ status: 200, body: liveEnvelope() }),
+        buildOmenMvpMoveResponse: () => ({ status: 200, body: liveResponse() }),
       };
     }
     if (request === "../services/llm" && parent?.filename === routePath) {
@@ -159,7 +179,12 @@ function loadOmenRouter({ offSeason = false } = {}) {
       };
     }
     if (request === "../services/matchupService" && parent?.filename === routePath) {
-      return { getDvpContext: async () => null };
+      return {
+        getDvpContext: async (lookup) => {
+          state.dvpLookups.push(lookup);
+          return dvp;
+        },
+      };
     }
     if (request === "../services/nflSchedule" && parent?.filename === routePath) {
       return { isOffSeason: () => offSeason };
@@ -228,6 +253,27 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+});
+
+test("POST /api/omen/mvp-move does not enrich availability-only waiver advice with matchup DvP", async () => {
+  const { app, state } = buildApp({
+    liveResponse: waiverEnvelope,
+    dvp: {
+      opponent_team: "PHI",
+      position: "WR",
+      avg_points_allowed: 12.5,
+      sample_weeks: 4,
+      dvp_label: "favorable",
+    },
+  });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.recommendation.type, "waiver_pickup");
+  assert.equal(res.body.signals.matchup_dvp.status, "stub");
+  assert.deepEqual(state.dvpLookups, []);
 });
 
 test("POST /api/omen/mvp-move forwards the selected opaque context to live generation", async () => {

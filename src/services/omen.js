@@ -691,7 +691,7 @@ function displayPlatform(platform) {
   return "Platform";
 }
 
-function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
+function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSignal = null }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const response = liveBaseEnvelope({
@@ -703,6 +703,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
     state: "empty",
   });
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  if (waiverSignal) response.signals.waivers = waiverSignal;
   response.explanation = {
     summary: "No move clears the recommendation threshold this week.",
     why_it_matters: "The current lineup and bench options do not show a strong enough live edge to force a move.",
@@ -868,6 +869,98 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
   return response;
 }
 
+function selectedYahooWaiverCandidate(roster, waiverPool = []) {
+  const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
+  const unavailableStarters = starters
+    .filter((player) => player?.player_key && player?.position && isOutStatus(player.status))
+    .sort((a, b) => String(a.player_key).localeCompare(String(b.player_key)));
+
+  const availablePlayers = waiverPool
+    .map((player, index) => ({ player, availabilityRank: index + 1 }))
+    .filter(({ player }) =>
+      player?.player_key
+      && player?.name
+      && player?.position
+      && !isOutStatus(player.status)
+    );
+
+  const candidates = [];
+  for (const { player, availabilityRank } of availablePlayers) {
+    for (const starter of unavailableStarters) {
+      if (starter.position !== player.position) continue;
+      candidates.push({ add: player, drop: starter, availabilityRank });
+    }
+  }
+
+  return candidates.sort((left, right) =>
+    left.availabilityRank - right.availabilityRank
+    || String(left.add.player_key).localeCompare(String(right.add.player_key))
+    || String(left.drop.player_key).localeCompare(String(right.drop.player_key))
+  )[0] || null;
+}
+
+function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatforms }) {
+  const add = playerForMvp(waiver.add);
+  const drop = playerForMvp(waiver.drop);
+  const response = liveBaseEnvelope({
+    platform: "yahoo",
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform: "yahoo" });
+  response.signals.projections = signal(
+    "unavailable",
+    false,
+    "yahoo_available_players",
+    "Yahoo's basic available-player response does not include a weekly projection for this waiver recommendation."
+  );
+  response.signals.waivers = signal(
+    "live",
+    true,
+    "yahoo_available_players",
+    "Available-player data came from the selected Yahoo league, ordered by Yahoo average rank."
+  );
+  response.recommendation = {
+    id: `live_omen_yahoo_waiver_${add.id || "unknown"}`,
+    type: "waiver_pickup",
+    title: `Add ${add.name} for ${drop.name}`,
+    move: `Add ${add.name} as a ${add.position} replacement for ${drop.name}, who is currently unavailable.`,
+    primary_player: add,
+    comparison_player: drop,
+    expected_value_delta: {
+      points: null,
+      label: "unavailable",
+    },
+    confidence: confidence(
+      60,
+      "medium",
+      "The selected Yahoo league shows an unavailable starter and an available same-position replacement, but no waiver projection."
+    ),
+    risk: risk("medium", [
+      `${drop.name} is unavailable, which creates the roster need.`,
+      `${add.name} is currently available in the selected Yahoo league.`,
+      "Yahoo's basic available-player response does not include a weekly projection, so Omen does not estimate a point delta.",
+    ]),
+    explanation: {
+      summary: `Add ${add.name} to cover for ${drop.name}.`,
+      why_it_matters: `${drop.name} is unavailable and ${add.name} is an available ${add.position} in the selected Yahoo league.`,
+      risk: "This is an availability-based replacement, not a projection-backed claim about the better weekly player.",
+      confidence: "Confidence is medium because the roster need and availability are live, while a waiver projection is unavailable.",
+      data_used: [
+        "selected Yahoo roster",
+        "starter availability status",
+        `Yahoo available-player rank ${waiver.availabilityRank}`,
+      ],
+    },
+  };
+  response.warnings.push("Live Yahoo availability supports this replacement; no weekly waiver projection was available.");
+  return response;
+}
+
 function currentNflWeek(now = new Date()) {
   return getCurrentNflWeekContext(now).week;
 }
@@ -879,9 +972,9 @@ async function vaultDecrypt(secretId) {
   return data?.decrypted_secret ?? data?.[0]?.decrypted_secret ?? null;
 }
 
-async function buildRosterForConnection(userId, connection, week) {
+async function buildRosterForConnection(userId, connection, week, { yahooClient = null } = {}) {
   if (connection.platform === "yahoo") {
-    const { client: yahoo } = await getAuthenticatedYahooClient(userId);
+    const yahoo = yahooClient || (await getAuthenticatedYahooClient(userId)).client;
     const cacheKey = `ssff:omen-mvp:${userId}:${connection.league_id}:current`;
     return rosterSvc.fetchAndNormalizeRoster(yahoo, connection.league_id, null, cacheKey);
   }
@@ -1025,9 +1118,13 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   if (!connection) return incompleteConnectionResponse(scopedConnections);
 
   const week = currentNflWeek();
+  let yahooClient = null;
+  if (connection.platform === "yahoo") {
+    ({ client: yahooClient } = await getAuthenticatedYahooClient(userId));
+  }
   let roster;
   try {
-    roster = await buildRosterForConnection(userId, connection, week);
+    roster = await buildRosterForConnection(userId, connection, week, { yahooClient });
   } catch (err) {
     if (connection.platform === "espn") return espnRecoveryFromError(connection, err);
     if (connection.platform === "sleeper") {
@@ -1047,6 +1144,47 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   const [swap] = optimizer.evaluateLineup(roster);
 
   if (!swap) {
+    if (connection.platform === "yahoo") {
+      try {
+        const rawWaiverPool = await yahooClient.getAvailablePlayers(connection.league_id, {
+          count: 50,
+          sort: "AR",
+        });
+        const waiver = selectedYahooWaiverCandidate(
+          roster,
+          rosterSvc.normalizeYahooWaivers(rawWaiverPool)
+        );
+        if (waiver) {
+          return {
+            status: 200,
+            body: mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatforms }),
+          };
+        }
+        return liveEmptyMvpResponse({
+          roster,
+          connection,
+          connectedPlatforms,
+          waiverSignal: signal(
+            "live",
+            true,
+            "yahoo_available_players",
+            "Yahoo returned live available-player data, but no safe same-position replacement was found."
+          ),
+        });
+      } catch {
+        return liveEmptyMvpResponse({
+          roster,
+          connection,
+          connectedPlatforms,
+          waiverSignal: signal(
+            "unavailable",
+            false,
+            "yahoo_available_players",
+            "Yahoo available-player data is unavailable, so Omen will not generate waiver advice."
+          ),
+        });
+      }
+    }
     return liveEmptyMvpResponse({
       roster,
       connection,
