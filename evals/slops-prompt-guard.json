@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "prompts": [
+    "promptfoo/prompts/trade.txt",
+    "promptfoo/prompts/startSit.txt",
+    "promptfoo/prompts/mvpMove_stub.txt"
+  ],
+  "cases": [
+    {
+      "name": "trade recommendation",
+      "vars": {
+        "playerGive": "Austin Ekeler (RB, LAC)",
+        "playerReceive": "Davante Adams (WR, LV)",
+        "vorpDelta": "+2.3",
+        "winProbDelta": "+4.1%",
+        "verdict": "LEAN ACCEPT"
+      },
+      "output": "lean accept. The +2.3 VORP delta and +4.1% win probability gain make this trade worth taking because the receiving side adds more weekly lineup value. Davante Adams gives you a stronger ceiling than Austin Ekeler in this sample.",
+      "assertions": {
+        "includes": ["lean accept"],
+        "excludes": ["I cannot"],
+        "minimum_words": 21
+      }
+    },
+    {
+      "name": "start sit recommendation",
+      "vars": {
+        "playerA": "Tyreek Hill (WR, MIA)",
+        "playerB": "Keenan Allen (WR, CHI)",
+        "projectedDelta": "+3.2",
+        "recommendation": "START Hill"
+      },
+      "output": "Start Hill. Hill has the +3.2 point projected advantage and should be prioritized because that edge is meaningful in a close start/sit call.",
+      "assertions": {
+        "includes": ["Hill"],
+        "excludes": ["I cannot"],
+        "minimum_words": 21
+      }
+    }
+  ]
+}

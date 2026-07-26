@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import LeagueStandings from '../components/league/LeagueStandings.jsx';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import MoveHistory from '../components/moves/MoveHistory.jsx';

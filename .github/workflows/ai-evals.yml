@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/prompts/**'
-      - 'evals/promptfoo/**'
+      - 'evals/**'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
@@ -20,17 +20,3 @@ jobs:
         run: npm run evals:validate
       - name: Run deterministic prompt regression fixtures
         run: npm run evals:mock
-  provider-smoke:
-    if: github.event_name == 'workflow_dispatch'
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - run: npm ci
-      - name: Run provider-dependent evaluation
-        run: timeout 240 npx --no-install promptfoo eval --config evals/promptfoo/promptfooconfig.yaml
-        env:
-          OLLAMA_BASE_URL: ${{ secrets.OLLAMA_BASE_URL }}

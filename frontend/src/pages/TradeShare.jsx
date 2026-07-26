@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { summarizeTradeSnapshot } from '../lib/tradeShare.js';

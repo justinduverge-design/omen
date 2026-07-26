@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import DisconnectedState from '../components/ui/DisconnectedState.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
