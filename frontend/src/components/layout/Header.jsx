@@ -159,7 +159,12 @@ function NavDrawer({ open, onClose, isAuthenticated }) {
             <img
               src="/omen-horizontal-lockup-transparent.png"
               alt="Omen"
-              className="h-7 w-auto"
+              className="omen-lockup-on-dark h-7 w-auto"
+            />
+            <img
+              src="/omen-horizontal-lockup-raven.png"
+              alt="Omen"
+              className="omen-lockup-on-light h-7 w-auto"
             />
           </div>
 
@@ -298,7 +303,12 @@ export default function Header() {
             <img
               src="/omen-horizontal-lockup-transparent.png"
               alt="Omen"
-              className="h-8 w-auto"
+              className="omen-lockup-on-dark h-8 w-auto"
+            />
+            <img
+              src="/omen-horizontal-lockup-raven.png"
+              alt="Omen"
+              className="omen-lockup-on-light h-8 w-auto"
             />
           </Link>
 

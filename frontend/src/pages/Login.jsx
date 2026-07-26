@@ -227,7 +227,12 @@ export default function Login() {
           <img
             src="/omen-horizontal-lockup-transparent.png"
             alt="Omen"
-            className="mx-auto h-12 w-auto"
+            className="omen-lockup-on-dark mx-auto h-12 w-auto"
+          />
+          <img
+            src="/omen-horizontal-lockup-raven.png"
+            alt="Omen"
+            className="omen-lockup-on-light mx-auto h-12 w-auto"
           />
           <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
             Fantasy Intelligence
