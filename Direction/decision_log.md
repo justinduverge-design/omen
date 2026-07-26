@@ -839,3 +839,7 @@
 
 - **Yahoo mobile return is implemented source, not provider/device proof.** PR #191's server-bound native return is verified locally: the app receives only a fixed `connected` or `cancelled` status after server-side state validation. Yahoo console configuration and a real-device browser-to-app cycle remain human gates and cannot be inferred from source tests.
 - **Living native contracts must state the implemented boundary.** Current M0c/onboarding/contract-bus language now points to the merged route; historical 2026-07-19 planning records remain historical rather than being rewritten.
+## Decisions Added 2026-07-26 (B2-D2 guarded Yahoo waiver fallback)
+
+- **Yahoo waiver advice is availability-based until a projection-capable source is proven.** The existing Yahoo available-player path is ordered by Yahoo average rank but does not provide a weekly projection. Canonical Omen may therefore suggest only a live same-position replacement for an OUT/IR starter, with a null point delta and explicit unavailable-projection signal; it must not imply a projection-backed ranking.
+- **Yahoo waiver retrieval fails closed.** If the selected-context availability request fails or lacks an eligible replacement, canonical Omen returns no advice rather than the legacy optimizer's mock waiver fixture. Real-account capability proof remains blocked on Yahoo Fantasy API reapproval.
