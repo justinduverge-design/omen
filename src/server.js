@@ -145,9 +145,9 @@ if (HAS_SPA) {
     setHeaders: setSpaStaticCacheHeaders,
   }));
 } else {
-  logger.warn("No SPA found at client/dist - falling back to JSON status");
+  logger.warn(`No SPA found at ${SPA_DIR} - falling back to JSON status`);
   app.get("/", (req, res) => {
-    res.json({ service: "Slops Saloon Fantasy Football MVP", status: "live" });
+    res.json({ service: "Omen", status: "live" });
   });
 }
 

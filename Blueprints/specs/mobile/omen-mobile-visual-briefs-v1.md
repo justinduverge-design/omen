@@ -25,7 +25,22 @@ First-screen order:
 5. Ledger preview.
 6. League Pulse.
 
-The surface uses Raven black/deep-charcoal layers, bone-white type, selective aged-brass structure, verdigris for verified favorable/available states, and sparing crimson for material risk. It must not repaint itself in NFL/team colors, use bird/raven imagery, crescents, literal footballs, NFL-shield styling, flashing, or decorative “AI” motion.
+The surface uses Raven black/deep-charcoal layers, bone-white type, selective aged-brass structure, verdigris for verified favorable/available states, and sparing crimson for material risk. It must not repaint itself in NFL/team colors, use bird/raven imagery, crescents, NFL-shield styling, flashing, or decorative “AI” motion.
+
+> **Amendment — 2026-07-25 (founder-approved).** This clause originally also banned **“literal
+> footballs.”** That prohibition is **withdrawn**.
+>
+> It was written before the brand had a symbol, and it turned out to ban the winning answer: the
+> approved **Omen B2** mark is an aged-brass letter **O** whose inner negative space is a literal
+> American football. Brand identity artwork and its derivatives — symbol, lockups, favicons, app
+> icons, launch screens, splash — are explicitly permitted to use the football form.
+>
+> The clause's real intent survives and still holds: **no novelty sports decoration inside product
+> surfaces.** No helmets, jerseys, mascots, goalposts, or pennants; no football imagery used as
+> ornament on a decision screen. The football lives in the identity, not in the UI chrome.
+>
+> Lesson recorded in `Blueprints/skills/slops-brand-mark-forge` (L0): do not write absolute visual
+> prohibitions into an approved contract before the identity exists. Constrain intent, not form.
 
 ### 1.2 Matchup Hero — approved
 

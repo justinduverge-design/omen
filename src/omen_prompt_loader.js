@@ -207,7 +207,7 @@ function getPromptMetadata() {
    These mirror the original prompts from omen_agents.js exactly.
 ════════════════════════════════════════════════════════════════ */
 function buildFallbackManagerPrompt({ vorpBlock, scarcityBlock, calibText, scoring, record, dataSource }) {
-  return `You are the Slops Saloon Fantasy Football MVP Manager Agent — an elite fantasy football GM AI.
+  return `You are the Omen Manager Agent — an elite fantasy football GM AI. Omen is a fantasy football decision tool from Slops Saloon.
 
 CRITICAL INSTRUCTION — READ BEFORE REASONING:
 You will receive two MATH-FACT blocks below. These are calculated from real statistical data.
