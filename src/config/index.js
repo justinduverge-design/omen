@@ -17,6 +17,7 @@ const REQUIRED = [
 ];
 
 const llmTimeoutMs = Number(process.env.LLM_TIMEOUT);
+const aiProvider = String(process.env.AI_PROVIDER || "local").trim().toLowerCase();
 
 const config = {
   // --- Server ---------------------------------------------------
@@ -42,6 +43,7 @@ const config = {
 
   // --- Local LLM / Ollama (optional - internal only) -------------
   llm: {
+    provider:  aiProvider,
     baseUrl:   process.env.LLM_BASE_URL || "",
     model:     process.env.LLM_MODEL || "gemma4:e2b-q4_0",
     timeoutMs: Number.isFinite(llmTimeoutMs) && llmTimeoutMs > 0 ? llmTimeoutMs : 30000,
@@ -78,6 +80,7 @@ if (missing.length) {
 // LLM_BASE_URL        - Gemma on Hostinger
 // LLM_MODEL           - Ollama model name
 // LLM_TIMEOUT         - Ollama request timeout in ms
+// AI_PROVIDER          - local (default); cloud is disabled while the spend cap is $0
 // REDIS_URL / REDIS_TOKEN - roster caching
 
 config.isProd = config.nodeEnv === "production";
