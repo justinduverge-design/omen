@@ -26,7 +26,7 @@
 - Full backend tests: `npm test` passed 418/418.
 - Audit: `npm audit --audit-level=moderate` found 0 vulnerabilities.
 - `git diff --check` passed.
-- Frontend build is a known unrelated HOLD: base `frontend/src/components/help/HelpButton.jsx:2` imports `Link` from an installed `react-router` that does not export it. D2 does not touch this frontend file or dependencies.
+- Frontend build follow-up passed: the initial failure was stale local `frontend/node_modules` (`react-router@6.30.3`) versus the declared `react-router@8.3.0`. After `npm --prefix frontend ci`, `npm --prefix frontend run build` passed. No frontend source or package manifest change was needed.
 
 ## Limitations and Next Step
 
