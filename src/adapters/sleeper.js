@@ -154,11 +154,48 @@ function imageUrl(playerId) {
   return playerId ? `https://sleepercdn.com/content/nfl/players/${playerId}.jpg` : null;
 }
 
+/**
+ * Normalize a raw Sleeper projections payload into a `player_id -> pts_ppr` map.
+ *
+ * The live endpoint returns an ARRAY of records with points nested under
+ * `stats` (verified 2026-07-26). Reading it as an object map keyed by player id
+ * silently produced `null` for every player, because a string id indexes an
+ * array by position rather than by key -- and for low-numbered veteran ids it
+ * resolved to a *different* player's record. Normalizing once here keeps both
+ * hazards in one place instead of at every call site.
+ *
+ * Object payloads are tolerated so a cached value written before this fix, or a
+ * future shape change, degrades to a miss rather than a wrong-player match.
+ */
+function normalizeProjections(payload) {
+  const out = {};
+
+  const add = (record, fallbackId) => {
+    if (!record || typeof record !== "object") return;
+    const id = record.player_id != null ? String(record.player_id) : fallbackId;
+    if (!id) return;
+    const points = Number(record.stats?.pts_ppr ?? record.pts_ppr);
+    if (Number.isFinite(points)) out[id] = points;
+  };
+
+  if (Array.isArray(payload)) {
+    for (const record of payload) add(record, null);
+  } else if (payload && typeof payload === "object") {
+    for (const [key, record] of Object.entries(payload)) {
+      if (typeof record === "number") {
+        if (Number.isFinite(record)) out[String(key)] = record;
+        continue;
+      }
+      add(record, String(key));
+    }
+  }
+
+  return out;
+}
+
 function projectionFor(projections, playerId) {
-  const projection = projections?.[playerId];
-  if (!projection) return null;
-  const points = projection.pts_ppr;
-  return Number.isFinite(Number(points)) ? Number(points) : null;
+  const points = Number(projections?.[String(playerId)]);
+  return Number.isFinite(points) ? points : null;
 }
 
 function normalizePlayer({ playerId, player, projection, selectedPosition, isStarter }) {
@@ -356,7 +393,8 @@ async function fetchSleeperPlayers() {
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `ssff:sleeper:projections:${season}:${week}`;
   const cached = await readCache(cacheKey);
-  if (cached) return cached;
+  // Normalized on read too: entries cached before this fix hold the raw array.
+  if (cached) return normalizeProjections(cached);
 
   const projections = await getJson(`${PROJECTIONS_BASE}/${season}/${week}`, {
     params: {
@@ -365,7 +403,7 @@ async function fetchSleeperProjections(season, week) {
     },
     timeout: 15000,
   });
-  const out = projections && typeof projections === "object" ? projections : {};
+  const out = normalizeProjections(projections);
   await writeCache(cacheKey, out, PROJECTIONS_TTL_S);
   return out;
 }
