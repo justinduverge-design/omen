@@ -146,12 +146,20 @@ function fixtures() {
         injury_status: "IR",
       },
     },
-    projections: {
-      100: { pts_ppr: 18.4 },
-      200: { pts_ppr: 21.2 },
-      300: { pts_ppr: 12.1 },
-      500: { pts_ppr: 6.6 },
-    },
+    // Real Sleeper shape, verified live 2026-07-26 against
+    // GET /projections/nfl/{season}/{week}?season_type=regular&position[]=...
+    //
+    // This is an ARRAY of records with points nested under `stats`. A previous
+    // fixture here used an object map keyed by player id with a flat `pts_ppr`,
+    // which the live API has never returned — so these tests certified a shape
+    // that does not exist and every live projection silently resolved to null.
+    // Do not "simplify" this back into a map.
+    projections: [
+      { player_id: "100", stats: { pts_ppr: 18.4 } },
+      { player_id: "200", stats: { pts_ppr: 21.2 } },
+      { player_id: "300", stats: { pts_ppr: 12.1 } },
+      { player_id: "500", stats: { pts_ppr: 6.6 } },
+    ],
   };
 }
 
@@ -213,6 +221,80 @@ test("missing projections do not crash and produce null projected_points", async
   const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
 
   assert.equal(roster.slots.bench[0].projected_points, null);
+});
+
+// Regression guards for the 2026-07-26 live projection-mapping defect. The
+// live payload is an array with points under `stats`; reading it as an object
+// map returned null for every player, and for low-numbered veteran ids a string
+// key indexed the array by POSITION, resolving to a different player's record.
+// The two defects masked each other — fixing only the nesting would have turned
+// silent-null into silently-wrong points attributed to the wrong player.
+
+test("projections map by player_id, not by array position", async () => {
+  const data = fixtures();
+  // Player "300" is third in this array. If the adapter indexes by position
+  // instead of id, "300" would pick up 99.9 from the entry at index 300 (absent)
+  // and, worse, low ids would match unrelated records. Ids here are chosen so a
+  // positional read yields a visibly different number than the correct one.
+  data.projections = [
+    { player_id: "300", stats: { pts_ppr: 12.1 } },
+    { player_id: "100", stats: { pts_ppr: 18.4 } },
+    { player_id: "200", stats: { pts_ppr: 21.2 } },
+    { player_id: "500", stats: { pts_ppr: 6.6 } },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+
+  const byId = Object.fromEntries(
+    [...roster.slots.starters, ...roster.slots.bench, ...roster.slots.ir]
+      .map((p) => [p.player_id, p.projected_points]),
+  );
+
+  // Correct id-keyed values regardless of array order.
+  assert.equal(byId["100"], 18.4);
+  assert.equal(byId["200"], 21.2);
+  assert.equal(byId["300"], 12.1);
+  assert.equal(byId["500"], 6.6);
+});
+
+test("a player id that is a valid array index does not borrow another player's projection", async () => {
+  const data = fixtures();
+  // "1" is a legal index into this 3-entry array. A positional read would give
+  // player "1" the 77.7 belonging to the entry at index 1.
+  data.rosters[0].players = ["1"];
+  data.rosters[0].starters = ["1"];
+  data.rosters[0].reserve = [];
+  data.players = {
+    1: { player_id: "1", full_name: "Low Id Veteran", position: "QB", fantasy_positions: ["QB"], team: "KC" },
+  };
+  data.projections = [
+    { player_id: "900", stats: { pts_ppr: 55.5 } },
+    { player_id: "901", stats: { pts_ppr: 77.7 } },
+    { player_id: "902", stats: { pts_ppr: 88.8 } },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+
+  // Player "1" has no projection of its own. Absent is correct; 77.7 is the bug.
+  assert.equal(roster.slots.starters[0].player_id, "1");
+  assert.equal(roster.slots.starters[0].projected_points, null);
+});
+
+test("points are read from stats.pts_ppr, not a flat pts_ppr", async () => {
+  const data = fixtures();
+  data.projections = [
+    // Flat `pts_ppr` is the shape the old fixture invented. Tolerated as a
+    // fallback, but nested `stats` is what live returns and must win.
+    { player_id: "100", stats: { pts_ppr: 18.4 }, pts_ppr: 999 },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+  const starter = roster.slots.starters.find((p) => p.player_id === "100");
+
+  assert.equal(starter.projected_points, 18.4);
 });
 
 test("fetchSleeperStandings ranks by wins then points for", async () => {
