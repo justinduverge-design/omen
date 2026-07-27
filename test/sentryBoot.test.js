@@ -48,3 +48,17 @@ test("Sentry scrubber drops ESPN credential-bearing request events", () => {
 
   assert.equal(result, null);
 });
+
+test("Sentry scrubber redacts OAuth callback code and state from request URLs", () => {
+  const result = scrubSentryEvent({
+    request: {
+      method: "GET",
+      url: "https://slopssaloon.com/api/yahoo/callback?code=authorization-code&state=csrf-state&error=invalid_scope",
+    },
+  }, {});
+
+  assert.equal(result.request.url.includes("authorization-code"), false);
+  assert.equal(result.request.url.includes("csrf-state"), false);
+  assert.match(result.request.url, /code=%5Bscrubbed%5D/);
+  assert.match(result.request.url, /state=%5Bscrubbed%5D/);
+});

@@ -5,6 +5,7 @@ const Sentry = require("@sentry/node");
 const SCRUBBED = "[scrubbed]";
 const SENSITIVE_KEY_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault/i;
 const SENSITIVE_HEADER_PATTERN = /^(cookie|set-cookie|authorization|x-api-key)$|token|secret/i;
+const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault|^(code|state)$/i;
 const SENSITIVE_TEXT_PATTERN = /\b(password|cookie|token|secret|swid|espn_s2|vault)(\s*[:=]\s*)([^&\s,;]+)/gi;
 const ESPN_CREDENTIAL_ROUTES = Object.freeze([
   { method: "POST", path: "/api/platforms/espn/connect" },
@@ -79,7 +80,7 @@ function scrubUrl(rawUrl) {
   if (!parsed) return rawUrl;
 
   for (const key of Array.from(parsed.searchParams.keys())) {
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
+    if (SENSITIVE_QUERY_PARAMETER_PATTERN.test(key)) {
       parsed.searchParams.set(key, SCRUBBED);
     }
   }
