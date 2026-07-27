@@ -9,6 +9,7 @@ When you close a task, append a row. Format:
 ```
 | Date | Item | Done docs applied | Gates skipped + why | Skill/prompt to revisit |
 |---|---|---|---|---|
+| 2026-07-27 | M4 Help + Support contract | decision/design proposal | Feature/Design Done implementation gates are N/A: no app UI or runtime behavior shipped. Evidence: `Blueprints/specs/mobile/m4-help-support-v1.md`; Figma nodes `61:2`, `63:2`, `63:26`; `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`. | Proposal is pending founder/design-steward approval; native implementation, support backend, telemetry, provider, credential, store, deploy, and production changes remain out of scope. |
 | 2026-07-13 | Orphaned `src/omen_gdpr.js` retirement | security | No new auth/data/credential/telemetry boundary; historical records retained | Push/merge/deploy remain Justin gates. Evidence: `26441a1`, dated review, evidence, and handoff. |
 | 2026-06-15 | Phase 1.3 — page-system spec | feature, design | none | — |
 ```

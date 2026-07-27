@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-23 (M4 Command Center v1.1 corrective in progress)
+**Last updated:** 2026-07-27 (M4 Help + Support follow-up added)
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -236,6 +236,24 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Agent-buildable:** yes
 - **Scope:** the Omen tab currently renders an honest "coming next" state surface. Build the real Omen destination screen assembly that owns the full `OmenDecisionBrief` (all 8 state surfaces already shipped in P3). Assembly lives at `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/omen/` and iOS `App/Omen/`.
 - **Do not touch:** the DecisionBrief primitive itself (already approved); live wiring blocked on M0-BE-0.
+
+### ~~M4-Help-Support-Contract — Define native contextual Help + Support~~ ✅ 2026-07-27
+
+- **Priority:** P1
+- **Cost:** small–medium
+- **Completed contract/proposal:** `Blueprints/specs/mobile/m4-help-support-v1.md`; Design House nodes `61:2` (Components proposal), `63:2` (iOS placement), and `63:26` (Android placement). The web `HelpButton` was used as content inventory only.
+- **Implementation gate:** all three Figma nodes are visibly **PROPOSED — PENDING FOUNDER/DESIGN-STEWARD REVIEW**. Do not begin native implementation until approval is recorded.
+- **Evidence:** structural metadata plus visual inspection of node `61:2`; closeout `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`.
+
+### M4-Help-Support-Implementation — Build approved native Help + Support
+
+- **Priority:** P1
+- **Cost:** medium
+- **Blocked by:** M4-Help-Support-Contract and its approved Figma component/screen nodes.
+- **Agent-buildable:** yes after the blocker clears.
+- **Scope:** implement only the approved Help + Support entry and surfaces in `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/` and `mobile/ios/OmenIOS/App/`, using existing Omen primitives and platform-native navigation/sheets. Include all contract states and safe, non-secret support guidance; no provider credential collection or support-ticket backend is implied.
+- **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
+- **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
 
 ### ~~M4-Auth — Omen-primitive-native auth surfaces (retirement item)~~ ✅ 2026-07-23
 
