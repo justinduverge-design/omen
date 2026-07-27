@@ -42,9 +42,13 @@ Sleeper uses **no credentials** — every call is a public GET. The only `token`
 
 Add `fetchSleeperAvailablePlayers(leagueId, week, season)` to `src/adapters/sleeper.js`.
 
-Pool = `fetchSleeperPlayers()` filtered to `active === true` and `position ∈ {QB, RB, WR, TE, K, DEF}`, minus the union of `players[]` across every roster from `GET /league/{id}/rosters`, joined to `fetchSleeperProjections()` on `player_id` for `pts_ppr`.
+Pool = `fetchSleeperPlayers()` filtered to `active === true` and **fantasy-eligible at** `{QB, RB, WR, TE, K, DEF}`, minus the union of `players`, `starters`, `reserve`, and `taxi` across every roster from `GET /league/{id}/rosters`, joined to `fetchSleeperProjections()` on `player_id` for `pts_ppr`.
 
 All three fetchers already exist and are cached (`PLAYERS_TTL_S`, `PROJECTIONS_TTL_S`), so this adds no new network shape and no new dependency.
+
+**Eligibility, not primary position** (corrected during implementation): Sleeper lists fullbacks as `position: "FB"` with `fantasy_positions: ["RB"]`. A primary-position filter withheld 74 active rosterable players, 4 of them projected. `eligiblePositions()` decides. The same rule correctly drops players listed at a skill position with no fantasy eligibility. Net +71 at live scale.
+
+**All four roster arrays are unioned**, not just `players` — and a roster row without a usable array is treated as unknown-but-owned. A smaller pool loses an opportunity; the reverse offers a player the user cannot add, presented as live advice.
 
 **Done when:** returns a projection-ranked pool for a real league; a league with every skill player rostered returns an empty pool rather than an error; unknown league id returns the adapter's existing safe failure; unit tests cover full/partial/empty pools.
 
@@ -59,13 +63,25 @@ Extend `src/services/omen.js` so `waiver_pickup` is reachable for Sleeper, mirro
 
 **Done when:** deterministic selection tests cover pick / no-pick / empty-pool / no-injured-starter; a live-mode test proves no mock or fixture pool can reach a live response; opaque provider errors and raw responses stay out of the envelope and logs.
 
-### S3 · Live capability proof
+### S3 · Live capability proof — 🟡 partially proven 2026-07-26
 
 Run S1 + S2 against a real Sleeper league and capture a sanitized capability-matrix row.
 
 **Done when:** the matrix reads **Sleeper: live** with evidence that names no league id, user id, or username in a way that identifies a real person.
 
-### S4 · Off-season honesty — founder decision required
+#### Attempt 1 — 2026-07-26, founder-provided league
+
+An end-to-end `fetchSleeperAvailablePlayers` call against a real 12-team PPR league succeeded: **719 ms, 3,293 pool, 533 projected, nulls sorted strictly last, normalized shape intact**, ranking topped by Josh Allen 23.79 / Burrow 23.78 / Hurts 21.90 / Mahomes 21.36.
+
+That cross-checks S1's eligibility fix exactly: the earlier pre-fix live run produced 529 projected, and the four recovered players are the four projected fullbacks. 529 + 4 = 533.
+
+**It does not close S3.** The league status is `pre_draft`. All 12 rosters return `players: []` with `starters: ["0" × 10]` — placeholder slots, no real players. The union of rostered ids across all 12 teams is `{"0"}`, and `"0"` is not a player in `/players/nfl`, so nothing is subtracted.
+
+**The roster subtraction — S1's stated primary correctness risk — remains unproven.** Returning all 3,293 eligible players is the *correct* answer for an undrafted league, which is precisely why this run cannot distinguish a working subtraction from a broken one.
+
+**To close S3:** a Sleeper league with `status` of `in_season` (or any drafted league with populated rosters). The check is that players held by every team, including rival teams, are absent from the pool.
+
+### S4 · Off-season honesty — ✅ decided 2026-07-26
 
 Projections for 2026 week 1 exist, but `/state/nfl` reports `week: 0`. A July waiver recommendation is computable but not actionable.
 
@@ -76,7 +92,11 @@ Two acceptable resolutions:
 
 Either way, preseason projections must be labeled as estimates and never presented with in-season confidence.
 
-**This is a product call, not a technical one. Do not pick (a) or (b) unilaterally.**
+**Founder decision 2026-07-26: (a) — live-but-off-season.** Sleeper waiver ships live and routes to the existing off-season DecisionBrief state surface until the season opens. Preseason projections are labeled as estimates.
+
+**S3 surfaced a third state that (a) must also handle: `pre_draft`.** A league that has not drafted has no rosters at all, so a waiver recommendation is not merely off-season — it is meaningless. `GET /v1/league/{id}` exposes `status`, and `pre_draft` must route to its own honest surface rather than the off-season one. An undrafted league where the pool correctly returns every eligible player is the exact case where a naive implementation would present 3,293 "available" players as though they were waiver opportunities.
+
+S2 must therefore branch on three states, not two: in-season, off-season (drafted, between weeks), and pre-draft (no rosters exist).
 
 ## Phase E — ESPN
 
@@ -105,10 +125,15 @@ Cookie values never appear in logs, UI, screenshots, URLs, analytics, share payl
 
 ## Sequencing
 
-1. **S1 → S2 → S3** — unblocked today.
-2. **S4** — founder decision; can be answered in parallel, needed before S3 closes.
-3. **E0** — founder-gated spike; blocks all of Phase E.
-4. **Yahoo** — parked on external reapproval; no agent action available.
+1. **S0** — ✅ merged 2026-07-26 (PR #214). Projection mapping fix; a prerequisite discovered during S1.
+2. **S1** — ✅ built (PR #215). Available pool derived and ranked.
+3. **S4** — ✅ decided 2026-07-26: live-but-off-season, plus a distinct `pre_draft` state.
+4. **S2** — next. Engine wiring, branching on three states.
+5. **S3** — 🟡 partially proven. Needs a drafted league to test roster subtraction.
+6. **E0** — founder-gated spike; blocks all of Phase E.
+7. **Yahoo** — parked on external reapproval; no agent action available.
+
+**Deploy is separately blocked.** The GitHub Actions billing hold (until ~2026-08-01) means merged work cannot reach production. S0 is on `main` but live Sleeper start/sit still ranks every player at zero until a deploy is possible.
 
 ## Non-goals
 
