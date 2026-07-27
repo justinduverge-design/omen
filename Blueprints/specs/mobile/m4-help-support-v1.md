@@ -1,9 +1,9 @@
 # M4 Help + Support — Native Contract v1
 
-**Status:** Proposed composition — not approved for native implementation
+**Status:** Approved for native implementation planning — founder approval recorded 2026-07-27
 **Owner:** Product / Design House
 **Created:** 2026-07-27
-**Decision gate:** Founder/design-steward approval of the Figma proposal, then platform implementation planning
+**Decision gate:** Cleared — Justin approved Figma nodes `61:2`, `63:2`, and `63:26` on 2026-07-27
 
 ## 1. Purpose and boundary
 
@@ -82,8 +82,8 @@ Before implementation:
 
 1. Add a clearly labelled **PROPOSAL — Help + Support** composition card to `03 — Components` in the Design House, showing purpose, anatomy, states, tokens, accessibility, platform expression, and sources.
 2. Add proposed iOS and Android placement references after the composition card is reviewed; do not treat them as approved screens.
-3. Obtain recorded founder/design-steward approval of the Figma nodes and this contract.
-4. Only then create native implementation tasks. Those tasks must specify the real support/feedback submission authority (if any), payload allowlist, consent/review behavior, tests, and platform evidence.
+3. **Complete:** Justin approved Figma nodes `61:2`, `63:2`, and `63:26` on 2026-07-27; each card now carries the visible status `APPROVED — JUSTIN, 2026-07-27`.
+4. Create the separately scoped native implementation task. It must specify the real support/feedback submission authority (if any), payload allowlist, consent/review behavior, tests, and platform evidence.
 
 ### Exact implementation file boundary after approval
 

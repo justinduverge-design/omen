@@ -8,6 +8,7 @@ Prove which skills are doing useful work and expose unused, skipped, or weak pro
 
 | Date | Task/milestone | Skill | Result | Evidence | Procedure gap / next correction |
 |---|---|---|---|---|---|
+| 2026-07-27 | M4 Help + Support approval recording | `figma-use`, `slops-git-flow` | PASS | Justin approval reflected on Figma nodes `61:2`, `63:2`, and `63:26`; rendered verification of node `61:2`; `Blueprints/handoffs/2026-07-27-m4-help-support-approval.md`. | Native implementation, app/device QA, security/provider, and release skills remain a separate upcoming task; no executable or production behavior changed here. |
 | 2026-07-27 | M4 Help + Support contract and proposal | `planning-pass`, `figma-use`, `figma-generate-design`, `figma-generate-library`, `slops-git-flow` | PASS as proposal | Contract plus Figma nodes `61:2`, `63:2`, `63:26`; `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`. | TDD, quality baseline, code review, UI/mobile app smoke, security/provider, and release skills N/A: no code, API, data flow, rendered app UI, provider, credential, or release change. Figma inspection and visual review are the appropriate evidence; implementation remains approval-gated. |
 | 2026-07-13 | Orphaned GDPR module retirement | `slops-repo-inspector`, `slops-git-flow`, `security-privacy-evidence`, `slops-code-review`, `slops-quality-baseline`, `slops-context-markdown` | PASS | `26441a1`; dated security evidence, review, and handoff | TDD/UI/provider/release skills N/A: unmounted deletion with no user-facing or contract change |
 

@@ -242,15 +242,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Priority:** P1
 - **Cost:** small–medium
 - **Completed contract/proposal:** `Blueprints/specs/mobile/m4-help-support-v1.md`; Design House nodes `61:2` (Components proposal), `63:2` (iOS placement), and `63:26` (Android placement). The web `HelpButton` was used as content inventory only.
-- **Implementation gate:** all three Figma nodes are visibly **PROPOSED — PENDING FOUNDER/DESIGN-STEWARD REVIEW**. Do not begin native implementation until approval is recorded.
+- **Implementation gate cleared:** Justin approved all three Figma nodes on 2026-07-27; each is visibly marked **APPROVED — JUSTIN, 2026-07-27**. Native implementation is now eligible for a separately scoped build.
 - **Evidence:** structural metadata plus visual inspection of node `61:2`; closeout `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`.
 
 ### M4-Help-Support-Implementation — Build approved native Help + Support
 
 - **Priority:** P1
 - **Cost:** medium
-- **Blocked by:** M4-Help-Support-Contract and its approved Figma component/screen nodes.
-- **Agent-buildable:** yes after the blocker clears.
+- **Blocked by:** none — M4-Help-Support-Contract and Figma nodes `61:2`, `63:2`, and `63:26` were approved by Justin on 2026-07-27.
+- **Agent-buildable:** yes.
 - **Scope:** implement only the approved Help + Support entry and surfaces in `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/` and `mobile/ios/OmenIOS/App/`, using existing Omen primitives and platform-native navigation/sheets. Include all contract states and safe, non-secret support guidance; no provider credential collection or support-ticket backend is implied.
 - **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
 - **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
