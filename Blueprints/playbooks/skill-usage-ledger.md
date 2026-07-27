@@ -8,6 +8,7 @@ Prove which skills are doing useful work and expose unused, skipped, or weak pro
 
 | Date | Task/milestone | Skill | Result | Evidence | Procedure gap / next correction |
 |---|---|---|---|---|---|
+| 2026-07-27 | M4 Help + Support contract and proposal | `planning-pass`, `figma-use`, `figma-generate-design`, `figma-generate-library`, `slops-git-flow` | PASS as proposal | Contract plus Figma nodes `61:2`, `63:2`, `63:26`; `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`. | TDD, quality baseline, code review, UI/mobile app smoke, security/provider, and release skills N/A: no code, API, data flow, rendered app UI, provider, credential, or release change. Figma inspection and visual review are the appropriate evidence; implementation remains approval-gated. |
 | 2026-07-13 | Orphaned GDPR module retirement | `slops-repo-inspector`, `slops-git-flow`, `security-privacy-evidence`, `slops-code-review`, `slops-quality-baseline`, `slops-context-markdown` | PASS | `26441a1`; dated security evidence, review, and handoff | TDD/UI/provider/release skills N/A: unmounted deletion with no user-facing or contract change |
 
 Use one row per invoked skill. Record a skipped required skill as `SKIPPED` with the reason. Do not add rows for conditional skills that were genuinely unrelated; list those in the task's skill receipt instead.
