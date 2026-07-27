@@ -2,6 +2,8 @@
 
 A feature is done when the user can use it end-to-end, every failure path is handled, and the feature is reachable from where users naturally land.
 
+> ⚠️ **GitHub Actions billing hold active (until ~2026-08-01).** Gates 12 and 19 have full local substitutes — run them locally and record the command, count, and date. Any gate with no local equivalent (iOS simulator CI) must be recorded as **DEFERRED-CI**, never skipped and never claimed as green. See `definition-of-done.md` § Degraded verification.
+
 ## Gates
 
 1. Happy path works against real or labeled-mock data
