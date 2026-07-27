@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
 const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -755,10 +756,16 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
 }
 
 /**
- * The waiver path opens only when start/sit finds nothing. It is deliberately
- * narrow: a genuinely OUT starter and a real, projected, same-position player in
- * the pool. Anything less declines rather than filling the screen — per issue
- * #162, an honest empty beats a manufactured move.
+ * The waiver path is deliberately narrow: a genuinely OUT starter and a real,
+ * projected, same-position player in the pool. Anything less declines rather
+ * than filling the screen — per issue #162, an honest empty beats a
+ * manufactured move.
+ *
+ * B2-D4 note: the waiver path no longer waits for start/sit to find nothing.
+ * Both types now produce candidates and the selector compares them by score.
+ * The preconditions above are unchanged — they are what makes the comparison
+ * honest, and they are also what keeps the cost near zero, since no pool is
+ * ever fetched for a roster with no OUT starter.
  */
 function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup }) {
   const platform = connection.platform || roster.source || "unknown";
@@ -822,10 +829,13 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
 /**
  * Sleeper-only for now. Yahoo waiver is PR #211's scope and is gated on Yahoo
  * API reapproval; ESPN has no available-player capability yet (see the E phase
- * of the waiver-pool spec). Returns null to mean "no waiver move", which the
- * caller turns into the normal empty response.
+ * of the waiver-pool spec). Returns null to mean "no waiver candidate", which
+ * the selector treats as this type producing nothing.
+ *
+ * Returns the raw pieces plus a decision score rather than a finished envelope,
+ * so the selector can compare it against start/sit before anything is rendered.
  */
-async function buildWaiverPickupForConnection({ connection, roster, connectedPlatforms }) {
+async function buildWaiverCandidateForConnection({ connection, roster }) {
   if (connection.platform !== "sleeper") return null;
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
@@ -871,13 +881,36 @@ async function buildWaiverPickupForConnection({ connection, roster, connectedPla
   });
   if (!candidate) return null;
 
-  return mapWaiverPickupToMvpMove({
-    roster,
-    connection,
-    connectedPlatforms,
+  // Same unit as a lineup swap's delta: expected points gained this week. An
+  // OUT starter's own projection is subtracted rather than assumed to be zero,
+  // so the two types are genuinely comparable instead of merely both numeric.
+  const pickupPoints = finiteNumber(candidate.projected_points) || 0;
+  const starterPoints = finiteNumber(outStarter.projected_points) || 0;
+
+  return {
+    id: `live_omen_waiver_${candidate.player_key || "unknown"}`,
+    type: "waiver_pickup",
+    decisionScore: pickupPoints - starterPoints,
+    requiredSignalsLive: true,
+    contextVerified: true,
+    inputKinds: ["live"],
     outStarter,
     pickup: candidate,
-  });
+  };
+}
+
+/**
+ * Trade is declared so it reports as explicitly unavailable rather than
+ * silently not existing. Per the capability matrix in the canonical contract,
+ * no provider exposes a normalized opponent-roster candidate surface, so B2-D3
+ * must land before this can ever produce a candidate.
+ */
+function buildTradeCandidate() {
+  return {
+    type: "trade_suggestion",
+    available: false,
+    reason: omenSelector.REJECTION.NO_PROVIDER_CAPABILITY,
+  };
 }
 
 /**
@@ -1327,9 +1360,37 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     }
     throw err;
   }
-  const [swap] = optimizer.evaluateLineup(roster);
+  // B2-D4 deterministic selection. Generate a candidate per supported type,
+  // then rank — an order of operations, not a type priority. See
+  // `Blueprints/specs/b2d-canonical-omen-context-and-capability-contract-v1.md`
+  // § Deterministic selection.
+  const candidates = [];
 
-  if (!swap) {
+  const [swap] = optimizer.evaluateLineup(roster);
+  if (swap) {
+    candidates.push({
+      id: `live_omen_start_sit_${swap.to?.player_key || "unknown"}`,
+      type: "start_sit",
+      decisionScore: finiteNumber(swap.delta),
+      requiredSignalsLive: true,
+      contextVerified: true,
+      inputKinds: ["live"],
+      swap,
+    });
+  }
+
+  const waiverCandidate = await buildWaiverCandidateForConnection({ connection, roster });
+  if (waiverCandidate) candidates.push(waiverCandidate);
+
+  candidates.push(buildTradeCandidate());
+
+  const { selected } = omenSelector.selectDecision(candidates);
+
+  if (!selected) {
+    // Yahoo's guarded waiver move is availability-based and deliberately has a
+    // null point delta. It therefore cannot enter a selector that only ranks
+    // positive numeric edges, but it must remain available when no scoreable
+    // decision exists. Preserve its existing live-or-unavailable boundary.
     if (connection.platform === "yahoo") {
       if (unavailableYahooStarters(roster).length === 0) {
         return liveEmptyMvpResponse({ roster, connection, connectedPlatforms });
@@ -1375,15 +1436,12 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       }
     }
 
-    // Three-state branching. Off-season already short-circuited at the top of
-    // this function; the remaining split is pre-draft (no roster exists) vs
-    // in-season (a roster exists, so a waiver move may). Order matters: an
-    // undrafted league must never be told its lineup is fine.
+    // Off-season already short-circuited at the top of this function. The
+    // remaining split is pre-draft (no roster exists) vs in-season (a roster
+    // exists and simply has no move worth making). An undrafted league must
+    // never be told its lineup is fine.
     const preDraft = await preDraftGuard({ connection, roster, connectedPlatforms });
     if (preDraft) return preDraft;
-
-    const waiver = await buildWaiverPickupForConnection({ connection, roster, connectedPlatforms });
-    if (waiver) return waiver;
     return liveEmptyMvpResponse({
       roster,
       connection,
@@ -1391,11 +1449,21 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     });
   }
 
+  if (selected.type === "waiver_pickup") {
+    return mapWaiverPickupToMvpMove({
+      roster,
+      connection,
+      connectedPlatforms,
+      outStarter: selected.outStarter,
+      pickup: selected.pickup,
+    });
+  }
+
   return {
     status: 200,
     body: mapLineupSwapToMvpMove({
       roster,
-      swap,
+      swap: selected.swap,
       connection,
       connectedPlatforms,
     }),
