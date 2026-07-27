@@ -247,11 +247,33 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Priority:** P0
 - **Cost:** large
-- **Blocked by:** reconcile/land current B2 implementation first; then provider-specific live-data capability proof
+- **Blocked by:** reconcile/land current B2 implementation first; then provider-specific live-data capability proof. **Partially unblocked 2026-07-26** — the waiver half is split into `B2-D-S` (Sleeper, unblocked) and `B2-D-E` (ESPN, spike-gated) per `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md`. Yahoo waiver remains parked on Yahoo API reapproval (external), which does **not** gate Sleeper.
 - **Agent-buildable:** yes, in small backend PRs after a shared API/state contract and test matrix
 - **Source of truth:** GitHub issue #162. Omen is the one core tool: canonical `POST /api/omen/mvp-move` must safely honor selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
 - **Done when:** #162 acceptance evidence is complete: server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
 - **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
+
+### B2-D-S — Live waiver pool: Sleeper
+
+- **Priority:** P0
+- **Cost:** medium
+- **Blocked by:** none — verified unblocked 2026-07-26 by live probe of the public Sleeper API
+- **Agent-buildable:** yes
+- **Spec:** `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md` → Phase S
+- **Done when:** S1 pool function, S2 engine wiring, and S3 live capability proof all land; the capability matrix reads **Sleeper: live** with sanitized evidence.
+- **Founder decision needed (S4):** does Sleeper waiver go live-but-off-season, or stay dark until week 1? Do not pick unilaterally.
+- **Do not touch:** provider credentials, deploy, SQL, production data, trade intelligence, native wiring.
+
+### B2-D-E — Live waiver pool: ESPN feasibility spike
+
+- **Priority:** P1
+- **Cost:** small (spike only)
+- **Blocked by:** founder gate — requires a real ESPN connection; agents do not handle `espn_s2` / `SWID` cookies
+- **Agent-buildable:** no for E0; E1–E3 become agent-buildable only if E0 returns go
+- **Spec:** `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md` → Phase E
+- **Done when:** E0 answers whether `kona_player_info` + `x-fantasy-filter` yields a usable free-agent pool within the existing cookie flow. Output is a go/no-go, not code.
+- **Note:** the current adapter requests only `mRoster`/`mTeam`/`mSettings`/`mMatchup` and has no `x-fantasy-filter` support — this is a new request shape, not a new parameter.
+- **Do not touch:** cookie values in any artifact including spike notes; provider credentials; deploy.
 
 ### D1 — Real `GET /api/trade/pulse` endpoint
 
