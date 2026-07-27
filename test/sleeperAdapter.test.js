@@ -297,6 +297,155 @@ test("points are read from stats.pts_ppr, not a flat pts_ppr", async () => {
   assert.equal(starter.projected_points, 18.4);
 });
 
+// B2-D-S1 — available (waiver) player pool.
+//
+// Pool = active skill players from /players/nfl, minus every player rostered by
+// ANY team in the league, joined to week projections. Sleeper has no dedicated
+// free-agent endpoint, so the pool is derived. The correctness risk is the
+// subtraction: missing a single roster silently offers an owned player as
+// available, which would be presented as live advice.
+
+function poolFixtures() {
+  const data = fixtures();
+
+  // Two teams. user-1 owns 100/200; user-2 owns 300. 400 and 500 are free.
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: ["100", "200"], starters: ["100", "200"], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: ["300"], reserve: [] },
+  ];
+
+  data.players = {
+    100: { player_id: "100", full_name: "Owned QB", position: "QB", fantasy_positions: ["QB"], team: "KC", active: true },
+    200: { player_id: "200", full_name: "Owned RB", position: "RB", fantasy_positions: ["RB"], team: "BUF", active: true },
+    300: { player_id: "300", full_name: "Rival WR", position: "WR", fantasy_positions: ["WR"], team: "NYJ", active: true },
+    400: { player_id: "400", full_name: "Free WR", position: "WR", fantasy_positions: ["WR"], team: "DAL", active: true },
+    500: { player_id: "500", full_name: "Free TE", position: "TE", fantasy_positions: ["TE"], team: "DET", active: true },
+    600: { player_id: "600", full_name: "Retired K", position: "K", fantasy_positions: ["K"], team: null, active: false },
+    700: { player_id: "700", full_name: "Head Coach", position: "HC", fantasy_positions: ["HC"], team: "MIA", active: true },
+    800: { player_id: "800", full_name: "Unprojected WR", position: "WR", fantasy_positions: ["WR"], team: "SF", active: true },
+  };
+
+  data.projections = [
+    { player_id: "400", stats: { pts_ppr: 11.2 } },
+    { player_id: "500", stats: { pts_ppr: 14.8 } },
+    { player_id: "300", stats: { pts_ppr: 20.0 } },
+    // 800 deliberately has no projection.
+  ];
+
+  return data;
+}
+
+test("available pool excludes players rostered by ANY team, not just the user's", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const ids = pool.map((p) => p.player_id);
+
+  assert.ok(!ids.includes("100"), "user's own player must not be offered");
+  assert.ok(!ids.includes("200"), "user's own player must not be offered");
+  assert.ok(!ids.includes("300"), "a rival team's player must not be offered as available");
+});
+
+test("available pool includes only active skill-position players", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const ids = pool.map((p) => p.player_id);
+
+  assert.ok(!ids.includes("600"), "inactive player must be excluded");
+  assert.ok(!ids.includes("700"), "non-skill position must be excluded");
+  assert.deepEqual(ids.sort(), ["400", "500", "800"]);
+});
+
+test("available pool includes a fullback that is fantasy-eligible at RB", async () => {
+  // Found against live data 2026-07-26: Sleeper lists fullbacks as position
+  // "FB" with fantasy_positions ["RB"]. 74 active players (4 of them projected,
+  // e.g. Kyle Juszczyk) are rosterable at RB but would be withheld by a
+  // primary-position filter. Eligibility, not primary position, decides.
+  const data = poolFixtures();
+  data.players[900] = {
+    player_id: "900",
+    full_name: "Fantasy Eligible FB",
+    position: "FB",
+    fantasy_positions: ["RB"],
+    team: "SF",
+    active: true,
+  };
+  data.projections = [...data.projections, { player_id: "900", stats: { pts_ppr: 9.4 } }];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const fb = pool.find((p) => p.player_id === "900");
+
+  assert.ok(fb, "an FB with fantasy_positions [RB] must be available");
+  assert.equal(fb.projected_points, 9.4);
+  assert.deepEqual(fb.eligible_positions, ["RB"]);
+});
+
+test("available pool still excludes a position with no fantasy eligibility", async () => {
+  const data = poolFixtures();
+  data.players[901] = {
+    player_id: "901",
+    full_name: "Offensive Lineman",
+    position: "OL",
+    fantasy_positions: ["OL"],
+    team: "SF",
+    active: true,
+  };
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.ok(!pool.map((p) => p.player_id).includes("901"));
+});
+
+test("available pool ranks by projected points, unprojected players last", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.deepEqual(pool.map((p) => p.player_id), ["500", "400", "800"]);
+  assert.equal(pool[0].projected_points, 14.8);
+  assert.equal(pool[1].projected_points, 11.2);
+  assert.equal(pool[2].projected_points, null, "no projection must be null, never 0");
+});
+
+test("available pool returns the normalized player shape", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const top = pool[0];
+
+  assert.equal(top.player_key, "sleeper:500");
+  assert.equal(top.position, "TE");
+  assert.equal(top.is_starter, false);
+  assert.equal(top.selected_position, null);
+  assert.deepEqual(top.eligible_positions, ["TE"]);
+});
+
+test("available pool is empty, not an error, when every eligible player is rostered", async () => {
+  const data = poolFixtures();
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: ["100", "200", "400", "500", "800"], starters: [], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: [], reserve: [] },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.deepEqual(pool, []);
+});
+
+test("available pool tolerates a roster row with no players array", async () => {
+  const data = poolFixtures();
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: null, starters: [], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: [], reserve: [] },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  // A malformed roster must not throw and must not silently offer its players.
+  assert.ok(!pool.map((p) => p.player_id).includes("300"));
+});
+
 test("fetchSleeperStandings ranks by wins then points for", async () => {
   const data = fixtures();
   data.users = [

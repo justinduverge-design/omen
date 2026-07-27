@@ -408,6 +408,77 @@ async function fetchSleeperProjections(season, week) {
   return out;
 }
 
+/**
+ * Available (waiver) player pool for one Sleeper league.
+ *
+ * Sleeper exposes no free-agent endpoint, so the pool is derived: every active
+ * skill-position player minus every player rostered by ANY team in the league.
+ *
+ * The subtraction is the correctness risk. Missing one roster silently offers an
+ * owned player as available, and the caller presents that as live advice — so a
+ * roster row without a usable `players` array is treated as unknown-but-owned
+ * rather than empty. Erring toward a smaller pool loses an opportunity; erring
+ * the other way produces a recommendation the user cannot act on.
+ *
+ * Returns the same normalized player shape as buildNormalizedRoster, ranked by
+ * projected points. Players with no projection sort last and keep
+ * `projected_points: null` — never 0, which would read as a real projection of
+ * zero rather than absent data.
+ */
+async function fetchSleeperAvailablePlayers(leagueId, week, season) {
+  const [rosters, players] = await Promise.all([
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    fetchSleeperPlayers(),
+  ]);
+
+  const targetSeason = season || currentSeason();
+  const projections = await fetchSleeperProjections(targetSeason, week).catch(() => ({}));
+
+  const rostered = new Set();
+  for (const roster of Array.isArray(rosters) ? rosters : []) {
+    for (const key of ["players", "starters", "reserve", "taxi"]) {
+      const ids = roster?.[key];
+      if (!Array.isArray(ids)) continue;
+      for (const id of ids) {
+        if (id != null) rostered.add(String(id));
+      }
+    }
+  }
+
+  const eligible = new Set(NFL_POSITIONS);
+  const pool = [];
+
+  for (const [playerId, player] of Object.entries(players || {})) {
+    const id = String(playerId);
+    if (rostered.has(id)) continue;
+    if (player?.active !== true) continue;
+    // Filter on fantasy eligibility, not primary position. Sleeper lists
+    // fullbacks as position "FB" with fantasy_positions ["RB"] — they are
+    // rosterable at RB, and 74 active players (4 of them projected) would be
+    // wrongly withheld from the pool by a primary-position check.
+    if (!eligiblePositions(player).some((pos) => eligible.has(pos))) continue;
+
+    pool.push(normalizePlayer({
+      playerId: id,
+      player,
+      projection: projectionFor(projections, id),
+      selectedPosition: null,
+      isStarter: false,
+    }));
+  }
+
+  pool.sort((a, b) => {
+    const left = a.projected_points;
+    const right = b.projected_points;
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    return right - left;
+  });
+
+  return pool;
+}
+
 async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   const user = await fetchSleeperUser(username);
   const [league, rosterInfo, players] = await Promise.all([
@@ -512,6 +583,7 @@ module.exports = {
   fetchSleeperLastResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,
+  fetchSleeperAvailablePlayers,
   fetchSleeperLeagueDrafts,
   fetchSleeperDraft,
   fetchSleeperDraftPicks,
