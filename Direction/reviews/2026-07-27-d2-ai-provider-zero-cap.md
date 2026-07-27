@@ -31,4 +31,4 @@ PASS. No P0/P1 findings. D2 remains local-only until Justin explicitly raises th
 
 ## Quality Note
 
-Focused tests passed 18/18; full backend tests passed 418/418; root moderate audit found 0 vulnerabilities. The frontend production build currently fails on the unchanged base import `HelpButton.jsx:2` (`Link` is not exported by installed `react-router`); it is outside D2 scope and must be fixed in its own frontend/dependency task.
+Focused tests passed 18/18; full backend tests passed 418/418; root moderate audit found 0 vulnerabilities. Follow-up verification found that the earlier frontend build failure came from stale local `frontend/node_modules` (`react-router@6.30.3`) while the declared dependency is `react-router@8.3.0`. `npm --prefix frontend ci` restored the declared tree, and `npm --prefix frontend run build` passed. No frontend source or package manifest change was required.
