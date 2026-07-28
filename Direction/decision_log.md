@@ -834,3 +834,8 @@
 
 - **OAuth artifacts are operationally sensitive metadata.** Production access logs retain only route-level operational fields, while query strings, referrers, and user agents are omitted; Sentry additionally scrubs OAuth `code` and `state` query parameters.
 - **Waitlist RLS source is not a database action.** The tracked policy source records server-only intent, but production application remains separately approved after a read-only client-usage check. Merging this code must never be represented as a Supabase mutation or live security proof.
+
+## Decisions Added 2026-07-28 (M0-BE-3 evidence reconciliation)
+
+- **Yahoo mobile return is implemented source, not provider/device proof.** PR #191's server-bound native return is verified locally: the app receives only a fixed `connected` or `cancelled` status after server-side state validation. Yahoo console configuration and a real-device browser-to-app cycle remain human gates and cannot be inferred from source tests.
+- **Living native contracts must state the implemented boundary.** Current M0c/onboarding/contract-bus language now points to the merged route; historical 2026-07-19 planning records remain historical rather than being rewritten.

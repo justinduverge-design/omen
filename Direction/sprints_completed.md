@@ -15,6 +15,7 @@ This section is the internal source-of-record repair after the GitHub Actions bi
 | Area | Completed work | Verified evidence | Verification posture |
 | --- | --- | --- | --- |
 | M0-BE | Safe provider-state API, Sleeper request-id replay, and verified Yahoo native OAuth return | PRs #189, #190, #191; `src/routes/platforms.js`, `src/routes/yahoo.js`, and focused route tests on `main` | Merged; real-device OAuth remains a separate human/device gate. |
+| M0-BE-3 record repair | Yahoo mobile-return source, research, security evidence, and living-contract reconciliation | `Blueprints/handoffs/2026-07-25-m0-be-3-yahoo-return-reconciliation.md`; focused 9/9 and full backend 422/422 on 2026-07-28 | Local evidence reconciled; provider-console and real-device proof remain deliberately unclaimed. |
 | M4 native | Omen decision destination | PR #210; `Blueprints/handoffs/2026-07-26-m4-omen-screen.md` | Android evidence recorded; iOS unsigned CI deferred while Actions is unavailable. |
 | B2-D | Sleeper projection mapping correctness fix | PR #214; local `npm test` 417/417 at the reconciliation baseline | Merged; no deploy claim. |
 | Trade | Honest live-or-unavailable `GET /api/trade/pulse` contract | PR #197; `test/tradeRoute.test.js` | Merged; unavailable stays empty and explicitly non-mock until live ADP exists. |
