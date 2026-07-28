@@ -24,8 +24,9 @@ This section is the internal source-of-record repair after the GitHub Actions bi
 | Operating record | Inbox/Done-ledger reconciliation and degraded-verification doctrine | PR #221; `Blueprints/definition-of-done.md` | Merged; local equivalents must be recorded, and unavailable CI is marked `DEFERRED-CI`. |
 | This sprint-history repair | D2 completion status and the missing Done/decision records | PR #230 | Merged; documentation-only, no runtime or deployment change. |
 | Security hardening landing | OAuth telemetry redaction, deny-by-default browser permissions, and review-only waitlist RLS source | PR #232 merged as `5fdb2f3`; `Blueprints/handoffs/2026-07-28-security-hardening-landing.md`; local `npm test` 422/422, frontend build, moderate audit 0 | Merged; SQL was not applied, and no deploy/live claim is made. |
+| B2-D-2 Yahoo waiver fallback | Selected-context, Yahoo-only availability fallback; no OUT/IR-like starter means no Yahoo pool request; unavailable/empty data returns no advice | PR #236 merged as `ffa8999`; PR #211 closed as superseded; handoff + security evidence; RED/green, focused service/route 20/20, local `npm test` 426/426, frontend build, moderate audit 0, and `git diff --check` | Merged; Actions is substituted during the billing hold. Fixture-verified only: Yahoo API reapproval is still required for real-account proof. No deploy/live claim. |
 
-**Still active / not completed:** Sleeper waiver S1/S2 stack (#215 → #216/#217), guarded Yahoo waiver fallback (#211), Discord/passkey auth work (#198, iOS verification deferred), ESPN E0 founder spike, and real-device/provider QA. These must not be promoted into this section until their own evidence and closeout exist.
+**Still active / not completed:** Sleeper waiver S1/S2 stack (#215 → #216/#217), Discord/passkey auth work (#198, iOS verification deferred), ESPN E0 founder spike, and real-device/provider QA. These must not be promoted into this section until their own evidence and closeout exist.
 
 ---
 
