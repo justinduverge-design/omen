@@ -869,11 +869,15 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
   return response;
 }
 
-function selectedYahooWaiverCandidate(roster, waiverPool = []) {
+function unavailableYahooStarters(roster) {
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
-  const unavailableStarters = starters
+  return starters
     .filter((player) => player?.player_key && player?.position && isOutStatus(player.status))
     .sort((a, b) => String(a.player_key).localeCompare(String(b.player_key)));
+}
+
+function selectedYahooWaiverCandidate(roster, waiverPool = []) {
+  const unavailableStarters = unavailableYahooStarters(roster);
 
   const availablePlayers = waiverPool
     .map((player, index) => ({ player, availabilityRank: index + 1 }))
@@ -1145,6 +1149,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
 
   if (!swap) {
     if (connection.platform === "yahoo") {
+      if (unavailableYahooStarters(roster).length === 0) {
+        return liveEmptyMvpResponse({ roster, connection, connectedPlatforms });
+      }
       try {
         const rawWaiverPool = await yahooClient.getAvailablePlayers(connection.league_id, {
           count: 50,
