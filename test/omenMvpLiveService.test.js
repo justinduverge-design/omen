@@ -39,6 +39,8 @@ function loadOmenService({
   sleeperRoster,
   espnRoster,
   swaps,
+  waiverPool,
+  waiverError,
   vaultSecrets = { espnSecret: "espn-s2", swidSecret: "{swid}" },
   offSeason = false,
 } = {}) {
@@ -48,6 +50,7 @@ function loadOmenService({
   const state = {
     yahooCalls: [],
     rosterCalls: [],
+    waiverCalls: [],
     sleeperCalls: [],
     espnCalls: [],
     vaultCalls: [],
@@ -81,7 +84,16 @@ function loadOmenService({
       return {
         getAuthenticatedYahooClient: async (userId) => {
           state.yahooCalls.push(userId);
-          return { client: { type: "fake-yahoo-client" } };
+          return {
+            client: {
+              type: "fake-yahoo-client",
+              getAvailablePlayers: async (leagueId, opts) => {
+                state.waiverCalls.push({ leagueId, opts });
+                if (waiverError) throw waiverError;
+                return { type: "fake-yahoo-waiver-response" };
+              },
+            },
+          };
         },
       };
     }
@@ -118,6 +130,7 @@ function loadOmenService({
             },
           };
         },
+        normalizeYahooWaivers: () => waiverPool || [],
       };
     }
     if (request === "./optimizer" && parent?.filename === servicePath) {
@@ -473,6 +486,152 @@ test("buildLiveOmenMvpMoveForUser returns empty state when Yahoo has no lineup e
   assert.equal(typeof result.body.explanation.summary, "string");
   assert.equal(typeof result.body.confidence.score, "number");
   Object.values(result.body.signals).forEach(assertSignal);
+});
+
+test("buildLiveOmenMvpMoveForUser returns a Yahoo waiver pickup from the selected live context", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-yahoo-waiver",
+      user_id: "user-1",
+      platform: "yahoo",
+      is_active: true,
+      league_id: "414.l.waiver",
+      token_secret_id: "secret-id",
+    }],
+    roster: {
+      week: 8,
+      team_key: "414.t.7",
+      source: "yahoo",
+      slots: {
+        starters: [{
+          player_key: "out-wr",
+          name: "Out Wideout",
+          position: "WR",
+          eligible_positions: ["WR"],
+          selected_position: "WR",
+          team: "DAL",
+          status: "OUT",
+          projected_points: 0,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+    waiverPool: [{
+      player_key: "waiver-wr",
+      name: "Available Wideout",
+      position: "WR",
+      eligible_positions: ["WR"],
+      team: "PHI",
+      status: "",
+      projected_points: null,
+    }],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-yahoo-waiver",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.recommendation.primary_player.name, "Available Wideout");
+  assert.equal(result.body.recommendation.comparison_player.name, "Out Wideout");
+  assert.equal(result.body.recommendation.expected_value_delta.points, null);
+  assert.equal(result.body.signals.waivers.status, "live");
+  assert.equal(result.body.signals.waivers.used, true);
+  assert.deepEqual(state.rosterCalls.map((call) => call.leagueId), ["414.l.waiver"]);
+  assert.deepEqual(state.waiverCalls, [{
+    leagueId: "414.l.waiver",
+    opts: { count: 50, sort: "AR" },
+  }]);
+});
+
+test("buildLiveOmenMvpMoveForUser fails closed when Yahoo waiver data is unavailable", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-yahoo-waiver",
+      user_id: "user-1",
+      platform: "yahoo",
+      is_active: true,
+      league_id: "414.l.waiver",
+      token_secret_id: "secret-id",
+    }],
+    roster: {
+      week: 8,
+      team_key: "414.t.7",
+      source: "yahoo",
+      slots: {
+        starters: [{
+          player_key: "out-wr",
+          name: "Out Wideout",
+          position: "WR",
+          status: "OUT",
+          projected_points: 0,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+    waiverError: new Error("provider unavailable"),
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-yahoo-waiver",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "empty");
+  assert.equal(result.body.recommendation, null);
+  assert.equal(result.body.mode, "live");
+  assert.equal(result.body.signals.waivers.status, "unavailable");
+  assert.equal(result.body.signals.waivers.used, false);
+  assert.equal(result.body.signals.waivers.source, "yahoo_available_players");
+  assert.deepEqual(state.waiverCalls, [{
+    leagueId: "414.l.waiver",
+    opts: { count: 50, sort: "AR" },
+  }]);
+});
+
+test("buildLiveOmenMvpMoveForUser does not fetch Yahoo waivers without an unavailable starter", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-yahoo-no-waiver-need",
+      user_id: "user-1",
+      platform: "yahoo",
+      is_active: true,
+      league_id: "414.l.no-waiver-need",
+      token_secret_id: "secret-id",
+    }],
+    roster: {
+      week: 8,
+      team_key: "414.t.7",
+      source: "yahoo",
+      slots: {
+        starters: [{
+          player_key: "healthy-wr",
+          name: "Healthy Wideout",
+          position: "WR",
+          status: "",
+          projected_points: 12,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-yahoo-no-waiver-need",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "empty");
+  assert.equal(result.body.recommendation, null);
+  assert.deepEqual(state.waiverCalls, []);
 });
 
 test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move envelope", async () => {
