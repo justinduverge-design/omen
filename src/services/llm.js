@@ -81,10 +81,42 @@ function isPrivateLlmHost(hostname) {
   return PRIVATE_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
 }
 
+function normalizeProvider(value) {
+  const provider = String(value || "local").trim().toLowerCase();
+  return ["local", "cloud"].includes(provider) ? provider : "invalid";
+}
+
 function buildBridgeConfig(env = process.env) {
+  const provider = normalizeProvider(env.AI_PROVIDER);
   const normalized = normalizeBaseUrl(env.LLM_BASE_URL);
   const model = env.LLM_MODEL || "gemma4:e2b-q4_0";
   const timeoutMs = parseTimeout(env.LLM_TIMEOUT);
+
+  // Cloud spend is explicitly capped at $0. Keep this fail-closed even when a
+  // private bridge URL is present, so an environment toggle cannot create a
+  // paid or otherwise unapproved egress path.
+  if (provider === "cloud") {
+    return {
+      baseUrl: "",
+      model,
+      timeoutMs,
+      status: "cloud_disabled_zero_budget",
+      provider,
+      privateHost: false,
+    };
+  }
+
+  if (provider === "invalid") {
+    return {
+      baseUrl: "",
+      model,
+      timeoutMs,
+      status: "invalid_provider",
+      provider,
+      privateHost: false,
+    };
+  }
+
   const privateHost = normalized.status === "configured"
     ? isPrivateLlmHost(normalized.hostname)
     : false;
@@ -99,6 +131,7 @@ function buildBridgeConfig(env = process.env) {
     model,
     timeoutMs,
     status,
+    provider,
     privateHost,
   };
 }
@@ -114,6 +147,7 @@ const NARRATION_MAX_TOKENS = 90;
 function getLlmBridgeStatus() {
   return {
     status: BRIDGE.status,
+    provider: BRIDGE.provider,
     model: LLM_MODEL,
     timeout_ms: LLM_TIMEOUT,
     transport: "openai_compatible_chat_completions",

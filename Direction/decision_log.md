@@ -813,3 +813,19 @@
 
 - **Native Sleeper connect uses a bounded Redis replay record rather than a schema change.** The existing `platform_connections` upsert prevents duplicate rows but cannot return a safe first-response replay after response loss. The already-configured Redis dependency records an authenticated user/request ID outcome for 10 minutes, avoiding new provider credentials, migrations, or production-data action. Replay-store unavailability fails closed before the connection write; the timeout is deliberately not described as indefinite idempotency.
 - **Yahoo and ESPN stay out of the retry implementation.** Yahoo's OAuth transaction/return has different authorization-artifact and web-compatibility obligations, so it remains M0-BE-3 behind current primary-source research. ESPN has no approved native-store path and is unchanged.
+
+## Decisions Added 2026-07-27 (M4 Help + Support contract)
+
+- **Contextual Help and Help + Support are separate native jobs.** A nearby Tooltip/Help affordance explains a current concept or state and returns to the exact prior work; Account's Support & Help Improve Omen is the durable home for Help Center guidance, voluntary feedback, feature ideas, and problem reporting. The responsive web HelpButton is content inventory only, not the native layout authority.
+- **Native support starts as an approval-gated composition, not a backend integration.** The Design House proposal uses existing Tooltip/Help, Modal/Sheet, ListRow, Button, IconButton, and State Surface contracts and existing semantic tokens. It creates no support inbox, ticket API, telemetry, provider flow, credential handling, or silent submission queue.
+- **Feedback is intentionally privacy-minimal.** Selected league/roster data defaults off, and credentials, cookies, OAuth tokens, raw provider errors, and hidden session data must never attach automatically. Offline/no-account/unavailable states remain honest and do not claim delivery.
+- **Founder approval recorded.** Justin approved the Help + Support Design House proposal and its iOS/Android placement nodes (`61:2`, `63:2`, `63:26`) on 2026-07-27. This clears the visual-contract gate only; the separately scoped native implementation still must obey the exact file, privacy, provider, and support-backend boundaries in `m4-help-support-v1.md`.
+
+## Decisions Added 2026-07-27 (M4 Help + Support implementation)
+
+- **Support feedback stays locally unavailable until a separate backend contract exists.** The iOS and Android actions disclose that nothing is sent or saved, rather than creating a mock submission, queue, telemetry event, or support endpoint.
+- **Account is the durable entry point on both platforms.** iOS pushes Help + Support in the existing Account navigation stack; Android layers the approved Help + Support sheet over Account so system Back returns to Account before dismissing it.
+
+## Decisions Added 2026-07-27 (D2 closeout)
+
+- **The D2 $0 cloud boundary is implemented work, not deployment proof.** PRs #225 and #226 merged the local-default, cloud-disabled control and its evidence records. No production environment change, cloud credential, paid service, or live-provider validation is implied by that completion.

@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-23 (M4 Command Center v1.1 corrective in progress)
+**Last updated:** 2026-07-27 (M4 Help + Support follow-up added)
 **Purpose:** Active execution queue only. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 
 ## How agents use this file
@@ -237,6 +237,25 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Scope:** the Omen tab currently renders an honest "coming next" state surface. Build the real Omen destination screen assembly that owns the full `OmenDecisionBrief` (all 8 state surfaces already shipped in P3). Assembly lives at `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/omen/` and iOS `App/Omen/`.
 - **Do not touch:** the DecisionBrief primitive itself (already approved); live wiring blocked on M0-BE-0.
 
+### ~~M4-Help-Support-Contract — Define native contextual Help + Support~~ ✅ 2026-07-27
+
+- **Priority:** P1
+- **Cost:** small–medium
+- **Completed contract/proposal:** `Blueprints/specs/mobile/m4-help-support-v1.md`; Design House nodes `61:2` (Components proposal), `63:2` (iOS placement), and `63:26` (Android placement). The web `HelpButton` was used as content inventory only.
+- **Implementation gate cleared:** Justin approved all three Figma nodes on 2026-07-27; each is visibly marked **APPROVED — JUSTIN, 2026-07-27**. Native implementation is now eligible for a separately scoped build.
+- **Evidence:** structural metadata plus visual inspection of node `61:2`; closeout `Blueprints/handoffs/2026-07-27-m4-help-support-contract.md`.
+
+### M4-Help-Support-Implementation — Build approved native Help + Support
+
+- **Priority:** P1
+- **Cost:** medium
+- **Status:** Implementation complete on `mobile/m4-help-support`; Android compile/scanner evidence is green. Device screenshots, Android TalkBack/font-scale, and iOS unsigned CI remain required QA evidence before calling the slice release-ready.
+- **Blocked by:** no implementation blocker — M4-Help-Support-Contract and Figma nodes `61:2`, `63:2`, and `63:26` were approved by Justin on 2026-07-27.
+- **Agent-buildable:** yes.
+- **Scope:** implement only the approved Help + Support entry and surfaces in `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/` and `mobile/ios/OmenIOS/App/`, using existing Omen primitives and platform-native navigation/sheets. Include all contract states and safe, non-secret support guidance; no provider credential collection or support-ticket backend is implied.
+- **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
+- **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
+
 ### ~~M4-Auth — Omen-primitive-native auth surfaces (retirement item)~~ ✅ 2026-07-23
 
 - Both auth files refactored to compose only approved Omen primitives (`OmenCard`, `OmenFormField`, `OmenTextField`, `OmenButton`, `OmenStateSurface`); `PrimitiveEnforcementTest.ALLOWLISTED_FILES` now empty. Scanner + `:app:assembleDebug` both green. Public composable signatures preserved (no caller changes in `OmenAndroidApp.kt`). Branch `claude/m4-auth-primitive-retirement` — waiting on push/merge. Evidence: `Blueprints/handoffs/2026-07-23-m4-auth-primitive-retirement.md`. Non-expansion covenant retained in the test's companion doc block.
@@ -264,6 +283,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### D2 — `AI_PROVIDER=local|cloud` control with $0 cap
 
+- **Status:** ✅ Completed locally and merged 2026-07-27 (PRs #225 and #226). Deployment/live-provider proof remains intentionally unclaimed.
 - **Priority:** P1
 - **Cost:** medium
 - **Blocked by:** none; founder decision already sets $0 cloud spend
