@@ -45,7 +45,7 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 | M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
 | Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
 | OAuth telemetry redaction, waitlist RLS source, browser permissions hardening | PR #232 | **Merged to `main`** as `5fdb2f3`; local suite 422/422, build, and moderate audit 0. No deploy or production SQL application. |
-| Yahoo native-return evidence reconciliation | `codex/m0be3-yahoo-mobile-return` | **Local only, no remote.** 1 docs commit. One disk failure from gone. |
+| Yahoo native-return evidence reconciliation | PR #234 | **Merged to `main`** as `a6e6555`; focused Yahoo route 9/9 and full local suite 422/422. Provider-console and real-device proof remain human gates. |
 
 **Sleeper stack merge order:** #215 first → GitHub auto-retargets #216/#217 to `main` → then merge those. Merging #217 first pulls S1's commits in sideways. Full-stack tip verified **432/432 green locally** (+15 over `main`).
 
@@ -86,20 +86,23 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 - **Priority / cost / blocker:** P0 / medium / S3 landing first is preferable but not required
 - **Verifiable without Actions:** yes.
 
-### 3. Reconcile Yahoo native-return evidence branch
+### 3. B2-D-2 — Guarded Yahoo waiver fallback
 
-- **Why next:** `codex/m0be3-yahoo-mobile-return` is local-only, so its evidence can disappear with the worktree even though the implementation is already on `main`.
-- **Priority / cost / blocker:** P1 / small / none
-- **Output:** compare the docs-only commit to `main`, push/open a scoped documentation PR if it adds non-duplicative evidence, and record actual merge status.
+- **Why next:** draft PR #211 is the remaining non-Sleeper/non-ESPN waiver path; it must be reviewed against the canonical live-or-unavailable contract before any landing decision.
+- **Priority / cost / blocker:** P1 / medium / provider-capability review required; no provider credentials or production action.
+- **Output:** inspect the existing draft and its tests, then either record a fix-then-merge verdict or land only if it remains honest about unavailable live inputs.
 
-### 4. D2 — `AI_PROVIDER=local|cloud` control with $0 cap
+### 4. M3A-QA — real-device native authentication proof
 
-- **Why next:** unblocked, founder decision already sets $0 cloud spend, nothing has touched it.
-- **Priority / cost / blocker:** P1 / medium / none
-- **Done when:** local stays default; cloud hard-fails closed or is disabled; status reporting leaks no URL or secret; tests prove cap behavior.
-- **Do not touch:** paid API credentials, production env.
+- **Why next:** code is merged, but the remaining work is human/device evidence rather than an agent implementation lane.
+- **Priority / cost / blocker:** P0 / small / founder credentials and inbox access.
+- **Output:** run the existing QA matrix; do not use real credentials in agent logs or screenshots.
 
-### 5. D1 — Real `GET /api/trade/pulse`
+### 5. Actions restoration sweep
+
+- **Why next:** the hold defers iOS CI and every workflow-only claim. This is eligible only after the billing hold is confirmed cleared.
+- **Priority / cost / blocker:** P0 / medium / GitHub Actions availability.
+- **Output:** re-run open-PR and DEFERRED-CI workflows and record real results without treating the current hold as code failure.
 
 - **Why next:** listed unblocked — but **PR #197 merged an "honest trade pulse contract" on 2026-07-23.** Scope the remaining delta before pulling; this may be partially done.
 - **Priority / cost / blocker:** P1 / medium / needs a scope check against PR #197 first
