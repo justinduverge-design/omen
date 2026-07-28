@@ -22,6 +22,7 @@ This section is the internal source-of-record repair after the GitHub Actions bi
 | Native support | Help + Support contract, founder approval record, and SwiftUI/Compose implementation | PRs #227/#228/#229; `Blueprints/handoffs/2026-07-27-m4-help-support-implementation.md` | Android compile/scanner evidence passed; iOS/device accessibility evidence is deferred, not claimed. |
 | Operating record | Inbox/Done-ledger reconciliation and degraded-verification doctrine | PR #221; `Blueprints/definition-of-done.md` | Merged; local equivalents must be recorded, and unavailable CI is marked `DEFERRED-CI`. |
 | This sprint-history repair | D2 completion status and the missing Done/decision records | PR #230 | Merged; documentation-only, no runtime or deployment change. |
+| Security hardening landing | OAuth telemetry redaction, deny-by-default browser permissions, and review-only waitlist RLS source | `Blueprints/handoffs/2026-07-28-security-hardening-landing.md`; local `npm test` 422/422, frontend build, moderate audit 0 | Locally verified and PR-ready; SQL was not applied, and no deploy/live claim is made. |
 
 **Still active / not completed:** Sleeper waiver S1/S2 stack (#215 → #216/#217), guarded Yahoo waiver fallback (#211), Discord/passkey auth work (#198, iOS verification deferred), ESPN E0 founder spike, and real-device/provider QA. These must not be promoted into this section until their own evidence and closeout exist.
 
