@@ -8,6 +8,25 @@ Vendor-agnostic lane labels (lanes are work areas, not agent assignments): Backe
 
 ---
 
+## Reconciled completion ledger — 2026-07-28
+
+This section is the internal source-of-record repair after the GitHub Actions billing hold exposed documentation drift. “Merged” means the verified commit is on `main`; it does **not** mean deployed, live, store-verified, or real-provider-verified unless the linked evidence says so.
+
+| Area | Completed work | Verified evidence | Verification posture |
+| --- | --- | --- | --- |
+| M0-BE | Safe provider-state API, Sleeper request-id replay, and verified Yahoo native OAuth return | PRs #189, #190, #191; `src/routes/platforms.js`, `src/routes/yahoo.js`, and focused route tests on `main` | Merged; real-device OAuth remains a separate human/device gate. |
+| M4 native | Omen decision destination | PR #210; `Blueprints/handoffs/2026-07-26-m4-omen-screen.md` | Android evidence recorded; iOS unsigned CI deferred while Actions is unavailable. |
+| B2-D | Sleeper projection mapping correctness fix | PR #214; local `npm test` 417/417 at the reconciliation baseline | Merged; no deploy claim. |
+| Trade | Honest live-or-unavailable `GET /api/trade/pulse` contract | PR #197; `test/tradeRoute.test.js` | Merged; unavailable stays empty and explicitly non-mock until live ADP exists. |
+| AI cost control | D2 `AI_PROVIDER=local|cloud` with a $0 cloud cap | PRs #225/#226; `Blueprints/handoffs/2026-07-27-d2-ai-provider-zero-cap.md` | Merged; no cloud credential, spend, deploy, or live-provider claim. |
+| Native support | Help + Support contract, founder approval record, and SwiftUI/Compose implementation | PRs #227/#228/#229; `Blueprints/handoffs/2026-07-27-m4-help-support-implementation.md` | Android compile/scanner evidence passed; iOS/device accessibility evidence is deferred, not claimed. |
+| Operating record | Inbox/Done-ledger reconciliation and degraded-verification doctrine | PR #221; `Blueprints/definition-of-done.md` | Merged; local equivalents must be recorded, and unavailable CI is marked `DEFERRED-CI`. |
+| This sprint-history repair | D2 completion status and the missing Done/decision records | PR #230 | Merged; documentation-only, no runtime or deployment change. |
+
+**Still active / not completed:** Sleeper waiver S1/S2 stack (#215 → #216/#217), guarded Yahoo waiver fallback (#211), Discord/passkey auth work (#198, iOS verification deferred), ESPN E0 founder spike, and real-device/provider QA. These must not be promoted into this section until their own evidence and closeout exist.
+
+---
+
 ## Completed Since Last Sprint (legacy bucket, pre-2026-06-12)
 
 - Authenticated smoke 13/13 (2026-06-04): Stripe prices, 401 guards, favorite-team hydration, preference patch+restore, Omen feedback, Move History, Sleeper standings. (Closed old Next #2–#4.)
