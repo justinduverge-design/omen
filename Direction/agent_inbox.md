@@ -44,7 +44,7 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 | B2-D-2 guarded Yahoo waiver fallback | PR #211 → `main` | **Draft.** +435/-9. |
 | M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
 | Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
-| OAuth metadata redaction, waitlist write block, body-parser bump | `codex/security-log-redaction` | **On origin, no PR.** 4 commits. Invisible to the queue. |
+| OAuth telemetry redaction, waitlist RLS source, browser permissions hardening | PR #232 | **Merged to `main`** as `5fdb2f3`; local suite 422/422, build, and moderate audit 0. No deploy or production SQL application. |
 | Yahoo native-return evidence reconciliation | `codex/m0be3-yahoo-mobile-return` | **Local only, no remote.** 1 docs commit. One disk failure from gone. |
 
 **Sleeper stack merge order:** #215 first → GitHub auto-retargets #216/#217 to `main` → then merge those. Merging #217 first pulls S1's commits in sideways. Full-stack tip verified **432/432 green locally** (+15 over `main`).
@@ -86,11 +86,11 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 - **Priority / cost / blocker:** P0 / medium / S3 landing first is preferable but not required
 - **Verifiable without Actions:** yes.
 
-### 3. Land the orphaned security work
+### 3. Reconcile Yahoo native-return evidence branch
 
-- **Why next:** `codex/security-log-redaction` holds OAuth metadata redaction, a direct-waitlist-write block, and a body-parser bump — on origin with **no PR**, so it is invisible to every kickoff. `codex/m0be3-yahoo-mobile-return` has **no remote at all**.
+- **Why next:** `codex/m0be3-yahoo-mobile-return` is local-only, so its evidence can disappear with the worktree even though the implementation is already on `main`.
 - **Priority / cost / blocker:** P1 / small / none
-- **Output:** run the suite locally, open a PR for the security branch, push the Yahoo docs branch.
+- **Output:** compare the docs-only commit to `main`, push/open a scoped documentation PR if it adds non-duplicative evidence, and record actual merge status.
 
 ### 4. D2 — `AI_PROVIDER=local|cloud` control with $0 cap
 
