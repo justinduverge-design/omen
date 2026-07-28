@@ -820,3 +820,8 @@
 - **Native support starts as an approval-gated composition, not a backend integration.** The Design House proposal uses existing Tooltip/Help, Modal/Sheet, ListRow, Button, IconButton, and State Surface contracts and existing semantic tokens. It creates no support inbox, ticket API, telemetry, provider flow, credential handling, or silent submission queue.
 - **Feedback is intentionally privacy-minimal.** Selected league/roster data defaults off, and credentials, cookies, OAuth tokens, raw provider errors, and hidden session data must never attach automatically. Offline/no-account/unavailable states remain honest and do not claim delivery.
 - **Founder approval recorded.** Justin approved the Help + Support Design House proposal and its iOS/Android placement nodes (`61:2`, `63:2`, `63:26`) on 2026-07-27. This clears the visual-contract gate only; the separately scoped native implementation still must obey the exact file, privacy, provider, and support-backend boundaries in `m4-help-support-v1.md`.
+
+## Decisions Added 2026-07-27 (M4 Help + Support implementation)
+
+- **Support feedback stays locally unavailable until a separate backend contract exists.** The iOS and Android actions disclose that nothing is sent or saved, rather than creating a mock submission, queue, telemetry event, or support endpoint.
+- **Account is the durable entry point on both platforms.** iOS pushes Help + Support in the existing Account navigation stack; Android layers the approved Help + Support sheet over Account so system Back returns to Account before dismissing it.

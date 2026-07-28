@@ -19,6 +19,8 @@ import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
+import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -60,6 +62,26 @@ object ScreenshotScenarios {
             label = "Omen — real user, disconnected",
             render = { OmenInShell(demo = false) },
         ),
+        "help-support.available" to ScreenshotScenario(
+            label = "Help + Support — available",
+            render = { HelpSupportInShell(OmenHelpSupportState.Available) },
+        ),
+        "help-support.no-account" to ScreenshotScenario(
+            label = "Help + Support — no account",
+            render = { HelpSupportInShell(OmenHelpSupportState.NoAccount) },
+        ),
+        "help-support.offline" to ScreenshotScenario(
+            label = "Help + Support — offline",
+            render = { HelpSupportInShell(OmenHelpSupportState.Offline) },
+        ),
+        "help-support.submission-unavailable" to ScreenshotScenario(
+            label = "Help + Support — feedback unavailable",
+            render = { HelpSupportInShell(OmenHelpSupportState.SubmissionUnavailable) },
+        ),
+        "help-support.provider-recovery" to ScreenshotScenario(
+            label = "Help + Support — provider recovery",
+            render = { HelpSupportInShell(OmenHelpSupportState.ProviderRecovery) },
+        ),
     )
 
     fun isKnown(key: String?): Boolean = key != null && entries.containsKey(key)
@@ -74,6 +96,22 @@ private fun OmenInShell(demo: Boolean) {
     ) { innerPadding ->
         OmenDecisionScreen(
             state = if (demo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
+
+@Composable
+private fun HelpSupportInShell(state: OmenHelpSupportState) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Command) {} },
+    ) { innerPadding ->
+        OmenHelpSupportScreen(
+            state = state,
+            contextDescription = if (state == OmenHelpSupportState.Available) {
+                "Need help with your current Omen flow? Start with a topic below."
+            } else null,
             modifier = Modifier.padding(innerPadding),
         )
     }
