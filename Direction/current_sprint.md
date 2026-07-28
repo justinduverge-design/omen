@@ -283,6 +283,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### D2 — `AI_PROVIDER=local|cloud` control with $0 cap
 
+- **Status:** ✅ Completed locally and merged 2026-07-27 (PRs #225 and #226). Deployment/live-provider proof remains intentionally unclaimed.
 - **Priority:** P1
 - **Cost:** medium
 - **Blocked by:** none; founder decision already sets $0 cloud spend

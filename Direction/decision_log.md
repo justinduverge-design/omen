@@ -825,3 +825,7 @@
 
 - **Support feedback stays locally unavailable until a separate backend contract exists.** The iOS and Android actions disclose that nothing is sent or saved, rather than creating a mock submission, queue, telemetry event, or support endpoint.
 - **Account is the durable entry point on both platforms.** iOS pushes Help + Support in the existing Account navigation stack; Android layers the approved Help + Support sheet over Account so system Back returns to Account before dismissing it.
+
+## Decisions Added 2026-07-27 (D2 closeout)
+
+- **The D2 $0 cloud boundary is implemented work, not deployment proof.** PRs #225 and #226 merged the local-default, cloud-disabled control and its evidence records. No production environment change, cloud credential, paid service, or live-provider validation is implied by that completion.
