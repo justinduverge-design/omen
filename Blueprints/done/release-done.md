@@ -2,9 +2,12 @@
 
 A release is done when CI is green, deploy succeeds, smoke tests pass, errors are monitored, and rollback steps are understood.
 
+> ⛔ **HARD-BLOCKED as of 2026-07-27 — GitHub Actions billing hold.**
+> Gate 4 requires the deploy workflow to return success, and no workflow can run until the allotment restores (~2026-08-01). **Do not record a Release Done closure during the hold.** Work merged to `main` is merged, not released — never describe it as live or deployed. See `definition-of-done.md` § Degraded verification.
+
 ## Gates
 
-1. `slops-quality-baseline` confirms `npm test` green at current baseline or higher (current documented baseline: 352/352 — never lower without an explained test deletion)
+1. `slops-quality-baseline` confirms `npm test` green at current baseline or higher (**current verified baseline: 417/417 on `main` @ `c393948`, 2026-07-27** — never lower without an explained test deletion)
 2. `npm --prefix frontend run build` clean (bundle size logged, no regression >10%)
 3. `npm audit --audit-level=moderate` clean except pre-existing `hono` transitive (or new advisory documented)
 4. Deploy to KVM1 succeeds (CI/CD workflow returns success)

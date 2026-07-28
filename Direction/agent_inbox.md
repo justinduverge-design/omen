@@ -1,25 +1,63 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-23 (M4 Command Center v1.1 corrective)
+**Refreshed:** 2026-07-27 — reconciled against `main` @ `c393948`, `gh pr list`, and a local `npm test` run. Handoffs were not treated as evidence.
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
-## Active task
+## ⚠️ Standing constraint — GitHub Actions billing hold
 
-## 📌 Next agent pull — M4-Auth-Providers-v1 (blocked)
+The monthly Actions allotment is exhausted. Expected restore ~**2026-08-01**.
 
-Fresh session should pick up **M4-Auth-Providers-v1** (Discord OAuth + Passkeys/WebAuthn on both platforms) once the three blockers in `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md` clear:
+- **No workflow can run.** Any done-when citing "iOS unsigned CI green", "connected tests green in CI", or "workflow passes" is **verification-blocked, not build-blocked**. Build the work; record local evidence; defer the CI claim.
+- **Red checks are not a merge gate on this repo.** Branch protection is unavailable on the current GitHub plan (`/branches/main/protection` returns 403 "Upgrade to GitHub Pro"). Failing checks are cosmetic — merges are not blocked by them.
+- **Local `npm test` is the substitute proof for backend work.** `node --test`, ~6s, no build step. Use it and record the count.
+- **Native iOS work has no local substitute** on the Windows dev machine. Park iOS-verification-dependent closeouts until the restore.
 
-1. PR #195 (implementation brief) approved + merged.
-2. `androidx.browser` dep add approved.
-3. Supabase dashboard verifications (redirect URL + passkey RP ID) confirmed by founder.
+## How to verify before pulling
 
-Single source of truth for implementation: `Blueprints/specs/mobile/m4-auth-providers-v1-brief.md`. Sprint entry: `Direction/current_sprint.md` → M lane → M4-Auth-Providers-v1.
+Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## 📌 Native Mobile Pivot — founder direction
+## Verified truth — 2026-07-27
 
-**Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion are paused while Omen is planned and built as a real SwiftUI iPhone app and Kotlin/Jetpack Compose Android app.
+### On `main` (done, ledgered)
 
-Read these before selecting work:
+| Work | Evidence |
+|---|---|
+| M0-BE-1 safe provider-state API | merged PR #189-era work in `src/routes/platforms.js` |
+| M0-BE-2 native Sleeper connect idempotency | merged PR #190 |
+| M0-BE-3 Yahoo verified native OAuth return | merged PR #191; covered by `GET /api/yahoo/callback` tests on `main` |
+| M4-Auth primitive retirement | merged PR #193; `PrimitiveEnforcementTest.ALLOWLISTED_FILES` empty |
+| Honest trade pulse contract | merged PR #197 — **check this before starting D1** |
+| Omen B2 brand wordmark refit | merged PR #199 |
+| Dependency health controls + advisory-debt clearance | merged PR #200 |
+| Actions version bumps (checkout/github-script/setup-java) | merged PRs #201–#203 |
+| M4-Omen-Screen native decision destination | merged PR #210 |
+| B2-D-S0 Sleeper projection mapping fix | merged PR #214 |
+| Backend test baseline | **417/417 green locally on `main`** (the "240/240" in `context.md` is stale) |
+
+### Built, verified, not landed
+
+| Work | Branch / PR | State |
+|---|---|---|
+| B2-D-S1 Sleeper available waiver pool | PR #215 → `main` | MERGEABLE. `src/adapters/sleeper.js` +221. |
+| B2-D-S2 Sleeper waiver three-state branching | PR #217 → **#215's branch** | MERGEABLE. `src/services/omen.js` +387. |
+| B2-D-S0+S1 closeout docs | PR #216 → **#215's branch** | MERGEABLE. |
+| B2-D-2 guarded Yahoo waiver fallback | PR #211 → `main` | **Draft.** +435/-9. |
+| M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
+| Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
+| OAuth metadata redaction, waitlist write block, body-parser bump | `codex/security-log-redaction` | **On origin, no PR.** 4 commits. Invisible to the queue. |
+| Yahoo native-return evidence reconciliation | `codex/m0be3-yahoo-mobile-return` | **Local only, no remote.** 1 docs commit. One disk failure from gone. |
+
+**Sleeper stack merge order:** #215 first → GitHub auto-retargets #216/#217 to `main` → then merge those. Merging #217 first pulls S1's commits in sideways. Full-stack tip verified **432/432 green locally** (+15 over `main`).
+
+### Dead entries — remove on next sprint grooming
+
+- **A1 / PR #140 (SVG logo masters)** — PR is **closed**. Sprint item is dead.
+- **A2 / PR #132 (Master Design System Blueprint)** — PR is **closed**. Sprint item is dead.
+- The 2026-07-23 pin on **M4-Auth-Providers-v1** — that work is code-complete in PR #198. Do not rebuild it.
+
+## Native Mobile Pivot — still active
+
+**Do not auto-pull web UI work.** New web page migrations and web-only primitive expansion stay paused. Read before selecting native work:
 
 - `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
 - `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md`
@@ -28,137 +66,70 @@ Read these before selecting work:
 - `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
 - Official Figma: `https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3`
 
-## Current truth — 2026-07-22
+Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC v1/v1.1, M4-Omen-Screen) is **complete**. Remaining native work is either Figma-gated or iOS-CI-gated — see the top-5 below.
 
-**F2 status truth resolved.** Runtime unified 2026-07-19 in `src/services/omenReadiness.js`; doc reconciliation completed 2026-07-22 on branch `claude/f2-status-truth`. `pending_live_engine` = "active connection lacks the provider-specific context required for a safe live attempt" (not "engine unbuilt"). Canonical contract: `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` §F2. M0-BE-0 is unblocked.
+## Auto-Populated Top 5 — 2026-07-27
 
-**M0 contract pack approved.** M0a onboarding/connection, M0b design-system registry, and M0c app-shell/auth/API are approved contracts. Ratified boundaries remain: semantic `focus-ring`; Alegreya Sans / Alegreya / DM Mono locked; team colors are out of the phone MVP.
+Filter applied: agent-buildable, blockers actually satisfied, and **verifiable without GitHub Actions**.
 
-**M1-P Figma screen-contract pass approved.** The Native Design House now includes principles/references, tokens/themes, component registry/proposals, iOS screen contracts, Android screen contracts, golden screens, and QA/evidence boards. Treat the Figma work as contract evidence, not permission to freestyle feature screens.
+### 1. B2-D-S3 — ESPN waiver pool + wiring 🔵 ACTIVE
 
-**M1-P P2 + P4 complete.** Merged evidence:
-
-- PR #165 — tokens, Button/IconButton, TextField/FormField/Picker
-- PR #166 — Card, Badge, Chip
-- PR #167 — Modal / Sheet
-- PR #168 — State Surfaces
-- PR #169 — ListRow
-- PR #174 — PlatformBadge
-- PR #175 — ConfirmationDialog
-- PR #176 — platform legibility tokens + fill-on-platform PlatformBadge
-- Branch `claude/m1p-p4-gallery-enforcement` — SwiftUI `DesignSystemGalleryView` (debug-only) + Android `PrimitiveEnforcementTest` + iOS `PrimitiveEnforcementTests`; registry §3.2 amended; `OmenAndroidApp.kt` allowlisted with retirement plan (retires with first M4 feature screen). PR pending push.
-
-**Next:** M1-P P3 product compositions (PlayerRow, DecisionBrief shell, PlatformConnectionCard, ConnectionStatusBadge, MetricStrip, ConfidenceBar, RiskPanel, SignalList) before M4 feature screens. Context Strip, Matchup Spine, and Evidence Disclosure need Figma-first proposals per registry §3.2 approval trail.
-
-**M3-A native auth implementation is merged on both platforms.** Android auth landed in PR #157. iOS auth landed in PR #171. PR #172 fixed the post-merge native scaffold regression test after the iOS screens split out of `AppShellView.swift`. Real-device interactive QA remains founder/human.
-
-**M3A-QA remains open.** Run `mobile/contracts/m3a-interactive-qa-runbook.md` for Android Google sign-in + email OTP + account deletion with real `omen.apiBaseUrl`; iOS still needs real-device Sign in with Apple + OTP-inbox QA. Agents may prepare the matrix, but cannot complete credential/inbox work.
-
-**M0-BE remains open.** The 4 backend requirements from M0c §11 are now in `Blueprints/handoffs/frontend-to-backend.md`: Yahoo deep-link return, safe provider-state API, connect idempotency, and F2. Shape: one owner + one shared API/state contract + one acceptance-test matrix authored first, then four small PRs. F2 first.
-
-## Recommended next pull
-
-### 1. M0-BE-0 — Backend shared contract and acceptance matrix
-
-- **Why next:** F2 is resolved; M0-BE-0 is now unblocked and is the last gate before the four small M0-BE PRs.
+- **Why next:** spec `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md` (PR #213) scopes Sleeper **and** ESPN. Sleeper is done through S2; ESPN is the unbuilt half. S1/S2 give an exact pattern to mirror.
 - **Priority / cost / blocker:** P0 / medium / none
-- **Output:** owner, API/state contract, acceptance matrix, then four small PR briefs.
+- **Verifiable without Actions:** yes — local `npm test`.
+- **Stacks on:** `backend/b2d-s2-sleeper-waiver-wiring`
+- **Do not touch:** ESPN cookie values in logs/UI/URLs/payloads; provider credentials; deploy.
 
-### 2. M4 Command Center v1 — first feature screen ✅ implementation complete
+### 2. B2-D-S4 — Deterministic recommendation selection
 
-- **Branch:** `claude/m4-command-center`. Screen assembly at app/feature layer on both platforms; consumes approved primitives + P3 compositions only. `OmenAndroidApp.kt` allowlist entry retired. Local Material Symbols vector drawables for all 5 nav tabs (official Google artwork, no dependency added).
-- **M4-Auth (retirement item):** ✅ 2026-07-23 — both auth files refactored to compose approved Omen primitives; `PrimitiveEnforcementTest.ALLOWLISTED_FILES` now empty. Branch `claude/m4-auth-primitive-retirement` waiting on push/merge. Evidence: `Blueprints/handoffs/2026-07-23-m4-auth-primitive-retirement.md`.
-- **Evidence:** `Blueprints/handoffs/2026-07-22-m4-command-center-v1.md`.
+- **Why next:** the core unmet acceptance criterion of issue #162. Start/Sit, Waiver, and Trade paths each exist, but nothing arbitrates between them. Pure logic, table-testable, no provider calls.
+- **Priority / cost / blocker:** P0 / medium / S3 landing first is preferable but not required
+- **Verifiable without Actions:** yes.
 
-### 3. M1P-P3 — Product compositions ✅ implementation complete (all 3 batches)
+### 3. Land the orphaned security work
 
-- **Batch 1** on `claude/m1p-p3-compositions` — ConfidenceBar, RiskPanel, MetricStrip, SignalList. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-metric-primitives.md`.
-- **Batch 2** on `claude/m1p-p3-batch-2` (stacked) — PlayerRow (+ PlayerChip), ConnectionStatusBadge, PlatformConnectionCard. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-connection-primitives.md`.
-- **Batch 3** on `claude/m1p-p3-batch-3` (stacked) — DecisionBrief shell, all 8 state surfaces. Evidence: `Blueprints/handoffs/2026-07-22-m1p-p3-decision-brief-shell.md`.
-- **All three branches waiting on merge.** M4 feature screens unblock as soon as the stack lands.
-- Context Strip / Matchup Spine / Evidence Disclosure remain on the Figma-first track per registry §3.2 (separate future work).
+- **Why next:** `codex/security-log-redaction` holds OAuth metadata redaction, a direct-waitlist-write block, and a body-parser bump — on origin with **no PR**, so it is invisible to every kickoff. `codex/m0be3-yahoo-mobile-return` has **no remote at all**.
+- **Priority / cost / blocker:** P1 / small / none
+- **Output:** run the suite locally, open a PR for the security branch, push the Yahoo docs branch.
 
-### 4. M3A-QA — Native auth real-device QA
+### 4. D2 — `AI_PROVIDER=local|cloud` control with $0 cap
 
-- **Why next:** M3-A implementation is merged on both platforms; only human-gated interactive QA remains.
-- **Priority / cost / blocker:** P0 / small, human-gated / founder credential + inbox access
-- **Output:** sanitized QA matrix from `mobile/contracts/m3a-interactive-qa-runbook.md` for Android and iOS; agent may prep matrix only.
+- **Why next:** unblocked, founder decision already sets $0 cloud spend, nothing has touched it.
+- **Priority / cost / blocker:** P1 / medium / none
+- **Done when:** local stays default; cloud hard-fails closed or is disabled; status reporting leaks no URL or secret; tests prove cap behavior.
+- **Do not touch:** paid API credentials, production env.
 
-### 5. A1 — Review and disposition PR #140 (SVG logo masters)
+### 5. D1 — Real `GET /api/trade/pulse`
 
-- **Why next:** founder/review gate still open; visual review + concrete findings or approval.
-- **Priority / cost / blocker:** P0 / small / Justin visual approval
-- **Output:** approve/revise recommendation with per-cut findings.
+- **Why next:** listed unblocked — but **PR #197 merged an "honest trade pulse contract" on 2026-07-23.** Scope the remaining delta before pulling; this may be partially done.
+- **Priority / cost / blocker:** P1 / medium / needs a scope check against PR #197 first
+- **Do not touch:** paid data source or new dependency without approval.
 
-## Open PR gates
+## Founder actions available now
 
-### PR #140 — SVG logo masters
-
-- **State:** draft/open at last recorded review
-- **Gate:** Justin visual approval plus SVG/UI/code review
-- **Do not auto-merge.**
-- **Next action:** inspect full/simple/favicon/app-icon cuts at large and small sizes; approve or return concrete revision findings.
-
-### PR #132 — Master Design System Blueprint v1
-
-- **State:** draft/open at last recorded review
-- **Gate:** Justin approval of proposed typography, cursor, background, and asset-pipeline direction; reconcile with PR #140 and newer UI work.
-- **Do not auto-merge or implement proposed runtime changes.**
-- **Next action:** produce approve/revise/close recommendation and reconciliation table.
-
-## Suppressed while Native Mobile Pivot is active
-
-Do not run kickoff against the old Auto-Populated Top 5 web recommendations. B3/B4/C1-C5 remain historical web work and are paused unless Justin explicitly reopens them.
-
-Safe backend work may continue when it does not touch production/provider credentials without approval:
-
-- B2-D — canonical Omen engine: live Waiver + personalized Trade intelligence
-- D1 — real `GET /api/trade/pulse`
-- D2 — `AI_PROVIDER=local|cloud` control with $0 cap
+1. **Merge the Sleeper stack** — #215, then #216/#217. Verified 432/432 locally. Red checks do not block.
+2. **Merge PR #212** or accept this file as its replacement.
+3. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
 
 ## Current blockers and gates
 
-- **Tuesday scoring:** production flag remains false until approved no-write dry-run and explicit production-change approval.
-- **Production Supabase Stripe cleanup:** source SQL exists, but production schema mutation requires a separate Justin-approved action.
-- **PR #132:** proposed only; do not implement typography/cursor/background changes before approval.
-- **PR #140:** visual review required; no automatic merge or app wiring.
-- **M4 feature screens:** blocked until M1-P P3 product compositions land. P2 primitives + P4 gallery/enforcement are complete.
-- **M0-BE:** blocked by F2 status truth first.
-- **E2 app-store closeout and E3 relay shell:** wait on E1 mobile-scope decision and explicit store/provider gates.
-- **Win-streak UI:** waits on backend win-streak contract.
-- **Baked-black fallback deletion:** wait until at least 2026-07-28 and a clean production soak after PR #120.
+- **GitHub Actions billing** — see the standing constraint above.
+- **Tuesday scoring:** production flag stays false until an approved no-write dry-run and explicit production-change approval.
+- **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
+- **M4-CC-WaiverWatch / M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals do not exist yet — founder-gated.
+- **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass. Not agent-buildable.
+- **M3A-QA:** founder/human credential + inbox access. Agents may prep the matrix only.
+- **B2-D live provider data:** provider-specific capability proof required before claiming live advice.
+- **Baked-black fallback deletion:** wait until at least 2026-07-28 plus a clean production soak after PR #120.
 - **Post-live learning:** waits on Release Done, seven stable days, and `slops-product-pulse`.
-
-## Closed or removed from pull consideration
-
-Do not repull these:
-
-- M0a/M0b/M0c native contracts — approved;
-- M1-F Figma token/foundation setup — completed;
-- M2-F app-shell screen contracts — completed;
-- M2-E native build-environment decision — completed;
-- M2 native app-shell project scaffolding — completed;
-- M3 local/demo native vertical slice — completed;
-- M3-A Android implementation — merged PR #157;
-- M3A-iOS implementation — merged PR #171;
-- M3A post-merge scaffold regression fix — merged PR #172;
-- M1-P P2 primitive foundations complete — merged PRs #165-#169, #174 (PlatformBadge), #175 (ConfirmationDialog), #176 (platform legibility tokens);
-- M1-P P4 dual-platform gallery + primitive enforcement — built on `claude/m1p-p4-gallery-enforcement`, PR pending push;
-- orphaned GDPR module cleanup — merged PR #119;
-- Stripe billing and residual checkout removal — merged PRs #117/#118;
-- transparent lockup swap — merged PR #120 and present in current source;
-- public legal/support pages — merged PR #121;
-- ESPN public guide, extension/store assets, and promo cut — merged PR #122; test fix PR #123;
-- UI North Star — merged PR #124;
-- canonical web primitive/component Phase A sequence and Trade Analyzer migration — merged PRs #125-#139, but follow-on web migrations are paused;
-- team-based runtime theming — removed PR #114; do not revive per-team design/chant work as active sprint scope.
 
 ## Agent selection guidance
 
-- **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements.
-- **Codex:** native implementation, behavior-preserving backend/API/data work, regression tests, and implementation verification.
-- **Claude:** doctrine/spec reconciliation, product-gap analysis, recommendation-contract synthesis, copy/legal review, and large-context planning.
-- These are tool-fit recommendations, not permanent ownership. Readiness, blockers, and skill availability decide the pull.
+- **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements. Dependency-update issues via the manual `jules` label.
+- **Codex:** native implementation, behavior-preserving backend/API/data work, regression tests, implementation verification.
+- **Claude:** doctrine/spec reconciliation, product-gap analysis, recommendation-contract synthesis, copy/legal review, large-context planning.
+
+These are tool-fit recommendations, not ownership. Readiness, blockers, and verifiability decide the pull.
 
 ## Required kickoff output
 
@@ -172,6 +143,8 @@ Before implementation, the agent must print:
 6. do-not-touch boundaries;
 7. branch name and serialization/hot-file check.
 
+**Also required as of 2026-07-27:** if the pulled item's done-when cites CI, state the local-evidence substitute you will record instead.
+
 ## Required closeout output
 
 The handoff must include:
@@ -180,8 +153,10 @@ The handoff must include:
 - intended RED, GREEN, broader tests/build/audit results as applicable;
 - UI/security/legal/AI evidence as applicable;
 - actual skills used, skipped, substituted, or weak;
-- one concrete skill improvement or an explicit “no correction needed” verdict;
+- one concrete skill improvement or an explicit "no correction needed" verdict;
 - branch/commit/PR/deploy status without implying local work is live.
+
+**Ledger rule:** append the `Blueprints/done/LEDGER.md` row in the same pass that closes the work. The ledger went five days stale between 2026-07-23 and 2026-07-27 because closeouts skipped it.
 
 ## Do not touch unless explicitly pinned
 
