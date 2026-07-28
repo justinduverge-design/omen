@@ -829,3 +829,8 @@
 ## Decisions Added 2026-07-27 (D2 closeout)
 
 - **The D2 $0 cloud boundary is implemented work, not deployment proof.** PRs #225 and #226 merged the local-default, cloud-disabled control and its evidence records. No production environment change, cloud credential, paid service, or live-provider validation is implied by that completion.
+
+## Decisions Added 2026-07-28 (security hardening landing)
+
+- **OAuth artifacts are operationally sensitive metadata.** Production access logs retain only route-level operational fields, while query strings, referrers, and user agents are omitted; Sentry additionally scrubs OAuth `code` and `state` query parameters.
+- **Waitlist RLS source is not a database action.** The tracked policy source records server-only intent, but production application remains separately approved after a read-only client-usage check. Merging this code must never be represented as a Supabase mutation or live security proof.

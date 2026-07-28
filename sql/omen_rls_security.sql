@@ -293,14 +293,12 @@ create policy deletion_audit_no_user_read on public.deletion_audit_log for selec
 -- RLS enabled with NO policies = no anon/auth user can read or write.
 -- service_role bypasses RLS.
 
--- waitlist_signups -- browser may insert only; no anon/auth select/update/delete
+-- waitlist_signups -- writes go through POST /api/waitlist, which uses the
+-- server-only service_role key.  Do not expose a direct browser Data API path.
 drop policy if exists anon_insert on public.waitlist_signups;
-create policy anon_insert on public.waitlist_signups
-  for insert to anon, authenticated
-  with check (true);
+drop policy if exists authenticated_insert on public.waitlist_signups;
 
 revoke all on table public.waitlist_signups from anon, authenticated;
-grant insert (email, platform) on table public.waitlist_signups to anon, authenticated;
 grant select, insert, update, delete on table public.waitlist_signups to service_role;
 
 
