@@ -249,7 +249,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Priority:** P1
 - **Cost:** medium
-- **Blocked by:** none — M4-Help-Support-Contract and Figma nodes `61:2`, `63:2`, and `63:26` were approved by Justin on 2026-07-27.
+- **Status:** Implementation complete on `mobile/m4-help-support`; Android compile/scanner evidence is green. Device screenshots, Android TalkBack/font-scale, and iOS unsigned CI remain required QA evidence before calling the slice release-ready.
+- **Blocked by:** no implementation blocker — M4-Help-Support-Contract and Figma nodes `61:2`, `63:2`, and `63:26` were approved by Justin on 2026-07-27.
 - **Agent-buildable:** yes.
 - **Scope:** implement only the approved Help + Support entry and surfaces in `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/` and `mobile/ios/OmenIOS/App/`, using existing Omen primitives and platform-native navigation/sheets. Include all contract states and safe, non-secret support guidance; no provider credential collection or support-ticket backend is implied.
 - **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.

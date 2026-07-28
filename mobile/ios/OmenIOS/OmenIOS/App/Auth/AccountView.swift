@@ -23,6 +23,17 @@ struct AccountView: View {
                     }
                 }
 
+                NavigationLink {
+                    OmenHelpSupportView()
+                } label: {
+                    OmenListRow(
+                        title: "Support & Help Improve Omen",
+                        subtitle: "Help Center, feedback, and problem reporting"
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Double tap to open Help and Support")
+
                 OmenButton(title: "Sign out", action: { sessionManager.signOut() }, variant: .secondary, size: .lg)
 
                 if !isDemo {
