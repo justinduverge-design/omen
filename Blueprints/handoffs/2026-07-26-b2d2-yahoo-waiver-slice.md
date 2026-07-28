@@ -7,7 +7,7 @@ Add a guarded, Yahoo-only `waiver_pickup` fallback to the canonical Omen route w
 ## Scope
 
 - `POST /api/omen/mvp-move` only.
-- Runs after selected-context validation and only when no Start/Sit swap exists.
+- Runs after selected-context validation and only when no Start/Sit swap exists. It does not request Yahoo's available-player pool unless the selected roster contains an OUT/IR-like starter.
 - Requires a live selected Yahoo roster with an OUT/IR starter and a live same-position available player from Yahoo's average-rank-ordered pool.
 
 ## Contract
@@ -20,8 +20,9 @@ Add a guarded, Yahoo-only `waiver_pickup` fallback to the canonical Omen route w
 
 ## Evidence
 
-- RED: `node --test test/omenMvpLiveService.test.js` failed because a qualifying Yahoo fixture returned `empty` before the implementation.
-- GREEN: focused route/service/optimizer tests 24/24; final full `npm test` 416/416; frontend production build passed; `git diff --check` passed.
+- RED: temporarily removing the no-unavailable-starter guard made `node --test test/omenMvpLiveService.test.js --test-name-pattern "does not fetch Yahoo waivers"` fail because it called Yahoo's available-player pool.
+- GREEN: focused `node --test test/omenMvpLiveService.test.js test/omenMvpLiveRoute.test.js` 20/20; final full `npm test` 426/426; frontend production build passed; `npm audit --audit-level=moderate` reported 0 vulnerabilities; `git diff --check` passed.
+- CI: GitHub Actions is **SUBSTITUTED** by the recorded local checks during the billing hold; no CI-green, deploy, or real-provider claim is made.
 - Security evidence: `Direction/reviews/2026-07-26-b2d2-yahoo-waiver-security-privacy-evidence.md`.
 
 ## External Gate
@@ -42,4 +43,4 @@ Skills invoked: `slops-repo-inspector`, `pre-build-research`, `slops-tdd`, `slop
 
 Conditional skills considered but not applicable: `slops-data-ingest-plan` (on-demand existing provider call, no ingest/storage), `slops-ai-integration-review` (no model/provider path), `workflow-tree-spec` (existing selected-context contract defines the state flow), native/UI/release skills (no client or release work).
 
-Procedure gap found: the audit baseline is stale and internally duplicated; current audit reports 15 pre-existing advisories, so this slice cannot claim an audit pass.
+Procedure note: the prior 15-advisory audit snapshot was stale. The current root moderate audit reports 0 vulnerabilities; real-account Yahoo proof remains a separate external gate.

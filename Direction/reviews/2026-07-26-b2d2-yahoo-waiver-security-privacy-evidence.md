@@ -20,6 +20,7 @@ Internal evidence for the guarded Yahoo-only waiver fallback in `POST /api/omen/
 | Waiver data is selected-context-only. | The service passes the verified connection's `league_id` to both normalized roster retrieval and `getAvailablePlayers()`. | confirmed |
 | Secrets stay server-side. | The live envelope includes safe provider, league, team, signals, and recommendation fields only; it does not echo OAuth tokens, Vault IDs, or `context_id`. | confirmed |
 | Yahoo unavailability fails closed. | A failed availability request returns `state: empty`, `recommendation: null`, and `signals.waivers.status: unavailable`. | confirmed |
+| Unneeded Yahoo pool access is avoided. | When the selected roster has no OUT/IR-like starter, the service returns the live empty envelope before `getAvailablePlayers()`; the focused test asserts no Yahoo waiver request occurred. | confirmed |
 | Projection absence is not fabricated. | The waiver recommendation sets `expected_value_delta.points: null` and marks projections unavailable. | confirmed |
 | Ancillary matchup data cannot upgrade the waiver claim. | Route-level matchup DvP enrichment skips `recommendation.type: "waiver_pickup"`. | confirmed |
 
@@ -33,7 +34,7 @@ Internal evidence for the guarded Yahoo-only waiver fallback in `POST /api/omen/
 
 ## Gaps and Approval Required
 
-- Yahoo Fantasy API reapproval is required for real-account validation.
+- Yahoo Fantasy API reapproval is required for real-account validation; no real provider request or credential inspection occurred in this slice.
 - The basic Yahoo available-player response does not supply weekly projections; this slice must remain an availability-based injury replacement, not a point-delta ranking.
 - No production/provider configuration action is authorized.
 
