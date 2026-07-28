@@ -41,7 +41,7 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 | B2-D-S1 Sleeper available waiver pool | PR #215 → `main` | MERGEABLE. `src/adapters/sleeper.js` +221. |
 | B2-D-S2 Sleeper waiver three-state branching | PR #217 → **#215's branch** | MERGEABLE. `src/services/omen.js` +387. |
 | B2-D-S0+S1 closeout docs | PR #216 → **#215's branch** | MERGEABLE. |
-| B2-D-2 guarded Yahoo waiver fallback | PR #211 → `main` | **Draft.** +435/-9. |
+| B2-D-2 guarded Yahoo waiver fallback | PR #236 → `main` | **Merged** as `ffa8999`; fixture-verified live-or-unavailable fallback. PR #211 closed as superseded. Yahoo reapproval still blocks real-account proof. |
 | M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
 | Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
 | OAuth telemetry redaction, waitlist RLS source, browser permissions hardening | PR #232 | **Merged to `main`** as `5fdb2f3`; local suite 422/422, build, and moderate audit 0. No deploy or production SQL application. |
@@ -86,19 +86,13 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 - **Priority / cost / blocker:** P0 / medium / S3 landing first is preferable but not required
 - **Verifiable without Actions:** yes.
 
-### 3. B2-D-2 — Guarded Yahoo waiver fallback
-
-- **Why next:** draft PR #211 is the remaining non-Sleeper/non-ESPN waiver path; it must be reviewed against the canonical live-or-unavailable contract before any landing decision.
-- **Priority / cost / blocker:** P1 / medium / provider-capability review required; no provider credentials or production action.
-- **Output:** inspect the existing draft and its tests, then either record a fix-then-merge verdict or land only if it remains honest about unavailable live inputs.
-
-### 4. M3A-QA — real-device native authentication proof
+### 3. M3A-QA — real-device native authentication proof
 
 - **Why next:** code is merged, but the remaining work is human/device evidence rather than an agent implementation lane.
 - **Priority / cost / blocker:** P0 / small / founder credentials and inbox access.
 - **Output:** run the existing QA matrix; do not use real credentials in agent logs or screenshots.
 
-### 5. Actions restoration sweep
+### 4. Actions restoration sweep
 
 - **Why next:** the hold defers iOS CI and every workflow-only claim. This is eligible only after the billing hold is confirmed cleared.
 - **Priority / cost / blocker:** P0 / medium / GitHub Actions availability.
