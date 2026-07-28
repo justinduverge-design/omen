@@ -51,6 +51,6 @@ N/A: no product UI, native surface, public legal claim, or deployment changed.
 
 ## Status
 
-Code is locally verified and ready for a PR/merge. It is not deployed or live.
+Merged as PR #232 (`5fdb2f3`). It is not deployed or live.
 No correction needed to the selected procedure: separating source evidence from
 production RLS application kept the privileged boundary explicit.
