@@ -844,6 +844,12 @@
 - **Yahoo waiver advice is availability-based until a projection-capable source is proven.** The existing Yahoo available-player path is ordered by Yahoo average rank but does not provide a weekly projection. Canonical Omen may therefore suggest only a live same-position replacement for an OUT/IR starter, with a null point delta and explicit unavailable-projection signal; it must not imply a projection-backed ranking.
 - **Yahoo waiver retrieval fails closed.** If the selected-context availability request fails or lacks an eligible replacement, canonical Omen returns no advice rather than the legacy optimizer's mock waiver fixture. Real-account capability proof remains blocked on Yahoo Fantasy API reapproval.
 - **Do not query a waiver pool without an injury-replacement need.** If the selected Yahoo roster has no OUT/IR-like starter, return the honest live empty envelope before available-player retrieval. This minimizes provider access and keeps the fallback scoped to the promised availability-based recovery case.
+
+## Decisions Added 2026-07-29 (Claude work recovery)
+
+- **A recovery merge must preserve newer provider behavior.** The older deterministic-selector branch would have removed the later Yahoo availability-only fallback. The recovered selector ranks only scoreable candidates and then retains that separate null-point-delta fallback when there is no scoreable decision.
+- **Provider-proof scripts report uncertainty rather than manufacturing success.** The public Sleeper roster-subtraction script uses no credential and returns `UNDECIDABLE` for an undrafted/empty-roster league. A future drafted-league run is required before claiming real roster subtraction.
+- **Stale PRs are closed with replacement links after recovery.** Original #220/#222/#223/#224 are closed as superseded by current-main recoveries #240/#241/#242/#243; this records ledger continuity without calling historical branch tips current.
 ## Decisions Added 2026-07-26 (Sleeper waiver foundation — B2-D-S0/S1)
 
 - **Fixtures standing in for an external API response must be captured from a real payload, not authored by hand.** `test/sleeperAdapter.test.js` fixtured Sleeper projections as an object map with flat `pts_ppr`. The live endpoint has never returned that shape — it returns an array with points under `stats`. The suite passed while production resolved every projection to null, for the life of the adapter. A green test over an invented external fixture is not evidence. Any such fixture should cite the date and request it was captured from.
