@@ -715,6 +715,188 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
   return { status: 200, body: response };
 }
 
+/**
+ * A league that has not drafted has no rosters, so "no move clears the
+ * recommendation threshold" would be a false statement rather than a
+ * conservative one. Verified live 2026-07-26: a real `pre_draft` Sleeper league
+ * returns `players: []` with `starters: ["0" x 10]` placeholder slots.
+ *
+ * This is a third state, not a variant of off-season. Off-season means the
+ * season is over or not started; pre-draft means this specific league has no
+ * team to advise on yet.
+ */
+function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
+  const platform = connection.platform || roster?.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const response = liveBaseEnvelope({
+    platform,
+    platformStatus: "pre_draft",
+    leagueId: connection.league_id,
+    teamId: roster?.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster?.week || null,
+    state: "empty",
+  });
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.signals.roster = unavailableSignal(
+    `${platform}_league`,
+    "This league has not drafted yet, so there is no roster to advise on."
+  );
+  response.explanation = {
+    summary: `Your ${platformLabel} league has not drafted yet.`,
+    why_it_matters: "Omen needs a drafted roster before it can weigh a lineup, waiver, or trade move.",
+    risk: "Acting on advice for an undrafted team would mean acting on players you do not have.",
+    confidence: "Confidence is high that no move exists to recommend before the draft.",
+    data_used: [`${platformLabel} league status`],
+  };
+  response.confidence = confidence(100, "high", `The ${platformLabel} league status is pre-draft.`);
+  response.warnings.push(`Omen resumes for this league once the ${platformLabel} draft is complete.`);
+  return { status: 200, body: response };
+}
+
+/**
+ * The waiver path opens only when start/sit finds nothing. It is deliberately
+ * narrow: a genuinely OUT starter and a real, projected, same-position player in
+ * the pool. Anything less declines rather than filling the screen — per issue
+ * #162, an honest empty beats a manufactured move.
+ */
+function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup }) {
+  const platform = connection.platform || roster.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const slot = outStarter.selected_position || outStarter.position || "lineup";
+  const pickupPoints = finiteNumber(pickup.projected_points) || 0;
+  const starterPoints = finiteNumber(outStarter.projected_points) || 0;
+  const delta = pickupPoints - starterPoints;
+  const statusLabel = STATUS_LABELS[normalizedStatus(outStarter.status)] || "unavailable";
+
+  const response = liveBaseEnvelope({
+    platform,
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.recommendation = {
+    id: `live_omen_waiver_${pickup.player_key || "unknown"}`,
+    type: "waiver_pickup",
+    title: `Add ${pickup.name} for ${outStarter.name}`,
+    move: `Pick up ${pickup.name} to cover your ${slot} slot while ${outStarter.name} is ${statusLabel}.`,
+    primary_player: playerForMvp(pickup, pickup),
+    comparison_player: playerForMvp(outStarter, outStarter),
+    expected_value_delta: {
+      points: delta,
+      label: expectedValueLabel(delta),
+    },
+    confidence: confidence(
+      70,
+      mvpConfidenceLabelFromScore(70),
+      `${outStarter.name} is ${statusLabel} and ${pickup.name} is the best projected ${slot} available in your ${platformLabel} league.`
+    ),
+    risk: risk("medium", [
+      `${outStarter.name} is ${statusLabel}, so the ${slot} slot is already compromised.`,
+      `${pickup.name} is unrostered, which usually means limited or unproven volume.`,
+      "Waiver priority or FAAB cost is not modeled, so the add may not clear.",
+    ]),
+    explanation: {
+      summary: `Your best live move is to add ${pickup.name} while ${outStarter.name} is ${statusLabel}.`,
+      why_it_matters: `${outStarter.name} cannot produce in your ${slot} slot, and ${pickup.name} is the highest-projected available replacement at that position.`,
+      risk: `Risk is medium because ${pickup.name} is unrostered and waiver priority is not modeled.`,
+      confidence: "Confidence is 70 out of 100.",
+      data_used: [
+        `${platformLabel} roster`,
+        `${platformLabel} available player pool`,
+        "player availability status",
+        "projected point comparison",
+      ],
+    },
+  };
+  response.warnings.push(
+    `Waiver priority, FAAB budget, and drop candidates are not modeled — confirm the add is possible in ${platformLabel}.`
+  );
+  return { status: 200, body: response };
+}
+
+/**
+ * Sleeper-only for now. Yahoo waiver is PR #211's scope and is gated on Yahoo
+ * API reapproval; ESPN has no available-player capability yet (see the E phase
+ * of the waiver-pool spec). Returns null to mean "no waiver move", which the
+ * caller turns into the normal empty response.
+ */
+async function buildWaiverPickupForConnection({ connection, roster, connectedPlatforms }) {
+  if (connection.platform !== "sleeper") return null;
+
+  const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
+  const outStarter = starters.find((player) => isOutStatus(player?.status));
+  // No compromised slot means no waiver need. Do not price a pool to look busy.
+  if (!outStarter) return null;
+
+  const slotPositions = new Set(
+    (Array.isArray(outStarter.eligible_positions) && outStarter.eligible_positions.length
+      ? outStarter.eligible_positions
+      : [outStarter.position]
+    ).filter(Boolean)
+  );
+  if (!slotPositions.size) return null;
+
+  let pool;
+  try {
+    pool = await sleeperAdapter.fetchSleeperAvailablePlayers(
+      connection.league_id,
+      roster.week,
+      String(new Date().getFullYear())
+    );
+  } catch {
+    // A pool failure degrades to the normal empty response. It must never
+    // surface as an error or as a recommendation built on partial data.
+    return null;
+  }
+
+  const candidate = (Array.isArray(pool) ? pool : []).find((player) => {
+    // null projection means "unknown", not zero. An unprojected add is not
+    // evidence-backed, so it never becomes a recommendation.
+    //
+    // The null check is explicit and must stay that way: Number(null) is 0,
+    // which is finite, so a Number.isFinite guard alone silently admits every
+    // unprojected player. That is the same null-vs-zero trap the S0 projection
+    // fix exists to prevent.
+    const points = player?.projected_points;
+    if (points == null || !Number.isFinite(Number(points))) return false;
+    const positions = Array.isArray(player?.eligible_positions) && player.eligible_positions.length
+      ? player.eligible_positions
+      : [player?.position];
+    return positions.some((pos) => slotPositions.has(pos));
+  });
+  if (!candidate) return null;
+
+  return mapWaiverPickupToMvpMove({
+    roster,
+    connection,
+    connectedPlatforms,
+    outStarter,
+    pickup: candidate,
+  });
+}
+
+/**
+ * Pre-draft is only knowable from league metadata, so it is checked lazily —
+ * once start/sit has already declined — rather than on every request.
+ */
+async function preDraftGuard({ connection, roster, connectedPlatforms }) {
+  if (connection.platform !== "sleeper") return null;
+  let league;
+  try {
+    league = await sleeperAdapter.fetchSleeperLeague(connection.league_id);
+  } catch {
+    return null;
+  }
+  const status = typeof league?.status === "string" ? league.status.toLowerCase() : "";
+  if (status !== "pre_draft" && status !== "drafting") return null;
+  return preDraftMvpResponse({ connection, roster, connectedPlatforms });
+}
+
 function expectedValueLabel(delta) {
   const value = Math.abs(Number(delta) || 0);
   if (value >= 5) return "major";
@@ -1192,6 +1374,16 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
         });
       }
     }
+
+    // Three-state branching. Off-season already short-circuited at the top of
+    // this function; the remaining split is pre-draft (no roster exists) vs
+    // in-season (a roster exists, so a waiver move may). Order matters: an
+    // undrafted league must never be told its lineup is fine.
+    const preDraft = await preDraftGuard({ connection, roster, connectedPlatforms });
+    if (preDraft) return preDraft;
+
+    const waiver = await buildWaiverPickupForConnection({ connection, roster, connectedPlatforms });
+    if (waiver) return waiver;
     return liveEmptyMvpResponse({
       roster,
       connection,
