@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-27 — reconciled against `main` @ `c393948`, `gh pr list`, and a local `npm test` run. Handoffs were not treated as evidence.
+**Refreshed:** 2026-07-29 — reconciled against `main` @ `e4fc737`, GitHub PR state, and local verification. Handoffs are pointers, not standalone proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
 
 ## ⚠️ Standing constraint — GitHub Actions billing hold
@@ -32,22 +32,21 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 | Actions version bumps (checkout/github-script/setup-java) | merged PRs #201–#203 |
 | M4-Omen-Screen native decision destination | merged PR #210 |
 | B2-D-S0 Sleeper projection mapping fix | merged PR #214 |
-| Backend test baseline | **417/417 green locally on `main`** (the "240/240" in `context.md` is stale) |
+| B2-D Sleeper waiver stack + deterministic selector | recovered and merged through PRs #215, #238, #239, and #240; Yahoo availability-only fallback preserved |
+| Security hardening evidence recovery | PR #241; underlying source was already on `main`, with source-only RLS still explicitly gated |
+| Store-review notes and ESPN E0 verdict | PRs #242 and #243; documentation/evidence only, no store or provider operation |
+| Backend test baseline | **469/469 green locally** during the selector recovery (CI remains unavailable) |
 
-### Built, verified, not landed
+### Open / separately gated
 
 | Work | Branch / PR | State |
 |---|---|---|
-| B2-D-S1 Sleeper available waiver pool | PR #215 → `main` | MERGEABLE. `src/adapters/sleeper.js` +221. |
-| B2-D-S2 Sleeper waiver three-state branching | PR #217 → **#215's branch** | MERGEABLE. `src/services/omen.js` +387. |
-| B2-D-S0+S1 closeout docs | PR #216 → **#215's branch** | MERGEABLE. |
-| B2-D-2 guarded Yahoo waiver fallback | PR #236 → `main` | **Merged** as `ffa8999`; fixture-verified live-or-unavailable fallback. PR #211 closed as superseded. Yahoo reapproval still blocks real-account proof. |
 | M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
 | Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
 | OAuth telemetry redaction, waitlist RLS source, browser permissions hardening | PR #232 | **Merged to `main`** as `5fdb2f3`; local suite 422/422, build, and moderate audit 0. No deploy or production SQL application. |
 | Yahoo native-return evidence reconciliation | PR #234 | **Merged to `main`** as `a6e6555`; focused Yahoo route 9/9 and full local suite 422/422. Provider-console and real-device proof remain human gates. |
 
-**Sleeper stack merge order:** #215 first → GitHub auto-retargets #216/#217 to `main` → then merge those. Merging #217 first pulls S1's commits in sideways. Full-stack tip verified **432/432 green locally** (+15 over `main`).
+**Recovered-work disposition:** #215 merged directly; the stacked #216/#217 closed when their base was deleted and were recovered onto current `main` by #238/#239. The selector recovery #240 preserved the newer Yahoo fallback. Original #220/#222/#223/#224 are closed as superseded by #240/#241/#242/#243.
 
 ### Dead entries — remove on next sprint grooming
 
@@ -72,27 +71,21 @@ Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC
 
 Filter applied: agent-buildable, blockers actually satisfied, and **verifiable without GitHub Actions**.
 
-### 1. B2-D-S3 — ESPN waiver pool + wiring 🔵 ACTIVE
+### 1. B2-D-E1 — ESPN waiver pool + wiring
 
-- **Why next:** spec `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md` (PR #213) scopes Sleeper **and** ESPN. Sleeper is done through S2; ESPN is the unbuilt half. S1/S2 give an exact pattern to mirror.
-- **Priority / cost / blocker:** P0 / medium / none
+- **Why next:** E0’s recovered verdict documents a read-only, cookie-safe feasibility result. The implementation must use per-entry `onTeamId` ownership rather than trust a server-side exclusion filter.
+- **Priority / cost / blocker:** P0 / medium / a drafted ESPN league is still needed for roster-subtraction proof.
 - **Verifiable without Actions:** yes — local `npm test`.
-- **Stacks on:** `backend/b2d-s2-sleeper-waiver-wiring`
+- **Stacks on:** merged Sleeper waiver/selector foundation.
 - **Do not touch:** ESPN cookie values in logs/UI/URLs/payloads; provider credentials; deploy.
 
-### 2. B2-D-S4 — Deterministic recommendation selection
-
-- **Why next:** the core unmet acceptance criterion of issue #162. Start/Sit, Waiver, and Trade paths each exist, but nothing arbitrates between them. Pure logic, table-testable, no provider calls.
-- **Priority / cost / blocker:** P0 / medium / S3 landing first is preferable but not required
-- **Verifiable without Actions:** yes.
-
-### 3. M3A-QA — real-device native authentication proof
+### 2. M3A-QA — real-device native authentication proof
 
 - **Why next:** code is merged, but the remaining work is human/device evidence rather than an agent implementation lane.
 - **Priority / cost / blocker:** P0 / small / founder credentials and inbox access.
 - **Output:** run the existing QA matrix; do not use real credentials in agent logs or screenshots.
 
-### 4. Actions restoration sweep
+### 3. Actions restoration sweep
 
 - **Why next:** the hold defers iOS CI and every workflow-only claim. This is eligible only after the billing hold is confirmed cleared.
 - **Priority / cost / blocker:** P0 / medium / GitHub Actions availability.
@@ -104,7 +97,7 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 
 ## Founder actions available now
 
-1. **Merge the Sleeper stack** — #215, then #216/#217. Verified 432/432 locally. Red checks do not block.
+1. **Provide a drafted Sleeper league ID or public league URL** to run `scripts/verify-sleeper-waiver-pool.js`; it is read-only and credential-free, and reports `UNDECIDABLE` for an undrafted league.
 2. **Merge PR #212** or accept this file as its replacement.
 3. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
 
