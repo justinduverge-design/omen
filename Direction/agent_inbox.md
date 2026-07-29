@@ -97,9 +97,9 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 
 ## Founder actions available now
 
-1. **Provide a drafted Sleeper league ID or public league URL** to run `scripts/verify-sleeper-waiver-pool.js`; it is read-only and credential-free, and reports `UNDECIDABLE` for an undrafted league.
-2. **Merge PR #212** or accept this file as its replacement.
-3. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
+1. **Merge PR #212** or accept this file as its replacement.
+2. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
+3. **For ESPN E1, wait for a drafted league** before making a roster-subtraction capability claim; E0’s pre-draft observation remains evidence only.
 
 ## Current blockers and gates
 
