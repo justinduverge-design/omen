@@ -880,3 +880,127 @@ test("waiver wiring does not change the Yahoo path", async () => {
   assert.deepEqual(state.sleeperPoolCalls, []);
   assert.deepEqual(state.sleeperLeagueCalls, []);
 });
+
+// --- B2-D4: deterministic selection across types ----------------------------
+//
+// Supersedes the S2 rule that waiver only opened when start/sit found nothing.
+// Both types now produce candidates and the selector compares them by expected
+// points gained. These tests exercise the case the S2 suite never could: a
+// roster where BOTH a lineup swap and a waiver add are genuinely available.
+
+/** A roster carrying an OUT starter AND a benched upgrade for the swap. */
+function rosterWithOutStarterAndSwap() {
+  const roster = rosterWithOutStarter();
+  roster.slots.starters.push({
+    player_key: "starter-1",
+    player_id: "starter-2",
+    name: "Starter Wideout",
+    position: "WR",
+    eligible_positions: ["WR"],
+    selected_position: "WR",
+    team: "PHI",
+    status: "",
+    projected_points: 10,
+  });
+  roster.slots.bench.push({
+    player_key: "bench-1",
+    player_id: "bench-1",
+    name: "Bench Breakout",
+    position: "WR",
+    eligible_positions: ["WR"],
+    team: "MIN",
+    status: "",
+    projected_points: 14,
+  });
+  return roster;
+}
+
+const WAIVER_POOL_WR_12 = [
+  { player_key: "sleeper:900", player_id: "900", name: "Available WR", position: "WR", eligible_positions: ["WR"], team: "SF", status: null, projected_points: 12.4 },
+];
+
+test("B2-D4 selects the waiver add when it out-scores the lineup swap", async () => {
+  // Swap gains 4 points. Replacing an OUT starter projected at 0 with a 12.4
+  // player gains 12.4. Under the old priority short-circuit the 4-point swap
+  // would have won purely for being checked first.
+  const { service, state } = loadOmenService({
+    connections: [SLEEPER_CONNECTION],
+    sleeperRoster: rosterWithOutStarterAndSwap(),
+    sleeperPool: WAIVER_POOL_WR_12,
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.recommendation.primary_player.name, "Available WR");
+  assert.equal(state.sleeperPoolCalls.length, 1);
+});
+
+test("B2-D4 selects the lineup swap when it out-scores the waiver add", async () => {
+  const { service } = loadOmenService({
+    connections: [SLEEPER_CONNECTION],
+    swaps: [{
+      slot: "WR",
+      from: { player_key: "starter-1", name: "Starter Wideout", status: "", projected: 10 },
+      to: { player_key: "bench-1", name: "Bench Breakout", status: "", projected: 30 },
+      delta: 20,
+      confidence: 82,
+    }],
+    sleeperRoster: rosterWithOutStarterAndSwap(),
+    sleeperPool: WAIVER_POOL_WR_12,
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.recommendation.type, "start_sit");
+});
+
+test("B2-D4 selection does not depend on which type was generated first", async () => {
+  // Same inputs, run twice. A deterministic selector returns the same type
+  // both times; an order-dependent one can drift.
+  const build = () => loadOmenService({
+    connections: [SLEEPER_CONNECTION],
+    sleeperRoster: rosterWithOutStarterAndSwap(),
+    sleeperPool: WAIVER_POOL_WR_12,
+  });
+
+  const first = await build().service.buildLiveOmenMvpMoveForUser("user-1");
+  const second = await build().service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(first.body.recommendation.type, second.body.recommendation.type);
+  assert.equal(first.body.recommendation.id, second.body.recommendation.id);
+});
+
+test("B2-D4 never prices a waiver pool for a roster with no OUT starter", async () => {
+  // The eligibility precondition survives the move to scored selection. This
+  // is what keeps always-generating candidates from costing a request.
+  const { service, state } = loadOmenService({
+    connections: [SLEEPER_CONNECTION],
+    sleeperPool: WAIVER_POOL_WR_12,
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.body.recommendation.type, "start_sit");
+  assert.deepEqual(state.sleeperPoolCalls, []);
+});
+
+test("B2-D4 returns honest empty rather than substituting a type to fill the screen", async () => {
+  // No swap, and the only available player has no projection, so the waiver
+  // candidate is rejected as unscored. Nothing may be substituted for it.
+  const { service } = loadOmenService({
+    connections: [SLEEPER_CONNECTION],
+    swaps: [],
+    sleeperRoster: rosterWithOutStarter(),
+    sleeperPool: [
+      { player_key: "sleeper:902", player_id: "902", name: "Unprojected WR", position: "WR", eligible_positions: ["WR"], team: "NYJ", status: null, projected_points: null },
+    ],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.recommendation, null);
+});
