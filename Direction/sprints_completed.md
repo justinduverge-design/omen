@@ -32,6 +32,48 @@ This section is the internal source-of-record repair after the GitHub Actions bi
 
 ---
 
+## Planning-pipeline cutover — migrated dispositions (2026-07-30)
+
+The 2026-07-30 planning-pipeline cutover reconciled 35 task dispositions against `main` and the GitHub PR record. The 22 `CLOSED` records below moved out of `Direction/current_sprint.md`, which now carries only active work. The remaining 13 stayed active as `READY`.
+
+Evidence is per-task and exact. Broad ranges are not used: the prior `#125–#139` range was wrong — it swept in #126 (an unrelated Jules docs gate), #132 (closed, and itself task A2), and #137 (closed, superseded by #138).
+
+### CLOSED / COMPLETED (18)
+
+| Task key | Title | Closure | Closure date | Exact evidence | Successor |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| M1P-Next-1 | PlatformBadge foundation | COMPLETED | 2026-07-21 | PR #174 `79fea1d`; PR #176 `a9376ff` (platform legibility tokens + fill-on-platform) | — |
+| M1P-Next-2 | ConfirmationDialog foundation | COMPLETED | 2026-07-21 | PR #175 `604c108` | — |
+| M1P-P4 | Dual-platform gallery and primitive enforcement | COMPLETED | 2026-07-21 | PR #179 `8ee8f68`; `Blueprints/handoffs/2026-07-21-m1p-p4-gallery-enforcement.md` | **M4-Auth** — discharged the `OmenAndroidApp.kt` allowlist-retirement residual |
+| M1P-P3 | Product compositions (3 batches) | COMPLETED | 2026-07-23 | PR #182 `47da861` (Batch 1 metric primitives); PR #183 `9a497b8` (Batch 2 connection primitives); PR #184 `6831d20` (Batch 3 DecisionBrief shell, titled "closes P3"); handoffs `2026-07-22-m1p-p3-connection-primitives.md`, `2026-07-22-m1p-p3-decision-brief-shell.md` | — |
+| M0-BE-0 | Native backend shared contract and acceptance matrix | COMPLETED | 2026-07-23 | `63980b5` authored `Blueprints/specs/mobile/omen-native-backend-state-contract-v1.md` including its §Acceptance Matrix covering F2 and M0-BE-1/2/3; dependents PR #189 `c9009e1`, PR #190 `9f8a7c9`, PR #191 `66e39c3` | — |
+| M4-Auth | Omen-primitive-native auth surfaces (allowlist retirement) | COMPLETED | 2026-07-23 | PR #193; `Blueprints/handoffs/2026-07-23-m4-auth-primitive-retirement.md`; `PrimitiveEnforcementTest.ALLOWLISTED_FILES` now empty | — |
+| M4-Omen-Screen | Omen destination owning the full DecisionBrief | COMPLETED | 2026-07-26 | PR #210 `6c2f9ae`; `Blueprints/handoffs/2026-07-26-m4-omen-screen.md` | — |
+| M4-Help-Support-Contract | Define native contextual Help + Support | COMPLETED | 2026-07-27 | PR #227; PR #228; `Blueprints/specs/mobile/m4-help-support-v1.md`; Figma nodes `61:2`, `63:2`, `63:26` approved by Justin 2026-07-27 | **M4-Help-Support-Implementation** (active) |
+| D2 | `AI_PROVIDER=local\|cloud` control with $0 cap | COMPLETED | 2026-07-27 | PR #225 `3019597`; PR #226 `e6f455f`; `Blueprints/handoffs/2026-07-27-d2-ai-provider-zero-cap.md`. Done-when met in full; the unclaimed deployment/live-provider proof falls outside this task's scope and outside its "do not touch: paid API credentials or production env" boundary | — |
+| F2 | Resolve `ready` vs `pending_live_engine` documentation conflict | COMPLETED | 2026-07-22 | PR #181 `95b2606`; `Blueprints/handoffs/2026-07-22-f2-status-truth.md`; runtime authority `src/services/omenReadiness.js`; contract §F2 in `omen-native-backend-state-contract-v1.md` | — |
+| GROOM-1 | Operational repo/deploy rename approval | COMPLETED | 2026-06 | Deploy runs `27994773332` and `27995488318`; `Blueprints/specs/omen-operational-rename-cutover.md`; repo and KVM1 deploy path are Omen | — |
+| GROOM-2 | Orphaned `src/omen_gdpr.js` cleanup | COMPLETED | 2026-07-14 | PR #119 `449e9ff` | — |
+| GROOM-3 | Account subscription-card removal and Stripe integration removal | COMPLETED | 2026-07-12 | PR #117 `6cb72ec`; PR #118 `c1de0c9` | — |
+| GROOM-4 | Phase 4.20b and 4.20d | COMPLETED | 2026-07-12 → 2026-07-14 | PR #121 `44703a3` (4.20b public legal/support pages); PR #115 `28d4a9d` (4.20d store metadata / gambling-copy audit) | — |
+| GROOM-5 | ESPN mobile onboarding, public setup guide, and walkthrough | COMPLETED | 2026-07-15 | PR #122 `cc15d15`; PR #123 `1f462a6` | **F4** — production verification remains active |
+| GROOM-6 | Phase 4.21 transparent lockup swap | COMPLETED | 2026-07-26 | `2c48bbf` (wordmark refit + light-surface lockup) and `ca96559` (shield → approved Omen B2 mark), both landed via PR #199 `9ecd562`. **Evidence corrected:** the prior record cited PR #120, which is `28d1b16` "remove duplicate logo link class" — one file, one deletion — and never carried this change | — |
+| GROOM-7a | Completed web UI primitive work | COMPLETED | 2026-07-16 → 2026-07-17 | PR #125 `2b3897f` Button; #127 `14a3ab7` Input+Textarea; #128 `5ead941` Badge+Chip; #129 `9afa46a` PlatformBadge; #130 `dc4788b` PlatformConnectionCard; #131 `0eaaa09` Empty/Error/Loading states; #133 `0ac9a9c` Tooltip; #134 `3002394` SegmentedControl+TabNav+RadioCardGroup; #135 `a7be1f0` PageHero; #136 `08245bd` MetricStrip; #138 `333baa6` PlayerRow+PlayerChip (PR #137 closed, superseded by #138) | — |
+| GROOM-7b | Trade Analyzer migration | COMPLETED | 2026-07-18 | PR #139 `d9beda1` | — |
+
+### CLOSED / DESCOPED (4)
+
+| Task key | Title | Closure | Closure date | Exact evidence | Reason |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| A1 | Review and disposition PR #140: SVG logo masters | DESCOPED | 2026-07-30 | PR #140 **CLOSED, never merged** | The PR it existed to review was closed without merging, so the review task has no subject. |
+| A2 | Decide PR #132: Master Design System Blueprint v1 | DESCOPED | 2026-07-30 | PR #132 **CLOSED, never merged** | The PR it existed to decide was closed without merging, so the decision task has no subject. |
+| GROOM-8 | Per-team design documents, team-colorway stubs, and chant implementation | DESCOPED | 2026-07-12 | PR #114 `616a840` removed team-based runtime theming | Team-based runtime theming was removed; the active North Star treats team skins as future-only. |
+| GROOM-9 | Paid-launch and Omen Pro wording | DESCOPED | 2026-07-12 | Stripe removal PR #117 `6cb72ec`, PR #118 `c1de0c9` | Omen is free indefinitely; paid-launch wording has no referent. |
+
+**Reconciliation:** 13 active (`READY`) + 22 `CLOSED` = **35 dispositions**. `IN_PROGRESS` 0 and `VERIFIED` 0 — no task held a valid active `Claim:`, and no merged-but-incomplete task met its own `Done when:`. The two items surfaced during reconciliation (ESPN waiver-pool implementation, Actions-restoration sweep) are **excluded** from these totals and are held in `Direction/agent_inbox.md` under "Planning intake — pending planning-pass".
+
+---
+
 ## Completed Since Last Sprint (legacy bucket, pre-2026-06-12)
 
 - Authenticated smoke 13/13 (2026-06-04): Stripe prices, 401 guards, favorite-team hydration, preference patch+restore, Omen feedback, Move History, Sleeper standings. (Closed old Next #2–#4.)

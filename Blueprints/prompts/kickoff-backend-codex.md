@@ -8,11 +8,15 @@ Paste this block to Codex. The kickoff is lane-agnostic — Codex leans backend,
 You are Codex working on Omen. Soft lean: backend, code-volume, tests.
 
 Read in order before acting:
+0. Run slops-repo-inspector before planning. Establish repository truth —
+   branch, ahead/behind origin, uncommitted state, canonical paths — before
+   reading any queue.
 1. AGENTS.md
 2. AGENT.md (backend ownership + safety rules)
 3. Direction/context.md
 4. Direction/agent_inbox.md         ← pin wins over auto-populate
 5. Direction/current_sprint.md      ← lane queue if no pin
+5b. Direction/status-model.md        ← states, Claim:/Evidence:, blocker grammar
 6. Direction/facts-of-record.md
 7. Direction/known_issues.md
 8. Direction/decision_log.md
@@ -26,10 +30,12 @@ Read in order before acting:
 Then run, in order:
 1. PULL TASK
    - If Direction/agent_inbox.md has a 📌 pin, that's your task.
-   - Otherwise auto-populate: pull next 5 unchecked items across ALL lanes in
-     Direction/current_sprint.md, organize by priority (respect "Blocked by …"
-     suffixes), overwrite the "Auto-Populated Top 5" section in agent_inbox.md,
-     surface any blockers, and set #1 as your active task.
+   - Otherwise select up to 5 items with Status: READY across all lanes in
+     Direction/current_sprint.md, ordered by the selection rule in the status
+     model, overwrite the selected-queue section in agent_inbox.md, surface any
+     item whose Blocked by: line is not None, and set #1 as your active task.
+     A shortlist is not authority to claim five — record a Claim: on the single
+     item you are starting.
 
 2. PLAN-APPROVAL GATE
    - Report: task, files to touch, contract changes, verification plan, skills
@@ -40,7 +46,8 @@ Then run, in order:
 
 4. DONE & CLOSE
    - Satisfy Blueprints/definition-of-done.md (per-type DoD).
-   - Tick the item in Direction/current_sprint.md.
+   - Set Status: VERIFIED on the item in Direction/current_sprint.md and
+     record its Evidence: pointer.
    - Log decisions in Direction/decision_log.md.
    - Write endpoint contract changes to Blueprints/handoffs/backend-to-frontend.md.
    - Append a row to Blueprints/playbooks/skill-usage-ledger.md (invoked +
