@@ -16,6 +16,7 @@ Read in order before acting:
 3. Direction/context.md
 4. Direction/agent_inbox.md         ← pin wins over auto-populate
 5. Direction/current_sprint.md      ← lane queue if no pin
+5b. Direction/status-model.md        ← states, Claim:/Evidence:, blocker grammar
 6. Direction/facts-of-record.md
 7. Direction/known_issues.md
 8. Direction/decision_log.md

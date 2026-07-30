@@ -46,7 +46,7 @@ its 11 linked worktrees were never entered.
 
 **Archive (§3)** — 3 artifacts moved by `git mv`; git recorded all as pure renames (`R`).
 
-- `Direction/{CLAUDE,AGENTS,AGENT}.md` → `Archive/planning-pipeline/2026-07-29-pre-status-model/Direction/`,
+- `Direction/{CLAUDE,AGENTS,AGENT}.md` → the `2026-07-29-pre-status-model` archive root,
   renamed `.archived.md` so the auto-loading filenames go inert; contents byte-identical.
 - `MANIFEST.md` written at the archive root; one index line added to `Archive/README.md`.
 
@@ -95,3 +95,70 @@ Per §7, any FAIL halts the PR: branch committed and pushed, **PR not opened**.
 ## Next recommended pull
 
 Supply the approved L2 table, then finish §4.4-L2 and §4.3 and re-run A3/A10. Do not begin PR B.
+
+---
+
+# Second pass — 2026-07-30, founder rulings applied
+
+The blocker above is resolved. Founder authorized deriving L2 states from evidence, then
+issued corrections and rulings. All applied additively; no amend, reset, rebase, or force-push.
+
+## What the evidence changed
+
+**The 34-row expectation was stale.** The canonical set is **35**. Reasons, in order of weight:
+
+1. The expectation predates PRs #238–#245, merged 2026-07-29 — after the audit revision.
+2. It assumed 3 `VERIFIED`; evidence yields **0**. A merged PR does not satisfy `VERIFIED`.
+3. It assumed 0 `IN_PROGRESS`; that holds, but only because no valid `Claim:` exists.
+4. Reaching 34 required folding M1P keys, which the founder ruled must stay distinct.
+5. `M0-BE-0` was listed active, but its contract landed (`63980b5`, with an Acceptance Matrix
+   covering F2 and BE-1/2/3) and all three dependents merged.
+
+## Rulings applied
+
+- **Mirror.** `Direction/status-model.md` added — Omen is a separate repo and must work in
+  standalone clones and CI. Metadata: `MIRROR_OF`, `SCHEMA_VERSION 1.0.0`, `SOURCE_COMMIT`
+  `d26b7b66e5155ecbd07b621d1b416d527277d9d4`, `LAST_SYNCED 2026-07-30`. **No silent "L0
+  wins"** — when both copies are available, any schema-version or operational-content
+  difference is a blocking Truth Gate failure. Standalone checkout: the mirror is operative.
+- **M1P identities preserved.** `M1P-Next-1`, `M1P-Next-2`, `M1P-P4`, `M1P-P3` each closed
+  separately with their own evidence. Nothing folded. `M1P-P4`'s allowlist residual names
+  `M4-Auth` as successor.
+- **No new tasks minted.** ESPN waiver-pool work and the Actions-restoration sweep are held in
+  `Direction/agent_inbox.md` under "Planning intake — pending planning-pass", non-selectable
+  and excluded from all totals.
+- **`M4-Help-Support-Implementation` → `READY`, not `IN_PROGRESS`.** Verified no valid claim
+  exists: no `Claim:` record anywhere, no pin, remote branch merged and deleted, and zero
+  follow-up commits on `main` since #229 (`5d458ca`). Its `Done when:` explicitly requires
+  visual + VoiceOver/TalkBack + Dynamic Type evidence that has not been produced.
+- **`D2` → `CLOSED / COMPLETED`.** Done-when met in full; the unclaimed deploy/live-provider
+  proof is outside its scope and outside its own "do not touch" boundary.
+- **Evidence corrected.** The `#125–#139` range was wrong — it swept in #126 (unrelated Jules
+  docs gate), #132 (closed, and itself task A2), and #137 (closed, superseded by #138). Now
+  eleven exact PR+commit pairs. Separately, the Phase 4.21 lockup record cited PR #120, which
+  is `28d1b16` "remove duplicate logo link class" — one file, one deletion — and never carried
+  that change; corrected to `2c48bbf` + `ca96559`, both via PR #199 `9ecd562`.
+
+## Resulting counts
+
+`current_sprint.md` holds **13 `READY`**, 0 `IN_PROGRESS`, 0 `VERIFIED`, 0 `CLOSED`.
+`sprints_completed.md` gained **22 `CLOSED`** (18 `COMPLETED`, 4 `DESCOPED`).
+**13 + 22 = 35.** Planning-intake items excluded, as ruled.
+
+## Gates
+
+New count gates added and passing: **A13** active-sprint counts (13/0/0/0), **A14**
+completed-history additions (18+4=22), **A15** combined reconciliation (35). Original A1–A12
+re-run and passing, with A11 rebaselined to 12 linked worktrees and the desktop checkout on
+`chore/legal-valor-ventures-footer`.
+
+## Blockers surfaced
+
+All 13 active tasks currently carry a non-`None` `Blocked by:` line — nothing is immediately
+pullable without founder or external action. Four have an `AGENT_RESOLVABLE` component that
+can progress today: B2-D, A4 (dry-run prep), D1 (scope the delta vs #197), and
+M4-Help-Support-Implementation (Android accessibility evidence).
+
+## Next recommended pull
+
+Run `planning-pass` on the two planning-intake items. Do not begin PR B.

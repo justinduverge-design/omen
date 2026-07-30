@@ -1,7 +1,7 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-29 — reconciled against `main` @ `e4fc737`, GitHub PR state, and local verification. Handoffs are pointers, not standalone proof.
-**Authority:** `Direction/current_sprint.md` is the active queue. This file selects or recommends the next pull.
+**Refreshed:** 2026-07-30 — migrated to the status model. Reconciled against `main` @ `90f6376`, the GitHub PR record, and local verification. Handoffs are pointers, not standalone proof.
+**Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
 ## ⚠️ Standing constraint — GitHub Actions billing hold
 
@@ -16,43 +16,93 @@ The monthly Actions allotment is exhausted. Expected restore ~**2026-08-01**.
 
 Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## Verified truth — 2026-07-27
+## Selected Queue — 2026-07-30
 
-### On `main` (done, ledgered)
+**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). No founder pin is set and no task holds a valid `Claim:`, so selection began at effective priority.
+
+> **Read this before pulling.** All 13 active tasks currently carry a non-`None` `Blocked by:` line. Per the pull rule, an agent stops and surfaces the block rather than skipping ahead. The four items below marked *progress-now* have an `AGENT_RESOLVABLE` component that can advance today; the rest need founder or external action first.
+
+### 1. B2-D — Complete the canonical Omen engine
+
+- **Status:** READY · **Claim:** unclaimed
+- **Blocked by:** AGENT_RESOLVABLE — provider-specific live-data capability proof still outstanding for ESPN
+- **Why first:** P0 with the largest downstream reach (GitHub issue #162 is the canonical engine). The Sleeper waiver stack and deterministic selector already landed (#215, #238, #239, #240) and Yahoo availability-only fallback landed (#236) — *progress-now*.
+- **Do not touch:** provider credentials, deployment, production data mutations, store configuration.
+
+### 2. A4 — Tuesday scoring production enablement
+
+- **Status:** READY · **Claim:** unclaimed
+- **Blocked by:** FOUNDER_APPROVAL — production-change pin for the environment flip
+- **Blocked by:** AGENT_RESOLVABLE — approved no-write Supabase dry-run against real nflverse data
+- **Why next:** P0. The dry-run preparation and verification half is agent work — *progress-now*. The env flip stays gated.
+- **Do not touch:** the production flag before approval.
+
+### 3. A3 — Production security and Supabase review
+
+- **Status:** READY · **Claim:** unclaimed
+- **Blocked by:** FOUNDER_APPROVAL — Justin pin and access window
+- **Why next:** P0, but audit-preparation only until the pin and access window exist.
+- **Do not touch:** secret values, production database, DNS, Nginx, TLS, environment variables.
+
+### 4. M3A-QA — Native auth interactive real-device QA
+
+- **Status:** READY · **Claim:** unclaimed
+- **Blocked by:** FOUNDER_APPROVAL — founder/human credential and inbox access
+- **Why next:** P0, but the remaining work is human/device evidence, not an agent implementation lane. Agents may prep the matrix only.
+- **Output:** sanitized QA matrix; never real credentials in agent logs or screenshots.
+
+### 5. M4-Help-Support-Implementation — remaining QA evidence
+
+- **Status:** READY · **Claim:** unclaimed
+- **Blocked by:** EXTERNAL — GitHub Actions billing hold blocks iOS unsigned CI
+- **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
+- **Why next:** highest P1 with an agent-resolvable component — *progress-now*. Implementation merged via PR #229, but the task's own `Done when:` requires accessibility and visual evidence that has not been produced. **Not VERIFIED**; a merged PR does not close it.
+
+## Planning intake — pending planning-pass
+
+**Not selectable. Not canonical tasks. Not counted in any status total.**
+
+These two surfaced during the 2026-07-30 reconciliation. They are real work, but minting a task key, priority, and `Done when:` is a planning act, not a migration act. They stay here until `planning-pass` creates and ratifies full task records.
+
+### ESPN waiver-pool implementation (proposed key: `B2-D-E1`)
+
+- **Source:** this inbox's 2026-07-27 selection; corroborated by `Direction/sprints_completed.md` "Still active / not completed: ESPN E1 implementation and its drafted-league roster-subtraction proof".
+- **Type:** task (has a named predecessor and a spec-declared successor relationship).
+- **Predecessor:** B2-D-E0 feasibility verdict — `Blueprints/specs/b2d-espn-e0-verdict-v1.md:97` names "E1 implementation" as its own successor; verdict restored via PR #243.
+- **Proposed blocker:** EXTERNAL — a drafted ESPN league is required for roster-subtraction proof.
+- **Key note:** must be namespaced. Bare `E1` already means the mobile scope decision in `current_sprint.md`.
+- **Scope note for planning-pass:** implementation must use per-entry `onTeamId` ownership rather than trusting a server-side exclusion filter.
+
+### Actions-restoration sweep (no canonical key exists)
+
+- **Source:** this inbox's 2026-07-27 selection; corroborated by the same `sprints_completed.md` line.
+- **Type:** operational follow-up, not a build task — conditional on an external billing event.
+- **Proposed blocker:** EXTERNAL — GitHub Actions allotment, restore expected ~2026-08-01.
+- **Relationship:** unblocks the CI-verification half of M4-Auth-Providers-v1 and M4-Help-Support-Implementation.
+- **Scope note for planning-pass:** re-run open-PR and DEFERRED-CI workflows and record real results; do not treat the hold as code failure.
+
+## Verified truth — on `main` (done, ledgered)
 
 | Work | Evidence |
 |---|---|
-| M0-BE-1 safe provider-state API | merged PR #189-era work in `src/routes/platforms.js` |
-| M0-BE-2 native Sleeper connect idempotency | merged PR #190 |
-| M0-BE-3 Yahoo verified native OAuth return | merged PR #191; covered by `GET /api/yahoo/callback` tests on `main` |
+| M0-BE-1 safe provider-state API | merged PR #189 `c9009e1`, `src/routes/platforms.js` |
+| M0-BE-2 native Sleeper connect idempotency | merged PR #190 `9f8a7c9` |
+| M0-BE-3 Yahoo verified native OAuth return | merged PR #191 `66e39c3`; `GET /api/yahoo/callback` tests on `main` |
 | M4-Auth primitive retirement | merged PR #193; `PrimitiveEnforcementTest.ALLOWLISTED_FILES` empty |
-| Honest trade pulse contract | merged PR #197 — **check this before starting D1** |
-| Omen B2 brand wordmark refit | merged PR #199 |
+| Honest trade pulse contract | merged PR #197 — **scope D1's remaining delta against this before pulling** |
+| Omen B2 brand wordmark refit | merged PR #199 `9ecd562` (carries `2c48bbf` + `ca96559`) |
 | Dependency health controls + advisory-debt clearance | merged PR #200 |
 | Actions version bumps (checkout/github-script/setup-java) | merged PRs #201–#203 |
-| M4-Omen-Screen native decision destination | merged PR #210 |
+| M4-Omen-Screen native decision destination | merged PR #210 `6c2f9ae` |
 | B2-D-S0 Sleeper projection mapping fix | merged PR #214 |
-| B2-D Sleeper waiver stack + deterministic selector | recovered and merged through PRs #215, #238, #239, and #240; Yahoo availability-only fallback preserved |
-| Security hardening evidence recovery | PR #241; underlying source was already on `main`, with source-only RLS still explicitly gated |
-| Store-review notes and ESPN E0 verdict | PRs #242 and #243; documentation/evidence only, no store or provider operation |
-| Backend test baseline | **469/469 green locally** during the selector recovery (CI remains unavailable) |
+| B2-D Sleeper waiver stack + deterministic selector | PRs #215, #238, #239, #240; Yahoo availability-only fallback preserved |
+| Security hardening evidence recovery | PR #241; source-only RLS still explicitly gated |
+| Store-review notes and ESPN E0 verdict | PRs #242, #243; documentation/evidence only |
+| Backend test baseline | **469/469 green locally**; CI remains unavailable |
 
-### Open / separately gated
+**Recovered-work disposition:** #215 merged directly; stacked #216/#217 closed when their base was deleted and were recovered onto current `main` by #238/#239. Selector recovery #240 preserved the newer Yahoo fallback. #220/#222/#223/#224 are closed as superseded by #240/#241/#242/#243.
 
-| Work | Branch / PR | State |
-|---|---|---|
-| M4-Auth-Providers-v1 Discord OAuth (Android + iOS) | PR #198 | Code-complete, frozen on iOS CI billing. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2). |
-| Inbox reconciliation (2026-07-26 pass) | PR #212 → `main` | MERGEABLE. Superseded in part by this file. |
-| OAuth telemetry redaction, waitlist RLS source, browser permissions hardening | PR #232 | **Merged to `main`** as `5fdb2f3`; local suite 422/422, build, and moderate audit 0. No deploy or production SQL application. |
-| Yahoo native-return evidence reconciliation | PR #234 | **Merged to `main`** as `a6e6555`; focused Yahoo route 9/9 and full local suite 422/422. Provider-console and real-device proof remain human gates. |
-
-**Recovered-work disposition:** #215 merged directly; the stacked #216/#217 closed when their base was deleted and were recovered onto current `main` by #238/#239. The selector recovery #240 preserved the newer Yahoo fallback. Original #220/#222/#223/#224 are closed as superseded by #240/#241/#242/#243.
-
-### Dead entries — remove on next sprint grooming
-
-- **A1 / PR #140 (SVG logo masters)** — PR is **closed**. Sprint item is dead.
-- **A2 / PR #132 (Master Design System Blueprint)** — PR is **closed**. Sprint item is dead.
-- The 2026-07-23 pin on **M4-Auth-Providers-v1** — that work is code-complete in PR #198. Do not rebuild it.
+**Closed without merge:** PR #140 (SVG logo masters) and PR #132 (Master Design System Blueprint). Their sprint tasks A1 and A2 are now `CLOSED / DESCOPED` — see `Direction/sprints_completed.md`.
 
 ## Native Mobile Pivot — still active
 
@@ -65,41 +115,14 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 - `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
 - Official Figma: `https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3`
 
-Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC v1/v1.1, M4-Omen-Screen) is **complete**. Remaining native work is either Figma-gated or iOS-CI-gated — see the top-5 below.
-
-## Auto-Populated Top 5 — 2026-07-27
-
-Filter applied: agent-buildable, blockers actually satisfied, and **verifiable without GitHub Actions**.
-
-### 1. B2-D-E1 — ESPN waiver pool + wiring
-
-- **Why next:** E0’s recovered verdict documents a read-only, cookie-safe feasibility result. The implementation must use per-entry `onTeamId` ownership rather than trust a server-side exclusion filter.
-- **Priority / cost / blocker:** P0 / medium / a drafted ESPN league is still needed for roster-subtraction proof.
-- **Verifiable without Actions:** yes — local `npm test`.
-- **Stacks on:** merged Sleeper waiver/selector foundation.
-- **Do not touch:** ESPN cookie values in logs/UI/URLs/payloads; provider credentials; deploy.
-
-### 2. M3A-QA — real-device native authentication proof
-
-- **Why next:** code is merged, but the remaining work is human/device evidence rather than an agent implementation lane.
-- **Priority / cost / blocker:** P0 / small / founder credentials and inbox access.
-- **Output:** run the existing QA matrix; do not use real credentials in agent logs or screenshots.
-
-### 3. Actions restoration sweep
-
-- **Why next:** the hold defers iOS CI and every workflow-only claim. This is eligible only after the billing hold is confirmed cleared.
-- **Priority / cost / blocker:** P0 / medium / GitHub Actions availability.
-- **Output:** re-run open-PR and DEFERRED-CI workflows and record real results without treating the current hold as code failure.
-
-- **Why next:** listed unblocked — but **PR #197 merged an "honest trade pulse contract" on 2026-07-23.** Scope the remaining delta before pulling; this may be partially done.
-- **Priority / cost / blocker:** P1 / medium / needs a scope check against PR #197 first
-- **Do not touch:** paid data source or new dependency without approval.
+Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC v1/v1.1, M4-Omen-Screen) is **complete**. Remaining native work is either Figma-gated or iOS-CI-gated.
 
 ## Founder actions available now
 
-1. **Merge PR #212** or accept this file as its replacement.
-2. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
-3. **For ESPN E1, wait for a drafted league** before making a roster-subtraction capability claim; E0’s pre-draft observation remains evidence only.
+1. **Park PR #198** (Discord OAuth) until the Actions restore — it is the one item with no local verification path.
+2. **For ESPN waiver-pool work, wait for a drafted league** before making a roster-subtraction capability claim; E0's pre-draft observation remains evidence only.
+3. **Pin A3 or M3A-QA** if you want either P0 to move — both are founder-gated today.
+4. **Run `planning-pass`** to ratify the two planning-intake items above into canonical tasks.
 
 ## Current blockers and gates
 
@@ -107,19 +130,18 @@ Filter applied: agent-buildable, blockers actually satisfied, and **verifiable w
 - **Tuesday scoring:** production flag stays false until an approved no-write dry-run and explicit production-change approval.
 - **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
 - **M4-CC-WaiverWatch / M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals do not exist yet — founder-gated.
-- **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass. Not agent-buildable.
+- **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass.
 - **M3A-QA:** founder/human credential + inbox access. Agents may prep the matrix only.
 - **B2-D live provider data:** provider-specific capability proof required before claiming live advice.
-- **Baked-black fallback deletion:** wait until at least 2026-07-28 plus a clean production soak after PR #120.
 - **Post-live learning:** waits on Release Done, seven stable days, and `slops-product-pulse`.
 
 ## Agent selection guidance
 
-- **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements. Dependency-update issues via the manual `jules` label.
+- **Jules:** narrow component-only or tightly bounded migration briefs with exact allowed files, dependencies, and evidence requirements.
 - **Codex:** native implementation, behavior-preserving backend/API/data work, regression tests, implementation verification.
 - **Claude:** doctrine/spec reconciliation, product-gap analysis, recommendation-contract synthesis, copy/legal review, large-context planning.
 
-These are tool-fit recommendations, not ownership. Readiness, blockers, and verifiability decide the pull.
+These are tool-fit recommendations, not ownership. Lanes are vendor-agnostic; readiness, blockers, and verifiability decide the pull.
 
 ## Required kickoff output
 
@@ -133,7 +155,7 @@ Before implementation, the agent must print:
 6. do-not-touch boundaries;
 7. branch name and serialization/hot-file check.
 
-**Also required as of 2026-07-27:** if the pulled item's done-when cites CI, state the local-evidence substitute you will record instead.
+**Also required:** if the pulled item's done-when cites CI, state the local-evidence substitute you will record instead.
 
 ## Required closeout output
 
@@ -146,11 +168,12 @@ The handoff must include:
 - one concrete skill improvement or an explicit "no correction needed" verdict;
 - branch/commit/PR/deploy status without implying local work is live.
 
-**Ledger rule:** append the `Blueprints/done/LEDGER.md` row in the same pass that closes the work. The ledger went five days stale between 2026-07-23 and 2026-07-27 because closeouts skipped it.
+**Ledger rule:** append the `Blueprints/done/LEDGER.md` row in the same pass that closes the work.
 
 ## Do not touch unless explicitly pinned
 
-- `AGENT.md`, `CLAUDE.md`
+- `AGENT.md`, `CLAUDE.md`, `AGENTS.md`
+- `Direction/status-model.md` — changing it without the L0 canonical source is a Truth Gate failure
 - `.env`, secrets, or credentials
 - deploy configuration or production infrastructure
 - package files or dependencies
