@@ -1,6 +1,6 @@
 # Omen — Claude Context
 
-You are Claude working in the Omen product layer. Soft lean: frontend, docs, specs (either agent can pull any item).
+You are working in the Omen product layer. Lanes are a scheduling convenience, never an authority boundary — any runtime may be assigned any item. Confirm this session's actual capabilities and read Runtime Policy before applying any authority.
 
 ## Read in order before pulling a task
 
@@ -45,7 +45,7 @@ Do not start native feature code when any of those sources are missing or confli
 
 ## Kickoff
 
-Paste `Blueprints/prompts/kickoff-frontend-claude.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+Paste `Blueprints/prompts/kickoff-l2.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
 
 ## Close-out
 
