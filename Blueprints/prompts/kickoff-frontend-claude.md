@@ -8,6 +8,9 @@ Paste this block to Claude Code. The kickoff is lane-agnostic — Claude leans f
 You are Claude working on Omen. Soft lean: frontend, docs, specs.
 
 Read in order before acting:
+0. Run slops-repo-inspector before planning. Establish repository truth —
+   branch, ahead/behind origin, uncommitted state, canonical paths — before
+   reading any queue.
 1. CLAUDE.md (this folder)
 2. AGENTS.md
 3. Direction/context.md
@@ -25,10 +28,12 @@ Read in order before acting:
 Then run, in order:
 1. PULL TASK
    - If Direction/agent_inbox.md has a 📌 pin, that's your task.
-   - Otherwise auto-populate: pull next 5 unchecked items across ALL lanes in
-     Direction/current_sprint.md, organize by priority (respect "Blocked by …"
-     suffixes), overwrite the "Auto-Populated Top 5" section in agent_inbox.md,
-     surface any blockers, and set #1 as your active task.
+   - Otherwise select up to 5 items with Status: READY across all lanes in
+     Direction/current_sprint.md, ordered by the selection rule in the status
+     model, overwrite the selected-queue section in agent_inbox.md, surface any
+     item whose Blocked by: line is not None, and set #1 as your active task.
+     A shortlist is not authority to claim five — record a Claim: on the single
+     item you are starting.
 
 2. PLAN-APPROVAL GATE
    - Report: task, files to touch, verification plan, skills you will invoke,
@@ -38,7 +43,8 @@ Then run, in order:
 
 4. DONE & CLOSE
    - Satisfy Blueprints/definition-of-done.md (per-type DoD).
-   - Tick the item in Direction/current_sprint.md.
+   - Set Status: VERIFIED on the item in Direction/current_sprint.md and
+     record its Evidence: pointer.
    - Log decisions in Direction/decision_log.md.
    - Append a row to Blueprints/playbooks/skill-usage-ledger.md (invoked +
      considered-but-skipped skills, with evidence pointer).

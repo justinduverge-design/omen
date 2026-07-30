@@ -5,11 +5,13 @@
 
 ## How agents use this file
 
+Task states, `Blocked by:` types, `Closure:` values, and the selection rule are defined by the L0 status model — `Blueprints/agent-modules/status-model.md` in the SLOPS OS root repo. That module is authoritative; this file only carries items.
+
 1. Read `Direction/agent_inbox.md` first. A pinned task there overrides this queue.
-2. Pull only unchecked, agent-buildable work whose blockers are satisfied.
+2. Select only `Status: READY`, agent-buildable work whose `Blocked by:` line is `None`, ordered by the selection rule.
 3. Do not auto-pull **Founder / Ops**, **Verify**, **Decision**, database, deploy, or production-mutation work.
 4. Keep implementation in small PRs. If an item needs more than about 80 words of implementation detail, write or use a spec and leave the sprint item as a pointer.
-5. On completion, move the result to `Direction/sprints_completed.md`, add the appropriate Done receipt, update the decision log only when a decision changed, and record actual skill use.
+5. On completion set `Status: VERIFIED` with an `Evidence:` pointer. Move to `Status: CLOSED` with a `Closure:` value (`COMPLETED` needs evidence, `SUPERSEDED` needs a successor, `DESCOPED` needs a reason) once the result is placed in `Direction/sprints_completed.md` with the appropriate Done receipt; update the decision log only when a decision changed, and record actual skill use. `CLOSED` is terminal — a regression creates a new linked task rather than reopening.
 
 ## Skill activation contract
 
