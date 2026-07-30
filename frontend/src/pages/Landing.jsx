@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Footer from '../components/layout/Footer.jsx';
 import { apiFetch } from '../lib/api.js';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -641,6 +642,7 @@ export default function Landing() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

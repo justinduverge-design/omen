@@ -13,12 +13,18 @@ export default function Footer() {
         >
           Omen
         </span>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-          <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/privacy">Privacy</Link>
-          <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/terms">Terms</Link>
-          <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/support">Support</Link>
-          <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/delete-account">Delete account</Link>
-          <span style={{ color: 'var(--color-text-tertiary)' }}>&copy; {new Date().getFullYear()} Slops Saloon.</span>
+        <div className="space-y-2 text-xs sm:text-right">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:justify-end">
+            <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/privacy">Privacy</Link>
+            <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/terms">Terms</Link>
+            <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/support">Support</Link>
+            <Link className="-mx-2 inline-flex min-h-[44px] items-center px-2 underline underline-offset-4" style={{ color: 'var(--color-text-secondary)' }} to="/delete-account">Delete account</Link>
+          </div>
+          <div className="space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <p>&copy; {new Date().getFullYear()} Valor Ventures LLC. All rights reserved.</p>
+            <p>Slops Saloon and Omen are products of Valor Ventures LLC.</p>
+            <a className="inline-flex min-h-[44px] items-center underline underline-offset-4" href="mailto:legal@slopssaloon.com">legal@slopssaloon.com</a>
+          </div>
         </div>
       </div>
     </footer>
