@@ -54,9 +54,19 @@ None specific to L2. The open questions are in the L0 handoff.
 
 ## 5. Blockers surfaced
 
-None in this repo. The blockers to CUTOVER_COMPLETE are three founder-owned machine
-configuration items recorded in
-`Slops-OS/Direction/reviews/2026-07-30-authority-cutover-enforcement-audit.md`.
+None in this repo, and **none remaining overall**. Founder rulings D70–D72 have since
+been applied to the machine configuration, so all 13 PR B gates now pass and
+CUTOVER_COMPLETE is reachable. Evidence:
+`Slops-OS/Direction/reviews/2026-07-30-pr-b-gate-results.md` and
+`.../2026-07-30-authority-cutover-enforcement-audit.md`.
+
+**B5 wording, per D74:** no active authority, routing, identity, or kickoff surface
+contains `Soft lean`. Occurrences inside archives and protected historical records —
+including `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md`:37 in this repo — are
+excluded and remain unchanged.
+
+Two path-A enforcement items remain open at L0 (five retired-project trust entries and
+one `Bash(npx vite *)` wildcard). Neither blocks a gate and neither affects this repo.
 
 **Merge order matters:** merge `Slops-OS` first. This repo's `kickoff-l2.md` points at
 L0's `AGENT_INDEX.md` §§8–9 for Runtime Policy and Active Trust Assignments; merging L2
