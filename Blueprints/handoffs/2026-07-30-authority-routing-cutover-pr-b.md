@@ -54,13 +54,13 @@ None specific to L2. The open questions are in the L0 handoff.
 
 ## 5. Blockers surfaced
 
-None in this repo. **One remains overall.** Founder rulings D70–D72 and D76–D77 have been
-applied to the machine configuration, but re-verification surfaced a mis-assessed standing
-indirect-executor grant — `Skill(gstack:*)`, a wildcard over 47 Bash-declaring gstack
-sub-skills including deploy, release, and cookie-setup. It blocks **B12**.
+**None, in this repo or overall.** Founder rulings D70–D72, D76–D77, and D79 have all been
+applied to the machine configuration. D79 removed the last item — `Skill(gstack:*)` and the
+top-level `Skill(gstack)` dispatcher.
 
-**Current score: 12 of 13. CUTOVER_COMPLETE is not yet reachable.** The earlier "13 of 13"
-claim was premature and has been retracted — classification is not resolution. Evidence:
+**Final score: 13 of 13, genuinely. CUTOVER_COMPLETE is supportable.** The earlier
+"13 of 13" claim was premature and was retracted; the score history is retained in the
+tracked evidence so the error and its correction stay visible. Evidence:
 `Slops-OS/Direction/reviews/2026-07-30-pr-b-gate-results.md` and
 `.../2026-07-30-authority-cutover-enforcement-audit.md`.
 
@@ -69,10 +69,14 @@ contains `Soft lean`. Occurrences inside archives and protected historical recor
 including `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md`:37 in this repo — are
 excluded and remain unchanged.
 
-The two previously-open path-A items at L0 are now genuinely tightened: D76 removed all
-five retired-project trust entries (zero trusted entries now remain) and D77 removed
-`Bash(npx vite *)`. One path-A item remains open — `Skill(gstack:*)` — and unlike those
-two it **does** block a gate. It does not affect this repo's contents.
+**Zero path-A items remain open.** D76 removed all five retired-project trust entries
+(zero trusted entries remain), D77 removed `Bash(npx vite *)`, and D79 removed the gstack
+standing authority. The effective allowlist is 9 rules with zero wildcards. None of this
+changed any file in this repo.
+
+**PR A regression verification (D80): all 7 checks pass**, including that this repo's
+`Direction/status-model.md` pin `SOURCE_COMMIT d26b7b6` resolves and is an ancestor of
+Slops-OS `origin/master`, and that PR B modifies neither status-model file.
 
 **Merge order matters:** merge `Slops-OS` first. This repo's `kickoff-l2.md` points at
 L0's `AGENT_INDEX.md` §§8–9 for Runtime Policy and Active Trust Assignments; merging L2
@@ -89,6 +93,6 @@ prompts present at their original byte sizes.
 
 ## 7. Next recommended pull
 
-Nothing here. The one open item is a ruling on `Skill(gstack:*)` at L0. Resume the normal L2 queue from `Direction/agent_inbox.md` once both PRs
+Nothing blocking. Resume the normal L2 queue from `Direction/agent_inbox.md` once both PRs
 are merged — and note that your next session will start from `kickoff-l2.md`, which will
 ask you to confirm your actual capabilities before you do anything.
