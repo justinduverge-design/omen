@@ -17,8 +17,11 @@ SLOPS/
 Use these prompts to start new Omen work without re-explaining the whole repo:
 
 - `HOW-TO-RUN-THE-LOOP.md` - operator guide for loading one task, choosing the right lane, and closing the loop.
-- `kickoff-backend-codex.md` - copy-paste starter for Codex backend/API/platform tasks.
-- `kickoff-frontend-claude.md` - copy-paste starter for Claude frontend/product tasks.
+- `kickoff-l2.md` - the single copy-paste L2 starter for any runtime. Layer- and
+  capability-named, not vendor-named: it confirms the session's actual capabilities and
+  reads Runtime Policy and Active Trust Assignments before applying any authority.
+  Supersedes the retired `kickoff-backend-codex.md` / `kickoff-frontend-claude.md` pair,
+  archived under `Archive/authority-routing/`.
 
 Any change to a prompt in this folder must be recorded in `PROMPTS_CHANGELOG.md`.
 `prompt_playbook.md` is superseded by the kickoff files above and remains only as

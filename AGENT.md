@@ -64,7 +64,7 @@ If a file is missing, continue and mention it.
 ## Handoff Rule
 
 Use `Direction/agent_inbox.md` as the active task slot. Use
-`Blueprints/prompts/kickoff-backend-codex.md` when Justin starts a backend task,
+`Blueprints/prompts/kickoff-l2.md` when the founder starts a task,
 and satisfy `Blueprints/definition-of-done.md` before calling the task done.
 
 Read frontend requests from:
