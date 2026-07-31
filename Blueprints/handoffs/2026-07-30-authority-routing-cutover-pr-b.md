@@ -54,9 +54,13 @@ None specific to L2. The open questions are in the L0 handoff.
 
 ## 5. Blockers surfaced
 
-None in this repo, and **none remaining overall**. Founder rulings D70–D72 have since
-been applied to the machine configuration, so all 13 PR B gates now pass and
-CUTOVER_COMPLETE is reachable. Evidence:
+None in this repo. **One remains overall.** Founder rulings D70–D72 and D76–D77 have been
+applied to the machine configuration, but re-verification surfaced a mis-assessed standing
+indirect-executor grant — `Skill(gstack:*)`, a wildcard over 47 Bash-declaring gstack
+sub-skills including deploy, release, and cookie-setup. It blocks **B12**.
+
+**Current score: 12 of 13. CUTOVER_COMPLETE is not yet reachable.** The earlier "13 of 13"
+claim was premature and has been retracted — classification is not resolution. Evidence:
 `Slops-OS/Direction/reviews/2026-07-30-pr-b-gate-results.md` and
 `.../2026-07-30-authority-cutover-enforcement-audit.md`.
 
@@ -65,8 +69,10 @@ contains `Soft lean`. Occurrences inside archives and protected historical recor
 including `Blueprints/handoffs/2026-07-23-session-close-m4-auth.md`:37 in this repo — are
 excluded and remain unchanged.
 
-Two path-A enforcement items remain open at L0 (five retired-project trust entries and
-one `Bash(npx vite *)` wildcard). Neither blocks a gate and neither affects this repo.
+The two previously-open path-A items at L0 are now genuinely tightened: D76 removed all
+five retired-project trust entries (zero trusted entries now remain) and D77 removed
+`Bash(npx vite *)`. One path-A item remains open — `Skill(gstack:*)` — and unlike those
+two it **does** block a gate. It does not affect this repo's contents.
 
 **Merge order matters:** merge `Slops-OS` first. This repo's `kickoff-l2.md` points at
 L0's `AGENT_INDEX.md` §§8–9 for Runtime Policy and Active Trust Assignments; merging L2
@@ -83,6 +89,6 @@ prompts present at their original byte sizes.
 
 ## 7. Next recommended pull
 
-Nothing here. Resume the normal L2 queue from `Direction/agent_inbox.md` once both PRs
+Nothing here. The one open item is a ruling on `Skill(gstack:*)` at L0. Resume the normal L2 queue from `Direction/agent_inbox.md` once both PRs
 are merged — and note that your next session will start from `kickoff-l2.md`, which will
 ask you to confirm your actual capabilities before you do anything.
