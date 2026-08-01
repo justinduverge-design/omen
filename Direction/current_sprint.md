@@ -65,8 +65,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A3 — Production security and Supabase review
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Justin pin and access window
+- **Status:** VERIFIED
+- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md` (repo-only pass; two items — live Certbot/TLS state and live RLS re-confirmation — flagged as needing a separate access window, not closed here).
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** audit preparation only
@@ -77,10 +77,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** READY
 - **Blocked by:** FOUNDER_APPROVAL — production-change pin for the environment flip
-- **Blocked by:** AGENT_RESOLVABLE — approved no-write Supabase dry-run against real nflverse data
+- **Blocked by:** TASK-B3 — nflverse scoring replacement must land before an honest nflverse dry-run is possible (found 2026-07-31; current cron is Sportradar-only, no dry-run mode exists in code)
 - **Priority:** P0
 - **Cost:** small
-- **Agent-buildable:** dry-run preparation and verification only; the env flip is gated
+- **Agent-buildable:** dry-run preparation and verification only, once B3 lands; the env flip is gated
 - **Done when:** dry-run validates real rows without writes; production flag is explicitly approved and changed; readiness and cron health pass; rollback owner is named.
 - **Do not touch:** the production flag before approval; never log provider credentials or raw user data.
 
@@ -100,7 +100,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Figma-approved Waiver Watch proposal on `03 — Components` (does not exist yet; needs a §3.2 approval pass first)
+- **Blocked by:** None — Figma proposal approved (node `67:2`, "03 — Components", badge updated to "APPROVED COMPOSITION — Justin, 2026-07-31"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
 - **Priority:** P1
 - **Cost:** medium
 - **Scope:** replace the "Waiver Watch is landing next" placeholder in `OmenCommandCenterScreen` with the approved composition per mobile-visual-briefs §1.3 (Tuesday–Wednesday urgent briefing + Thursday–Monday calm opportunity list). Required states: pending, processed, availability-unknown, no-credible-move, not-connected, off-season.
@@ -184,24 +184,46 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** backend returns computed buy-low targets; the static list is retired or an explicit offline fallback is in place; source status is truthful; empty/error/stale paths are tested and documented.
 - **Do not touch:** paid data source or new dependency without approval.
 
+### B3 — Replace Sportradar with nflverse for Tuesday scoring
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** medium
+- **Source:** surfaced 2026-07-31 during A4 dry-run prep (`Direction/reviews/2026-07-31-a4-tuesday-scoring-dry-run-prep.md`). `src/omen_tuesday_cron.js` requires `SPORTRADAR_API_KEY` (paid) and has zero nflverse integration or dry-run mode, despite `deploy/hostinger/ENV-INVENTORY.md` describing both a "current nflverse scoring path" and an `OMEN_CRON_DRY_RUN` flag that don't exist in code.
+- **Scope:** replace the Sportradar fetch in `fetchNFLScores()`/`runScoring()` with a weekly nflverse `player_stats_<season>.csv` pull (same free, no-key GitHub-releases source already used by `src/services/matchupService.js`, which carries `season`/`week`/`position`/`fantasy_points(_ppr)` columns); implement the `OMEN_CRON_DRY_RUN` flag so scoring can run read-only; drop `SPORTRADAR_API_KEY` from `REQUIRED_SCORING_ENV`.
+- **Done when:** Tuesday scoring sources weekly player fantasy points from nflverse instead of Sportradar; `OMEN_CRON_DRY_RUN=true` runs the full scoring pass against real rows with zero Supabase writes; `SPORTRADAR_API_KEY` is no longer required; tests cover the nflverse row-mapping and dry-run no-write behavior; `npm test` green.
+- **Do not touch:** the production `OMEN_CRON_SCORING_ENABLED` flag; no production cron deploy without separate approval.
+
 ## F. Verify lane — Justin must pin
 
 ### F1 — Service-key Supabase route-scoping audit
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Justin pin
+- **Status:** VERIFIED
+- **Evidence:** `Direction/reviews/2026-07-31-f1-service-key-route-scoping-audit.md`; `test/userPrivacyIsolation.test.js` (4 tests), `test/espnRouteIsolation.test.js` (3 tests); `npm test` 476/476 at the time of this closure.
 - **Priority:** P1
 - **Cost:** medium
 - **Done when:** every service-key route has a route/query/scoping-column/test mapping; any unscoped query becomes a P0 defect with a failing isolation test.
 - **Do not touch:** production data; secret values.
 
-### F4 — ESPN public handoff production verification
+### F5 — ESPN connect walkthrough recording
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Justin pin if production interaction is required
+- **Blocked by:** None
+- **Priority:** P2
+- **Cost:** small-medium
+- **Source:** surfaced 2026-07-31 during F4 verification (`Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`). Production `/espn-connect` still shows the placeholder copy "A mock 90-second Chrome/Edge walkthrough is coming here" — descoped out of F4 rather than blocking that verification pass.
+- **Scope:** record/produce the ~90-second Chrome/Edge walkthrough of the ESPN Connect helper flow using mock/demo data only — no real ESPN account or credentials, matching the page's own existing promise. Embed or link the asset on `EspnConnectGuide.jsx`, replacing the placeholder copy.
+- **Done when:** the walkthrough asset exists, renders correctly on desktop and mobile, and contains no real ESPN credentials, cookies, or account data.
+- **Do not touch:** real ESPN account/credentials in the recording; any live cookie values.
+
+### F4 — ESPN public handoff production verification
+
+- **Status:** VERIFIED
+- **Evidence:** `Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`; `test/espnConnectGuideRegression.test.js` (5 tests); `npm test` 481/481.
 - **Priority:** P1
 - **Cost:** small
-- **Done when:** `/espn-connect`, extension links/assets, share/copy fallbacks, walkthrough, and the regression test pass on phone and desktop without exposing cookie names or values in shared payloads.
+- **Done when:** `/espn-connect`, extension links/assets, share/copy fallbacks, and the regression test pass on phone and desktop without exposing cookie names or values in shared payloads. (Walkthrough split out to F5, 2026-07-31 — see that item.)
 - **Do not touch:** ESPN cookie values in logs, UI, URLs, or payloads.
 
 ## Deferred / paused backlog — not selectable
