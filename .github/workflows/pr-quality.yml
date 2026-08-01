@@ -1,0 +1,130 @@
+# Pull-request quality gate.
+#
+# Why this exists: until 2026-08-01 the backend had NO pull-request CI at all.
+# `deploy.yml` runs the real quality job, but it is `on: push: branches: [main]`,
+# so nothing gated a PR that touched `src/**`. `ui-quality.yml` only fires on
+# `frontend/src/**`, so a PR changing only `frontend/package.json` also ran
+# nothing. Two dependency PRs reached "green" that way and would have broken
+# production (see #206, #252) — this workflow closes those gaps.
+#
+# Deliberately mirrors deploy.yml's `quality` job so a PR gets the same verdict
+# the post-merge deploy will, rather than a weaker one.
+
+name: PR Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "evals/**"
+      - "package.json"
+      - "package-lock.json"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "frontend/src/**"
+      - "client/package.json"
+      - "client/package-lock.json"
+      - ".github/workflows/pr-quality.yml"
+
+concurrency:
+  group: pr-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run backend tests
+        run: npm test
+
+      # Same threshold as deploy.yml's quality job, so a PR cannot pass here
+      # and then fail the gate that actually blocks the deploy.
+      - name: Run dependency audit
+        run: npm audit --audit-level=moderate --omit=dev
+
+  frontend-build:
+    name: Frontend and client builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      # The gap this closes: a bump to frontend/package.json alone previously
+      # triggered no build anywhere on a PR. Tailwind v4 and Vite 8 both break
+      # the CSS build and were only caught by hand.
+      - name: Build primary frontend
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run build
+
+      - name: Build legacy client bundle
+        run: |
+          npm --prefix client ci
+          npm --prefix client run build
+
+  boot-smoke:
+    name: Server boots with SPA present
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend ci
+
+      # HAS_SPA (src/server.js) is `fs.existsSync(frontend/dist/index.html)`.
+      # Every other job leaves that false, which is exactly why the Express 5
+      # route-registration crash was invisible to CI: the SPA fallback block
+      # never executed. Building the frontend here makes HAS_SPA true, matching
+      # the production image.
+      - name: Build frontend so HAS_SPA is true
+        run: npm --prefix frontend run build
+
+      - name: Assert the server registers its routes and boots
+        env:
+          # Dummy values — this asserts route registration and startup only.
+          # It makes no outbound call and touches no real project.
+          NODE_ENV: test
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_KEY: ci-boot-smoke-placeholder
+          PORT: "3999"
+        run: |
+          test -f frontend/dist/index.html || {
+            echo "::error::frontend/dist/index.html missing — HAS_SPA would be false and this smoke would not test anything."
+            exit 1
+          }
+          node -e "
+            try {
+              require('./src/server.js');
+              console.log('Server registered routes and booted with SPA present.');
+              process.exit(0);
+            } catch (err) {
+              console.error('::error::Server failed to boot: ' + err.message);
+              process.exit(1);
+            }
+          "
