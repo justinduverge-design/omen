@@ -73,16 +73,17 @@ test("schema includes backend-owned columns used by active routes and workers", 
   assert.match(sql, /create or replace function public\.vault_delete_secret/i);
 });
 
-test("waitlist_signups allows browser insert without exposing reads", () => {
+test("waitlist_signups permits writes only through the server service role", () => {
   const sql = readRepoFile("sql", "omen_rls_security.sql");
-  const compactSql = sql.replace(/\s+/g, " ");
 
   assert.match(sql, /create table if not exists public\.waitlist_signups/i);
   assert.match(sql, /alter table public\.waitlist_signups\s+enable row level security/i);
-  assert.match(compactSql, /create policy anon_insert on public\.waitlist_signups for insert to anon, authenticated with check \(true\);/i);
+  assert.match(sql, /drop policy if exists anon_insert on public\.waitlist_signups/i);
+  assert.match(sql, /drop policy if exists authenticated_insert on public\.waitlist_signups/i);
   assert.match(sql, /revoke all on table public\.waitlist_signups from anon, authenticated;/i);
-  assert.match(sql, /grant insert \(email, platform\) on table public\.waitlist_signups to anon, authenticated;/i);
-  assert.doesNotMatch(sql, /grant select .*waitlist_signups to anon/i);
+  assert.match(sql, /grant select, insert, update, delete on table public\.waitlist_signups to service_role;/i);
+  assert.doesNotMatch(sql, /create policy anon_insert on public\.waitlist_signups/i);
+  assert.doesNotMatch(sql, /grant insert \(email, platform\) on table public\.waitlist_signups to anon, authenticated;/i);
 });
 
 test("subscriptions table and is_subscribed column are dropped now that Stripe is removed", () => {

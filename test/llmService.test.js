@@ -5,7 +5,7 @@ const test = require("node:test");
 
 function loadLlmWithEnv(env = {}) {
   const oldEnv = {};
-  for (const key of ["LLM_BASE_URL", "LLM_MODEL", "LLM_TIMEOUT"]) {
+  for (const key of ["AI_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_TIMEOUT"]) {
     oldEnv[key] = process.env[key];
     if (Object.prototype.hasOwnProperty.call(env, key)) {
       if (env[key] == null) delete process.env[key];
@@ -156,6 +156,32 @@ test("LLM bridge allows Tailscale/private addresses and strips trailing slashes"
     assert.equal(llm.getLlmBridgeStatus().status, "configured_private");
     assert.equal(await llm.chat([{ role: "user", content: "hello" }]), "A short answer.");
     assert.deepEqual(urls, ["http://100.64.10.20:11434/v1/chat/completions"]);
+  } finally {
+    global.fetch = oldFetch;
+    restore();
+  }
+});
+
+test("LLM bridge disables cloud mode at the zero-dollar cap without calling fetch", async () => {
+  const { llm, restore } = loadLlmWithEnv({
+    AI_PROVIDER: "cloud",
+    LLM_BASE_URL: "http://ollama.internal:11434",
+    LLM_MODEL: "gemma4:e2b-q4_0",
+  });
+  const oldFetch = global.fetch;
+  let calls = 0;
+  global.fetch = async () => {
+    calls += 1;
+    throw new Error("disabled cloud mode must not call fetch");
+  };
+
+  try {
+    const status = llm.getLlmBridgeStatus();
+    assert.equal(status.provider, "cloud");
+    assert.equal(status.status, "cloud_disabled_zero_budget");
+    assert.equal(JSON.stringify(status).includes("ollama.internal"), false);
+    assert.equal(await llm.chat([{ role: "user", content: "hello" }]), null);
+    assert.equal(calls, 0);
   } finally {
     global.fetch = oldFetch;
     restore();

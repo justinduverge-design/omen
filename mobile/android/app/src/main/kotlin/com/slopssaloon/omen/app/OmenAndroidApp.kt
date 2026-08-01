@@ -28,6 +28,7 @@ import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
@@ -47,6 +48,7 @@ import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenModalSheet
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
@@ -104,6 +106,7 @@ fun OmenAndroidApp() {
     var deleteMessage by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
+    var showHelpSupportSheet by remember { mutableStateOf(false) }
 
     fun dispatch(event: AuthEvent) {
         val next = AuthFlowReducer.reduce(flow, event)
@@ -250,6 +253,7 @@ fun OmenAndroidApp() {
                     ) {
                         AccountSheetBody(
                             userId = s.userId,
+                            onOpenHelpSupport = { showHelpSupportSheet = true },
                             onSignOut = {
                                 showAccountSheet = false
                                 sessionManager.signOut()
@@ -258,6 +262,13 @@ fun OmenAndroidApp() {
                                 { showAccountSheet = false; showDelete = true }
                             } else null,
                         )
+                    }
+                    OmenModalSheet(
+                        visible = showHelpSupportSheet,
+                        onDismissRequest = { showHelpSupportSheet = false },
+                        title = "Help + Support",
+                    ) {
+                        OmenHelpSupportScreen(showTitle = false)
                     }
                 }
             }
@@ -375,6 +386,7 @@ private fun SignedInDestination(
 @Composable
 private fun AccountSheetBody(
     userId: String,
+    onOpenHelpSupport: () -> Unit,
     onSignOut: () -> Unit,
     onDelete: (() -> Unit)?,
 ) {
@@ -383,6 +395,11 @@ private fun AccountSheetBody(
             text = "Signed in as $userId",
             style = OmenTheme.typography.body.toTextStyle(),
             color = OmenTheme.color.textPrimary,
+        )
+        OmenListRow(
+            title = "Support & Help Improve Omen",
+            subtitle = "Help Center, feedback, and problem reporting",
+            onClick = onOpenHelpSupport,
         )
         OmenButton(text = "Sign out", onClick = onSignOut, variant = OmenButtonVariant.Secondary)
         if (onDelete != null) {

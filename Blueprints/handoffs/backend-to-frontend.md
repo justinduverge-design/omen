@@ -4036,3 +4036,12 @@ on open blockers)"). Removed:
 Frontend impact: any code still reading `res.body.subscription` from `/api/dashboard/summary`
 will get `undefined`. Any code checking `tools.omen_of_the_week.mode === 'pro'` will never match
 again — check `available`/`status` instead.
+
+## 2026-07-26 — B2-D2 guarded Yahoo waiver fallback
+
+- **Status:** fixture-verified only; real Yahoo capability proof waits on Yahoo Fantasy API reapproval.
+- **Method and path:** authenticated `POST /api/omen/mvp-move` with optional `{ "context_id": "opaque owned Yahoo connection UUID" }`.
+- **Success shape:** when the selected Yahoo context has no Start/Sit swap, an OUT/IR starter, and a live same-position available player, the existing live envelope returns `recommendation.type: "waiver_pickup"`. `primary_player` is the available player, `comparison_player` is the unavailable starter, `expected_value_delta.points` is `null`, `signals.waivers` is live/used, and `signals.projections` is unavailable/not-used.
+- **No-advice shape:** unavailable or insufficient Yahoo availability data returns the existing live `empty` envelope with `recommendation: null`; unavailable retrieval reports `signals.waivers.status: "unavailable"`. It never uses the optimizer mock waiver fixture.
+- **Frontend behavior:** render the returned type and evidence labels; do not infer a point delta or portray this availability-based replacement as a projection-backed ranking.
+- **Files:** `src/services/omen.js`, `src/routes/omen.js`, `test/omenMvpLiveService.test.js`, `test/omenMvpLiveRoute.test.js`. Availability-only waiver advice bypasses matchup DvP enrichment. Evidence: `Blueprints/handoffs/2026-07-26-b2d2-yahoo-waiver-slice.md`.

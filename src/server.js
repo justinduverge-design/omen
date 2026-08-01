@@ -45,6 +45,7 @@ const {
   corsMiddleware,
   generalRateLimit,
   authRateLimit,
+  permissionsPolicyMiddleware,
   publicToolRateLimit,
 } = require("./middleware/security");
 
@@ -57,6 +58,7 @@ app.set("trust proxy", 1);
 
 // --- Security FIRST -----------------------------------------------
 app.use(helmetMiddleware);
+app.use(permissionsPolicyMiddleware);
 app.use(corsMiddleware);
 app.use((req, res, next) => {
   const carriesEspnCredentials = (

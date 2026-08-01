@@ -2,7 +2,7 @@
 
 **App renamed:** Corvus → Omen (2026-06-22). The external repo, deploy path, GHCR images, and containers are now Omen. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims, redirects, legacy env fallbacks, and rollback evidence.
 
-You are Codex working in the Omen product layer. Soft lean: backend, code-volume, tests (either agent can pull any item). See `AGENT.md` for backend-specific ownership and safety rules.
+You are working in the Omen product layer. Lanes are a scheduling convenience, never an authority boundary — any runtime may be assigned any item. Confirm this session's actual capabilities and read Runtime Policy before applying any authority. See `AGENT.md` for backend-specific ownership and safety rules.
 
 ## Read in order before pulling a task
 
@@ -45,7 +45,7 @@ Do not start native feature code when any of those sources are missing or confli
 
 ## Kickoff
 
-Paste `Blueprints/prompts/kickoff-backend-codex.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+Paste `Blueprints/prompts/kickoff-l2.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
 
 ## Close-out
 

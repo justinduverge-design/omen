@@ -154,11 +154,48 @@ function imageUrl(playerId) {
   return playerId ? `https://sleepercdn.com/content/nfl/players/${playerId}.jpg` : null;
 }
 
+/**
+ * Normalize a raw Sleeper projections payload into a `player_id -> pts_ppr` map.
+ *
+ * The live endpoint returns an ARRAY of records with points nested under
+ * `stats` (verified 2026-07-26). Reading it as an object map keyed by player id
+ * silently produced `null` for every player, because a string id indexes an
+ * array by position rather than by key -- and for low-numbered veteran ids it
+ * resolved to a *different* player's record. Normalizing once here keeps both
+ * hazards in one place instead of at every call site.
+ *
+ * Object payloads are tolerated so a cached value written before this fix, or a
+ * future shape change, degrades to a miss rather than a wrong-player match.
+ */
+function normalizeProjections(payload) {
+  const out = {};
+
+  const add = (record, fallbackId) => {
+    if (!record || typeof record !== "object") return;
+    const id = record.player_id != null ? String(record.player_id) : fallbackId;
+    if (!id) return;
+    const points = Number(record.stats?.pts_ppr ?? record.pts_ppr);
+    if (Number.isFinite(points)) out[id] = points;
+  };
+
+  if (Array.isArray(payload)) {
+    for (const record of payload) add(record, null);
+  } else if (payload && typeof payload === "object") {
+    for (const [key, record] of Object.entries(payload)) {
+      if (typeof record === "number") {
+        if (Number.isFinite(record)) out[String(key)] = record;
+        continue;
+      }
+      add(record, String(key));
+    }
+  }
+
+  return out;
+}
+
 function projectionFor(projections, playerId) {
-  const projection = projections?.[playerId];
-  if (!projection) return null;
-  const points = projection.pts_ppr;
-  return Number.isFinite(Number(points)) ? Number(points) : null;
+  const points = Number(projections?.[String(playerId)]);
+  return Number.isFinite(points) ? points : null;
 }
 
 function normalizePlayer({ playerId, player, projection, selectedPosition, isStarter }) {
@@ -356,7 +393,8 @@ async function fetchSleeperPlayers() {
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `ssff:sleeper:projections:${season}:${week}`;
   const cached = await readCache(cacheKey);
-  if (cached) return cached;
+  // Normalized on read too: entries cached before this fix hold the raw array.
+  if (cached) return normalizeProjections(cached);
 
   const projections = await getJson(`${PROJECTIONS_BASE}/${season}/${week}`, {
     params: {
@@ -365,9 +403,80 @@ async function fetchSleeperProjections(season, week) {
     },
     timeout: 15000,
   });
-  const out = projections && typeof projections === "object" ? projections : {};
+  const out = normalizeProjections(projections);
   await writeCache(cacheKey, out, PROJECTIONS_TTL_S);
   return out;
+}
+
+/**
+ * Available (waiver) player pool for one Sleeper league.
+ *
+ * Sleeper exposes no free-agent endpoint, so the pool is derived: every active
+ * skill-position player minus every player rostered by ANY team in the league.
+ *
+ * The subtraction is the correctness risk. Missing one roster silently offers an
+ * owned player as available, and the caller presents that as live advice — so a
+ * roster row without a usable `players` array is treated as unknown-but-owned
+ * rather than empty. Erring toward a smaller pool loses an opportunity; erring
+ * the other way produces a recommendation the user cannot act on.
+ *
+ * Returns the same normalized player shape as buildNormalizedRoster, ranked by
+ * projected points. Players with no projection sort last and keep
+ * `projected_points: null` — never 0, which would read as a real projection of
+ * zero rather than absent data.
+ */
+async function fetchSleeperAvailablePlayers(leagueId, week, season) {
+  const [rosters, players] = await Promise.all([
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    fetchSleeperPlayers(),
+  ]);
+
+  const targetSeason = season || currentSeason();
+  const projections = await fetchSleeperProjections(targetSeason, week).catch(() => ({}));
+
+  const rostered = new Set();
+  for (const roster of Array.isArray(rosters) ? rosters : []) {
+    for (const key of ["players", "starters", "reserve", "taxi"]) {
+      const ids = roster?.[key];
+      if (!Array.isArray(ids)) continue;
+      for (const id of ids) {
+        if (id != null) rostered.add(String(id));
+      }
+    }
+  }
+
+  const eligible = new Set(NFL_POSITIONS);
+  const pool = [];
+
+  for (const [playerId, player] of Object.entries(players || {})) {
+    const id = String(playerId);
+    if (rostered.has(id)) continue;
+    if (player?.active !== true) continue;
+    // Filter on fantasy eligibility, not primary position. Sleeper lists
+    // fullbacks as position "FB" with fantasy_positions ["RB"] — they are
+    // rosterable at RB, and 74 active players (4 of them projected) would be
+    // wrongly withheld from the pool by a primary-position check.
+    if (!eligiblePositions(player).some((pos) => eligible.has(pos))) continue;
+
+    pool.push(normalizePlayer({
+      playerId: id,
+      player,
+      projection: projectionFor(projections, id),
+      selectedPosition: null,
+      isStarter: false,
+    }));
+  }
+
+  pool.sort((a, b) => {
+    const left = a.projected_points;
+    const right = b.projected_points;
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    return right - left;
+  });
+
+  return pool;
 }
 
 async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
@@ -474,6 +583,7 @@ module.exports = {
   fetchSleeperLastResult,
   fetchSleeperPlayers,
   fetchSleeperProjections,
+  fetchSleeperAvailablePlayers,
   fetchSleeperLeagueDrafts,
   fetchSleeperDraft,
   fetchSleeperDraftPicks,

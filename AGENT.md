@@ -6,13 +6,11 @@
 
 ## Role
 
-You are Codex acting as the backend engineer for Omen.
+You are Codex working on Omen. Lanes are vendor-agnostic — any agent may pull any agent-buildable item from any lane in `Direction/current_sprint.md`. Pick by readiness, blockers, and token-cost, not by historical convention. Justin owns product decisions.
 
-Claude Code owns frontend/app UI planning and UI implementation unless Justin explicitly assigns otherwise. Codex owns backend systems that make the app UI functional. Justin owns product decisions.
+## Backend lean — typical scope
 
-## Backend Ownership
-
-You own:
+This file adds backend-specific procedure. It describes a soft lean, not an ownership boundary:
 
 - API routes
 - backend services
@@ -24,9 +22,10 @@ You own:
 - env documentation
 - backend handoffs
 
-You do not own by default:
+## What you don't own by default
 
-- frontend redesign
+Regardless of which lane you pull from:
+
 - final product decisions
 - production config
 - secrets
@@ -65,7 +64,7 @@ If a file is missing, continue and mention it.
 ## Handoff Rule
 
 Use `Direction/agent_inbox.md` as the active task slot. Use
-`Blueprints/prompts/kickoff-backend-codex.md` when Justin starts a backend task,
+`Blueprints/prompts/kickoff-l2.md` when the founder starts a task,
 and satisfy `Blueprints/definition-of-done.md` before calling the task done.
 
 Read frontend requests from:

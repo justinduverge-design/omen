@@ -56,7 +56,7 @@ struct CommandCenterView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("Done") { showAccountSheet = false }
+                            OmenButton(title: "Done", action: { showAccountSheet = false }, variant: .link, size: .sm)
                         }
                     }
             }

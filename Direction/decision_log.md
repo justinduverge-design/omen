@@ -819,3 +819,52 @@
 - **Sleeper waiver ships live but routes to the off-season surface until the season opens.** Founder decision 2026-07-26, resolving S4 option (a) in `Blueprints/specs/b2d-live-waiver-pool-sleeper-espn-v1.md`. Preseason projections are labeled as estimates and never carry in-season confidence. The alternative — staying dark until week 1 — was rejected.
 - **`pre_draft` is a third state, distinct from off-season.** Surfaced by the S3 attempt: a league that has not drafted has no rosters, so every eligible player is correctly "available". A waiver recommendation there is not merely out of season, it is meaningless, and a naive implementation would present 3,293 players as waiver opportunities. `GET /v1/league/{id}` exposes `status`; S2 must branch on in-season, off-season, and pre-draft rather than a season/off-season binary.
 - **A pre-draft league cannot prove roster subtraction.** The 2026-07-26 S3 run against a real 12-team league succeeded end to end (719 ms, 3,293 pool, 533 projected, ranking correct) but every roster was empty placeholders, so nothing was subtracted. Returning the full pool is the correct answer for an undrafted league, which is exactly why the run cannot distinguish a working subtraction from a broken one. S3 stays open until a drafted league is available.
+
+## Decisions Added 2026-07-27 (M4 Help + Support contract)
+
+- **Contextual Help and Help + Support are separate native jobs.** A nearby Tooltip/Help affordance explains a current concept or state and returns to the exact prior work; Account's Support & Help Improve Omen is the durable home for Help Center guidance, voluntary feedback, feature ideas, and problem reporting. The responsive web HelpButton is content inventory only, not the native layout authority.
+- **Native support starts as an approval-gated composition, not a backend integration.** The Design House proposal uses existing Tooltip/Help, Modal/Sheet, ListRow, Button, IconButton, and State Surface contracts and existing semantic tokens. It creates no support inbox, ticket API, telemetry, provider flow, credential handling, or silent submission queue.
+- **Feedback is intentionally privacy-minimal.** Selected league/roster data defaults off, and credentials, cookies, OAuth tokens, raw provider errors, and hidden session data must never attach automatically. Offline/no-account/unavailable states remain honest and do not claim delivery.
+- **Founder approval recorded.** Justin approved the Help + Support Design House proposal and its iOS/Android placement nodes (`61:2`, `63:2`, `63:26`) on 2026-07-27. This clears the visual-contract gate only; the separately scoped native implementation still must obey the exact file, privacy, provider, and support-backend boundaries in `m4-help-support-v1.md`.
+
+## Decisions Added 2026-07-27 (M4 Help + Support implementation)
+
+- **Support feedback stays locally unavailable until a separate backend contract exists.** The iOS and Android actions disclose that nothing is sent or saved, rather than creating a mock submission, queue, telemetry event, or support endpoint.
+- **Account is the durable entry point on both platforms.** iOS pushes Help + Support in the existing Account navigation stack; Android layers the approved Help + Support sheet over Account so system Back returns to Account before dismissing it.
+
+## Decisions Added 2026-07-27 (D2 closeout)
+
+- **The D2 $0 cloud boundary is implemented work, not deployment proof.** PRs #225 and #226 merged the local-default, cloud-disabled control and its evidence records. No production environment change, cloud credential, paid service, or live-provider validation is implied by that completion.
+
+## Decisions Added 2026-07-28 (security hardening landing)
+
+- **OAuth artifacts are operationally sensitive metadata.** Production access logs retain only route-level operational fields, while query strings, referrers, and user agents are omitted; Sentry additionally scrubs OAuth `code` and `state` query parameters.
+- **Waitlist RLS source is not a database action.** The tracked policy source records server-only intent, but production application remains separately approved after a read-only client-usage check. Merging this code must never be represented as a Supabase mutation or live security proof.
+
+## Decisions Added 2026-07-28 (M0-BE-3 evidence reconciliation)
+
+- **Yahoo mobile return is implemented source, not provider/device proof.** PR #191's server-bound native return is verified locally: the app receives only a fixed `connected` or `cancelled` status after server-side state validation. Yahoo console configuration and a real-device browser-to-app cycle remain human gates and cannot be inferred from source tests.
+- **Living native contracts must state the implemented boundary.** Current M0c/onboarding/contract-bus language now points to the merged route; historical 2026-07-19 planning records remain historical rather than being rewritten.
+## Decisions Added 2026-07-26 (B2-D2 guarded Yahoo waiver fallback)
+
+- **Yahoo waiver advice is availability-based until a projection-capable source is proven.** The existing Yahoo available-player path is ordered by Yahoo average rank but does not provide a weekly projection. Canonical Omen may therefore suggest only a live same-position replacement for an OUT/IR starter, with a null point delta and explicit unavailable-projection signal; it must not imply a projection-backed ranking.
+- **Yahoo waiver retrieval fails closed.** If the selected-context availability request fails or lacks an eligible replacement, canonical Omen returns no advice rather than the legacy optimizer's mock waiver fixture. Real-account capability proof remains blocked on Yahoo Fantasy API reapproval.
+- **Do not query a waiver pool without an injury-replacement need.** If the selected Yahoo roster has no OUT/IR-like starter, return the honest live empty envelope before available-player retrieval. This minimizes provider access and keeps the fallback scoped to the promised availability-based recovery case.
+
+## Decisions Added 2026-07-29 (Claude work recovery)
+
+- **A recovery merge must preserve newer provider behavior.** The older deterministic-selector branch would have removed the later Yahoo availability-only fallback. The recovered selector ranks only scoreable candidates and then retains that separate null-point-delta fallback when there is no scoreable decision.
+- **Provider-proof scripts report uncertainty rather than manufacturing success.** The public Sleeper roster-subtraction script uses no credential and returns `UNDECIDABLE` for an undrafted/empty-roster league. A future drafted-league run is required before claiming real roster subtraction.
+- **Stale PRs are closed with replacement links after recovery.** Original #220/#222/#223/#224 are closed as superseded by current-main recoveries #240/#241/#242/#243; this records ledger continuity without calling historical branch tips current.
+## Decisions Added 2026-07-26 (Sleeper waiver foundation — B2-D-S0/S1)
+
+- **Fixtures standing in for an external API response must be captured from a real payload, not authored by hand.** `test/sleeperAdapter.test.js` fixtured Sleeper projections as an object map with flat `pts_ppr`. The live endpoint has never returned that shape — it returns an array with points under `stats`. The suite passed while production resolved every projection to null, for the life of the adapter. A green test over an invented external fixture is not evidence. Any such fixture should cite the date and request it was captured from.
+- **Sleeper projections are keyed by `player_id`, never by array position.** A string id used as an array index resolves by position, which for low-numbered veteran ids returns a *different player's* record. This was masked by a second defect (points nested under `stats`), so fixing only the nesting would have converted silent-null into silently-wrong points attributed to the wrong player. Normalization happens once in `normalizeProjections`, and cached values are normalized on read so pre-fix cache entries degrade to a miss rather than a wrong-player match.
+- **A derived availability pool must fail toward "owned", never toward "available".** Sleeper has no free-agent endpoint, so the waiver pool is computed as all eligible players minus all rostered players. A roster row without a usable array is treated as unknown-but-owned. Erring toward a smaller pool loses an opportunity; erring the other way offers a player the user cannot actually add, presented as live advice. All four roster arrays (`players`, `starters`, `reserve`, `taxi`) are unioned.
+- **An absent projection is `null`, never `0`.** Zero reads as a real projection of zero rather than missing data, and `Number(x) || 0` downstream would silently equate the two. Unprojected players sort last rather than being dropped, so they remain visible as candidates without implying a forecast.
+- **Fantasy eligibility, not primary position, decides whether a player belongs in the pool.** Sleeper lists fullbacks as `position: "FB"` with `fantasy_positions: ["RB"]`; they are rosterable at RB. A primary-position filter withheld 74 active players, 4 of them projected. The same rule correctly drops players listed at a skill position with no fantasy eligibility (a TE marked `["OL"]`, a K marked `["DL"]`).
+- **Live-scale verification against a synthetic roster set is not capability proof.** The S1 checks used a real player universe and real projections but an empty roster set, which proves eligibility, the projection join, and ranking — not the roster subtraction, which is the stated primary risk. Capability proof requires a real league and remains S3.
+
+## Decisions Added 2026-07-29 (Sleeper S3 live proof)
+
+- **Sleeper roster subtraction is provider-proven for the supplied drafted league.** The credential-free public probe of league `1387633793615036416` observed 120 held player IDs and zero leaks in the 3,174-player waiver pool. It also observed 415 projected players and correct null-last ordering. This proves the adapter’s public-pool subtraction behavior for that real league; it does not authorize a transaction, deployment, or a broader claim about another provider.
