@@ -20,8 +20,6 @@ on:
   # on-demand reruns.
   push:
     branches: [main]
-    branches:
-      - main
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
