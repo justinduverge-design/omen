@@ -169,9 +169,21 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Priority:** P0
 - **Cost:** large
 - **Source of truth:** GitHub issue #162. Canonical `POST /api/omen/mvp-move` must safely honor selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
-- **Current state:** the Sleeper waiver stack and deterministic selector landed (PRs #215, #238, #239, #240); Yahoo availability-only fallback landed (PR #236). ESPN implementation is held in planning intake pending `planning-pass`.
+- **Current state:** the Sleeper waiver stack and deterministic selector landed (PRs #215, #238, #239, #240); Yahoo availability-only fallback landed (PR #236). ESPN implementation is held in planning intake pending `planning-pass`. Trade is the last unbuilt decision type — scoped in `B2-D3-S` below.
 - **Done when:** #162 acceptance evidence is complete — server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
 - **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
+
+### B2-D3-S — Live trade capability: Sleeper
+
+- **Status:** READY
+- **Blocked by:** none — the opponent-roster data is already fetched by `fetchSleeperRoster` and discarded; no new endpoint, credential, or founder gate.
+- **Priority:** P0
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Spec:** `Blueprints/specs/b2d3-live-trade-capability-sleeper-v1.md` → Phase T
+- **Done when:** T1 opponent-roster surface, T2 optimal-lineup evaluator, T3 candidate evaluator, and T4 live proof against a **drafted** league all land; the capability matrix reads **Sleeper: live** for `trade_suggestion` with sanitized evidence.
+- **Key rule:** suggest only trades where **both** teams' projected starting lineup improves; `decisionScore` is the user's weekly lineup delta, with `tradeValue.js` VORP used as a fairness guard, never as the score.
+- **Do not touch:** the public Trade Analyzer route, Yahoo/ESPN trade rows, provider credentials, deploy, SQL, production data.
 
 ### D1 — Real `GET /api/trade/pulse`
 
