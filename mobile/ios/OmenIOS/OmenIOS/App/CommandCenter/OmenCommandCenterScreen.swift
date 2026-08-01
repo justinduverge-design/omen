@@ -63,12 +63,12 @@ struct OmenCommandCenterScreen: View {
             }
             Spacer(minLength: OmenSpacing.step8)
             if let onOpenAccount {
-                Button(action: onOpenAccount) {
-                    Image(systemName: "person.crop.circle")
-                        .font(.system(size: 24))
-                        .foregroundStyle(OmenColor.textPrimary)
-                }
-                .accessibilityLabel("Account and profile")
+                OmenIconButton(
+                    contentDescription: "Account and profile",
+                    icon: Image(systemName: "person.crop.circle"),
+                    action: onOpenAccount,
+                    tone: .neutral
+                )
             }
         }
     }

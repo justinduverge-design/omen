@@ -11,6 +11,7 @@ const {
 const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
+const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
 const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -691,7 +692,7 @@ function displayPlatform(platform) {
   return "Platform";
 }
 
-function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
+function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSignal = null }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const response = liveBaseEnvelope({
@@ -703,6 +704,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
     state: "empty",
   });
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  if (waiverSignal) response.signals.waivers = waiverSignal;
   response.explanation = {
     summary: "No move clears the recommendation threshold this week.",
     why_it_matters: "The current lineup and bench options do not show a strong enough live edge to force a move.",
@@ -712,6 +714,220 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms }) {
   };
   response.confidence = confidence(68, "medium", `No ${platformLabel} lineup swap cleared the optimizer threshold.`);
   return { status: 200, body: response };
+}
+
+/**
+ * A league that has not drafted has no rosters, so "no move clears the
+ * recommendation threshold" would be a false statement rather than a
+ * conservative one. Verified live 2026-07-26: a real `pre_draft` Sleeper league
+ * returns `players: []` with `starters: ["0" x 10]` placeholder slots.
+ *
+ * This is a third state, not a variant of off-season. Off-season means the
+ * season is over or not started; pre-draft means this specific league has no
+ * team to advise on yet.
+ */
+function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
+  const platform = connection.platform || roster?.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const response = liveBaseEnvelope({
+    platform,
+    platformStatus: "pre_draft",
+    leagueId: connection.league_id,
+    teamId: roster?.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster?.week || null,
+    state: "empty",
+  });
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.signals.roster = unavailableSignal(
+    `${platform}_league`,
+    "This league has not drafted yet, so there is no roster to advise on."
+  );
+  response.explanation = {
+    summary: `Your ${platformLabel} league has not drafted yet.`,
+    why_it_matters: "Omen needs a drafted roster before it can weigh a lineup, waiver, or trade move.",
+    risk: "Acting on advice for an undrafted team would mean acting on players you do not have.",
+    confidence: "Confidence is high that no move exists to recommend before the draft.",
+    data_used: [`${platformLabel} league status`],
+  };
+  response.confidence = confidence(100, "high", `The ${platformLabel} league status is pre-draft.`);
+  response.warnings.push(`Omen resumes for this league once the ${platformLabel} draft is complete.`);
+  return { status: 200, body: response };
+}
+
+/**
+ * The waiver path is deliberately narrow: a genuinely OUT starter and a real,
+ * projected, same-position player in the pool. Anything less declines rather
+ * than filling the screen — per issue #162, an honest empty beats a
+ * manufactured move.
+ *
+ * B2-D4 note: the waiver path no longer waits for start/sit to find nothing.
+ * Both types now produce candidates and the selector compares them by score.
+ * The preconditions above are unchanged — they are what makes the comparison
+ * honest, and they are also what keeps the cost near zero, since no pool is
+ * ever fetched for a roster with no OUT starter.
+ */
+function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup }) {
+  const platform = connection.platform || roster.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const slot = outStarter.selected_position || outStarter.position || "lineup";
+  const pickupPoints = finiteNumber(pickup.projected_points) || 0;
+  const starterPoints = finiteNumber(outStarter.projected_points) || 0;
+  const delta = pickupPoints - starterPoints;
+  const statusLabel = STATUS_LABELS[normalizedStatus(outStarter.status)] || "unavailable";
+
+  const response = liveBaseEnvelope({
+    platform,
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.recommendation = {
+    id: `live_omen_waiver_${pickup.player_key || "unknown"}`,
+    type: "waiver_pickup",
+    title: `Add ${pickup.name} for ${outStarter.name}`,
+    move: `Pick up ${pickup.name} to cover your ${slot} slot while ${outStarter.name} is ${statusLabel}.`,
+    primary_player: playerForMvp(pickup, pickup),
+    comparison_player: playerForMvp(outStarter, outStarter),
+    expected_value_delta: {
+      points: delta,
+      label: expectedValueLabel(delta),
+    },
+    confidence: confidence(
+      70,
+      mvpConfidenceLabelFromScore(70),
+      `${outStarter.name} is ${statusLabel} and ${pickup.name} is the best projected ${slot} available in your ${platformLabel} league.`
+    ),
+    risk: risk("medium", [
+      `${outStarter.name} is ${statusLabel}, so the ${slot} slot is already compromised.`,
+      `${pickup.name} is unrostered, which usually means limited or unproven volume.`,
+      "Waiver priority or FAAB cost is not modeled, so the add may not clear.",
+    ]),
+    explanation: {
+      summary: `Your best live move is to add ${pickup.name} while ${outStarter.name} is ${statusLabel}.`,
+      why_it_matters: `${outStarter.name} cannot produce in your ${slot} slot, and ${pickup.name} is the highest-projected available replacement at that position.`,
+      risk: `Risk is medium because ${pickup.name} is unrostered and waiver priority is not modeled.`,
+      confidence: "Confidence is 70 out of 100.",
+      data_used: [
+        `${platformLabel} roster`,
+        `${platformLabel} available player pool`,
+        "player availability status",
+        "projected point comparison",
+      ],
+    },
+  };
+  response.warnings.push(
+    `Waiver priority, FAAB budget, and drop candidates are not modeled — confirm the add is possible in ${platformLabel}.`
+  );
+  return { status: 200, body: response };
+}
+
+/**
+ * Sleeper-only for now. Yahoo waiver is PR #211's scope and is gated on Yahoo
+ * API reapproval; ESPN has no available-player capability yet (see the E phase
+ * of the waiver-pool spec). Returns null to mean "no waiver candidate", which
+ * the selector treats as this type producing nothing.
+ *
+ * Returns the raw pieces plus a decision score rather than a finished envelope,
+ * so the selector can compare it against start/sit before anything is rendered.
+ */
+async function buildWaiverCandidateForConnection({ connection, roster }) {
+  if (connection.platform !== "sleeper") return null;
+
+  const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
+  const outStarter = starters.find((player) => isOutStatus(player?.status));
+  // No compromised slot means no waiver need. Do not price a pool to look busy.
+  if (!outStarter) return null;
+
+  const slotPositions = new Set(
+    (Array.isArray(outStarter.eligible_positions) && outStarter.eligible_positions.length
+      ? outStarter.eligible_positions
+      : [outStarter.position]
+    ).filter(Boolean)
+  );
+  if (!slotPositions.size) return null;
+
+  let pool;
+  try {
+    pool = await sleeperAdapter.fetchSleeperAvailablePlayers(
+      connection.league_id,
+      roster.week,
+      String(new Date().getFullYear())
+    );
+  } catch {
+    // A pool failure degrades to the normal empty response. It must never
+    // surface as an error or as a recommendation built on partial data.
+    return null;
+  }
+
+  const candidate = (Array.isArray(pool) ? pool : []).find((player) => {
+    // null projection means "unknown", not zero. An unprojected add is not
+    // evidence-backed, so it never becomes a recommendation.
+    //
+    // The null check is explicit and must stay that way: Number(null) is 0,
+    // which is finite, so a Number.isFinite guard alone silently admits every
+    // unprojected player. That is the same null-vs-zero trap the S0 projection
+    // fix exists to prevent.
+    const points = player?.projected_points;
+    if (points == null || !Number.isFinite(Number(points))) return false;
+    const positions = Array.isArray(player?.eligible_positions) && player.eligible_positions.length
+      ? player.eligible_positions
+      : [player?.position];
+    return positions.some((pos) => slotPositions.has(pos));
+  });
+  if (!candidate) return null;
+
+  // Same unit as a lineup swap's delta: expected points gained this week. An
+  // OUT starter's own projection is subtracted rather than assumed to be zero,
+  // so the two types are genuinely comparable instead of merely both numeric.
+  const pickupPoints = finiteNumber(candidate.projected_points) || 0;
+  const starterPoints = finiteNumber(outStarter.projected_points) || 0;
+
+  return {
+    id: `live_omen_waiver_${candidate.player_key || "unknown"}`,
+    type: "waiver_pickup",
+    decisionScore: pickupPoints - starterPoints,
+    requiredSignalsLive: true,
+    contextVerified: true,
+    inputKinds: ["live"],
+    outStarter,
+    pickup: candidate,
+  };
+}
+
+/**
+ * Trade is declared so it reports as explicitly unavailable rather than
+ * silently not existing. Per the capability matrix in the canonical contract,
+ * no provider exposes a normalized opponent-roster candidate surface, so B2-D3
+ * must land before this can ever produce a candidate.
+ */
+function buildTradeCandidate() {
+  return {
+    type: "trade_suggestion",
+    available: false,
+    reason: omenSelector.REJECTION.NO_PROVIDER_CAPABILITY,
+  };
+}
+
+/**
+ * Pre-draft is only knowable from league metadata, so it is checked lazily —
+ * once start/sit has already declined — rather than on every request.
+ */
+async function preDraftGuard({ connection, roster, connectedPlatforms }) {
+  if (connection.platform !== "sleeper") return null;
+  let league;
+  try {
+    league = await sleeperAdapter.fetchSleeperLeague(connection.league_id);
+  } catch {
+    return null;
+  }
+  const status = typeof league?.status === "string" ? league.status.toLowerCase() : "";
+  if (status !== "pre_draft" && status !== "drafting") return null;
+  return preDraftMvpResponse({ connection, roster, connectedPlatforms });
 }
 
 function expectedValueLabel(delta) {
@@ -868,6 +1084,102 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
   return response;
 }
 
+function unavailableYahooStarters(roster) {
+  const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
+  return starters
+    .filter((player) => player?.player_key && player?.position && isOutStatus(player.status))
+    .sort((a, b) => String(a.player_key).localeCompare(String(b.player_key)));
+}
+
+function selectedYahooWaiverCandidate(roster, waiverPool = []) {
+  const unavailableStarters = unavailableYahooStarters(roster);
+
+  const availablePlayers = waiverPool
+    .map((player, index) => ({ player, availabilityRank: index + 1 }))
+    .filter(({ player }) =>
+      player?.player_key
+      && player?.name
+      && player?.position
+      && !isOutStatus(player.status)
+    );
+
+  const candidates = [];
+  for (const { player, availabilityRank } of availablePlayers) {
+    for (const starter of unavailableStarters) {
+      if (starter.position !== player.position) continue;
+      candidates.push({ add: player, drop: starter, availabilityRank });
+    }
+  }
+
+  return candidates.sort((left, right) =>
+    left.availabilityRank - right.availabilityRank
+    || String(left.add.player_key).localeCompare(String(right.add.player_key))
+    || String(left.drop.player_key).localeCompare(String(right.drop.player_key))
+  )[0] || null;
+}
+
+function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatforms }) {
+  const add = playerForMvp(waiver.add);
+  const drop = playerForMvp(waiver.drop);
+  const response = liveBaseEnvelope({
+    platform: "yahoo",
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform: "yahoo" });
+  response.signals.projections = signal(
+    "unavailable",
+    false,
+    "yahoo_available_players",
+    "Yahoo's basic available-player response does not include a weekly projection for this waiver recommendation."
+  );
+  response.signals.waivers = signal(
+    "live",
+    true,
+    "yahoo_available_players",
+    "Available-player data came from the selected Yahoo league, ordered by Yahoo average rank."
+  );
+  response.recommendation = {
+    id: `live_omen_yahoo_waiver_${add.id || "unknown"}`,
+    type: "waiver_pickup",
+    title: `Add ${add.name} for ${drop.name}`,
+    move: `Add ${add.name} as a ${add.position} replacement for ${drop.name}, who is currently unavailable.`,
+    primary_player: add,
+    comparison_player: drop,
+    expected_value_delta: {
+      points: null,
+      label: "unavailable",
+    },
+    confidence: confidence(
+      60,
+      "medium",
+      "The selected Yahoo league shows an unavailable starter and an available same-position replacement, but no waiver projection."
+    ),
+    risk: risk("medium", [
+      `${drop.name} is unavailable, which creates the roster need.`,
+      `${add.name} is currently available in the selected Yahoo league.`,
+      "Yahoo's basic available-player response does not include a weekly projection, so Omen does not estimate a point delta.",
+    ]),
+    explanation: {
+      summary: `Add ${add.name} to cover for ${drop.name}.`,
+      why_it_matters: `${drop.name} is unavailable and ${add.name} is an available ${add.position} in the selected Yahoo league.`,
+      risk: "This is an availability-based replacement, not a projection-backed claim about the better weekly player.",
+      confidence: "Confidence is medium because the roster need and availability are live, while a waiver projection is unavailable.",
+      data_used: [
+        "selected Yahoo roster",
+        "starter availability status",
+        `Yahoo available-player rank ${waiver.availabilityRank}`,
+      ],
+    },
+  };
+  response.warnings.push("Live Yahoo availability supports this replacement; no weekly waiver projection was available.");
+  return response;
+}
+
 function currentNflWeek(now = new Date()) {
   return getCurrentNflWeekContext(now).week;
 }
@@ -879,9 +1191,9 @@ async function vaultDecrypt(secretId) {
   return data?.decrypted_secret ?? data?.[0]?.decrypted_secret ?? null;
 }
 
-async function buildRosterForConnection(userId, connection, week) {
+async function buildRosterForConnection(userId, connection, week, { yahooClient = null } = {}) {
   if (connection.platform === "yahoo") {
-    const { client: yahoo } = await getAuthenticatedYahooClient(userId);
+    const yahoo = yahooClient || (await getAuthenticatedYahooClient(userId)).client;
     const cacheKey = `ssff:omen-mvp:${userId}:${connection.league_id}:current`;
     return rosterSvc.fetchAndNormalizeRoster(yahoo, connection.league_id, null, cacheKey);
   }
@@ -1025,9 +1337,13 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   if (!connection) return incompleteConnectionResponse(scopedConnections);
 
   const week = currentNflWeek();
+  let yahooClient = null;
+  if (connection.platform === "yahoo") {
+    ({ client: yahooClient } = await getAuthenticatedYahooClient(userId));
+  }
   let roster;
   try {
-    roster = await buildRosterForConnection(userId, connection, week);
+    roster = await buildRosterForConnection(userId, connection, week, { yahooClient });
   } catch (err) {
     if (connection.platform === "espn") return espnRecoveryFromError(connection, err);
     if (connection.platform === "sleeper") {
@@ -1044,9 +1360,88 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     }
     throw err;
   }
-  const [swap] = optimizer.evaluateLineup(roster);
+  // B2-D4 deterministic selection. Generate a candidate per supported type,
+  // then rank — an order of operations, not a type priority. See
+  // `Blueprints/specs/b2d-canonical-omen-context-and-capability-contract-v1.md`
+  // § Deterministic selection.
+  const candidates = [];
 
-  if (!swap) {
+  const [swap] = optimizer.evaluateLineup(roster);
+  if (swap) {
+    candidates.push({
+      id: `live_omen_start_sit_${swap.to?.player_key || "unknown"}`,
+      type: "start_sit",
+      decisionScore: finiteNumber(swap.delta),
+      requiredSignalsLive: true,
+      contextVerified: true,
+      inputKinds: ["live"],
+      swap,
+    });
+  }
+
+  const waiverCandidate = await buildWaiverCandidateForConnection({ connection, roster });
+  if (waiverCandidate) candidates.push(waiverCandidate);
+
+  candidates.push(buildTradeCandidate());
+
+  const { selected } = omenSelector.selectDecision(candidates);
+
+  if (!selected) {
+    // Yahoo's guarded waiver move is availability-based and deliberately has a
+    // null point delta. It therefore cannot enter a selector that only ranks
+    // positive numeric edges, but it must remain available when no scoreable
+    // decision exists. Preserve its existing live-or-unavailable boundary.
+    if (connection.platform === "yahoo") {
+      if (unavailableYahooStarters(roster).length === 0) {
+        return liveEmptyMvpResponse({ roster, connection, connectedPlatforms });
+      }
+      try {
+        const rawWaiverPool = await yahooClient.getAvailablePlayers(connection.league_id, {
+          count: 50,
+          sort: "AR",
+        });
+        const waiver = selectedYahooWaiverCandidate(
+          roster,
+          rosterSvc.normalizeYahooWaivers(rawWaiverPool)
+        );
+        if (waiver) {
+          return {
+            status: 200,
+            body: mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatforms }),
+          };
+        }
+        return liveEmptyMvpResponse({
+          roster,
+          connection,
+          connectedPlatforms,
+          waiverSignal: signal(
+            "live",
+            true,
+            "yahoo_available_players",
+            "Yahoo returned live available-player data, but no safe same-position replacement was found."
+          ),
+        });
+      } catch {
+        return liveEmptyMvpResponse({
+          roster,
+          connection,
+          connectedPlatforms,
+          waiverSignal: signal(
+            "unavailable",
+            false,
+            "yahoo_available_players",
+            "Yahoo available-player data is unavailable, so Omen will not generate waiver advice."
+          ),
+        });
+      }
+    }
+
+    // Off-season already short-circuited at the top of this function. The
+    // remaining split is pre-draft (no roster exists) vs in-season (a roster
+    // exists and simply has no move worth making). An undrafted league must
+    // never be told its lineup is fine.
+    const preDraft = await preDraftGuard({ connection, roster, connectedPlatforms });
+    if (preDraft) return preDraft;
     return liveEmptyMvpResponse({
       roster,
       connection,
@@ -1054,11 +1449,21 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     });
   }
 
+  if (selected.type === "waiver_pickup") {
+    return mapWaiverPickupToMvpMove({
+      roster,
+      connection,
+      connectedPlatforms,
+      outStarter: selected.outStarter,
+      pickup: selected.pickup,
+    });
+  }
+
   return {
     status: 200,
     body: mapLineupSwapToMvpMove({
       roster,
-      swap,
+      swap: selected.swap,
       connection,
       connectedPlatforms,
     }),

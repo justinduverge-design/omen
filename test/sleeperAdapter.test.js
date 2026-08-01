@@ -146,12 +146,20 @@ function fixtures() {
         injury_status: "IR",
       },
     },
-    projections: {
-      100: { pts_ppr: 18.4 },
-      200: { pts_ppr: 21.2 },
-      300: { pts_ppr: 12.1 },
-      500: { pts_ppr: 6.6 },
-    },
+    // Real Sleeper shape, verified live 2026-07-26 against
+    // GET /projections/nfl/{season}/{week}?season_type=regular&position[]=...
+    //
+    // This is an ARRAY of records with points nested under `stats`. A previous
+    // fixture here used an object map keyed by player id with a flat `pts_ppr`,
+    // which the live API has never returned — so these tests certified a shape
+    // that does not exist and every live projection silently resolved to null.
+    // Do not "simplify" this back into a map.
+    projections: [
+      { player_id: "100", stats: { pts_ppr: 18.4 } },
+      { player_id: "200", stats: { pts_ppr: 21.2 } },
+      { player_id: "300", stats: { pts_ppr: 12.1 } },
+      { player_id: "500", stats: { pts_ppr: 6.6 } },
+    ],
   };
 }
 
@@ -213,6 +221,229 @@ test("missing projections do not crash and produce null projected_points", async
   const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
 
   assert.equal(roster.slots.bench[0].projected_points, null);
+});
+
+// Regression guards for the 2026-07-26 live projection-mapping defect. The
+// live payload is an array with points under `stats`; reading it as an object
+// map returned null for every player, and for low-numbered veteran ids a string
+// key indexed the array by POSITION, resolving to a different player's record.
+// The two defects masked each other — fixing only the nesting would have turned
+// silent-null into silently-wrong points attributed to the wrong player.
+
+test("projections map by player_id, not by array position", async () => {
+  const data = fixtures();
+  // Player "300" is third in this array. If the adapter indexes by position
+  // instead of id, "300" would pick up 99.9 from the entry at index 300 (absent)
+  // and, worse, low ids would match unrelated records. Ids here are chosen so a
+  // positional read yields a visibly different number than the correct one.
+  data.projections = [
+    { player_id: "300", stats: { pts_ppr: 12.1 } },
+    { player_id: "100", stats: { pts_ppr: 18.4 } },
+    { player_id: "200", stats: { pts_ppr: 21.2 } },
+    { player_id: "500", stats: { pts_ppr: 6.6 } },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+
+  const byId = Object.fromEntries(
+    [...roster.slots.starters, ...roster.slots.bench, ...roster.slots.ir]
+      .map((p) => [p.player_id, p.projected_points]),
+  );
+
+  // Correct id-keyed values regardless of array order.
+  assert.equal(byId["100"], 18.4);
+  assert.equal(byId["200"], 21.2);
+  assert.equal(byId["300"], 12.1);
+  assert.equal(byId["500"], 6.6);
+});
+
+test("a player id that is a valid array index does not borrow another player's projection", async () => {
+  const data = fixtures();
+  // "1" is a legal index into this 3-entry array. A positional read would give
+  // player "1" the 77.7 belonging to the entry at index 1.
+  data.rosters[0].players = ["1"];
+  data.rosters[0].starters = ["1"];
+  data.rosters[0].reserve = [];
+  data.players = {
+    1: { player_id: "1", full_name: "Low Id Veteran", position: "QB", fantasy_positions: ["QB"], team: "KC" },
+  };
+  data.projections = [
+    { player_id: "900", stats: { pts_ppr: 55.5 } },
+    { player_id: "901", stats: { pts_ppr: 77.7 } },
+    { player_id: "902", stats: { pts_ppr: 88.8 } },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+
+  // Player "1" has no projection of its own. Absent is correct; 77.7 is the bug.
+  assert.equal(roster.slots.starters[0].player_id, "1");
+  assert.equal(roster.slots.starters[0].projected_points, null);
+});
+
+test("points are read from stats.pts_ppr, not a flat pts_ppr", async () => {
+  const data = fixtures();
+  data.projections = [
+    // Flat `pts_ppr` is the shape the old fixture invented. Tolerated as a
+    // fallback, but nested `stats` is what live returns and must win.
+    { player_id: "100", stats: { pts_ppr: 18.4 }, pts_ppr: 999 },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const roster = await adapter.buildNormalizedRoster("league-1", "testuser", 1);
+  const starter = roster.slots.starters.find((p) => p.player_id === "100");
+
+  assert.equal(starter.projected_points, 18.4);
+});
+
+// B2-D-S1 — available (waiver) player pool.
+//
+// Pool = active skill players from /players/nfl, minus every player rostered by
+// ANY team in the league, joined to week projections. Sleeper has no dedicated
+// free-agent endpoint, so the pool is derived. The correctness risk is the
+// subtraction: missing a single roster silently offers an owned player as
+// available, which would be presented as live advice.
+
+function poolFixtures() {
+  const data = fixtures();
+
+  // Two teams. user-1 owns 100/200; user-2 owns 300. 400 and 500 are free.
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: ["100", "200"], starters: ["100", "200"], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: ["300"], reserve: [] },
+  ];
+
+  data.players = {
+    100: { player_id: "100", full_name: "Owned QB", position: "QB", fantasy_positions: ["QB"], team: "KC", active: true },
+    200: { player_id: "200", full_name: "Owned RB", position: "RB", fantasy_positions: ["RB"], team: "BUF", active: true },
+    300: { player_id: "300", full_name: "Rival WR", position: "WR", fantasy_positions: ["WR"], team: "NYJ", active: true },
+    400: { player_id: "400", full_name: "Free WR", position: "WR", fantasy_positions: ["WR"], team: "DAL", active: true },
+    500: { player_id: "500", full_name: "Free TE", position: "TE", fantasy_positions: ["TE"], team: "DET", active: true },
+    600: { player_id: "600", full_name: "Retired K", position: "K", fantasy_positions: ["K"], team: null, active: false },
+    700: { player_id: "700", full_name: "Head Coach", position: "HC", fantasy_positions: ["HC"], team: "MIA", active: true },
+    800: { player_id: "800", full_name: "Unprojected WR", position: "WR", fantasy_positions: ["WR"], team: "SF", active: true },
+  };
+
+  data.projections = [
+    { player_id: "400", stats: { pts_ppr: 11.2 } },
+    { player_id: "500", stats: { pts_ppr: 14.8 } },
+    { player_id: "300", stats: { pts_ppr: 20.0 } },
+    // 800 deliberately has no projection.
+  ];
+
+  return data;
+}
+
+test("available pool excludes players rostered by ANY team, not just the user's", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const ids = pool.map((p) => p.player_id);
+
+  assert.ok(!ids.includes("100"), "user's own player must not be offered");
+  assert.ok(!ids.includes("200"), "user's own player must not be offered");
+  assert.ok(!ids.includes("300"), "a rival team's player must not be offered as available");
+});
+
+test("available pool includes only active skill-position players", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const ids = pool.map((p) => p.player_id);
+
+  assert.ok(!ids.includes("600"), "inactive player must be excluded");
+  assert.ok(!ids.includes("700"), "non-skill position must be excluded");
+  assert.deepEqual(ids.sort(), ["400", "500", "800"]);
+});
+
+test("available pool includes a fullback that is fantasy-eligible at RB", async () => {
+  // Found against live data 2026-07-26: Sleeper lists fullbacks as position
+  // "FB" with fantasy_positions ["RB"]. 74 active players (4 of them projected,
+  // e.g. Kyle Juszczyk) are rosterable at RB but would be withheld by a
+  // primary-position filter. Eligibility, not primary position, decides.
+  const data = poolFixtures();
+  data.players[900] = {
+    player_id: "900",
+    full_name: "Fantasy Eligible FB",
+    position: "FB",
+    fantasy_positions: ["RB"],
+    team: "SF",
+    active: true,
+  };
+  data.projections = [...data.projections, { player_id: "900", stats: { pts_ppr: 9.4 } }];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const fb = pool.find((p) => p.player_id === "900");
+
+  assert.ok(fb, "an FB with fantasy_positions [RB] must be available");
+  assert.equal(fb.projected_points, 9.4);
+  assert.deepEqual(fb.eligible_positions, ["RB"]);
+});
+
+test("available pool still excludes a position with no fantasy eligibility", async () => {
+  const data = poolFixtures();
+  data.players[901] = {
+    player_id: "901",
+    full_name: "Offensive Lineman",
+    position: "OL",
+    fantasy_positions: ["OL"],
+    team: "SF",
+    active: true,
+  };
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.ok(!pool.map((p) => p.player_id).includes("901"));
+});
+
+test("available pool ranks by projected points, unprojected players last", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.deepEqual(pool.map((p) => p.player_id), ["500", "400", "800"]);
+  assert.equal(pool[0].projected_points, 14.8);
+  assert.equal(pool[1].projected_points, 11.2);
+  assert.equal(pool[2].projected_points, null, "no projection must be null, never 0");
+});
+
+test("available pool returns the normalized player shape", async () => {
+  const { adapter } = loadSleeperAdapterWithFixtures(poolFixtures());
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+  const top = pool[0];
+
+  assert.equal(top.player_key, "sleeper:500");
+  assert.equal(top.position, "TE");
+  assert.equal(top.is_starter, false);
+  assert.equal(top.selected_position, null);
+  assert.deepEqual(top.eligible_positions, ["TE"]);
+});
+
+test("available pool is empty, not an error, when every eligible player is rostered", async () => {
+  const data = poolFixtures();
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: ["100", "200", "400", "500", "800"], starters: [], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: [], reserve: [] },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  assert.deepEqual(pool, []);
+});
+
+test("available pool tolerates a roster row with no players array", async () => {
+  const data = poolFixtures();
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: null, starters: [], reserve: [] },
+    { roster_id: 8, owner_id: "user-2", players: ["300"], starters: [], reserve: [] },
+  ];
+
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+  const pool = await adapter.fetchSleeperAvailablePlayers("league-1", 1, "2026");
+
+  // A malformed roster must not throw and must not silently offer its players.
+  assert.ok(!pool.map((p) => p.player_id).includes("300"));
 });
 
 test("fetchSleeperStandings ranks by wins then points for", async () => {

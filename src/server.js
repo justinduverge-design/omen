@@ -45,6 +45,7 @@ const {
   corsMiddleware,
   generalRateLimit,
   authRateLimit,
+  permissionsPolicyMiddleware,
   publicToolRateLimit,
 } = require("./middleware/security");
 
@@ -57,6 +58,7 @@ app.set("trust proxy", 1);
 
 // --- Security FIRST -----------------------------------------------
 app.use(helmetMiddleware);
+app.use(permissionsPolicyMiddleware);
 app.use(corsMiddleware);
 app.use((req, res, next) => {
   const carriesEspnCredentials = (
@@ -267,9 +269,14 @@ try {
 // API requests (any /api/*) and unknown verbs fall through to the
 // 404 handler below.
 if (HAS_SPA) {
-  // Canonical SPA fallback. app.get("*", ...) is the standard
-  // pattern; using app.use(cb) here was racing with the JSON 404
-  // handler in some configurations.
+  // Canonical SPA fallback. Using app.use(cb) here was racing with the
+  // JSON 404 handler in some configurations, so this stays a GET route.
+  //
+  // The catch-all is written as the regex /.*/ rather than the string "*".
+  // Express 5 ships path-to-regexp 8, which rejects a bare "*" at route
+  // registration ("Missing parameter name") and would kill the server on
+  // boot. A RegExp path is accepted unchanged by both Express 4 and 5 and
+  // matches the identical set of paths, so this is version-agnostic.
   app.get(/^\/trade\/share\/[^/]+\/?$/i, (req, res, next) => {
     const hash = tradeShareHashFromPath(req.path);
     if (!hash) return next();
@@ -285,7 +292,7 @@ if (HAS_SPA) {
     });
   });
 
-  app.get("*", (req, res, next) => {
+  app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     if (req.path.includes("."))       return next();  // missed static asset = 404
     setSpaIndexCacheHeaders(res);

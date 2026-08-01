@@ -6,7 +6,7 @@ One short instruction per task. The folder carries the context; you approve the 
 
 - **Task slot:** `Direction/agent_inbox.md` — top-5 auto-populated by the agent + optional pin
 - **Queue:** `Direction/current_sprint.md` — full list, lanes (Frontend / Backend / Ops / Verify / Decisions / Tech debt)
-- **Kickoffs:** `Blueprints/prompts/kickoff-frontend-claude.md`, `Blueprints/prompts/kickoff-backend-codex.md`
+- **Kickoff:** `Blueprints/prompts/kickoff-l2.md` — one layer- and capability-named starter for every runtime. It confirms the session's actual capabilities and reads Runtime Policy before applying any authority.
 - **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
 - **Company baseline:** `Blueprints/playbooks/omen-company-baseline.md`
@@ -18,9 +18,9 @@ One short instruction per task. The folder carries the context; you approve the 
 ## Each task — 5 steps
 
 1. **Paste the kickoff** for the agent you want to run (frontend-claude or backend-codex).
-2. **Agent self-pulls** — reads inbox, honors pin, otherwise organizes top-5 from sprint across all lanes.
+2. **Agent self-pulls** — reads inbox, honors pin, otherwise selects up to 5 `Status: READY` items from the sprint across all lanes, ordered by the selection rule, and claims one.
 3. **Plan approval gate** — agent reports task / files / verification plan / selected skills and conditional-skill N/A reasons. You confirm or correct.
-4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions.
+4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions. Closing means advancing the item through the **status model** (`Direction/status-model.md`): set `Status: VERIFIED` with an `Evidence:` pointer, then `Status: CLOSED` with a `Closure:` value once it lands in `Direction/sprints_completed.md`. `CLOSED` is terminal. A merged PR alone does not satisfy `VERIFIED` — the task's own `Done when:` must be met.
 5. **Agent leaves a skill receipt** — records evidence in `Blueprints/playbooks/skill-usage-ledger.md` and routes any procedure gap through the retro/backlog.
 
 ## Native mobile design loop

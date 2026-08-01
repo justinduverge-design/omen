@@ -58,7 +58,7 @@ Visual reference audit targets:
    - Existing users can sign in immediately.
    - The email fallback uses an **OTP code, not a magic link**, to avoid mobile cross-app deep-link failures.
    - **Three distinct auth mechanisms apply:** native ID-token for Apple/Google (no browser), system-browser OAuth + PKCE for Yahoo, and email OTP. The concrete auth/deep-link/PKCE/secure-token-storage contract is owned by **M0c**; see `2026-07-19-m0a-signin-flow-audit.md` §4.
-   - Auth return for browser-based providers is handled with registered mobile deep links, never a fragile manual browser copy/paste. **Deep-link return is an M0c dependency and is not yet implemented** (`GET /api/yahoo/callback` currently returns to the web Account page).
+   - Auth return for browser-based providers is handled with registered mobile deep links, never a fragile manual browser copy/paste. **Yahoo's server-mediated deep-link return is implemented** in PR #191 / `dbafc66`: after state verification, it returns only a fixed `connected` or `cancelled` status. Provider-console callback registration and real-device browser-to-app proof remain human gates; do not call the provider path ready before that evidence exists.
 
 3. **Choose next step**
    - “Connect a league” is recommended, not a trap.
@@ -130,7 +130,7 @@ The connection experience must be engineered, not merely styled.
 - Initial app launch renders locally before remote league work begins.
 - Login/session restore happens independently from provider sync.
 - Long network work shows named progress, a cancel/leave path where safe, and a recoverable result.
-- The native client uses request IDs and idempotent connect/validate operations; double-taps and app resumes do not create duplicate connections. *(M0c backend verification required — idempotency of the existing web connect endpoints is not yet confirmed.)*
+- The native client uses request IDs and idempotent connect/validate operations; double-taps and app resumes do not create duplicate connections. *(M0-BE-2 verified the Sleeper connect path. Yahoo's native return uses a server-bound, consumed OAuth transaction; its real-device/provider proof remains open.)*
 - Session/auth tokens are stored only in platform secure storage — iOS Keychain and Android Keystore-backed storage — never plain files, logs, or unencrypted preferences.
 - The server returns safe, machine-readable connection states and opaque error codes; raw provider/cookie details never enter client copy.
 - A connection attempt has a bounded timeout and becomes a visible retryable state, never a permanent spinner.

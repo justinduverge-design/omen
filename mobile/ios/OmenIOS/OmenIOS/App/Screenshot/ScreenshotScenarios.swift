@@ -30,6 +30,26 @@ enum ScreenshotScenarios {
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected")) }
         ),
+        "help-support.available": ScreenshotScenario(
+            label: "Help + Support — available",
+            content: { AnyView(OmenHelpSupportView(contextDescription: "Need help with your current Omen flow? Start with a topic below.")) }
+        ),
+        "help-support.no-account": ScreenshotScenario(
+            label: "Help + Support — no account",
+            content: { AnyView(OmenHelpSupportView(state: .noAccount)) }
+        ),
+        "help-support.offline": ScreenshotScenario(
+            label: "Help + Support — offline",
+            content: { AnyView(OmenHelpSupportView(state: .offline)) }
+        ),
+        "help-support.submission-unavailable": ScreenshotScenario(
+            label: "Help + Support — feedback unavailable",
+            content: { AnyView(OmenHelpSupportView(state: .submissionUnavailable)) }
+        ),
+        "help-support.provider-recovery": ScreenshotScenario(
+            label: "Help + Support — provider recovery",
+            content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
+        ),
     ]
 
     /// Read the launch-argument value that names the current scenario, if any.

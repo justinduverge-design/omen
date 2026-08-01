@@ -249,6 +249,7 @@ function enrichRecommendationWithDvp(response, dvp) {
 async function enrichWithDvp(response, body) {
   if (!includeMatchupDvp(body)) return response;
   if (!DVP_ELIGIBLE_STATES.has(response.state)) return response;
+  if (response.recommendation?.type === "waiver_pickup") return response;
   if (!response.signals?.matchup_dvp) return response;
 
   const lookup = deriveDvpLookup(response);
