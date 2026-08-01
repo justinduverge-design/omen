@@ -28,12 +28,13 @@
 - `deploy/hostinger/docker-compose.prod.yml` — secrets are injected via `env_file: .env.production` (gitignored, VPS-only per file header comment), never as literal `environment:` values. Only `NODE_ENV` and `PORT`/`TZ` are set as literals (non-secret).
 - API container is bound `127.0.0.1:3000:3000` only — not exposed directly to the internet; Nginx is the sole public front door.
 - `deploy/hostinger/nginx-omen.conf` — pre-Certbot HTTP-only config, proxies to localhost, no embedded certs/keys. Comment documents the expected `certbot --nginx` flow to add TLS. No secret material in the file.
-- **Finding: PASS**, with one **observation**: this reviewer did not verify the live VPS Nginx config (post-Certbot) or confirm Certbot has actually run — that's server-state, out of scope for a repo-only audit-prep pass. Flag for a future access-window pass if Justin wants live-server confirmation.
+- **Finding: PASS.** **Live-confirmed 2026-08-01** via direct TLS handshake (`openssl s_client -connect slopssaloon.com:443`): certificate issued by Let's Encrypt (`CN=YE1`), valid `2026-06-08` to `2026-09-06`, subject `CN=slopssaloon.com`. Certbot is active and the cert is current — no repo-only caveat remains on this point.
 
 ### 5. RLS / Supabase schema state
 
 - Per `Direction/facts-of-record.md`:15 and `Direction/context.md`:74, `sql/omen_rls_security.sql` is documented as applied and verified in Supabase (migration `20260531160851_apply_omen_rls_security_full_setup`), covering `waitlist_signups`, subscription date columns, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
-- This audit did not re-verify live Supabase state (would require Supabase access/secrets, out of scope for this pass) — relying on the documented record. **Flag:** if Justin wants live re-confirmation, that needs a separate access window and is a bigger lift than this pass.
+- **Live-confirmed 2026-08-01** via Supabase MCP against project `xyudxfhqejbwvjngiwhw` ("Omen", `ACTIVE_HEALTHY`): `select rowsecurity from pg_tables where schemaname='public'` shows RLS **enabled on all 11 public tables** — every user-owned table (`moves`, `platform_connections`, `profiles`, `users`, `consent_records`, `oauth_credentials`, `deletion_audit_log`, `system_context`) plus `waitlist_signups`, `oauth_state`, `local_snapshots`. Security advisors flag the latter three as "RLS Enabled No Policy" (INFO level) — correct by design: these are service-role-only tables (confirmed in the F1 audit), so RLS-enabled-with-no-policy means "deny all except service role," which is the intended lockdown posture, not a gap.
+- **New finding (bonus, not part of the original two flags):** Supabase security advisors report **Leaked Password Protection is disabled** (WARN level) — Supabase Auth's HaveIBeenPwned check against compromised passwords is off. This is a quick toggle in Supabase Auth settings, not a code change. Recommend enabling it. Remediation: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 - Prepared-but-unapplied SQL exists at `sql/2026-06-12_phase1_adp_scoring_schema_review.sql` — per `Direction/facts-of-record.md`:15, authoring SQL is agent work; applying it is a separately gated Justin action. No evidence it has been applied; treat as still pending if/when needed.
 
 ## Overall classification
@@ -43,10 +44,10 @@
 | Git secret hygiene | PASS |
 | Env inventory accuracy | PASS |
 | Fallback defaults | PASS |
-| Deploy/infra config | PASS (live-server TLS state unverified — repo-only scope) |
-| RLS/schema state | Relying on documented record; not independently re-verified live |
+| Deploy/infra config | PASS — TLS live-confirmed 2026-08-01 |
+| RLS/schema state | PASS — live-confirmed 2026-08-01 via Supabase MCP |
 
-**No P0/P1 findings from this repo-only pass.** Two items would need a live-access window to fully close, not just repo review: (1) confirming Certbot/TLS is actually active on the VPS, (2) re-confirming RLS policy state directly against live Supabase rather than relying on the decision-log record. Recorded here rather than silently treated as done.
+**No P0/P1 findings.** Both live-access-window items from the original repo-only pass are now closed (2026-08-01): Certbot/TLS confirmed active via direct handshake; RLS confirmed enabled on every table via Supabase MCP. One new WARN-level finding surfaced during the live check: leaked-password protection is disabled in Supabase Auth — a one-toggle fix, not urgent, but worth doing.
 
 ## Do-not-touch compliance
 

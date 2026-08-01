@@ -221,9 +221,38 @@ No win-rate badge, streak, boastful copy, celebration, or leaderboard belongs in
 - Matchup Hero: vertical head-to-head spine with right-side What to Watch rail; records beside team names: Justin, 2026-07-20.
 - Waiver Watch: urgent briefing Tue/Wed; calm ranked opportunity list Thu–Mon; Best Move plus two long-horizon moves for dynasty/keeper context: Justin, 2026-07-20.
 - Ledger: accountable, factual preview; no confidence theater or self-congratulatory scoring: Justin, 2026-07-20.
+- League Pulse: standings/playoff-position half real today via `GET /api/league/standings`; activity half ships as an honest empty state until a real backend feed exists, never fabricated: Justin, 2026-08-01.
 
 
 ---
+
+### 1.6 League Pulse — approved
+
+**Purpose:** compact Command Center preview of the selected league's official standing and meaningful activity, routing into the deeper League → Standings & Activity view (§14). Command Center never invents league-activity data — a section with no real feed shows an honest empty state rather than nothing or a fabricated placeholder.
+
+```
+LEAGUE PULSE                                   League →
+
+3rd of 12 · Currently in a playoff spot
+2 games clear of the cut line
+
+AROUND THE LEAGUE
+No league activity feed yet — check back soon.
+```
+
+- **Standings half (real data today):** verified current rank, record context, and playoff position sourced from `GET /api/league/standings` — the same route and provider-rank source of truth as §14.1. Only verified current position, never a probability/likelihood number (that stays gated behind the pre-midseason capability/evidence requirements in §2.1).
+- **Activity half (honest empty state today):** no backend feed for "meaningful league activity" (waivers/trades/standings-shift notices per §14.2) exists yet. Ship the section now with a plain, factual empty-state line — never omit the section, and never fabricate a waiver/trade entry to fill it. When a real activity feed lands on the backend, this section switches to the §14.2 format (at most three meaningful updates, grouped by category) without a Command Center layout change.
+- CTA "League →" opens the full League → Standings & Activity destination in the already-selected team/league context.
+- No fake urgency, no invented rival-team moves, no manufactured "hot streak" framing.
+
+**Required states**
+
+| State | Required message/behavior |
+|---|---|
+| Standings available, activity feed not yet built | Standings populate normally; activity section shows the honest empty-state line above (this is the expected v1 state, not an error) |
+| Not connected | Explain personalized value and offer connection/demo path, matching Waiver Watch's not-connected pattern |
+| Off-season | Relevant standings/recap context only; no fake weekly urgency |
+| Standings temporarily unavailable | Named unavailable state, never a stale/frozen rank presented as current |
 
 ## 2. Pre-midseason League Intelligence Enhancements
 

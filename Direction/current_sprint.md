@@ -66,7 +66,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A3 — Production security and Supabase review
 
 - **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md` (repo-only pass; two items — live Certbot/TLS state and live RLS re-confirmation — flagged as needing a separate access window, not closed here).
+- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md`. Both originally-flagged live-access items closed 2026-08-01: TLS confirmed via direct handshake (Let's Encrypt, valid through 2026-09-06); RLS confirmed enabled on all 11 public tables via Supabase MCP. New WARN-level finding surfaced: leaked-password protection disabled in Supabase Auth (one-toggle fix, not urgent).
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** audit preparation only
@@ -120,8 +120,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-LeaguePulse — League Pulse composition + wiring
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — founder-approved visual brief §1.6 (does not exist yet)
-- **Blocked by:** FOUNDER_APPROVAL — Figma-approved League Pulse proposal on `03 — Components`
+- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `74:2`, "PROPOSAL — League Pulse", submitted 2026-08-01); awaiting your review. (Visual brief §1.6 blocker cleared 2026-08-01 — approved, see `Blueprints/specs/mobile/omen-mobile-visual-briefs-v1.md` §1.6.)
 - **Priority:** P2
 - **Cost:** small–medium
 - **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
@@ -176,12 +175,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### D1 — Real `GET /api/trade/pulse`
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — production Redis/env access needed to verify the live path; not agent-resolvable from the repo alone
+- **Status:** VERIFIED
+- **Evidence:** live-hit `https://slopssaloon.com/api/trade/pulse` 2026-08-01T03:10:53Z — returned `"status":"live","is_mock":false,"source_status":"live_adp"` with 5 real current players (Jahmyr Gibbs, Bijan Robinson, Puka Nacua, Ja'Marr Chase, Christian McCaffrey). `Direction/reviews/2026-08-01-d1-adp-source-research.md`; `test/adpService.test.js` (9 tests), `test/tradeRoute.test.js` live/unavailable cases.
 - **Priority:** P1
-- **Cost:** small (corrected 2026-08-01 — was "medium", assumed a data source still needed building)
-- **Current state:** CORRECTED 2026-08-01 (`Direction/reviews/2026-08-01-d1-adp-source-research.md`). `src/services/adp.js` already implements a complete, free, three-source weighted live ADP pipeline (Fantasy Football Calculator + MyFantasyLeague, both live-verified free/no-auth 2026-08-01; Yahoo via the existing OAuth client) — this is not missing, and does **not** need a paid vendor. `test/adpService.test.js` (9 tests) and `test/tradeRoute.test.js`'s live/unavailable cases already pass. The route only returns `source_status: "live_adp_unavailable"` because `src/routes/trade.js`:22-24 requires `config.isProd && config.redisUrl && config.redisToken` all true, or because a source fetch throws (caught blindly at `trade.js`:194). No "static list" was found anywhere in `src/` — that framing may be stale.
-- **Done when:** confirm in production that `GET /api/trade/pulse` actually returns `source_status: "live_adp"` (not `"live_adp_unavailable"`); if it doesn't, diagnose which source/step fails (needs production env access) and fix that specific failure — not add a new data source.
+- **Cost:** small
+- **Done when:** backend returns computed buy-low targets from a truthful live source, no paid dependency needed — satisfied, confirmed live in production.
 - **Do not touch:** paid data source or new dependency without approval.
 
 ### B3 — Replace Sportradar with nflverse for Tuesday scoring
