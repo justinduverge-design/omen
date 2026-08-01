@@ -56,7 +56,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - Production is live on KVM1; `/api/health` and `/api/ready` were healthy at the latest verified baseline.
 - Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. The production Supabase table/column cleanup remains a separately gated database action.
-- Backend test baseline: 469/469 green locally during the selector recovery. GitHub Actions remains unavailable under the billing hold; local evidence is the substitute.
+- Backend test baseline: **481/481 green**, locally and in CI. The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250 (2026-08-01). Pull requests are now gated by `pr-quality.yml` (#253).
 - Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
 
 # Active queue
@@ -141,7 +141,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-Auth-Providers-v1 — Discord OAuth + Passkeys (WebAuthn)
 
 - **Status:** READY
-- **Blocked by:** EXTERNAL — GitHub Actions billing hold blocks iOS CI verification; restore expected ~2026-08-01
+- **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250. iOS CI is green on this branch as of 2026-08-01.
 - **Priority:** P1
 - **Cost:** medium
 - **Current state:** PR #198 is open and code-complete for the Discord sub-scope; it is the one item with no local verification path. Passkeys deferred to a separate `M4-Auth-Passkeys-Onramp` follow-up (P2).
@@ -152,7 +152,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-Help-Support-Implementation — Build approved native Help + Support
 
 - **Status:** READY
-- **Blocked by:** EXTERNAL — GitHub Actions billing hold blocks iOS unsigned CI
+- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
 - **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
 - **Priority:** P1
 - **Cost:** medium
