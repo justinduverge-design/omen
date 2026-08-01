@@ -110,7 +110,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Figma-approved Ledger preview proposal on `03 — Components`
+- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `72:2`, "PROPOSAL — Ledger Preview", submitted 2026-08-01); awaiting your review
 - **Priority:** P1
 - **Cost:** small–medium
 - **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
@@ -131,7 +131,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Figma-first §3.2 proposal for the compact row shape (does not exist yet)
+- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `73:2`, "PROPOSAL — Platforms Compact Row", submitted 2026-08-01); awaiting your review
 - **Priority:** P1
 - **Cost:** small–medium
 - **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
@@ -177,11 +177,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### D1 — Real `GET /api/trade/pulse`
 
 - **Status:** READY
-- **Blocked by:** AGENT_RESOLVABLE — scope the remaining delta against merged PR #197 before pulling
+- **Blocked by:** FOUNDER_APPROVAL — production Redis/env access needed to verify the live path; not agent-resolvable from the repo alone
 - **Priority:** P1
-- **Cost:** medium
-- **Current state:** PR #197 landed the honest live-or-unavailable contract — `src/routes/trade.js:180` returns `source_status: "live_adp_unavailable"` with an empty set, and `:189` computes `buy_low` when a source exists. The remaining delta is the live ADP source itself.
-- **Done when:** backend returns computed buy-low targets; the static list is retired or an explicit offline fallback is in place; source status is truthful; empty/error/stale paths are tested and documented.
+- **Cost:** small (corrected 2026-08-01 — was "medium", assumed a data source still needed building)
+- **Current state:** CORRECTED 2026-08-01 (`Direction/reviews/2026-08-01-d1-adp-source-research.md`). `src/services/adp.js` already implements a complete, free, three-source weighted live ADP pipeline (Fantasy Football Calculator + MyFantasyLeague, both live-verified free/no-auth 2026-08-01; Yahoo via the existing OAuth client) — this is not missing, and does **not** need a paid vendor. `test/adpService.test.js` (9 tests) and `test/tradeRoute.test.js`'s live/unavailable cases already pass. The route only returns `source_status: "live_adp_unavailable"` because `src/routes/trade.js`:22-24 requires `config.isProd && config.redisUrl && config.redisToken` all true, or because a source fetch throws (caught blindly at `trade.js`:194). No "static list" was found anywhere in `src/` — that framing may be stale.
+- **Done when:** confirm in production that `GET /api/trade/pulse` actually returns `source_status: "live_adp"` (not `"live_adp_unavailable"`); if it doesn't, diagnose which source/step fails (needs production env access) and fix that specific failure — not add a new data source.
 - **Do not touch:** paid data source or new dependency without approval.
 
 ### B3 — Replace Sportradar with nflverse for Tuesday scoring
