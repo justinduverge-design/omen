@@ -289,7 +289,10 @@ async function runAgentPipeline(context = {}) {
   };
 }
 
-router.all("/agents/*", (_req, res) => {
+// Regex path rather than the string "/agents/*": Express 5's path-to-regexp 8
+// rejects a bare "*" at registration time. A RegExp is accepted by both
+// Express 4 and 5 and matches the same paths.
+router.all(/^\/agents\/.*/, (_req, res) => {
   res.status(410).json({
     error: "legacy_agent_routes_retired",
     message: "Use /api/omen/mvp-move instead.",
