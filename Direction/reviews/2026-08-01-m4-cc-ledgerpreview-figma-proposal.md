@@ -15,6 +15,6 @@ Covers: the timeline-row anatomy (one to three recent calls, compact call-type l
 
 No component was marked approved. No existing approved or pending proposal was touched. No native code was written. No fabricated ledger/outcome data appears in the proposal.
 
-## Next step
+## Approved — 2026-08-01
 
-Review node `72:2` on `03 — Components`. Once approved, `M4-CC-LedgerPreview`'s Figma blocker clears.
+Justin approved the composition. Badge updated to "APPROVED COMPOSITION — Justin, 2026-08-01"; outer frame border switched to the approved-green stroke; frame renamed "PROPOSAL — Ledger Preview (Approved)". `M4-CC-LedgerPreview`'s `Blocked by:` line is now `None` — ready for native implementation planning (no trust assignment yet covers writing the code).

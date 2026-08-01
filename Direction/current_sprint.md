@@ -110,7 +110,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `72:2`, "PROPOSAL — Ledger Preview", submitted 2026-08-01); awaiting your review
+- **Blocked by:** None — Figma proposal approved (node `72:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
 - **Priority:** P1
 - **Cost:** small–medium
 - **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
@@ -120,7 +120,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-LeaguePulse — League Pulse composition + wiring
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `74:2`, "PROPOSAL — League Pulse", submitted 2026-08-01); awaiting your review. (Visual brief §1.6 blocker cleared 2026-08-01 — approved, see `Blueprints/specs/mobile/omen-mobile-visual-briefs-v1.md` §1.6.)
+- **Blocked by:** None — visual brief §1.6 and Figma proposal (node `74:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01") both approved. Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
 - **Priority:** P2
 - **Cost:** small–medium
 - **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
@@ -130,7 +130,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — proposal now exists on `03 — Components` (node `73:2`, "PROPOSAL — Platforms Compact Row", submitted 2026-08-01); awaiting your review
+- **Blocked by:** None — Figma proposal approved (node `73:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
 - **Priority:** P1
 - **Cost:** small–medium
 - **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.

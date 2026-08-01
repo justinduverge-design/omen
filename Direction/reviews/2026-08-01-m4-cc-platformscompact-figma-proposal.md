@@ -15,6 +15,6 @@
 
 No component was marked approved. No live provider connect flow, credentials, or deep-link config appears in the proposal — this is purely a layout/composition change to already-existing data.
 
-## Next step
+## Approved — 2026-08-01
 
-Review node `73:2` on `03 — Components`. Once approved, `M4-CC-PlatformsCompact`'s Figma blocker clears.
+Justin approved the composition. Badge updated to "APPROVED COMPOSITION — Justin, 2026-08-01"; outer frame border switched to the approved-green stroke; frame renamed "PROPOSAL — Platforms Compact Row (Approved)". `M4-CC-PlatformsCompact`'s `Blocked by:` line is now `None` — ready for native implementation planning (no trust assignment yet covers writing the code).

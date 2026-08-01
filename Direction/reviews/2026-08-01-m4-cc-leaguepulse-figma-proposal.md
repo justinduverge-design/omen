@@ -17,6 +17,6 @@
 
 No fabricated league-activity data anywhere in the proposal — the activity section explicitly specs the honest "No league activity feed yet" copy. No component was marked approved on Figma yet (that's still your call). No native code was written.
 
-## Next step
+## Approved — 2026-08-01
 
-Review node `74:2` on `03 — Components`. Once approved, `M4-CC-LeaguePulse`'s Figma blocker clears (its founder-visual-brief blocker is already cleared as of this pass).
+Justin approved the composition. Badge updated to "APPROVED COMPOSITION — Justin, 2026-08-01"; outer frame border switched to the approved-green stroke; frame renamed "PROPOSAL — League Pulse (Approved)". `M4-CC-LeaguePulse`'s `Blocked by:` line is now `None` — ready for native implementation planning (no trust assignment yet covers writing the code).
