@@ -229,7 +229,10 @@ jobs:
               curl -fsS --max-time 8 "$base_url$bundle_src" -o "$bundle_path"
             fi
 
-            if grep -Fq "[C]" "$bundle_path"; then
+            # A bare [C] also occurs in minified JavaScript property access
+            # (for example, `object[C]`). The retired React placeholder is a
+            # string literal, so require its quoted representation instead.
+            if grep -Fq '"[C]"' "$bundle_path"; then
               echo "::error::Route $route bundle contains the retired [C] placeholder."
               exit 1
             fi

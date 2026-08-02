@@ -52,7 +52,7 @@ test("deploy workflow runs a public-route visual smoke for logo regressions", ()
   assert.ok(visualSmokeIndex > logoIndex);
   assert.ok(visualSmokeIndex < tailLogsIndex);
   assert.match(workflow, /routes=\("\/" "\/about" "\/login"\)/);
-  assert.match(workflow, /grep -Fq "\[C\]"/);
+  assert.ok(workflow.includes("grep -Fq '\"[C]\"'"));
   assert.match(workflow, /grep -Eq "omen-horizontal-lockup\[\^\\\\\\"\]\*\\\\\.png"/);
   assert.match(workflow, /grep -Fq "omen-horizontal-lockup\.png"/);
   assert.match(workflow, /grep -Fq "omen-horizontal-lockup-transparent\.png"/);
