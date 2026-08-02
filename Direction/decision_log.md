@@ -1,5 +1,10 @@
 # Omen Decision Log
 
+## Decisions Added 2026-08-02 (B3 nflverse Tuesday scoring)
+
+- **nflverse remains the scoring authority; Omen will not manufacture a season file.** The production dry run confirmed the public source has not published `player_stats_2026.csv` yet. Forking or fabricating player results would add an owned data pipeline without legitimate game data. Until published stats exist, scoring must defer with no writes; issue [#263](https://github.com/justinduverge-design/omen/issues/263) tracks that expected-state refinement.
+- **Production scoring stays disabled after verification.** The one-off dry run used process-only enablement and `OMEN_CRON_DRY_RUN=true`; persistent `OMEN_CRON_SCORING_ENABLED` remains `false`. Enabling it requires a separate founder decision after #263 is resolved and an in-season no-write pass is clean.
+
 *(Filename retains `decision_log.md`; the "Corvus" title predated the 2026-06-22 rebrand and is corrected here as part of the 2026-07-03 doc reconciliation pass. Historical entries below are preserved verbatim.)*
 
 ## Decisions Added 2026-08-01 (M4-Auth-Providers-v1 backfill + CI misdiagnosis retraction)
