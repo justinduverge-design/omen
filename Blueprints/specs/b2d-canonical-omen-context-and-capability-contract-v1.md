@@ -44,13 +44,13 @@ For one verified context, the engine computes candidates in this order of operat
 
 Every selected recommendation carries `type`, move, why-it-matters, risk, confidence, and `signals` labels. The selected `league.id` and `team.id` are the verified context used for every input.
 
-## Provider capability matrix — source audit, 2026-07-21
+## Provider capability matrix — source audit updated 2026-08-02
 
 | Provider | Selected roster / Start-Sit | Live waiver pool | Opponent rosters / personalized trade | B2-D status |
 | --- | --- | --- | --- | --- |
 | Yahoo | Existing normalized roster fetch is live. | `getAvailablePlayers()` plus waiver normalization exists; player projections may be absent, so a recommendation requires sufficient live evidence and cannot use the optimizer mock fallback. | League standings exists, but this audit found no normalized opponent-roster trade candidate source. | Start/Sit and a guarded Yahoo-waiver slice may proceed after context tests. Trade is unavailable. |
 | Sleeper | Existing adapter builds the authenticated user's normalized roster with league settings and projections. | Live normalized free-agent/waiver pool is available for evidence-backed candidates. | `fetchSleeperLeagueRosters()` returns a sanitized all-team surface; a deterministic one-for-one evaluator requires both optimized lineups to improve and applies the existing VORP fairness guard. | Start/Sit, waiver, and trade are live for the selected Sleeper context; public drafted-league proof is recorded without a league, user, or manager identifier. |
-| ESPN | Existing adapter builds the selected authenticated roster using server-side credentials and optional team ID. | No normalized free-agent/waiver-pool capability exists. | Adapter exposes standings but no normalized opponent-roster trade candidate surface. | Start/Sit only; waiver/trade unavailable pending provider feasibility and dedicated adapter work. |
+| ESPN | Existing adapter builds the selected authenticated roster using server-side credentials and optional team ID. | Normalized selected-context pool and canonical waiver evaluation are locally verified on the E1/E2 stack; drafted-league proof found 0 rostered-player leaks and 0 non-zero `onTeamId` entries in a 500-entry filtered pool. | Adapter exposes standings but no normalized opponent-roster trade candidate surface. | Start/Sit is existing capability. Waiver is source-built and provider-proven but is not merged, deployed, or production-route proven; trade remains unavailable. |
 
 This matrix is source evidence, not a claim of real-account production verification. Real-account capability proof remains required before any provider is called production-ready for a new decision type.
 

@@ -3,6 +3,7 @@
 **Run:** 2026-07-27, founder-authorized, founder's own authenticated browser session
 **Protocol:** `Blueprints/specs/b2d-espn-e0-feasibility-spike-protocol-v1.md`
 **Method:** Method 1 (browser console on the `fantasy.espn.com` origin). No cookie value was read, copied, transmitted, or stored at any point. The session was attached by the browser by origin.
+**Current status:** Observation 12 resolved cleanly by the sanitized 2026-08-02 addendum below.
 
 ## VERDICT: PARTIAL — E1 unblocked with one recorded extra step
 
@@ -88,10 +89,29 @@ Because the `onTeamId` guard makes the pool correct either way, **this is now a 
 - All requests were read-only GETs against the founder's own account, with explicit authorization given in session on 2026-07-27.
 - No writes, no roster changes, no transactions.
 
+## 2026-08-02 addendum — observation 12 resolved
+
+The founder connected a drafted ESPN league through the Omen Chrome extension and explicitly authorized a read-only verification. Because this session could not safely attach to the authenticated Chrome tab, it ran the protocol's equivalent two provider reads through the existing server environment. Supabase selected exactly one complete ESPN connection updated within the preceding 15 minutes. Its league context and Vault-backed session were held in memory only and sent only to ESPN's reads endpoint; no credential or identifier was printed, persisted, returned, or included in an error.
+
+| Observation | Sanitized result |
+|---|---:|
+| Roster HTTP status / elapsed | 200 / 310 ms |
+| Teams / teams with non-empty rosters | 10 / 10 |
+| Distinct rostered players | 160 |
+| Pool HTTP status / elapsed | 200 / 195 ms |
+| Filtered pool entries | 500 |
+| Pool entries with non-zero `onTeamId` | **0** |
+| Pool entries also present on a roster | **0** |
+| Ownership-signal disagreements | **0** |
+| Distinct pool status values | 1 |
+| `percentOwned` range | 0.0–67.1 |
+
+**Observation 12 is CLEAN.** On this drafted league, ESPN's `filterStatus` excluded every one of the 160 rostered players from the observed 500-entry pool. The E1 `onTeamId === 0` guard remains mandatory defense in depth even though it rejected nothing in this run.
+
 ## Capability matrix
 
 | Provider | Waiver status | Gate |
 |---|---|---|
-| Sleeper | built through S2; roster-subtraction proof pending a drafted league | none |
+| Sleeper | built and drafted-league roster-subtraction proven | none |
 | Yahoo | fixture-verified (PR #211) | Yahoo API reapproval — external |
-| ESPN | **feasible — free-agent pool obtainable, projections included, redirect risk retired** | E1 implementation; observation 12 verification |
+| ESPN | **locally built and drafted-league provider-proven — 0 rostered-player leaks observed** | E1/E2 publication, review, merge, deployment, and production-route verification remain separate |

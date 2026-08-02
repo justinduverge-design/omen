@@ -900,3 +900,9 @@
 
 - Canonical Omen validates the selected opaque context before retrieving the selected ESPN connection's existing Vault-backed session. That in-memory session is reused for the roster and waiver-pool reads; unselected ESPN connections are not decrypted or queried.
 - ESPN waiver evaluation opens only for an unavailable starter, considers only projected same-position candidates, and ranks them by weekly projection rather than ESPN's popularity order. Provider failure produces a live empty response with an unavailable waiver signal; a successful empty pool remains honestly live-empty. No mock candidate is substituted.
+
+## 2026-08-02 — ESPN drafted-league roster subtraction is provider-proven
+
+- A founder-authorized read-only run used the one complete ESPN connection updated immediately after the Chrome-extension handoff. The session and league context remained in memory only for the two ESPN reads; recorded evidence contains counts and timings only.
+- The drafted league contained 10 populated teams and 160 distinct rostered players. ESPN returned a 500-entry filtered pool with 0 rostered-player overlaps, 0 non-zero `onTeamId` values, and 0 ownership-signal disagreements. Observation 12 therefore closes cleanly, while E1's independent `onTeamId === 0` guard remains mandatory defense in depth.
+- This is provider capability proof, not evidence that the stacked E1/E2 commits are pushed, merged, deployed, or working through the production canonical route.
