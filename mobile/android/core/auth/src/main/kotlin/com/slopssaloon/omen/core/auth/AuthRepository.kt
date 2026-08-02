@@ -26,6 +26,37 @@ interface AuthRepository {
     /** Attempt to refresh the current session; used on launch when a stored token is expired. */
     suspend fun refresh(): AuthOutcome
 
+    /**
+     * Exchange an OAuth authorization [code] (returned via the deep-link callback for
+     * [providerId]) for an Omen session via Supabase. [codeVerifier] is the PKCE verifier the
+     * app stashed before opening the browser (M4-Auth-Providers-v1 §2.4).
+     */
+    suspend fun exchangeOAuthCode(providerId: String, code: String, codeVerifier: String): AuthOutcome
+
+    /**
+     * Ask Supabase for a WebAuthn challenge to feed the platform passkey UI. Returns
+     * [PasskeyChallenge.Ok] with the base64url challenge or a named failure.
+     */
+    suspend fun startPasskeyChallenge(): PasskeyChallenge
+
+    /**
+     * Verify a passkey [assertion] against Supabase and produce a session. The app never inspects
+     * the assertion contents beyond forwarding them here (M4-Auth-Providers-v1 §3.1).
+     */
+    suspend fun signInWithPasskey(assertion: PasskeyResult.Assertion): AuthOutcome
+
+    /**
+     * Register a new passkey [credential] for the currently-authenticated user. Used for
+     * post-sign-in pairing and the Account settings "Add a passkey" action (brief §3.3, §3.4).
+     */
+    suspend fun registerPasskey(credential: PasskeyResult.Assertion): AuthOutcome
+
     /** Invalidate the remote session (best-effort). Local secure storage is cleared separately. */
     suspend fun signOut()
+}
+
+/** Result of [AuthRepository.startPasskeyChallenge]. */
+sealed interface PasskeyChallenge {
+    data class Ok(val challenge: String) : PasskeyChallenge
+    data class Failed(val code: RetryableCode) : PasskeyChallenge
 }

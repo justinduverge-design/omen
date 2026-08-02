@@ -138,9 +138,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** compact rows render for both connected and disconnected states on both platforms; the Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android; the detail sheet handles Manage/Connect; scanner, connected tests, and `:app:assembleDebug` green.
 - **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
 
-### M4-Auth-Providers-v1 — Discord OAuth + Passkeys (WebAuthn)
+### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
 
 - **Status:** READY
+- **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250 (2026-08-01). `ios-ci.yml` runs on PRs targeting `main` again, so this is CI-verifiable now.
 - **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250. iOS CI is green on this branch as of 2026-08-01.
 - **Priority:** P1
 - **Cost:** medium

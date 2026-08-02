@@ -3,6 +3,23 @@
 **Refreshed:** 2026-07-30 — migrated to the status model. Reconciled against `main` @ `90f6376`, the GitHub PR record, and local verification. Handoffs are pointers, not standalone proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
+## ✅ Resolved 2026-08-01 — CI works; the "billing hold" diagnosis was wrong
+
+**Retracted:** this section previously said the Actions allotment was exhausted and no workflow could run. That was incorrect. Actions was executing the whole time. The red was two real config bugs, both fixed in PR #250:
+
+1. `deploy.yml` → `quality`: `package-lock.json` had drifted out of sync with `package.json`, so `npm ci` exited 1 on every push to `main` from ~2026-07-23. The job never reached the tests.
+2. `ios-ci.yml`: a duplicate `branches:` key made the workflow YAML invalid, so it failed instantly with **0 jobs executed** from ~2026-07-29.
+
+**Cost of the wrong diagnosis:** because the guidance said not to retry, the real bugs stayed hidden ~9 days, and everything merged in that window went in ungated. Fixing `ios-ci.yml` immediately surfaced a genuine `PrimitiveEnforcementTests` regression that had been invisible that entire time.
+
+### Current state
+
+- **All gates run and pass on `main`.** Backend 481/481, iOS 84/84, prod audit clean, frontend + client builds clean.
+- **Pull requests are now gated.** `pr-quality.yml` (#253) adds backend tests/audit, frontend + client builds, and a server boot-with-SPA smoke. Before it, `src/**` had **no** PR CI at all — `deploy.yml` is `on: push: branches: [main]`.
+- **Green CI is necessary, not sufficient.** #206 (`express` 4→5) passed 481/481 and would still have crash-looped production: the bare-`*` SPA fallback throws under path-to-regexp 8, and it sits behind `HAS_SPA`, which is false in CI and true in the production image. Fixed in #251; the `boot-smoke` job now covers that class.
+- **Branch protection is still unavailable** on the current GitHub plan (`/branches/main/protection` → 403). Merges are not mechanically blocked by a red check — but treat red as a stop, not as cosmetic. Two dependency PRs reached "green" and would have broken production; the checks are the only thing standing in for branch protection.
+- **Local `npm test` remains good fast proof for backend work.** `node --test`, ~7s, no build step. Record the count.
+- **Native iOS has no local substitute** on the Windows dev machine — but `ios-ci.yml` now runs on PRs targeting `main`, so it is CI-verifiable again.
 ## ✅ RETRACTED 2026-08-01 — the "GitHub Actions billing hold" never existed
 
 This section previously stated the Actions allotment was exhausted, that no workflow could run, and that **"failing checks are cosmetic."** All three were wrong. Actions executed throughout. Two config bugs produced the red, both fixed in PR #250:

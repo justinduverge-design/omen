@@ -30,6 +30,21 @@ sealed interface AuthFlowState {
     /** Exchanging a Google ID token for a session; caller invokes `signInWithGoogleIdToken`. */
     data object ExchangingGoogleToken : AuthFlowState
 
+    /**
+     * Provider-agnostic OAuth browser handoff in progress (M4-Auth-Providers-v1 §2.1). Caller
+     * launches the Custom Tabs / `ASWebAuthenticationSession` for [providerId] (e.g. `"discord"`).
+     */
+    data class LaunchingOAuth(val providerId: String) : AuthFlowState
+
+    /** Deep link returned; caller invokes `exchangeOAuthCode(providerId, code, verifier)`. */
+    data class ExchangingOAuthCode(val providerId: String) : AuthFlowState
+
+    /** Platform passkey UI is presenting; caller invokes the [PasskeyProvider]. */
+    data object LaunchingPasskey : AuthFlowState
+
+    /** Sending the platform assertion to Supabase for verification. */
+    data object ExchangingPasskeyAssertion : AuthFlowState
+
     /** Terminal success — caller persists [session] via the session manager. */
     data class Authenticated(val session: Session) : AuthFlowState
 
@@ -39,15 +54,19 @@ sealed interface AuthFlowState {
 
 /** Named, log-safe failure reasons that each map to a concrete recovery affordance. */
 enum class AuthFailure {
-    INVALID_EMAIL,     // → correct the email
-    INVALID_CODE,      // → re-enter or resend the code
-    CANCELED,          // → return to Idle; not a hard error
-    NETWORK,           // → retry
-    TIMEOUT,           // → retry
-    SERVER,            // → retry / try another method
-    GOOGLE_UNAVAILABLE,// → use email instead
-    NEEDS_REAUTH,      // → sign in again
-    UNKNOWN,           // → retry / support without credentials
+    INVALID_EMAIL,                 // → correct the email
+    INVALID_CODE,                  // → re-enter or resend the code
+    CANCELED,                      // → return to Idle; not a hard error
+    NETWORK,                       // → retry
+    TIMEOUT,                       // → retry
+    SERVER,                        // → retry / try another method
+    GOOGLE_UNAVAILABLE,            // → use email instead
+    NEEDS_REAUTH,                  // → sign in again
+    OAUTH_PROVIDER_NOT_CONFIGURED, // → hide the button / use another provider
+    OAUTH_CALLBACK_MISMATCH,       // → restart the OAuth flow (CSRF)
+    PASSKEY_UNAVAILABLE,           // → use another method on this device
+    PASSKEY_NO_CREDENTIAL,         // → sign in with another method, then pair a passkey
+    UNKNOWN,                       // → retry / support without credentials
 }
 
 sealed interface AuthEvent {
@@ -58,6 +77,21 @@ sealed interface AuthEvent {
     data object GoogleRequested : AuthEvent
     data class GoogleTokenResult(val result: GoogleIdTokenResult) : AuthEvent
     data class GoogleExchangeResult(val outcome: AuthOutcome) : AuthEvent
+
+    // M4-Auth-Providers-v1 §2.2 — provider-agnostic OAuth (e.g. Discord)
+    data class OAuthRequested(val providerId: String) : AuthEvent
+    data class OAuthCallbackReceived(
+        val providerId: String,
+        val code: String,
+        val state: String,
+    ) : AuthEvent
+    data class OAuthExchangeResult(val providerId: String, val outcome: AuthOutcome) : AuthEvent
+
+    // M4-Auth-Providers-v1 §2.2 — WebAuthn passkeys (different technology from OAuth)
+    data object PasskeyRequested : AuthEvent
+    data class PasskeyAssertionResult(val result: PasskeyResult) : AuthEvent
+    data class PasskeyExchangeResult(val outcome: AuthOutcome) : AuthEvent
+
     data object Canceled : AuthEvent
     data object Reset : AuthEvent
 }
@@ -106,6 +140,44 @@ object AuthFlowReducer {
         is AuthEvent.GoogleExchangeResult -> when (val o = event.outcome) {
             is AuthOutcome.Success -> AuthFlowState.Authenticated(o.session)
             is AuthOutcome.Unsupported -> AuthFlowState.Failed(AuthFailure.GOOGLE_UNAVAILABLE)
+            is AuthOutcome.RetryableError -> AuthFlowState.Failed(o.code.toFailure())
+            is AuthOutcome.NeedsReauth -> AuthFlowState.Failed(AuthFailure.NEEDS_REAUTH)
+            else -> AuthFlowState.Failed(AuthFailure.UNKNOWN)
+        }
+
+        is AuthEvent.OAuthRequested -> AuthFlowState.LaunchingOAuth(event.providerId)
+
+        is AuthEvent.OAuthCallbackReceived -> when (state) {
+            is AuthFlowState.LaunchingOAuth ->
+                if (state.providerId == event.providerId) AuthFlowState.ExchangingOAuthCode(event.providerId)
+                // A stray callback that names a different providerId while we were launching
+                // provider X is a routing/CSRF anomaly, not a normal recoverable event.
+                else AuthFlowState.Failed(AuthFailure.OAUTH_CALLBACK_MISMATCH)
+            else -> AuthFlowState.Failed(AuthFailure.UNKNOWN)
+        }
+
+        is AuthEvent.OAuthExchangeResult -> when (val o = event.outcome) {
+            is AuthOutcome.Success -> AuthFlowState.Authenticated(o.session)
+            is AuthOutcome.OAuthCallbackMismatch -> AuthFlowState.Failed(AuthFailure.OAUTH_CALLBACK_MISMATCH)
+            is AuthOutcome.OAuthProviderNotConfigured -> AuthFlowState.Failed(AuthFailure.OAUTH_PROVIDER_NOT_CONFIGURED)
+            is AuthOutcome.Canceled -> AuthFlowState.Failed(AuthFailure.CANCELED)
+            is AuthOutcome.RetryableError -> AuthFlowState.Failed(o.code.toFailure())
+            is AuthOutcome.NeedsReauth -> AuthFlowState.Failed(AuthFailure.NEEDS_REAUTH)
+            else -> AuthFlowState.Failed(AuthFailure.UNKNOWN)
+        }
+
+        is AuthEvent.PasskeyRequested -> AuthFlowState.LaunchingPasskey
+
+        is AuthEvent.PasskeyAssertionResult -> when (event.result) {
+            is PasskeyResult.Assertion -> AuthFlowState.ExchangingPasskeyAssertion
+            is PasskeyResult.Canceled -> AuthFlowState.Failed(AuthFailure.CANCELED)
+            is PasskeyResult.Unavailable -> AuthFlowState.Failed(AuthFailure.PASSKEY_UNAVAILABLE)
+            is PasskeyResult.NoCredential -> AuthFlowState.Failed(AuthFailure.PASSKEY_NO_CREDENTIAL)
+            is PasskeyResult.Failed -> AuthFlowState.Failed(AuthFailure.UNKNOWN)
+        }
+
+        is AuthEvent.PasskeyExchangeResult -> when (val o = event.outcome) {
+            is AuthOutcome.Success -> AuthFlowState.Authenticated(o.session)
             is AuthOutcome.RetryableError -> AuthFlowState.Failed(o.code.toFailure())
             is AuthOutcome.NeedsReauth -> AuthFlowState.Failed(AuthFailure.NEEDS_REAUTH)
             else -> AuthFlowState.Failed(AuthFailure.UNKNOWN)

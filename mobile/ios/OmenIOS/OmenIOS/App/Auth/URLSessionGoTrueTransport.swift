@@ -44,6 +44,40 @@ final class URLSessionGoTrueTransport: GoTrueTransport {
         )
     }
 
+    // M4-Auth-Providers-v1 §9 step 5b — Supabase PKCE code exchange.
+    // POST /auth/v1/token?grant_type=pkce with { auth_code, code_verifier } → session tokens
+    // (mirrors the JS SDK's `exchangeCodeForSession`). `providerId` isn't in the request body —
+    // Supabase already knows the provider from the ceremony started at /auth/v1/authorize.
+    func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> TransportResult {
+        await send(
+            path: "auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "pkce")],
+            body: ["auth_code": code, "code_verifier": codeVerifier],
+            expectSession: true
+        )
+    }
+
+    // M4-Auth-Providers-v1: passkey (WebAuthn) transport wiring deferred per session decision
+    // 2026-07-24 — Supabase's passkey feature is experimental with no stable public REST shape
+    // (the JS/Swift SDKs are the only supported clients, gated behind `@_spi(Experimental)`).
+    // Shipping unstable reverse-engineered endpoints would break silently the next time
+    // Supabase iterates. Follow-up: `M4-Auth-Passkeys-Onramp` in the sprint queue. Transport
+    // keeps 501 stubs so SupabaseAuthRepository surfaces retryable-server outcomes; nothing
+    // silently works, and `PasskeyProvider.isSupported = false` (via `UnsupportedPasskeyProvider`)
+    // means the UI never even renders a passkey button.
+
+    func startPasskeyChallenge() async -> TransportResult {
+        .httpError(status: 501)
+    }
+
+    func verifyPasskeyAssertion(assertion: PasskeyResult.Assertion) async -> TransportResult {
+        .httpError(status: 501)
+    }
+
+    func registerPasskey(credential: PasskeyResult.Assertion) async -> TransportResult {
+        .httpError(status: 501)
+    }
+
     private func send(path: String, query: [URLQueryItem] = [], body: [String: Any], expectSession: Bool) async -> TransportResult {
         guard var components = URLComponents(url: supabaseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
             return .malformed

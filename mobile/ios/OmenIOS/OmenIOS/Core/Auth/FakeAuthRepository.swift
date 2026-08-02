@@ -6,7 +6,13 @@ import Foundation
 final class FakeAuthRepository: AuthRepository {
     var validCode = "123456"
     var appleConfigured = true
+    var oauthConfiguredProviders: Set<String> = ["discord"]
+    var passkeyConfigured = true
     var nextRefreshOutcome: AuthOutcome = .needsReauth
+    var nextOAuthExchangeOutcome: AuthOutcome? = nil
+    var nextPasskeyChallenge: PasskeyChallenge? = nil
+    var nextPasskeySignInOutcome: AuthOutcome? = nil
+    var nextPasskeyRegisterOutcome: AuthOutcome? = nil
     private(set) var signOutCalled = false
 
     private let sessionFactory: (String) -> Session
@@ -45,6 +51,29 @@ final class FakeAuthRepository: AuthRepository {
 
     func refresh() async -> AuthOutcome {
         nextRefreshOutcome
+    }
+
+    func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> AuthOutcome {
+        if let outcome = nextOAuthExchangeOutcome { return outcome }
+        guard oauthConfiguredProviders.contains(providerId) else {
+            return .oauthProviderNotConfigured
+        }
+        return .success(session: sessionFactory("oauth:\(providerId)"))
+    }
+
+    func startPasskeyChallenge() async -> PasskeyChallenge {
+        if let challenge = nextPasskeyChallenge { return challenge }
+        return passkeyConfigured ? .ok(challenge: "fake-challenge") : .failed(code: .unknown)
+    }
+
+    func signInWithPasskey(assertion: PasskeyResult.Assertion) async -> AuthOutcome {
+        if let outcome = nextPasskeySignInOutcome { return outcome }
+        return .success(session: sessionFactory("passkey:\(assertion.credentialID)"))
+    }
+
+    func registerPasskey(credential: PasskeyResult.Assertion) async -> AuthOutcome {
+        if let outcome = nextPasskeyRegisterOutcome { return outcome }
+        return .success(session: sessionFactory("passkey-register:\(credential.credentialID)"))
     }
 
     func signOut() async {

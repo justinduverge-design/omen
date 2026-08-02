@@ -33,11 +33,13 @@ fun OmenAuthFlow(
     code: String,
     live: Boolean,
     googleConfigured: Boolean,
+    discordConfigured: Boolean = false,
     onEmailChange: (String) -> Unit,
     onCodeChange: (String) -> Unit,
     onSubmitEmail: () -> Unit,
     onSubmitCode: () -> Unit,
     onGoogle: () -> Unit,
+    onDiscord: () -> Unit = {},
     onReset: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -109,6 +111,27 @@ fun OmenAuthFlow(
                         enabled = googleConfigured,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // M4-Auth-Providers-v1 §3 — first user of the provider-agnostic OAuth seam.
+                    // Rendered only when Supabase config is present; hidden entirely otherwise so
+                    // the auth surface stays clean on unconfigured / demo builds. Passkey button
+                    // deliberately absent — see M4-Auth-Passkeys-Onramp follow-up.
+                    if (discordConfigured) {
+                        Text(
+                            text = "More ways to sign in",
+                            style = OmenTheme.typography.label.toTextStyle(),
+                            color = OmenTheme.color.textSecondary,
+                        )
+                        OmenButton(
+                            text = "Continue with Discord",
+                            onClick = onDiscord,
+                            variant = OmenButtonVariant.Secondary,
+                            enabled = state !is AuthFlowState.LaunchingOAuth &&
+                                state !is AuthFlowState.ExchangingOAuthCode,
+                            loading = state is AuthFlowState.LaunchingOAuth ||
+                                state is AuthFlowState.ExchangingOAuthCode,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
 
@@ -145,5 +168,11 @@ fun authFailureMessage(reason: AuthFailure): String = when (reason) {
     AuthFailure.SERVER -> "Something went wrong on our side. Try again, or use another sign-in method."
     AuthFailure.GOOGLE_UNAVAILABLE -> "Google sign-in isn't available on this build. Use email instead."
     AuthFailure.NEEDS_REAUTH -> "Your session expired. Please sign in again."
+    // M4-Auth-Providers-v1: placeholder copy per brief §10; slops-ux-copy tunes wording after
+    // the mechanical seam works. Keeping strings functional so nothing surfaces as blank.
+    AuthFailure.OAUTH_PROVIDER_NOT_CONFIGURED -> "That sign-in option isn't available right now. Use another method."
+    AuthFailure.OAUTH_CALLBACK_MISMATCH -> "Sign-in couldn't be verified. Start again."
+    AuthFailure.PASSKEY_UNAVAILABLE -> "Passkeys aren't available on this device. Use another method."
+    AuthFailure.PASSKEY_NO_CREDENTIAL -> "No passkey found for this account on this device. Sign in another way to pair one."
     AuthFailure.UNKNOWN -> "Couldn't complete sign-in. Try again, or contact support."
 }

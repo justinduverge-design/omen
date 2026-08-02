@@ -27,7 +27,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .malformed:
+        case .malformed, .challenge:
             return .retryableError(code: .unknown)
         }
     }
@@ -42,7 +42,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed:
+        case .ok, .malformed, .challenge:
             return .retryableError(code: .unknown)
         }
     }
@@ -57,7 +57,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed:
+        case .ok, .malformed, .challenge:
             return .retryableError(code: .unknown)
         }
     }
@@ -71,8 +71,74 @@ final class SupabaseAuthRepository: AuthRepository {
             return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
         case .networkError:
             return .retryableError(code: .network)
-        case .httpError, .ok, .malformed:
+        case .httpError, .ok, .malformed, .challenge:
             return .needsReauth
+        }
+    }
+
+    func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> AuthOutcome {
+        switch await transport.exchangeOAuthCode(providerId: providerId, code: code, codeVerifier: codeVerifier) {
+        case .sessionTokens(let userID, let accessToken, let refreshToken, let expiresIn):
+            return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
+        // 400/403 on OAuth exchange means the code is stale/reused (mismatch class); Supabase
+        // distinguishes further only in the response body, which by M0c §8 the transport must
+        // not expose. 404 means the provider isn't wired.
+        case .httpError(let status) where (400...403).contains(status):
+            return .oauthCallbackMismatch
+        case .httpError(let status) where status == 404:
+            return .oauthProviderNotConfigured
+        case .httpError(let status):
+            return .retryableError(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .retryableError(code: .network)
+        case .ok, .malformed, .challenge:
+            return .retryableError(code: .unknown)
+        }
+    }
+
+    func startPasskeyChallenge() async -> PasskeyChallenge {
+        switch await transport.startPasskeyChallenge() {
+        case .challenge(let challenge):
+            return .ok(challenge: challenge)
+        case .httpError(let status):
+            return .failed(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .failed(code: .network)
+        case .ok, .malformed, .sessionTokens:
+            return .failed(code: .unknown)
+        }
+    }
+
+    func signInWithPasskey(assertion: PasskeyResult.Assertion) async -> AuthOutcome {
+        switch await transport.verifyPasskeyAssertion(assertion: assertion) {
+        case .sessionTokens(let userID, let accessToken, let refreshToken, let expiresIn):
+            return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
+        case .httpError(let status):
+            return .retryableError(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .retryableError(code: .network)
+        case .ok, .malformed, .challenge:
+            return .retryableError(code: .unknown)
+        }
+    }
+
+    func registerPasskey(credential: PasskeyResult.Assertion) async -> AuthOutcome {
+        switch await transport.registerPasskey(credential: credential) {
+        // Registration succeeds with 2xx-no-body; the app already has a session, so surface the
+        // existing stored one (parity with Android SupabaseAuthRepository).
+        case .ok:
+            if let stored = sessionStore.load() {
+                return .success(session: stored)
+            }
+            return .needsReauth
+        case .sessionTokens(let userID, let accessToken, let refreshToken, let expiresIn):
+            return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
+        case .httpError(let status):
+            return .retryableError(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .retryableError(code: .network)
+        case .malformed, .challenge:
+            return .retryableError(code: .unknown)
         }
     }
 

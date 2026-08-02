@@ -1,9 +1,11 @@
 package com.slopssaloon.omen
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.slopssaloon.omen.app.OmenAndroidApp
+import com.slopssaloon.omen.app.auth.OAuthCallbackBus
 import com.slopssaloon.omen.app.screenshot.ScreenshotScenarioHost
 import com.slopssaloon.omen.app.screenshot.ScreenshotScenarios
 
@@ -20,6 +22,25 @@ class MainActivity : ComponentActivity() {
             setContent { ScreenshotScenarioHost(scenarioKey = scenarioKey!!) }
             return
         }
+        // OAuth deep link may already be present if the browser handed us the callback
+        // during the very intent that (re)created this Activity.
+        forwardOAuthCallback(intent)
         setContent { OmenAndroidApp() }
+    }
+
+    // Custom Tabs is a separate process; the callback deep link comes back as a NEW intent
+    // routed to the singleTask-style Activity (default), which is delivered here.
+    // See M4-Auth-Providers-v1 §2.4 for the callback contract.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        forwardOAuthCallback(intent)
+    }
+
+    private fun forwardOAuthCallback(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "com.slopssaloon.omen" && data.host == "auth") {
+            OAuthCallbackBus.post(data)
+        }
     }
 }

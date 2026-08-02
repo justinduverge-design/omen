@@ -19,4 +19,12 @@ enum AuthOutcome: Equatable {
     case needsReauth
     case unsupported
     case retryableError(code: RetryableCode)
+
+    /// OAuth deep-link `state` didn't match the value the app generated before opening the
+    /// browser — CSRF defense per M4-Auth-Providers-v1 brief §2.3. Never carries the value.
+    case oauthCallbackMismatch
+
+    /// Supabase reports the OAuth provider isn't enabled in this project. Defensive; the UI
+    /// should already gate the button on provider availability (brief §2.3).
+    case oauthProviderNotConfigured
 }

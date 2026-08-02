@@ -4,6 +4,9 @@ import Foundation
 /// a GoTrue HTTP call, before any outcome mapping.
 enum TransportResult: Equatable {
     case ok
+    /// 2xx returning a WebAuthn challenge (opaque base64url string). Only produced by
+    /// `startPasskeyChallenge`; other endpoints never produce this variant.
+    case challenge(String)
     case sessionTokens(userID: String, accessToken: String, refreshToken: String, expiresInSeconds: Int)
     case httpError(status: Int)
     case networkError
@@ -22,4 +25,12 @@ protocol GoTrueTransport {
     func verifyEmailOtp(email: String, code: String) async -> TransportResult
     func signInWithIDToken(provider: String, idToken: String, nonce: String?) async -> TransportResult
     func refresh(refreshToken: String) async -> TransportResult
+
+    // M4-Auth-Providers-v1 §4.2 — provider-agnostic OAuth code exchange.
+    func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> TransportResult
+
+    // M4-Auth-Providers-v1 §4.2 — WebAuthn challenge issue + assertion verify + registration.
+    func startPasskeyChallenge() async -> TransportResult
+    func verifyPasskeyAssertion(assertion: PasskeyResult.Assertion) async -> TransportResult
+    func registerPasskey(credential: PasskeyResult.Assertion) async -> TransportResult
 }
