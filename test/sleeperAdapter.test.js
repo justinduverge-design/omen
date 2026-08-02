@@ -506,6 +506,29 @@ test("fetchSleeperStandings ranks by wins then points for", async () => {
   ]);
 });
 
+test("fetchSleeperLeagueRosters returns projection-joined teams without manager identity", async () => {
+  const data = fixtures();
+  data.users = [
+    { user_id: "user-1", display_name: "Private Manager", username: "private-manager", metadata: { team_name: "North Stars" } },
+    { user_id: "user-2", display_name: "Other Private Manager", username: "other-private-manager" },
+  ];
+  data.rosters = [
+    { roster_id: 7, owner_id: "user-1", players: ["100"], starters: ["100"], reserve: [], taxi: [] },
+    { roster_id: 8, owner_id: "user-2", players: null, starters: ["200"], reserve: ["500"], taxi: ["300"] },
+  ];
+  const { adapter } = loadSleeperAdapterWithFixtures(data);
+
+  const result = await adapter.fetchSleeperLeagueRosters("league-1", 1, "2026");
+
+  assert.deepEqual(result.roster_positions, ["QB", "SUPER_FLEX", "FLEX", "BN", "IR"]);
+  assert.equal(result.teams[0].team_name, "North Stars");
+  assert.equal(result.teams[1].team_name, "Team 8");
+  assert.equal(JSON.stringify(result), JSON.stringify(result).replace(/Private Manager|private-manager|Other Private Manager|other-private-manager/g, ""));
+  assert.deepEqual(result.teams[1].players.map((player) => player.player_id).sort(), ["200", "300", "500"]);
+  assert.equal(result.teams[1].players.find((player) => player.player_id === "200").projected_points, 21.2);
+  assert.equal(result.teams[1].players.find((player) => player.player_id === "300").selected_position, "TAXI");
+});
+
 test("lastResultFromMatchups returns W for the user's completed Sleeper matchup", () => {
   const { adapter } = loadSleeperAdapterWithFixtures(fixtures());
 
