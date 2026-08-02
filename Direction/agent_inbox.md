@@ -90,14 +90,9 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 These two surfaced during the 2026-07-30 reconciliation. They are real work, but minting a task key, priority, and `Done when:` is a planning act, not a migration act. They stay here until `planning-pass` creates and ratifies full task records.
 
-### ESPN waiver-pool implementation (proposed key: `B2-D-E1`)
+### ESPN waiver-pool implementation — RATCHETED 2026-08-02
 
-- **Source:** this inbox's 2026-07-27 selection; corroborated by `Direction/sprints_completed.md` "Still active / not completed: ESPN E1 implementation and its drafted-league roster-subtraction proof".
-- **Type:** task (has a named predecessor and a spec-declared successor relationship).
-- **Predecessor:** B2-D-E0 feasibility verdict — `Blueprints/specs/b2d-espn-e0-verdict-v1.md:97` names "E1 implementation" as its own successor; verdict restored via PR #243.
-- **Proposed blocker:** EXTERNAL — a drafted ESPN league is required for roster-subtraction proof.
-- **Key note:** must be namespaced. Bare `E1` already means the mobile scope decision in `current_sprint.md`.
-- **Scope note for planning-pass:** implementation must use per-entry `onTeamId` ownership rather than trusting a server-side exclusion filter.
+Planning pass split the former proposed `B2-D-E1` intake into canonical `B2-D-E1` adapter, `B2-D-E2` canonical-wiring, and `B2-D-E3` drafted-league-proof items in `Direction/current_sprint.md`. Contract: `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 
 ### ~~Actions-restoration sweep~~ — RESOLVED 2026-08-01, do not mint a task
 

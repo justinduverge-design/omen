@@ -886,3 +886,12 @@
 - `POST /api/omen/mvp-move` may now emit a `trade_suggestion` only for a selected Sleeper connection when no scoreable Start/Sit or waiver move exists. It fetches the same public league's normalized roster surface, identifies the selected roster by its opaque roster ID, and never emits a Sleeper manager display name, username, user ID, or avatar.
 - The candidate evaluator is intentionally one-for-one for v1. It computes each side's optimal weekly lineup from the league's slots, excludes IR/taxi from lineup totals while retaining them as tradeable assets, requires strictly positive weekly improvement for both teams, and applies `compareTrade()` through an explicit VORP-loss-per-weekly-point threshold. It makes no offer-acceptance, package, pick, or future-week guarantee.
 - Credential-free public proof against a drafted Sleeper league produced only aggregate evidence: 8 rosters, 120 rostered players, 119 projection-joined player rows, and a sanitized output shape. This is provider-read proof, not a transaction, production, or deployment claim.
+
+## 2026-08-02 — ESPN waiver work is decomposed before implementation
+
+- The remaining B2-D ESPN waiver gap is three outcomes, not one opaque task: normalize the provider pool with per-entry ownership checks, wire truthful selected-context candidates into canonical Omen, then collect drafted-league proof. `onTeamId === 0` is mandatory regardless of the server filter result; drafted-league evidence remains a final provider-proof gate and never requires cookie access.
+
+## 2026-08-02 — ESPN E1 normalizes provider data before it can affect a recommendation
+
+- `fetchEspnWaiverPool()` is an adapter-only boundary. It requests `kona_player_info` with the provider filter in `x-fantasy-filter`, paginates until a short page, and applies `onTeamId === 0` again while normalizing each response entry. The server filter is an optimization, not an ownership claim.
+- Only `statSourceId === 1` from the requested scoring period supplies `projected_points`; actual statistics are never substituted. The function has no canonical Omen, route, database, cache, or UI wiring, so E2 remains the separate selected-context integration task.
