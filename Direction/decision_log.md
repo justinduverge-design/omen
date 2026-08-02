@@ -927,3 +927,10 @@
 - Deploy run `30769488793` passed clean-runner quality, GHCR API/cron image publication, KVM1 pull/restart, health smoke, deployed-asset verification, and public-route smoke.
 - Independent read-only canary returned 200 with HSTS across three rounds for apex and `www` health/readiness and the changed public legal routes; HTTP redirected to HTTPS, observed p95 was 350 ms, and the live bundle contained the exact final-v1 legal markers.
 - No production-data write was used as proof. Live Resend delivery, legal-acceptance persistence, waitlist removal, and account/Auth deletion remain unexercised in production. Rollback is a revert of `64305c1b` through the normal main workflow to rebuild the prior `8c2368d` source.
+
+## 2026-08-02 — Status-model Truth Gate reconciliation
+
+- L0's `Blueprints/agent-modules/status-model.md` remains the shared canonical operational source. The Omen mirror was reconciled against it after the startup Truth Gate exposed wording drift in blocker grammar and the required planning-field note.
+- Layer-specific headings and mirror-location text remain contextual metadata. The operative lifecycle, Claim/Evidence, blocker, selection, WIP, and required-field rules are aligned; future changes must update both sources in the same reviewed change.
+- The obsolete GitHub Actions billing-hold guidance in `Blueprints/definition-of-done.md` was replaced with durable CI-evidence rules: inspect current CI, record exact runs, use named local substitutions only when applicable, and never describe a failed or missing check as cosmetic.
+- This reconciliation changed documentation only. It does not claim a commit, push, CI result, deployment, production behavior, or a completed product task.

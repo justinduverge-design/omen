@@ -7,6 +7,11 @@ SOURCE_COMMIT:  d26b7b66e5155ecbd07b621d1b416d527277d9d4
 LAST_SYNCED:    2026-07-30
 ```
 
+**Reconciliation note (2026-08-02):** The operational rules were compared against the
+available L0 source and normalized locally. `SOURCE_COMMIT` remains the prior recorded
+upstream revision until the L0 documentation change is committed; do not treat the date or
+the commit marker as a claim that an uncommitted L0 change is published.
+
 Omen is a separate repository. It must work in standalone clones and in CI, where the L0
 canonical source is not on disk. **In a standalone Omen checkout, this mirror is the
 operative model.** L0 remains the shared canonical source across layers.
@@ -110,6 +115,8 @@ no ordering dependency). Release a task back to `READY` when the only remaining 
 escalated and outside your authority — do not hold a claim on work you cannot move.
 
 ## Required field block
+
+Planning and grooming emit this block per task. This is the shape `planning-pass` writes.
 
 ```text
 ### <TASK-KEY> — <imperative title>
