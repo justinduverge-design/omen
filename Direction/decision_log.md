@@ -907,8 +907,16 @@
 - The drafted league contained 10 populated teams and 160 distinct rostered players. ESPN returned a 500-entry filtered pool with 0 rostered-player overlaps, 0 non-zero `onTeamId` values, and 0 ownership-signal disagreements. Observation 12 therefore closes cleanly, while E1's independent `onTeamId === 0` guard remains mandatory defense in depth.
 - This is provider capability proof, not evidence that the stacked E1/E2 commits are pushed, merged, deployed, or working through the production canonical route.
 
-## 2026-08-02 — Valor Ventures LLC is Omen's public legal operator
+## 2026-08-02 — Valor Ventures Limited Liability Company is Omen's public legal operator
 
-- Valor Ventures LLC is the legal owner and operator; Slops Saloon is its product studio, and Omen is a Slops Saloon product. Public Footer, Privacy, and Terms surfaces must use that hierarchy consistently.
+- The founder corrected the operator's official full name to Valor Ventures Limited Liability Company. It is the legal owner and operator; Slops Saloon is its product studio, and Omen is a Slops Saloon product. Public legal surfaces and current brand doctrine must use the full name consistently.
 - Public legal contact uses the existing monitored `legal@slopssaloon.com` address. The unapproved `owner@slopssaloon.com` draft address is not published.
 - Three redundant local worktrees (`omen-dependency-health`, `omen-m0be3`, and `omen-security-hardening`) were retired only after their work was matched to merged or superseding current-main changes. The one unpublished Valor footer commit was preserved, rebased, reviewed, and tested instead of being discarded.
+
+## 2026-08-02 — LEGAL-V1 uses a 13+ free-tool contract with recorded sign-in assent
+
+- Omen is available only to people age 13 or older. A person initiating sign-in confirms the 13+ boundary, agrees to the `2026-08-02` Terms, and acknowledges the `2026-08-02` Privacy Notice; the authenticated server records those exact versions without trusting a client-supplied user ID.
+- Omen will not operate paid contests, wagering, gambling, betting, entry fees, prize pools, or cash-out functionality. This is a standing product boundary, not temporary launch copy.
+- The public legal mailing address is `23 Darrow St, New London, CT 06320`, expressly authorized by the founder for publication. The official entity name is `Valor Ventures Limited Liability Company`.
+- Account deletion includes the Omen Supabase Auth identity and Vault-backed platform credentials. Fantasy-platform and separate identity-provider accounts remain outside Omen deletion. Waitlist data is separate and has its own public unsubscribe route.
+- The current Privacy Notice discloses a local-default AI boundary, Yahoo cache retention within 24 hours, conditional Sentry and Resend use, browser tracking preferences, and a one-way deletion audit hash.

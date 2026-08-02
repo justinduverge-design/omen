@@ -61,6 +61,28 @@ router.post("/", async (req, res) => {
   res.json({ ok: true });
 });
 
+router.delete("/", async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    return res.status(400).json({ error: "Valid email is required." });
+  }
+
+  const { error } = await supabase
+    .from("waitlist_signups")
+    .delete()
+    .eq("email", email);
+
+  if (error) {
+    logger.error("waitlist unsubscribe failed", { err: error.message });
+    return res.status(500).json({ error: "Could not process your request. Please try again." });
+  }
+
+  return res.json({
+    ok: true,
+    message: "If that address was on the Omen waitlist, it has been removed.",
+  });
+});
+
 function waitlistEmailHtml() {
   return `<!DOCTYPE html>
 <html>
@@ -80,6 +102,12 @@ function waitlistEmailHtml() {
             Your Omen of the Week tells you the one move that matters most before kickoff.
           </p>
           <p style="margin:32px 0 0;font-size:13px;color:rgba(244,239,225,0.35);">— The Omen Team</p>
+          <p style="margin:24px 0 0;font-size:11px;line-height:1.6;color:rgba(244,239,225,0.35);">
+            You requested this promotional email when you joined the Omen waitlist.<br>
+            Valor Ventures Limited Liability Company<br>
+            23 Darrow St, New London, CT 06320<br>
+            <a href="https://slopssaloon.com/unsubscribe" style="color:#C9A44C;">Unsubscribe from the Omen waitlist</a>
+          </p>
         </td></tr>
       </table>
     </td></tr>

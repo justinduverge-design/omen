@@ -10,6 +10,12 @@ const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const DELETE_CONFIRMATION = "DELETE MY OMEN DATA";
+const LEGAL_VERSION = "2026-08-02";
+const LEGAL_CONSENT_TYPES = [
+  `age_13_plus:${LEGAL_VERSION}`,
+  `privacy_notice:${LEGAL_VERSION}`,
+  `terms_of_use:${LEGAL_VERSION}`,
+];
 
 function userHash(userId) {
   return crypto.createHash("sha256").update(String(userId)).digest("hex");
@@ -58,6 +64,27 @@ async function deleteVaultSecret(secretId) {
   if (error) {
     logger.warn("Vault secret delete failed during account deletion", { err: error.message });
   }
+}
+
+async function ensureConsentRecord(consentType, userId, req) {
+  const { data, error: lookupError } = await supabase
+    .from("consent_records")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("consent_type", consentType);
+  if (lookupError) throw new Error(`consent_records lookup failed: ${lookupError.message}`);
+  if (Array.isArray(data) && data.length > 0) return;
+
+  const { error } = await supabase.from("consent_records").insert({
+    user_id: userId,
+    consent_type: consentType,
+    granted: true,
+    granted_at: new Date().toISOString(),
+    withdrawn_at: null,
+    ip_address: req.ip || null,
+    user_agent: req.get("user-agent") || null,
+  });
+  if (error) throw new Error(`consent_records insert failed: ${error.message}`);
 }
 
 router.get("/export", requireAuth, async (req, res, next) => {
@@ -126,6 +153,40 @@ router.post("/consent", requireAuth, async (req, res, next) => {
   }
 });
 
+router.post("/legal-acceptance", requireAuth, async (req, res, next) => {
+  try {
+    const termsVersion = String(req.body?.terms_version || "");
+    const privacyVersion = String(req.body?.privacy_version || "");
+    const minimumAgeConfirmed = req.body?.minimum_age_confirmed === true;
+
+    if (
+      termsVersion !== LEGAL_VERSION ||
+      privacyVersion !== LEGAL_VERSION ||
+      !minimumAgeConfirmed
+    ) {
+      return res.status(422).json({
+        error: "Current Terms, Privacy Notice, and 13+ confirmation are required.",
+      });
+    }
+
+    await Promise.all(
+      LEGAL_CONSENT_TYPES.map((consentType) =>
+        ensureConsentRecord(consentType, req.user.id, req)
+      )
+    );
+
+    return res.json({
+      contract_version: "legal-acceptance.v1",
+      accepted: true,
+      terms_version: LEGAL_VERSION,
+      privacy_version: LEGAL_VERSION,
+      minimum_age: 13,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.delete("/delete", requireAuth, async (req, res, next) => {
   try {
     if (req.body?.confirmation !== DELETE_CONFIRMATION) {
@@ -156,17 +217,23 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
       deleteWhereUserId("consent_records", userId),
     ]);
 
-    await supabase.from("deletion_audit_log").insert({
+    const { error: auditError } = await supabase.from("deletion_audit_log").insert({
       user_id_hash: userHash(userId),
       method: "user_requested",
     });
+    if (auditError) throw new Error(`deletion audit insert failed: ${auditError.message}`);
 
-    await supabase.from("users").delete().eq("id", userId);
+    const { error: userError } = await supabase.from("users").delete().eq("id", userId);
+    if (userError) throw new Error(`users delete failed: ${userError.message}`);
+
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+    if (authError) throw new Error(`auth identity delete failed: ${authError.message}`);
 
     logger.info("User deletion completed", { user_hash: userHash(userId) });
     return res.json({
       contract_version: "user-delete.v1",
       deleted: true,
+      auth_identity_deleted: true,
       user_hash: userHash(userId),
     });
   } catch (err) {
@@ -176,4 +243,5 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.DELETE_CONFIRMATION = DELETE_CONFIRMATION;
+module.exports.LEGAL_VERSION = LEGAL_VERSION;
 module.exports.redactPlatformConnection = redactPlatformConnection;

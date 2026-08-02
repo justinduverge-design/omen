@@ -42,10 +42,44 @@ test('public legal surfaces identify Valor Ventures and landing renders the shar
     read('../frontend/src/pages/Terms.jsx'),
   ]);
 
-  assert.match(footer, /Valor Ventures LLC/);
+  assert.match(footer, /Valor Ventures Limited Liability Company/);
   assert.match(footer, /mailto:legal@slopssaloon\.com/);
   assert.doesNotMatch(footer, /mailto:owner@slopssaloon\.com/);
   assert.match(landing, /<Footer \/>/);
-  assert.match(privacy, /Valor Ventures LLC operates Omen/);
-  assert.match(terms, /Omen is a product of Valor Ventures LLC/);
+  assert.match(privacy, /Valor Ventures Limited Liability Company/);
+  assert.match(terms, /Valor Ventures Limited Liability Company/);
+});
+
+test('final v1 legal pages publish the approved operator, age, jurisdiction, retention, and privacy notices', async () => {
+  const [privacy, terms, login, routes] = await Promise.all([
+    read('../frontend/src/pages/Privacy.jsx'),
+    read('../frontend/src/pages/Terms.jsx'),
+    read('../frontend/src/pages/Login.jsx'),
+    read('../frontend/src/routes/index.jsx'),
+  ]);
+
+  const legal = `${privacy}\n${terms}`;
+  assert.match(legal, /23 Darrow St/);
+  assert.match(legal, /New London, CT 06320/);
+  assert.match(privacy, /effective date/i);
+  assert.match(privacy, /Do Not Track/i);
+  assert.match(privacy, /under 13/i);
+  assert.match(privacy, /24 hours/i);
+  assert.match(privacy, /Sentry/);
+  assert.match(privacy, /Resend/);
+  assert.match(terms, /at least 13/i);
+  assert.match(terms, /Connecticut/);
+  assert.match(terms, /no paid contests/i);
+  assert.match(terms, /limitation of liability/i);
+  assert.match(terms, /governing law/i);
+  assert.doesNotMatch(legal, /open policy item|subject to final founder and counsel review/i);
+
+  assert.match(login, /By continuing/);
+  assert.match(login, /at least 13/);
+  assert.match(login, /to="\/terms"/);
+  assert.match(login, /to="\/privacy"/);
+  assert.match(login, /localStorage\.setItem\('omen\.legal\.pending'/);
+  assert.match(login, /initiated_at/);
+  assert.match(login, /\/api\/user\/legal-acceptance/);
+  assert.match(routes, /path="\/unsubscribe"/);
 });

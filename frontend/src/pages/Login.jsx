@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -60,7 +61,7 @@ function DiscordIcon() {
 
 // ── Magic link form ───────────────────────────────────────────────────────────
 
-function MagicLinkForm({ onSent }) {
+function MagicLinkForm({ onBeforeSubmit, onSent }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,6 +69,7 @@ function MagicLinkForm({ onSent }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    onBeforeSubmit();
     setError('');
     setLoading(true);
     const { error: err } = await supabase.auth.signInWithOtp({
@@ -134,7 +136,26 @@ export default function Login() {
   const [sentEmail, setSentEmail] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   const [oauthError, setOauthError] = useState('');
+  const acceptanceInFlight = useRef(false);
   const accountDeleted = searchParams.get('deleted') === 'true';
+  const legalVersion = '2026-08-02';
+
+  function markLegalAcceptancePending() {
+    window.localStorage.setItem('omen.legal.pending', JSON.stringify({
+      version: legalVersion,
+      initiated_at: Date.now(),
+    }));
+  }
+
+  function hasCurrentLegalAcceptancePending() {
+    try {
+      const pending = JSON.parse(window.localStorage.getItem('omen.legal.pending'));
+      const age = Date.now() - Number(pending?.initiated_at);
+      return pending?.version === legalVersion && age >= 0 && age <= 24 * 60 * 60 * 1000;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // Store ?next= param on first render (before any auth action changes the URL)
   useEffect(() => {
@@ -147,8 +168,30 @@ export default function Login() {
     let mounted = true;
 
     async function handleSession(session) {
-      if (!session || !mounted) return;
+      if (!session || !mounted || acceptanceInFlight.current) return;
+      acceptanceInFlight.current = true;
       setRedirecting(true);
+      if (hasCurrentLegalAcceptancePending()) {
+        try {
+          await apiFetch('/api/user/legal-acceptance', {
+            method: 'POST',
+            body: {
+              terms_version: legalVersion,
+              privacy_version: legalVersion,
+              minimum_age_confirmed: true,
+            },
+          });
+          window.localStorage.removeItem('omen.legal.pending');
+        } catch (_) {
+          await supabase.auth.signOut();
+          if (mounted) {
+            setRedirecting(false);
+            setOauthError('Omen could not record your agreement. Please try signing in again.');
+          }
+          acceptanceInFlight.current = false;
+          return;
+        }
+      }
       const dest = consumeNextUrl();
       // If dest is /omen, confirm a league is connected before routing there.
       // If not connected, send to /account/connect?next=/omen instead.
@@ -185,6 +228,7 @@ export default function Login() {
 
   async function signInWithProvider(provider) {
     setOauthError('');
+    markLegalAcceptancePending();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -278,13 +322,20 @@ export default function Login() {
             <Divider label="or" />
 
             {/* Email magic link */}
-            <MagicLinkForm onSent={setSentEmail} />
+            <MagicLinkForm onBeforeSubmit={markLegalAcceptancePending} onSent={setSentEmail} />
 
             {oauthError && (
               <p className="text-xs text-red-400" role="alert">{oauthError}</p>
             )}
           </div>
         )}
+
+        <p className="mt-5 text-center text-xs leading-5 text-[var(--color-text-tertiary)]">
+          By continuing, you confirm that you are at least 13 and agree to Omen&apos;s{' '}
+          <Link className="underline underline-offset-4 hover:text-[var(--color-text-secondary)]" to="/terms">Terms of Use</Link>
+          {' '}and acknowledge the{' '}
+          <Link className="underline underline-offset-4 hover:text-[var(--color-text-secondary)]" to="/privacy">Privacy Notice</Link>.
+        </p>
 
         {/* Footer links */}
         <div className="mt-8 text-center">

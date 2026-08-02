@@ -19,6 +19,7 @@ import TradeShare from '../pages/TradeShare.jsx';
 import Privacy from '../pages/Privacy.jsx';
 import Support from '../pages/Support.jsx';
 import Terms from '../pages/Terms.jsx';
+import Unsubscribe from '../pages/Unsubscribe.jsx';
 import EspnConnectGuide from '../pages/EspnConnectGuide.jsx';
 import Ledger from '../pages/Ledger.jsx';
 import Standings from '../pages/Standings.jsx';
@@ -52,6 +53,7 @@ export default function AppRoutes() {
       <Route path="/demo" element={<Demo />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/support" element={<Support />} />
       <Route path="/delete-account" element={<DeleteAccount />} />
       <Route path="/espn-connect" element={<EspnConnectGuide />} />
