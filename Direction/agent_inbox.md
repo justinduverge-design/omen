@@ -20,6 +20,23 @@
 - **Branch protection is still unavailable** on the current GitHub plan (`/branches/main/protection` → 403). Merges are not mechanically blocked by a red check — but treat red as a stop, not as cosmetic. Two dependency PRs reached "green" and would have broken production; the checks are the only thing standing in for branch protection.
 - **Local `npm test` remains good fast proof for backend work.** `node --test`, ~7s, no build step. Record the count.
 - **Native iOS has no local substitute** on the Windows dev machine — but `ios-ci.yml` now runs on PRs targeting `main`, so it is CI-verifiable again.
+## ✅ RETRACTED 2026-08-01 — the "GitHub Actions billing hold" never existed
+
+This section previously stated the Actions allotment was exhausted, that no workflow could run, and that **"failing checks are cosmetic."** All three were wrong. Actions executed throughout. Two config bugs produced the red, both fixed in PR #250:
+
+1. `deploy.yml` → `quality`: `package-lock.json` drifted out of sync with `package.json`, so `npm ci` exited 1 on every push to `main` from ~2026-07-23. The job never reached the tests.
+2. `ios-ci.yml`: a duplicate `branches:` key made the workflow YAML invalid — it failed instantly with **0 jobs executed** from ~2026-07-29.
+
+**What the wrong diagnosis cost.** Because this file said not to retry, the real bugs stayed hidden ~9 days and everything merged in that window went in ungated. Repairing `ios-ci.yml` immediately surfaced a genuine `PrimitiveEnforcementTests` regression invisible that whole time. PR #198 sat frozen ~8 days on a blocker that did not exist.
+
+### Current CI reality
+
+- **All gates run and pass on `main`:** backend **481/481**, iOS **84/84**, prod audit clean, frontend + client builds clean.
+- **Pull requests are gated now.** `pr-quality.yml` (#253) runs backend tests/audit, frontend + client builds, and a server boot-with-SPA smoke. Before it, `src/**` had **no** PR CI at all — `deploy.yml` is `on: push: branches: [main]`.
+- **Green is necessary, not sufficient.** #206 (`express` 4→5) passed 481/481 and would still have crash-looped production: path-to-regexp 8 rejects the bare-`*` SPA fallback at registration, and that route sits behind `HAS_SPA` — false in CI, true in the production image. Fixed in #251; `boot-smoke` now covers that class.
+- **Branch protection is still unavailable** on this plan (`/branches/main/protection` → 403), so a red check does not mechanically block a merge. **Treat red as a stop anyway.** With no branch protection, the checks are the only gate there is — "cosmetic" is the word that let two production-breaking dependency PRs reach green.
+- **Local `npm test` remains good fast proof** for backend work. `node --test`, ~7s. Record the count.
+- **Native iOS has no local substitute** on the Windows dev box — but `ios-ci.yml` runs on PRs targeting `main` again, so it is CI-verifiable.
 
 ## How to verify before pulling
 
@@ -63,7 +80,7 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 ### 5. M4-Help-Support-Implementation — remaining QA evidence
 
 - **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** EXTERNAL — GitHub Actions billing hold blocks iOS unsigned CI
+- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
 - **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
 - **Why next:** highest P1 with an agent-resolvable component — *progress-now*. Implementation merged via PR #229, but the task's own `Done when:` requires accessibility and visual evidence that has not been produced. **Not VERIFIED**; a merged PR does not close it.
 
@@ -82,12 +99,11 @@ These two surfaced during the 2026-07-30 reconciliation. They are real work, but
 - **Key note:** must be namespaced. Bare `E1` already means the mobile scope decision in `current_sprint.md`.
 - **Scope note for planning-pass:** implementation must use per-entry `onTeamId` ownership rather than trusting a server-side exclusion filter.
 
-### Actions-restoration sweep (no canonical key exists)
+### ~~Actions-restoration sweep~~ — RESOLVED 2026-08-01, do not mint a task
 
-- **Source:** this inbox's 2026-07-27 selection; corroborated by the same `sprints_completed.md` line.
-- **Type:** operational follow-up, not a build task — conditional on an external billing event.
-- **Proposed blocker:** EXTERNAL — GitHub Actions allotment, restore expected ~2026-08-01.
-- **Relationship:** unblocks the CI-verification half of M4-Auth-Providers-v1 and M4-Help-Support-Implementation.
+- **Status:** void. The premise (an external billing event) never existed; see the retraction at the top of this file. CI was repaired in #250 and the sweep was carried out the same day.
+- **What the sweep found:** repairing `ios-ci.yml` surfaced a real `PrimitiveEnforcementTests` regression (fixed in #250); re-running the open dependency PRs surfaced two that would have broken production — #206 (`express` 4→5 boot crash, fixed via #251) and #252/#207 (Tailwind v4 build break, closed with the safe subset landed as #254).
+- **Outcome:** 10 PRs merged, 2 closed, PR queue cleared to #198 only. `pr-quality.yml` (#253) added so this class of failure is CI-visible rather than needing a manual sweep.
 - **Scope note for planning-pass:** re-run open-PR and DEFERRED-CI workflows and record real results; do not treat the hold as code failure.
 
 ## Verified truth — on `main` (done, ledgered)
@@ -107,7 +123,7 @@ These two surfaced during the 2026-07-30 reconciliation. They are real work, but
 | B2-D Sleeper waiver stack + deterministic selector | PRs #215, #238, #239, #240; Yahoo availability-only fallback preserved |
 | Security hardening evidence recovery | PR #241; source-only RLS still explicitly gated |
 | Store-review notes and ESPN E0 verdict | PRs #242, #243; documentation/evidence only |
-| Backend test baseline | **469/469 green locally**; CI remains unavailable |
+| Backend test baseline | **481/481 green** locally and in CI (2026-08-01, post-#250) |
 
 **Recovered-work disposition:** #215 merged directly; stacked #216/#217 closed when their base was deleted and were recovered onto current `main` by #238/#239. Selector recovery #240 preserved the newer Yahoo fallback. #220/#222/#223/#224 are closed as superseded by #240/#241/#242/#243.
 
