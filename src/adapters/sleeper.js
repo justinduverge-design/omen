@@ -286,6 +286,13 @@ function sleeperTeamName(user, roster) {
     || "Unknown";
 }
 
+function sleeperLeagueTeamName(user, roster) {
+  // Trade candidates must never surface a manager's Sleeper display name,
+  // username, user id, or avatar. A user-provided team name is league-scoped;
+  // otherwise the opaque roster id is the only identity we expose.
+  return user?.metadata?.team_name || `Team ${roster?.roster_id || "Unknown"}`;
+}
+
 async function fetchSleeperStandings(leagueId, currentUserId = null) {
   const [rosters, users] = await Promise.all([
     getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
@@ -479,6 +486,49 @@ async function fetchSleeperAvailablePlayers(leagueId, week, season) {
   return pool;
 }
 
+async function fetchSleeperLeagueRosters(leagueId, week, season) {
+  const [league, rosters, users, players] = await Promise.all([
+    fetchSleeperLeague(leagueId),
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/rosters`),
+    getJson(`${BASE}/league/${encodeURIComponent(leagueId)}/users`),
+    fetchSleeperPlayers(),
+  ]);
+  const projections = await fetchSleeperProjections(
+    season || league?.season || currentSeason(),
+    week
+  ).catch(() => ({}));
+  const leagueUsers = Array.isArray(users) ? users : [];
+  const rosterPositions = Array.isArray(league?.roster_positions) ? league.roster_positions : [];
+
+  return {
+    league_status: league?.status || null,
+    roster_positions: rosterPositions,
+    teams: (Array.isArray(rosters) ? rosters : []).map((roster) => {
+      const user = leagueUsers.find((leagueUser) => String(leagueUser?.user_id) === String(roster?.owner_id));
+      const starterIds = new Set((Array.isArray(roster?.starters) ? roster.starters : []).filter(Boolean).map(String));
+      const reserveIds = new Set((Array.isArray(roster?.reserve) ? roster.reserve : []).filter(Boolean).map(String));
+      const taxiIds = new Set((Array.isArray(roster?.taxi) ? roster.taxi : []).filter(Boolean).map(String));
+      const ids = new Set();
+      for (const key of ["players", "starters", "reserve", "taxi"]) {
+        for (const id of Array.isArray(roster?.[key]) ? roster[key] : []) {
+          if (id != null) ids.add(String(id));
+        }
+      }
+      return {
+        roster_id: String(roster?.roster_id || ""),
+        team_name: sleeperLeagueTeamName(user, roster),
+        players: [...ids].map((playerId) => normalizePlayer({
+          playerId,
+          player: players?.[playerId] || {},
+          projection: projectionFor(projections, playerId),
+          selectedPosition: reserveIds.has(playerId) ? "IR" : taxiIds.has(playerId) ? "TAXI" : starterIds.has(playerId) ? "STARTER" : "BN",
+          isStarter: starterIds.has(playerId) && !reserveIds.has(playerId),
+        })),
+      };
+    }),
+  };
+}
+
 async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
   const user = await fetchSleeperUser(username);
   const [league, rosterInfo, players] = await Promise.all([
@@ -584,6 +634,7 @@ module.exports = {
   fetchSleeperPlayers,
   fetchSleeperProjections,
   fetchSleeperAvailablePlayers,
+  fetchSleeperLeagueRosters,
   fetchSleeperLeagueDrafts,
   fetchSleeperDraft,
   fetchSleeperDraftPicks,

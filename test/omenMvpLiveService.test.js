@@ -46,6 +46,7 @@ function loadOmenService({
   sleeperLeague,
   sleeperPool,
   sleeperPoolError,
+  sleeperLeagueRosters,
 } = {}) {
   const servicePath = require.resolve("../src/services/omen");
   delete require.cache[servicePath];
@@ -57,6 +58,7 @@ function loadOmenService({
     sleeperCalls: [],
     sleeperLeagueCalls: [],
     sleeperPoolCalls: [],
+    sleeperLeagueRosterCalls: [],
     espnCalls: [],
     vaultCalls: [],
   };
@@ -180,6 +182,10 @@ function loadOmenService({
           state.sleeperPoolCalls.push({ leagueId, week, season });
           if (sleeperPoolError) throw new Error(sleeperPoolError);
           return sleeperPool || [];
+        },
+        fetchSleeperLeagueRosters: async (leagueId, week, season) => {
+          state.sleeperLeagueRosterCalls.push({ leagueId, week, season });
+          return sleeperLeagueRosters || { roster_positions: [], teams: [] };
         },
         buildNormalizedRoster: async (leagueId, username, week) => {
           state.sleeperCalls.push({ leagueId, username, week });
@@ -366,6 +372,52 @@ test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_mo
   Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.sleeperCalls[0].leagueId, "sleeper-league-1");
   assert.deepEqual(state.yahooCalls, []);
+});
+
+test("buildLiveOmenMvpMoveForUser returns a sanitized Sleeper trade only when both lineups improve", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      user_id: "user-1",
+      platform: "sleeper",
+      is_active: true,
+      league_id: "sleeper-league-1",
+      platform_username: "sleepy",
+    }],
+    swaps: [],
+    sleeperLeagueRosters: {
+      roster_positions: ["RB", "RB", "WR"],
+      teams: [
+        {
+          roster_id: "sleeper-roster-7",
+          team_name: "North Stars",
+          players: [
+            { player_key: "my-rb", player_id: "my-rb", name: "My RB", position: "RB", eligible_positions: ["RB"], projected_points: 18 },
+            { player_key: "rb-one", player_id: "rb-one", name: "RB One", position: "RB", eligible_positions: ["RB"], projected_points: 20 },
+            { player_key: "rb-two", player_id: "rb-two", name: "RB Two", position: "RB", eligible_positions: ["RB"], projected_points: 19 },
+            { player_key: "low-wr", player_id: "low-wr", name: "Low WR", position: "WR", eligible_positions: ["WR"], projected_points: 5 },
+          ],
+        },
+        {
+          roster_id: "other-roster",
+          team_name: "South Stars",
+          players: [
+            { player_key: "their-wr", player_id: "their-wr", name: "Their WR", position: "WR", eligible_positions: ["WR"], projected_points: 12 },
+            { player_key: "wr-one", player_id: "wr-one", name: "WR One", position: "WR", eligible_positions: ["WR"], projected_points: 20 },
+            { player_key: "wr-two", player_id: "wr-two", name: "WR Two", position: "WR", eligible_positions: ["WR"], projected_points: 19 },
+            { player_key: "low-rb", player_id: "low-rb", name: "Low RB", position: "RB", eligible_positions: ["RB"], projected_points: 5 },
+          ],
+        },
+      ],
+    },
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.recommendation.type, "trade_suggestion");
+  assert.ok(result.body.recommendation.expected_value_delta.points > 0);
+  assert.equal(JSON.stringify(result.body).includes("sleepy"), false);
+  assert.deepEqual(state.sleeperLeagueRosterCalls, [{ leagueId: "sleeper-league-1", week: 8, season: "2026" }]);
 });
 
 test("buildLiveOmenMvpMoveForUser uses the owned selected context instead of provider priority", async () => {

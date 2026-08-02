@@ -16,11 +16,16 @@ const { isOmenReadyConnection } = require("./omenReadiness");
 const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const { findTradeCandidate } = require("./tradeLineup");
+const { compareTrade } = require("./tradeValue");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
 const RISK_STATUSES = new Set(["Q", "QUESTIONABLE", "GTD", "DTD", "DOUBTFUL"]);
 const OUT_STATUSES = new Set(["O", "OUT", "IR", "IR-R", "PUP", "SUSP"]);
+// A weekly-lineup gain may justify only a bounded loss in season-long VORP.
+// Keep the policy explicit so it can be tuned without duplicating trade value.
+const MAX_VORP_LOSS_PER_WEEKLY_POINT = 1;
 const STATUS_LABELS = {
   Q: "questionable",
   GTD: "game-time decision",
@@ -899,17 +904,48 @@ async function buildWaiverCandidateForConnection({ connection, roster }) {
   };
 }
 
-/**
- * Trade is declared so it reports as explicitly unavailable rather than
- * silently not existing. Per the capability matrix in the canonical contract,
- * no provider exposes a normalized opponent-roster candidate surface, so B2-D3
- * must land before this can ever produce a candidate.
- */
-function buildTradeCandidate() {
+async function buildTradeCandidateForConnection({ connection, roster }) {
+  if (connection.platform !== "sleeper") return null;
+
+  let leagueRosters;
+  try {
+    leagueRosters = await sleeperAdapter.fetchSleeperLeagueRosters(
+      connection.league_id,
+      roster.week,
+      String(new Date().getFullYear())
+    );
+  } catch {
+    // Opponent-roster data is a required signal. A failed read means no trade
+    // recommendation, never a partial or guessed one.
+    return null;
+  }
+
+  const status = String(leagueRosters?.league_status || "").toLowerCase();
+  if (status === "pre_draft" || status === "drafting") return null;
+  const teams = Array.isArray(leagueRosters?.teams) ? leagueRosters.teams : [];
+  const ownTeam = teams.find((team) => String(team?.roster_id) === String(roster?.team_key));
+  if (!ownTeam) return null;
+
+  const candidate = findTradeCandidate({
+    ownTeam,
+    opponentTeams: teams,
+    rosterPositions: leagueRosters.roster_positions,
+    fairnessGuard: ({ give, receive, userDelta }) => {
+      const valuation = compareTrade({ send: [give], receive: [receive] });
+      return Number.isFinite(valuation.net_value)
+        && valuation.net_value >= -(userDelta * MAX_VORP_LOSS_PER_WEEKLY_POINT);
+    },
+  });
+  if (!candidate) return null;
+
   return {
+    id: `live_omen_trade_${candidate.give.player_key || "unknown"}_${candidate.receive.player_key || "unknown"}`,
     type: "trade_suggestion",
-    available: false,
-    reason: omenSelector.REJECTION.NO_PROVIDER_CAPABILITY,
+    decisionScore: candidate.userDelta,
+    requiredSignalsLive: true,
+    contextVerified: true,
+    inputKinds: ["live"],
+    trade: candidate,
   };
 }
 
@@ -1070,7 +1106,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
       why_it_matters:
         `${primary.name} grades as the better ${rosterSlot} option by ${formatDelta(delta)} in the normalized ${platformLabel} lineup.`,
       risk:
-        `Risk is ${riskLevel} because this first live Omen uses roster and projection math, while waiver/trade context remains out of scope.`,
+        `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
       confidence: `Confidence is ${confidenceScore} out of 100.`,
       data_used: [
         `${platformLabel} roster`,
@@ -1080,7 +1116,67 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
       ],
     },
   };
-  response.warnings.push(`Live ${platformLabel} MVP Move v1 covers lineup swaps first; waivers and trades are not included yet.`);
+  response.warnings.push(`This ${platformLabel} recommendation does not forecast waiver availability or trade acceptance.`);
+  return response;
+}
+
+function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, trade }) {
+  const platform = connection.platform || roster.source || "unknown";
+  const platformLabel = displayPlatform(platform);
+  const give = playerForMvp(trade.give);
+  const receive = playerForMvp(trade.receive);
+  const delta = finiteNumber(trade.userDelta) || 0;
+  const opponentDelta = finiteNumber(trade.opponentDelta) || 0;
+  const teamName = trade.opponent?.team_name || "that team";
+  const response = liveBaseEnvelope({
+    platform,
+    leagueId: connection.league_id,
+    teamId: roster.team_key || null,
+    season: new Date().getFullYear(),
+    week: roster.week || null,
+    state: "success",
+  });
+
+  response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  response.signals.trade_rosters = signal(
+    "live",
+    true,
+    "sleeper_league_rosters",
+    "Candidate trade used normalized public Sleeper league rosters without manager identity."
+  );
+  response.recommendation = {
+    id: `live_omen_trade_${give.id || "unknown"}_${receive.id || "unknown"}`,
+    type: "trade_suggestion",
+    title: `Offer ${give.name} for ${receive.name}`,
+    move: `Offer ${give.name} to ${teamName} for ${receive.name}.`,
+    primary_player: receive,
+    comparison_player: give,
+    expected_value_delta: { points: delta, label: expectedValueLabel(delta) },
+    confidence: confidence(
+      66,
+      "medium",
+      `Both projected starting lineups improve after the one-for-one swap in this ${platformLabel} league.`
+    ),
+    risk: risk("medium", [
+      `The other lineup improves by ${formatDelta(opponentDelta)} as well, but that does not predict acceptance.`,
+      "This is a one-for-one, projection-backed candidate; packages, draft picks, and future weeks are not modeled.",
+      "The VORP fairness guard limits season-long value loss relative to the weekly lineup gain.",
+    ]),
+    explanation: {
+      summary: `Your best live trade candidate is ${give.name} for ${receive.name}.`,
+      why_it_matters: `The swap adds ${formatDelta(delta)} to your optimal weekly lineup while also improving ${teamName}'s lineup.`,
+      risk: "A fair projected lineup gain is not a guarantee that the other manager will accept the offer.",
+      confidence: "Confidence is medium because the roster and projection inputs are live, while acceptance behavior is not modeled.",
+      data_used: [
+        `${platformLabel} selected roster`,
+        `${platformLabel} league rosters`,
+        "weekly player projections",
+        "optimal lineup comparison",
+        "VORP fairness guard",
+      ],
+    },
+  };
+  response.warnings.push("Trade acceptance, multi-player packages, draft picks, and future-week value are not modeled.");
   return response;
 }
 
@@ -1382,9 +1478,16 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   const waiverCandidate = await buildWaiverCandidateForConnection({ connection, roster });
   if (waiverCandidate) candidates.push(waiverCandidate);
 
-  candidates.push(buildTradeCandidate());
-
-  const { selected } = omenSelector.selectDecision(candidates);
+  // B2-D3-S: trade reads every public league roster only when lineup and
+  // waiver analysis produced no scoreable move. This keeps the larger public
+  // surface off the common path and preserves the selected-context boundary.
+  // A raw candidate with a zero/invalid score does not count as a move.
+  let { selected } = omenSelector.selectDecision(candidates);
+  if (!selected) {
+    const tradeCandidate = await buildTradeCandidateForConnection({ connection, roster });
+    if (tradeCandidate) candidates.push(tradeCandidate);
+    ({ selected } = omenSelector.selectDecision(candidates));
+  }
 
   if (!selected) {
     // Yahoo's guarded waiver move is availability-based and deliberately has a
@@ -1457,6 +1560,18 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       outStarter: selected.outStarter,
       pickup: selected.pickup,
     });
+  }
+
+  if (selected.type === "trade_suggestion") {
+    return {
+      status: 200,
+      body: mapTradeSuggestionToMvpMove({
+        roster,
+        connection,
+        connectedPlatforms,
+        trade: selected.trade,
+      }),
+    };
   }
 
   return {
