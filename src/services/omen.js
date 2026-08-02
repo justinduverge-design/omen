@@ -772,7 +772,7 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
  * honest, and they are also what keeps the cost near zero, since no pool is
  * ever fetched for a roster with no OUT starter.
  */
-function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup }) {
+function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup, waiverSignal = null }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const slot = outStarter.selected_position || outStarter.position || "lineup";
@@ -791,6 +791,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
   });
 
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
+  if (waiverSignal) response.signals.waivers = waiverSignal;
   response.recommendation = {
     id: `live_omen_waiver_${pickup.player_key || "unknown"}`,
     type: "waiver_pickup",
@@ -832,21 +833,34 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
 }
 
 /**
- * Sleeper-only for now. Yahoo waiver is PR #211's scope and is gated on Yahoo
- * API reapproval; ESPN has no available-player capability yet (see the E phase
- * of the waiver-pool spec). Returns null to mean "no waiver candidate", which
- * the selector treats as this type producing nothing.
+ * Sleeper and ESPN provide projection-backed pools. Yahoo's availability-only
+ * fallback remains separate because it deliberately has no numeric decision
+ * score. The analysis returns an optional candidate plus the provider signal
+ * needed to distinguish live-empty data from an unavailable pool.
  *
  * Returns the raw pieces plus a decision score rather than a finished envelope,
  * so the selector can compare it against start/sit before anything is rendered.
  */
-async function buildWaiverCandidateForConnection({ connection, roster }) {
-  if (connection.platform !== "sleeper") return null;
+async function buildWaiverCandidateForConnection({ connection, roster, espnCredentials = null }) {
+  const noAnalysis = { candidate: null, waiverSignal: null };
+  if (connection.platform !== "sleeper" && connection.platform !== "espn") return noAnalysis;
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
   const outStarter = starters.find((player) => isOutStatus(player?.status));
   // No compromised slot means no waiver need. Do not price a pool to look busy.
-  if (!outStarter) return null;
+  if (!outStarter) {
+    return {
+      candidate: null,
+      waiverSignal: connection.platform === "espn"
+        ? signal(
+          "unavailable",
+          false,
+          "espn_available_players",
+          "No unavailable ESPN starter required a waiver-pool lookup."
+        )
+        : null,
+    };
+  }
 
   const slotPositions = new Set(
     (Array.isArray(outStarter.eligible_positions) && outStarter.eligible_positions.length
@@ -854,22 +868,51 @@ async function buildWaiverCandidateForConnection({ connection, roster }) {
       : [outStarter.position]
     ).filter(Boolean)
   );
-  if (!slotPositions.size) return null;
+  if (!slotPositions.size) return noAnalysis;
 
   let pool;
   try {
-    pool = await sleeperAdapter.fetchSleeperAvailablePlayers(
-      connection.league_id,
-      roster.week,
-      String(new Date().getFullYear())
-    );
+    if (connection.platform === "sleeper") {
+      pool = await sleeperAdapter.fetchSleeperAvailablePlayers(
+        connection.league_id,
+        roster.week,
+        String(new Date().getFullYear())
+      );
+    } else {
+      if (!espnCredentials?.espnS2 || !espnCredentials?.swid) return noAnalysis;
+      pool = await espnAdapter.fetchEspnWaiverPool(
+        connection.league_id,
+        espnCredentials.espnS2,
+        espnCredentials.swid,
+        roster.week
+      );
+    }
   } catch {
     // A pool failure degrades to the normal empty response. It must never
     // surface as an error or as a recommendation built on partial data.
-    return null;
+    return {
+      candidate: null,
+      waiverSignal: connection.platform === "espn"
+        ? signal(
+          "unavailable",
+          false,
+          "espn_available_players",
+          "ESPN available-player data is unavailable, so Omen will not generate waiver advice."
+        )
+        : null,
+    };
   }
 
-  const candidate = (Array.isArray(pool) ? pool : []).find((player) => {
+  const waiverSignal = connection.platform === "espn"
+    ? signal(
+      "live",
+      true,
+      "espn_available_players",
+      "Available-player and projection data came from the selected ESPN league."
+    )
+    : null;
+
+  const candidate = (Array.isArray(pool) ? pool : []).filter((player) => {
     // null projection means "unknown", not zero. An unprojected add is not
     // evidence-backed, so it never becomes a recommendation.
     //
@@ -883,8 +926,11 @@ async function buildWaiverCandidateForConnection({ connection, roster }) {
       ? player.eligible_positions
       : [player?.position];
     return positions.some((pos) => slotPositions.has(pos));
-  });
-  if (!candidate) return null;
+  }).sort((left, right) =>
+    Number(right.projected_points) - Number(left.projected_points)
+    || String(left.player_key).localeCompare(String(right.player_key))
+  )[0];
+  if (!candidate) return { candidate: null, waiverSignal };
 
   // Same unit as a lineup swap's delta: expected points gained this week. An
   // OUT starter's own projection is subtracted rather than assumed to be zero,
@@ -893,14 +939,17 @@ async function buildWaiverCandidateForConnection({ connection, roster }) {
   const starterPoints = finiteNumber(outStarter.projected_points) || 0;
 
   return {
-    id: `live_omen_waiver_${candidate.player_key || "unknown"}`,
-    type: "waiver_pickup",
-    decisionScore: pickupPoints - starterPoints,
-    requiredSignalsLive: true,
-    contextVerified: true,
-    inputKinds: ["live"],
-    outStarter,
-    pickup: candidate,
+    candidate: {
+      id: `live_omen_waiver_${candidate.player_key || "unknown"}`,
+      type: "waiver_pickup",
+      decisionScore: pickupPoints - starterPoints,
+      requiredSignalsLive: true,
+      contextVerified: true,
+      inputKinds: ["live"],
+      outStarter,
+      pickup: candidate,
+    },
+    waiverSignal,
   };
 }
 
@@ -1287,7 +1336,18 @@ async function vaultDecrypt(secretId) {
   return data?.decrypted_secret ?? data?.[0]?.decrypted_secret ?? null;
 }
 
-async function buildRosterForConnection(userId, connection, week, { yahooClient = null } = {}) {
+async function espnCredentialsForConnection(connection) {
+  const espnS2 = await vaultDecrypt(connection.espn_secret_id);
+  const swid = await vaultDecrypt(connection.swid_secret_id);
+  if (!espnS2 || !swid) {
+    const err = new Error("ESPN credentials missing");
+    err.code = "espn_reauth_required";
+    throw err;
+  }
+  return { espnS2, swid };
+}
+
+async function buildRosterForConnection(userId, connection, week, { yahooClient = null, espnCredentials = null } = {}) {
   if (connection.platform === "yahoo") {
     const yahoo = yahooClient || (await getAuthenticatedYahooClient(userId)).client;
     const cacheKey = `ssff:omen-mvp:${userId}:${connection.league_id}:current`;
@@ -1303,13 +1363,7 @@ async function buildRosterForConnection(userId, connection, week, { yahooClient 
   }
 
   if (connection.platform === "espn") {
-    const espnS2 = await vaultDecrypt(connection.espn_secret_id);
-    const swid = await vaultDecrypt(connection.swid_secret_id);
-    if (!espnS2 || !swid) {
-      const err = new Error("ESPN credentials missing");
-      err.code = "espn_reauth_required";
-      throw err;
-    }
+    const { espnS2, swid } = espnCredentials || await espnCredentialsForConnection(connection);
     return espnAdapter.buildNormalizedRoster(
       connection.league_id,
       espnS2,
@@ -1434,12 +1488,16 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
 
   const week = currentNflWeek();
   let yahooClient = null;
+  let espnCredentials = null;
   if (connection.platform === "yahoo") {
     ({ client: yahooClient } = await getAuthenticatedYahooClient(userId));
   }
   let roster;
   try {
-    roster = await buildRosterForConnection(userId, connection, week, { yahooClient });
+    if (connection.platform === "espn") {
+      espnCredentials = await espnCredentialsForConnection(connection);
+    }
+    roster = await buildRosterForConnection(userId, connection, week, { yahooClient, espnCredentials });
   } catch (err) {
     if (connection.platform === "espn") return espnRecoveryFromError(connection, err);
     if (connection.platform === "sleeper") {
@@ -1475,7 +1533,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     });
   }
 
-  const waiverCandidate = await buildWaiverCandidateForConnection({ connection, roster });
+  const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
+  const waiverCandidate = waiverAnalysis.candidate;
+  const waiverSignal = waiverAnalysis.waiverSignal;
   if (waiverCandidate) candidates.push(waiverCandidate);
 
   // B2-D3-S: trade reads every public league roster only when lineup and
@@ -1549,6 +1609,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       roster,
       connection,
       connectedPlatforms,
+      waiverSignal,
     });
   }
 
@@ -1559,6 +1620,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       connectedPlatforms,
       outStarter: selected.outStarter,
       pickup: selected.pickup,
+      waiverSignal,
     });
   }
 
@@ -1574,7 +1636,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     };
   }
 
-  return {
+  const result = {
     status: 200,
     body: mapLineupSwapToMvpMove({
       roster,
@@ -1583,6 +1645,8 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       connectedPlatforms,
     }),
   };
+  if (waiverSignal) result.body.signals.waivers = waiverSignal;
+  return result;
 }
 
 function confidence(score, label, rationale) {

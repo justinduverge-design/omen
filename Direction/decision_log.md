@@ -895,3 +895,8 @@
 
 - `fetchEspnWaiverPool()` is an adapter-only boundary. It requests `kona_player_info` with the provider filter in `x-fantasy-filter`, paginates until a short page, and applies `onTeamId === 0` again while normalizing each response entry. The server filter is an optimization, not an ownership claim.
 - Only `statSourceId === 1` from the requested scoring period supplies `projected_points`; actual statistics are never substituted. The function has no canonical Omen, route, database, cache, or UI wiring, so E2 remains the separate selected-context integration task.
+
+## 2026-08-02 — ESPN E2 reuses one selected-context credential read for roster and waiver evaluation
+
+- Canonical Omen validates the selected opaque context before retrieving the selected ESPN connection's existing Vault-backed session. That in-memory session is reused for the roster and waiver-pool reads; unselected ESPN connections are not decrypted or queried.
+- ESPN waiver evaluation opens only for an unavailable starter, considers only projected same-position candidates, and ranks them by weekly projection rather than ESPN's popularity order. Provider failure produces a live empty response with an unavailable waiver signal; a successful empty pool remains honestly live-empty. No mock candidate is substituted.

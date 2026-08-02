@@ -1,6 +1,6 @@
 # B2-D ESPN Waiver Pool — Implementation Contract v1
 
-**Status:** Planning-pass build contract
+**Status:** E1 and E2 locally verified; E3 provider proof pending
 **Parent:** B2-D canonical Omen engine / GitHub issue #162
 **Evidence basis:** `b2d-espn-e0-verdict-v1.md` and `b2d-espn-observation-12-resolution-protocol-v1.md`
 

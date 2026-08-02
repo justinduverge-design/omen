@@ -94,6 +94,8 @@ These two surfaced during the 2026-07-30 reconciliation. They are real work, but
 
 Planning pass split the former proposed `B2-D-E1` intake into canonical `B2-D-E1` adapter, `B2-D-E2` canonical-wiring, and `B2-D-E3` drafted-league-proof items in `Direction/current_sprint.md`. Contract: `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 
+E1 and E2 are locally verified on stacked Codex branches. E3 remains the only ESPN waiver proof gate: founder-executed drafted-league observation with sanitized counts/booleans only.
+
 ### ~~Actions-restoration sweep~~ — RESOLVED 2026-08-01, do not mint a task
 
 - **Status:** void. The premise (an external billing event) never existed; see the retraction at the top of this file. CI was repaired in #250 and the sweep was carried out the same day.
