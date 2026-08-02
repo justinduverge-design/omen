@@ -87,3 +87,35 @@ test("runScoring groups reads by each move's stored season/week and dry-run neve
   assert.equal(calls.score, 0);
   assert.deepEqual(result, { dryRun: true, archiveCount: 1, scoredCount: 2, failedCount: 0 });
 });
+
+test("runScoring uses the PPR fallback when deployed moves omit the legacy scoring field", async () => {
+  let saved = 0;
+  const result = await runScoring({
+    env: {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_KEY: "test-service-key",
+    },
+    dependencies: {
+      createSupabase: () => ({}),
+      createRedis: () => null,
+      archiveNotExecutedMoves: async () => 0,
+      fetchPendingMoves: async () => [{
+        id: "move-without-scoring",
+        target_player: "Fallback Runner",
+        confidence: 60,
+        season: 2025,
+        week_num: 3,
+      }],
+      fetchNFLScores: async () => ({
+        fallback_runner: { name: "Fallback Runner", rec_ppr: 16, rec_half: 14, rec_std: 12 },
+      }),
+      saveScoredMove: async (_supabase, _moveId, score) => {
+        saved += 1;
+        assert.match(score.result, /16\.0 fantasy points \(PPR\)/);
+      },
+    },
+  });
+
+  assert.equal(saved, 1);
+  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 1, failedCount: 0 });
+});
