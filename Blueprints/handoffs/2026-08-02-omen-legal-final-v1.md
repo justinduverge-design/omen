@@ -3,6 +3,7 @@
 **Date:** 2026-08-02
 **Branch:** `codex/legal-final-v1`
 **Base:** clean `main` at `8c2368d`
+**Status:** Merged and live
 
 ## Delivered
 
@@ -24,9 +25,19 @@
 - Code/legal/security/privacy/UI review: no remaining P0/P1/P2 finding.
 - `git diff --check`: clean.
 
-## Boundaries and next gate
+## Release evidence
 
-- No Supabase schema/RLS application, credential inspection, provider call, production data, dependency, merge, push, deploy, or live mutation occurred.
+- Ready PR [#269](https://github.com/justinduverge-design/omen/pull/269) passed backend tests/audit, frontend/client builds, server boot, and UI quality checks.
+- Squash merge: `64305c1b322ed639f282c41c220cbe47836f4aff`.
+- [Deploy run 30769488793](https://github.com/justinduverge-design/omen/actions/runs/30769488793) passed clean-runner quality, API and cron image publication, KVM1 pull/restart, health smoke, deployed-asset verification, and public-route smoke.
+- Independent read-only canary: three rounds returned 200 for apex and `www` health/readiness, plus `/privacy`, `/terms`, `/login`, and `/unsubscribe`; HSTS was present and HTTP redirected to HTTPS.
+- Observed canary p95 was 350 ms across 30 requests. The live bundle `/assets/index-Tl_7x0_a.js` contains the exact company name, legal assent, unsubscribe page, and no-paid-contests language.
+- Live 375px browser checks rendered all four changed routes with the expected headings and no horizontal overflow.
+
+## Boundaries and rollback
+
+- No Supabase schema/RLS application, credential inspection, provider call, production-data write, dependency, secret, DNS, TLS, or infrastructure-config change occurred.
 - Native applications are not released; equivalent current-version links and assent remain a native release gate.
 - ESPN remains an unofficial provider connection; legal copy discloses fragility but does not create provider authorization.
-- Next step is founder review of this branch. Push, PR, merge, deployment, live email proof, Auth-deletion canary, and production canary remain separate authorized stages.
+- The canary remained read-only. Live Resend delivery, authenticated assent recording, waitlist deletion, and account/Auth deletion were not exercised against production data.
+- Rollback target: revert merge `64305c1b` through a PR; the normal main workflow rebuilds and redeploys the prior `8c2368d` source.

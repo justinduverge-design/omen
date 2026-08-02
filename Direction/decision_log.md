@@ -920,3 +920,10 @@
 - The public legal mailing address is `23 Darrow St, New London, CT 06320`, expressly authorized by the founder for publication. The official entity name is `Valor Ventures Limited Liability Company`.
 - Account deletion includes the Omen Supabase Auth identity and Vault-backed platform credentials. Fantasy-platform and separate identity-provider accounts remain outside Omen deletion. Waitlist data is separate and has its own public unsubscribe route.
 - The current Privacy Notice discloses a local-default AI boundary, Yahoo cache retention within 24 hours, conditional Sentry and Resend use, browser tracking preferences, and a one-way deletion audit hash.
+
+## 2026-08-02 — LEGAL-V1 is live through the normal KVM1 release path
+
+- PR #269 passed every required PR check and squash-merged as `64305c1b322ed639f282c41c220cbe47836f4aff`.
+- Deploy run `30769488793` passed clean-runner quality, GHCR API/cron image publication, KVM1 pull/restart, health smoke, deployed-asset verification, and public-route smoke.
+- Independent read-only canary returned 200 with HSTS across three rounds for apex and `www` health/readiness and the changed public legal routes; HTTP redirected to HTTPS, observed p95 was 350 ms, and the live bundle contained the exact final-v1 legal markers.
+- No production-data write was used as proof. Live Resend delivery, legal-acceptance persistence, waitlist removal, and account/Auth deletion remain unexercised in production. Rollback is a revert of `64305c1b` through the normal main workflow to rebuild the prior `8c2368d` source.
