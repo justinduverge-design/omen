@@ -170,9 +170,39 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Priority:** P0
 - **Cost:** large
 - **Source of truth:** GitHub issue #162. Canonical `POST /api/omen/mvp-move` must safely honor selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
-- **Current state:** the Sleeper waiver stack and deterministic selector landed (PRs #215, #238, #239, #240); Yahoo availability-only fallback landed (PR #236). ESPN implementation is held in planning intake pending `planning-pass`. Trade is the last unbuilt decision type — scoped in `B2-D3-S` below.
+- **Current state:** the Sleeper waiver stack and deterministic selector landed (PRs #215, #238, #239, #240); Yahoo availability-only fallback landed (PR #236); Sleeper trade landed in PR #259. ESPN waiver is now decomposed below into adapter, canonical wiring, and drafted-league proof.
 - **Done when:** #162 acceptance evidence is complete — server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
 - **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
+
+### B2-D-E1 — Normalize the ESPN waiver pool
+
+  - **Status:** VERIFIED (local branch `codex/b2d-e1-espn-waiver-pool`, commit `2748a5c`; not pushed, merged, deployed, or provider-proven)
+- **Blocked by:** None
+- **Priority:** P0
+- **Cost:** medium
+- **Scope:** Implement the safe ESPN free-agent/waiver-pool adapter slice described in `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
+- **Done when:** `kona_player_info` pagination, position/status request filter, `onTeamId === 0` ownership exclusion, requested-week projected-stat extraction, and no-cookie logging behavior are fixture-tested; the adapter returns normalized eligible players or an honest unavailable/empty result.
+- **Do not touch:** ESPN credentials, real-account requests, SQL, dependencies, canonical Omen service, public Trade Analyzer, deployment, or production data.
+
+### B2-D-E2 — Wire ESPN waiver candidates into canonical Omen
+
+- **Status:** BLOCKED
+- **Blocked by:** TASK-B2-D-E1 — normalized ESPN waiver-pool adapter must land first.
+- **Priority:** P0
+- **Cost:** medium
+- **Scope:** Add selected-context ESPN waiver candidate generation to `POST /api/omen/mvp-move` per `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
+- **Done when:** canonical service/route tests prove selected-context ownership, live candidate selection, unavailable/empty behavior, and no mock fallback; Yahoo/Sleeper remain unchanged.
+- **Do not touch:** provider credentials, public Trade Analyzer, SQL, dependencies, mobile clients, deployment, or production data.
+
+### B2-D-E3 — Prove ESPN roster subtraction in a drafted league
+
+- **Status:** BLOCKED
+- **Blocked by:** EXTERNAL — founder-executed drafted-league observation protocol required for provider capability proof.
+- **Priority:** P0
+- **Cost:** small
+- **Scope:** Run `Blueprints/specs/b2d-espn-observation-12-resolution-protocol-v1.md` and append sanitized counts/booleans to the provider evidence.
+- **Done when:** rostered-player leakage and `onTeamId` results are recorded without cookies, league ID, team name, username, or player lists; the ESPN waiver capability matrix is updated honestly.
+- **Do not touch:** credential values, transactions, application code, deployment, or production data.
 
 ### B2-D3-S — Live trade capability: Sleeper
 
