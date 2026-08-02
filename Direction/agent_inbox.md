@@ -44,15 +44,17 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 ## Selected Queue — 2026-07-30
 
+> **Refresh required.** This historical shortlist is no longer a current selection: B2-D is verified on `main` as of 2026-08-02, and the remaining entries must be re-ranked from `Direction/current_sprint.md` at the next kickoff.
+
 **5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). No founder pin is set and no task holds a valid `Claim:`, so selection began at effective priority.
 
 > **Read this before pulling.** All 13 active tasks currently carry a non-`None` `Blocked by:` line. Per the pull rule, an agent stops and surfaces the block rather than skipping ahead. The four items below marked *progress-now* have an `AGENT_RESOLVABLE` component that can advance today; the rest need founder or external action first.
 
-### 1. B2-D — Complete the canonical Omen engine
+### 1. B2-D — Complete the canonical Omen engine (resolved)
 
-- **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** AGENT_RESOLVABLE — provider-specific live-data capability proof still outstanding for ESPN
-- **Why first:** P0 with the largest downstream reach (GitHub issue #162 is the canonical engine). The Sleeper waiver stack and deterministic selector already landed (#215, #238, #239, #240) and Yahoo availability-only fallback landed (#236) — *progress-now*.
+- **Status:** VERIFIED
+- **Evidence:** PRs #259, #265, and #266; `Blueprints/handoffs/2026-08-02-b2d-canonical-engine-reconciliation.md`.
+- **Why resolved:** current `main` contains the personalized Sleeper trade path and selected-context ESPN waiver path; aggregate drafted-league evidence completed the ownership proof without exposing credentials or provider identifiers.
 - **Do not touch:** provider credentials, deployment, production data mutations, store configuration.
 
 ### 2. A4 — Tuesday scoring production enablement

@@ -927,3 +927,9 @@
 - Deploy run `30769488793` passed clean-runner quality, GHCR API/cron image publication, KVM1 pull/restart, health smoke, deployed-asset verification, and public-route smoke.
 - Independent read-only canary returned 200 with HSTS across three rounds for apex and `www` health/readiness and the changed public legal routes; HTTP redirected to HTTPS, observed p95 was 350 ms, and the live bundle contained the exact final-v1 legal markers.
 - No production-data write was used as proof. Live Resend delivery, legal-acceptance persistence, waitlist removal, and account/Auth deletion remain unexercised in production. Rollback is a revert of `64305c1b` through the normal main workflow to rebuild the prior `8c2368d` source.
+
+## 2026-08-02 — B2-D canonical engine reconciled to current main
+
+- B2-D's remaining ESPN work was already merged: PR #265 (`171508f`) provides the ownership-verified normalized waiver pool and PR #266 (`623068a`) wires it into canonical Omen. The prior local-branch language was stale.
+- PR #259 (`521268b`) already supplies the selected-context Sleeper trade candidate path. It is constrained to one-for-one trades that improve both optimized weekly lineups, with VORP only as a fairness guard; it does not claim trade acceptance or future results.
+- The 2026-08-02 drafted-league ESPN observation closed the provider ownership proof with aggregate-only evidence. Current-main tests confirm selected context, live candidate, unavailable, empty, and no-mock behavior; this is not a deployment or production-route verification claim.
