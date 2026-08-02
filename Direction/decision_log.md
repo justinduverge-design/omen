@@ -906,3 +906,9 @@
 - A founder-authorized read-only run used the one complete ESPN connection updated immediately after the Chrome-extension handoff. The session and league context remained in memory only for the two ESPN reads; recorded evidence contains counts and timings only.
 - The drafted league contained 10 populated teams and 160 distinct rostered players. ESPN returned a 500-entry filtered pool with 0 rostered-player overlaps, 0 non-zero `onTeamId` values, and 0 ownership-signal disagreements. Observation 12 therefore closes cleanly, while E1's independent `onTeamId === 0` guard remains mandatory defense in depth.
 - This is provider capability proof, not evidence that the stacked E1/E2 commits are pushed, merged, deployed, or working through the production canonical route.
+
+## 2026-08-02 — Valor Ventures LLC is Omen's public legal operator
+
+- Valor Ventures LLC is the legal owner and operator; Slops Saloon is its product studio, and Omen is a Slops Saloon product. Public Footer, Privacy, and Terms surfaces must use that hierarchy consistently.
+- Public legal contact uses the existing monitored `legal@slopssaloon.com` address. The unapproved `owner@slopssaloon.com` draft address is not published.
+- Three redundant local worktrees (`omen-dependency-health`, `omen-m0be3`, and `omen-security-hardening`) were retired only after their work was matched to merged or superseding current-main changes. The one unpublished Valor footer commit was preserved, rebased, reviewed, and tested instead of being discarded.

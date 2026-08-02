@@ -1,6 +1,6 @@
 # Omen Brand System
 
-**Status:** Canonical | Last updated: 2026-07-19
+**Status:** Canonical | Last updated: 2026-08-02
 **Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
 **Logos:** canonical asset set at `logos/` (13 files) — primary emblem (shield), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), full brand board, and PNG preview sheet. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
@@ -12,7 +12,7 @@
 
 Omen is a fantasy football decision tool from Slops Saloon. It helps managers see the result before it happens — not by validating gut feelings, but by testing them against real data.
 
-Slops Saloon is the parent company and product studio. Omen is its first product. Future products live alongside Omen under Slops Saloon, not inside it.
+Valor Ventures LLC is the legal owner and operator. Slops Saloon is its product studio, and Omen is the studio's first product. Future products live alongside Omen under Slops Saloon, not inside it.
 
 ---
 

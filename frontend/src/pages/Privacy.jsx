@@ -3,10 +3,11 @@ import PublicInfoLayout, { InfoSection } from '../components/layout/PublicInfoLa
 
 export default function Privacy() {
   return (
-    <PublicInfoLayout eyebrow="Privacy" title="Privacy Policy" updatedAt="July 13, 2026">
+    <PublicInfoLayout eyebrow="Privacy" title="Privacy Policy" updatedAt="August 2, 2026">
       <p>
-        This page explains the information Omen processes to provide fantasy-football tools. It is a product disclosure,
-        not legal advice. Omen is free and does not use Stripe or another payment provider for this product.
+        Valor Ventures LLC operates Omen. This page explains the information Omen processes to provide fantasy-football
+        tools. It is a product disclosure, not legal advice. Omen is free and does not use Stripe or another payment
+        provider for this product.
       </p>
 
       <InfoSection title="Information we process">

@@ -2,10 +2,10 @@ import PublicInfoLayout, { InfoSection } from '../components/layout/PublicInfoLa
 
 export default function Terms() {
   return (
-    <PublicInfoLayout eyebrow="Terms" title="Terms of Use" updatedAt="July 13, 2026">
+    <PublicInfoLayout eyebrow="Terms" title="Terms of Use" updatedAt="August 2, 2026">
       <p>
-        These terms describe the current Omen product. They are a plain-language product notice, not legal advice, and
-        remain subject to final founder and counsel review where required.
+        Omen is a product of Valor Ventures LLC. These terms describe the current Omen product. They are a plain-language
+        product notice, not legal advice, and remain subject to final founder and counsel review where required.
       </p>
 
       <InfoSection title="Using Omen">

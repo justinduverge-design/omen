@@ -33,3 +33,19 @@ test('public pages expose the approved monitored contact channels', async () => 
   assert.match(terms, /mailto:legal@slopssaloon\.com/);
   assert.match(support, /mailto:support@slopssaloon\.com/);
 });
+
+test('public legal surfaces identify Valor Ventures and landing renders the shared footer', async () => {
+  const [footer, landing, privacy, terms] = await Promise.all([
+    read('../frontend/src/components/layout/Footer.jsx'),
+    read('../frontend/src/pages/Landing.jsx'),
+    read('../frontend/src/pages/Privacy.jsx'),
+    read('../frontend/src/pages/Terms.jsx'),
+  ]);
+
+  assert.match(footer, /Valor Ventures LLC/);
+  assert.match(footer, /mailto:legal@slopssaloon\.com/);
+  assert.doesNotMatch(footer, /mailto:owner@slopssaloon\.com/);
+  assert.match(landing, /<Footer \/>/);
+  assert.match(privacy, /Valor Ventures LLC operates Omen/);
+  assert.match(terms, /Omen is a product of Valor Ventures LLC/);
+});
