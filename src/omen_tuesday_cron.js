@@ -167,7 +167,9 @@ async function fetchPendingMoves(supabase, now = new Date()) {
 
   const { data: moves, error } = await supabase
     .from("moves")
-    .select("id, user_id, week_num, season, move_type, headline, confidence, scoring, target_player, platform, league_id, outcome, followed, created_at")
+    // `scoring` is not present in the deployed moves schema. scoreMove already
+    // defaults an absent format to PPR, which is the historical moves default.
+    .select("id, user_id, week_num, season, move_type, headline, confidence, target_player, platform, league_id, outcome, followed, created_at")
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
