@@ -65,6 +65,27 @@ function waiverEnvelope() {
   return body;
 }
 
+function espnWaiverEnvelope() {
+  const body = waiverEnvelope();
+  body.platform = { name: "espn", status: "connected", recovery: null };
+  body.league = { id: "22222", name: null, season: 2026, week: 8, scoring_format: "ppr" };
+  body.team = { id: "7", name: null };
+  body.recommendation = {
+    ...body.recommendation,
+    id: "live_omen_waiver_espn_available_wr",
+    primary_player: { id: "available-wr", name: "Available ESPN Wideout", position: "WR", team: "PHI" },
+    comparison_player: { id: "out-wr", name: "Out ESPN Wideout", position: "WR", team: "DAL" },
+    expected_value_delta: { points: 13.2, label: "strong" },
+  };
+  body.signals.waivers = {
+    status: "live",
+    used: true,
+    source: "espn_available_players",
+    message: "Available-player and projection data came from the selected ESPN league.",
+  };
+  return body;
+}
+
 function authEnvelope(message = "Missing bearer token") {
   return {
     contract_version: "2026-05-18.omen-live.v1",
@@ -274,6 +295,28 @@ test("POST /api/omen/mvp-move does not enrich availability-only waiver advice wi
   assert.equal(res.body.recommendation.type, "waiver_pickup");
   assert.equal(res.body.signals.matchup_dvp.status, "stub");
   assert.deepEqual(state.dvpLookups, []);
+});
+
+test("POST /api/omen/mvp-move returns the selected-context ESPN waiver envelope", async () => {
+  const { app, state } = buildApp({ liveResponse: espnWaiverEnvelope });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: {
+      context_id: "context-espn-waiver",
+      include_signals: { llm_reasoning: false, matchup_dvp: false },
+    },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.platform.name, "espn");
+  assert.equal(res.body.league.id, "22222");
+  assert.equal(res.body.recommendation.type, "waiver_pickup");
+  assert.equal(res.body.recommendation.expected_value_delta.points, 13.2);
+  assert.equal(res.body.signals.waivers.source, "espn_available_players");
+  assert.deepEqual(state.liveRequests, [{
+    userId: "user-1",
+    options: { contextId: "context-espn-waiver" },
+  }]);
 });
 
 test("POST /api/omen/mvp-move forwards the selected opaque context to live generation", async () => {

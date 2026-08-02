@@ -38,6 +38,8 @@ function loadOmenService({
   roster,
   sleeperRoster,
   espnRoster,
+  espnWaiverPool,
+  espnWaiverError,
   swaps,
   waiverPool,
   waiverError,
@@ -60,6 +62,7 @@ function loadOmenService({
     sleeperPoolCalls: [],
     sleeperLeagueRosterCalls: [],
     espnCalls: [],
+    espnWaiverCalls: [],
     vaultCalls: [],
   };
   const fakeSupabase = {
@@ -252,6 +255,11 @@ function loadOmenService({
               ir: [],
             },
           };
+        },
+        fetchEspnWaiverPool: async (leagueId, espnS2, swid, week) => {
+          state.espnWaiverCalls.push({ leagueId, espnS2, swid, week });
+          if (espnWaiverError) throw espnWaiverError;
+          return espnWaiverPool || [];
         },
       };
     }
@@ -726,6 +734,203 @@ test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move 
   Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.vaultCalls, ["espnSecret", "swidSecret"]);
   assert.equal(state.espnCalls[0].opts.teamId, "7");
+});
+
+test("buildLiveOmenMvpMoveForUser returns an ESPN waiver pickup only from the selected live context", async () => {
+  const { service, state } = loadOmenService({
+    connections: [
+      {
+        id: "context-espn-other",
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "11111",
+        espn_secret_id: "otherEspnSecret",
+        swid_secret_id: "otherSwidSecret",
+        espn_team_id: "1",
+      },
+      {
+        id: "context-espn-waiver",
+        user_id: "user-1",
+        platform: "espn",
+        is_active: true,
+        league_id: "22222",
+        espn_secret_id: "selectedEspnSecret",
+        swid_secret_id: "selectedSwidSecret",
+        espn_team_id: "7",
+      },
+    ],
+    vaultSecrets: {
+      otherEspnSecret: "other-espn-s2",
+      otherSwidSecret: "{other-swid}",
+      selectedEspnSecret: "selected-espn-s2",
+      selectedSwidSecret: "{selected-swid}",
+    },
+    espnRoster: {
+      week: 8,
+      team_key: "7",
+      source: "espn",
+      slots: {
+        starters: [{
+          player_key: "espn:out-wr",
+          name: "Out ESPN Wideout",
+          position: "WR",
+          eligible_positions: ["WR"],
+          selected_position: "WR",
+          team: "DAL",
+          status: "OUT",
+          projected_points: 0,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+    espnWaiverPool: [
+      {
+        player_key: "espn:popular-wr",
+        player_id: "popular-wr",
+        name: "Popular ESPN Wideout",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "NYJ",
+        status: null,
+        projected_points: 8.1,
+      },
+      {
+        player_key: "espn:available-wr",
+        player_id: "available-wr",
+        name: "Available ESPN Wideout",
+        position: "WR",
+        eligible_positions: ["WR"],
+        team: "PHI",
+        status: null,
+        projected_points: 13.2,
+      },
+    ],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-espn-waiver",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "success");
+  assert.equal(result.body.platform.name, "espn");
+  assert.equal(result.body.league.id, "22222");
+  assert.equal(result.body.team.id, "7");
+  assert.equal(result.body.recommendation.type, "waiver_pickup");
+  assert.equal(result.body.recommendation.primary_player.name, "Available ESPN Wideout");
+  assert.equal(result.body.recommendation.comparison_player.name, "Out ESPN Wideout");
+  assert.equal(result.body.recommendation.expected_value_delta.points, 13.2);
+  assert.equal(result.body.signals.waivers.status, "live");
+  assert.equal(result.body.signals.waivers.used, true);
+  assert.equal(result.body.signals.waivers.source, "espn_available_players");
+  assert.deepEqual(state.vaultCalls, ["selectedEspnSecret", "selectedSwidSecret"]);
+  assert.deepEqual(state.espnCalls.map((call) => ({ leagueId: call.leagueId, teamId: call.opts.teamId })), [
+    { leagueId: "22222", teamId: "7" },
+  ]);
+  assert.deepEqual(state.espnWaiverCalls, [{
+    leagueId: "22222",
+    espnS2: "selected-espn-s2",
+    swid: "{selected-swid}",
+    week: 8,
+  }]);
+});
+
+test("buildLiveOmenMvpMoveForUser reports ESPN waiver data unavailable without inventing advice", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-espn-waiver",
+      user_id: "user-1",
+      platform: "espn",
+      is_active: true,
+      league_id: "22222",
+      espn_secret_id: "espnSecret",
+      swid_secret_id: "swidSecret",
+      espn_team_id: "7",
+    }],
+    espnRoster: {
+      week: 8,
+      team_key: "7",
+      source: "espn",
+      slots: {
+        starters: [{
+          player_key: "espn:out-wr",
+          name: "Out ESPN Wideout",
+          position: "WR",
+          eligible_positions: ["WR"],
+          selected_position: "WR",
+          status: "OUT",
+          projected_points: 0,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+    espnWaiverError: new Error("provider unavailable"),
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-espn-waiver",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "empty");
+  assert.equal(result.body.recommendation, null);
+  assert.equal(result.body.mode, "live");
+  assert.equal(result.body.signals.waivers.status, "unavailable");
+  assert.equal(result.body.signals.waivers.used, false);
+  assert.equal(result.body.signals.waivers.source, "espn_available_players");
+  assert.equal(state.espnWaiverCalls.length, 1);
+});
+
+test("buildLiveOmenMvpMoveForUser returns a live empty ESPN waiver result when no eligible replacement exists", async () => {
+  const { service, state } = loadOmenService({
+    connections: [{
+      id: "context-espn-waiver",
+      user_id: "user-1",
+      platform: "espn",
+      is_active: true,
+      league_id: "22222",
+      espn_secret_id: "espnSecret",
+      swid_secret_id: "swidSecret",
+      espn_team_id: "7",
+    }],
+    espnRoster: {
+      week: 8,
+      team_key: "7",
+      source: "espn",
+      slots: {
+        starters: [{
+          player_key: "espn:out-wr",
+          name: "Out ESPN Wideout",
+          position: "WR",
+          eligible_positions: ["WR"],
+          selected_position: "WR",
+          status: "OUT",
+          projected_points: 0,
+        }],
+        bench: [],
+        ir: [],
+      },
+    },
+    swaps: [],
+    espnWaiverPool: [],
+  });
+
+  const result = await service.buildLiveOmenMvpMoveForUser("user-1", {
+    contextId: "context-espn-waiver",
+  });
+
+  assert.equal(result.status, 200);
+  assertLiveEnvelope(result.body, "empty");
+  assert.equal(result.body.recommendation, null);
+  assert.equal(result.body.signals.waivers.status, "live");
+  assert.equal(result.body.signals.waivers.used, true);
+  assert.equal(result.body.signals.waivers.source, "espn_available_players");
+  assert.equal(state.espnWaiverCalls.length, 1);
 });
 
 test("buildLiveOmenMvpMoveForUser returns ESPN reauth recovery when Vault secrets are missing", async () => {
