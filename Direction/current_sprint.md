@@ -186,8 +186,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D-E2 — Wire ESPN waiver candidates into canonical Omen
 
-- **Status:** BLOCKED
-- **Blocked by:** TASK-B2-D-E1 — normalized ESPN waiver-pool adapter must land first.
+- **Status:** VERIFIED (local stacked branch `codex/b2d-e2-espn-canonical`, commit `0ad2cc6`; not pushed, merged, deployed, or provider-proven)
+- **Blocked by:** None for local verification; merge E1 before this stacked E2 commit.
 - **Priority:** P0
 - **Cost:** medium
 - **Scope:** Add selected-context ESPN waiver candidate generation to `POST /api/omen/mvp-move` per `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
