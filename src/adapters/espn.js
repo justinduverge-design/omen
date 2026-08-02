@@ -259,13 +259,57 @@ function normalizePlayer(entry) {
   };
 }
 
+const ESPN_WAIVER_STATUSES = new Set(["FREEAGENT", "WAIVERS"]);
+
+function projectedPointsForEspnPlayer(player, week) {
+  const requestedWeek = Number(week);
+  const stats = Array.isArray(player?.stats) ? player.stats : [];
+  const projection = stats.find((stat) =>
+    Number(stat?.statSourceId) === 1
+    && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
+  );
+  return firstFinite(projection?.appliedTotal);
+}
+
+/**
+ * Normalize ESPN's player-pool entries into the optimizer's waiver shape.
+ * This is deliberately pure: callers can validate the ownership and stat-source
+ * rules with fixture data without reading a credential or calling ESPN.
+ */
+function waiverPoolFromEspnData(data, opts = {}) {
+  const entries = Array.isArray(data?.players) ? data.players : [];
+  const requestedWeek = opts.week ?? opts.scoringPeriodId;
+
+  return entries.flatMap((entry) => {
+    const poolEntry = entry?.playerPoolEntry || entry;
+    const player = unwrapPlayer(entry);
+    const availability = String(poolEntry?.status || player?.status || "").toUpperCase();
+    const primaryPosition = positionFrom(player?.defaultPosition || player?.defaultPositionId || player?.position);
+    if (Number(poolEntry?.onTeamId) !== 0 || !ESPN_WAIVER_STATUSES.has(availability) || primaryPosition === "UNK") return [];
+
+    const id = playerId(poolEntry, player);
+    return [{
+      player_key: `espn:${id}`,
+      player_id: id,
+      name: playerName(player, id),
+      position: primaryPosition,
+      eligible_positions: eligiblePositions(player, primaryPosition),
+      team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
+      status: statusFrom(player?.injuryStatus || player?.injury_status),
+      // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
+      // substituted, even when a projection is unavailable for this period.
+      projected_points: projectedPointsForEspnPlayer(player, requestedWeek),
+    }];
+  });
+}
+
 function swidWithBraces(swid) {
   const s = String(swid || "").trim();
   if (s.startsWith("{")) return s;
   return `{${s}}`;
 }
 
-function makeEspnHeaders(espn_s2, swid) {
+function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
   return {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Referer": "https://fantasy.espn.com/",
@@ -277,19 +321,20 @@ function makeEspnHeaders(espn_s2, swid) {
     // Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md.
     "x-fantasy-platform": "espn-fantasy-web",
     "x-fantasy-source": "kona",
+    ...(fantasyFilter ? { "x-fantasy-filter": JSON.stringify(fantasyFilter) } : {}),
   };
 }
 
-function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
+function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilter) {
   return new Promise((resolve, reject) => {
     const req = https.request(
-      { hostname, path, method: "GET", headers: makeEspnHeaders(espn_s2, swid) },
+      { hostname, path, method: "GET", headers: makeEspnHeaders(espn_s2, swid, fantasyFilter) },
       (res) => {
         if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) && res.headers.location && redirectsLeft > 0) {
           res.resume();
           try {
             const loc = new URL(res.headers.location, `https://${hostname}`);
-            doEspnRequest(loc.hostname, loc.pathname + loc.search, espn_s2, swid, redirectsLeft - 1)
+            doEspnRequest(loc.hostname, loc.pathname + loc.search, espn_s2, swid, redirectsLeft - 1, fantasyFilter)
               .then(resolve, reject);
           } catch {
             const err = new Error("ESPN API returned an invalid redirect");
@@ -338,13 +383,60 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft) {
 // frontend calls this dedicated reads subdomain instead. See
 // Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md.
 const ESPN_READS_HOSTNAME = "lm-api-reads.fantasy.espn.com";
+const ESPN_WAIVER_PAGE_SIZE = 500;
+const ESPN_WAIVER_MAX_PAGES = 20;
 
 function fetchEspnApi(leagueId, espn_s2, swid, views, scoringPeriodId, opts = {}) {
   const season = opts.seasonId || activeSeason();
   const viewParams = (Array.isArray(views) ? views : [views]).map((v) => `view=${v}`).join("&");
   const periodParam = scoringPeriodId != null ? `&scoringPeriodId=${scoringPeriodId}` : "";
   const path = `/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?${viewParams}${periodParam}`;
-  return doEspnRequest(ESPN_READS_HOSTNAME, path, espn_s2, swid, 3);
+  return doEspnRequest(ESPN_READS_HOSTNAME, path, espn_s2, swid, 3, opts.fantasyFilter);
+}
+
+function espnWaiverFilter(offset) {
+  return {
+    players: {
+      filterStatus: { value: ["FREEAGENT", "WAIVERS"] },
+      filterSlotIds: { value: [0, 2, 4, 6, 16, 17] },
+      limit: ESPN_WAIVER_PAGE_SIZE,
+      offset,
+      sortPercOwned: { sortAsc: false, sortPriority: 1 },
+    },
+  };
+}
+
+/**
+ * Fetch and normalize ESPN's currently available player pool. This remains an
+ * adapter boundary: it is not wired into an Omen route or recommendation flow.
+ */
+async function fetchEspnWaiverPool(leagueId, espn_s2, swid, week, opts = {}) {
+  const scoringPeriodId = Number(week);
+  if (!Number.isFinite(scoringPeriodId) || scoringPeriodId < 1) {
+    const err = new Error("ESPN waiver pool requires a valid scoring period");
+    err.status = 400;
+    throw err;
+  }
+
+  const pool = [];
+  for (let page = 0; page < ESPN_WAIVER_MAX_PAGES; page += 1) {
+    const offset = page * ESPN_WAIVER_PAGE_SIZE;
+    const data = await fetchEspnApi(
+      leagueId,
+      espn_s2,
+      swid,
+      ["kona_player_info"],
+      scoringPeriodId,
+      { ...opts, fantasyFilter: espnWaiverFilter(offset) }
+    );
+    const entries = Array.isArray(data?.players) ? data.players : [];
+    pool.push(...waiverPoolFromEspnData(data, { week: scoringPeriodId }));
+    if (entries.length < ESPN_WAIVER_PAGE_SIZE) return pool;
+  }
+
+  const err = new Error("ESPN waiver pool pagination exceeded the safe page limit");
+  err.status = 502;
+  throw err;
 }
 
 // The *FromEspnData functions below are pure: they normalize an already-fetched
@@ -526,10 +618,12 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
+  fetchEspnWaiverPool,
   fetchEspnLastResult,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   standingsFromEspnData,
   teamFromEspnData,
   rosterFromEspnData,
+  waiverPoolFromEspnData,
 };

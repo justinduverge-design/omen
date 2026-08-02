@@ -34,7 +34,10 @@ function loadEspnAdapterWithTeams(teams, opts = {}) {
       return {
         request: (options, callback) => {
           requests.push(options);
-          const body = JSON.stringify({ teams, schedule: opts.schedule });
+          const response = typeof opts.responseForRequest === "function"
+            ? opts.responseForRequest(options, requests.length - 1)
+            : { teams, schedule: opts.schedule };
+          const body = JSON.stringify(response);
           const req = new EventEmitter();
           req.end = () => {
             const res = new EventEmitter();
@@ -161,6 +164,122 @@ test("buildNormalizedRoster returns starters, bench, and IR in normalized shape"
   assert.equal(roster.slots.starters.length, 1);
   assert.equal(roster.slots.bench.length, 1);
   assert.equal(roster.slots.ir.length, 1);
+});
+
+test("waiverPoolFromEspnData keeps only unrostered waiver candidates with projected stats", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const pool = adapter.waiverPoolFromEspnData({
+    players: [
+      {
+        playerPoolEntry: {
+          onTeamId: 0,
+          status: "FREEAGENT",
+          player: {
+            id: 2001,
+            fullName: "Available WR",
+            defaultPosition: 3,
+            eligiblePositions: [3],
+            proTeamAbbreviation: "KC",
+            injuryStatus: "QUESTIONABLE",
+            stats: [
+              { statSourceId: 0, scoringPeriodId: 4, appliedTotal: 18.2 },
+              { statSourceId: 1, scoringPeriodId: 4, appliedTotal: 12.4 },
+            ],
+          },
+        },
+      },
+      {
+        onTeamId: 7,
+        status: "FREEAGENT",
+        player: {
+          id: 2002,
+          fullName: "Rostered WR",
+          defaultPosition: 3,
+          stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 20 }],
+        },
+      },
+      {
+        onTeamId: 0,
+        status: "ONTEAM",
+        player: {
+          id: 2003,
+          fullName: "Unavailable RB",
+          defaultPosition: 2,
+          stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 16 }],
+        },
+      },
+      {
+        onTeamId: 0,
+        status: "WAIVERS",
+        player: {
+          id: 2004,
+          fullName: "Actuals Only TE",
+          defaultPosition: 4,
+          stats: [{ statSourceId: 0, scoringPeriodId: 4, appliedTotal: 9.3 }],
+        },
+      },
+    ],
+  }, { week: 4 });
+
+  assert.deepEqual(pool, [
+    {
+      player_key: "espn:2001",
+      player_id: "2001",
+      name: "Available WR",
+      position: "WR",
+      eligible_positions: ["WR"],
+      team: "KC",
+      status: "Q",
+      projected_points: 12.4,
+    },
+    {
+      player_key: "espn:2004",
+      player_id: "2004",
+      name: "Actuals Only TE",
+      position: "TE",
+      eligible_positions: ["TE"],
+      team: null,
+      status: null,
+      projected_points: null,
+    },
+  ]);
+});
+
+test("fetchEspnWaiverPool pages the filtered player pool without putting the filter in the URL", async () => {
+  const availablePlayer = (id) => ({
+    onTeamId: 0,
+    status: "FREEAGENT",
+    player: {
+      id,
+      fullName: `Available ${id}`,
+      defaultPosition: 2,
+      stats: [{ statSourceId: 1, scoringPeriodId: 4, appliedTotal: 8.5 }],
+    },
+  });
+  const firstPage = Array.from({ length: 500 }, (_, index) => availablePlayer(3000 + index));
+  const { adapter, requests } = loadEspnAdapterWithTeams([], {
+    responseForRequest: (_request, index) => ({ players: index === 0 ? firstPage : [availablePlayer(4000)] }),
+  });
+
+  const pool = await adapter.fetchEspnWaiverPool(
+    "12345", "test-cookie", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 4
+  );
+
+  assert.equal(pool.length, 501);
+  assert.equal(requests.length, 2);
+  assert.match(requests[0].path, /view=kona_player_info/);
+  assert.match(requests[0].path, /scoringPeriodId=4/);
+  assert.doesNotMatch(requests[0].path, /x-fantasy-filter/);
+  assert.deepEqual(JSON.parse(requests[0].headers["x-fantasy-filter"]), {
+    players: {
+      filterStatus: { value: ["FREEAGENT", "WAIVERS"] },
+      filterSlotIds: { value: [0, 2, 4, 6, 16, 17] },
+      limit: 500,
+      offset: 0,
+      sortPercOwned: { sortAsc: false, sortPriority: 1 },
+    },
+  });
+  assert.equal(JSON.parse(requests[1].headers["x-fantasy-filter"]).players.offset, 500);
 });
 
 test("lineupSlotId 20 maps to BN and is_starter false", async () => {
