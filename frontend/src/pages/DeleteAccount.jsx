@@ -3,7 +3,7 @@ import PublicInfoLayout, { InfoSection } from '../components/layout/PublicInfoLa
 
 export default function DeleteAccount() {
   return (
-    <PublicInfoLayout eyebrow="Account data" title="Delete your Omen data" updatedAt="July 13, 2026">
+    <PublicInfoLayout eyebrow="Account data" title="Delete your Omen data" updatedAt="August 2, 2026">
       <p>
         Deletion is available from your authenticated Omen account. This public page explains the live product flow; it
         does not collect account details or credentials.
@@ -11,13 +11,18 @@ export default function DeleteAccount() {
 
       <InfoSection title="What deletion does">
         <p>
-          The account deletion flow removes Omen-stored platform connections, saved moves, consent records, and profile
-          data, then signs the browser out. It does not delete information held by a fantasy platform or sign-in provider.
+          The account deletion flow removes Omen-stored platform connections and credentials, saved moves, consent
+          records, profile data, and your Omen authentication identity, then signs the browser out. It does not delete
+          information held by a fantasy platform or delete your separate Google, Discord, Yahoo, Sleeper, or ESPN account.
         </p>
         <p>
           Omen may retain limited non-personal audit records for compliance accountability. Platform data held by third
           parties remains subject to their own deletion and retention practices.
         </p>
+        <p>Waitlist signup data is separate. Use the waitlist unsubscribe page if you also want that email removed.</p>
+        <Link className="inline-flex min-h-[44px] items-center font-semibold text-[var(--color-accent)] underline underline-offset-4" to="/unsubscribe">
+          Leave the waitlist
+        </Link>
       </InfoSection>
 
       <InfoSection title="How to delete your data">

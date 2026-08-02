@@ -12,7 +12,7 @@
 
 Omen is a fantasy football decision tool from Slops Saloon. It helps managers see the result before it happens — not by validating gut feelings, but by testing them against real data.
 
-Valor Ventures LLC is the legal owner and operator. Slops Saloon is its product studio, and Omen is the studio's first product. Future products live alongside Omen under Slops Saloon, not inside it.
+Valor Ventures Limited Liability Company is the legal owner and operator. Slops Saloon is its product studio, and Omen is the studio's first product. Future products live alongside Omen under Slops Saloon, not inside it.
 
 ---
 

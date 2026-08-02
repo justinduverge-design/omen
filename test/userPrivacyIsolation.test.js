@@ -55,7 +55,17 @@ class FakeQuery {
 }
 
 function makeFakeSupabase(store) {
+  const adminDeleteCalls = [];
   return {
+    __adminDeleteCalls: adminDeleteCalls,
+    auth: {
+      admin: {
+        async deleteUser(userId) {
+          adminDeleteCalls.push(userId);
+          return { error: null };
+        },
+      },
+    },
     from(table) {
       return {
         select(_columns) {
@@ -198,6 +208,28 @@ test("POST /consent upserts a consent row scoped to the authenticated user, igno
   assert.equal(inserted.user_id, "user-1", "route must scope to req.user.id, not a client-supplied id");
 });
 
+test("POST /legal-acceptance records only the current 13+ final-v1 contract", async () => {
+  const store = seedStore();
+  const app = buildApp({ store, actingUserId: "user-1" });
+
+  const invalid = await request(app, "/api/account/legal-acceptance", {
+    method: "POST",
+    body: { terms_version: "old", privacy_version: "old", minimum_age_confirmed: true },
+  });
+  assert.equal(invalid.status, 422);
+
+  const accepted = await request(app, "/api/account/legal-acceptance", {
+    method: "POST",
+    body: { terms_version: "2026-08-02", privacy_version: "2026-08-02", minimum_age_confirmed: true },
+  });
+  assert.equal(accepted.status, 200);
+  assert.equal(accepted.body.contract_version, "legal-acceptance.v1");
+  assert.deepEqual(
+    store.consent_records.filter((row) => row.user_id === "user-1").map((row) => row.consent_type).sort(),
+    ["age_13_plus:2026-08-02", "analytics", "privacy_notice:2026-08-02", "terms_of_use:2026-08-02"],
+  );
+});
+
 test("DELETE /delete removes only the requesting user's rows, never another user's", async () => {
   const store = seedStore();
   const app = buildApp({ store, actingUserId: "user-1" });
@@ -209,6 +241,7 @@ test("DELETE /delete removes only the requesting user's rows, never another user
 
   assert.equal(res.status, 200);
   assert.equal(res.body.deleted, true);
+  assert.equal(res.body.auth_identity_deleted, true);
 
   // user-1's rows are gone from every user-owned table.
   assert.equal(store.moves.some((m) => m.user_id === "user-1"), false);
