@@ -75,9 +75,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A4 — Tuesday scoring production enablement
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — production-change pin for the environment flip
-- **Blocked by:** TASK-B3 — nflverse scoring replacement must land before an honest nflverse dry-run is possible (found 2026-07-31; current cron is Sportradar-only, no dry-run mode exists in code)
+- **Status:** BLOCKED
+- **Blocked by:** founder approval for a persistent production enablement; `OMEN_CRON_SCORING_ENABLED` remains `false`.
+- **Blocked by:** [#263](https://github.com/justinduverge-design/omen/issues/263) — nflverse has not yet published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** dry-run preparation and verification only, once B3 lands; the env flip is gated
@@ -199,8 +199,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B3 — Replace Sportradar with nflverse for Tuesday scoring
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-08-02 Codex — replace the paid scoring read with nflverse and add per-move no-write dry-run
+- **Status:** VERIFIED
+- **Evidence:** PRs [#260](https://github.com/justinduverge-design/omen/pull/260), [#261](https://github.com/justinduverge-design/omen/pull/261), and [#262](https://github.com/justinduverge-design/omen/pull/262); KVM1 deploy run [30754635716](https://github.com/justinduverge-design/omen/actions/runs/30754635716); production process-only dry run completed with `archived=0`, `scored=0`, and no Supabase or Redis writes. The sole pending move could not be scored because nflverse has not published the 2026 season file; follow-up [#263](https://github.com/justinduverge-design/omen/issues/263) owns explicit pre-season deferral behavior.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** medium
