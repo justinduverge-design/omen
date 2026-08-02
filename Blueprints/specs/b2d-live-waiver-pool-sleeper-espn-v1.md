@@ -8,15 +8,15 @@
 
 ## Decision
 
-Yahoo waiver shipped fixture-verified in PR #211 and is parked on Yahoo Fantasy API reapproval. That gate is provider-specific. **Sleeper is not gated by it** and can produce genuine live capability proof today. ESPN is neither gated nor proven — it is unverified, and is scoped here as research-first.
+Yahoo waiver shipped fixture-verified in PR #211 and is parked on Yahoo Fantasy API reapproval. That gate is provider-specific. **Sleeper is not gated by it** and has genuine live capability proof. ESPN progressed from this research-first plan through locally verified E1/E2 code and drafted-league E3 provider proof; publication and deployment remain separate.
 
 This produces the honest three-row capability matrix issue #162 asks for without waiting on Yahoo:
 
 | Provider | Waiver status | Gate |
 |---|---|---|
-| Sleeper | buildable + live-verifiable now | none |
+| Sleeper | built + provider-proven | none |
 | Yahoo | fixture-verified (PR #211) | Yahoo API reapproval (external) |
-| ESPN | unverified | feasibility spike, founder-gated |
+| ESPN | locally built + drafted-league provider-proven | E1/E2 stack must still be published, reviewed, merged, and deployed |
 
 ## Verification basis — Sleeper
 

@@ -94,7 +94,7 @@ These two surfaced during the 2026-07-30 reconciliation. They are real work, but
 
 Planning pass split the former proposed `B2-D-E1` intake into canonical `B2-D-E1` adapter, `B2-D-E2` canonical-wiring, and `B2-D-E3` drafted-league-proof items in `Direction/current_sprint.md`. Contract: `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 
-E1 and E2 are locally verified on stacked Codex branches. E3 remains the only ESPN waiver proof gate: founder-executed drafted-league observation with sanitized counts/booleans only.
+E1 and E2 are locally verified on stacked Codex branches. E3 was provider-proven on 2026-08-02 against the founder's newly connected drafted league using sanitized aggregate evidence only: 10 populated teams, 160 distinct rostered players, and 0 rostered-player leaks in the 500-entry filtered pool. Publication, merge, deployment, and production-route proof remain separate.
 
 ### ~~Actions-restoration sweep~~ — RESOLVED 2026-08-01, do not mint a task
 

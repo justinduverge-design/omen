@@ -196,8 +196,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D-E3 — Prove ESPN roster subtraction in a drafted league
 
-- **Status:** BLOCKED
-- **Blocked by:** EXTERNAL — founder-executed drafted-league observation protocol required for provider capability proof.
+- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; not pushed, merged, or deployed)
+- **Claim:** 2026-08-02 Codex — the newly connected drafted ESPN league returned 10 populated teams and 160 distinct rostered players; the 500-entry filtered pool contained 0 rostered-player leaks and 0 non-zero `onTeamId` entries.
+- **Blocked by:** None. E1 and E2 still retain their separate local branch/merge/deploy boundaries.
 - **Priority:** P0
 - **Cost:** small
 - **Scope:** Run `Blueprints/specs/b2d-espn-observation-12-resolution-protocol-v1.md` and append sanitized counts/booleans to the provider evidence.

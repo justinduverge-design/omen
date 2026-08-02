@@ -1,6 +1,6 @@
 # B2-D ESPN Waiver Pool — Implementation Contract v1
 
-**Status:** E1 and E2 locally verified; E3 provider proof pending
+**Status:** E1 and E2 locally verified; E3 provider proof verified 2026-08-02; stack not pushed, merged, or deployed
 **Parent:** B2-D canonical Omen engine / GitHub issue #162
 **Evidence basis:** `b2d-espn-e0-verdict-v1.md` and `b2d-espn-observation-12-resolution-protocol-v1.md`
 
@@ -31,7 +31,7 @@ Make ESPN waiver recommendations eligible only when the selected ESPN context pr
 
 ## E3 proof gate
 
-The founder runs `b2d-espn-observation-12-resolution-protocol-v1.md` in a drafted ESPN league. The agent records counts/booleans only. No cookie, league ID, team name, username, or player list enters logs, source, or handoffs.
+Verified 2026-08-02 against the founder's newly connected drafted ESPN league using the protocol's same roster and `kona_player_info` reads from the server environment. The uniquely recent connection's Vault session and league context existed in memory only for the two read-only ESPN requests. Recorded output was aggregate-only: 10 populated teams, 160 distinct rostered players, 500 pool entries, 0 rostered-player leaks, 0 non-zero `onTeamId` entries, and 0 ownership-signal disagreements. No cookie, league ID, team name, username, player name, or player list entered output, source, or handoffs.
 
 ## Non-goals
 
