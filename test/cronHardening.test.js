@@ -16,18 +16,16 @@ test("Tuesday cron is disabled unless explicitly enabled", () => {
   assert.equal(cron.isScoringEnabled({ CORVUS_CRON_SCORING_ENABLED: "true" }), true);
 });
 
-test("Tuesday cron reports missing scoring dependencies", () => {
+test("Tuesday cron requires only Supabase for public nflverse scoring", () => {
   assert.deepEqual(cron.missingScoringEnv({}), [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_KEY",
-    "SPORTRADAR_API_KEY",
   ]);
 
   assert.deepEqual(
     cron.missingScoringEnv({
       SUPABASE_URL: "https://example.supabase.co",
       SUPABASE_SERVICE_KEY: "service-role",
-      SPORTRADAR_API_KEY: "sportradar",
     }),
     []
   );
