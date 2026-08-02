@@ -1,6 +1,6 @@
 # B2-D-E1 — ESPN Waiver Pool Adapter
 
-**Status:** locally verified; not pushed, merged, deployed, or provider-proven.  
+**Status:** locally verified; not pushed, merged, deployed, or provider-proven.
 **Branch / commit:** `codex/b2d-e1-espn-waiver-pool` / `2748a5c`.
 
 ## Delivered

@@ -176,7 +176,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D-E1 — Normalize the ESPN waiver pool
 
-  - **Status:** VERIFIED (local branch `codex/b2d-e1-espn-waiver-pool`, commit `2748a5c`; not pushed, merged, deployed, or provider-proven)
+- **Status:** VERIFIED (local branch `codex/b2d-e1-espn-waiver-pool`, commit `2748a5c`; not pushed, merged, deployed, or provider-proven)
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium

@@ -1,7 +1,7 @@
 # B2-D-E1 ESPN Waiver Adapter — Security & Privacy Evidence
 
-**Date:** 2026-08-02  
-**Scope:** `src/adapters/espn.js` and fixture-only adapter tests in `test/espnAdapter.test.js`.  
+**Date:** 2026-08-02
+**Scope:** `src/adapters/espn.js` and fixture-only adapter tests in `test/espnAdapter.test.js`.
 **Commit:** `2748a5c` (local only; not pushed, merged, deployed, or provider-proven).
 
 ## Sources reviewed
