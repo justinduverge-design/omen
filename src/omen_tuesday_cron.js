@@ -19,11 +19,11 @@ const { Redis } = require("@upstash/redis");
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
   "SUPABASE_SERVICE_KEY",
-  "SPORTRADAR_API_KEY",
 ]);
 
 const CURRENT_SEASON = new Date().getFullYear();
-const SPORTRADAR_BASE = "https://api.sportradar.com/nfl/official/trial/v7/en";
+const NFLVERSE_BASE_URL =
+  "https://github.com/nflverse/nflverse-data/releases/download/player_stats";
 
 function timestamp() {
   return new Date().toISOString();
@@ -39,14 +39,12 @@ function isScoringEnabled(env = process.env) {
   return (env.OMEN_CRON_SCORING_ENABLED ?? env.CORVUS_CRON_SCORING_ENABLED) === "true";
 }
 
-function missingScoringEnv(env = process.env) {
-  return REQUIRED_SCORING_ENV.filter((name) => !env[name]);
+function isDryRun(env = process.env) {
+  return env.OMEN_CRON_DRY_RUN === "true";
 }
 
-function getCurrentNFLWeek(now = new Date(), season = CURRENT_SEASON) {
-  const seasonStart = new Date(`${season}-09-05T00:00:00.000Z`);
-  const elapsedWeeks = Math.floor((now.getTime() - seasonStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-  return Math.max(1, Math.min(18, elapsedWeeks + 1));
+function missingScoringEnv(env = process.env) {
+  return REQUIRED_SCORING_ENV.filter((name) => !env[name]);
 }
 
 function getMostRecentSunday(now = new Date()) {
@@ -81,43 +79,6 @@ function findBestMatch(target, keys) {
   return keys.find((key) => key.endsWith(`_${lastName}`) || key.includes(lastName)) || null;
 }
 
-function extractPlayerStats(game, playerScores) {
-  const processTeam = (team) => {
-    for (const player of team?.rushing?.players || []) {
-      const key = normalizeName(player.name);
-      playerScores[key] = {
-        ...(playerScores[key] || {}),
-        name: player.name,
-        rush: (player.yards || 0) * 0.1 + (player.touchdowns || 0) * 6,
-      };
-    }
-
-    for (const player of team?.receiving?.players || []) {
-      const key = normalizeName(player.name);
-      const base = (player.yards || 0) * 0.1 + (player.touchdowns || 0) * 6;
-      playerScores[key] = {
-        ...(playerScores[key] || {}),
-        name: player.name,
-        rec_ppr: base + (player.receptions || 0),
-        rec_half: base + (player.receptions || 0) * 0.5,
-        rec_std: base,
-      };
-    }
-
-    for (const player of team?.passing?.players || []) {
-      const key = normalizeName(player.name);
-      playerScores[key] = {
-        ...(playerScores[key] || {}),
-        name: player.name,
-        pass: (player.yards || 0) * 0.04 + (player.touchdowns || 0) * 4 - (player.interceptions || 0) * 2,
-      };
-    }
-  };
-
-  processTeam(game.summary?.home);
-  processTeam(game.summary?.away);
-}
-
 function createSupabase(env = process.env) {
   return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
     auth: { persistSession: false },
@@ -150,6 +111,57 @@ async function redisSetJson(redis, key, value, ttlSeconds) {
   }
 }
 
+function parseCsvLine(line = "") {
+  const values = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"' && line[index + 1] === '"') {
+      value += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      values.push(value);
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+  values.push(value);
+  return values;
+}
+
+function nflverseScoresFromCsv(csvText, { season, weekNum } = {}) {
+  const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return {};
+  const headers = parseCsvLine(lines[0]).map((header) => header.trim());
+  const required = ["player_name", "season", "week", "fantasy_points", "fantasy_points_ppr"];
+  if (required.some((column) => !headers.includes(column))) {
+    throw new Error("nflverse player stats are missing required scoring columns");
+  }
+
+  const targetSeason = Number(season);
+  const targetWeek = Number(weekNum);
+  const scores = {};
+  for (const line of lines.slice(1)) {
+    const values = parseCsvLine(line);
+    const row = Object.fromEntries(headers.map((header, index) => [header, values[index]?.trim() || ""]));
+    if (Number(row.season) !== targetSeason || Number(row.week) !== targetWeek) continue;
+    const standard = Number(row.fantasy_points);
+    const ppr = Number(row.fantasy_points_ppr);
+    if (!row.player_name || !Number.isFinite(standard) || !Number.isFinite(ppr)) continue;
+    scores[normalizeName(row.player_name)] = {
+      name: row.player_name,
+      rec_std: standard,
+      rec_half: (standard + ppr) / 2,
+      rec_ppr: ppr,
+    };
+  }
+  return scores;
+}
+
 async function fetchPendingMoves(supabase, now = new Date()) {
   const cutoff = getMostRecentSunday(now).toISOString();
 
@@ -165,7 +177,7 @@ async function fetchPendingMoves(supabase, now = new Date()) {
   return moves || [];
 }
 
-async function archiveNotExecutedMoves(supabase, now = new Date()) {
+async function archiveNotExecutedMoves(supabase, now = new Date(), { dryRun = false } = {}) {
   const cutoff = getMostRecentSunday(now).toISOString();
 
   const { data: rows, error } = await supabase
@@ -177,6 +189,7 @@ async function archiveNotExecutedMoves(supabase, now = new Date()) {
 
   if (error) throw new Error(`Not-executed lookup failed: ${error.message}`);
   if (!rows?.length) return 0;
+  if (dryRun) return rows.length;
 
   const { error: updateError } = await supabase
     .from("moves")
@@ -192,16 +205,10 @@ async function fetchNFLScores({ weekNum, season = CURRENT_SEASON, redis = null, 
   const cached = await redisGetJson(redis, cacheKey);
   if (cached) return cached;
 
-  const url = `${SPORTRADAR_BASE}/seasons/${season}/REG/${weekNum}/schedule.json?api_key=${env.SPORTRADAR_API_KEY}`;
+  const url = `${NFLVERSE_BASE_URL}/player_stats_${season}.csv`;
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`Sportradar ${response.status} ${response.statusText}`);
-
-  const data = await response.json();
-  const playerScores = {};
-
-  for (const game of data.week?.games || []) {
-    if (game.status === "closed") extractPlayerStats(game, playerScores);
-  }
+  if (!response.ok) throw new Error(`nflverse ${response.status} ${response.statusText}`);
+  const playerScores = nflverseScoresFromCsv(await response.text(), { season, weekNum });
 
   await redisSetJson(redis, cacheKey, playerScores, 3600);
   return playerScores;
@@ -264,35 +271,49 @@ async function saveScoredMove(supabase, moveId, score) {
   if (error) throw new Error(`Move ${moveId} update failed: ${error.message}`);
 }
 
-async function runScoring({ env = process.env, now = new Date() } = {}) {
+async function runScoring({ env = process.env, now = new Date(), dependencies = {} } = {}) {
   const missing = missingScoringEnv(env);
   if (missing.length) {
     throw new Error(`Missing required scoring env: ${missing.join(", ")}`);
   }
 
-  const supabase = createSupabase(env);
-  const redis = createRedis(env);
-  const archiveCount = await archiveNotExecutedMoves(supabase, now);
-  const pendingMoves = await fetchPendingMoves(supabase, now);
+  const dryRun = isDryRun(env);
+  const resolvedCreateSupabase = dependencies.createSupabase || createSupabase;
+  const resolvedCreateRedis = dependencies.createRedis || createRedis;
+  const resolvedArchive = dependencies.archiveNotExecutedMoves || archiveNotExecutedMoves;
+  const resolvedFetchPendingMoves = dependencies.fetchPendingMoves || fetchPendingMoves;
+  const resolvedFetchNFLScores = dependencies.fetchNFLScores || fetchNFLScores;
+  const resolvedSaveScoredMove = dependencies.saveScoredMove || saveScoredMove;
+  const supabase = resolvedCreateSupabase(env);
+  const redis = resolvedCreateRedis(env);
+  const archiveCount = await resolvedArchive(supabase, now, { dryRun });
+  const pendingMoves = await resolvedFetchPendingMoves(supabase, now);
 
   if (!pendingMoves.length) {
-    return { archiveCount, scoredCount: 0, failedCount: 0 };
-  }
-
-  const weekNum = Math.max(1, getCurrentNFLWeek(now) - 1);
-  const playerScores = await fetchNFLScores({ weekNum, redis, env });
-
-  if (!Object.keys(playerScores).length) {
-    throw new Error(`No closed-game player scores available for week ${weekNum}`);
+    return { dryRun, archiveCount, scoredCount: 0, failedCount: 0 };
   }
 
   let scoredCount = 0;
   let failedCount = 0;
+  const scoreMaps = new Map();
 
   for (const move of pendingMoves) {
     try {
+      const season = Number(move.season);
+      const weekNum = Number(move.week_num);
+      if (!Number.isInteger(season) || !Number.isInteger(weekNum) || weekNum < 1) {
+        throw new Error("Move is missing a valid stored season/week");
+      }
+      const scoreKey = `${season}:${weekNum}`;
+      if (!scoreMaps.has(scoreKey)) {
+        scoreMaps.set(scoreKey, await resolvedFetchNFLScores({ weekNum, season, redis, env }));
+      }
+      const playerScores = scoreMaps.get(scoreKey);
+      if (!Object.keys(playerScores || {}).length) {
+        throw new Error(`No nflverse player scores available for ${scoreKey}`);
+      }
       const score = scoreMove(move, playerScores);
-      await saveScoredMove(supabase, move.id, score);
+      if (!dryRun) await resolvedSaveScoredMove(supabase, move.id, score);
       scoredCount += 1;
     } catch (error) {
       failedCount += 1;
@@ -300,7 +321,7 @@ async function runScoring({ env = process.env, now = new Date() } = {}) {
     }
   }
 
-  return { archiveCount, scoredCount, failedCount };
+  return { dryRun, archiveCount, scoredCount, failedCount };
 }
 
 async function main({ env = process.env } = {}) {
@@ -349,11 +370,12 @@ module.exports = {
   fetchNFLScores,
   fetchPendingMoves,
   findBestMatch,
-  getCurrentNFLWeek,
   getMostRecentSunday,
+  isDryRun,
   isScoringEnabled,
   main,
   missingScoringEnv,
+  nflverseScoresFromCsv,
   normalizeName,
   runScoring,
   scoreFromStats,

@@ -199,7 +199,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B3 — Replace Sportradar with nflverse for Tuesday scoring
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-02 Codex — replace the paid scoring read with nflverse and add per-move no-write dry-run
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** medium
