@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { fetchNFLScores, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
+const { fetchNFLScores, fetchPendingMoves, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
@@ -27,6 +27,26 @@ test("isDryRun is true only for the explicit no-write flag", () => {
   assert.equal(isDryRun({ OMEN_CRON_DRY_RUN: "true" }), true);
   assert.equal(isDryRun({ OMEN_CRON_DRY_RUN: "false" }), false);
   assert.equal(isDryRun({}), false);
+});
+
+test("fetchPendingMoves requests only the fields Tuesday scoring consumes", async () => {
+  let requestedColumns = null;
+  const query = {
+    eq: () => query,
+    lt: () => query,
+    order: async () => ({ data: [], error: null }),
+  };
+  const moves = await fetchPendingMoves({
+    from: () => ({
+      select: (columns) => {
+        requestedColumns = columns;
+        return query;
+      },
+    }),
+  }, new Date("2026-08-02T12:00:00.000Z"));
+
+  assert.deepEqual(moves, []);
+  assert.equal(requestedColumns, "id, week_num, season, headline, confidence, target_player, outcome, followed, created_at");
 });
 
 test("fetchNFLScores reads the public nflverse season CSV without a provider key", async () => {

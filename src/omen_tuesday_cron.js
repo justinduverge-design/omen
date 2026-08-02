@@ -169,7 +169,7 @@ async function fetchPendingMoves(supabase, now = new Date()) {
     .from("moves")
     // `scoring` is not present in the deployed moves schema. scoreMove already
     // defaults an absent format to PPR, which is the historical moves default.
-    .select("id, user_id, week_num, season, move_type, headline, confidence, target_player, platform, league_id, outcome, followed, created_at")
+    .select("id, week_num, season, headline, confidence, target_player, outcome, followed, created_at")
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
