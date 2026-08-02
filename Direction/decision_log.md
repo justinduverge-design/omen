@@ -876,3 +876,8 @@
 ## Decisions Added 2026-07-29 (Sleeper S3 live proof)
 
 - **Sleeper roster subtraction is provider-proven for the supplied drafted league.** The credential-free public probe of league `1387633793615036416` observed 120 held player IDs and zero leaks in the 3,174-player waiver pool. It also observed 415 projected players and correct null-last ordering. This proves the adapter’s public-pool subtraction behavior for that real league; it does not authorize a transaction, deployment, or a broader claim about another provider.
+## 2026-08-02 — Sleeper trade capability is selected-context, privacy-sanitized, and lineup-first
+
+- `POST /api/omen/mvp-move` may now emit a `trade_suggestion` only for a selected Sleeper connection when no scoreable Start/Sit or waiver move exists. It fetches the same public league's normalized roster surface, identifies the selected roster by its opaque roster ID, and never emits a Sleeper manager display name, username, user ID, or avatar.
+- The candidate evaluator is intentionally one-for-one for v1. It computes each side's optimal weekly lineup from the league's slots, excludes IR/taxi from lineup totals while retaining them as tradeable assets, requires strictly positive weekly improvement for both teams, and applies `compareTrade()` through an explicit VORP-loss-per-weekly-point threshold. It makes no offer-acceptance, package, pick, or future-week guarantee.
+- Credential-free public proof against a drafted Sleeper league produced only aggregate evidence: 8 rosters, 120 rostered players, 119 projection-joined player rows, and a sanitized output shape. This is provider-read proof, not a transaction, production, or deployment claim.

@@ -176,13 +176,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D3-S — Live trade capability: Sleeper
 
-- **Status:** READY
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-02 Codex — implemented Sleeper live trade capability T1–T4; local review pending founder commit/push decision
 - **Blocked by:** none — the opponent-roster data is already fetched by `fetchSleeperRoster` and discarded; no new endpoint, credential, or founder gate.
 - **Priority:** P0
 - **Cost:** medium
 - **Agent-buildable:** yes
 - **Spec:** `Blueprints/specs/b2d3-live-trade-capability-sleeper-v1.md` → Phase T
 - **Done when:** T1 opponent-roster surface, T2 optimal-lineup evaluator, T3 candidate evaluator, and T4 live proof against a **drafted** league all land; the capability matrix reads **Sleeper: live** for `trade_suggestion` with sanitized evidence.
+- **Evidence (2026-08-02):** T1–T3: `test/sleeperAdapter.test.js`, `test/tradeLineup.test.js`, and `test/omenMvpLiveService.test.js`; T4: credential-free public read against a drafted Sleeper league observed 8 rosters, 120 rostered players, 119 projection-joined players, and a sanitized output shape. Full backend suite: 488/488; moderate audit: 0; `git diff --check`: clean. No provider credential, SQL, package, public Trade Analyzer, Yahoo/ESPN, or deployment change.
 - **Key rule:** suggest only trades where **both** teams' projected starting lineup improves; `decisionScore` is the user's weekly lineup delta, with `tradeValue.js` VORP used as a fairness guard, never as the score.
 - **Do not touch:** the public Trade Analyzer route, Yahoo/ESPN trade rows, provider credentials, deploy, SQL, production data.
 
