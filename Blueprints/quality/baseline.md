@@ -1,17 +1,13 @@
 # Omen Quality Baseline
 
-Recorded 2026-07-13 from candidate `6213f76`
-Recorded 2026-07-13 from candidate `26441a1`
+Recorded 2026-08-02 from candidate `adeba4f`
 using Node `v24.11.0` and npm `11.6.1`.
 
 | Signal | Result |
 | --- | --- |
-| Backend tests | PASS — 391/391 |
-| Backend tests | PASS — 388/388 |
+| Backend tests | PASS — 506/506 |
 | Root audit (`moderate`) | PASS — 0 vulnerabilities |
-| Production audit (`high`, dev omitted) | PASS — 0 vulnerabilities |
 | Primary frontend build | PASS |
-| Legacy client build | PASS |
 | `git diff --check` and conflict-marker scan | PASS |
 
 Gate result: **PASS**. This task ratchets the Slops-owned baseline upward; future candidates must

@@ -151,7 +151,7 @@ Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC
 - **GitHub Actions billing** — see the standing constraint above.
 - **Tuesday scoring:** production flag stays false until an approved no-write dry-run and explicit production-change approval.
 - **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
-- **M4-CC-WaiverWatch / M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals do not exist yet — founder-gated.
+- **M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals do not exist yet — founder-gated. **M4-CC-WaiverWatch** is locally verified on `codex/m4-cc-waiver-watch` and awaits only its normal push/PR plus macOS iOS-CI gate.
 - **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass.
 - **M3A-QA:** founder/human credential + inbox access. Agents may prep the matrix only.
 - **B2-D live provider data:** provider-specific capability proof required before claiming live advice.
