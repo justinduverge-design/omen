@@ -1,5 +1,11 @@
 # Omen Decision Log
 
+## 2026-08-02 — Waiver Watch is a view-only, honest-state contract
+
+- **Native Waiver Watch never infers live waiver facts.** Android and iOS callers must supply a verified deadline/opportunity list or one of the explicit pending, processed, availability-unknown, no-credible-move, not-connected, and off-season states. Demo content is visibly labelled and is not a provider claim.
+- **The urgent surface is intentionally bounded.** It elevates one best move and shows at most two long-horizon rows; a caller must omit the latter for redraft unless it has genuine long-horizon relevance. This prevents decorative urgency from turning into unsupported advice.
+- **iOS source registration is not iOS runtime proof.** A Windows implementation records its XCTest source coverage but leaves compilation, simulator, Dynamic Type, and VoiceOver evidence for macOS CI or a macOS device run.
+
 ## Decisions Added 2026-08-02 (B3 nflverse Tuesday scoring)
 
 - **nflverse remains the scoring authority; Omen will not manufacture a season file.** The production dry run confirmed the public source has not published `player_stats_2026.csv` yet. Forking or fabricating player results would add an owned data pipeline without legitimate game data. Until published stats exist, scoring must defer with no writes; issue [#263](https://github.com/justinduverge-design/omen/issues/263) tracks that expected-state refinement.

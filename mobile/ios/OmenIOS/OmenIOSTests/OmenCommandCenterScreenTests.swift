@@ -62,8 +62,31 @@ final class OmenCommandCenterScreenTests: XCTestCase {
             state: OmenCommandCenterFixtures.demoConnected,
             onSwitchContext: {},
             onOpenMatchup: {},
-            onOpenAccount: {}
+            onOpenAccount: {},
+            onOpenOmen: {}
         )
+    }
+
+    func testWaiverWatchRegistersEveryApprovedState() {
+        let opportunity = OmenWaiverOpportunity(
+            playerName: "Demo Player", position: "RB", team: "DAL", availability: "Available", reason: "Demo reason."
+        )
+        let states: [OmenWaiverWatchState] = [
+            .urgent(deadlineText: "Demo deadline", bestMove: opportunity),
+            .calm(opportunities: [opportunity]),
+            .pending, .processed, .availabilityUnknown, .noCredibleMove, .notConnected, .offSeason
+        ]
+        XCTAssertEqual(states.count, 8)
+    }
+
+    func testDemoFixtureProvidesAnUrgentWaiverWatchBriefing() {
+        if case let .urgent(deadlineText, bestMove, longHorizonMoves) = OmenCommandCenterFixtures.demoConnected.waiverWatch {
+            XCTAssertTrue(deadlineText.lowercased().contains("demo"))
+            XCTAssertEqual(bestMove.playerName, "Tyrone Tracy Jr.")
+            XCTAssertEqual(longHorizonMoves.count, 2)
+        } else {
+            XCTFail("demo fixture must exercise the approved urgent Waiver Watch composition.")
+        }
     }
 
     // MARK: screenshot registry

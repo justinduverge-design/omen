@@ -99,12 +99,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
-- **Status:** READY
-- **Blocked by:** None — Figma proposal approved (node `67:2`, "03 — Components", badge updated to "APPROVED COMPOSITION — Justin, 2026-07-31"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Status:** VERIFIED (local branch `codex/m4-cc-waiver-watch`, commit `adeba4f`; not pushed, merged, deployed, provider-proven, or iOS-CI-proven)
+- **Blocked by:** iOS simulator/CI verification is deferred to a macOS-capable run. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31").
 - **Priority:** P1
 - **Cost:** medium
 - **Scope:** replace the "Waiver Watch is landing next" placeholder in `OmenCommandCenterScreen` with the approved composition per mobile-visual-briefs §1.3 (Tuesday–Wednesday urgent briefing + Thursday–Monday calm opportunity list). Required states: pending, processed, availability-unknown, no-credible-move, not-connected, off-season.
-- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green.
+- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete but require the separate macOS CI gate.
 - **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
 
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring

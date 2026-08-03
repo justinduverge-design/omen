@@ -13,21 +13,25 @@ struct CommandCenterView: View {
     let userID: String
     @ObservedObject var sessionManager: SessionManager
     @State private var showAccountSheet: Bool = false
+    @State private var selectedTab: CommandCenterTab = .command
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             OmenCommandCenterScreen(
                 state: isDemo
                     ? OmenCommandCenterFixtures.demoConnected
                     : OmenCommandCenterFixtures.realDisconnected,
-                onOpenAccount: { showAccountSheet = true }
+                onOpenAccount: { showAccountSheet = true },
+                onOpenOmen: { selectedTab = .omen }
             )
             .tabItem { Label("Command", systemImage: "sparkles") }
+            .tag(CommandCenterTab.command)
 
             OmenDecisionScreen(state: isDemo ? OmenDecisionFixtures.demo : OmenDecisionFixtures.realDisconnected)
             .tabItem { Label("Omen", systemImage: "bolt.fill") }
+            .tag(CommandCenterTab.omen)
 
             OmenStateSurface(
                 kind: .empty,
@@ -38,6 +42,7 @@ struct CommandCenterView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(OmenColor.bg)
             .tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
+            .tag(CommandCenterTab.trade)
 
             OmenStateSurface(
                 kind: .empty,
@@ -48,6 +53,7 @@ struct CommandCenterView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(OmenColor.bg)
             .tabItem { Label("League", systemImage: "person.3.fill") }
+            .tag(CommandCenterTab.league)
         }
         .sheet(isPresented: $showAccountSheet) {
             NavigationStack {
@@ -63,6 +69,8 @@ struct CommandCenterView: View {
         }
     }
 }
+
+private enum CommandCenterTab: Hashable { case command, omen, trade, league }
 
 /// M4 Omen destination assembly. State selection stays here; DecisionBrief owns its states.
 struct OmenDecisionScreen: View {

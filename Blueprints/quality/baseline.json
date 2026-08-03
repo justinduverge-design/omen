@@ -1,32 +1,22 @@
 {
   "schema_version": 1,
-  "recorded_at": "2026-07-13",
-  "commit": "6213f76",
-  "commit": "26441a1",
+  "recorded_at": "2026-08-02",
+  "commit": "adeba4f711127111d22d95cf01fc529cb72e0dcd",
   "runtime": {
     "node": "v24.11.0",
     "npm": "11.6.1"
   },
   "signals": {
     "backend_tests": {
-      "passing": 391,
-      "total": 391,
-      "passing": 388,
-      "total": 388,
+      "passing": 506,
+      "total": 506,
       "status": "pass"
     },
     "npm_audit_moderate": {
       "advisories": 0,
       "status": "pass"
     },
-    "npm_audit_production_high": {
-      "advisories": 0,
-      "status": "pass"
-    },
     "frontend_build": {
-      "status": "pass"
-    },
-    "legacy_client_build": {
       "status": "pass"
     },
     "git_diff_check": {

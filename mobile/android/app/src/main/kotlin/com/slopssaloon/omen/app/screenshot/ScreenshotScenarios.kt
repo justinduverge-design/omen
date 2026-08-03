@@ -147,6 +147,7 @@ private fun CommandCenterInShell(demo: Boolean) {
                 FauxNavTab.Command -> OmenCommandCenterScreen(
                     state = if (demo) OmenCommandCenterFixtures.demoConnected
                     else OmenCommandCenterFixtures.realDisconnected,
+                    onOpenOmen = { selected = FauxNavTab.Omen },
                 )
                 else -> Text(
                     text = "${selected.label} — screenshot fixture only",
