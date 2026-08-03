@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-plugins { alias(libs.plugins.android.library); alias(libs.plugins.kotlin.android) }
+plugins { alias(libs.plugins.android.library) }
 
 android {
     namespace = "com.slopssaloon.omen.core.network"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig { minSdk = 26 }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

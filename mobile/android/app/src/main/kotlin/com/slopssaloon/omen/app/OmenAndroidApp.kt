@@ -320,6 +320,7 @@ fun OmenAndroidApp() {
                             destination = selectedDestination,
                             isDemo = s.userId == SessionManager.DEMO_USER_ID,
                             onOpenAccount = { showAccountSheet = true },
+                            onOpenOmen = { selectedDestination = NavDestination.Omen },
                         )
                     }
                     OmenModalSheet(
@@ -434,12 +435,14 @@ private fun SignedInDestination(
     destination: NavDestination,
     isDemo: Boolean,
     onOpenAccount: () -> Unit,
+    onOpenOmen: () -> Unit,
 ) {
     when (destination) {
         NavDestination.Command -> OmenCommandCenterScreen(
             state = if (isDemo) OmenCommandCenterFixtures.demoConnected
             else OmenCommandCenterFixtures.realDisconnected,
             onOpenAccount = onOpenAccount,
+            onOpenOmen = onOpenOmen,
         )
         NavDestination.Omen -> OmenDecisionScreen(
             state = if (isDemo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
