@@ -22,3 +22,7 @@ Chrome could not be attached safely from this session, so the protocol's equival
 ## Skill receipt
 
 Used `run-slops-saloon` to assess app/browser verification options, `supabase` for aggregate readiness and the existing server-side credential path, `security-privacy-evidence` for the evidence boundary, and `slops-git-flow` for isolated closeout. `slops-tdd`, UI/mobile/design, data-ingest, and release skills are N/A because E3 changes no behavior. Browser QA was substituted by equivalent provider reads because no safe Chrome control channel was exposed.
+
+## Reconciliation — 2026-08-02
+
+At the time of this handoff, E1/E2 were separate local stacked work. Current `main` now contains their merged equivalents: PR #265 (`171508f`) and PR #266 (`623068a`). This proof remains aggregate-only and does not establish deployment or production-route behavior.

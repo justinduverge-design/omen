@@ -913,6 +913,11 @@
 - The drafted league contained 10 populated teams and 160 distinct rostered players. ESPN returned a 500-entry filtered pool with 0 rostered-player overlaps, 0 non-zero `onTeamId` values, and 0 ownership-signal disagreements. Observation 12 therefore closes cleanly, while E1's independent `onTeamId === 0` guard remains mandatory defense in depth.
 - This is provider capability proof, not evidence that the stacked E1/E2 commits are pushed, merged, deployed, or working through the production canonical route.
 
+## 2026-08-02 — B2-D evidence reconciliation
+
+- The preceding E1/E2 entries accurately described their state at the time they were written, but are now stale: adapter PR #265 (`171508f`) and canonical-wiring PR #266 (`623068a`) are ancestors of `main`.
+- B2-D's documented completion is merged-code, fixture, and sanitized provider-proof evidence. It does not assert a deployment, real-account canonical-route run, or a public all-platform-live claim.
+
 ## 2026-08-02 — Valor Ventures Limited Liability Company is Omen's public legal operator
 
 - The founder corrected the operator's official full name to Valor Ventures Limited Liability Company. It is the legal owner and operator; Slops Saloon is its product studio, and Omen is a Slops Saloon product. Public legal surfaces and current brand doctrine must use the full name consistently.
