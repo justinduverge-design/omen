@@ -34,3 +34,7 @@ Self-review against the capability contract and privacy boundary found no P0/P1.
 ## Next action
 
 Founder decides whether to make the scoped code commit, then separately whether to push and open a PR. Re-run the current focused and full tests after any rebase.
+
+## Reconciliation — 2026-08-02
+
+The scoped implementation is already merged on current `main` as PR #259 (`521268b`). Its proof remains the documented credential-free aggregate read; this handoff does not claim deployment or production-route verification.

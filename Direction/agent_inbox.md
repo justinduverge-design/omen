@@ -48,12 +48,10 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 > **Read this before pulling.** All 13 active tasks currently carry a non-`None` `Blocked by:` line. Per the pull rule, an agent stops and surfaces the block rather than skipping ahead. The four items below marked *progress-now* have an `AGENT_RESOLVABLE` component that can advance today; the rest need founder or external action first.
 
-### 1. B2-D — Complete the canonical Omen engine
+### 1. B2-D — Complete the canonical Omen engine — VERIFIED 2026-08-02
 
-- **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** AGENT_RESOLVABLE — provider-specific live-data capability proof still outstanding for ESPN
-- **Why first:** P0 with the largest downstream reach (GitHub issue #162 is the canonical engine). The Sleeper waiver stack and deterministic selector already landed (#215, #238, #239, #240) and Yahoo availability-only fallback landed (#236) — *progress-now*.
-- **Do not touch:** provider credentials, deployment, production data mutations, store configuration.
+- **Evidence:** current `main` contains the selected-context, waiver, selector, Sleeper trade, ESPN adapter, and ESPN canonical-wiring commits; `Direction/current_sprint.md` and the capability contract carry the exact evidence pointers.
+- **Boundary:** merged-code, fixture, and sanitized provider proof only. This is not a deployment, production-route, or public all-platform-live claim.
 
 ### 2. A4 — Tuesday scoring production enablement
 
@@ -94,7 +92,7 @@ These two surfaced during the 2026-07-30 reconciliation. They are real work, but
 
 Planning pass split the former proposed `B2-D-E1` intake into canonical `B2-D-E1` adapter, `B2-D-E2` canonical-wiring, and `B2-D-E3` drafted-league-proof items in `Direction/current_sprint.md`. Contract: `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 
-E1 and E2 are locally verified on stacked Codex branches. E3 was provider-proven on 2026-08-02 against the founder's newly connected drafted league using sanitized aggregate evidence only: 10 populated teams, 160 distinct rostered players, and 0 rostered-player leaks in the 500-entry filtered pool. Publication, merge, deployment, and production-route proof remain separate.
+E1 and E2 are merged on `main` as PRs #265/#266. E3 was provider-proven on 2026-08-02 against the founder's newly connected drafted league using sanitized aggregate evidence only: 10 populated teams, 160 distinct rostered players, and 0 rostered-player leaks in the 500-entry filtered pool. Deployment and production-route proof remain separate.
 
 ### ~~Actions-restoration sweep~~ — RESOLVED 2026-08-01, do not mint a task
 

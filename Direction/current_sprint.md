@@ -165,18 +165,19 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D — Complete the canonical Omen engine: live Waiver + Trade intelligence
 
-- **Status:** READY
-- **Blocked by:** AGENT_RESOLVABLE — provider-specific live-data capability proof still outstanding for ESPN
+- **Status:** VERIFIED
+- **Evidence:** current `main` commits `c021b52` (selected context), `ffa8999` (Yahoo guarded waiver), `a0dea67` (deterministic selector), `521268b` (Sleeper trade), `171508f` (ESPN adapter), and `623068a` (ESPN canonical wiring); focused B2-D tests 84/84 and full `npm test` 506/506 on 2026-08-02; capability matrix reconciled in `Blueprints/specs/b2d-canonical-omen-context-and-capability-contract-v1.md`; sanitized provider proofs in `Blueprints/handoffs/2026-07-29-b2d-s3-sleeper-live-proof.md` and `Blueprints/handoffs/2026-08-02-b2d-e3-espn-live-proof.md`.
+- **Blocked by:** None
 - **Priority:** P0
 - **Cost:** large
 - **Source of truth:** GitHub issue #162. Canonical `POST /api/omen/mvp-move` must safely honor selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
-- **Current state:** the Sleeper waiver stack and deterministic selector landed (PRs #215, #238, #239, #240); Yahoo availability-only fallback landed (PR #236); Sleeper trade landed in PR #259. ESPN waiver is now decomposed below into adapter, canonical wiring, and drafted-league proof.
+- **Current state:** the selected-context, waiver, deterministic-selector, and Sleeper trade slices are on `main`. ESPN adapter/canonical wiring landed as PRs #265/#266 and the drafted-league ownership proof is sanitized aggregate evidence only. This is merged-code and local/provider-proof status, not a deployment or production-route claim.
 - **Done when:** #162 acceptance evidence is complete — server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
 - **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
 
 ### B2-D-E1 — Normalize the ESPN waiver pool
 
-- **Status:** VERIFIED (local branch `codex/b2d-e1-espn-waiver-pool`, commit `2748a5c`; not pushed, merged, deployed, or provider-proven)
+- **Status:** VERIFIED (merged as PR #265 / `171508f`; fixture-tested; no deployment or production-route claim)
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
@@ -186,8 +187,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D-E2 — Wire ESPN waiver candidates into canonical Omen
 
-- **Status:** VERIFIED (local stacked branch `codex/b2d-e2-espn-canonical`, commit `0ad2cc6`; not pushed, merged, deployed, or provider-proven)
-- **Blocked by:** None for local verification; merge E1 before this stacked E2 commit.
+- **Status:** VERIFIED (merged as PR #266 / `623068a`; fixture-tested; no deployment or production-route claim)
+- **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
 - **Scope:** Add selected-context ESPN waiver candidate generation to `POST /api/omen/mvp-move` per `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
@@ -196,9 +197,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D-E3 — Prove ESPN roster subtraction in a drafted league
 
-- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; not pushed, merged, or deployed)
-- **Claim:** 2026-08-02 Codex — the newly connected drafted ESPN league returned 10 populated teams and 160 distinct rostered players; the 500-entry filtered pool contained 0 rostered-player leaks and 0 non-zero `onTeamId` entries.
-- **Blocked by:** None. E1 and E2 still retain their separate local branch/merge/deploy boundaries.
+- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; E1/E2 are separately merged; no deployment or production-route claim)
+- **Blocked by:** None
 - **Priority:** P0
 - **Cost:** small
 - **Scope:** Run `Blueprints/specs/b2d-espn-observation-12-resolution-protocol-v1.md` and append sanitized counts/booleans to the provider evidence.
@@ -207,9 +207,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D3-S — Live trade capability: Sleeper
 
-- **Status:** READY_FOR_REVIEW
-- **Claim:** 2026-08-02 Codex — implemented Sleeper live trade capability T1–T4; local review pending founder commit/push decision
-- **Blocked by:** none — the opponent-roster data is already fetched by `fetchSleeperRoster` and discarded; no new endpoint, credential, or founder gate.
+- **Status:** VERIFIED
+- **Evidence:** merged `521268b` (PR #259); `test/sleeperAdapter.test.js`, `test/tradeLineup.test.js`, and `test/omenMvpLiveService.test.js`; credential-free drafted-league aggregate proof in `Blueprints/handoffs/2026-08-02-b2d3-sleeper-live-trade-capability.md`.
+- **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
 - **Agent-buildable:** yes
