@@ -99,7 +99,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
-- **Status:** VERIFIED (local branch `codex/m4-cc-waiver-watch`, commit `adeba4f`; not pushed, merged, deployed, provider-proven, or iOS-CI-proven)
+- **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
 - **Blocked by:** iOS simulator/CI verification is deferred to a macOS-capable run. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31").
 - **Priority:** P1
 - **Cost:** medium
@@ -145,7 +145,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250. iOS CI is green on this branch as of 2026-08-01.
 - **Priority:** P1
 - **Cost:** medium
-- **Current state:** PR #198 is open and code-complete for the Discord sub-scope; it is the one item with no local verification path. Passkeys deferred to a separate `M4-Auth-Passkeys-Onramp` follow-up (P2).
+- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. Remaining work is **verification, not implementation**: the `Done when:` criteria (deep-link callback exchange, provider-availability rendering, connected tests, `:app:assembleDebug`, iOS CI) still need recorded evidence. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2).
 - **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
 - **Done when:** both surfaces ship on Android + iOS; `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; passkey pairing on a fresh device produces a working credential; scanner, connected tests, `:app:assembleDebug`, and iOS CI green.
 - **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.

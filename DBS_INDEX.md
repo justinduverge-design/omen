@@ -9,24 +9,30 @@ When Justin says "Layer 3," treat that as this third layer in plain English.
 ## Canonical Path
 
 ```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
+C:\Users\JDuve\dev\SLOPS\slops-saloon\omen
 ```
+
+> Corrected 2026-08-05. This file previously gave **two different canonical
+> paths** — an obsolete `OneDrive\Desktop\...\corvus` path here and the correct
+> `dev\...\omen` path under Parent Layers. The OneDrive tree and the `corvus`
+> name are both retired.
 
 ## Parent Layers
 
-- Layer 0 - SLOPS OS: `C:\Users\JDuve\OneDrive\Desktop\SLOPS`
-- Layer 1 - Slops Saloon division: `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon`
-- Layer 2 - Omen product repo: `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen`
+- Layer 0 — SLOPS OS: `C:\Users\JDuve\dev\SLOPS`
+- Layer 1 — Slops Saloon division: `C:\Users\JDuve\dev\SLOPS\slops-saloon`
+- Layer 2 — Omen product repo: `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen`
 
 ## Current Truth
 
-- Omen is the Fantasy Football MVP.
+- **Omen is a mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The web app is secondary and is not the beta surface.
+- The native mobile pivot is **active authority** — see `Direction/current_sprint.md` §Native Mobile Pivot.
 - This repo is the product layer.
-- The old nested `Corvus/` folder is retired.
-- Product docs now live at the repo root under `Direction/`, `Blueprints/`, `Brand/`, `References/`, `Solutions/`, and `Archive/`.
+- Product docs live at the repo root under `Direction/`, `Blueprints/`, `Brand/`, `References/`, `Solutions/`, and `Archive/`.
 - GitHub repo: `justinduverge-design/omen`.
-- Oracle checkout path: `~/corvus`.
-- Production health currently reports `service: omen-api`.
+- **Deploy lane: Hostinger KVM1** at `/opt/omen/deploy/hostinger`, containers `omen_api` and `omen_cron`. Production health reports `service: omen-api`.
+- Omen is **free indefinitely**. Stripe is fully removed — code, routes, middleware, table, and column.
+- The old nested `Corvus/` folder is retired. Do not recreate it.
 
 ## Product Folders
 
@@ -34,16 +40,29 @@ C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
 Direction/      Current product context, roadmap, sprint, decisions, risks
 Blueprints/     Product prompts, specs, handoffs, playbooks, and design/security docs
 Brand/          Omen brand system; `brand-system.md` is canonical, older drafts live in `Brand/archive/`
+Legal/          Public contract, privacy, and operator identity documents
 References/     Research and historical context
 Solutions/      Finished product outputs and reports
 Archive/        Superseded product history
+
+mobile/         NATIVE APPS — the primary product surface
+  ios/          iPhone app (SwiftUI, target OmenIOS)
+  android/      Android app (Kotlin + Jetpack Compose)
+  contracts/    Native auth provisioning and QA runbooks
+
 src/            Backend source
-frontend/       Current frontend app
-client/         Legacy/current frontend build input as used by Docker
 test/           Backend tests
 sql/            Database/reference SQL
 scripts/        Product scripts
+deploy/         Hostinger KVM1 deploy configuration
+evals/          AI evaluation harness
+frontend/       Web app (secondary surface)
+client/         Frontend build input used by Docker
 ```
+
+`mobile/` was absent from this list until 2026-08-05 despite being the primary
+product surface. Do not start native work without reading the native mobile read
+gate in `CLAUDE.md`.
 
 ## Baseline Entry Files
 
@@ -63,34 +82,38 @@ The app may have extra source, config, and test folders. Those do not replace th
 
 ## Read First
 
-For backend or product work:
+**All work** starts with `AGENTS.md` (or `CLAUDE.md` / `AGENT.md` for the
+runtime you are), then `Direction/context.md`, `Direction/agent_inbox.md`,
+`Direction/current_sprint.md`, `Direction/facts-of-record.md`.
 
-1. `context.md`
-2. `AGENTS.md`
-3. `Direction/context.md`
-4. `Direction/current_sprint.md`
-5. `Direction/roadmap.md`
-6. `Direction/decision_log.md`
-7. `Direction/agent_inbox.md`
-8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-9. `Blueprints/definition-of-done.md`
-10. `Blueprints/handoffs/frontend-to-backend.md`
-11. `Blueprints/handoffs/backend-to-frontend.md`
-12. `Blueprints/handoffs/decisions.md`
+**Native mobile work** — the primary surface. Read the native mobile read gate in
+`CLAUDE.md` before planning or writing code. Do not start native feature work
+when any of those specs are missing or conflict; flag the gap instead.
 
-For frontend work:
+**Backend work:**
 
-1. `context.md`
-2. `CLAUDE.md`
-3. `Direction/context.md`
-4. `Direction/agent_inbox.md`
-5. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-6. `Blueprints/definition-of-done.md`
-7. `Brand/brand-system.md`
-8. `Blueprints/design.md`
-9. `Blueprints/specs/app-ui-plan.md`
-10. `Blueprints/handoffs/backend-to-frontend.md`
-11. `Blueprints/handoffs/frontend-to-backend.md`
+1. `Direction/current_sprint.md`
+2. `Direction/facts-of-record.md`
+3. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+4. `Blueprints/definition-of-done.md`
+5. `Blueprints/api-routes.md`
+6. `Blueprints/handoffs/frontend-to-backend.md`
+7. `Blueprints/handoffs/backend-to-frontend.md`
+8. `Blueprints/handoffs/decisions.md`
+
+**Web frontend work** (secondary surface — new page migrations are paused by the
+native pivot override):
+
+1. `Brand/brand-system.md`
+2. `Blueprints/specs/page-system.md`
+3. `Blueprints/specs/design/component-lock-v1.md`
+4. `Blueprints/design.md`
+5. `Blueprints/handoffs/backend-to-frontend.md`
+
+**Release / launch work:**
+
+1. `Direction/omen-1.0-plan.md` — scope and sequence
+2. `Direction/release_readiness.md` — evidence record
 
 ## Handoffs
 
@@ -106,4 +129,13 @@ Do not treat the parent `slops-saloon/` folder as the app repo.
 
 Do not recreate the retired `Corvus/` subfolder.
 
-Do not edit `.env`, secrets, DNS, SSL, Nginx, production infrastructure, Supabase migrations, Stripe behavior, package files, or deployment config unless Justin explicitly approves that exact work.
+Do not edit `.env`, secrets, DNS, SSL, Nginx, production infrastructure, Supabase
+migrations, package files, or deployment config unless Justin explicitly approves
+that exact work.
+
+Store-related items are founder-gated: Apple/Google accounts, signing
+certificates, provisioning profiles, release configuration, and store metadata
+submission. Provider client secrets stay in Supabase Studio.
+
+("Stripe behavior" was removed from this list 2026-08-05 — Stripe no longer
+exists in Omen.)

@@ -4,63 +4,85 @@
 
 This is the product-layer context entry point for Omen.
 
-Use this file before opening app source, backend routes, frontend files, tests, SQL, deployment files, or product handoffs.
+Read it before opening app source, native code, backend routes, frontend files,
+tests, SQL, deployment files, or product handoffs.
 
-## Canonical Layer
+> **Rewritten 2026-08-05.** The previous version was a 2026-06-02 snapshot. It
+> gave a `OneDrive\Desktop\...\corvus` path that no longer exists, cited PR #22
+> as the resume point (main is at #272), reported 240/240 tests (now 506/506),
+> and documented live Stripe pricing endpoints and "subscribed users" gating —
+> all of which were removed from Omen on 2026-07-12. Any agent that read it got
+> a materially false picture of the product.
 
-Omen is the third SLOPS layer in plain English and the canonical Layer 2 in DBS numbering.
+## What Omen Is
 
-Path:
+**Omen is a mobile app** — iPhone (SwiftUI) and Android (Kotlin + Jetpack
+Compose) — that also has a web app. The web app is secondary and is **not** the
+beta surface. New web page migrations are paused under the native pivot override.
+
+Omen is a fantasy football decision tool: Start/Sit, waiver, and trade
+recommendations across Yahoo, Sleeper, and ESPN.
+
+**Omen is free indefinitely.** There is no billing, subscription, or paywall.
+
+## Canonical Path
 
 ```text
-C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus
+C:\Users\JDuve\dev\SLOPS\slops-saloon\omen
 ```
 
-## Current Truth
+Layer 2 in DBS numbering; the third SLOPS layer in plain English. Parent layers:
+`C:\Users\JDuve\dev\SLOPS` (L0) and `C:\Users\JDuve\dev\SLOPS\slops-saloon` (L1).
 
-- Omen is the active Fantasy Football MVP product.
-- This is the active app/product git repo.
-- The old nested `Corvus/` folder is retired.
-- Product DBS folders live at this repo root.
-- Frontend/backend handoffs live in `Blueprints/handoffs/`.
-- App source and config live here, not in the parent `slops-saloon/` layer.
+## Current Truth — 2026-08-05
 
-## Latest Resume Point — 2026-06-02
+- Native apps are the gating surface: **79 Swift files, 88 Kotlin files** —
+  design systems, auth, session, and app shell on both platforms.
+- Backend is deployed and healthy on **Hostinger KVM1** (`/opt/omen/deploy/hostinger`),
+  containers `omen_api` and `omen_cron`. Health reports `service: omen-api`.
+- **Backend tests: 506/506 green** (`npm test`, 2026-08-02). PRs gated by `pr-quality.yml`.
+- `npm audit --omit=dev`: 0 production vulnerabilities.
+- **Stripe is fully removed** — code, `/api/stripe/*` routes, `requireSubscription`
+  middleware, `subscriptions` table, and `users.is_subscribed` column. Any doc
+  describing Stripe endpoints or subscriber gating is historical.
+- `POST /api/omen/mvp-move` is the only canonical recommendation route.
+  `POST /api/optimizer/mvp-move` is retired.
+- Yahoo, Sleeper, and ESPN adapters are live. **None are provider-proven** with
+  real connected accounts yet — that is the top beta gate.
+- Legal, privacy routes (`/api/user`), and in-app account deletion are shipped.
+  Account deletion is an Apple App Store requirement, already satisfied.
+- Supabase auth providers enabled: Email, Google, Apple, Discord, Passkeys.
+- Tuesday scoring is **disabled** (`OMEN_CRON_SCORING_ENABLED=false`), blocked on
+  founder approval and on nflverse publishing `player_stats_2026.csv`.
 
-- PR #22 (`fix(ui): brand-spec fonts — Cormorant Garamond + Alegreya Sans`) was squash-merged into `main` and deployed as GitHub Actions run `26833528435` for `.github/workflows/deploy.yml`; it completed successfully.
-- Post-deploy smoke: `https://slopssaloon.com/api/health` returned `status: ok` / `service: omen-api`, and `https://slopssaloon.com/api/ready` returned `status: ready`.
-- Tier 2 frontend is **built and deployed**: Account pricing display (`GET /api/stripe/prices`), Omen feedback hardening (`POST /api/omen/feedback`), team theme hydration (`GET /api/dashboard/summary.user.favorite_team`), Move History / Hall of Records (`GET /api/moves`), and League Standings (`GET /api/league/standings`) are all live.
-- Trade Analyzer Projection and Status fields are intentionally not user-facing in Phase 1. Omen should infer/enrich those signals during analysis rather than asking the user to supply them.
-- All production env gates cleared: ~~Stripe price IDs~~ ✓, ~~$5/mo and $20 season prices~~ ✓, ~~`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`~~ ✓, ~~`APP_BASE_URL`~~ ✓. Remaining launch work: Stripe test-mode checkout and webhook validation, authenticated smoke tests, and QA of real Yahoo/Sleeper/ESPN Omen and League Standings flows.
+## Scope Decisions — 2026-08-05
 
-- Local backend tests pass 240/240.
-- Live Omen is canonical at `POST /api/omen/mvp-move` and uses body `{}` after dashboard status is `ready`.
-- Dashboard Omen readiness now covers usable Yahoo, Sleeper, or ESPN league context for subscribed users.
-- `GET /api/system/current-week` exists for public season/week context.
-- `GET /api/stripe/prices` exists as a read-only pricing display contract; `Account.jsx` calls it live with a safe fallback.
-- `POST /api/omen/feedback` is deployed. It is auth-required and upserts `followed`, `user_stars`, and `user_note` to `moves` by `user_id + week_num + season`. The live Supabase `moves` repair is applied and idempotence-smoked.
-- `GET /api/moves` is deployed for Move History. It is auth-required and returns `moves-history.v1`.
-- `GET /api/league/standings` is deployed for League Standings. It is auth-required and returns `league-standings.v1` for Yahoo, Sleeper, and ESPN.
-- `PATCH /api/account/preferences` is deployed for team preference. It is auth-required and upserts `favorite_team` to `profiles`; dashboard summary includes `user.favorite_team`.
-- Legacy compat routes from the frontend audit now return `410 legacy_route_retired`, except `/api/league/standings`, which has been restored as a canonical route.
-- Supabase SQL from `sql/omen_rls_security.sql` has been applied and verified as migration `20260531160851_apply_omen_rls_security_full_setup`. Verified live coverage includes `waitlist_signups`, `subscriptions.trial_ends_at`, `subscriptions.current_period_end`, `moves` feedback idempotence, `profiles.favorite_team`, platform connection safe-column grants, and service-role Vault wrapper RPCs.
-- Remaining launch blockers are QA/ops: confirm prod Supabase env at deploy time, validate Stripe dashboard/return URLs, run Stripe test-mode validation, smoke-test HITL/team preference in the app, and QA real provider League Standings.
+- **Draft Assistant is cut from 1.0.** It ships 2027 on a Slops-built ADP.
+  Remove it from store metadata, onboarding copy, and marketing claims. Docs
+  that list it as a live launch feature are stale.
+- **Both platforms ship the beta together.**
+- Apple Developer Program is enrolled; the account transfer to Valor Ventures is
+  in progress. Store provisioning is the current critical path.
 
-## Read First
+## Where To Go Next
 
-1. `DBS_INDEX.md`
-2. `AGENTS.md`
-3. `CLAUDE.md`
-4. `Direction/context.md`
-5. `Direction/current_sprint.md`
-6. `Direction/roadmap.md`
-7. `Direction/decision_log.md`
-8. `Direction/agent_inbox.md`
-9. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-10. `Blueprints/definition-of-done.md`
-11. `Blueprints/handoffs/frontend-to-backend.md`
-12. `Blueprints/handoffs/backend-to-frontend.md`
+| You need | Read |
+|---|---|
+| Scope and sequence to launch | `Direction/omen-1.0-plan.md` |
+| What is verified vs required | `Direction/release_readiness.md` |
+| The active work queue | `Direction/current_sprint.md` |
+| Standing constraints | `Direction/facts-of-record.md` |
+| Native mobile specs | the native mobile read gate in `CLAUDE.md` |
+| Navigation map | `DBS_INDEX.md` |
+
+Runtime entry points: `CLAUDE.md` (Claude), `AGENT.md` (Codex), `AGENTS.md` (shared posture).
 
 ## Safety Boundary
 
-Do not edit `.env`, secrets, keys, cookies, DNS, SSL, Nginx, Supabase migrations, Stripe production behavior, package files, Docker/deploy config, production infrastructure, `.git`, or `node_modules` without explicit Justin approval.
+Do not edit `.env`, secrets, keys, cookies, DNS, SSL, Nginx, Supabase migrations,
+package files, Docker/deploy config, production infrastructure, `.git`, or
+`node_modules` without explicit Justin approval.
+
+Store items are founder-gated: Apple/Google accounts, signing, provisioning,
+release configuration, and metadata submission. Provider client secrets stay in
+Supabase Studio.

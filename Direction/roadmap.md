@@ -1,11 +1,28 @@
 # Omen Roadmap
 
-Last updated: 2026-07-19
+Last updated: **2026-08-05** (mobile-primary reconciliation).
 
-## What Is Live
+**Omen is a mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has
+a web app. Scope and sequence live in `Direction/omen-1.0-plan.md`; evidence
+lives in `Direction/release_readiness.md`. This file is the feature-level view.
 
-- Trade Analyzer.
-- Draft Assistant.
+## Native Mobile — the primary surface
+
+- iOS: 79 Swift files — design system, Core, App, XCTest target.
+- Android: 88 Kotlin files — designsystem, auth, session, app.
+- Discord OAuth merged on both platforms (#198). Supabase providers enabled:
+  Email, Google, Apple, Discord, Passkeys.
+- Native Waiver Watch composition merged (#271).
+- **Not yet:** real-device QA, store provisioning, signing, TestFlight / Play
+  internal tracks. Store provisioning is the current critical path.
+- Native targets are SwiftUI and Kotlin/Compose. Do not introduce React Native.
+
+## What Is Live (backend + web)
+
+- Trade Analyzer, including live Sleeper trade candidates.
+- ~~Draft Assistant.~~ **Cut from 1.0 on 2026-08-05** — ships 2027 on a
+  Slops-built ADP, developed over fall/winter. Remove it from store metadata,
+  onboarding copy, and marketing claims.
 - Omen of the Week / MVP Move through `POST /api/omen/mvp-move`.
 - Start/Sit inside Omen.
 - Waiver logic inside Omen.
@@ -52,20 +69,50 @@ Last updated: 2026-07-19
 - Tier 2 authenticated production smoke passed 13/13 on 2026-06-04.
 - Current posture is launch-QA and ops validation, not broad feature build.
 
-## Next
+## Next — beta gates
 
-1. **QA real Yahoo/Sleeper/ESPN flows:** verify Omen and League Standings with real connected accounts, especially ESPN reconnect behavior, without logging cookie values.
-2. **Capture load-test evidence:** run `scripts/load-omen-routes.js` against approved local/staging targets for Omen, Trade Analyzer, and dashboard summary.
-3. **Implement the unified Omen recommendation layer:** preserve `POST /api/omen/mvp-move` as the single route, keep mock fallback explicit, and honor dashboard off-season/no-data states.
-4. **Feature candidates after launch gates:** `GET /api/players/search`, `GET /api/trade/pulse`, Tuesday scoring readiness packet, and route-level off-season defense if B2 confirms it is needed.
-5. Final launch readiness review.
+Ordered. Full detail in `Direction/omen-1.0-plan.md`.
+
+1. **Store provisioning** — verify App Store Connect is operable during the Valor
+   Ventures account transfer, then app records, signing, privacy/data-safety
+   forms, and the age-rating/gambling questionnaire. Critical path, not started.
+2. **Real-account QA** for Yahoo, Sleeper, and ESPN — ESPN first and highest
+   risk; verify reconnect behavior without logging cookie values.
+3. **Observability** — Sentry, Umami, and Vector per
+   `self-hosted-observability-runbook`, plus native crash reporting on both
+   platforms. Without it a beta crash is invisible.
+4. **Forced-update / minimum-version gate** — mobile has no rollback.
+5. **Mock/live labeling sweep** — trust-critical.
+6. **Real-device matrix** — iPhone SE (375×667), a large iPhone, a Pixel-class
+   Android; VoiceOver/TalkBack and Dynamic Type/font-scale checks.
+7. **Load-test evidence** — run `scripts/load-omen-routes.js` against the three
+   hot routes.
+8. **Security close-out** — production secrets review, credential rotation, rate
+   limits, and mobile token storage in Keychain / EncryptedSharedPreferences.
+
+## Season gates — not beta gates
+
+- **Tuesday scoring (A4)** — `OMEN_CRON_SCORING_ENABLED` stays `false`, blocked
+  on founder approval and on nflverse publishing `player_stats_2026.csv` ([#263](https://github.com/justinduverge-design/omen/issues/263)).
+  Dry-run now; flip in September.
+- **Fallback scoring data source** — decide before September. If nflverse does
+  not publish, the feature that closes Omen's loop has no data.
+- NFL Week 1 (~2026-09-10) is the real load test.
 
 ## Later
 
 - Delete retired compat route handlers after one release/log window if no callers hit the `410` responses.
 - Polish The Ledger after the first Move History surface has real usage data.
-- Add Draft Assistant season content.
 - Add recovery analytics after B2/B4 stabilize state names and real-account QA verifies safe payloads.
+- `GET /api/players/search`, route-level off-season defense if B2 confirms it is needed.
+- Passkeys onramp (`M4-Auth-Passkeys-Onramp`, P2).
+- M5 theme packs / skins — behind core themes and accessibility.
+
+## Winter track — Draft Assistant 2027
+
+Build the Slops ADP over Oct–Feb. Off the critical path, no season pressure —
+the right window to build a differentiated model rather than wrapping someone
+else's ADP.
 
 ## Guardrails
 
