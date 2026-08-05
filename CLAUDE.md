@@ -2,6 +2,8 @@
 
 You are working in the Omen product layer. Lanes are a scheduling convenience, never an authority boundary — any runtime may be assigned any item. Confirm this session's actual capabilities and read Runtime Policy before applying any authority.
 
+**Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The native mobile pivot is active authority; the web app is secondary and new web page migrations are paused. Omen is **free indefinitely** — no Stripe, subscription, or paywall code exists. **Draft Assistant is cut from 1.0** (2026-08-05) and ships 2027 on a Slops-built ADP; do not reference it in store metadata, onboarding copy, or marketing claims.
+
 ## Read in order before pulling a task
 
 1. `AGENTS.md` (root posture, ownership boundaries, safety rules)
