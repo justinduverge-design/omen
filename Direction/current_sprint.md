@@ -83,7 +83,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - Backend test baseline: **506/506 green** (`npm test`, 2026-08-02, PR #272), plus focused B2-D 84/84. PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
 - Native: iOS 79 Swift files, Android 88 Kotlin files. Discord OAuth merged both platforms (#198).
 - **No provider is proven with a real connected account.** This is the top beta risk.
-- **Store provisioning has not started.** This is the critical path.
+- **Store provisioning is started and half-blocked (2026-08-05).** App Store Connect is reachable but **iOS app-record creation fails** with a generic error — root cause under diagnosis (R1); agreements re-acceptance after the Valor Ventures entity transfer is the leading suspect. **Android is unaffected and unblocked** — run R2-Android now. This lane is still the critical path.
 - Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
 
 # Active queue
@@ -131,29 +131,53 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R1 — Verify App Store Connect is operable during the Valor Ventures transfer
 
-- **Status:** READY
-- **Blocked by:** None
-- **Priority:** **P0 — do this first**
-- **Cost:** trivial (~10 minutes)
+- **Status:** IN_PROGRESS — **partial fail, 2026-08-05**
+- **Blocked by:** FOUNDER_DIAGNOSIS — root cause not yet identified
+- **Priority:** **P0 — the whole iOS schedule hangs on this**
+- **Cost:** small
 - **Agent-buildable:** no — founder account access
-- **Source:** the Apple Developer account transfer to Valor Ventures is in progress. Apple account transfers can restrict App Store Connect operations. If it is locked, the iOS beta date is wrong and every downstream date shifts.
-- **Done when:** it is confirmed either that an app record can be created and a build uploaded right now, or that the transfer blocks it — and if blocked, the expected completion date is recorded and the beta plan is re-sequenced against it.
-- **Do not touch:** nothing to touch — this is a read/verify step.
+- **Finding (2026-08-05):** App Store Connect is **reachable but not fully operable.** The New App form opens and accepts input (iOS, `com.slopssaloon.omen`, SKU `omen-ios`, Full Access), but **Create fails with a generic "An error has occurred. Try again later."** Reaching the form is not the gate; creating the record is. iOS app-record creation is currently **blocked**.
+- **Diagnosis order:**
+  1. **Agreements, Tax, and Banking** — an unaccepted or pending Program License Agreement blocks app creation with exactly this generic error. An entity transfer normally requires re-acceptance by the new legal entity, and Valor Ventures has not agreed yet. Highest-probability cause; two-minute check.
+  2. **Transfer restriction** — Apple can lock app creation while an account transfer is in flight. If so this is a support ticket, not a self-clear. Apple Developer Support can confirm the restricted state and the lift date.
+  3. **Transient outage** — check `developer.apple.com/system-status`.
+  4. **Name** — unlikely; a taken name returns a specific "already being used" error, not this one. Retry once with plain `Omen` to isolate, since the name changed in the same attempt.
+- **Done when:** the root cause is identified AND either the iOS app record is created, or an expected unblock date is recorded and Phase 1 is re-sequenced against it.
+- **Do not touch:** repeated blind retries; changing more than one field per attempt.
 
-### R2 — Create app records on both stores
+> **Schedule note:** this does **not** block Android. Google Play Console is a
+> separate system and an Apple account transfer has no effect on it.
+> "Both platforms ship together" is a *release* decision, not a reason to let
+> one platform's account problem stall the other's provisioning. Android is
+> also the faster path — internal testing requires no review. Run R2-Android
+> now, in parallel with diagnosing this.
+
+### R2-Android — Create the Google Play Console app record
+
+- **Status:** READY
+- **Blocked by:** None — **explicitly not blocked by R1.** Play Console is unaffected by the Apple account transfer.
+- **Priority:** **P0 — the unblocked half of Phase 1. Do this now.**
+- **Cost:** small
+- **Agent-buildable:** metadata drafting only; account actions founder-executed
+- **Scope:** create the Play Console record with `applicationId = com.slopssaloon.omen` (verified in `mobile/android/app/build.gradle.kts:23`, matching iOS).
+- **Done when:** the Play Console record exists with the application ID matching the Android build.
+- **Do not touch:** pricing, public availability, or release scheduling.
+
+### R2-iOS — Create the App Store Connect app record
 
 - **Status:** BLOCKED
-- **Blocked by:** R1
+- **Blocked by:** R1 — Create currently fails with a generic error
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** metadata drafting only
-- **Done when:** an App Store Connect record and a Google Play Console record both exist with bundle/application IDs matching the native builds.
+- **Confirmed inputs** (verified against source 2026-08-05): Platform iOS only; Bundle ID `com.slopssaloon.omen` (matches `PRODUCT_BUNDLE_IDENTIFIER` in both Debug and Release, and the App ID named in `Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md` under Team `6RWR5G9894`); SKU `omen-ios`; Full Access. **Do not** select `com.slopssaloon.omen.web` — that is the Sign in with Apple Services ID, not an app identifier.
+- **Done when:** the App Store Connect record exists with the bundle ID matching the iOS build.
 - **Do not touch:** pricing, public availability, or release scheduling.
 
 ### R3 — Signing and provisioning
 
 - **Status:** BLOCKED
-- **Blocked by:** R2
+- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
 - **Priority:** P0
 - **Cost:** small–medium
 - **Agent-buildable:** no — certificates and keys
@@ -163,7 +187,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R4 — Privacy nutrition labels and Data Safety form
 
 - **Status:** BLOCKED
-- **Blocked by:** R2
+- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -174,7 +198,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R5 — Age rating and gambling questionnaire
 
 - **Status:** BLOCKED
-- **Blocked by:** R2
+- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
