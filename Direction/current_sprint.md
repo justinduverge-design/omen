@@ -1,7 +1,8 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-07-30 (migrated to the status model; 22 CLOSED records moved to `Direction/sprints_completed.md`)
-**Purpose:** Active execution queue only — `READY`, `IN_PROGRESS`, `VERIFIED`. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
+**Last updated:** 2026-08-05 (revamped around the 1.0 plan — added Store/Release, Security, and Ops lanes; every lane now maps to a phase gate)
+**Purpose:** Active execution queue only — `READY`, `IN_PROGRESS`, `VERIFIED`, `BLOCKED`. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
+**Scope and sequence:** `Direction/omen-1.0-plan.md`. **Evidence record:** `Direction/release_readiness.md`.
 
 ## How agents use this file
 
@@ -9,17 +10,40 @@ Task states, `Claim:` and `Evidence:` requirements, `Blocked by:` / `Unblock:` g
 
 1. Read `Direction/agent_inbox.md` first. A pinned task there overrides this queue.
 2. Select only `Status: READY`, agent-buildable work whose `Blocked by:` line is `None`, ordered by the selection rule.
-3. Do not auto-pull **Founder / Ops**, **Verify**, **Decision**, database, deploy, or production-mutation work.
+3. Do not auto-pull **Founder / Ops**, **Store / Release**, **Verify**, **Decision**, database, deploy, or production-mutation work.
 4. Keep implementation in small PRs. If an item needs more than about 80 words of implementation detail, write or use a spec and leave the sprint item as a pointer.
 5. On completion set `Status: VERIFIED` with an `Evidence:` pointer. Move to `Status: CLOSED` with a `Closure:` value (`COMPLETED` needs evidence, `SUPERSEDED` needs a successor, `DESCOPED` needs a reason) once the result is placed in `Direction/sprints_completed.md` with the appropriate Done receipt; update the decision log only when a decision changed, and record actual skill use. `CLOSED` is terminal — a regression creates a new linked task rather than reopening.
 
-## 2026-07-30 migration summary
+## Product shape and the deadline
 
-This queue was migrated from the retired checkbox mechanic to the status model. 35 task dispositions were reconciled against `main` and the GitHub PR record.
+**Omen is a mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The web app is secondary and is **not** the beta surface.
 
-- **13 active** here (13 `READY`, 0 `IN_PROGRESS`, 0 `VERIFIED`).
-- **22 `CLOSED`** (18 `COMPLETED`, 4 `DESCOPED`) moved to `Direction/sprints_completed.md` §"Planning-pipeline cutover — migrated dispositions (2026-07-30)". They are not duplicated here.
-- Two items surfaced during reconciliation — ESPN waiver-pool implementation and the Actions-restoration sweep — are **not** canonical tasks. They are held in `Direction/agent_inbox.md` under "Planning intake — pending planning-pass" and are not selectable.
+The NFL season sets the deadline, not the backlog:
+
+| Date | Event | Meaning |
+|---|---|---|
+| ~2026-08-24 | **beta open target** | two weeks of real feedback before Week 1 |
+| ~2026-09-10 | **NFL Week 1** | Start/Sit, Waiver, and Trade go live-or-broken at once. First real load. |
+| ~2026-09-15 | first Tuesday scoring | the core loop provable end to end |
+
+**Founder decisions 2026-08-05:**
+
+- **Draft Assistant is cut from 1.0.** Ships 2027 on a Slops-built ADP developed over fall/winter. Remove it from store metadata, onboarding copy, and marketing claims. Cutting it removed the mid-August draft-season wall and bought back ~3 weeks.
+- **Both platforms ship the beta together.** Consistent with every M4 `Done when:` already requiring both.
+- **Apple Developer Program is enrolled**; account transfer to Valor Ventures in progress. See R1.
+
+## Phase gates
+
+Each phase has exactly one gate. Do not start the next until it passes.
+
+| Phase | Lane | Gate |
+|---|---|---|
+| 1 — Unblock the stores | **R** | an app record can be created and a build uploaded on both platforms |
+| 2 — Close the native lane | **M**, **B** | feature freeze declared; nothing "prepared locally, not deployed" |
+| 3 — Make it observable | **O** | a deliberate native crash appears in Sentry within 60s on both platforms |
+| 4 — Prove it | **F**, **S** | three providers pass real-account QA; zero unlabeled mock output |
+| 5 — Beta open | **R6**, marketing | 10+ real testers in real leagues, both platforms |
+| 6 — Season hardening | **A4** | one clean Tuesday scoring run on real data |
 
 ## Skill activation contract
 
@@ -46,7 +70,7 @@ Every task plan must name the selected skills and explain why any normally requi
 - **Keep** the existing web app and safe backend work. The API, auth, demo, recommendation contract, platform safety, tests, and production maintenance are native foundations; do not rip them out or treat the web UI as a wrapper target.
 - **Native targets:** iPhone uses SwiftUI; Android uses Kotlin + Jetpack Compose. Do not start React Native.
 - **M0 contracts are approved.** Native implementation is allowed only inside the approved contracts and current gates.
-- **No app-store action yet.** Apple/Google accounts, signing, release configuration, provider flows, DNS/deploy, SQL, and secrets remain gated.
+- **Store work is now OPEN and founder-executed** — see lane R. *(Changed 2026-08-05. This line previously read "No app-store action yet." That was correct under a web-first plan and became the single biggest blocker once mobile became the primary surface: store provisioning is calendar time no agent can compress.)* Apple/Google accounts, signing, release configuration, provider flows, DNS/deploy, SQL, and secrets remain **founder-gated** — gated means Justin executes, not that the work is deferred.
 
 ### Agent tools and canvas
 
@@ -54,9 +78,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ## Current state
 
-- Production is live on KVM1; `/api/health` and `/api/ready` were healthy at the latest verified baseline.
+- Production is live on KVM1; `/api/health` and `/api/ready` healthy at the latest verified baseline.
 - Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. The production Supabase table/column cleanup remains a separately gated database action.
-- Backend test baseline: **481/481 green**, locally and in CI. The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250 (2026-08-01). Pull requests are now gated by `pr-quality.yml` (#253).
+- Backend test baseline: **506/506 green** (`npm test`, 2026-08-02, PR #272), plus focused B2-D 84/84. PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
+- Native: iOS 79 Swift files, Android 88 Kotlin files. Discord OAuth merged both platforms (#198).
+- **No provider is proven with a real connected account.** This is the top beta risk.
+- **Store provisioning has not started.** This is the critical path.
 - Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
 
 # Active queue
@@ -66,7 +93,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A3 — Production security and Supabase review
 
 - **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md`. Both originally-flagged live-access items closed 2026-08-01: TLS confirmed via direct handshake (Let's Encrypt, valid through 2026-09-06); RLS confirmed enabled on all 11 public tables via Supabase MCP. New WARN-level finding surfaced: leaked-password protection disabled in Supabase Auth (one-toggle fix, not urgent).
+- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md`. Both originally-flagged live-access items closed 2026-08-01: TLS confirmed via direct handshake (Let's Encrypt, valid through 2026-09-06); RLS confirmed enabled on all 11 public tables via Supabase MCP. New WARN-level finding surfaced: leaked-password protection disabled in Supabase Auth (one-toggle fix, not urgent — carried into S1).
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** audit preparation only
@@ -77,41 +104,162 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** BLOCKED
 - **Blocked by:** founder approval for a persistent production enablement; `OMEN_CRON_SCORING_ENABLED` remains `false`.
-- **Blocked by:** [#263](https://github.com/justinduverge-design/omen/issues/263) — nflverse has not yet published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
+- **Blocked by:** [#263](https://github.com/justinduverge-design/omen/issues/263) — nflverse has not published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
 - **Priority:** P0
 - **Cost:** small
-- **Agent-buildable:** dry-run preparation and verification only, once B3 lands; the env flip is gated
+- **Phase:** 6 — **season gate, not a beta gate.** Do not count this against beta. The dry-run is preparable now; the flag flip waits for September.
+- **Agent-buildable:** dry-run preparation and verification only; the env flip is gated
 - **Done when:** dry-run validates real rows without writes; production flag is explicitly approved and changed; readiness and cron health pass; rollback owner is named.
 - **Do not touch:** the production flag before approval; never log provider credentials or raw user data.
 
+### A5 — Decide the Tuesday-scoring fallback data source
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0
+- **Cost:** small
+- **Phase:** 2 — decide now, not in September
+- **Agent-buildable:** research and options memo only; the vendor/source decision is founder-owned
+- **Source:** if nflverse never publishes `player_stats_2026.csv`, the feature that closes Omen's entire loop has no data source for the whole season. A4 is blocked on an external publish nobody here controls.
+- **Skills:** `pre-build-research`, `slops-data-ingest-plan`
+- **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
+- **Do not touch:** paid commitments, new dependencies, or provider contracts without explicit approval.
+
+## R. Store and release — critical path, founder-executed
+
+**Phase 1.** This lane is the longest pole and most of it is calendar time no agent can compress. Agents may prepare artifacts; **Justin executes every item here.** Run these first each week — everything else can proceed in parallel, these cannot.
+
+### R1 — Verify App Store Connect is operable during the Valor Ventures transfer
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — do this first**
+- **Cost:** trivial (~10 minutes)
+- **Agent-buildable:** no — founder account access
+- **Source:** the Apple Developer account transfer to Valor Ventures is in progress. Apple account transfers can restrict App Store Connect operations. If it is locked, the iOS beta date is wrong and every downstream date shifts.
+- **Done when:** it is confirmed either that an app record can be created and a build uploaded right now, or that the transfer blocks it — and if blocked, the expected completion date is recorded and the beta plan is re-sequenced against it.
+- **Do not touch:** nothing to touch — this is a read/verify step.
+
+### R2 — Create app records on both stores
+
+- **Status:** BLOCKED
+- **Blocked by:** R1
+- **Priority:** P0
+- **Cost:** small
+- **Agent-buildable:** metadata drafting only
+- **Done when:** an App Store Connect record and a Google Play Console record both exist with bundle/application IDs matching the native builds.
+- **Do not touch:** pricing, public availability, or release scheduling.
+
+### R3 — Signing and provisioning
+
+- **Status:** BLOCKED
+- **Blocked by:** R2
+- **Priority:** P0
+- **Cost:** small–medium
+- **Agent-buildable:** no — certificates and keys
+- **Done when:** iOS distribution certificate and provisioning profile exist and a signed build uploads successfully; Android upload key and Play App Signing are configured and a signed AAB uploads successfully.
+- **Do not touch:** never place certificates, keys, or passwords in the repo, logs, or agent output.
+
+### R4 — Privacy nutrition labels and Data Safety form
+
+- **Status:** BLOCKED
+- **Blocked by:** R2
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** drafting yes; submission founder-only
+- **Source:** the privacy policy shipped in #269 is the input. In-app account deletion is already implemented — that is an Apple requirement already satisfied.
+- **Done when:** Apple privacy nutrition labels and the Google Data Safety form are drafted against actual data flows (Supabase auth, provider tokens, no ad SDKs), reviewed against the shipped privacy policy, and submitted.
+- **Do not touch:** claims not supported by the actual data flow.
+
+### R5 — Age rating and gambling questionnaire
+
+- **Status:** BLOCKED
+- **Blocked by:** R2
+- **Priority:** **P0 — store-rejection risk**
+- **Cost:** small
+- **Agent-buildable:** drafting yes; submission founder-only
+- **Source:** fantasy sports can trigger Apple's gambling review path. `Direction/reviews/2026-07-12-store-metadata-privacy-gambling-copy-audit.md` already exists — use it rather than re-deriving.
+- **Skills:** `slops-legal-spot-check`
+- **Done when:** both store questionnaires are answered consistently with the shipped copy and the existing gambling-copy audit; no marketing or in-app string implies wagering, real-money play, or guaranteed outcomes.
+- **Do not touch:** answering a questionnaire in a way the app copy does not support.
+
+### R6 — Internal testing tracks
+
+- **Status:** BLOCKED
+- **Blocked by:** R3, R4, R5, and the Phase 4 gate
+- **Priority:** P0
+- **Cost:** small
+- **Phase:** 5 — this is beta open
+- **Agent-buildable:** no
+- **Source:** use **internal** tracks, not external. TestFlight internal and Play internal testing each allow ≤100 testers with **no review**, which keeps Apple's Beta App Review off the critical path entirely.
+- **Done when:** both apps are installable by invited testers on internal tracks and 10+ real testers in real leagues have access.
+- **Do not touch:** external/public tracks, or public store release, before Phase 6.
+
+### R7 — Scrub store metadata of Draft Assistant claims
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Source:** Draft Assistant is cut from 1.0. Any store listing, screenshot, onboarding string, or marketing line promising it is now a false claim.
+- **Skills:** `slops-ux-copy`, `slops-legal-spot-check`
+- **Done when:** no store metadata, screenshot, in-app onboarding copy, or marketing surface references Draft Assistant as an available 1.0 feature; a grep across app strings and marketing copy is recorded as evidence.
+- **Do not touch:** the Draft Assistant code path itself — it stays in the repo for 2027, it just is not advertised.
+
 ## M. Native mobile execution lane
+
+**Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
 
 ### M3A-QA — Native auth interactive real-device QA
 
 - **Status:** READY
 - **Blocked by:** FOUNDER_APPROVAL — founder/human credential and inbox access
-- **Priority:** P0
+- **Priority:** **P0 — auth is the front door**
 - **Cost:** small, human-gated
 - **Agent-buildable:** preparation only
 - **Done when:** Android Play-services AVD or real device proves Google sign-in, email OTP, session restore, account deletion, and log safety; iOS real device proves Sign in with Apple, email OTP, session restore, account deletion, and log safety.
 - **Evidence:** sanitized QA matrix; no screenshots or logs containing credentials or tokens.
 - **Do not touch:** real credentials in agent logs or screenshots.
 
-### M4-CC-WaiverWatch — Waiver Watch composition + wiring
+### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
-- **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
-- **Blocked by:** iOS simulator/CI verification is deferred to a macOS-capable run. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31").
-- **Priority:** P1
+- **Status:** READY
+- **Blocked by:** None — Figma proposal approved (node `73:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Priority:** **P1 — beta blocker.** The connect flow is the first screen that matters to a new tester.
+- **Cost:** small–medium
+- **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
+- **Motivation:** founder feedback 2026-07-23 — current cards take too much vertical real estate.
+- **Done when:** compact rows render for both connected and disconnected states on both platforms; the Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android; the detail sheet handles Manage/Connect; scanner, connected tests, and `:app:assembleDebug` green.
+- **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
+
+### M4-Help-Support-Implementation — Build approved native Help + Support
+
+- **Status:** READY
+- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
+- **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
+- **Priority:** **P1 — store metadata requires a support URL**, so this is on the release path, not just the product path.
 - **Cost:** medium
-- **Scope:** replace the "Waiver Watch is landing next" placeholder in `OmenCommandCenterScreen` with the approved composition per mobile-visual-briefs §1.3 (Tuesday–Wednesday urgent briefing + Thursday–Monday calm opportunity list). Required states: pending, processed, availability-unknown, no-credible-move, not-connected, off-season.
-- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete but require the separate macOS CI gate.
-- **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
+- **Current state:** implementation merged via PR #229; Android compile/scanner evidence green. This is **not** VERIFIED — the `Done when:` criteria require accessibility and visual evidence that has not been produced.
+- **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
+- **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
+
+### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
+
+- **Status:** READY
+- **Blocked by:** None. `ios-ci.yml` runs on PRs targeting `main` again as of #250, so this is CI-verifiable.
+- **Priority:** P1
+- **Cost:** small — **verification only, not implementation**
+- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2).
+- **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
+- **Done when:** `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; scanner, connected tests, `:app:assembleDebug`, and iOS CI green — all recorded as evidence.
+- **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.
 
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
 
 - **Status:** READY
-- **Blocked by:** None — Figma proposal approved (node `72:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
-- **Priority:** P1
+- **Blocked by:** None — Figma proposal approved (node `72:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Priority:** P2 — **ship if it fits.** Cut without hesitation if Phase 2 runs long.
 - **Cost:** small–medium
 - **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
 - **Done when:** the approved composition renders on both platforms with scanner and tests green.
@@ -120,48 +268,49 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-LeaguePulse — League Pulse composition + wiring
 
 - **Status:** READY
-- **Blocked by:** None — visual brief §1.6 and Figma proposal (node `74:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01") both approved. Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
-- **Priority:** P2
+- **Blocked by:** None — visual brief §1.6 and Figma proposal (node `74:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01") both approved. No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Priority:** P2 — **ship if it fits.** An honest empty state is an acceptable 1.0 answer.
 - **Cost:** small–medium
 - **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
 - **Done when:** the approved composition renders on both platforms, or an honest empty state ships until real events flow in.
 - **Do not touch:** invented league-activity data.
 
-### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
+### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
-- **Status:** READY
-- **Blocked by:** None — Figma proposal approved (node `73:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). Ready for native implementation planning; no trust assignment yet covers writing SwiftUI/Compose code for this item.
-- **Priority:** P1
-- **Cost:** small–medium
-- **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
-- **Motivation:** founder feedback 2026-07-23 — current cards take too much vertical real estate.
-- **Done when:** compact rows render for both connected and disconnected states on both platforms; the Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android; the detail sheet handles Manage/Connect; scanner, connected tests, and `:app:assembleDebug` green.
-- **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
-
-### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
-
-- **Status:** READY
-- **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250 (2026-08-01). `ios-ci.yml` runs on PRs targeting `main` again, so this is CI-verifiable now.
-- **Blocked by:** none external. The "Actions billing hold" was a misdiagnosis — CI was failing on two config bugs, both fixed in #250. iOS CI is green on this branch as of 2026-08-01.
+- **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
+- **Blocked by:** iOS simulator/CI verification is deferred to a macOS-capable run. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31").
 - **Priority:** P1
 - **Cost:** medium
-- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. Remaining work is **verification, not implementation**: the `Done when:` criteria (deep-link callback exchange, provider-availability rendering, connected tests, `:app:assembleDebug`, iOS CI) still need recorded evidence. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2).
-- **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
-- **Done when:** both surfaces ship on Android + iOS; `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; passkey pairing on a fresh device produces a working credential; scanner, connected tests, `:app:assembleDebug`, and iOS CI green.
-- **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.
+- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete but require the separate macOS CI gate.
+- **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
 
-### M4-Help-Support-Implementation — Build approved native Help + Support
+## B. Backend / recommendation lane
+
+**Phase 2.** Backend feature work is essentially complete. What remains is merging what is built and then freezing.
+
+### B2-D3-S2 — Merge and deploy the prepared-not-deployed set
 
 - **Status:** READY
-- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
-- **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
-- **Priority:** P1
-- **Cost:** medium
-- **Current state:** implementation merged via PR #229; Android compile/scanner evidence green. This is **not** VERIFIED — the `Done when:` criteria below explicitly require accessibility and visual evidence that has not been produced. No valid active `Claim:` exists (checked 2026-07-30), so this is `READY`, not `IN_PROGRESS`.
-- **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
-- **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
+- **Blocked by:** None
+- **Priority:** P0
+- **Cost:** small
+- **Agent-buildable:** merge preparation yes; the deploy action is founder-gated
+- **Scope:** land the work sitting in "Prepared Locally, Not Deployed" — ESPN connect input normalization for pasted cookie fragments and full ESPN league URLs, the SPA `index.html` cache header fix, `GET /api/version`, Tier 2 smoke cleanup mode, the API route reference, and League Standings error-envelope polish. Also review and merge B2-D3-S if it is still open.
+- **Skills:** `slops-code-review`, `slops-quality-baseline`, `slops-git-flow`, `slops-ship`
+- **Done when:** `Direction/release_readiness.md` §"Not Deployed / Not Merged" is empty; `npm test` green; deploy approved and executed by Justin; post-deploy canary passes.
+- **Do not touch:** ESPN cookie values in logs or echoes; production flags; SQL.
 
-## B. Backend/recommendation lane
+### B-FREEZE — Declare feature freeze
+
+- **Status:** BLOCKED
+- **Blocked by:** B2-D3-S2, M3A-QA, M4-CC-PlatformsCompact, M4-Help-Support-Implementation, M4-Auth-Providers-v1
+- **Priority:** P0
+- **Cost:** trivial
+- **Phase:** 2 gate
+- **Agent-buildable:** no — founder declaration
+- **Source:** the discipline that makes the rest of the plan possible. After freeze: bug fixes only, until beta feedback justifies new work.
+- **Done when:** freeze is declared in `Direction/decision_log.md`; every remaining non-bug item is moved to the deferred backlog; agents are instructed to reject new feature scope.
+- **Do not touch:** new features after this lands.
 
 ### B2-D — Complete the canonical Omen engine: live Waiver + Trade intelligence
 
@@ -170,8 +319,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** large
-- **Source of truth:** GitHub issue #162. Canonical `POST /api/omen/mvp-move` must safely honor selected team/league context and honestly choose among Start/Sit, live Waiver, and personalized Trade recommendations.
-- **Current state:** the selected-context, waiver, deterministic-selector, and Sleeper trade slices are on `main`. ESPN adapter/canonical wiring landed as PRs #265/#266 and the drafted-league ownership proof is sanitized aggregate evidence only. This is merged-code and local/provider-proof status, not a deployment or production-route claim.
+- **Source of truth:** GitHub issue #162.
 - **Done when:** #162 acceptance evidence is complete — server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
 - **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
 
@@ -181,7 +329,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
-- **Scope:** Implement the safe ESPN free-agent/waiver-pool adapter slice described in `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 - **Done when:** `kona_player_info` pagination, position/status request filter, `onTeamId === 0` ownership exclusion, requested-week projected-stat extraction, and no-cookie logging behavior are fixture-tested; the adapter returns normalized eligible players or an honest unavailable/empty result.
 - **Do not touch:** ESPN credentials, real-account requests, SQL, dependencies, canonical Omen service, public Trade Analyzer, deployment, or production data.
 
@@ -191,17 +338,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
-- **Scope:** Add selected-context ESPN waiver candidate generation to `POST /api/omen/mvp-move` per `Blueprints/specs/b2d-espn-e1-waiver-pool-v1.md`.
 - **Done when:** canonical service/route tests prove selected-context ownership, live candidate selection, unavailable/empty behavior, and no mock fallback; Yahoo/Sleeper remain unchanged.
 - **Do not touch:** provider credentials, public Trade Analyzer, SQL, dependencies, mobile clients, deployment, or production data.
 
 ### B2-D-E3 — Prove ESPN roster subtraction in a drafted league
 
-- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; E1/E2 are separately merged; no deployment or production-route claim)
+- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; no deployment or production-route claim)
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** small
-- **Scope:** Run `Blueprints/specs/b2d-espn-observation-12-resolution-protocol-v1.md` and append sanitized counts/booleans to the provider evidence.
 - **Done when:** rostered-player leakage and `onTeamId` results are recorded without cookies, league ID, team name, username, or player lists; the ESPN waiver capability matrix is updated honestly.
 - **Do not touch:** credential values, transactions, application code, deployment, or production data.
 
@@ -212,76 +357,296 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** medium
-- **Agent-buildable:** yes
-- **Spec:** `Blueprints/specs/b2d3-live-trade-capability-sleeper-v1.md` → Phase T
-- **Done when:** T1 opponent-roster surface, T2 optimal-lineup evaluator, T3 candidate evaluator, and T4 live proof against a **drafted** league all land; the capability matrix reads **Sleeper: live** for `trade_suggestion` with sanitized evidence.
-- **Evidence (2026-08-02):** T1–T3: `test/sleeperAdapter.test.js`, `test/tradeLineup.test.js`, and `test/omenMvpLiveService.test.js`; T4: credential-free public read against a drafted Sleeper league observed 8 rosters, 120 rostered players, 119 projection-joined players, and a sanitized output shape. Full backend suite: 488/488; moderate audit: 0; `git diff --check`: clean. No provider credential, SQL, package, public Trade Analyzer, Yahoo/ESPN, or deployment change.
 - **Key rule:** suggest only trades where **both** teams' projected starting lineup improves; `decisionScore` is the user's weekly lineup delta, with `tradeValue.js` VORP used as a fairness guard, never as the score.
 - **Do not touch:** the public Trade Analyzer route, Yahoo/ESPN trade rows, provider credentials, deploy, SQL, production data.
-
-### D1 — Real `GET /api/trade/pulse`
-
-- **Status:** VERIFIED
-- **Evidence:** live-hit `https://slopssaloon.com/api/trade/pulse` 2026-08-01T03:10:53Z — returned `"status":"live","is_mock":false,"source_status":"live_adp"` with 5 real current players (Jahmyr Gibbs, Bijan Robinson, Puka Nacua, Ja'Marr Chase, Christian McCaffrey). `Direction/reviews/2026-08-01-d1-adp-source-research.md`; `test/adpService.test.js` (9 tests), `test/tradeRoute.test.js` live/unavailable cases.
-- **Priority:** P1
-- **Cost:** small
-- **Done when:** backend returns computed buy-low targets from a truthful live source, no paid dependency needed — satisfied, confirmed live in production.
-- **Do not touch:** paid data source or new dependency without approval.
 
 ### B3 — Replace Sportradar with nflverse for Tuesday scoring
 
 - **Status:** VERIFIED
-- **Evidence:** PRs [#260](https://github.com/justinduverge-design/omen/pull/260), [#261](https://github.com/justinduverge-design/omen/pull/261), and [#262](https://github.com/justinduverge-design/omen/pull/262); KVM1 deploy run [30754635716](https://github.com/justinduverge-design/omen/actions/runs/30754635716); production process-only dry run completed with `archived=0`, `scored=0`, and no Supabase or Redis writes. The sole pending move could not be scored because nflverse has not published the 2026 season file; follow-up [#263](https://github.com/justinduverge-design/omen/issues/263) owns explicit pre-season deferral behavior.
+- **Evidence:** PRs [#260](https://github.com/justinduverge-design/omen/pull/260), [#261](https://github.com/justinduverge-design/omen/pull/261), [#262](https://github.com/justinduverge-design/omen/pull/262); KVM1 deploy run [30754635716](https://github.com/justinduverge-design/omen/actions/runs/30754635716); production process-only dry run completed with `archived=0`, `scored=0`, and no Supabase or Redis writes. The sole pending move could not be scored because nflverse has not published the 2026 season file; follow-up [#263](https://github.com/justinduverge-design/omen/issues/263) owns explicit pre-season deferral behavior.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** medium
-- **Source:** surfaced 2026-07-31 during A4 dry-run prep (`Direction/reviews/2026-07-31-a4-tuesday-scoring-dry-run-prep.md`). `src/omen_tuesday_cron.js` requires `SPORTRADAR_API_KEY` (paid) and has zero nflverse integration or dry-run mode, despite `deploy/hostinger/ENV-INVENTORY.md` describing both a "current nflverse scoring path" and an `OMEN_CRON_DRY_RUN` flag that don't exist in code.
-- **Scope:** replace the Sportradar fetch in `fetchNFLScores()`/`runScoring()` with a weekly nflverse `player_stats_<season>.csv` pull (same free, no-key GitHub-releases source already used by `src/services/matchupService.js`, which carries `season`/`week`/`position`/`fantasy_points(_ppr)` columns); implement the `OMEN_CRON_DRY_RUN` flag so scoring can run read-only; drop `SPORTRADAR_API_KEY` from `REQUIRED_SCORING_ENV`.
-- **Done when:** Tuesday scoring sources weekly player fantasy points from nflverse instead of Sportradar; `OMEN_CRON_DRY_RUN=true` runs the full scoring pass against real rows with zero Supabase writes; `SPORTRADAR_API_KEY` is no longer required; tests cover the nflverse row-mapping and dry-run no-write behavior; `npm test` green.
 - **Do not touch:** the production `OMEN_CRON_SCORING_ENABLED` flag; no production cron deploy without separate approval.
+
+### D1 — Real `GET /api/trade/pulse`
+
+- **Status:** VERIFIED
+- **Evidence:** live-hit `https://slopssaloon.com/api/trade/pulse` 2026-08-01T03:10:53Z — returned `"status":"live","is_mock":false,"source_status":"live_adp"` with 5 real current players. `Direction/reviews/2026-08-01-d1-adp-source-research.md`; `test/adpService.test.js` (9 tests), `test/tradeRoute.test.js` live/unavailable cases.
+- **Priority:** P1
+- **Cost:** small
+- **Do not touch:** paid data source or new dependency without approval.
+
+## S. Security lane
+
+**Phase 4.** Most of this is already closed — A3 verified, F1 verified, Stripe removed, legal shipped, 0 production vulns, GDPR module retired with a regression test. What remains is the last mile plus one mobile-specific threat model.
+
+### S1 — Final production secrets and Supabase settings review
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — founder-only access
+- **Priority:** P0
+- **Cost:** small
+- **Agent-buildable:** checklist preparation only
+- **Scope:** final pre-beta pass over production secrets and Supabase settings. Includes the A3 carry-over: **leaked-password protection is disabled in Supabase Auth** (one-toggle fix).
+- **Skills:** `security-privacy-evidence`
+- **Done when:** every production secret is confirmed present, correctly scoped, and unexposed; leaked-password protection is enabled; findings are recorded without values.
+- **Do not touch:** secret values in logs, agent output, or evidence files.
+
+### S2 — Rotate credentials exposed during local branch work
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — founder-only
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** no
+- **Source:** ESPN adapter work ran against local branches with provider access. Rotate anything that could have been captured in a local log, shell history, or branch artifact before real testers arrive.
+- **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
+- **Do not touch:** credential values in any written record.
+
+### S3 — Rate limits on the three hot routes
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small–medium
+- **Agent-buildable:** yes
+- **Scope:** `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. These take the Sunday-morning load and are the ones a tester can hammer.
+- **Skills:** core implementation + `security-privacy-evidence`
+- **Done when:** each route has an enforced per-user and per-IP limit with an honest 429 envelope; tests cover limit-hit and reset behavior; limits are documented in `Blueprints/api-routes.md`.
+- **Do not touch:** provider rate limits, production config, or the deploy action.
+
+### S4 — Confirm no provider credentials reachable in logs on error paths
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Scope:** error paths specifically — happy paths are already covered. Provoke adapter failures for Yahoo, Sleeper, and ESPN and confirm nothing leaks into logs, error envelopes, or Sentry payloads once O1 lands.
+- **Skills:** `security-privacy-evidence`, `slops-investigate`
+- **Done when:** a test proves each adapter's failure path emits no cookie, token, or credential fragment; ESPN cookie names and values are absent from every surface.
+- **Do not touch:** real credential values in test fixtures.
+
+### S5 — Mobile token storage review
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — new threat model.** A leaked provider token on a stolen phone is not the same risk as a web session.
+- **Cost:** small–medium
+- **Agent-buildable:** yes
+- **Scope:** confirm no session or provider token is written to plaintext `UserDefaults` (iOS) or `SharedPreferences` (Android). iOS must use Keychain; Android must use `EncryptedSharedPreferences` or equivalent. Review certificate/transport handling on both.
+- **Skills:** `security-privacy-evidence`, `rbac-risk-review`
+- **Done when:** both platforms store credentials in the OS-provided secure store, verified by inspection and a test; a written record states what is stored where and for how long.
+- **Do not touch:** real tokens in test fixtures, screenshots, or logs.
+
+## O. Ops and observability lane
+
+**Phase 3.** This is the lane that decides whether you can diagnose anything after beta opens. **O1 and O6 are the highest-value items in the whole plan** — mobile is worse than web here, because you cannot read a user's console.
+
+### O1 — Self-hosted observability on KVM1
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — hard Phase 3 gate**
+- **Cost:** medium
+- **Agent-buildable:** configuration yes; the deploy action is founder-gated
+- **Scope:** Sentry (self-hosted), Umami, and Vector log shipping per `self-hosted-observability-runbook`. This also unblocks G6 in the deferred backlog.
+- **Skills:** `self-hosted-observability-runbook`, `security-privacy-evidence`
+- **Done when:** a deliberate test error appears in Sentry within 60 seconds; Umami records a page view; Vector ships container logs; the privacy posture is recorded and no PII or provider credential is captured.
+- **Do not touch:** production data, secrets, or DNS without explicit approval.
+
+### O6 — Native crash reporting on both platforms
+
+- **Status:** BLOCKED
+- **Blocked by:** O1
+- **Priority:** **P0 — hard Phase 3 gate**
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Source:** a native crash never reaches the API logs. Without this, a tester whose app dies on launch is completely invisible to you.
+- **Done when:** a deliberate crash on iOS and on Android each appear in Sentry within 60 seconds, with symbolicated stack traces and no PII or token in the payload.
+- **Do not touch:** shipping any crash payload containing user data, provider tokens, or league identifiers.
+
+### O7 — Forced-update / minimum-version gate
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — mobile has no rollback**
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Source:** once a build is on a phone it stays there until the user updates. A server-driven minimum-version check is the only lever available when a bad build ships.
+- **Scope:** a server-supplied minimum supported version; the app blocks with an honest update prompt below it. Must fail open on network error — never lock a user out because the check itself failed.
+- **Done when:** both platforms honor a server-driven minimum version, show an honest blocking prompt, and fail open on network error; tests cover below-minimum, at-minimum, and check-unavailable.
+- **Do not touch:** forcing an update without a working store listing to update to.
+
+### O2 — Named rollback owner and tested rollback path
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0
+- **Cost:** small
+- **Agent-buildable:** documentation yes; the rollback exercise is founder-executed
+- **Source:** A4's own `Done when:` already requires a named rollback owner. Test it before you need it.
+- **Skills:** `slops-ship`, `slops-canary`
+- **Done when:** the backend rollback path is executed once against a non-critical deploy and documented; a rollback owner is named; the mobile answer is explicitly recorded as "no rollback — O7 forced-update is the mitigation."
+- **Do not touch:** rolling back production without approval.
+
+### O3 — Post-deploy canary
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Skills:** `slops-canary`
+- **Done when:** after a deploy, health/ready endpoints, key routes, error rate, and p95 latency are checked against a known-good baseline, producing a pass/hold/rollback recommendation.
+- **Do not touch:** executing a rollback automatically — recommend only.
+
+### O4 — Load test the three hot routes
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** yes, against approved local/staging targets
+- **Source:** `scripts/load-omen-routes.js` exists and has never been run.
+- **Scope:** `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. Note that **Week 1 Sunday morning is the real load test** — this is the rehearsal, not the proof.
+- **Done when:** load evidence is recorded for all three routes with p95 latency and error rate at a realistic beta concurrency, and again at 10× that.
+- **Do not touch:** load-testing production without explicit approval.
+
+### O5 — Supabase backup and restore verification
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — database access
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** checklist only
+- **Source:** never verified. An untested backup is not a backup.
+- **Done when:** a backup is confirmed to exist on a known schedule and a restore is exercised into a non-production target, with recovery-point and recovery-time recorded.
+- **Do not touch:** production data; never restore over production.
 
 ## F. Verify lane — Justin must pin
 
-### F1 — Service-key Supabase route-scoping audit
+**Phase 4.** F6–F9 are the beta gate. **F6 and F9 decide whether beta succeeds.**
 
-- **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-f1-service-key-route-scoping-audit.md`; `test/userPrivacyIsolation.test.js` (4 tests), `test/espnRouteIsolation.test.js` (3 tests); `npm test` 476/476 at the time of this closure.
+### F6 — Real-account QA: ESPN
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Priority:** **P0 — highest risk item in the plan**
+- **Cost:** medium
+- **Agent-buildable:** preparation and matrix only
+- **Source:** #265/#266/#267 are merged but **not provider-proven** beyond a read-only aggregate proof. ESPN is the newest code and the most fragile auth path.
+- **Scope:** connect, recovery/reauth, waiver pool, drafted-league behavior, and Omen recommendations end to end on a real ESPN account, on both native apps.
+- **Done when:** every flow passes on a real account on iOS and Android, with a sanitized matrix and no cookie name or value in any log, screenshot, or payload.
+- **Do not touch:** ESPN cookie values anywhere; real credentials in agent output.
+
+### F7 — Real-account QA: Yahoo
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Priority:** P0
+- **Cost:** medium
+- **Agent-buildable:** preparation and matrix only
+- **Done when:** connect, session restore, Omen recommendations, and League Standings pass on a real Yahoo account on both platforms, with a sanitized matrix.
+- **Do not touch:** provider credentials in logs or screenshots.
+
+### F8 — Real-account QA: Sleeper
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Priority:** P0
+- **Cost:** medium
+- **Agent-buildable:** preparation and matrix only
+- **Scope:** includes the known gap — `GET /api/sleeper/roster` requires an explicit `week` param and there is no auto week detection. Verify the app always supplies it correctly, including at week boundaries.
+- **Done when:** connect, Omen recommendations, trade candidates, and the explicit-`week` path all pass on a real Sleeper account on both platforms.
+- **Do not touch:** provider credentials in logs or screenshots.
+
+### F9 — Mock / live labeling sweep
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — trust-critical.** Mislabeled mock output presented as live advice is the one bug that costs credibility permanently.
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Scope:** every surface on both native apps and the web app. Demo, mock, stale, offline, and unavailable states must be visibly labeled and never read as live fantasy advice.
+- **Skills:** `demo-mode-pre-empty-state`, `slops-ui-ux-audit`, `slops-ux-copy`
+- **Done when:** every recommendation surface either shows verifiably live data or is explicitly labeled; a written inventory maps each surface to its labeling; no path presents fallback output as live.
+- **Do not touch:** removing a label to make a screen look better.
+
+### F10 — Real-device matrix
+
+- **Status:** READY
+- **Blocked by:** None
 - **Priority:** P1
 - **Cost:** medium
-- **Done when:** every service-key route has a route/query/scoping-column/test mapping; any unscoped query becomes a P0 defect with a failing isolation test.
-- **Do not touch:** production data; secret values.
+- **Agent-buildable:** automated sweep yes; real-device confirmation human
+- **Scope:** iPhone SE (375×667), a large iPhone, and a Pixel-class Android. Most fantasy traffic is phone traffic.
+- **Skills:** `mobile-first-qa-playbook`, `slops-mobile-smoke`
+- **Done when:** no horizontal overflow, no touch target under 44px, safe-area insets correct on fixed elements, no input under 16px, and no JS errors — across the matrix, with severity-ranked findings resolved or explicitly accepted.
+- **Do not touch:** treating the automated sweep as a substitute for real-device QA.
+
+### F11 — Accessibility pass
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Source:** Apple review checks this, and M4-Help-Support already requires it. Doing it once, app-wide, is cheaper than per-item.
+- **Skills:** `slops-ui-ux-audit`
+- **Done when:** VoiceOver and TalkBack traverse every primary flow; Dynamic Type and font-scale hold to the largest supported setting without clipping; WCAG AA contrast passes on both themes.
+- **Do not touch:** shipping a screen that traps focus or strands a screen-reader user.
 
 ### F5 — ESPN connect walkthrough recording
 
 - **Status:** READY
 - **Blocked by:** None
-- **Priority:** P2
-- **Cost:** small-medium
-- **Source:** surfaced 2026-07-31 during F4 verification (`Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`). Production `/espn-connect` still shows the placeholder copy "A mock 90-second Chrome/Edge walkthrough is coming here" — descoped out of F4 rather than blocking that verification pass.
-- **Scope:** record/produce the ~90-second Chrome/Edge walkthrough of the ESPN Connect helper flow using mock/demo data only — no real ESPN account or credentials, matching the page's own existing promise. Embed or link the asset on `EspnConnectGuide.jsx`, replacing the placeholder copy.
-- **Done when:** the walkthrough asset exists, renders correctly on desktop and mobile, and contains no real ESPN credentials, cookies, or account data.
+- **Priority:** P2 — doubles as an onboarding and store-preview asset
+- **Cost:** small–medium
+- **Source:** production `/espn-connect` still shows the placeholder "A mock 90-second Chrome/Edge walkthrough is coming here."
+- **Scope:** record the ~90-second walkthrough using mock/demo data only — no real ESPN account or credentials. Embed on `EspnConnectGuide.jsx`, replacing the placeholder.
+- **Done when:** the asset exists, renders on desktop and mobile, and contains no real ESPN credentials, cookies, or account data.
 - **Do not touch:** real ESPN account/credentials in the recording; any live cookie values.
+
+### F1 — Service-key Supabase route-scoping audit
+
+- **Status:** VERIFIED
+- **Evidence:** `Direction/reviews/2026-07-31-f1-service-key-route-scoping-audit.md`; `test/userPrivacyIsolation.test.js` (4 tests), `test/espnRouteIsolation.test.js` (3 tests); `npm test` 476/476 at the time of closure.
+- **Priority:** P1
+- **Cost:** medium
+- **Do not touch:** production data; secret values.
 
 ### F4 — ESPN public handoff production verification
 
 - **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`; `test/espnConnectGuideRegression.test.js` (5 tests); `npm test` 481/481.
+- **Evidence:** `Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`; `test/espnConnectGuideRegression.test.js` (5 tests); `npm test` 481/481 at the time of closure.
 - **Priority:** P1
 - **Cost:** small
-- **Done when:** `/espn-connect`, extension links/assets, share/copy fallbacks, and the regression test pass on phone and desktop without exposing cookie names or values in shared payloads. (Walkthrough split out to F5, 2026-07-31 — see that item.)
 - **Do not touch:** ESPN cookie values in logs, UI, URLs, or payloads.
+
+## K. Marketing — hold until Phase 4 closes
+
+Nothing public ships until F6–F9 pass. There is no value in driving signups into unproven provider auth. Fantasy is seasonal and word-of-mouth: **ten engaged testers in real leagues during the season beat a thousand cold signups in November.**
+
+- **K1** — landing page and store copy honest about mock vs live; **no Draft Assistant claims** (pairs with R7). Before beta.
+- **K2** — recruit 10–20 beta testers from existing leagues. At beta open.
+- **K3** — feedback channel, Discord or in-app. At beta open.
+- **K4** — Omen of the Week / `slops-explainer-cut` content. After Week 1.
+- **K5** — Reddit and community push. After two stable weeks.
 
 ## Deferred / paused backlog — not selectable
 
-These are real but are **not** active tasks and carry no status. They must not displace native P0/P1 work, and they are not eligible for selection until `planning-pass` promotes them.
+These are real but are **not** active tasks and carry no status. They must not displace P0/P1 beta work, and they are not eligible for selection until `planning-pass` promotes them.
 
-- E1 mobile scope decision remains useful but no longer authorizes the older ESPN-relay-only shell ahead of the full native plan without a new founder decision.
-- E2/E3 app-store closeout / relay shell remain blocked by E1 and explicit store/provider gates.
+- **Draft Assistant 2027** — cut from 1.0 on 2026-08-05. Winter track: build the Slops ADP Oct–Feb, off the critical path.
+- **M4-Auth-Passkeys-Onramp** (P2) — deferred; every new auth provider is new store-review surface during the tightest five weeks.
+- E1 mobile scope decision — **resolved 2026-08-05** by the both-platforms decision. E2/E3 app-store closeout is superseded by lane R.
 - G1 win-streak reward ladder UI waits on a backend win-streak contract.
 - G2 ESPN live draft Lazy Sync and G3 Yahoo live draft Lazy Sync wait on a stable provider contract and season timing.
 - G4 IDP support remains P3 and needs an explicit supported-league/data scope.
-- G5 skeleton narration states should fold into the relevant native composition or future web migration.
-- G6 Umami integration remains soft-blocked on an approved observability container and privacy posture.
+- G5 skeleton narration states should fold into the relevant native composition.
+- G6 Umami integration — **unblocked by O1** once that lands; promote then.
 - G8 baked-black PNG fallback deletion waits on a clean production soak.
 - G9 code TODOs must be split into separate tasks.
 - G10 post-live learning waits on Release Done, seven stable days, and `slops-product-pulse`.
@@ -316,6 +681,7 @@ The handoff must include:
 
 - Do not recreate an `Omen/` nested directory.
 - Do not touch `.env`, secret values, DNS, SSL/TLS, Nginx, production infrastructure, Supabase migrations/schema, Apple credentials, or production flags without explicit approval.
+- **Store items are founder-executed:** Apple/Google accounts, signing certificates, provisioning profiles, release configuration, and metadata submission. Agents may prepare artifacts; they may not act on store accounts.
 - Do not deploy unless Justin explicitly approves the deploy action.
 - Docs/doctrine-only pushes must not restart KVM1.
 - ESPN cookie values must never appear in logs, UI, screenshots, URLs, analytics, share payloads, or stored app state outside the approved backend secret flow.
@@ -323,3 +689,4 @@ The handoff must include:
 - Account deletion copy and exact confirmation phrase `DELETE MY OMEN DATA` require fresh approval before change.
 - Team-based runtime theming is removed. Do not revive team skins without a new approved theme-pack plan.
 - No paid dependency, cloud model spend, or external service commitment without explicit approval.
+- **Draft Assistant is not a 1.0 feature.** Do not advertise it, build against it as a launch dependency, or let it back into scope without a new founder decision.
