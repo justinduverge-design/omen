@@ -1,7 +1,8 @@
 # Omen — App Store & Play Console Reviewer Notes v1
 
-**Status:** Ready to paste. Not yet submitted — E2 app-store closeout remains gated.
-**Date:** 2026-07-27
+**Status:** Ready to paste. Not yet submitted — store submission is founder-gated.
+**Date:** 2026-07-27. **Reconciled 2026-08-05** — Discord shipped (#198), UGC answer corrected for public trade-share, stale billing/E1 gates cleared, Draft Assistant cut recorded.
+**Companion:** `omen-store-privacy-and-rating-answers-v1.md` — R4 privacy labels and R5 age-rating answers.
 **Applies to:** iOS (App Store Connect → App Review Information → Notes) and Android (Play Console → App content → App access)
 **Bundle / application id:** `com.slopssaloon.omen`
 
@@ -43,9 +44,14 @@ All demo content is sample data and is labeled as such in the interface.
 Player names are generic ("Sample QB Starter") specifically so that demo output
 can never be mistaken for real fantasy advice.
 
-Sign-in options (not required for review): Sign in with Apple, email one-time
-passcode. Sign in with Apple is offered wherever any third-party sign-in is
-offered.
+Sign-in options (not required for review): Sign in with Apple, Discord, email
+one-time passcode. Sign in with Apple is offered wherever any third-party
+sign-in is offered.
+
+Users may share a trade-comparison summary via a public link that expires
+after 30 days. Sharing is optional, the input is limited to trade selections,
+and there is no free text, image upload, profile, comment, or user-to-user
+messaging anywhere in the app.
 
 Account deletion: available in-app under Account. Demo Mode has no account to
 delete, so the option is correctly hidden in that state.
@@ -68,8 +74,13 @@ No sign-in is required to review this app. On the first screen, tap "Try Demo".
 This opens the full app with clearly-labeled sample data. No username,
 password, or verification code is needed.
 
-Sign-in (Google, email one-time passcode) is optional and only needed to
-connect a real fantasy league. Reviewers do not need to do this.
+Sign-in (Google, Discord, email one-time passcode) is optional and only needed
+to connect a real fantasy league. Reviewers do not need to do this.
+
+Users may share a trade-comparison summary via a public link that expires
+after 30 days. Sharing is optional, input is limited to trade selections, and
+there is no free text, image upload, profile, comment, or user-to-user
+messaging anywhere in the app.
 
 All demo content is sample data and is labeled in the interface. Player names
 are generic so demo output cannot be mistaken for real fantasy advice.
@@ -88,16 +99,16 @@ is linked from the store listing.
 | Is there a paywall or IAP? | No. Omen is free indefinitely — no purchases, subscriptions, or restricted features. |
 | Apple guideline 4.8 (Sign in with Apple) | Satisfied. SIWA is present on iOS alongside any other third-party sign-in. |
 | Account deletion (Apple 5.1.1(v) / Play Data safety) | In-app under Account, plus a public deletion page. Confirmation phrase is required before deletion completes. |
-| Third-party login providers | Google (Android), Sign in with Apple (iOS), email one-time passcode, Discord (pending). All optional. |
-| What data is collected? | Fantasy league and roster data for connected leagues only, plus an account identifier. No data is collected in Demo Mode. |
-| Does the app provide gambling or wagering? | No. Omen makes fantasy roster recommendations. There is no betting, wagering, odds, or real-money contest functionality. |
-| Is user-generated content shown? | No. |
+| Third-party login providers | Google (Android), Sign in with Apple (iOS), Discord (both platforms), email one-time passcode. All optional. |
+| What data is collected? | Fantasy league and roster data for connected leagues only, plus an account identifier. No data is collected in Demo Mode. Full declarations: `omen-store-privacy-and-rating-answers-v1.md`. |
+| Does the app provide gambling or wagering? | No. Omen makes fantasy roster recommendations. There is no betting, wagering, odds, entry fee, prize pool, cash-out, or real-money contest functionality. This is a standing product boundary recorded in `Direction/decision_log.md` (2026-08-02), not temporary launch copy. |
+| Is user-generated content shown? | **Limited and bounded.** Users can generate a trade-comparison summary and share it via a public link that expires after 30 days (`POST /api/trade/share`). Input is constrained to trade selections — no free text, no image upload, no profile, no comments, and no user-to-user messaging. Nothing another user creates is displayed inside the app. |
 
 ## Pre-submission checklist
 
 Do not submit until every line is checked. Several are still gated.
 
-- [ ] **Actions billing restored** — release builds run through CI (~2026-08-01)
+- [x] ~~**Actions billing restored**~~ — **retracted 2026-08-05.** The "billing hold" was a misdiagnosis; CI was failing on two config bugs, both fixed in #250. Not a gate.
 - [ ] Demo Mode verified on a real device, both platforms, from a **cold install** — the reviewer's exact path
 - [ ] "Try Demo" is visible without scrolling on the smallest supported screen (iPhone SE)
 - [ ] Every demo screen shows its mock/sample label
@@ -106,7 +117,9 @@ Do not submit until every line is checked. Several are still gated.
 - [ ] Data safety form (Play) and privacy nutrition labels (Apple) match actual collection
 - [ ] Screenshots captured from Demo Mode, not from a real connected league
 - [ ] No screenshot, log, or asset contains an ESPN cookie, provider token, real league id, or real username
-- [ ] E1 mobile-scope decision resolved; E2 closeout opened
+- [x] ~~E1 mobile-scope decision resolved; E2 closeout opened~~ — **resolved 2026-08-05.** Both platforms ship the beta together; store work is now lane **R** in `Direction/current_sprint.md`, which supersedes E2/E3.
+- [ ] **Draft Assistant removed from all metadata** — cut from 1.0 on 2026-08-05 (**R7**). Advertising it would be a false claim.
+- [ ] Store listing name is `Omen — Fantasy Football Tool`; in-app/product name remains **Omen**. Do not conflate them.
 
 ## Standing constraints this document must respect
 
