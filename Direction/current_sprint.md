@@ -141,15 +141,20 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Lesson recorded:** reaching a store form is not the same as being able to complete it. Verify the *write* operation, not the page load. An earlier pass in this session briefly called R1 passed on the form opening; that was wrong and cost a false green.
 - **Do not touch:** n/a — closed.
 
-### R2-Android — Create the Google Play Console app record
+### R2-Android — Google Play Console account + app record
 
 - **Status:** READY
-- **Blocked by:** None — **explicitly not blocked by R1.** Play Console is unaffected by the Apple account transfer.
-- **Priority:** **P0 — the unblocked half of Phase 1. Do this now.**
-- **Cost:** small
+- **Blocked by:** None — Play Console is unaffected by the Apple account transfer, and the D-U-N-S number is **already in hand** (confirmed 2026-08-05).
+- **Priority:** **P0 — the unblocked half of Phase 1.**
+- **Cost:** small ($25 one-time registration)
 - **Agent-buildable:** metadata drafting only; account actions founder-executed
-- **Scope:** create the Play Console record with `applicationId = com.slopssaloon.omen` (verified in `mobile/android/app/build.gradle.kts:23`, matching iOS).
-- **Done when:** the Play Console record exists with the application ID matching the Android build.
+- **Account type: ORGANIZATION.** Decided 2026-08-05. Two reasons, both decisive:
+  1. **Personal accounts created after 2023-11-13 must run a closed test with 12+ testers opted in for 14 *consecutive* days before they can even apply for production access. Organization accounts are exempt.** Internal testing does **not** count toward that requirement — so the planned internal-track beta would satisfy none of it.
+  2. A personal account publishes the founder's own name as the developer, contradicting `Direction/decision_log.md` (2026-08-02) and PRs #268/#269, which establish **Valor Ventures Limited Liability Company** as Omen's public legal operator.
+- **Registration inputs:** D-U-N-S (held); organization name `Valor Ventures Limited Liability Company`; address `23 Darrow St, New London, CT 06320` (recorded as authorized for publication); website; phone.
+- **⚠ Public contact:** organization accounts display the developer **email and phone publicly**. Use a business address — not a personal or Apple private-relay address. Decide this before registering; it is user-visible on every listing.
+- **App record:** `applicationId = com.slopssaloon.omen` (verified `mobile/android/app/build.gradle.kts:23`, matching iOS). App (not game). **Free** — note Play allows paid→free but **never free→paid**, which suits the free-indefinitely posture.
+- **Done when:** the organization developer account is verified and the app record exists with the application ID matching the Android build.
 - **Do not touch:** pricing, public availability, or release scheduling.
 
 ### R2-iOS — Create the App Store Connect app record
@@ -175,6 +180,39 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Evidence:** the App Store listing name is **`Omen — Fantasy Football Tool`**. The product name remains **Omen**; `PRODUCT_NAME = Omen` in Xcode and the home-screen name are unaffected. The store name carries a search descriptor for discoverability — this is deliberate ASO, not a rebrand.
 - **Consequence:** Brand, marketing, and store copy must not treat "Omen — Fantasy Football Tool" as the product name. It is the listing title only. Feeds R7 and K1.
 - **Do not touch:** the in-app or brand name; they stay "Omen".
+
+### R3-BUILD-iOS — Establish an iOS build-and-signing path
+
+- **Status:** BLOCKED
+- **Blocked by:** FOUNDER_DECISION — hardware/spend
+- **Priority:** **P0 — no iOS beta exists without this**
+- **Cost:** small (rent) or ~$400–600 (buy)
+- **Agent-buildable:** no
+- **Source:** `Blueprints/specs/mobile/omen-native-build-environment-v1.md:22` already states it — "this Windows workstation cannot run Xcode, an iOS simulator, or a signed build on an iPhone." `ios-ci.yml` runs `CODE_SIGNING_ALLOWED=NO` by design. **Nothing in the pipeline currently produces a distributable iOS build.**
+- **Constraint discovered 2026-08-05:** Xcode Cloud requires **Xcode 15+ on a Mac** to create the first workflow (web can edit/launch afterward). The founder's **2017 MacBook Air cannot run it** — it tops out at macOS Monterey (Ventura dropped 2017 Airs), and Xcode 15 needs macOS 13.5+. Independently, `IPHONEOS_DEPLOYMENT_TARGET = 17.0` needs the iOS 17 SDK, which ships only with Xcode 15+.
+- **Options:**
+  1. **Buy a Mac mini** (~$400 refurb M1/M2, $599 new M4) — **founder's stated lean.** Also unblocks M3A-QA on-device debugging, F10 device matrix, and O6 crash symbolication. No rented-machine credential exposure.
+  2. **Rent a hosted Mac hourly** (~$1/hr, no minimum) *once* to create the Xcode Cloud workflow, then run free forever on the 25 included compute hours/month. ~$5–20 total. Caveat: requires signing into Xcode with the Apple ID on third-party hardware.
+  3. **GitHub Actions macOS runner with manual signing** — no Mac needed (CSR can be generated with `openssl` on Windows), but the repo is **private** so macOS runners bill at **10×**. GitHub Free's 2,000 minutes ≈ 200 macOS minutes ≈ 1–2 signed builds/month, and `ios-ci.yml` already draws from that pool. Violates the "no billed macOS minutes" posture in the build-environment spec.
+- **Done when:** a signed iOS build reaches TestFlight, produced by a repeatable path, with the option chosen and its cost recorded.
+- **Do not touch:** Apple ID credentials on any machine that is not trusted; billed macOS minutes without explicit approval.
+
+### R3-BUILD-Android — Fix the release build config and add signing
+
+- **Status:** READY
+- **Blocked by:** None — **no Mac required. Android builds on Windows.**
+- **Priority:** **P0 — three defects would each break the beta build**
+- **Cost:** small–medium
+- **Agent-buildable:** yes (the upload keystore itself is founder-generated and never committed)
+- **Findings (2026-08-05, `mobile/android/app/build.gradle.kts`):**
+  1. **Line 47** — `release` hardcodes `OMEN_API_BASE_URL = "https://example.invalid"` rather than reading from config. A release AAB cannot reach the backend at all.
+  2. **Line 48** — `release` sets `OMEN_DEMO_MODE_ENABLED = true`. **The beta build ships in demo mode.** This collides directly with F9 and the standing guardrail that mock data must never be presented as live fantasy advice. Testers would receive demo output believing it was real. Highest-severity of the three.
+  3. **No `signingConfigs` block** — `./gradlew bundleRelease` emits an unsigned AAB, which Play rejects.
+  - Supabase URL / anon key / Google web client ID *do* read from git-ignored `local.properties` (`.gitignore:44`), so any machine or CI without that file builds them empty.
+- **Scope:** give `release` a real API base URL and `OMEN_DEMO_MODE_ENABLED = false`; add a `signingConfigs` block reading an upload keystore from `local.properties` or environment; enroll in Play App Signing; keep every real value out of git.
+- **Skills:** core implementation + `security-privacy-evidence`
+- **Done when:** `./gradlew bundleRelease` produces a signed AAB pointing at the real API with demo mode off; no keystore, password, or key is committed; a test or check asserts release ≠ demo mode.
+- **Do not touch:** committing the keystore or any password; the `debug` build's demo defaults.
 
 ### R3 — Signing and provisioning
 
