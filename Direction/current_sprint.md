@@ -40,7 +40,7 @@ Each phase has exactly one gate. Do not start the next until it passes.
 |---|---|---|
 | 1 — Unblock the stores | **R** | an app record can be created and a build uploaded on both platforms |
 | 2 — Close the native lane | **M**, **B** | feature freeze declared; nothing "prepared locally, not deployed" |
-| 3 — Make it observable | **O** | a deliberate native crash appears in Sentry within 60s on both platforms |
+| 3 — Close the observability gap | **O** | a deliberate **native crash** appears in the error backend within 60s on both platforms. *Infrastructure observability is already done — see O1.* |
 | 4 — Prove it | **F**, **S** | three providers pass real-account QA; zero unlabeled mock output |
 | 5 — Beta open | **R6**, marketing | 10+ real testers in real leagues, both platforms |
 | 6 — Season hardening | **A4** | one clean Tuesday scoring run on real data |
@@ -494,6 +494,30 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** a test proves each adapter's failure path emits no cookie, token, or credential fragment; ESPN cookie names and values are absent from every surface.
 - **Do not touch:** real credential values in test fixtures.
 
+### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_DECISION — is this service still wanted?
+- **Priority:** **P1 — public attack surface on a host designated private**
+- **Cost:** small
+- **Agent-buildable:** investigation only; any change to KVM2 is founder-executed
+- **Source:** surfaced by the Raspberry Pi live VPS discovery (2026-08-07/08), still open. KVM2 (`srv1647690` / `100.67.187.57`) is documented as the **private** Ollama/Gemma AI host — Ollama is correctly bound to its Tailscale address only. But Nginx on that same host listens **publicly on 80/443** (IPv4 and IPv6), Certbot-managed, serving `openclaw.slopssaloon.com` → `127.0.0.1:3200`.
+- **Why it matters:** a host whose stated role is "private AI, reachable only over Tailscale" is accepting connections from the public internet, on the same box as the model endpoint. That is not automatically a vulnerability, but it is an unowned public surface on a machine the architecture treats as private, and nobody has confirmed the upstream on `:3200` is alive, patched, or still wanted.
+- **Skills:** `security-privacy-evidence`, `rbac-risk-review`
+- **Done when:** the `openclaw` service's owner, purpose, and current status are established; a decision is recorded to keep it (with patching and monitoring owned) or retire it; and if kept, whether it belongs on KVM2 at all rather than a host without the private-AI role.
+- **Do not touch:** do not disable Nginx or alter KVM2 configuration as part of Omen work — the Pi tracker explicitly warns against this. Investigate read-only.
+
+### S7 — Retire stale OpenAI runtime dependencies
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Source:** open audit item from the Pi deployment tracker. Live `/api/ready` reports `provider=local, model=gemma3:4b, transport=openai_compatible_chat_completions, private_route_required=true`. **`openai_compatible_chat_completions` describes the wire protocol, not the vendor** — the proven route points at private KVM2/Ollama. But the naming is readable as "Omen sends data to OpenAI," which contradicts the Privacy Notice statement that Omen does not send user or fantasy-platform data to a cloud AI provider.
+- **Done when:** source and configuration are searched for stale OpenAI-specific dependencies, keys, fallback paths, or environment variables; production config is confirmed to require no OpenAI credential; intentionally-generic protocol naming is documented so it cannot be misread as vendor use.
+- **Do not touch:** the working private Ollama route; secret values.
+
 ### S5 — Mobile token storage review
 
 - **Status:** READY
@@ -510,27 +534,45 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 **Phase 3.** This is the lane that decides whether you can diagnose anything after beta opens. **O1 and O6 are the highest-value items in the whole plan** — mobile is worse than web here, because you cannot read a user's console.
 
-### O1 — Self-hosted observability on KVM1
+### O1 — Infrastructure observability
+
+- **Status:** **VERIFIED — already built, 2026-08-08.** Corrected 2026-08-05→10.
+- **Blocked by:** None
+- **Priority:** P0
+- **Evidence:** the Raspberry Pi Command Center stack (external tracker: *Slops OS Raspberry Pi Deployment Plan & Build Tracker*, Layer 2 COMPLETE). **Uptime Kuma** on Command Center (Pi 4, Tailscale-bound `100.98.81.0:3001`) runs three content-aware Omen monitors — public HTTPS, `/api/health`, `/api/ready` — with proven content-failure detection, DOWN→UP recovery, restart persistence, and full-host reboot survival. **Beszel** hub (`100.98.81.0:8090`) collects host/container telemetry from Command Center, **KVM1** (`omen_api` + `omen_cron`, via a loopback-only read-only Docker socket proxy), **KVM2** (native least-privilege systemd agent), Steward, and Sentinel. Agent-loss detection and reconnect proven on KVM1 without disturbing production. Whole stack sits under the <1 GiB Pi budget, no public exposure, TCP 45876 closed everywhere.
+- **Correction:** this item previously read "Sentry + Umami + Vector per `self-hosted-observability-runbook` — without it a beta crash is invisible." That understated existing infrastructure. **Availability, readiness, host, and container observability are done, and done well.** What remains is a genuinely different signal class — see O1b and O6.
+- **Do not touch:** the Pi stack's private Tailscale binds; never publish Kuma or Beszel.
+
+### O1b — Application error tracking (Sentry-class)
 
 - **Status:** READY
 - **Blocked by:** None
-- **Priority:** **P0 — hard Phase 3 gate**
+- **Priority:** **P0 — the gap Kuma and Beszel cannot close**
 - **Cost:** medium
-- **Agent-buildable:** configuration yes; the deploy action is founder-gated
-- **Scope:** Sentry (self-hosted), Umami, and Vector log shipping per `self-hosted-observability-runbook`. This also unblocks G6 in the deferred backlog.
-- **Skills:** `self-hosted-observability-runbook`, `security-privacy-evidence`
-- **Done when:** a deliberate test error appears in Sentry within 60 seconds; Umami records a page view; Vector ships container logs; the privacy posture is recorded and no PII or provider credential is captured.
-- **Do not touch:** production data, secrets, or DNS without explicit approval.
+- **Agent-buildable:** research and configuration; the deploy action is founder-gated
+- **Why this is not covered by O1:** Uptime Kuma answers *"is the endpoint up?"* Beszel answers *"is the host healthy?"* Neither can answer *"a user just got a 500 on `POST /api/omen/mvp-move` because ESPN returned malformed JSON, here is the stack trace."* Synthetic checks stay green while individual user requests fail. That is the signal beta feedback depends on.
+- **⚠ Do not default to self-hosted Sentry.** It wants ~16 GB RAM and a large compose stack (Kafka, ClickHouse, Snuba, Relay, Postgres, Redis). It **cannot** run on Command Center (Pi 4, 4 GB, <1 GiB budget), **must not** run on KVM1 (3.8 GB, production, 49% disk), and would dominate KVM2 (7.8 GB, the AI host).
+- **Evaluate GlitchTip first** — Sentry-SDK-compatible, Django + Postgres + Redis, roughly 1–2 GB. Existing Sentry client integrations work unchanged. **Verify arm64 image availability and current resource profile before committing.**
+- **Skills:** `pre-build-research`, `self-hosted-observability-runbook`, `security-privacy-evidence`
+- **Done when:** a deliberate backend error appears in the chosen tool within 60 seconds, with a usable stack trace; host and resource cost are recorded; no PII, provider credential, or ESPN cookie appears in any captured payload.
+- **Do not touch:** KVM1 production resources; public exposure of the error-tracking UI.
+
+### O1c — Product analytics (Umami) — deferred
+
+- **Status:** DEFERRED to post-beta
+- **Priority:** P3
+- **Rationale:** Umami is **product** analytics — which screens get used, funnels, retention. It is not an operations signal and it is not a beta gate. `G6` in the deferred backlog already soft-blocks it. O1's Kuma/Beszel stack covers the operational need; O1b covers the error need. Revisit after Phase 5 when there is real usage worth measuring.
+- **Do not touch:** treating analytics as a launch blocker.
 
 ### O6 — Native crash reporting on both platforms
 
 - **Status:** BLOCKED
-- **Blocked by:** O1
-- **Priority:** **P0 — hard Phase 3 gate**
+- **Blocked by:** O1b (needs an error-tracking backend); iOS symbolication depends on R3-BUILD-iOS
+- **Priority:** **P0 — hard Phase 3 gate, and the single largest blind spot in the whole system**
 - **Cost:** medium
 - **Agent-buildable:** yes
-- **Source:** a native crash never reaches the API logs. Without this, a tester whose app dies on launch is completely invisible to you.
-- **Done when:** a deliberate crash on iOS and on Android each appear in Sentry within 60 seconds, with symbolicated stack traces and no PII or token in the payload.
+- **Source:** **the Pi observability stack cannot see this at all.** A SwiftUI or Compose crash never reaches KVM1, so it never touches Nginx, `omen_api`, Kuma, or Beszel. Every one of those stays green while a tester's app dies on launch. Omen is now a mobile-first product, which makes this the most consequential monitoring gap that exists — and it is invisible precisely because everything else looks healthy.
+- **Done when:** a deliberate crash on iOS and on Android each appear in the error backend within 60 seconds, with symbolicated stack traces and no PII or token in the payload.
 - **Do not touch:** shipping any crash payload containing user data, provider tokens, or league identifiers.
 
 ### O7 — Forced-update / minimum-version gate
