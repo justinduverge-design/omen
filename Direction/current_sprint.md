@@ -199,8 +199,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R3-BUILD-Android — Fix the release build config and add signing
 
-- **Status:** READY
+- **Status:** VERIFIED — **2026-08-05**
 - **Blocked by:** None — **no Mac required. Android builds on Windows.**
+- **Evidence:** merged to `main` as `231c9d2`. Release now resolves `OMEN_API_BASE_URL` from config with a `https://slopssaloon.com` default and sets `OMEN_DEMO_MODE_ENABLED = false`; a `signingConfigs` block reads the upload keystore from `local.properties` or environment; a release shippability guard fails the build on a placeholder/blank API URL or missing signing (escape hatch `OMEN_ALLOW_UNSIGNED_RELEASE=true`). Added `mobile/android/local.properties.example`. Verified on Windows: `:app:bundleRelease` without signing fails with the guard message; `generateReleaseBuildConfig` emits the production URL and demo mode `false`; `generateDebugBuildConfig` unchanged; `:app:testDebugUnitTest` BUILD SUCCESSFUL.
+- **Remaining (founder):** generate the upload keystore with `keytool` and set the four `omen.release*` keys in `local.properties`. Never commit the `.jks` or any password. See `local.properties.example`.
 - **Priority:** **P0 — three defects would each break the beta build**
 - **Cost:** small–medium
 - **Agent-buildable:** yes (the upload keystore itself is founder-generated and never committed)
