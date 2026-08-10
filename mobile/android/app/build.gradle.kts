@@ -13,7 +13,41 @@ val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-fun cfg(key: String): String = (localProps.getProperty(key) ?: "").trim()
+
+/**
+ * Resolution order: environment variable first, then `local.properties`, then "".
+ * The env path exists so CI can supply config without a checked-in file; the
+ * `local.properties` path is the developer-machine equivalent. Neither is committed.
+ *
+ * `omen.supabaseUrl` -> `OMEN_SUPABASE_URL`, `omen.releaseKeyAlias` -> `OMEN_RELEASE_KEY_ALIAS`.
+ */
+fun cfg(key: String): String {
+    val envKey = key.removePrefix("omen.")
+        .replace(Regex("([a-z0-9])([A-Z])"), "$1_$2")
+        .uppercase()
+        .let { "OMEN_$it" }
+    return (System.getenv(envKey) ?: localProps.getProperty(key) ?: "").trim()
+}
+
+// A build that still points here is not shippable. Kept explicit so the guard below
+// can recognise it rather than silently emitting an app that talks to nothing.
+val PLACEHOLDER_API_BASE_URL = "https://example.invalid"
+
+// Production API origin. Paths are appended as `/api/...` (see OkHttpAccountRepository).
+val PRODUCTION_API_BASE_URL = "https://slopssaloon.com"
+
+fun apiBaseUrl(key: String, fallback: String): String =
+    cfg(key).ifBlank { fallback }
+
+val releaseApiBaseUrl = apiBaseUrl("omen.apiBaseUrl", PRODUCTION_API_BASE_URL)
+val debugApiBaseUrl = apiBaseUrl("omen.debugApiBaseUrl", PLACEHOLDER_API_BASE_URL)
+val stagingApiBaseUrl = apiBaseUrl("omen.stagingApiBaseUrl", PLACEHOLDER_API_BASE_URL)
+
+// Release signing. Absent keystore config yields an unsigned build, which the guard
+// below rejects unless explicitly allowed — an unsigned AAB is rejected by Play, and
+// finding that out at upload time wastes a cycle.
+val releaseStoreFile = cfg("omen.releaseStoreFile")
+val hasReleaseSigning = releaseStoreFile.isNotBlank() && rootProject.file(releaseStoreFile).exists()
 
 android {
     namespace = "com.slopssaloon.omen"
@@ -28,9 +62,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = cfg("omen.releaseStorePassword")
+                keyAlias = cfg("omen.releaseKeyAlias")
+                keyPassword = cfg("omen.releaseKeyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
-            buildConfigField("String", "OMEN_API_BASE_URL", "\"https://example.invalid\"")
+            buildConfigField("String", "OMEN_API_BASE_URL", "\"$debugApiBaseUrl\"")
             buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
@@ -39,16 +84,22 @@ android {
         create("staging") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
-            buildConfigField("String", "OMEN_API_BASE_URL", "\"https://example.invalid\"")
+            buildConfigField("String", "OMEN_API_BASE_URL", "\"$stagingApiBaseUrl\"")
             buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "OMEN_API_BASE_URL", "\"https://example.invalid\"")
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
+            // Demo mode is OFF in release. A shipped build must never present mock
+            // output as live fantasy advice — see the guardrail in Direction/current_sprint.md
+            // and the F9 mock/live labeling gate.
+            buildConfigField("String", "OMEN_API_BASE_URL", "\"$releaseApiBaseUrl\"")
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -66,6 +117,53 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+/**
+ * Release shippability guard.
+ *
+ * Runs only when a release artifact is actually being produced, so debug and test
+ * builds are unaffected. Each of these three shipped silently before 2026-08-05:
+ * the release build pointed at `example.invalid`, ran with demo mode ON, and was
+ * unsigned. Every one of them fails late and confusingly — a tester sees "the
+ * backend is down", or reads mock output as real advice, or Play rejects the
+ * upload. Failing here converts all three into a build error with a fix in it.
+ *
+ * Set OMEN_ALLOW_UNSIGNED_RELEASE=true to build an unsigned release deliberately
+ * (local verification only — never for an upload).
+ */
+gradle.taskGraph.whenReady {
+    val producingRelease = allTasks.any { task ->
+        (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+            task.name.contains("Release")
+    }
+    if (!producingRelease) return@whenReady
+
+    val problems = buildList {
+        if (releaseApiBaseUrl.isBlank() || releaseApiBaseUrl == PLACEHOLDER_API_BASE_URL) {
+            add(
+                "OMEN_API_BASE_URL resolves to '$releaseApiBaseUrl'. A release build must " +
+                    "point at a real API origin. Set `omen.apiBaseUrl` in local.properties " +
+                    "or OMEN_API_BASE_URL in the environment."
+            )
+        }
+        if (!hasReleaseSigning && System.getenv("OMEN_ALLOW_UNSIGNED_RELEASE") != "true") {
+            add(
+                "No release signing configured, so this would produce an unsigned artifact " +
+                    "that Google Play rejects. Set `omen.releaseStoreFile`, " +
+                    "`omen.releaseStorePassword`, `omen.releaseKeyAlias`, and " +
+                    "`omen.releaseKeyPassword`. To build unsigned on purpose, set " +
+                    "OMEN_ALLOW_UNSIGNED_RELEASE=true."
+            )
+        }
+    }
+
+    if (problems.isNotEmpty()) {
+        throw GradleException(
+            "Release build is not shippable:\n" +
+                problems.joinToString("\n") { "  - $it" }
+        )
     }
 }
 

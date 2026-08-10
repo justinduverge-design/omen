@@ -1,0 +1,57 @@
+# Copy to `local.properties` (git-ignored, see .gitignore:44) and fill in real values.
+# The Android analog of `mobile/ios/OmenIOS/Config/Local.xcconfig.example`.
+#
+# Every key here can also be supplied as an environment variable, which is how CI
+# should provide them. The mapping strips the `omen.` prefix, converts camelCase to
+# SCREAMING_SNAKE, and prefixes `OMEN_`:
+#
+#   omen.supabaseUrl      -> OMEN_SUPABASE_URL
+#   omen.releaseKeyAlias  -> OMEN_RELEASE_KEY_ALIAS
+#
+# Environment wins over this file.
+
+# ---------------------------------------------------------------- Android SDK --
+# Machine-specific. Android Studio writes this for you. Never commit the real value.
+sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+
+# --------------------------------------------------------------- Public config --
+# These are PUBLIC client values and are safe to ship inside an app binary.
+# Supabase RLS enforces access control server-side.
+#
+# NEVER put a service-role key, OAuth client secret, or any other secret here.
+
+# API origin only — no trailing slash, no /api. Paths append as `/api/...`.
+# Release defaults to https://slopssaloon.com when unset.
+omen.apiBaseUrl=https://slopssaloon.com
+
+# Optional per-build-type overrides. Both default to https://example.invalid,
+# which the release guard rejects — that is deliberate, only release must be real.
+#omen.debugApiBaseUrl=http://10.0.2.2:3000
+#omen.stagingApiBaseUrl=https://staging.example.com
+
+omen.supabaseUrl=https://your-project.supabase.co
+omen.supabaseAnonKey=your-public-anon-key
+
+# Optional until provisioned. Empty makes Google sign-in report "not configured"
+# honestly rather than failing at the tap.
+omen.googleWebClientId=
+
+# ------------------------------------------------------------- Release signing --
+# Required to produce an uploadable AAB. Google Play rejects unsigned artifacts.
+#
+# Generate the upload key (works on Windows, ships with the JDK):
+#
+#   keytool -genkeypair -v -keystore omen-upload.jks -alias omen-upload \
+#           -keyalg RSA -keysize 2048 -validity 10000
+#
+# Keep the .jks OUTSIDE the repo, or add it to .gitignore. Losing it means losing
+# the ability to update the app — back it up somewhere durable. With Play App
+# Signing enabled, Google holds the real app signing key and this is only the
+# upload key, so a lost upload key is recoverable via Play support; the app
+# signing key is not.
+#
+# Path is resolved relative to mobile/android/.
+#omen.releaseStoreFile=../../../omen-upload.jks
+#omen.releaseStorePassword=
+#omen.releaseKeyAlias=omen-upload
+#omen.releaseKeyPassword=
