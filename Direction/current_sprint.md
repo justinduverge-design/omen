@@ -83,7 +83,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - Backend test baseline: **506/506 green** (`npm test`, 2026-08-02, PR #272), plus focused B2-D 84/84. PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
 - Native: iOS 79 Swift files, Android 88 Kotlin files. Discord OAuth merged both platforms (#198).
 - **No provider is proven with a real connected account.** This is the top beta risk.
-- **Store provisioning is started and half-blocked (2026-08-05).** App Store Connect is reachable but **iOS app-record creation fails** with a generic error — root cause under diagnosis (R1); agreements re-acceptance after the Valor Ventures entity transfer is the leading suspect. **Android is unaffected and unblocked** — run R2-Android now. This lane is still the critical path.
+- **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
 - Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
 
 # Active queue
@@ -131,26 +131,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R1 — Verify App Store Connect is operable during the Valor Ventures transfer
 
-- **Status:** IN_PROGRESS — **partial fail, 2026-08-05**
-- **Blocked by:** FOUNDER_DIAGNOSIS — root cause not yet identified
-- **Priority:** **P0 — the whole iOS schedule hangs on this**
+- **Status:** VERIFIED — **resolved 2026-08-05**
+- **Blocked by:** None
+- **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** no — founder account access
-- **Finding (2026-08-05):** App Store Connect is **reachable but not fully operable.** The New App form opens and accepts input (iOS, `com.slopssaloon.omen`, SKU `omen-ios`, Full Access), but **Create fails with a generic "An error has occurred. Try again later."** Reaching the form is not the gate; creating the record is. iOS app-record creation is currently **blocked**.
-- **Diagnosis order:**
-  1. **Agreements, Tax, and Banking** — an unaccepted or pending Program License Agreement blocks app creation with exactly this generic error. An entity transfer normally requires re-acceptance by the new legal entity, and Valor Ventures has not agreed yet. Highest-probability cause; two-minute check.
-  2. **Transfer restriction** — Apple can lock app creation while an account transfer is in flight. If so this is a support ticket, not a self-clear. Apple Developer Support can confirm the restricted state and the lift date.
-  3. **Transient outage** — check `developer.apple.com/system-status`.
-  4. **Name** — unlikely; a taken name returns a specific "already being used" error, not this one. Retry once with plain `Omen` to isolate, since the name changed in the same attempt.
-- **Done when:** the root cause is identified AND either the iOS app record is created, or an expected unblock date is recorded and Phase 1 is re-sequenced against it.
-- **Do not touch:** repeated blind retries; changing more than one field per attempt.
-
-> **Schedule note:** this does **not** block Android. Google Play Console is a
-> separate system and an Apple account transfer has no effect on it.
-> "Both platforms ship together" is a *release* decision, not a reason to let
-> one platform's account problem stall the other's provisioning. Android is
-> also the faster path — internal testing requires no review. Run R2-Android
-> now, in parallel with diagnosing this.
+- **Finding and resolution (2026-08-05):** App Store Connect was reachable but **not operable** — the New App form opened and accepted input, but Create failed with a generic "An error has occurred. Try again later." Root cause was **agreements, not the account transfer**: agreement/tax setup under Business → Agreements, Tax, and Banking had to be completed under the Valor Ventures entity. Once completed, the app record created successfully.
+- **Evidence:** App Store Connect record live — **`Omen — Fantasy Football Tool`**, iOS App Version 1.0, status "Prepare for Submission", bundle ID `com.slopssaloon.omen`, SKU `omen-ios`.
+- **Lesson recorded:** reaching a store form is not the same as being able to complete it. Verify the *write* operation, not the page load. An earlier pass in this session briefly called R1 passed on the form opening; that was wrong and cost a false green.
+- **Do not touch:** n/a — closed.
 
 ### R2-Android — Create the Google Play Console app record
 
@@ -165,19 +154,32 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R2-iOS — Create the App Store Connect app record
 
-- **Status:** BLOCKED
-- **Blocked by:** R1 — Create currently fails with a generic error
+- **Status:** VERIFIED — **2026-08-05**
+- **Blocked by:** None
 - **Priority:** P0
 - **Cost:** small
-- **Agent-buildable:** metadata drafting only
-- **Confirmed inputs** (verified against source 2026-08-05): Platform iOS only; Bundle ID `com.slopssaloon.omen` (matches `PRODUCT_BUNDLE_IDENTIFIER` in both Debug and Release, and the App ID named in `Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md` under Team `6RWR5G9894`); SKU `omen-ios`; Full Access. **Do not** select `com.slopssaloon.omen.web` — that is the Sign in with Apple Services ID, not an app identifier.
-- **Done when:** the App Store Connect record exists with the bundle ID matching the iOS build.
+- **Evidence:** record live at App Store Connect — iOS App Version 1.0, "Prepare for Submission". Bundle ID `com.slopssaloon.omen` (matches `PRODUCT_BUNDLE_IDENTIFIER` in Debug and Release, and the App ID in `Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md` under Team `6RWR5G9894`). SKU `omen-ios`. Platform iOS only. Full Access. `com.slopssaloon.omen.web` was correctly **not** used — that is the Sign in with Apple Services ID, not an app identifier.
 - **Do not touch:** pricing, public availability, or release scheduling.
+
+> ### ⚠ Do not press "Add for Review"
+>
+> That button submits to the **public App Store** and starts App Review. It is a
+> **Phase 7** action. The beta path is: signed build → **TestFlight → Internal
+> Testing** (≤100 testers, **no review required**). Submitting for review now —
+> with no build, no screenshots, and R5's gambling questionnaire unanswered —
+> would draw a rejection for nothing.
+
+### R2-NAME — App Store display name of record
+
+- **Status:** VERIFIED — **2026-08-05**
+- **Evidence:** the App Store listing name is **`Omen — Fantasy Football Tool`**. The product name remains **Omen**; `PRODUCT_NAME = Omen` in Xcode and the home-screen name are unaffected. The store name carries a search descriptor for discoverability — this is deliberate ASO, not a rebrand.
+- **Consequence:** Brand, marketing, and store copy must not treat "Omen — Fantasy Football Tool" as the product name. It is the listing title only. Feeds R7 and K1.
+- **Do not touch:** the in-app or brand name; they stay "Omen".
 
 ### R3 — Signing and provisioning
 
 - **Status:** BLOCKED
-- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
+- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
 - **Priority:** P0
 - **Cost:** small–medium
 - **Agent-buildable:** no — certificates and keys
@@ -187,7 +189,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R4 — Privacy nutrition labels and Data Safety form
 
 - **Status:** BLOCKED
-- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
+- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -198,7 +200,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R5 — Age rating and gambling questionnaire
 
 - **Status:** BLOCKED
-- **Blocked by:** R2-iOS (iOS side); R2-Android (Android side)
+- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
