@@ -103,8 +103,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A4 — Tuesday scoring production enablement
 
 - **Status:** BLOCKED
-- **Blocked by:** founder approval for a persistent production enablement; `OMEN_CRON_SCORING_ENABLED` remains `false`.
-- **Blocked by:** [#263](https://github.com/justinduverge-design/omen/issues/263) — nflverse has not published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
+- **Blocked by:** FOUNDER_APPROVAL — persistent production enablement; `OMEN_CRON_SCORING_ENABLED` remains `false`.
+- **Blocked by:** EXTERNAL — [#263](https://github.com/justinduverge-design/omen/issues/263), nflverse has not published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
+- **Blocked by:** TASK-A5 — the fallback source decision determines what this enables against if nflverse never publishes. Typed 2026-08-11; the dependency already existed in prose but was not machine-readable.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 6 — **season gate, not a beta gate.** Do not count this against beta. The dry-run is preparable now; the flag flip waits for September.
@@ -122,7 +123,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Agent-buildable:** research and options memo only; the vendor/source decision is founder-owned
 - **Source:** if nflverse never publishes `player_stats_2026.csv`, the feature that closes Omen's entire loop has no data source for the whole season. A4 is blocked on an external publish nobody here controls.
 - **Skills:** `pre-build-research`, `slops-data-ingest-plan`
-- **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
+- **Founder steer (2026-08-11):** prefer another **free** source in the nflverse class. Building a Slops-owned scraper is an accepted fallback but is the last option, not the opener — it converts a data problem into a maintenance obligation that runs every Tuesday during the season. Evaluate free sources first and say plainly whether any clears licence and latency.
+- **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; the build-our-own option is costed against them including in-season maintenance; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
 - **Do not touch:** paid commitments, new dependencies, or provider contracts without explicit approval.
 
 ## R. Store and release — critical path, founder-executed
@@ -143,16 +145,18 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R2-Android — Google Play Console account + app record
 
-- **Status:** READY
-- **Blocked by:** None — Play Console is unaffected by the Apple account transfer, and the D-U-N-S number is **already in hand** (confirmed 2026-08-05).
+- **Status:** IN_PROGRESS
+- **Blocked by:** EXTERNAL — Google organization verification is **under review** as of 2026-08-11. No further founder action is available until Google responds.
+- **Unblock:** 2026-08-11 ROUTED — registration was submitted and initially rejected. Root cause was **the wrong D-U-N-S number**: `145076002`, labelled *Resolution Duns* in the D&B correspondence, was being entered instead of the actual assigned D-U-N-S **`14-800-8695` (`148008695`)**. The correct number appears nowhere in that D&B email, which is why it was missed. Resubmitted with `148008695`; Google accepted it and moved the account to review. Two earlier theories — entity-name mismatch and propagation delay — were **wrong and are withdrawn**.
+- **Open correction:** the D&B record still lists **Legal Form: Corporation**. Valor Ventures is an **LLC**. This did not block Google, but it is inaccurate on the record and should be corrected with D&B directly; leaving it risks a mismatch surfacing at a later verification step.
 - **Priority:** **P0 — the unblocked half of Phase 1.**
 - **Cost:** small ($25 one-time registration)
 - **Agent-buildable:** metadata drafting only; account actions founder-executed
 - **Account type: ORGANIZATION.** Decided 2026-08-05. Two reasons, both decisive:
   1. **Personal accounts created after 2023-11-13 must run a closed test with 12+ testers opted in for 14 *consecutive* days before they can even apply for production access. Organization accounts are exempt.** Internal testing does **not** count toward that requirement — so the planned internal-track beta would satisfy none of it.
   2. A personal account publishes the founder's own name as the developer, contradicting `Direction/decision_log.md` (2026-08-02) and PRs #268/#269, which establish **Valor Ventures Limited Liability Company** as Omen's public legal operator.
-- **Registration inputs:** D-U-N-S (held); organization name `Valor Ventures Limited Liability Company`; address `23 Darrow St, New London, CT 06320` (recorded as authorized for publication); website; phone.
-- **Account status (2026-08-10):** **no Play Console account exists yet.** Registration is the next action.
+- **Registration inputs:** D-U-N-S **`148008695`** (verified correct 2026-08-11 — *not* `145076002`, which is the Resolution Duns and will be rejected); organization name `Valor Ventures Limited Liability Company`; address `23 Darrow St, New London, CT 06320` (recorded as authorized for publication); website; phone.
+- **Account status (2026-08-11):** account submitted, **organization verification under review by Google.** The payments profile display name was corrected to the Valor Ventures entity before submission; the D-U-N-S could not be added from the payments centre and had to go in via the developer registration flow.
 - **⚠ Register from the right Google account — this is near-permanent.** The Play Console is owned by the **Google account** that signs up, not by the address displayed publicly. Transferring ownership later is support-driven and painful — the same shape of problem as the Apple entity transfer. **Do not register with a personal `@gmail.com`.** Create a Google account using `owner@slopssaloon.com` (a Google Account can use any email address; it need not be Gmail-hosted) and register from that, so console owner, legal entity, and public contact align from day one.
 - **Public contact decided 2026-08-10:** `support@slopssaloon.com` — an existing alias, consistent with the `legal@` and `privacy@` precedent set on 2026-08-02. `owner@slopssaloon.com` remains **not published** per that same decision.
 - **⚠ The developer phone is published too.** Organization listings display the phone alongside the email. Provision a business/VoIP number before registering rather than exposing a personal mobile permanently.
@@ -186,8 +190,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R3-BUILD-iOS — Establish an iOS build-and-signing path
 
-- **Status:** BLOCKED
-- **Blocked by:** FOUNDER_DECISION — hardware/spend
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-08-11 CLEARED — founder purchased a Mac mini (the stated lean in Option 1 below); delivery expected 2026-08-12. The `FOUNDER_DECISION — hardware/spend` blocker is resolved, and `FOUNDER_DECISION` was never a valid blocker type under `Direction/status-model.md` — retyped in the same pass. **This is the gateway item for the entire iOS lane:** it unblocks M3A-QA on-device debugging, F10's iOS half, O6 symbolication, R3/R6 signing and upload, and the local `xcodebuild` substitution now cited by `Blueprints/definition-of-done.md`. Pull it first once the machine arrives.
 - **Priority:** **P0 — no iOS beta exists without this**
 - **Cost:** small (rent) or ~$400–600 (buy)
 - **Agent-buildable:** no
@@ -255,7 +260,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R6 — Internal testing tracks
 
 - **Status:** BLOCKED
-- **Blocked by:** R3, R4, R5, and the Phase 4 gate
+- **Blocked by:** TASK-R3
+- **Blocked by:** TASK-R4
+- **Blocked by:** TASK-R5
+- **Blocked by:** FOUNDER_APPROVAL — the Phase 4 gate must close first
+- **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open
@@ -305,8 +314,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-Help-Support-Implementation — Build approved native Help + Support
 
 - **Status:** READY
-- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
 - **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
+- **Unblock:** 2026-08-11 REASSESSED — the iOS-CI half of this blocker is retired. As of 2026-08-11 `ios-ci.yml` no longer runs per-PR (release branches + manual dispatch only); routine iOS verification moved to the founder's Mac. **This makes the iOS half of this item Mac-required.** Run the `SUBSTITUTED` command in `Blueprints/definition-of-done.md` → "Local substitutes" and record the output. The Android half is unaffected and remains workable on Windows.
 - **Priority:** **P1 — store metadata requires a support URL**, so this is on the release path, not just the product path.
 - **Cost:** medium
 - **Current state:** implementation merged via PR #229; Android compile/scanner evidence green. This is **not** VERIFIED — the `Done when:` criteria require accessibility and visual evidence that has not been produced.
@@ -316,12 +325,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
 
 - **Status:** READY
-- **Blocked by:** None. `ios-ci.yml` runs on PRs targeting `main` again as of #250, so this is CI-verifiable.
+- **Blocked by:** None
+- **Unblock:** 2026-08-11 REASSESSED — previously "CI-verifiable as of #250." That is no longer true: `ios-ci.yml` stopped running per-PR on 2026-08-11 (release branches + manual dispatch only). **The iOS half of this item is now Mac-required** — verify with the `SUBSTITUTED` `xcodebuild test` command in `Blueprints/definition-of-done.md` and record `xcodebuild -version` alongside the result. Android remains workable on Windows.
 - **Priority:** P1
 - **Cost:** small — **verification only, not implementation**
 - **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2).
 - **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
-- **Done when:** `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; scanner, connected tests, `:app:assembleDebug`, and iOS CI green — all recorded as evidence.
+- **Done when:** `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; scanner, connected tests, `:app:assembleDebug` green, and the local Mac `xcodebuild test` run green — all recorded as evidence. "iOS CI green" is no longer an available citation for this item outside a release branch.
 - **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.
 
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
@@ -347,7 +357,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
 - **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
-- **Blocked by:** iOS simulator/CI verification is deferred to a macOS-capable run. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31").
+- **Blocked by:** TASK-R3-BUILD-iOS — iOS simulator verification needs a macOS-capable machine. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31"), so design is not the gate.
+- **Unblock:** 2026-08-11 ROUTED — retyped from an untyped prose blocker to `TASK-R3-BUILD-iOS`. With the Mac arriving 2026-08-12 and iOS CI no longer running per-PR, this item's remaining gap is verified by the local `xcodebuild test` substitution, not by CI.
 - **Priority:** P1
 - **Cost:** medium
 - **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete but require the separate macOS CI gate.
@@ -372,7 +383,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### B-FREEZE — Declare feature freeze
 
 - **Status:** BLOCKED
-- **Blocked by:** B2-D3-S2, M3A-QA, M4-CC-PlatformsCompact, M4-Help-Support-Implementation, M4-Auth-Providers-v1
+- **Blocked by:** TASK-B2-D3-S2
+- **Blocked by:** TASK-M3A-QA
+- **Blocked by:** TASK-M4-CC-PlatformsCompact
+- **Blocked by:** TASK-M4-Help-Support-Implementation
+- **Blocked by:** TASK-M4-Auth-Providers-v1
+- **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Priority:** P0
 - **Cost:** trivial
 - **Phase:** 2 gate
@@ -458,6 +474,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Cost:** small
 - **Agent-buildable:** checklist preparation only
 - **Scope:** final pre-beta pass over production secrets and Supabase settings. Includes the A3 carry-over: **leaked-password protection is disabled in Supabase Auth** (one-toggle fix).
+- **Unblock:** 2026-08-11 REASSESSED — founder reports partial progress: additional authentication providers enrolled and further Supabase configuration completed. **Recorded, not credited.** The named acceptance criterion here is leaked-password protection plus a per-secret presence-and-scope pass, and neither has been evidenced. Confirm the specific toggle and produce the secret inventory before this moves.
 - **Skills:** `security-privacy-evidence`
 - **Done when:** every production secret is confirmed present, correctly scoped, and unexposed; leaked-password protection is enabled; findings are recorded without values.
 - **Do not touch:** secret values in logs, agent output, or evidence files.
@@ -470,6 +487,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Cost:** small
 - **Agent-buildable:** no
 - **Source:** ESPN adapter work ran against local branches with provider access. Rotate anything that could have been captured in a local log, shell history, or branch artifact before real testers arrive.
+- **Unblock:** 2026-08-11 REASSESSED — no rotation evidence exists on `main`. Founder-reported Supabase configuration work is **not** rotation and does not satisfy this item. **Newly in scope:** P1-YahooReauth will mint a fresh Yahoo token, which discharges the Yahoo portion of this item if the old `token_secret_id` is retired rather than left orphaned — sequence S2's Yahoo half after that item and record it. Also still open from the 2026-07-30 preservation pass: the Apple `.p8` signing key sitting under `C:\Users\JDuve\dev` inherits `CodexSandboxUsers:(I)(RX)` read access and should be relocated outside any agent-reachable path.
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
 
@@ -500,15 +518,16 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_DECISION — is this service still wanted?
+- **Blocked by:** None
+- **Unblock:** 2026-08-11 CLEARED — founder decision: **`openclaw` is no longer wanted. Retire it.** The item is *not* closed, because the decision half is what got answered; the public surface described below is still live. Scope below is narrowed from "investigate and decide" to "execute the retirement."
 - **Priority:** **P1 — public attack surface on a host designated private**
 - **Cost:** small
-- **Agent-buildable:** investigation only; any change to KVM2 is founder-executed
+- **Agent-buildable:** investigation and a written takedown plan only; **any change to KVM2 is founder-executed** and needs its own action-level approval
 - **Source:** surfaced by the Raspberry Pi live VPS discovery (2026-08-07/08), still open. KVM2 (`srv1647690` / `100.67.187.57`) is documented as the **private** Ollama/Gemma AI host — Ollama is correctly bound to its Tailscale address only. But Nginx on that same host listens **publicly on 80/443** (IPv4 and IPv6), Certbot-managed, serving `openclaw.slopssaloon.com` → `127.0.0.1:3200`.
 - **Why it matters:** a host whose stated role is "private AI, reachable only over Tailscale" is accepting connections from the public internet, on the same box as the model endpoint. That is not automatically a vulnerability, but it is an unowned public surface on a machine the architecture treats as private, and nobody has confirmed the upstream on `:3200` is alive, patched, or still wanted.
 - **Skills:** `security-privacy-evidence`, `rbac-risk-review`
-- **Done when:** the `openclaw` service's owner, purpose, and current status are established; a decision is recorded to keep it (with patching and monitoring owned) or retire it; and if kept, whether it belongs on KVM2 at all rather than a host without the private-AI role.
-- **Do not touch:** do not disable Nginx or alter KVM2 configuration as part of Omen work — the Pi tracker explicitly warns against this. Investigate read-only.
+- **Done when:** the `openclaw.slopssaloon.com` vhost no longer serves publicly, its Certbot renewal is removed so no cert renews for a dead name, the `127.0.0.1:3200` upstream is confirmed stopped, DNS for the subdomain is retired, and KVM2's remaining public 80/443 listeners are inventoried and shown to be either intended or also removed. Record before/after listener state.
+- **Do not touch:** do not disable Nginx wholesale or alter other KVM2 configuration as part of Omen work — the Pi tracker explicitly warns against this. Retire this one vhost, not the web server. Agents investigate read-only and produce the plan; the founder runs it.
 
 ### S7 — Retire stale OpenAI runtime dependencies
 
@@ -570,7 +589,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### O6 — Native crash reporting on both platforms
 
 - **Status:** BLOCKED
-- **Blocked by:** O1b (needs an error-tracking backend); iOS symbolication depends on R3-BUILD-iOS
+- **Blocked by:** TASK-O1b — needs an error-tracking backend before symbols have anywhere to land
+- **Blocked by:** TASK-R3-BUILD-iOS — iOS symbolication specifically; the Android half is not gated on it
+- **Unblock:** 2026-08-11 ROUTED — split from a single untyped prose blocker into typed lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Priority:** **P0 — hard Phase 3 gate, and the single largest blind spot in the whole system**
 - **Cost:** medium
 - **Agent-buildable:** yes
@@ -636,14 +657,88 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** a backup is confirmed to exist on a known schedule and a restore is exercised into a non-production target, with recovery-point and recovery-time recorded.
 - **Do not touch:** production data; never restore over production.
 
+## P. Launch-blocking defects — discovered 2026-08-11
+
+All four were found by reading live production state against the code, not by reading the queue.
+None of them existed as sprint items before this pass, and three of them sit directly on the
+Section K launch gate. Evidence for each is a live authenticated call against `slopssaloon.com`
+recorded the same day.
+
+**Why this section exists:** the queue's picture of Yahoo was wrong in both directions — it was
+typed as a founder-credentials gate when the account was already connected, and separately assumed
+to need re-integration when the real fault is a stale token. Grouping these keeps the discovery
+event traceable.
+
+### P1-YahooReauth — Re-authorize Yahoo under the re-approved API app
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — Yahoo OAuth consent must be completed by the account owner; if the re-approval issued a new client ID/secret, writing them is a **secrets action** needing its own action-level approval
+- **Priority:** **P0 — gates F7, which gates Section K**
+- **Cost:** small
+- **Agent-buildable:** config diff, redirect-URI check, and a token-health test — not the consent step
+- **Source:** verified live 2026-08-11. `GET /api/platforms` returns `yahoo: connected, 1 league`, so the `platform_connections` row is active and carries a usable `league_id`. But `GET /api/dashboard/summary` returns `waiver_wire: "needs_platform"`, and that branch (`src/routes/dashboard.js:219-224`) is only reachable when `hasUsableYahooToken()` fails. Per `src/services/omenReadiness.js:8-14`, that means `token_secret_id` is absent or `token_expires_at` is past. **The integration is intact; the token is dead.** Yahoo API access was separately re-approved in early 2026-08.
+- **Diagnostic order — do not skip step 1.** The existing `platform_connections` row proves a *successful* OAuth round-trip happened at some point, which means the client credentials were valid when it was created. Wrong client credentials fail at the authorize step with `invalid_client` and never produce a row at all. So the default hypothesis is a dead user grant, not bad app credentials — most likely Yahoo invalidated outstanding grants when the app's access lapsed, and re-approval restored the app without resurrecting the grant.
+  1. **Reconnect Yahoo through the app.** If consent completes and `waiver_wire` leaves `needs_platform`, this item is done with no secrets action.
+  2. If consent fails, compare the deployed `YAHOO_REDIRECT_URI` against the URI registered on the re-approved app. A mismatch throws `redirect_uri_mismatch` with perfectly valid credentials, and is the likelier fault after a re-registration.
+  3. Only if the dashboard's Client ID differs from the deployed `YAHOO_CLIENT_ID` did the re-approval issue a new app. **That, and only that, makes this a secrets action** requiring its own action-level approval.
+- **Do not rotate pre-emptively.** Writing new client credentials invalidates every outstanding Yahoo user grant, requires a Supabase Studio write plus a deploy, and — if the credentials were fine — masks the real cause while spending a secrets action to fix nothing.
+- **Done when:** the fault is identified as grant-level or app-level and recorded as such; `YAHOO_CLIENT_ID`, `YAHOO_CLIENT_SECRET`, and `YAHOO_REDIRECT_URI` are confirmed current against the re-approved app; a fresh consent round-trip stores a non-null `token_secret_id` with a future `token_expires_at`; and `/api/dashboard/summary` stops reporting `needs_platform` for a Yahoo-connected user.
+- **Do not touch:** client secrets in logs, agent output, or the repo — they live in Supabase Studio. Do not delete the existing `platform_connections` row; it is fine and re-creating it loses the league binding.
+
+### P1-WaiverGateMultiProvider — Waiver readiness is hardcoded to Yahoo
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P0 — silently buries shipped work**
+- **Cost:** small–medium
+- **Agent-buildable:** yes
+- **Source:** verified live 2026-08-11. `src/routes/dashboard.js:213-226` computes waiver readiness from `usableYahoo` **alone**. With ESPN and Sleeper both `connected` with one league each, `/api/dashboard/summary` still returns `waiver_wire: "needs_platform"`.
+- **Why it matters:** `B2-D-E2` (ESPN waiver candidates, PR #266) and `B2-D3-S` (Sleeper live trade, PR #259) are both marked **VERIFIED**. That backend work is real, merged, and tested — and a user cannot reach any of it, because the gate in front of it asks "do you have Yahoo?" This is the clearest example in the queue of merged ≠ delivered.
+- **Done when:** waiver readiness is computed from *any* Omen-ready connection using the existing `isOmenReadyConnection()` predicate rather than a Yahoo-only check; a test proves `waiver_wire: "ready"` for an ESPN-only user and for a Sleeper-only user; and the ESPN/Sleeper waiver paths proven by #266 and #259 are shown reachable end-to-end from the dashboard.
+- **Do not touch:** the per-provider readiness predicates themselves — `isOmenReadyConnection()` is already correct and is used by `omen_of_the_week`. This is a gate bug, not a predicate bug.
+
+### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Source:** verified live 2026-08-11 — `localStorage['omen.auth.next']` is `null` in a real signed-in session. `ConnectLeague.jsx:571` `handleContinue()` navigates to `consumeNextUrl()`, which falls back to `'/account'` when nothing is stored (`frontend/src/lib/nextUrl.js:38`). `handleSkip()` on line 568 hardcodes `/football` and behaves correctly. So **Skip works and Continue does not** — finishing onboarding drops the user on account settings instead of the dashboard.
+- **Related:** onboarding completion is tracked only in `localStorage['omen.onboarding.done']` and is never read back from the server, even though `/api/platforms` already knows. `ProtectedRoute.jsx:66-70` gates on the local flag alone, so any cleared storage, new browser, incognito window, or second device sends an established account back through onboarding. Fix both together or the routing fix will look intermittent.
+- **Done when:** completing connect lands on `/football` regardless of stored `next`; a server-backed connection is treated as onboarding-complete so a fresh browser does not re-onboard an existing user; and a test covers the empty-`next` case and the fresh-browser case.
+- **Do not touch:** the `sanitize()` allowlist in `nextUrl.js` — it is doing correct origin and path validation. The bug is the default value, not the validation.
+
+### P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Source:** founder decision 2026-08-11 — **Draft Assistant is sidelined to the 2027 season** and becomes next season's marketing beat. `CLAUDE.md` already records it as cut from 1.0 (2026-08-05), but verified live 2026-08-11 the product still ships it: `/api/dashboard/summary` advertises `draft_assistant: {available: true, status: "ready"}` (`src/routes/dashboard.js:268`, hardcoded), `Header.jsx:26` links it in primary nav, and `routes/index.jsx:52` serves `/draft`.
+- **Scope — wider than the route.** Frontend: `pages/DraftAssistant.jsx`, `routes/index.jsx`, `components/layout/Header.jsx`, `pages/Landing.jsx`, `pages/OmenLanding.jsx`, `pages/Football.jsx`, `components/help/HelpButton.jsx`. Backend: `src/routes/draftAssistant.js`, `src/services/sleeperDraft.js`, `src/services/sleeperDraftAccess.js`, `src/services/adp.js`, and the hardcoded `dashboard.js` tool entry. **Legal copy: `pages/Privacy.jsx` and `pages/Terms.jsx` both describe Draft Assistant** — shipping legal text about a feature that does not exist is its own defect.
+- **Preserve, do not delete.** The 2027 plan depends on this code. Remove it from the *reachable surface* — nav, routes, advertised tools, marketing and legal copy — and leave the implementation in the tree behind a disabled flag, or move it to `Archive/` with a MANIFEST row naming its return date. Deleting it costs next season's head start.
+- **Done when:** no nav entry, route, dashboard tool entry, landing-page claim, help entry, or legal clause references Draft Assistant; `/draft` returns the standard not-found behavior; `draft_assistant` no longer appears in `/api/dashboard/summary`; store metadata and onboarding copy are re-checked against `CLAUDE.md`'s prohibition; and the preserved implementation's location and re-activation path are recorded in `Direction/decision_log.md`.
+- **Do not touch:** `src/services/adp.js` beyond disconnecting it from the live route — the 2027 plan is a Slops-built ADP and this is the starting point. Do not delete the Sleeper draft services.
+
 ## F. Verify lane — Justin must pin
 
 **Phase 4.** F6–F9 are the beta gate. **F6 and F9 decide whether beta succeeds.**
 
+> **Season-start floor (verified 2026-08-11).** `GET /api/dashboard/summary` currently returns
+> `omen_of_the_week: "off_season"` — correct behavior for August, produced by `isOffSeason()` in
+> `src/services/nflSchedule.js`. Every F-lane item whose acceptance includes *Omen recommendations*
+> therefore **cannot fully pass until the 2026 regular season opens.** The non-Omen halves (connect,
+> session restore, reauth, standings, trade candidates, labeling) are testable now and should be run
+> now. Do not record an F-item as VERIFIED on the strength of its non-Omen half alone — split the
+> evidence and say which half was proven.
+
 ### F6 — Real-account QA: ESPN
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Blocked by:** None
+- **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate; Omen-half acceptance still waits on season start.
 - **Priority:** **P0 — highest risk item in the plan**
 - **Cost:** medium
 - **Agent-buildable:** preparation and matrix only
@@ -655,7 +750,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### F7 — Real-account QA: Yahoo
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Blocked by:** TASK-P1-YahooReauth
+- **Unblock:** 2026-08-11 REASSESSED — the old `FOUNDER_APPROVAL — real account credentials` typing was wrong in both directions. A real Yahoo account with a drafted league exists, and `GET /api/platforms` reports `yahoo: connected, 1 league`. But `/api/dashboard/summary` returns `waiver_wire: "needs_platform"`, which is only reachable when `hasUsableYahooToken()` fails — so the connection row is live while the **OAuth token is expired or its `token_secret_id` is missing**. This is a token problem, not a credentials problem and not a re-integration. Retyped to depend on P1-YahooReauth.
 - **Priority:** P0
 - **Cost:** medium
 - **Agent-buildable:** preparation and matrix only
@@ -665,7 +761,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### F8 — Real-account QA: Sleeper
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — real account credentials
+- **Blocked by:** None
+- **Unblock:** 2026-08-11 CLEARED — real Sleeper account connected and drafted; league **Omen App Data** (confirmed by founder, 2026-08-11). `GET /api/platforms` confirms `sleeper: connected, 1 league` (verified live, 2026-08-11). Omen-half acceptance still waits on season start.
 - **Priority:** P0
 - **Cost:** medium
 - **Agent-buildable:** preparation and matrix only

@@ -57,7 +57,7 @@ Writing "CI green" when no workflow has run is fabricated evidence and falls und
 | Frontend build clean | `npm --prefix frontend run build` | **SUBSTITUTED** — full equivalence |
 | `npm audit` clean | `npm audit --audit-level=moderate` | **SUBSTITUTED** — full equivalence |
 | Android connected tests / `:app:assembleDebug` | local Gradle against the Codex-sandbox SDK path | **SUBSTITUTED** — note the AVD lacks Play services |
-| iOS unsigned simulator CI | none on the Windows dev machine | **DEFERRED-CI** |
+| iOS unsigned simulator CI | on the Mac: `xcodebuild test -project mobile/ios/OmenIOS/OmenIOS.xcodeproj -scheme OmenIOS -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO` | **SUBSTITUTED** — same target, scheme, and destination as CI. Xcode must be 16.2 to match the CI pin; record `xcodebuild -version` output alongside the result. On Windows this remains **DEFERRED-CI**. |
 | `Dependency Review` on PR | `npm audit` + manual diff read | **SUBSTITUTED**, weaker — say so |
 | `SLOPS Prompt Guard` | `npm run evals:validate` | **SUBSTITUTED** |
 
