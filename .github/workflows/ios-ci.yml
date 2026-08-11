@@ -1,10 +1,12 @@
 # Non-signing iOS simulator CI for the native SwiftUI app (M2-E decision:
 # GitHub macOS simulator CI, included/non-billed capacity, no signing).
 #
-# COST NOTE: macOS runners bill at a higher multiplier on private repos. This
-# workflow is deliberately narrow — it runs for relevant pull requests, on
-# main after merge, or on manual dispatch — to keep runner-minute usage
-# minimal. Do not broaden the triggers without founder approval.
+# COST NOTE: macOS runners bill at a higher multiplier on private repos. As of
+# 2026-08-11 this workflow no longer runs per-PR. Routine iOS verification moved
+# to the founder's local Mac (Xcode/simulator) — see
+# `Blueprints/definition-of-done.md` → "Local substitutes". CI is now reserved
+# for release branches and manual dispatch, where a reproducible, PR-attached
+# build actually matters. Do not broaden the triggers without founder approval.
 #
 # Runs the OmenIOSTests unit-test target (host app OmenIOS) against a concrete
 # iOS Simulator destination, signing disabled, per the M3-A iOS auth parity
@@ -14,20 +16,23 @@
 name: iOS CI
 
 on:
-  # Run on main-branch pushes (post-merge sanity) and on PRs targeting main.
-  # Feature-branch pushes are covered by the pull_request trigger — running both
-  # would double macOS-runner cost per commit. `workflow_dispatch` remains for
-  # on-demand reruns.
+  # Release branches only. Day-to-day iOS verification happens locally on the
+  # Mac; burning macOS runner minutes on every PR bought little that a local
+  # `xcodebuild test` does not already prove. Release builds still run here so
+  # the artifact that ships has reproducible, attached CI evidence.
   push:
-    branches: [main]
+    branches:
+      - "release/**"
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
   pull_request:
-    branches: [main]
+    branches:
+      - "release/**"
     paths:
       - "mobile/ios/**"
       - ".github/workflows/ios-ci.yml"
+  # On-demand reruns — use this before any store submission.
   workflow_dispatch: {}
 
 concurrency:

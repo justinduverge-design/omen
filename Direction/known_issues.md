@@ -15,6 +15,8 @@ Last updated: 2026-07-19
 
 ## Backend / Data Risks
 
+- **Yahoo's stored OAuth token is currently unusable (verified live 2026-08-11).** `GET /api/platforms` reports `yahoo: connected, 1 league`, so the `platform_connections` row is active with a valid league id — but `/api/dashboard/summary` returns `waiver_wire: "needs_platform"`, a branch reachable only when `hasUsableYahooToken()` fails. Per `src/services/omenReadiness.js:8-14` that means `token_secret_id` is absent or `token_expires_at` has passed. **"Connected" in the platforms payload does not mean "usable"** — the two answer different questions, and reading the first as the second is what let this sit unnoticed. Tracked as `P1-YahooReauth`. Yahoo API access was separately re-approved in early 2026-08.
+- **Waiver readiness is hardcoded to Yahoo (verified live 2026-08-11).** `src/routes/dashboard.js:213-226` computes waiver availability from `usableYahoo` alone, so an ESPN-only or Sleeper-only user is told `needs_platform` even with a connected, drafted league. This makes the merged-and-VERIFIED ESPN (#266) and Sleeper (#259) waiver work unreachable from the dashboard. Tracked as `P1-WaiverGateMultiProvider`.
 - Yahoo live features depend on valid OAuth tokens and usable Yahoo league ids.
 - ESPN remains high-value and fragile because it depends on user-provided cookies.
 - ESPN connect input normalization is prepared locally but not production behavior until deployed.
