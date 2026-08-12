@@ -41,7 +41,7 @@ provisioning has not started and is now the critical path.**
 ### Quality gates
 - **Backend tests: 506/506 green** (`npm test`, 2026-08-02, recorded in PR #272), plus focused B2-D 84/84. Was 391/391 on 2026-07-19.
 - PRs gated by `pr-quality.yml` (#253)
-- The "Actions billing hold" was a **misdiagnosis** — two config bugs, both fixed in #250 (2026-08-01). `ios-ci.yml` runs on PRs targeting `main` again.
+- The "Actions billing hold" was a **misdiagnosis** — two config bugs, both fixed in #250 (2026-08-01). **Superseded 2026-08-11:** `ios-ci.yml` no longer runs per-PR by choice, not by failure — it triggers on `release/**` and manual dispatch only, with routine iOS verification moved to the founder's local Mac. See `Blueprints/definition-of-done.md` → "Local substitutes".
 - `npm audit --omit=dev --audit-level=moderate`: **0 production vulnerabilities**
 - Accepted risk: dev-only `promptfoo → @huggingface/transformers → onnxruntime-node → adm-zip` high advisory. Not a production path; needs a breaking dev-tool update. **Does not block release.**
 
