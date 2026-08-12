@@ -1,3 +1,17 @@
+# Dependabot configuration.
+#
+# LABELS: the `labels:` keys were removed on 2026-08-11. They referenced
+# `dependencies`, `security`, and `android`, none of which exist in this
+# repository — GitHub rejected them on every PR with "The following labels
+# could not be found." Create those labels first if you want them back.
+#
+# IGNORES: major-version bumps that require migration work are ignored below
+# rather than reopened weekly and closed unread. Each carries the reason and
+# the task that would unblock it. Closing a Dependabot PR is not a decision —
+# it reopens on the next weekly run. An `ignore` rule is the decision.
+#
+# Triage policy and the required per-PR receipt live in `Direction/current_sprint.md` → S8.
+
 version: 2
 updates:
   - package-ecosystem: npm
@@ -8,14 +22,12 @@ updates:
       time: "09:00"
       timezone: America/New_York
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - security
     groups:
       production-dependencies:
         dependency-type: production
       development-tooling:
         dependency-type: development
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -24,8 +36,7 @@ updates:
       time: "09:00"
       timezone: America/New_York
     open-pull-requests-limit: 3
-    labels:
-      - dependencies
+
   - package-ecosystem: npm
     directory: "/frontend"
     schedule:
@@ -34,14 +45,28 @@ updates:
       time: "09:00"
       timezone: America/New_York
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - security
     groups:
       frontend-runtime:
         dependency-type: production
       frontend-tooling:
         dependency-type: development
+    ignore:
+      # Tailwind v4 is a rewrite, not an upgrade. It removes the JS config
+      # format (`frontend/tailwind.config.js` exists) and replaces the
+      # `@tailwind` directives (`frontend/src/index.css` has three) with
+      # `@import "tailwindcss"`. Merging it breaks the build. Revisit only as
+      # a dedicated migration task.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      # Vite 8 shipped in the same group as the Tailwind v4 bump and carries
+      # its own breaking changes. Minor and patch updates still flow.
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      # Pinned to the Vite major above — upgrading this alone would desync the
+      # plugin from the bundler it targets.
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: gradle
     directory: "/mobile/android"
     schedule:
@@ -50,9 +75,6 @@ updates:
       time: "09:00"
       timezone: America/New_York
     open-pull-requests-limit: 3
-    labels:
-      - dependencies
-      - android
     groups:
       android-dependencies:
         patterns:
