@@ -193,6 +193,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Status:** READY
 - **Blocked by:** None
 - **Unblock:** 2026-08-11 CLEARED — founder purchased a Mac mini (the stated lean in Option 1 below); delivery expected 2026-08-12. The `FOUNDER_DECISION — hardware/spend` blocker is resolved, and `FOUNDER_DECISION` was never a valid blocker type under `Direction/status-model.md` — retyped in the same pass. **This is the gateway item for the entire iOS lane:** it unblocks M3A-QA on-device debugging, F10's iOS half, O6 symbolication, R3/R6 signing and upload, and the local `xcodebuild` substitution now cited by `Blueprints/definition-of-done.md`. Pull it first once the machine arrives.
+- **Unblock:** 2026-08-12 REASSESSED — **Option 1 is executed.** The Mac mini is the trusted local iOS development host and runs Xcode 26.6 (`17F113`). The existing project now uses Automatic Signing for team `6RWR5G9894` while retaining bundle ID `com.slopssaloon.omen`; a connected `iPhone15,4` was paired, trusted, placed in Developer Mode, registered through Xcode's normal provisioning flow, and the existing Omen app built, installed, and launched on it. The committed simulator command from `Blueprints/definition-of-done.md` also ran on an iPhone 16 simulator with **108 tests, 0 failures**, but Xcode 26.6 does not match that row's Xcode 16.2 pin, so this is strong local regression evidence rather than a claim of exact CI-toolchain equivalence. **Status stays `READY`:** this item's `Done when:` requires a signed build to reach TestFlight; no archive, distribution upload, TestFlight action, entitlement, or capability change occurred.
 - **Priority:** **P0 — no iOS beta exists without this**
 - **Cost:** small (rent) or ~$400–600 (buy)
 - **Agent-buildable:** no
@@ -357,11 +358,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
 - **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
-- **Blocked by:** TASK-R3-BUILD-iOS — iOS simulator verification needs a macOS-capable machine. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31"), so design is not the gate.
+- **Blocked by:** AGENT_RESOLVABLE — the macOS hardware gate is gone, but this item's own six-state iOS rendering evidence has not been captured; the 2026-08-12 XCTest run proves the registered tests pass, not that every state was visually rendered and reviewed. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31"), so design is not the gate.
 - **Unblock:** 2026-08-11 ROUTED — retyped from an untyped prose blocker to `TASK-R3-BUILD-iOS`. With the Mac arriving 2026-08-12 and iOS CI no longer running per-PR, this item's remaining gap is verified by the local `xcodebuild test` substitution, not by CI.
+- **Unblock:** 2026-08-12 REASSESSED — the Mac mini and local simulator now exist, and the full Omen XCTest suite passes 108/108 on Xcode 26.6. That clears the former hardware dependency but does not manufacture the missing per-state render/accessibility evidence or exact Xcode 16.2 substitution required by the current Done authority; the remaining blocker is therefore agent-resolvable evidence work rather than `TASK-R3-BUILD-iOS`.
 - **Priority:** P1
 - **Cost:** medium
-- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete but require the separate macOS CI gate.
+- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete, and the remaining iOS gap is item-specific render/accessibility evidence on the now-available Mac rather than a missing macOS environment.
 - **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
 
 ## B. Backend / recommendation lane
@@ -617,6 +619,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Blocked by:** TASK-O1b — needs an error-tracking backend before symbols have anywhere to land
 - **Blocked by:** TASK-R3-BUILD-iOS — iOS symbolication specifically; the Android half is not gated on it
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped prose blocker into typed lines per `Direction/status-model.md`. No dependency was added or removed.
+- **Unblock:** 2026-08-12 REASSESSED — the local Mac/device development-signing prerequisite is now satisfied, but this blocker stands: no archive/dSYM upload or deliberate native crash was performed, `TASK-O1b` is still open, and `R3-BUILD-iOS` has not reached TestFlight.
 - **Priority:** **P0 — hard Phase 3 gate, and the single largest blind spot in the whole system**
 - **Cost:** medium
 - **Agent-buildable:** yes

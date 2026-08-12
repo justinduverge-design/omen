@@ -5,6 +5,8 @@
 
 **Companions:** `omen-native-app-shell-auth-api-contract-v1.md` (M0c), `omen-mobile-onboarding-connection-contract-v1.md` (M0a). Android reference: `Blueprints/handoffs/2026-07-19-m3a-native-auth-scaffolding.md`, commit on `codex/m3a-native-auth-proof`.
 
+> **Environment update — 2026-08-12:** the former compile/device-environment blocker is cleared. The existing project builds and launches on a registered physical iPhone, and the simulator suite passes 108/108 on Xcode 26.6. This is environment/build proof only: no entitlement was added and Sign in with Apple, passkeys, Associated Domains, email OTP, session restore, account deletion, and log safety were not interactively proven by this bring-up. The acceptance and boundaries below remain open where they require those behaviors or exact release-CI evidence.
+
 ## Prereqs already done (founder)
 - Apple Developer Team `6RWR5G9894`; App ID `com.slopssaloon.omen` with **Sign in with Apple** capability enabled.
 - Supabase Apple provider configured with both Omen client IDs.

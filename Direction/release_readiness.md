@@ -1,7 +1,7 @@
 # Omen Release Readiness
 
-Last updated: **2026-08-05** (mobile-primary reconciliation).
-Previous update was 2026-07-19 — 14 merged PRs stale.
+Last updated: **2026-08-12** (first local Mac/Xcode signed-device bring-up).
+Previous full reconciliation was 2026-08-05.
 
 **Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android
 Kotlin/Compose) that also has a web app. The web app is secondary and is **not**
@@ -23,8 +23,10 @@ is the only canonical recommendation route; `POST /api/optimizer/mvp-move` remai
 Backend is deployed on KVM1 and healthy. The native apps are the gating surface.
 
 Posture is **pre-beta**: backend feature work is essentially complete but
-provider-unproven; native work is close but unverified on real devices; **store
-provisioning has not started and is now the critical path.**
+provider-unproven. The iOS app record and local development-signing path now
+exist, and the existing app has launched on one registered physical iPhone.
+Distribution/archive/TestFlight, native auth/capability proof, broader device
+QA, and the Android store path remain open.
 
 ---
 
@@ -78,6 +80,8 @@ provisioning has not started and is now the critical path.**
 - Android: 88 Kotlin files — designsystem, auth, session, app
 - Supabase auth providers confirmed enabled (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys. All others disabled.
 - Discord OAuth merged on both platforms (#198)
+- **Local iOS development path verified 2026-08-12:** Mac mini with Xcode 26.6 (`17F113`); existing `OmenIOS.xcodeproj`; Automatic Signing under team `6RWR5G9894`; bundle ID unchanged at `com.slopssaloon.omen`; registered `iPhone15,4`; physical-device build, install, and launch succeeded. The iPhone 16 simulator suite passed **108/108** with command-line signing disabled. Xcode 26.6 does not match the Definition-of-Done row's Xcode 16.2 pin, so this is local regression evidence, not exact CI-toolchain equivalence.
+- Local client configuration is supplied through git-ignored `Config/Local.xcconfig`; no value is recorded here. No entitlement/capability, archive, distribution upload, TestFlight, or native-auth success is implied.
 
 ---
 
@@ -92,11 +96,11 @@ provisioning has not started and is now the critical path.**
 
 ## Required Before Beta
 
-### Store and release — **critical path, not started**
+### Store and release — **critical path, underway**
 
-1. **Verify App Store Connect is operable during the Valor Ventures account transfer.** Can an app record be created and a build uploaded right now? Transfers can restrict App Store Connect. **Check this first.**
-2. App records: App Store Connect + Google Play Console
-3. Signing: iOS distribution cert + provisioning profile; Android upload key + Play App Signing
+1. **App Store Connect operability:** app-record creation is verified; build upload remains untested.
+2. App records: iOS exists; Google Play organization verification/app record remain open.
+3. Signing: local iOS Apple Development signing and device provisioning work; iOS distribution/archive/upload and Android upload key + Play App Signing remain open.
 4. Apple privacy nutrition labels + Google Data Safety form
 5. **Age rating / gambling questionnaire** — fantasy sports triggers Apple's gambling review path. Use `Direction/reviews/2026-07-12-store-metadata-privacy-gambling-copy-audit.md`.
 6. TestFlight internal + Play internal testing tracks (≤100 testers each, **no review required** — keeps Beta App Review off the critical path)
