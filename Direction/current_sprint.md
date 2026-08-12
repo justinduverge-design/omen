@@ -529,6 +529,30 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** the `openclaw.slopssaloon.com` vhost no longer serves publicly, its Certbot renewal is removed so no cert renews for a dead name, the `127.0.0.1:3200` upstream is confirmed stopped, DNS for the subdomain is retired, and KVM2's remaining public 80/443 listeners are inventoried and shown to be either intended or also removed. Record before/after listener state.
 - **Do not touch:** do not disable Nginx wholesale or alter other KVM2 configuration as part of Omen work — the Pi tracker explicitly warns against this. Retire this one vhost, not the web server. Agents investigate read-only and produce the plan; the founder runs it.
 
+### S8 — Triage the standing Dependabot queue
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** **P1 — one open PR sits on a hard-failure rule** (see below); the rest are P2 hygiene
+- **Cost:** small per PR, medium for the batch
+- **Agent-buildable:** yes for triage, analysis, and the written verdict. **Merging is founder-only.**
+- **Source:** six Dependabot PRs open as of 2026-08-11 (#282, #281, #280, #277, #274, #273), four of them red. Nothing in this sprint has ever covered dependency-PR triage, which is why they accumulated. `.github/dependabot.yml` runs **weekly, Mondays 09:00 America/New_York** across four ecosystems (root npm, frontend npm, github-actions, Android Gradle) — so **closing a PR is not a decision, it is a six-day delay.** The only durable levers are `ignore` rules or `open-pull-requests-limit`.
+- **Why red matters more than open.** Per `Direction/agent_inbox.md`, two dependency PRs previously reached green and **would still have broken production** — #206 (`express` 4→5) passed 481/481 and would have crash-looped prod, because the bare-`*` SPA fallback throws under `path-to-regexp` 8 and sits behind `HAS_SPA`, which is false in CI and true in the production image. A red dependency PR on this repo is the gate working. Do not bulk-close.
+- **#281 is the one with a standing rule attached.** `production-dependencies`, currently failing. `dependency-health.yml:28` runs `npm audit --omit=dev --audit-level=low`, and the 2026-07-26 decision makes **production dependency advisories a hard failure at every severity**. Triage this one first and on its own.
+- **Receipts are required.** The same 2026-07-26 decision: dependency-changing PRs must identify purpose, scope, license/source, production audit result, and rollback. A merged bump with no receipt is not done.
+- **Unblock:** 2026-08-11 CLEARED — triaged. **Root cause of the red was a single advisory on `main`, not the PRs.** `nanoid <3.3.17` (high, **frontend dev-dependency only**) failed `dependency-health.yml:65` (`npm --prefix frontend audit --audit-level=low`), so every PR running that check went red regardless of content — including #281, a root/backend PR that never touches `frontend/`. Fixed by `npm --prefix frontend audit fix` → `nanoid 3.3.16 → 3.3.18`, 12 insertions / 3 deletions, frontend build green (vite 7.3.6, 563 modules). Root audit was already clean at 0 vulnerabilities, prod and dev.
+- **Verdicts recorded 2026-08-11:**
+  - **#281** production-dependencies (supabase-js, upstash/redis, express-rate-limit — all patch) → **MERGE** after rebase
+  - **#273** frontend-runtime (`@sentry/react` 10.68→10.69, `supabase-js` 2.110.8→2.112.2, both minor) → **MERGE** after rebase
+  - **#274** development-tooling (`impeccable` 3.4→3.5, dev-only) → **MERGE** after rebase
+  - **#282** android-dependencies + gradle wrapper → **MERGE**
+  - **#277** `actions/upload-artifact` v4→v7 → **READ FIRST.** Three majors, but used in exactly one workflow (`native-visual-evidence.yml`) with no production dependency
+  - **#280** frontend-tooling → **DO NOT MERGE.** Carries `tailwindcss` 3.4.17→**4.3.3** and `vite` 7→**8**. Tailwind v4 removes the JS config format (`frontend/tailwind.config.js` exists) and replaces the `@tailwind` directives (`frontend/src/index.css` has three). It would break the build. Now covered by `ignore` rules in `.github/dependabot.yml`, so Dependabot closes it and stops reopening it
+- **Config defects fixed 2026-08-11:** `.github/dependabot.yml` referenced labels `dependencies`, `security`, and `android` — **none exist in this repository**, and GitHub rejected them on every PR with "The following labels could not be found." Removed. Added `ignore` rules for the `tailwindcss`, `vite`, and `@vitejs/plugin-react` majors, each with its reason inline. **Closing a Dependabot PR is not a decision — it reopens weekly. An `ignore` rule is the decision.**
+- **Skills:** `slops-code-review`, `slops-verify`, `security-privacy-evidence`
+- **Done when:** every open Dependabot PR carries a written verdict — merge, hold with a reason, or ignore-rule with a scope and expiry; #281 is resolved or its advisory is explicitly accepted in writing; each red PR's failure is diagnosed as *real breakage* or *flake* rather than closed unread; and if the queue is to stay small, `dependabot.yml` is amended with `ignore` rules or limits rather than relying on manual closing.
+- **Do not touch:** merging to `main` — founder-only, never delegated. Do not close a red PR without recording why it was red. Do not raise `--audit-level` or add `--omit=dev` to a gate to make a failure disappear.
+
 ### S7 — Retire stale OpenAI runtime dependencies
 
 - **Status:** READY
