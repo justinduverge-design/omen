@@ -46,3 +46,8 @@ mobile/android/**/build/
 mobile/ios/**/DerivedData/
 mobile/ios/**/.swiftpm/
 mobile/ios/**/Config/Local.xcconfig
+# Xcode regenerates this self-only manifest when a project opens. Keep any future
+# shared workspace metadata (for example SwiftPM resolution) visible to Git.
+mobile/ios/**/*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+# Per-user IDE state (window layout, breakpoints). Leaks local usernames/paths and churns.
+**/xcuserdata/

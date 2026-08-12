@@ -6,8 +6,16 @@
 // analog of Android's `local.properties`. Never put a secret (service-role key, OAuth client
 // secret, etc.) in either file: only a public API base URL and a public Supabase URL/anon key
 // ever belong here.
+//
+// URL SYNTAX — READ BEFORE EDITING A URL HERE. In xcconfig, `//` begins a comment, so a bare
+// `https://host` silently truncates to `https:`. The older `https:$()//host` workaround no
+// longer works: Xcode 26 strips comments *before* expanding `$()`, so it also yields `https:`.
+// Use the `$(OMEN_SLASH)` indirection below, which expands correctly. Verified on Xcode 26.6.
+// The truncation is silent — it reaches `Info.plist` and ships in the build.
 
-OMEN_API_BASE_URL = https:$()//example.invalid
+OMEN_SLASH = /
+
+OMEN_API_BASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)example.invalid
 OMEN_SUPABASE_URL =
 OMEN_SUPABASE_ANON_KEY =
 

@@ -137,7 +137,7 @@ E1 and E2 are merged on `main` as PRs #265/#266. E3 was provider-proven on 2026-
 - `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
 - Official Figma: `https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3`
 
-Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC v1/v1.1, M4-Omen-Screen) is **complete**. Remaining native work is either Figma-gated or iOS-CI-gated.
+Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC v1/v1.1, M4-Omen-Screen) is **complete**. The Mac/Xcode hardware gate cleared 2026-08-12; remaining native work is Figma-, local device/accessibility evidence-, provider-, or release-gated.
 
 ## Founder actions available now
 
@@ -151,7 +151,7 @@ Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC
 - **GitHub Actions billing** — see the standing constraint above.
 - **Tuesday scoring:** production flag stays false until an approved no-write dry-run and explicit production-change approval.
 - **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
-- **M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals do not exist yet — founder-gated. **M4-CC-WaiverWatch** is locally verified on `codex/m4-cc-waiver-watch` and awaits only its normal push/PR plus macOS iOS-CI gate.
+- **M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals are approved (nodes `72:2` / `73:2`); use their current sprint records for execution scope. **M4-CC-WaiverWatch** is merged as PR #271; its former macOS hardware blocker is cleared, while its own six-state iOS render/accessibility evidence remains agent-resolvable.
 - **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass.
 - **M3A-QA:** founder/human credential + inbox access. Agents may prep the matrix only.
 - **B2-D live provider data:** provider-specific capability proof required before claiming live advice.

@@ -21,6 +21,13 @@
 - Evidence required after M2: a macOS simulator build/test receipt tied to the branch, with code signing disabled and no Apple/store credentials.
 - Residual limitation: this Windows workstation cannot run Xcode, an iOS simulator, or a signed build on an iPhone. Store signing, TestFlight, App Store submission, and real-iPhone validation remain separately gated.
 
+### iOS local-Mac addendum — 2026-08-12
+
+- The founder later chose the purchase path recorded in `R3-BUILD-iOS`; the Mac mini is now the trusted routine iOS development host. This supersedes the non-purchase path for day-to-day local work without rewriting the historical Windows decision above.
+- Verified locally with Xcode 26.6 (`17F113`): the existing `mobile/ios/OmenIOS/OmenIOS.xcodeproj` builds, Automatic Signing resolves team `6RWR5G9894` and bundle ID `com.slopssaloon.omen`, and Omen builds, installs, and launches on a registered physical `iPhone15,4`.
+- The iPhone 16 simulator suite passes 108/108 with signing disabled. This is not exact toolchain equivalence to release CI, which remains pinned to Xcode 16.2; record the local Xcode version with every result and do not relabel a local 26.6 run as 16.2 CI evidence.
+- This addendum proves a development build path only. It does not prove archive/export, distribution signing, TestFlight, Sign in with Apple, passkeys, Associated Domains, or any entitlement/capability path.
+
 ## Scope boundary
 
 - This decision installs and verifies tooling only. It does not create `mobile/`, native source, a Gradle project, an Xcode project, CI workflow, secrets, store accounts, API/provider behavior, or production configuration.

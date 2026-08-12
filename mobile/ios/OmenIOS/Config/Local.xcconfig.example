@@ -4,7 +4,20 @@
 // OMEN_SUPABASE_URL and OMEN_SUPABASE_ANON_KEY are the public Supabase project URL and anon
 // key (safe to ship in a client build — Supabase RLS enforces access control server-side).
 // Never put a service-role key or any other secret here.
+//
+// URL SYNTAX — READ BEFORE PASTING A URL. In xcconfig, `//` begins a comment, so a bare
+// `https://host` silently truncates to `https:`. The older `https:$()//host` workaround no
+// longer works: Xcode 26 strips comments *before* expanding `$()`, so it also yields `https:`.
+// Use `$(OMEN_SLASH)$(OMEN_SLASH)` as below — `OMEN_SLASH` is defined in `Base.xcconfig`,
+// which includes this file. Verified on Xcode 26.6. The truncation is silent: a bad value
+// reaches `Info.plist` and ships in the build without any warning. The anon key needs no
+// escaping — only URLs do.
+//
+// To verify after editing, without printing secrets to the terminal:
+//   xcodebuild -project mobile/ios/OmenIOS/OmenIOS.xcodeproj -scheme OmenIOS \
+//     -showBuildSettings | grep OMEN_ | awk '{print $1, length($3)}'
+// A length of 6 means the value truncated to `https:`.
 
-OMEN_API_BASE_URL = https:$()//your-local-or-staging-api.example.com
-OMEN_SUPABASE_URL = https:$()//your-project.supabase.co
+OMEN_API_BASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)your-local-or-staging-api.example.com
+OMEN_SUPABASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)your-project.supabase.co
 OMEN_SUPABASE_ANON_KEY = your-public-anon-key
