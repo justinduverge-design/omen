@@ -553,7 +553,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** every open Dependabot PR carries a written verdict — merge, hold with a reason, or ignore-rule with a scope and expiry; #281 is resolved or its advisory is explicitly accepted in writing; each red PR's failure is diagnosed as *real breakage* or *flake* rather than closed unread; and if the queue is to stay small, `dependabot.yml` is amended with `ignore` rules or limits rather than relying on manual closing.
 - **Do not touch:** merging to `main` — founder-only, never delegated. Do not close a red PR without recording why it was red. Do not raise `--audit-level` or add `--omit=dev` to a gate to make a failure disappear.
 
-### S7 — Retire stale OpenAI runtime dependencies
+### S7 — Retire stale cloud-AI runtime dependencies (OpenAI **and Anthropic**)
 
 - **Status:** READY
 - **Blocked by:** None
@@ -561,7 +561,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Cost:** small
 - **Agent-buildable:** yes
 - **Source:** open audit item from the Pi deployment tracker. Live `/api/ready` reports `provider=local, model=gemma3:4b, transport=openai_compatible_chat_completions, private_route_required=true`. **`openai_compatible_chat_completions` describes the wire protocol, not the vendor** — the proven route points at private KVM2/Ollama. But the naming is readable as "Omen sends data to OpenAI," which contradicts the Privacy Notice statement that Omen does not send user or fantasy-platform data to a cloud AI provider.
-- **Done when:** source and configuration are searched for stale OpenAI-specific dependencies, keys, fallback paths, or environment variables; production config is confirmed to require no OpenAI credential; intentionally-generic protocol naming is documented so it cannot be misread as vendor use.
+- **Scope widened 2026-08-11 — `@anthropic-ai/sdk` is the same defect.** Found while triaging Dependabot #287 (`0.115.0 → 0.116.0`). It is declared in root `package.json:15` as a **production** dependency and **imported nowhere in the codebase** — the only non-package matches are in gitignored `graphify-out/` artifacts. Residue remains at `src/config/index.js:64-65` (`anthropicApiKey: process.env.ANTHROPIC_API_KEY`) and a stale comment at `src/omen_prompt_loader.js:7` referring to "the Anthropic API." Same risk shape as the OpenAI naming above: a cloud-AI vendor SDK shipping in the production dependency tree contradicts the Privacy Notice claim that Omen sends no user or fantasy-platform data to a cloud AI provider. It also means Dependabot will keep opening bumps for a package nothing calls.
+- **Done when:** source and configuration are searched for stale OpenAI- **and Anthropic**-specific dependencies, keys, fallback paths, or environment variables; `@anthropic-ai/sdk` is removed from `package.json` or its live use is documented; the `ANTHROPIC_API_KEY` config slot and the `omen_prompt_loader.js` comment are removed or corrected; production config is confirmed to require no cloud-AI credential of any vendor; intentionally-generic protocol naming is documented so it cannot be misread as vendor use.
 - **Do not touch:** the working private Ollama route; secret values.
 
 ### S5 — Mobile token storage review
