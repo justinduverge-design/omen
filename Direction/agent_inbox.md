@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-07-30 — migrated to the status model. Reconciled against `main` @ `90f6376`, the GitHub PR record, and local verification. Handoffs are pointers, not standalone proof.
+**Refreshed:** 2026-08-11 — reselected after a live-production verification pass. Reconciled against `main`, the GitHub PR record, and authenticated calls to `slopssaloon.com`. Handoffs are pointers, not standalone proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
 ## ✅ Resolved 2026-08-01 — CI works; the "billing hold" diagnosis was wrong
@@ -19,7 +19,7 @@
 - **Green CI is necessary, not sufficient.** #206 (`express` 4→5) passed 481/481 and would still have crash-looped production: the bare-`*` SPA fallback throws under path-to-regexp 8, and it sits behind `HAS_SPA`, which is false in CI and true in the production image. Fixed in #251; the `boot-smoke` job now covers that class.
 - **Branch protection is still unavailable** on the current GitHub plan (`/branches/main/protection` → 403). Merges are not mechanically blocked by a red check — but treat red as a stop, not as cosmetic. Two dependency PRs reached "green" and would have broken production; the checks are the only thing standing in for branch protection.
 - **Local `npm test` remains good fast proof for backend work.** `node --test`, ~7s, no build step. Record the count.
-- **Native iOS has no local substitute** on the Windows dev machine — but `ios-ci.yml` now runs on PRs targeting `main`, so it is CI-verifiable again.
+- **Native iOS — superseded 2026-08-11.** `ios-ci.yml` no longer runs per-PR; it triggers on `release/**` and manual dispatch only. Routine iOS verification moved to the founder's Mac. Use the `SUBSTITUTED` `xcodebuild test` command in `Blueprints/definition-of-done.md` → "Local substitutes" and record `xcodebuild -version` beside the result. "iOS CI green" is not a citable evidence line outside a release branch.
 ## ✅ RETRACTED 2026-08-01 — the "GitHub Actions billing hold" never existed
 
 This section previously stated the Actions allotment was exhausted, that no workflow could run, and that **"failing checks are cosmetic."** All three were wrong. Actions executed throughout. Two config bugs produced the red, both fixed in PR #250:
@@ -36,51 +36,53 @@ This section previously stated the Actions allotment was exhausted, that no work
 - **Green is necessary, not sufficient.** #206 (`express` 4→5) passed 481/481 and would still have crash-looped production: path-to-regexp 8 rejects the bare-`*` SPA fallback at registration, and that route sits behind `HAS_SPA` — false in CI, true in the production image. Fixed in #251; `boot-smoke` now covers that class.
 - **Branch protection is still unavailable** on this plan (`/branches/main/protection` → 403), so a red check does not mechanically block a merge. **Treat red as a stop anyway.** With no branch protection, the checks are the only gate there is — "cosmetic" is the word that let two production-breaking dependency PRs reach green.
 - **Local `npm test` remains good fast proof** for backend work. `node --test`, ~7s. Record the count.
-- **Native iOS has no local substitute** on the Windows dev box — but `ios-ci.yml` runs on PRs targeting `main` again, so it is CI-verifiable.
+- **Native iOS — superseded 2026-08-11.** See the note above: per-PR iOS CI is retired; verify locally on the Mac and cite that instead.
 
 ## How to verify before pulling
 
 Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## Selected Queue — 2026-07-30
+## Selected Queue — 2026-08-11
 
-**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). No founder pin is set and no task holds a valid `Claim:`, so selection began at effective priority.
+**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). No founder pin is set and no task holds a valid `Claim:`.
 
-> **Read this before pulling.** All 13 active tasks currently carry a non-`None` `Blocked by:` line. Per the pull rule, an agent stops and surfaces the block rather than skipping ahead. The four items below marked *progress-now* have an `AGENT_RESOLVABLE` component that can advance today; the rest need founder or external action first.
+> **What changed today.** A live-production verification pass against `slopssaloon.com` found four defects that existed in the product but not in this queue. They are now the top of it. Unlike the 2026-07-30 selection — where every item was founder- or externally-blocked — **the first four items below are unblocked agent work that can start immediately.** The founder is waiting only on Google Play organization review (`R2-Android`, `EXTERNAL`).
 
-### 1. B2-D — Complete the canonical Omen engine — VERIFIED 2026-08-02
+> **Provider truth as of 2026-08-11, verified live:** ESPN connected (1 league), Sleeper connected (1 league, *Omen App Data*), Yahoo connected with a **live token** after new credentials were installed on KVM1. `waiver_wire` still reports `needs_platform` and `omen_of_the_week` reports `off_season` — the first is item 1 below, the second is correct August behavior.
 
-- **Evidence:** current `main` contains the selected-context, waiver, selector, Sleeper trade, ESPN adapter, and ESPN canonical-wiring commits; `Direction/current_sprint.md` and the capability contract carry the exact evidence pointers.
-- **Boundary:** merged-code, fixture, and sanitized provider proof only. This is not a deployment, production-route, or public all-platform-live claim.
+### 1. P1-YahooLeagueBinding — Yahoo can never reach `ready`
 
-### 2. A4 — Tuesday scoring production enablement
+- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Why first:** **P0, root cause, and provably reproducible.** `src/services/yahooAuth.js:71` writes `league_id: "yahoo"` when no league is supplied; `hasUsableLeagueId()` rejects any row where `league_id === platform`. The writer stores a value the reader is guaranteed to refuse. No caller ever supplies a league, and there is no leagues endpoint or picker to repair it. This — not the token, not the buttons — is why Yahoo has never worked. Blocks F7, which blocks Section K.
+- **Boundary:** fix the writer, not `hasUsableLeagueId()`. Loosening the predicate to accept `"yahoo"` would make an unusable connection report ready.
 
-- **Status:** READY · **Claim:** unclaimed
+### 2. P1-WaiverGateMultiProvider — waiver readiness is hardcoded to Yahoo
+
+- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Why next:** P0 and *it buries shipped work*. `src/routes/dashboard.js:213-226` computes waiver availability from `usableYahoo` alone, so the merged-and-VERIFIED ESPN (#266) and Sleeper (#259) waiver paths are unreachable from the dashboard. Highest ratio of value recovered to lines changed in the queue.
+- **Boundary:** `isOmenReadyConnection()` is already correct and already used by `omen_of_the_week`. This is a gate bug, not a predicate bug.
+
+### 3. P1-YahooConnectButtons — two dead Connect buttons + a lossy error path
+
+- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Why next:** P0. `PlatformConnections.jsx:369` and `WaiverWire.jsx:60` navigate to an auth-required GET, which cannot carry a bearer token — the founder reproduced this by hand. `startYahooOAuth()` is the working reference implementation; point both at it. Also log Yahoo's `providerError` before `yahoo.js:118` discards it: today that swallowed an `invalid redirect uri` and cost an hour of misdiagnosis.
+- **Also in scope:** `/api/platforms` and `/api/dashboard/summary` currently give contradictory answers about the same connection.
+
+### 4. P1-DraftAssistantSideline — remove Draft Assistant from the 1.0 surface
+
+- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Why next:** P1, founder-decided 2026-08-11, and it is currently shipping to every visitor. Legal copy in `Privacy.jsx` and `Terms.jsx` describes a feature that will not exist in 1.0.
+- **Boundary:** **preserve the implementation.** 2027 ships it on a Slops-built ADP; `adp.js`, `sleeperDraft.js`, and `sleeperDraftAccess.js` are that head start. Remove the reachable surface only.
+
+### 5. A4 — Tuesday scoring production enablement
+
+- **Status:** BLOCKED · **Claim:** unclaimed
 - **Blocked by:** FOUNDER_APPROVAL — production-change pin for the environment flip
-- **Blocked by:** AGENT_RESOLVABLE — approved no-write Supabase dry-run against real nflverse data
-- **Why next:** P0. The dry-run preparation and verification half is agent work — *progress-now*. The env flip stays gated.
-- **Do not touch:** the production flag before approval.
+- **Blocked by:** EXTERNAL — nflverse issue #263
+- **Blocked by:** TASK-A5 — fallback source decision
+- **Why listed:** P0 and season-relevant, but see the note below — **the fix may already be written.**
 
-### 3. A3 — Production security and Supabase review
-
-- **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** FOUNDER_APPROVAL — Justin pin and access window
-- **Why next:** P0, but audit-preparation only until the pin and access window exist.
-- **Do not touch:** secret values, production database, DNS, Nginx, TLS, environment variables.
-
-### 4. M3A-QA — Native auth interactive real-device QA
-
-- **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** FOUNDER_APPROVAL — founder/human credential and inbox access
-- **Why next:** P0, but the remaining work is human/device evidence, not an agent implementation lane. Agents may prep the matrix only.
-- **Output:** sanitized QA matrix; never real credentials in agent logs or screenshots.
-
-### 5. M4-Help-Support-Implementation — remaining QA evidence
-
-- **Status:** READY · **Claim:** unclaimed
-- **Blocked by:** AGENT_RESOLVABLE — iOS unsigned CI runs again as of #250; the remaining gap is accessibility/visual evidence, not CI
-- **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
-- **Why next:** highest P1 with an agent-resolvable component — *progress-now*. Implementation merged via PR #229, but the task's own `Done when:` requires accessibility and visual evidence that has not been produced. **Not VERIFIED**; a merged PR does not close it.
+> **Check `codex/a4-preseason-deferral` before starting A4.** That branch holds unmerged *code* (`src/omen_tuesday_cron.js` +48/−11, plus two tests) adding a `NFLVERSE_SEASON_UNAVAILABLE` path that defers on a 404 for a current-season file instead of recording a failed move. `origin/main` has no such handling, and the condition is live right now. Verified 2026-08-11 across a full 177-branch patch-id triage: this was the **only** branch holding unmerged work that matters.
 
 ## Planning intake — pending planning-pass
 
