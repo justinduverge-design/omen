@@ -6,6 +6,7 @@ import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { supabase } from '../lib/supabase.js';
+import { startYahooOAuth } from '../lib/yahooAuth.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
@@ -47,6 +48,20 @@ function PlayerRow({ rank, player }) {
 }
 
 function TokenExpiredState() {
+  const [reconnecting, setReconnecting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleReconnect() {
+    setError(null);
+    setReconnecting(true);
+    try {
+      await startYahooOAuth();
+    } catch (err) {
+      setError(err.message || 'Could not reconnect Yahoo. Try again.');
+      setReconnecting(false);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)] p-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
@@ -55,12 +70,16 @@ function TokenExpiredState() {
         Reconnect your Yahoo account to restore your live waiver rankings.
       </p>
       <button
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20"
+        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20 disabled:cursor-not-allowed disabled:opacity-50"
         type="button"
-        onClick={() => { window.location.href = '/api/yahoo/auth'; }}
+        disabled={reconnecting}
+        onClick={handleReconnect}
       >
-        Reconnect Yahoo →
+        {reconnecting ? 'Reconnecting…' : 'Reconnect Yahoo →'}
       </button>
+      {error && (
+        <p className="mt-3 text-xs text-red-300" role="alert">{error}</p>
+      )}
     </div>
   );
 }
