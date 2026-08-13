@@ -345,9 +345,9 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed Sleeper users w
     status: "ready",
   });
   assert.deepEqual(res.body.tools.waiver_wire, {
-    available: false,
+    available: true,
     mode: "free",
-    status: "needs_platform",
+    status: "ready",
   });
 });
 
@@ -450,6 +450,11 @@ test("GET /api/dashboard/summary marks Omen ready for subscribed ESPN users with
 
   assert.equal(res.status, 200);
   assert.deepEqual(res.body.tools.omen_of_the_week, {
+    available: true,
+    mode: "free",
+    status: "ready",
+  });
+  assert.deepEqual(res.body.tools.waiver_wire, {
     available: true,
     mode: "free",
     status: "ready",

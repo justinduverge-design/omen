@@ -6,7 +6,7 @@ const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
 const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
-const { getOmenReadiness } = require("../services/omenReadiness");
+const { getOmenReadiness, isOmenReadyConnection } = require("../services/omenReadiness");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -215,14 +215,12 @@ function buildOmenTool({ rows = [], offSeason = false } = {}) {
 }
 
 function buildWaiverTool({ rows = [] }) {
-  const usableYahoo = rows.find((row) =>
-    hasUsableYahooToken(row) && hasUsableLeagueId(row)
-  );
+  const activeRows = rows.filter((row) => row?.is_active);
+  const ready = activeRows.some((row) => isOmenReadyConnection(row));
 
-  if (!usableYahoo) {
-    return { available: false, mode: "free", status: "needs_platform" };
-  }
-  return { available: true, mode: "free", status: "ready" };
+  return ready
+    ? { available: true, mode: "free", status: "ready" }
+    : { available: false, mode: "free", status: "needs_platform" };
 }
 
 async function getPlatformRows(userId) {
