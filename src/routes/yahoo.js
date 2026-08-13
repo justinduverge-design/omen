@@ -154,4 +154,47 @@ router.get("/roster", requireAuth, async (req, res, next) => {
   }
 });
 
+router.get("/leagues", requireAuth, async (req, res, next) => {
+  try {
+    const { client } = await getAuthenticatedYahooClient(req.user.id);
+    const leagues = await client.getUserLeagues();
+    res.json({ leagues });
+  } catch (e) {
+    if (e.message === "yahoo_token_expired") {
+      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
+    }
+    next(e);
+  }
+});
+
+router.post("/league", requireAuth, async (req, res, next) => {
+  try {
+    const leagueId = req.body?.leagueId || req.body?.league_id || null;
+    if (!leagueId) {
+      return res.status(400).json({ error: "leagueId is required" });
+    }
+
+    const { client } = await getAuthenticatedYahooClient(req.user.id);
+    const leagues = await client.getUserLeagues();
+    const match = leagues.find((league) => league.league_id === leagueId);
+    if (!match) {
+      return res.status(400).json({ error: "leagueId is not one of your Yahoo leagues" });
+    }
+
+    const { error } = await supabase.from("platform_connections").update({
+      league_id: match.league_id,
+      updated_at: new Date().toISOString(),
+    }).eq("user_id", req.user.id).eq("platform", "yahoo");
+
+    if (error) throw new Error(`Yahoo league bind failed: ${error.message}`);
+
+    return res.json({ league_id: match.league_id });
+  } catch (e) {
+    if (e.message === "yahoo_token_expired") {
+      return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
+    }
+    next(e);
+  }
+});
+
 module.exports = router;

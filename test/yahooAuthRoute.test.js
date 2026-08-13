@@ -23,6 +23,24 @@ function makeSupabase(state) {
       },
     },
     from(table) {
+      if (table === "platform_connections") {
+        return {
+          update(payload) {
+            const query = {
+              filters: [],
+              eq(field, value) {
+                this.filters.push({ field, value });
+                return this;
+              },
+              then(resolve, reject) {
+                state.updates.push({ payload, filters: this.filters });
+                return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+              },
+            };
+            return query;
+          },
+        };
+      }
       assert.equal(table, "oauth_state");
       return {
         upsert(payload) {
@@ -68,7 +86,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooRouter({ oauthRows = [] } = {}) {
+function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient } = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
@@ -79,6 +97,7 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
     upserts: [],
     oauthRows: oauthRows.map((row) => ({ ...row })),
     deletes: [],
+    updates: [],
     authUrlStates: [],
     exchanges: [],
     persists: [],
@@ -119,9 +138,9 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {
       return {
-        getAuthenticatedYahooClient: async () => {
+        getAuthenticatedYahooClient: getAuthenticatedYahooClient || (async () => {
           throw new Error("roster path not exercised in yahoo auth route tests");
-        },
+        }),
         persistYahooTokens: async (userId, tokens, leagueId) => {
           state.persists.push({ userId, tokens, leagueId });
         },
@@ -373,4 +392,129 @@ test("GET /api/yahoo/callback rejects invalid, expired, and duplicate native sta
   }
   assert.equal(expired.state.exchanges.length, 0);
   assert.equal(expired.state.persists.length, 0);
+});
+
+test("GET /api/yahoo/leagues rejects missing authorization", async () => {
+  const { app } = buildApp();
+  const res = await request(app, "/api/yahoo/leagues");
+
+  assert.equal(res.status, 401);
+  assert.equal(res.body.error, "Missing bearer token");
+});
+
+test("GET /api/yahoo/leagues returns the authenticated user's Yahoo leagues", async () => {
+  const { app } = buildApp({
+    getAuthenticatedYahooClient: async (userId) => {
+      assert.equal(userId, "test-slops-user");
+      return {
+        client: {
+          getUserLeagues: async () => [
+            { league_id: "449.l.123", name: "Legends League", season: 2026 },
+          ],
+        },
+      };
+    },
+  });
+
+  const res = await request(app, "/api/yahoo/leagues", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, {
+    leagues: [{ league_id: "449.l.123", name: "Legends League", season: 2026 }],
+  });
+});
+
+test("GET /api/yahoo/leagues returns 404 when there is no Yahoo connection", async () => {
+  const { app } = buildApp({
+    getAuthenticatedYahooClient: async () => {
+      throw Object.assign(new Error("No Yahoo connection for this user"), { status: 404 });
+    },
+  });
+
+  const res = await request(app, "/api/yahoo/leagues", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 404);
+  assert.equal(res.body.error, "No Yahoo connection for this user");
+});
+
+test("POST /api/yahoo/league requires a leagueId", async () => {
+  const { app, state } = buildApp();
+  const res = await request(app, "/api/yahoo/league", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: {},
+  });
+
+  assert.equal(res.status, 400);
+  assert.equal(state.updates.length, 0);
+});
+
+test("POST /api/yahoo/league binds a real Yahoo league and persists it", async () => {
+  const { app, state } = buildApp({
+    getAuthenticatedYahooClient: async () => ({
+      client: {
+        getUserLeagues: async () => [
+          { league_id: "449.l.123", name: "Legends League", season: 2026 },
+          { league_id: "449.l.456", name: "Dynasty Dudes", season: 2026 },
+        ],
+      },
+    }),
+  });
+
+  const res = await request(app, "/api/yahoo/league", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: { leagueId: "449.l.456" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { league_id: "449.l.456" });
+  assert.equal(state.updates.length, 1);
+  assert.equal(state.updates[0].payload.league_id, "449.l.456");
+  assert.deepEqual(state.updates[0].filters, [
+    { field: "user_id", value: "test-slops-user" },
+    { field: "platform", value: "yahoo" },
+  ]);
+});
+
+test("POST /api/yahoo/league rejects a leagueId that isn't one of the user's Yahoo leagues", async () => {
+  const { app, state } = buildApp({
+    getAuthenticatedYahooClient: async () => ({
+      client: {
+        getUserLeagues: async () => [
+          { league_id: "449.l.123", name: "Legends League", season: 2026 },
+        ],
+      },
+    }),
+  });
+
+  const res = await request(app, "/api/yahoo/league", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: { leagueId: "someone-elses-league" },
+  });
+
+  assert.equal(res.status, 400);
+  assert.equal(state.updates.length, 0);
+});
+
+test("POST /api/yahoo/league returns 404 when there is no Yahoo connection", async () => {
+  const { app, state } = buildApp({
+    getAuthenticatedYahooClient: async () => {
+      throw Object.assign(new Error("No Yahoo connection for this user"), { status: 404 });
+    },
+  });
+
+  const res = await request(app, "/api/yahoo/league", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: { leagueId: "449.l.123" },
+  });
+
+  assert.equal(res.status, 404);
+  assert.equal(state.updates.length, 0);
 });

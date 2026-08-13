@@ -150,3 +150,17 @@ test("persistYahooTokens creates Vault secrets when no Yahoo connection exists",
   assert.equal(state.upserts[0].payload.token_secret_id, "yahoo_access_user-2-id");
   assert.equal(state.upserts[0].payload.refresh_secret_id, "yahoo_refresh_user-2-id");
 });
+
+test("persistYahooTokens never writes a null league_id (platform_connections.league_id is NOT NULL)", async () => {
+  const { service, state } = loadYahooAuth();
+
+  await service.persistYahooTokens("user-3", {
+    access_token: "access-token",
+    refresh_token: "refresh-token",
+    expires_in: 3600,
+  });
+
+  assert.equal(state.upserts.length, 1);
+  assert.notEqual(state.upserts[0].payload.league_id, null);
+  assert.equal(state.upserts[0].payload.league_id, "yahoo");
+});

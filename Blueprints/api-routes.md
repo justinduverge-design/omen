@@ -41,6 +41,8 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/platforms/sleeper/connect` | Sleeper connect response | Yes | Accepts selected `league_id`. Native callers may add an opaque bounded `request_id`; completed retries replay safely for 10 minutes, while replay-store failures fail closed. |
 | `GET` | `/api/yahoo/auth` | redirect | Yes | Yahoo OAuth start. |
 | `GET` | `/api/yahoo/callback` | redirect | No | Yahoo OAuth callback; redirects to Account connect. |
+| `GET` | `/api/yahoo/leagues` | `{leagues: [{league_id, name, season}]}` | Yes | Lists the authenticated user's current-season Yahoo NFL leagues via a live Yahoo API call. `league_id` is Yahoo's `league_key`, the same value every other Yahoo route expects. |
+| `POST` | `/api/yahoo/league` | `{league_id}` | Yes | Binds `leagueId` to the caller's Yahoo connection after validating it against a fresh `GET /api/yahoo/leagues` call; `400` if not one of the user's leagues, `404` if no Yahoo connection exists yet. Repairs an existing placeholder without disconnecting. |
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
 | `DELETE` | `/api/platforms/:platform` | disconnect response | Yes | Disconnects `yahoo`, `sleeper`, or `espn`. |
 | `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. |

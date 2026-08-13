@@ -354,6 +354,25 @@ test("GET /api/platforms returns UX contract with manual and selected league met
   });
 });
 
+test("GET /api/platforms treats the Yahoo league_id placeholder as no league selected", async () => {
+  const { app } = buildApp({
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "yahoo",
+        is_active: true,
+        token_secret_id: "yahoo-secret",
+        league_id: "yahoo",
+      },
+    ],
+  });
+  const res = await request(app, "/api/platforms");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.platforms.yahoo.status, "connected");
+  assert.deepEqual(res.body.platforms.yahoo.leagues, []);
+});
+
 test("GET /api/platforms/state returns safe machine-readable states from persisted connection context", async () => {
   const { app } = buildApp({
     rows: [
@@ -404,6 +423,30 @@ test("GET /api/platforms/state returns safe machine-readable states from persist
   });
   assert.equal(JSON.stringify(res.body).includes("espn-secret-id"), false);
   assert.equal(JSON.stringify(res.body).includes("swid-secret-id"), false);
+});
+
+test("GET /api/platforms/state reports choosing_league for the Yahoo league_id placeholder, not connected", async () => {
+  const { app } = buildApp({
+    rows: [
+      {
+        user_id: "test-slops-user",
+        platform: "yahoo",
+        is_active: true,
+        token_secret_id: "yahoo-secret",
+        league_id: "yahoo",
+      },
+    ],
+  });
+
+  const res = await request(app, "/api/platforms/state");
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.providers.yahoo, {
+    platform: "yahoo",
+    state: "choosing_league",
+    recovery_action: "choose_league",
+    error_code: "yahoo_league_context_missing",
+  });
 });
 
 test("GET /api/platforms/state reports not_started and resolving_account without inferring an HTTP error", async () => {

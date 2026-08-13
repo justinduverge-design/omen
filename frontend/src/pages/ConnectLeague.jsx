@@ -8,6 +8,7 @@ import {
   Button,
   Input,
   PlatformConnectionCard,
+  RadioCardGroup,
   SegmentedControl,
 } from '../components/ui/index.js';
 
@@ -221,9 +222,40 @@ function SleeperCard({ connected, connectedUsername, onRefresh, disabled }) {
 
 // ── Yahoo card ─────────────────────────────────────────────────────────────────
 
-function YahooCard({ connected, disabled, onRefresh }) {
+function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
+  const needsLeague = connected && leagues.length === 0;
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [leagueOptions, setLeagueOptions] = useState(null);
+  const [loadingLeagues, setLoadingLeagues] = useState(false);
+  const [selectedLeagueId, setSelectedLeagueId] = useState('');
+  const [binding, setBinding] = useState(false);
+
+  useEffect(() => {
+    if (!needsLeague) {
+      setLeagueOptions(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingLeagues(true);
+    setError('');
+    apiFetch('/api/yahoo/leagues')
+      .then((data) => {
+        if (cancelled) return;
+        const found = data?.leagues || [];
+        setLeagueOptions(found);
+        setSelectedLeagueId(found[0]?.league_id || '');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || 'Could not load your Yahoo leagues. Try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLeagues(false);
+      });
+    return () => { cancelled = true; };
+  }, [needsLeague]);
 
   async function handleDisconnect() {
     setError('');
@@ -233,6 +265,77 @@ function YahooCard({ connected, disabled, onRefresh }) {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  async function handleBindLeague() {
+    if (!selectedLeagueId) return;
+    setError('');
+    setBinding(true);
+    try {
+      await apiFetch('/api/yahoo/league', {
+        method: 'POST',
+        body: { leagueId: selectedLeagueId },
+      });
+      onRefresh();
+    } catch (err) {
+      setError(err.message || 'Could not connect that league. Try again.');
+      setBinding(false);
+    }
+  }
+
+  if (needsLeague) {
+    return (
+      <PlatformConnectionCard
+        platform="yahoo"
+        status={error ? 'error' : 'pending'}
+        title="Yahoo"
+        description="Choose which Yahoo league Omen should use."
+        primaryAction={(
+          <Button
+            size="lg"
+            disabled={disabled || !selectedLeagueId || !leagueOptions?.length}
+            loading={binding}
+            onClick={handleBindLeague}
+          >
+            Connect League
+          </Button>
+        )}
+        secondaryActions={[
+          <Button key="disconnect" variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
+            Disconnect
+          </Button>,
+        ]}
+        stepGuide={(
+          <>
+            {loadingLeagues && (
+              <p className="text-xs text-[var(--color-text-secondary)]">Looking up your Yahoo leagues…</p>
+            )}
+            {!loadingLeagues && leagueOptions?.length > 0 && (
+              <RadioCardGroup
+                aria-label="Select your Yahoo league"
+                value={selectedLeagueId}
+                onValueChange={setSelectedLeagueId}
+              >
+                {leagueOptions.map((league) => (
+                  <RadioCardGroup.Item
+                    key={league.league_id}
+                    value={league.league_id}
+                    title={league.name || `League ${league.league_id}`}
+                    description={league.season ? String(league.season) : undefined}
+                  />
+                ))}
+              </RadioCardGroup>
+            )}
+            {!loadingLeagues && leagueOptions && leagueOptions.length === 0 && (
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                No active Yahoo leagues found for this season.
+              </p>
+            )}
+            <ErrorMsg message={error} />
+          </>
+        )}
+      />
+    );
   }
 
   if (connected) {
@@ -631,6 +734,7 @@ export default function ConnectLeague() {
             />
             <YahooCard
               connected={platforms?.yahoo?.connected || false}
+              leagues={platforms?.yahoo?.leagues || []}
               disabled={loadingPlatforms}
               onRefresh={fetchPlatforms}
             />

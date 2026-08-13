@@ -14,6 +14,7 @@ const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const { ensureAppUser } = require("../services/appUser");
+const { hasUsableLeagueId } = require("../services/omenReadiness");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -160,7 +161,7 @@ function platformStatus(rows) {
 }
 
 function selectedLeagueFromConnection(row) {
-  if (!row?.league_id) return [];
+  if (!hasUsableLeagueId(row)) return [];
   return [{
     id: String(row.league_id),
     name: null,
@@ -218,7 +219,7 @@ function providerState(platform, row) {
     if (!row.token_secret_id) {
       return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "yahoo_oauth_context_missing" };
     }
-    if (!row.league_id) {
+    if (!hasUsableLeagueId(row)) {
       return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "yahoo_league_context_missing" };
     }
   }
@@ -227,7 +228,7 @@ function providerState(platform, row) {
     if (!row.platform_username) {
       return { ...base, state: "resolving_account", recovery_action: "retry", error_code: "sleeper_account_context_missing" };
     }
-    if (!row.league_id) {
+    if (!hasUsableLeagueId(row)) {
       return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "sleeper_league_context_missing" };
     }
   }
@@ -236,7 +237,7 @@ function providerState(platform, row) {
     if (!row.espn_secret_id || !row.swid_secret_id) {
       return { ...base, state: "needs_reauth", recovery_action: "reauthenticate", error_code: "espn_connection_context_missing" };
     }
-    if (!row.league_id) {
+    if (!hasUsableLeagueId(row)) {
       return { ...base, state: "choosing_league", recovery_action: "choose_league", error_code: "espn_league_context_missing" };
     }
   }

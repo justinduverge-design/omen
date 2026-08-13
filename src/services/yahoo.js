@@ -69,6 +69,42 @@ class YahooClient {
     return keyEntry?.team_key || null;
   }
 
+  /**
+   * List the logged-in user's NFL leagues for the current game.
+   * Returns [{league_id, name, season}] - league_id is Yahoo's league_key
+   * (e.g. '449.l.123'), the same value every other method on this class
+   * expects as leagueKey. No separate raw league_key field on purpose:
+   * every caller in this codebase already treats league_id as the full
+   * dotted key, and exposing two similarly-named fields is how a caller
+   * ends up persisting the wrong one.
+   */
+  async getUserLeagues() {
+    const d = await this.get("/users;use_login=1/games;game_keys=nfl/leagues");
+    const user = d?.fantasy_content?.users?.[0]?.user;
+    const games = user?.[1]?.games;
+    if (!games) return [];
+
+    const leagues = [];
+    for (const gameEntry of Object.values(games).filter(g => g?.game)) {
+      const leaguesContainer = gameEntry.game?.[1]?.leagues;
+      if (!leaguesContainer) continue;
+
+      for (const leagueEntry of Object.values(leaguesContainer).filter(l => l?.league)) {
+        const attrs = leagueEntry.league?.[0];
+        if (!Array.isArray(attrs)) continue;
+        const entry = key => attrs.find(x => x?.[key])?.[key] ?? null;
+        const leagueKey = entry("league_key");
+        if (!leagueKey) continue;
+        leagues.push({
+          league_id: leagueKey,
+          name: entry("name"),
+          season: Number(entry("season")) || null,
+        });
+      }
+    }
+    return leagues;
+  }
+
   /** Get the current league week (used when /roster?week= isn't passed). */
   async getCurrentWeek(leagueKey) {
     const d = await this.get(`/league/${leagueKey}`);
