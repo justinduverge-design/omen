@@ -67,6 +67,7 @@ async function persistYahooTokens(userId, tokens, leagueId = null) {
   const { error } = await supabase.from("platform_connections").upsert({
     user_id: userId,
     platform: "yahoo",
+    // "yahoo" is a deliberate placeholder (league_id is NOT NULL) - hasUsableLeagueId() rejects it; GET /api/yahoo/leagues + POST /api/yahoo/league bind the real one.
     league_id: leagueId || existing?.league_id || "yahoo",
     platform_user_id: tokens.xoauth_yahoo_guid || null,
     token_secret_id: accessSecretId,
