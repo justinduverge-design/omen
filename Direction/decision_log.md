@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-12 — iOS passkeys are promoted; `slopssaloon.com` is the relying party
+
+- **The founder explicitly reversed the 2026-07-24 iOS passkey deferral.** The prior decision was correct when Supabase exposed only an unstable, undocumented surface; Supabase now publishes first-factor passkey routes and native Swift behavior in its official client. Omen keeps its existing SDK-free `URLSession` auth architecture but implements those official request/response shapes rather than inventing a private contract. Android passkeys remain deferred.
+- **The relying-party identity is `slopssaloon.com`.** Supabase is enabled for passkeys with that RP ID. The iOS entitlement is `webcredentials:slopssaloon.com`, and the AASA app identifier is `6RWR5G9894.com.slopssaloon.omen`. No alternate bundle ID, Services ID, or new app identity is created.
+- **AASA publication is a production deployment, not a local-signing detail.** The repository now contains the exact file and an explicit Express route because dot-prefixed `.well-known` paths are ignored by default static serving. The live URL remains 404 until this PR is reviewed, merged, and deployed. That production mutation and the subsequent Face ID ceremony remain founder gates; no agent may claim passkeys end-to-end before both are observed.
+- **M3A and passkeys remain separate acceptance records.** One successful founder-observed Sign in with Apple flow is real partial M3A evidence, but M3A stays open until its full iOS/Android matrix passes. The iOS passkey onramp stays open until AASA is live and pair/sign-out/sign-in is proven on the physical device.
+
 ## 2026-08-12 — The Mac mini is the local iOS development host; Automatic Signing is the durable project default
 
 - **The founder's Mac mini replaces the Windows-only limitation for routine iOS development.** The existing Xcode project—not a new project—opened under Xcode 26.6 (`17F113`), built for Simulator, and used Apple's normal development-signing flow to build, install, and launch Omen on a registered physical `iPhone15,4`. This executes the purchase option already selected in `R3-BUILD-iOS`; it does not reverse or erase the earlier Windows/CI decisions, which remain historical context.

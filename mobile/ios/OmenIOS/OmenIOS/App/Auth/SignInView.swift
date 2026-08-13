@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Sign-in surface for both the cold-start ("Get started") path and the `.needsReauth` path.
-/// Two mechanisms only, per M0a §4 / M0c §2.1: Sign in with Apple (native, no browser) and
-/// email OTP (not a magic link, to avoid mobile deep-link fragility).
+/// Native credential methods are passkey and Sign in with Apple; email OTP remains the recovery
+/// path (not a magic link, to avoid mobile deep-link fragility). Provider OAuth renders only when
+/// explicitly configured.
 struct SignInView: View {
     @ObservedObject var viewModel: AuthViewModel
     var reauthPrompt = false
@@ -27,6 +28,18 @@ struct SignInView: View {
                     }
                 }
 
+                if viewModel.passkeySignInAvailable {
+                    OmenButton(
+                        title: "Continue with a passkey",
+                        action: { viewModel.signInWithPasskey() },
+                        variant: .primary,
+                        tone: .accent,
+                        size: .lg,
+                        enabled: !isBusy,
+                        loading: isPasskeyBusy
+                    )
+                }
+
                 if viewModel.appleSignInAvailable {
                     OmenButton(
                         title: "Continue with Apple",
@@ -47,8 +60,7 @@ struct SignInView: View {
 
                 // M4-Auth-Providers-v1 §4 — first user of the provider-agnostic OAuth seam.
                 // Only rendered when Supabase config is present; hidden entirely otherwise so
-                // the auth surface stays clean on unconfigured / demo builds. Passkey button
-                // deliberately absent — see M4-Auth-Passkeys-Onramp follow-up.
+                // the auth surface stays clean on unconfigured / demo builds.
                 if viewModel.discordSignInAvailable {
                     OmenButton(
                         title: "Continue with Discord",
@@ -118,7 +130,17 @@ struct SignInView: View {
     private var isBusy: Bool {
         switch viewModel.flowState {
         case .requestingOtp, .verifyingOtp, .launchingApple, .exchangingAppleToken,
-             .launchingOAuth, .exchangingOAuthCode:
+             .launchingOAuth, .exchangingOAuthCode, .launchingPasskey,
+             .exchangingPasskeyAssertion:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var isPasskeyBusy: Bool {
+        switch viewModel.flowState {
+        case .launchingPasskey, .exchangingPasskeyAssertion:
             return true
         default:
             return false

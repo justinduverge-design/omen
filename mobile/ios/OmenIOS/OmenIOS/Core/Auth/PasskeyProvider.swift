@@ -1,12 +1,42 @@
 import Foundation
 
+/// Server-provided WebAuthn options required to start a discoverable passkey sign-in.
+/// `challengeID` is returned to Supabase during verification; it is never shown or logged.
+struct PasskeyAuthenticationOptions: Equatable {
+    let challengeID: String
+    let relyingPartyID: String
+    let challenge: Data
+    let userVerification: String?
+}
+
+/// Server-provided WebAuthn options required to register a passkey for the signed-in user.
+struct PasskeyRegistrationOptions: Equatable {
+    let challengeID: String
+    let relyingPartyID: String
+    let challenge: Data
+    let userID: Data
+    let userName: String
+    let displayName: String?
+    let userVerification: String?
+}
+
+/// Public metadata returned by Supabase for a registered passkey. Raw keys and WebAuthn
+/// credential payloads are deliberately absent.
+struct PasskeyInfo: Equatable, Identifiable {
+    let id: String
+    let friendlyName: String?
+    let createdAt: Date
+    let lastUsedAt: Date?
+}
+
 /// Mirrors Android `core/auth/PasskeyProvider.kt`. Seam over the platform passkey (WebAuthn) API —
 /// `AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialProvider` on iOS
 /// (M4-Auth-Providers-v1 §4.1). Distinct from `SupabaseOAuthProvider` because passkeys use
 /// `signInWithWebAuthn` (not `signInWithOAuth`) and never involve a browser deep link.
 ///
-/// Keeping this as a protocol means the flow reducer, repository, and UI can be built and
-/// XCTested with a fake before the platform impl exists.
+/// Keeping this as a protocol means the flow reducer, repository, and UI stay testable with a
+/// fake while the native implementation owns all platform UI on the main actor.
+@MainActor
 protocol PasskeyProvider {
 
     /// True only when the device has a platform authenticator and the API is available.
@@ -15,12 +45,12 @@ protocol PasskeyProvider {
     /// Present the platform passkey UI for sign-in against `challenge` (base64url from Supabase).
     /// The returned `PasskeyResult.Assertion` fields are forwarded verbatim to Supabase; the app
     /// never inspects, logs, or stores them.
-    func getAssertion(challenge: String) async -> PasskeyResult
+    func getAssertion(options: PasskeyAuthenticationOptions) async -> PasskeyResult
 
     /// Present the platform passkey registration UI to create a new credential for `userID`
     /// against `challenge`. Used for post-sign-in pairing (brief §4.4) and Account settings
     /// "Add a passkey".
-    func register(challenge: String, userID: String) async -> PasskeyResult
+    func register(options: PasskeyRegistrationOptions) async -> PasskeyRegistrationResult
 }
 
 /// Mirrors Android `PasskeyResult`. All string fields carry opaque WebAuthn payloads the app
@@ -46,11 +76,24 @@ enum PasskeyResult: Equatable {
     case failed
 }
 
-/// Default provider used until the real `ASAuthorizationPlatform*` wiring lands. Reports
-/// unsupported so the UI can hide the "Sign in with a passkey" button entirely instead of
-/// surfacing a broken CTA.
+enum PasskeyRegistrationResult: Equatable {
+    struct Credential: Equatable {
+        let credentialID: String
+        let clientDataJSON: String
+        let attestationObject: String
+    }
+
+    case credential(Credential)
+    case canceled
+    case unavailable
+    case failed
+}
+
+/// Default for builds without live client configuration. Reports unsupported so the UI can hide
+/// the "Sign in with a passkey" button instead of surfacing a broken CTA.
+@MainActor
 final class UnsupportedPasskeyProvider: PasskeyProvider {
     let isSupported = false
-    func getAssertion(challenge: String) async -> PasskeyResult { .unavailable }
-    func register(challenge: String, userID: String) async -> PasskeyResult { .unavailable }
+    func getAssertion(options: PasskeyAuthenticationOptions) async -> PasskeyResult { .unavailable }
+    func register(options: PasskeyRegistrationOptions) async -> PasskeyRegistrationResult { .unavailable }
 }

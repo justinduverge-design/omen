@@ -6,6 +6,8 @@
 
 **Sources:** `Direction/current_sprint.md` M3A-QA done-when; `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §5 (provider policy), §6 (connection state machine), §9 (acceptance test matrix); `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md` §12 (mobile DoD).
 
+**Partial evidence update — 2026-08-12:** the founder observed the real native Apple authorization sheet, completed authorization, and Omen reached authenticated state on the physical iPhone. This proves the core happy path but does not, by itself, prove whether the account was fresh versus returning or satisfy A2–A6, so no scenario row is silently marked Pass. Complete those rows deliberately without recording identity/token values.
+
 ## Safety rules — read before starting
 
 - **Never** paste a real OTP code, session token, Apple/Google identity token, or password into a screenshot, log excerpt, or this matrix's notes. Record pass/fail and behavior only.

@@ -12,6 +12,7 @@ import SwiftUI
 struct CommandCenterView: View {
     let userID: String
     @ObservedObject var sessionManager: SessionManager
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var showAccountSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
 
@@ -57,7 +58,7 @@ struct CommandCenterView: View {
         }
         .sheet(isPresented: $showAccountSheet) {
             NavigationStack {
-                AccountView(userID: userID, sessionManager: sessionManager)
+                AccountView(userID: userID, sessionManager: sessionManager, authViewModel: authViewModel)
                     .navigationTitle("Account")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

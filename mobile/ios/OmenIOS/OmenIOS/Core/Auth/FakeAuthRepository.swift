@@ -10,9 +10,11 @@ final class FakeAuthRepository: AuthRepository {
     var passkeyConfigured = true
     var nextRefreshOutcome: AuthOutcome = .needsReauth
     var nextOAuthExchangeOutcome: AuthOutcome? = nil
-    var nextPasskeyChallenge: PasskeyChallenge? = nil
+    var nextPasskeyAuthenticationStart: PasskeyStartResult<PasskeyAuthenticationOptions>? = nil
+    var nextPasskeyRegistrationStart: PasskeyStartResult<PasskeyRegistrationOptions>? = nil
     var nextPasskeySignInOutcome: AuthOutcome? = nil
     var nextPasskeyRegisterOutcome: AuthOutcome? = nil
+    var passkeys: [PasskeyInfo] = []
     private(set) var signOutCalled = false
 
     private let sessionFactory: (String) -> Session
@@ -61,19 +63,50 @@ final class FakeAuthRepository: AuthRepository {
         return .success(session: sessionFactory("oauth:\(providerId)"))
     }
 
-    func startPasskeyChallenge() async -> PasskeyChallenge {
-        if let challenge = nextPasskeyChallenge { return challenge }
-        return passkeyConfigured ? .ok(challenge: "fake-challenge") : .failed(code: .unknown)
+    func startPasskeyAuthentication() async -> PasskeyStartResult<PasskeyAuthenticationOptions> {
+        if let start = nextPasskeyAuthenticationStart { return start }
+        return passkeyConfigured
+            ? .ready(PasskeyAuthenticationOptions(
+                challengeID: "fake-auth-challenge-id",
+                relyingPartyID: "example.invalid",
+                challenge: Data("fake-challenge".utf8),
+                userVerification: "preferred"
+            ))
+            : .failed(code: .unknown)
     }
 
-    func signInWithPasskey(assertion: PasskeyResult.Assertion) async -> AuthOutcome {
+    func signInWithPasskey(challengeID: String, assertion: PasskeyResult.Assertion) async -> AuthOutcome {
         if let outcome = nextPasskeySignInOutcome { return outcome }
         return .success(session: sessionFactory("passkey:\(assertion.credentialID)"))
     }
 
-    func registerPasskey(credential: PasskeyResult.Assertion) async -> AuthOutcome {
+    func startPasskeyRegistration() async -> PasskeyStartResult<PasskeyRegistrationOptions> {
+        if let start = nextPasskeyRegistrationStart { return start }
+        return passkeyConfigured
+            ? .ready(PasskeyRegistrationOptions(
+                challengeID: "fake-registration-challenge-id",
+                relyingPartyID: "example.invalid",
+                challenge: Data("fake-challenge".utf8),
+                userID: Data("fake-user".utf8),
+                userName: "fake-user",
+                displayName: "Fake User",
+                userVerification: "preferred"
+            ))
+            : .failed(code: .unknown)
+    }
+
+    func registerPasskey(challengeID: String, credential: PasskeyRegistrationResult.Credential) async -> AuthOutcome {
         if let outcome = nextPasskeyRegisterOutcome { return outcome }
         return .success(session: sessionFactory("passkey-register:\(credential.credentialID)"))
+    }
+
+    func listPasskeys() async -> PasskeyListOutcome {
+        .success(passkeys)
+    }
+
+    func deletePasskey(id: String) async -> PasskeyManagementOutcome {
+        passkeys.removeAll { $0.id == id }
+        return .success
     }
 
     func signOut() async {

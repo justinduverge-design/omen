@@ -116,6 +116,7 @@ QA, and the Android store path remain open.
 13. Accessibility: VoiceOver / TalkBack, Dynamic Type / font scale
 14. M3A-QA native auth interactive real-device QA
 15. M4-Auth-Providers-v1 **verification evidence** — code merged (#198), `Done when:` criteria not yet evidenced
+16. M4-Auth-Passkeys-iOS-Onramp — local code, 121-test simulator suite, signed device build/install, and entitlements are proven; AASA production publication plus pair/sign-out/sign-in Face ID proof remain open
 
 ### Security
 

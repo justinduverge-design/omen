@@ -1,7 +1,13 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-08-11 — reselected after a live-production verification pass. Reconciled against `main`, the GitHub PR record, and authenticated calls to `slopssaloon.com`. Handoffs are pointers, not standalone proof.
+**Refreshed:** 2026-08-12 — founder pinned the native iOS authorization closeout after the Mac/physical-device bring-up. Reconciled against the local Xcode/device evidence, `main`, and the public AASA URL. Handoffs are pointers, not standalone proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
+
+## Founder pin — 2026-08-12 native iOS authorization closeout
+
+The iOS passkey half is promoted from the deferred backlog as `M4-Auth-Passkeys-iOS-Onramp`. Local implementation is complete on `feat/m3a-ios-apple-auth`: native AuthenticationServices ceremonies, official Supabase first-factor passkey transport, account add/list/remove, pairing offer, Sign in with Apple entitlement/tests, Associated Domains entitlement, and the exact AASA artifact/route. Xcode 26.6 passes 121 tests with 0 failures; Automatic Signing builds and installs on the paired iPhone under team `6RWR5G9894`.
+
+The remaining boundary is intentionally external: the public AASA URL is still 404 until the reviewed PR is merged and production-deployed, then the founder must complete pair → sign out → passkey sign-in with Face ID. M3A-QA also remains open beyond its one successful founder-observed Apple happy path. Do not let the older 2026-08-11 queue below displace this pin.
 
 ## ✅ Resolved 2026-08-01 — CI works; the "billing hold" diagnosis was wrong
 
@@ -42,9 +48,9 @@ This section previously stated the Actions allotment was exhausted, that no work
 
 Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## Selected Queue — 2026-08-11
+## Selected Queue — 2026-08-11 (superseded for this session by the founder pin above)
 
-**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). No founder pin is set and no task holds a valid `Claim:`.
+**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). This historical selection had no founder pin; the 2026-08-12 pin above now overrides it.
 
 > **What changed today.** A live-production verification pass against `slopssaloon.com` found four defects that existed in the product but not in this queue. They are now the top of it. Unlike the 2026-07-30 selection — where every item was founder- or externally-blocked — **the first four items below are unblocked agent work that can start immediately.** The founder is waiting only on Google Play organization review (`R2-Android`, `EXTERNAL`).
 
@@ -153,7 +159,8 @@ Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC
 - **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
 - **M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals are approved (nodes `72:2` / `73:2`); use their current sprint records for execution scope. **M4-CC-WaiverWatch** is merged as PR #271; its former macOS hardware blocker is cleared, while its own six-state iOS render/accessibility evidence remains agent-resolvable.
 - **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass.
-- **M3A-QA:** founder/human credential + inbox access. Agents may prep the matrix only.
+- **M3A-QA:** one native Apple happy path is founder-observed; the remaining Apple edge cases, email OTP, restore, deletion, log safety, and Android matrix still require founder credentials/device interaction.
+- **M4-Auth-Passkeys-iOS-Onramp:** local implementation/build/install is complete; production AASA merge/deploy and the physical Face ID pair/sign-in ceremony are founder-only gates.
 - **B2-D live provider data:** provider-specific capability proof required before claiming live advice.
 - **Post-live learning:** waits on Release Done, seven stable days, and `slops-product-pulse`.
 

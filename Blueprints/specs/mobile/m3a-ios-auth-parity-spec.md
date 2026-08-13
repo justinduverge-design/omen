@@ -1,16 +1,16 @@
 # M3-A — iOS Auth Parity Spec (for macOS CI)
 
-**Status:** Spec ready; implementation blocked on authorized non-signing macOS CI — 2026-07-19
-**Why a spec, not code:** iOS/SwiftUI cannot be compiled or device-proven on the Windows workspace. Per delivery governance, provider/auth paths are not claimed without real compile + device evidence, so shipping unverifiable Swift is out of scope. This spec makes the macOS CI task turnkey by mapping each verified Android artifact to its iOS equivalent.
+**Status:** Implemented locally; full M3A interactive matrix remains open — updated 2026-08-12
+**Why this remains an active acceptance spec:** the Mac/Xcode/device path now exists and native Sign in with Apple has one founder-observed happy-path proof. M3A still requires the complete sanitized iOS and Android interactive matrix; local compile and unit tests do not replace those human credential/device cases.
 
 **Companions:** `omen-native-app-shell-auth-api-contract-v1.md` (M0c), `omen-mobile-onboarding-connection-contract-v1.md` (M0a). Android reference: `Blueprints/handoffs/2026-07-19-m3a-native-auth-scaffolding.md`, commit on `codex/m3a-native-auth-proof`.
 
-> **Environment update — 2026-08-12:** the former compile/device-environment blocker is cleared. The existing project builds and launches on a registered physical iPhone, and the simulator suite passes 108/108 on Xcode 26.6. This is environment/build proof only: no entitlement was added and Sign in with Apple, passkeys, Associated Domains, email OTP, session restore, account deletion, and log safety were not interactively proven by this bring-up. The acceptance and boundaries below remain open where they require those behaviors or exact release-CI evidence.
+> **Environment update — 2026-08-12:** the former compile/device blocker is cleared. The existing project uses Automatic Signing under team `6RWR5G9894`, builds/installs on the registered iPhone, and passes 121/121 simulator tests on Xcode 26.6 (`17F113`). Signed entitlements contain Sign in with Apple and `webcredentials:slopssaloon.com`. The founder completed one real native Apple authorization and Omen authenticated successfully. Passkey code and AASA hosting support are prepared under the separate `M4-Auth-Passkeys-iOS-Onramp`; its end-to-end ceremony remains blocked until the AASA file is reviewed, merged, and deployed. Email OTP, the remaining Apple edge cases, session restore, account deletion, log safety, and Android still require the M3A matrix.
 
 ## Prereqs already done (founder)
 - Apple Developer Team `6RWR5G9894`; App ID `com.slopssaloon.omen` with **Sign in with Apple** capability enabled.
 - Supabase Apple provider configured with both Omen client IDs.
-- **Not** done / still gated: provisioning profile, Services ID, Apple key, signing — not required for a non-signing simulator compile; required later for device/TestFlight.
+- Development certificate, device registration, and an Automatic Signing provisioning profile now exist and work locally. Distribution/archive/TestFlight credentials remain a separate R3 release gate.
 
 ## Parity map (Android → iOS)
 
@@ -41,7 +41,7 @@
 2. XCTest: AuthFlow reducer, validators, SupabaseAuthRepository mapping (fake transport), SessionManager expiry, AccountDeletion phrase — parity with the 37 Android unit tests.
 3. Simulator screenshots: Welcome → Sign in with Apple / email OTP → Command Center → delete confirmation.
 4. Security: no token in console logs; Keychain item is `ThisDeviceOnly`; opaque errors only.
-5. Real-device Apple sign-in + TestFlight remain a later signing-gated step, not part of this compile proof.
+5. Real-device Apple happy path is founder-observed; the remaining cases in `Direction/reviews/2026-08-01-m3a-qa-device-matrix.md` stay mandatory. TestFlight remains a separate release gate.
 
 ## Boundaries
-No signing, no provisioning profile/Services ID/Apple key handling by agents, no store submission, no provider connection, no production. macOS CI must use included/non-billed capacity per `omen-native-build-environment-v1.md`.
+No certificate/private-key exposure, archive, TestFlight/store submission, provider-secret handling, or production deployment in M3A implementation work. Normal Apple Development Automatic Signing is now the approved local device path. macOS CI remains unsigned and uses its command-line signing overrides.
