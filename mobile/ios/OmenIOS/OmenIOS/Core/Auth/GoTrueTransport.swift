@@ -4,10 +4,21 @@ import Foundation
 /// a GoTrue HTTP call, before any outcome mapping.
 enum TransportResult: Equatable {
     case ok
-    /// 2xx returning a WebAuthn challenge (opaque base64url string). Only produced by
-    /// `startPasskeyChallenge`; other endpoints never produce this variant.
-    case challenge(String)
     case sessionTokens(userID: String, accessToken: String, refreshToken: String, expiresInSeconds: Int)
+    case httpError(status: Int)
+    case networkError
+    case malformed
+}
+
+enum PasskeyOptionsTransportResult<Options: Equatable>: Equatable {
+    case options(Options)
+    case httpError(status: Int)
+    case networkError
+    case malformed
+}
+
+enum PasskeyListTransportResult: Equatable {
+    case passkeys([PasskeyInfo])
     case httpError(status: Int)
     case networkError
     case malformed
@@ -29,8 +40,12 @@ protocol GoTrueTransport {
     // M4-Auth-Providers-v1 §4.2 — provider-agnostic OAuth code exchange.
     func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> TransportResult
 
-    // M4-Auth-Providers-v1 §4.2 — WebAuthn challenge issue + assertion verify + registration.
-    func startPasskeyChallenge() async -> TransportResult
-    func verifyPasskeyAssertion(assertion: PasskeyResult.Assertion) async -> TransportResult
-    func registerPasskey(credential: PasskeyResult.Assertion) async -> TransportResult
+    // Supabase Auth passkey endpoints. Registration and management require the current user's
+    // access token; authentication is a discoverable, signed-out ceremony.
+    func startPasskeyAuthentication() async -> PasskeyOptionsTransportResult<PasskeyAuthenticationOptions>
+    func verifyPasskeyAuthentication(challengeID: String, assertion: PasskeyResult.Assertion) async -> TransportResult
+    func startPasskeyRegistration(accessToken: String) async -> PasskeyOptionsTransportResult<PasskeyRegistrationOptions>
+    func verifyPasskeyRegistration(challengeID: String, credential: PasskeyRegistrationResult.Credential, accessToken: String) async -> TransportResult
+    func listPasskeys(accessToken: String) async -> PasskeyListTransportResult
+    func deletePasskey(id: String, accessToken: String) async -> TransportResult
 }

@@ -32,6 +32,8 @@ const config  = require("./config");
 const systemRoutes = require("./routes/system");
 const { logger, httpLogger } = require("./middleware/logging");
 const {
+  setAppleAppSiteAssociationHeaders,
+  createAppleAppSiteAssociationSendFileOptions,
   setSpaIndexCacheHeaders,
   setSpaStaticCacheHeaders,
 } = require("./middleware/spaCache");
@@ -135,10 +137,21 @@ try {
 // Root /  -> the SPA entry (or JSON status if SPA hasn't been built)
 const SPA_DIR = path.join(__dirname, "..", "frontend", "dist");
 const SPA_INDEX = path.join(SPA_DIR, "index.html");
+const AASA_FILE = path.join(SPA_DIR, ".well-known", "apple-app-site-association");
 const HAS_SPA = fs.existsSync(SPA_INDEX);
 
 if (HAS_SPA) {
   logger.info("Serving SPA from client/dist", { path: SPA_DIR });
+  // Express static ignores dot-prefixed paths by default. Serve the AASA
+  // contract explicitly so iOS can validate the webcredentials association.
+  if (fs.existsSync(AASA_FILE)) {
+    app.get("/.well-known/apple-app-site-association", (req, res, next) => {
+      setAppleAppSiteAssociationHeaders(res);
+      res.sendFile(AASA_FILE, createAppleAppSiteAssociationSendFileOptions(), (err) => {
+        if (err) next(err);
+      });
+    });
+  }
   // Static assets (JS, CSS, images) can be cached because Vite hashes
   // build outputs. The SPA shell must revalidate so deploys do not leave
   // browsers stuck on an old index.html that points at stale assets.

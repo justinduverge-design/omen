@@ -7,7 +7,7 @@ import Security
 /// `AuthenticationServices`); this protocol has no framework dependency.
 protocol AppleIDTokenProviding {
     var isConfigured: Bool { get }
-    func getIDToken(rawNonce: String) async -> AppleIDTokenResult
+    @MainActor func getIDToken(rawNonce: String) async -> AppleIDTokenResult
 }
 
 enum AppleIDTokenResult: Equatable {
@@ -22,7 +22,7 @@ enum AppleIDTokenResult: Equatable {
 struct UnconfiguredAppleIDTokenProvider: AppleIDTokenProviding {
     let isConfigured = false
 
-    func getIDToken(rawNonce: String) async -> AppleIDTokenResult {
+    @MainActor func getIDToken(rawNonce: String) async -> AppleIDTokenResult {
         .unavailable
     }
 }

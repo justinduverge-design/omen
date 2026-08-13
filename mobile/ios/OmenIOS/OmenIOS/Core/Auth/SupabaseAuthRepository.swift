@@ -27,7 +27,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .malformed, .challenge:
+        case .malformed:
             return .retryableError(code: .unknown)
         }
     }
@@ -42,7 +42,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed, .challenge:
+        case .ok, .malformed:
             return .retryableError(code: .unknown)
         }
     }
@@ -57,7 +57,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed, .challenge:
+        case .ok, .malformed:
             return .retryableError(code: .unknown)
         }
     }
@@ -71,7 +71,7 @@ final class SupabaseAuthRepository: AuthRepository {
             return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
         case .networkError:
             return .retryableError(code: .network)
-        case .httpError, .ok, .malformed, .challenge:
+        case .httpError, .ok, .malformed:
             return .needsReauth
         }
     }
@@ -91,54 +91,106 @@ final class SupabaseAuthRepository: AuthRepository {
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed, .challenge:
+        case .ok, .malformed:
             return .retryableError(code: .unknown)
         }
     }
 
-    func startPasskeyChallenge() async -> PasskeyChallenge {
-        switch await transport.startPasskeyChallenge() {
-        case .challenge(let challenge):
-            return .ok(challenge: challenge)
+    func startPasskeyAuthentication() async -> PasskeyStartResult<PasskeyAuthenticationOptions> {
+        switch await transport.startPasskeyAuthentication() {
+        case .options(let options):
+            return .ready(options)
         case .httpError(let status):
             return .failed(code: retryableCode(forStatus: status))
         case .networkError:
             return .failed(code: .network)
-        case .ok, .malformed, .sessionTokens:
+        case .malformed:
             return .failed(code: .unknown)
         }
     }
 
-    func signInWithPasskey(assertion: PasskeyResult.Assertion) async -> AuthOutcome {
-        switch await transport.verifyPasskeyAssertion(assertion: assertion) {
+    func signInWithPasskey(challengeID: String, assertion: PasskeyResult.Assertion) async -> AuthOutcome {
+        switch await transport.verifyPasskeyAuthentication(challengeID: challengeID, assertion: assertion) {
         case .sessionTokens(let userID, let accessToken, let refreshToken, let expiresIn):
             return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
         case .httpError(let status):
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .ok, .malformed, .challenge:
+        case .ok, .malformed:
             return .retryableError(code: .unknown)
         }
     }
 
-    func registerPasskey(credential: PasskeyResult.Assertion) async -> AuthOutcome {
-        switch await transport.registerPasskey(credential: credential) {
+    func startPasskeyRegistration() async -> PasskeyStartResult<PasskeyRegistrationOptions> {
+        guard let session = sessionStore.load() else { return .needsReauth }
+        switch await transport.startPasskeyRegistration(accessToken: session.accessToken) {
+        case .options(let options):
+            return .ready(options)
+        case .httpError(let status) where status == 401 || status == 403:
+            return .needsReauth
+        case .httpError(let status):
+            return .failed(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .failed(code: .network)
+        case .malformed:
+            return .failed(code: .unknown)
+        }
+    }
+
+    func registerPasskey(challengeID: String, credential: PasskeyRegistrationResult.Credential) async -> AuthOutcome {
+        guard let session = sessionStore.load() else { return .needsReauth }
+        switch await transport.verifyPasskeyRegistration(
+            challengeID: challengeID,
+            credential: credential,
+            accessToken: session.accessToken
+        ) {
         // Registration succeeds with 2xx-no-body; the app already has a session, so surface the
         // existing stored one (parity with Android SupabaseAuthRepository).
         case .ok:
-            if let stored = sessionStore.load() {
-                return .success(session: stored)
-            }
-            return .needsReauth
+            return .success(session: session)
         case .sessionTokens(let userID, let accessToken, let refreshToken, let expiresIn):
             return .success(session: buildSession(userID: userID, accessToken: accessToken, refreshToken: refreshToken, expiresInSeconds: expiresIn))
+        case .httpError(let status) where status == 401 || status == 403:
+            return .needsReauth
         case .httpError(let status):
             return .retryableError(code: retryableCode(forStatus: status))
         case .networkError:
             return .retryableError(code: .network)
-        case .malformed, .challenge:
+        case .malformed:
             return .retryableError(code: .unknown)
+        }
+    }
+
+    func listPasskeys() async -> PasskeyListOutcome {
+        guard let session = sessionStore.load() else { return .needsReauth }
+        switch await transport.listPasskeys(accessToken: session.accessToken) {
+        case .passkeys(let passkeys):
+            return .success(passkeys)
+        case .httpError(let status) where status == 401 || status == 403:
+            return .needsReauth
+        case .httpError(let status):
+            return .failed(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .failed(code: .network)
+        case .malformed:
+            return .failed(code: .unknown)
+        }
+    }
+
+    func deletePasskey(id: String) async -> PasskeyManagementOutcome {
+        guard let session = sessionStore.load() else { return .needsReauth }
+        switch await transport.deletePasskey(id: id, accessToken: session.accessToken) {
+        case .ok:
+            return .success
+        case .httpError(let status) where status == 401 || status == 403:
+            return .needsReauth
+        case .httpError(let status):
+            return .failed(code: retryableCode(forStatus: status))
+        case .networkError:
+            return .failed(code: .network)
+        case .malformed, .sessionTokens:
+            return .failed(code: .unknown)
         }
     }
 

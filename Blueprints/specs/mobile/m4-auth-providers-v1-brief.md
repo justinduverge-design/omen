@@ -1,9 +1,11 @@
 # M4-Auth-Providers-v1 — Implementation Brief (Discord + Passkeys)
 
-**Status:** DRAFT — awaiting founder approval before implementation begins
+**Status:** APPROVED IN PART — Discord merged; founder promoted the iOS passkey half on 2026-08-12; Android passkeys remain deferred
 **Owner:** Claude
 **Sprint item:** `Direction/current_sprint.md` → M lane → M4-Auth-Providers-v1
 **Depends on merged:** M4-Auth retirement (#193) — landed in `main` as `d3625f8`
+
+> **2026-08-12 implementation update:** Supabase now publishes first-factor passkey support and request shapes in its official Swift client (`@_spi(Experimental)`). The iOS implementation therefore uses the official `/auth/v1/passkeys/{authentication,registration}/{options,verify}` plus list/delete contracts through Omen's existing `URLSession` transport. Supabase is confirmed enabled with RP ID `slopssaloon.com`. Apple requires `webcredentials:slopssaloon.com` in the signed entitlement and `6RWR5G9894.com.slopssaloon.omen` in the domain's AASA file. Local code/build/test work is complete; production AASA deployment and the Face ID ceremony are founder gates. This update supersedes stale statements below that no public REST shape exists or that both platforms must ship in one pass.
 
 ---
 

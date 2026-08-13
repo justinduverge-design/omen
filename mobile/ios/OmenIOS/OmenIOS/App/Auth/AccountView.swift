@@ -5,6 +5,7 @@ import SwiftUI
 struct AccountView: View {
     let userID: String
     @ObservedObject var sessionManager: SessionManager
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var showingDeleteConfirmation = false
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
@@ -37,6 +38,8 @@ struct AccountView: View {
                 OmenButton(title: "Sign out", action: { sessionManager.signOut() }, variant: .secondary, size: .lg)
 
                 if !isDemo {
+                    passkeysSection
+
                     VStack(alignment: .leading, spacing: OmenSpacing.step12) {
                         Text("Danger Zone")
                             .omenTextStyle(OmenTypography.h3)
@@ -55,6 +58,56 @@ struct AccountView: View {
         .background(OmenColor.bg)
         .sheet(isPresented: $showingDeleteConfirmation) {
             DeleteAccountConfirmationView(sessionManager: sessionManager)
+        }
+        .task {
+            if !isDemo { authViewModel.loadPasskeys() }
+        }
+    }
+
+    @ViewBuilder
+    private var passkeysSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Passkeys")
+                .omenTextStyle(OmenTypography.h3)
+                .foregroundStyle(OmenColor.textPrimary)
+
+            if authViewModel.passkeys.isEmpty {
+                Text("No passkeys saved yet.")
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textSecondary)
+            } else {
+                ForEach(authViewModel.passkeys) { passkey in
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        OmenListRow(
+                            title: passkey.friendlyName ?? "Passkey",
+                            subtitle: "Added \(passkey.createdAt.formatted(date: .abbreviated, time: .omitted))"
+                        )
+                        OmenButton(
+                            title: "Remove",
+                            action: { authViewModel.deletePasskey(id: passkey.id) },
+                            variant: .link,
+                            size: .sm,
+                            enabled: authViewModel.passkeyManagementState != .deleting(passkey.id),
+                            loading: authViewModel.passkeyManagementState == .deleting(passkey.id)
+                        )
+                    }
+                }
+            }
+
+            OmenButton(
+                title: "Add a passkey",
+                action: { authViewModel.registerPasskey() },
+                variant: .secondary,
+                size: .lg,
+                enabled: authViewModel.passkeyManagementState != .registering,
+                loading: authViewModel.passkeyManagementState == .registering
+            )
+
+            if case .failed(let message) = authViewModel.passkeyManagementState {
+                Text(message)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.Data.riskHigh)
+            }
         }
     }
 }

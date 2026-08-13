@@ -10,10 +10,16 @@ final class SessionManager: ObservableObject {
 
     private let store: SecureSessionStore
     private let nowEpochSeconds: () -> Int64
+    private let preferences: UserDefaults
 
-    init(store: SecureSessionStore, nowEpochSeconds: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970) }) {
+    init(
+        store: SecureSessionStore,
+        nowEpochSeconds: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970) },
+        preferences: UserDefaults = .standard
+    ) {
         self.store = store
         self.nowEpochSeconds = nowEpochSeconds
+        self.preferences = preferences
     }
 
     /// The session currently in the secure store, if any. Used by flows (like account deletion)
@@ -49,5 +55,17 @@ final class SessionManager: ObservableObject {
     func signOut() {
         store.clear()
         state = .signedOut
+    }
+
+    func hasDismissedPasskeyPairing(for userID: String) -> Bool {
+        preferences.bool(forKey: passkeyPairingKey(for: userID))
+    }
+
+    func dismissPasskeyPairing(for userID: String) {
+        preferences.set(true, forKey: passkeyPairingKey(for: userID))
+    }
+
+    private func passkeyPairingKey(for userID: String) -> String {
+        "com.slopssaloon.omen.passkey-pairing-dismissed.\(userID)"
     }
 }

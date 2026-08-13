@@ -6,6 +6,7 @@ import UIKit
 /// Production `AppleIDTokenProviding` using `ASAuthorizationController` directly (App layer,
 /// needs `AuthenticationServices`). Wraps the delegate-based API in `async/await` so callers can
 /// `await` a single `AppleIDTokenResult` the same way they `await` a `GoTrueTransport` call.
+@MainActor
 final class NativeAppleIDTokenProvider: AppleIDTokenProviding {
     let isConfigured = true
 

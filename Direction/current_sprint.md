@@ -294,9 +294,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** READY
 - **Blocked by:** FOUNDER_APPROVAL — founder/human credential and inbox access
+- **Unblock:** 2026-08-12 REASSESSED — the founder supplied the physical iPhone interaction needed for one successful native Sign in with Apple ceremony: the Apple sheet appeared, authorization completed, and Omen reached authenticated state. That is valid partial evidence, not the full matrix. Email OTP, return/cancel/background/termination cases, session restore, account deletion, log safety, and the Android half remain open.
 - **Priority:** **P0 — auth is the front door**
 - **Cost:** small, human-gated
-- **Agent-buildable:** preparation only
+- **Agent-buildable:** implementation and local evidence; credential/inbox/device interactions remain founder-only
 - **Done when:** Android Play-services AVD or real device proves Google sign-in, email OTP, session restore, account deletion, and log safety; iOS real device proves Sign in with Apple, email OTP, session restore, account deletion, and log safety.
 - **Evidence:** sanitized QA matrix; no screenshots or logs containing credentials or tokens.
 - **Do not touch:** real credentials in agent logs or screenshots.
@@ -323,17 +324,29 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
 - **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
 
-### M4-Auth-Providers-v1 — Discord OAuth (Passkeys deferred to M4-Auth-Passkeys-Onramp)
+### M4-Auth-Providers-v1 — Discord OAuth (iOS passkeys promoted separately)
 
 - **Status:** READY
 - **Blocked by:** None
 - **Unblock:** 2026-08-11 REASSESSED — previously "CI-verifiable as of #250." That is no longer true: `ios-ci.yml` stopped running per-PR on 2026-08-11 (release branches + manual dispatch only). **The iOS half of this item is now Mac-required** — verify with the `SUBSTITUTED` `xcodebuild test` command in `Blueprints/definition-of-done.md` and record `xcodebuild -version` alongside the result. Android remains workable on Windows.
 - **Priority:** P1
 - **Cost:** small — **verification only, not implementation**
-- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. Passkeys deferred to `M4-Auth-Passkeys-Onramp` (P2).
+- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. The founder promoted the iOS passkey half on 2026-08-12 as `M4-Auth-Passkeys-iOS-Onramp`; Android remains deferred.
 - **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
 - **Done when:** `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; scanner, connected tests, `:app:assembleDebug` green, and the local Mac `xcodebuild test` run green — all recorded as evidence. "iOS CI green" is no longer an available citation for this item outside a release branch.
 - **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.
+
+### M4-Auth-Passkeys-iOS-Onramp — Complete native iOS passkey authorization
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — merge and production-deploy the reviewed AASA route at `slopssaloon.com`; this PR does not deploy
+- **Blocked by:** FOUNDER_APPROVAL — after AASA is live, perform the Face ID passkey pair → sign out → passkey sign-in ceremony on the physical iPhone
+- **Priority:** **P1 — founder pin 2026-08-12.** This supersedes the earlier P2 deferral for the iOS half only.
+- **Cost:** small — implementation and local evidence are complete; external association and interactive proof remain
+- **Current state:** branch `feat/m3a-ios-apple-auth` implements the native `AuthenticationServices` provider, official Supabase first-factor passkey endpoints, account add/list/remove, one-time pairing offer, the `webcredentials:slopssaloon.com` entitlement, and an AASA artifact/explicit Express route. Xcode 26.6 (`17F113`) passes **121 tests / 0 failures**; Automatic Signing under team `6RWR5G9894` builds and installs the app on the registered iPhone with both Apple Sign In and Associated Domains in the signed entitlements. The public AASA URL still returns 404 until an approved merge/deploy.
+- **Done when:** `https://slopssaloon.com/.well-known/apple-app-site-association` serves the exact team/bundle association as JSON without redirect; a fresh physical-device install can add a passkey, list/remove it in Account, sign out, and sign back in with Face ID; sanitized evidence records the ceremony without credential material.
+- **Evidence:** `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
+- **Do not touch:** Android passkeys, Xcode Cloud, archive/TestFlight, production deployment, provider secrets, UI redesign, or Figma in this item.
 
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
 
@@ -918,7 +931,7 @@ Nothing public ships until F6–F9 pass. There is no value in driving signups in
 These are real but are **not** active tasks and carry no status. They must not displace P0/P1 beta work, and they are not eligible for selection until `planning-pass` promotes them.
 
 - **Draft Assistant 2027** — cut from 1.0 on 2026-08-05. Winter track: build the Slops ADP Oct–Feb, off the critical path.
-- **M4-Auth-Passkeys-Onramp** (P2) — deferred; every new auth provider is new store-review surface during the tightest five weeks.
+- **M4-Auth-Passkeys-Android-Onramp** (P2) — Android remains deferred; the founder promoted only the iOS half on 2026-08-12.
 - E1 mobile scope decision — **resolved 2026-08-05** by the both-platforms decision. E2/E3 app-store closeout is superseded by lane R.
 - G1 win-streak reward ladder UI waits on a backend win-streak contract.
 - G2 ESPN live draft Lazy Sync and G3 Yahoo live draft Lazy Sync wait on a stable provider contract and season timing.

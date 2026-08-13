@@ -7,18 +7,41 @@ private final class FakeTransport: GoTrueTransport {
     var idTokenResult: TransportResult = .ok
     var refreshResult: TransportResult = .ok
     var oauthResult: TransportResult = .sessionTokens(userID: "u1", accessToken: "a", refreshToken: "r", expiresInSeconds: 3600)
-    var passkeyChallengeResult: TransportResult = .challenge("fake-challenge")
+    var passkeyAuthenticationResult: PasskeyOptionsTransportResult<PasskeyAuthenticationOptions> = .options(
+        PasskeyAuthenticationOptions(
+            challengeID: "challenge-id",
+            relyingPartyID: "example.com",
+            challenge: Data("challenge".utf8),
+            userVerification: "preferred"
+        )
+    )
+    var passkeyRegistrationResult: PasskeyOptionsTransportResult<PasskeyRegistrationOptions> = .options(
+        PasskeyRegistrationOptions(
+            challengeID: "registration-id",
+            relyingPartyID: "example.com",
+            challenge: Data("challenge".utf8),
+            userID: Data("u1".utf8),
+            userName: "u1",
+            displayName: "User One",
+            userVerification: "preferred"
+        )
+    )
     var passkeyVerifyResult: TransportResult = .sessionTokens(userID: "u1", accessToken: "a", refreshToken: "r", expiresInSeconds: 3600)
     var passkeyRegisterResult: TransportResult = .ok
+    var passkeyListResult: PasskeyListTransportResult = .passkeys([])
+    var passkeyDeleteResult: TransportResult = .ok
 
     func requestEmailOtp(email: String) async -> TransportResult { otpResult }
     func verifyEmailOtp(email: String, code: String) async -> TransportResult { verifyResult }
     func signInWithIDToken(provider: String, idToken: String, nonce: String?) async -> TransportResult { idTokenResult }
     func refresh(refreshToken: String) async -> TransportResult { refreshResult }
     func exchangeOAuthCode(providerId: String, code: String, codeVerifier: String) async -> TransportResult { oauthResult }
-    func startPasskeyChallenge() async -> TransportResult { passkeyChallengeResult }
-    func verifyPasskeyAssertion(assertion: PasskeyResult.Assertion) async -> TransportResult { passkeyVerifyResult }
-    func registerPasskey(credential: PasskeyResult.Assertion) async -> TransportResult { passkeyRegisterResult }
+    func startPasskeyAuthentication() async -> PasskeyOptionsTransportResult<PasskeyAuthenticationOptions> { passkeyAuthenticationResult }
+    func verifyPasskeyAuthentication(challengeID: String, assertion: PasskeyResult.Assertion) async -> TransportResult { passkeyVerifyResult }
+    func startPasskeyRegistration(accessToken: String) async -> PasskeyOptionsTransportResult<PasskeyRegistrationOptions> { passkeyRegistrationResult }
+    func verifyPasskeyRegistration(challengeID: String, credential: PasskeyRegistrationResult.Credential, accessToken: String) async -> TransportResult { passkeyRegisterResult }
+    func listPasskeys(accessToken: String) async -> PasskeyListTransportResult { passkeyListResult }
+    func deletePasskey(id: String, accessToken: String) async -> TransportResult { passkeyDeleteResult }
 }
 
 private let fakeAssertion = PasskeyResult.Assertion(
@@ -27,6 +50,12 @@ private let fakeAssertion = PasskeyResult.Assertion(
     authenticatorData: "auth",
     signature: "sig",
     userHandle: "u1"
+)
+
+private let fakeRegistrationCredential = PasskeyRegistrationResult.Credential(
+    credentialID: "cred-1",
+    clientDataJSON: "cdj",
+    attestationObject: "attestation"
 )
 
 /// Mirrors Android `SupabaseAuthRepositoryTest.kt` (9 tests). `appleClientErrorIsUnsupported`
@@ -179,21 +208,23 @@ final class SupabaseAuthRepositoryTests: XCTestCase {
 
     // M4-Auth-Providers-v1 §6.2 — Passkey repository
 
-    func testPasskeyChallengeOkCarriesChallenge() async {
+    func testPasskeyAuthenticationStartCarriesServerOptions() async {
         let transport = FakeTransport()
         let repo = SupabaseAuthRepository(transport: transport, sessionStore: InMemorySecureSessionStore())
 
-        let outcome = await repo.startPasskeyChallenge()
+        let outcome = await repo.startPasskeyAuthentication()
 
-        XCTAssertEqual(outcome, .ok(challenge: "fake-challenge"))
+        guard case .ready(let options) = outcome else { XCTFail("expected options"); return }
+        XCTAssertEqual(options.relyingPartyID, "example.com")
+        XCTAssertEqual(options.challengeID, "challenge-id")
     }
 
-    func testPasskeyChallengeNetworkErrorMapsToRetryableNetwork() async {
+    func testPasskeyAuthenticationNetworkErrorMapsToRetryableNetwork() async {
         let transport = FakeTransport()
-        transport.passkeyChallengeResult = .networkError
+        transport.passkeyAuthenticationResult = .networkError
         let repo = SupabaseAuthRepository(transport: transport, sessionStore: InMemorySecureSessionStore())
 
-        let outcome = await repo.startPasskeyChallenge()
+        let outcome = await repo.startPasskeyAuthentication()
 
         XCTAssertEqual(outcome, .failed(code: .network))
     }
@@ -202,7 +233,7 @@ final class SupabaseAuthRepositoryTests: XCTestCase {
         let transport = FakeTransport()
         let repo = SupabaseAuthRepository(transport: transport, sessionStore: InMemorySecureSessionStore())
 
-        let outcome = await repo.signInWithPasskey(assertion: fakeAssertion)
+        let outcome = await repo.signInWithPasskey(challengeID: "challenge-id", assertion: fakeAssertion)
 
         guard case .success = outcome else { XCTFail("expected success"); return }
     }
@@ -212,17 +243,61 @@ final class SupabaseAuthRepositoryTests: XCTestCase {
         let existing = Session(userID: "u1", accessToken: "a", refreshToken: "r", expiresAtEpochSeconds: 500)
         let repo = SupabaseAuthRepository(transport: transport, sessionStore: InMemorySecureSessionStore(initial: existing))
 
-        let outcome = await repo.registerPasskey(credential: fakeAssertion)
+        let outcome = await repo.registerPasskey(
+            challengeID: "registration-id",
+            credential: fakeRegistrationCredential
+        )
 
         guard case .success(let session) = outcome else { XCTFail("expected success"); return }
         XCTAssertEqual(session, existing)
+    }
+
+    func testPasskeyRegisterUnauthorizedNeedsReauth() async {
+        let transport = FakeTransport()
+        transport.passkeyRegisterResult = .httpError(status: 401)
+        let existing = Session(userID: "u1", accessToken: "a", refreshToken: "r", expiresAtEpochSeconds: 500)
+        let repo = SupabaseAuthRepository(
+            transport: transport,
+            sessionStore: InMemorySecureSessionStore(initial: existing)
+        )
+
+        let outcome = await repo.registerPasskey(
+            challengeID: "registration-id",
+            credential: fakeRegistrationCredential
+        )
+
+        XCTAssertEqual(outcome, .needsReauth)
+    }
+
+    func testPasskeyListWithoutSessionNeedsReauth() async {
+        let repo = SupabaseAuthRepository(
+            transport: FakeTransport(),
+            sessionStore: InMemorySecureSessionStore()
+        )
+
+        let outcome = await repo.listPasskeys()
+        XCTAssertEqual(outcome, .needsReauth)
+    }
+
+    func testPasskeyDeleteSuccessMapsToManagementSuccess() async {
+        let existing = Session(userID: "u1", accessToken: "a", refreshToken: "r", expiresAtEpochSeconds: 500)
+        let repo = SupabaseAuthRepository(
+            transport: FakeTransport(),
+            sessionStore: InMemorySecureSessionStore(initial: existing)
+        )
+
+        let outcome = await repo.deletePasskey(id: "00000000-0000-0000-0000-000000000001")
+        XCTAssertEqual(outcome, .success)
     }
 
     func testPasskeyRegisterOkWithoutSessionNeedsReauth() async {
         let transport = FakeTransport()
         let repo = SupabaseAuthRepository(transport: transport, sessionStore: InMemorySecureSessionStore())
 
-        let outcome = await repo.registerPasskey(credential: fakeAssertion)
+        let outcome = await repo.registerPasskey(
+            challengeID: "registration-id",
+            credential: fakeRegistrationCredential
+        )
 
         XCTAssertEqual(outcome, .needsReauth)
     }

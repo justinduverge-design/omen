@@ -14,23 +14,27 @@ struct OmenIOSApp: App {
         let repository: AuthRepository
         let appleProvider: AppleIDTokenProviding
         let oauthProvider: SupabaseOAuthProvider
+        let passkeyProvider: PasskeyProvider
         if environment.supabaseConfigured, let supabaseURL = environment.supabaseURL, let anonKey = environment.supabaseAnonKey {
             let transport = URLSessionGoTrueTransport(supabaseURL: supabaseURL, anonKey: anonKey)
             repository = SupabaseAuthRepository(transport: transport, sessionStore: sessionStore)
             appleProvider = NativeAppleIDTokenProvider()
             oauthProvider = ASWebAuthenticationOAuthProvider(supabaseURL: supabaseURL)
+            passkeyProvider = NativePasskeyProvider()
         } else {
             // No Supabase config for this build (e.g. local/demo) — fall back to a network-free
             // fake rather than silently claiming a live auth path that can't work.
             repository = FakeAuthRepository()
             appleProvider = UnconfiguredAppleIDTokenProvider()
             oauthProvider = UnconfiguredSupabaseOAuthProvider()
+            passkeyProvider = UnsupportedPasskeyProvider()
         }
 
         _authViewModel = StateObject(wrappedValue: AuthViewModel(
             repository: repository,
             appleProvider: appleProvider,
             oauthProvider: oauthProvider,
+            passkeyProvider: passkeyProvider,
             sessionManager: manager
         ))
     }
