@@ -163,7 +163,11 @@ router.get("/leagues", requireAuth, async (req, res, next) => {
     if (e.message === "yahoo_token_expired") {
       return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
     }
-    next(e);
+    if (typeof e.status === "number") {
+      return res.status(e.status).json({ error: e.message });
+    }
+    logger.error("Yahoo leagues lookup failed", { err: e.message });
+    return res.status(500).json({ error: `Yahoo leagues lookup failed: ${e.message}` });
   }
 });
 
@@ -186,14 +190,18 @@ router.post("/league", requireAuth, async (req, res, next) => {
       updated_at: new Date().toISOString(),
     }).eq("user_id", req.user.id).eq("platform", "yahoo");
 
-    if (error) throw new Error(`Yahoo league bind failed: ${error.message}`);
+    if (error) throw new Error(`platform_connections update failed: ${error.message}`);
 
     return res.json({ league_id: match.league_id });
   } catch (e) {
     if (e.message === "yahoo_token_expired") {
       return res.status(401).json({ error: "Yahoo token expired - re-authenticate" });
     }
-    next(e);
+    if (typeof e.status === "number") {
+      return res.status(e.status).json({ error: e.message });
+    }
+    logger.error("Yahoo league bind failed", { err: e.message });
+    return res.status(500).json({ error: `Yahoo league bind failed: ${e.message}` });
   }
 });
 

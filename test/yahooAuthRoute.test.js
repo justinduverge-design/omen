@@ -441,6 +441,43 @@ test("GET /api/yahoo/leagues returns 404 when there is no Yahoo connection", asy
   assert.equal(res.body.error, "No Yahoo connection for this user");
 });
 
+test("GET /api/yahoo/leagues surfaces the real cause of an unexpected failure instead of a masked 500", async () => {
+  const { app } = buildApp({
+    getAuthenticatedYahooClient: async () => {
+      throw new Error("Vault decrypt failed: permission denied for function vault_decrypt_secret");
+    },
+  });
+
+  const res = await request(app, "/api/yahoo/leagues", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 500);
+  assert.equal(
+    res.body.error,
+    "Yahoo leagues lookup failed: Vault decrypt failed: permission denied for function vault_decrypt_secret"
+  );
+});
+
+test("POST /api/yahoo/league surfaces the real cause of an unexpected failure instead of a masked 500", async () => {
+  const { app } = buildApp({
+    getAuthenticatedYahooClient: async () => ({
+      client: {
+        getUserLeagues: async () => { throw new Error("Yahoo API error: 999"); },
+      },
+    }),
+  });
+
+  const res = await request(app, "/api/yahoo/league", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: { leagueId: "449.l.123" },
+  });
+
+  assert.equal(res.status, 500);
+  assert.equal(res.body.error, "Yahoo league bind failed: Yahoo API error: 999");
+});
+
 test("POST /api/yahoo/league requires a leagueId", async () => {
   const { app, state } = buildApp();
   const res = await request(app, "/api/yahoo/league", {
