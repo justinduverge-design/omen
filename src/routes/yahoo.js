@@ -154,6 +154,36 @@ router.get("/roster", requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * Temporary: narrows down which Yahoo call first returns 403 so a live 403 can be
+ * attributed to scope/app-permission vs. this specific query shape. Remove once
+ * the Yahoo access issue is resolved. Returns HTTP statuses only - never a token.
+ */
+router.get("/access-probe", requireAuth, async (req, res) => {
+  const probes = [
+    ["user_games", "/users;use_login=1/games"],
+    ["nfl_games", "/users;use_login=1/games;game_keys=nfl"],
+    ["nfl_leagues", "/users;use_login=1/games;game_keys=nfl/leagues"],
+    ["public_game_meta", "/game/nfl"],
+  ];
+
+  try {
+    const { client } = await getAuthenticatedYahooClient(req.user.id);
+    const results = {};
+    for (const [label, path] of probes) {
+      try {
+        await client.get(path);
+        results[label] = "ok";
+      } catch (e) {
+        results[label] = e.message;
+      }
+    }
+    return res.json({ probes: results });
+  } catch (e) {
+    return res.status(500).json({ error: `probe setup failed: ${e.message}` });
+  }
+});
+
 router.get("/leagues", requireAuth, async (req, res, next) => {
   try {
     const { client } = await getAuthenticatedYahooClient(req.user.id);
