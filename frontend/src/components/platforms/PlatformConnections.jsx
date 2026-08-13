@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
 import { platformButtonStyle } from '../../lib/platformChip.js';
+import { startYahooOAuth } from '../../lib/yahooAuth.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -246,6 +247,17 @@ export default function PlatformConnections({ recoveryState = null }) {
 
   useEffect(() => { refreshStatus(); }, []);
 
+  async function connectYahoo() {
+    setAction('connect-yahoo');
+    setErrors((c) => ({ ...c, yahoo: null }));
+    try {
+      await startYahooOAuth();
+    } catch (error) {
+      setErrors((c) => ({ ...c, yahoo: errorMessage(error) }));
+      setAction(null);
+    }
+  }
+
   async function disconnect(platform) {
     setAction(`disconnect-${platform}`);
     setErrors((c) => ({ ...c, [platform]: null }));
@@ -366,8 +378,8 @@ export default function PlatformConnections({ recoveryState = null }) {
                 </GhostButton>
               </div>
             ) : (
-              <AccentButton platform="yahoo" onClick={() => { window.location.href = '/api/yahoo/auth'; }}>
-                Connect Yahoo
+              <AccentButton platform="yahoo" disabled={disabled} onClick={connectYahoo}>
+                {action === 'connect-yahoo' ? 'Connecting…' : 'Connect Yahoo'}
               </AccentButton>
             )}
           </div>

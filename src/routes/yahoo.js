@@ -116,6 +116,7 @@ router.get("/callback", async (req, res, next) => {
 
     const { leagueId, nativeReturn } = decodeOAuthVerifier(oauthRow.verifier);
     if (providerError) {
+      logger.warn("Yahoo OAuth denied or errored", { providerError });
       await supabase.from("oauth_state").delete().eq("state", state);
       return res.redirect(oauthCompletionRedirect(nativeReturn, "cancelled"));
     }

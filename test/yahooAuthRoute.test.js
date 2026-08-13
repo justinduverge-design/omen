@@ -83,6 +83,7 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
     exchanges: [],
     persists: [],
     appUsers: [],
+    logs: [],
   };
   const fakeSupabase = makeSupabase(state);
   const originalLoad = Module._load;
@@ -92,7 +93,13 @@ function loadYahooRouter({ oauthRows = [] } = {}) {
       return { createClient: () => fakeSupabase };
     }
     if (request === "../middleware/logging" && (parent?.filename === routePath || parent?.filename === authPath)) {
-      return { logger: { error() {}, warn() {}, info() {} } };
+      return {
+        logger: {
+          error(message, meta) { state.logs.push({ level: "error", message, meta }); },
+          warn(message, meta) { state.logs.push({ level: "warn", message, meta }); },
+          info(message, meta) { state.logs.push({ level: "info", message, meta }); },
+        },
+      };
     }
     if (request === "../middleware/yahooOAuth" && parent?.filename === routePath) {
       return {
@@ -318,6 +325,32 @@ test("GET /api/yahoo/callback returns a safe fixed native cancellation and consu
   assert.equal(state.exchanges.length, 0);
   assert.equal(state.persists.length, 0);
   assert.equal(state.deletes[0].state, "cancel-native-state");
+  const warning = state.logs.find((entry) => entry.level === "warn");
+  assert.ok(warning, "expected the discarded provider error to be logged");
+  assert.equal(warning.meta.providerError, "access_denied");
+});
+
+test("GET /api/yahoo/callback logs the real provider error and never a token or auth code", async () => {
+  const { app, state } = buildApp({
+    oauthRows: [{
+      state: "mismatch-state",
+      platform: "yahoo",
+      user_id: "test-slops-user",
+      verifier: "league-1",
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    }],
+  });
+  const res = await request(app, "/api/yahoo/callback?error=redirect_uri_mismatch&state=mismatch-state");
+
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "http://localhost:3000/account/connect?error=yahoo_access_denied");
+  const warning = state.logs.find((entry) => entry.level === "warn");
+  assert.ok(warning, "expected the discarded provider error to be logged");
+  assert.equal(warning.meta.providerError, "redirect_uri_mismatch");
+  const serializedLogs = JSON.stringify(state.logs);
+  assert.equal(serializedLogs.includes("yahoo-access-token"), false);
+  assert.equal(serializedLogs.includes("yahoo-refresh-token"), false);
+  assert.ok(!Object.prototype.hasOwnProperty.call(warning.meta, "code"));
 });
 
 test("GET /api/yahoo/callback rejects invalid, expired, and duplicate native states without a deep-link redirect", async () => {
