@@ -1376,11 +1376,21 @@ async function buildRosterForConnection(userId, connection, week, { yahooClient 
   throw new Error(`Unsupported platform: ${connection.platform}`);
 }
 
+/**
+ * Every connection Omen could build a live MVP from. Providers are peers - the
+ * order here is a deterministic tie-break, not a ranking. Callers must try each
+ * in turn so one dead provider cannot block a user with a healthy league.
+ */
+function pickLiveMvpConnections(connections = []) {
+  return [
+    selectUsableSleeperMvpConnection(connections),
+    selectUsableEspnMvpConnection(connections),
+    selectUsableYahooMvpConnection(connections),
+  ].filter(Boolean);
+}
+
 function pickLiveMvpConnection(connections = []) {
-  return selectUsableYahooMvpConnection(connections)
-    || selectUsableSleeperMvpConnection(connections)
-    || selectUsableEspnMvpConnection(connections)
-    || null;
+  return pickLiveMvpConnections(connections)[0] || null;
 }
 
 function incompleteConnectionResponse(connections = []) {
@@ -1483,24 +1493,46 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   if (hasRequestedContext && !scopedConnections.length) return contextUnavailableMvpResponse();
 
   const connectedPlatforms = scopedConnections.map(safePlatformSummary);
-  const connection = pickLiveMvpConnection(scopedConnections);
-  if (!connection) return incompleteConnectionResponse(scopedConnections);
+  const liveConnections = pickLiveMvpConnections(scopedConnections);
+  if (!liveConnections.length) return incompleteConnectionResponse(scopedConnections);
 
   const week = currentNflWeek();
+  let connection = null;
+  let roster = null;
   let yahooClient = null;
   let espnCredentials = null;
-  if (connection.platform === "yahoo") {
-    ({ client: yahooClient } = await getAuthenticatedYahooClient(userId));
-  }
-  let roster;
-  try {
-    if (connection.platform === "espn") {
-      espnCredentials = await espnCredentialsForConnection(connection);
+  let firstFailure = null;
+
+  // Try every usable connection before giving up. A provider that is down,
+  // rate-limited, or not yet provisioned must never take down a user whose
+  // other league still works.
+  for (const candidate of liveConnections) {
+    let candidateYahooClient = null;
+    let candidateEspnCredentials = null;
+    try {
+      if (candidate.platform === "yahoo") {
+        ({ client: candidateYahooClient } = await getAuthenticatedYahooClient(userId));
+      }
+      if (candidate.platform === "espn") {
+        candidateEspnCredentials = await espnCredentialsForConnection(candidate);
+      }
+      roster = await buildRosterForConnection(userId, candidate, week, {
+        yahooClient: candidateYahooClient,
+        espnCredentials: candidateEspnCredentials,
+      });
+      connection = candidate;
+      yahooClient = candidateYahooClient;
+      espnCredentials = candidateEspnCredentials;
+      break;
+    } catch (err) {
+      if (!firstFailure) firstFailure = { connection: candidate, err };
     }
-    roster = await buildRosterForConnection(userId, connection, week, { yahooClient, espnCredentials });
-  } catch (err) {
-    if (connection.platform === "espn") return espnRecoveryFromError(connection, err);
-    if (connection.platform === "sleeper") {
+  }
+
+  if (!connection) {
+    const { connection: failed, err } = firstFailure;
+    if (failed.platform === "espn") return espnRecoveryFromError(failed, err);
+    if (failed.platform === "sleeper") {
       return platformRecoveryMvpResponse({
         platform: "sleeper",
         state: "sleeper_league_context_missing",
@@ -1508,7 +1540,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
         message: "Sleeper roster import failed. Confirm the username and league selection, then reconnect Sleeper.",
         cta: "Reconnect Sleeper",
         fieldsNeeded: ["Sleeper username", "league id"],
-        leagueId: connection.league_id,
+        leagueId: failed.league_id,
         retryable: true,
       });
     }
