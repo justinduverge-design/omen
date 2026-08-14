@@ -718,11 +718,13 @@ event traceable.
 
 ### P1-YahooReauth — Re-authorize Yahoo under the re-approved API app
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — Yahoo OAuth consent must be completed by the account owner; if the re-approval issued a new client ID/secret, writing them is a **secrets action** needing its own action-level approval
-- **Priority:** **P0 — gates F7, which gates Section K**
-- **Cost:** small
-- **Agent-buildable:** config diff, redirect-URI check, and a token-health test — not the consent step
+- **Status:** **BLOCKED — EXTERNAL (retyped 2026-08-14).** This sat at READY long after everything readable had been read. Every hypothesis this item was written to test has been tested and eliminated (see the superseding finding below); what remains is a Fantasy Sports API entitlement that only Yahoo can grant. **The founder re-applied for access on app `ZcZJXm8V` on 2026-08-13.** Nothing in this item is agent-buildable, and it should not be pulled into a session as work — it is a waiting item, not a queued one.
+- **Blocked by:** **Yahoo's approval queue**, not the founder and not the code. No amount of local work advances it.
+- **How to re-check (cheap, ~30 seconds):** sign in to Omen and hit `GET /api/yahoo/access-probe` (`src/routes/yahoo.js:162`, still deployed from PR [#296](https://github.com/justinduverge-design/omen/pull/296)). It runs four Yahoo calls of increasing specificity. **Any 200 means the entitlement landed**; four 403s means it has not. Do not re-derive the diagnosis from scratch — the probe is the whole test.
+- **Delete the probe** once a green result is recorded; it was added as temporary diagnostic surface.
+- **Priority:** **P0 by impact — gates F7, which gates Section K — but not schedulable.** Plan Sleeper and ESPN work as though Yahoo will not arrive in time.
+- **Cost:** zero agent cost; pure wait
+- **Agent-buildable:** **no.** The config diff, redirect-URI check, and token-health test this item once scoped are all **done** — credentials confirmed current, redirect URI confirmed matching, token confirmed freshly issued. There is no remaining code task here.
 - **Source:** verified live 2026-08-11. `GET /api/platforms` returns `yahoo: connected, 1 league`, so the `platform_connections` row is active and carries a usable `league_id`. But `GET /api/dashboard/summary` returns `waiver_wire: "needs_platform"`, and that branch (`src/routes/dashboard.js:219-224`) is only reachable when `hasUsableYahooToken()` fails. Per `src/services/omenReadiness.js:8-14`, that means `token_secret_id` is absent or `token_expires_at` is past. **The integration is intact; the token is dead.** Yahoo API access was separately re-approved in early 2026-08.
 - **Diagnostic order — do not skip step 1.** The existing `platform_connections` row proves a *successful* OAuth round-trip happened at some point, which means the client credentials were valid when it was created. Wrong client credentials fail at the authorize step with `invalid_client` and never produce a row at all. So the default hypothesis is a dead user grant, not bad app credentials — most likely Yahoo invalidated outstanding grants when the app's access lapsed, and re-approval restored the app without resurrecting the grant.
   1. ~~**Reconnect Yahoo through the app.**~~ **Not currently possible — see `P1-YahooConnectButtons` below.** Reproduced 2026-08-11: there is no working UI path to re-initiate Yahoo OAuth. Fix that item first, or complete consent manually by POSTing to `/api/yahoo/auth` with a valid bearer token and following the returned `url`.
@@ -739,7 +741,7 @@ event traceable.
 
 ### P1-YahooLeagueBinding — Yahoo can never reach `ready`: no league is ever bound
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-14** (PR [#293](https://github.com/justinduverge-design/omen/pull/293)). The blocking condition recorded below — "tests are hand-traced against fixtures, not executed (no node/npm in that session); `npm test` must run and pass before this item can move to VERIFIED" — **is now discharged.** Node 24.19.0 was installed on the founder's Mac on 2026-08-14 and `npm test` ran the full suite: **530/530 pass**, including `POST /api/yahoo/league binds a real Yahoo league and persists it`, the not-your-league rejection, and the no-connection 404. `GET /api/yahoo/leagues` + `POST /api/yahoo/league` + the `ConnectLeague.jsx` picker close the write/read mismatch. **Caveat that is not this item's fault:** the end-to-end path still cannot be exercised against live Yahoo data, because Yahoo refuses every Fantasy call at the app-entitlement level (see `P1-YahooReauth`). The binding code is verified; the live round-trip waits on Yahoo.
 - **Blocked by:** None
 - **Priority:** **P0 — Yahoo is structurally non-functional; this is the root cause, not the token**
 - **Cost:** medium
@@ -756,7 +758,7 @@ event traceable.
 
 ### P1-YahooConnectButtons — No working UI path to connect or reconnect Yahoo
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-14** (PR [#292](https://github.com/justinduverge-design/omen/pull/292)). Re-verified against `main`: a repo-wide grep for `/api/yahoo/auth` in `frontend/src/` now returns **exactly one hit** — `frontend/src/lib/yahooAuth.js:5`, the correct `apiFetch` POST. Both `window.location.href` navigations (`PlatformConnections.jsx`, `WaiverWire.jsx`) are gone. Yahoo's `providerError` is logged before the state row is deleted (`src/routes/yahoo.js:118-119`). The `/api/platforms` vs `/api/dashboard/summary` disagreement is documented in `Direction/known_issues.md` rather than collapsed. **Residual, accepted:** the `GET /api/yahoo/auth` route still exists behind `requireAuth` (`src/routes/yahoo.js:76`) rather than being removed — it is no longer reachable from any UI surface, so it cannot be linked into again by the product, but it will still answer `{"error":"Missing bearer token"}` to a hand-typed URL. Not worth a separate item; fold it into the next `src/routes/yahoo.js` touch.
 - **Blocked by:** None
 - **Priority:** **P0 — blocks P1-YahooReauth, which blocks F7, which blocks Section K**
 - **Cost:** small
@@ -775,7 +777,7 @@ event traceable.
 
 ### P1-WaiverGateMultiProvider — Waiver readiness is hardcoded to Yahoo
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-14.** Closed and re-verified against `main` on a machine that can actually run the suite. `buildWaiverTool()` (`src/routes/dashboard.js`) now derives readiness from `activeRows.some(isOmenReadyConnection)` — the shared predicate — with no Yahoo-specific branch anywhere in the gate. `test/dashboardSummary.test.js` asserts `waiver_wire: {available: true, status: "ready"}` for a **Sleeper-only** user and for an **ESPN-only** user. Full backend suite: **530/530 pass**. The ESPN (#266) and Sleeper (#259) waiver work is reachable from the dashboard. This item had been sitting at READY after it was already fixed.
 - **Blocked by:** None
 - **Priority:** **P0 — silently buries shipped work**
 - **Cost:** small–medium
