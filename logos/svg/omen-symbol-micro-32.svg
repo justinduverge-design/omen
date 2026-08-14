@@ -1,0 +1,23 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="omen-symbol-micro-32">
+<rect width="32" height="32" rx="7" fill="#0A0A0B"/>
+<g id="OMEN Micro Mark &#226;&#128;&#148; 32A &#226;&#128;&#148; Three Bar">
+<path id="Outer O" d="M15.9998 4.9375C21.1365 4.9375 24.0259 10.7453 24.0259 16C24.0259 21.2547 21.1365 27.0625 15.9998 27.0625C10.863 27.0625 7.97363 21.2547 7.97363 16C7.97363 10.7453 10.863 4.9375 15.9998 4.9375Z" fill="url(#paint0_linear_103_3)"/>
+<path id="Football interior" d="M16.0001 4.9375C16.0265 5.93313 20.3952 8.98637 20.3952 16C20.3952 23.0136 16.0265 26.0669 16.0001 27.0625C15.9737 26.0669 11.605 23.0136 11.605 16C11.605 8.98637 15.9737 5.93313 16.0001 4.9375Z" fill="#0A0A0B"/>
+<path id="Apex notch top" d="M16.0633 5.06406C16.0633 4.99416 16.0349 4.9375 15.9999 4.9375C15.9649 4.9375 15.9365 4.99416 15.9365 5.06406V5.65469C15.9365 5.72459 15.9649 5.78125 15.9999 5.78125C16.0349 5.78125 16.0633 5.72459 16.0633 5.65469V5.06406Z" fill="#0A0A0B"/>
+<path id="Apex notch bottom" d="M16.0633 26.3453C16.0633 26.2754 16.0349 26.2188 15.9999 26.2188C15.9649 26.2188 15.9365 26.2754 15.9365 26.3453V26.9359C15.9365 27.0058 15.9649 27.0625 15.9999 27.0625C16.0349 27.0625 16.0633 27.0058 16.0633 26.9359V26.3453Z" fill="#0A0A0B"/>
+<rect id="Micro lace spine" x="15" y="12" width="2" height="9" rx="0.345395" fill="#A67C2E"/>
+<rect id="Micro lace bar" x="13" y="13" width="6.15317" height="1" rx="0.296053" fill="#A67C2E"/>
+<rect id="Micro lace bar_2" x="13" y="16" width="6.15317" height="1" rx="0.296053" fill="#A67C2E"/>
+<rect id="Micro lace bar_3" x="13" y="19" width="6.15317" height="1" rx="0.296053" fill="#A67C2E"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_103_3" x1="9.57886" y1="6.04375" x2="27.0405" y2="20.2963" gradientUnits="userSpaceOnUse">
+<stop stop-color="#D8BB73"/>
+<stop offset="0.35" stop-color="#B88D42"/>
+<stop offset="0.72" stop-color="#80541F"/>
+<stop offset="1" stop-color="#C59A49"/>
+</linearGradient>
+</defs>
+</svg>

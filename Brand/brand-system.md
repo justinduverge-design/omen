@@ -3,7 +3,7 @@
 **Status:** Canonical | Last updated: 2026-08-02
 **Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
-**Logos:** canonical asset set at `logos/` (14 files) — primary emblem (Omen B2: aged-brass **O**, football negative space), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), and the 1024 store/native master `omen-app-icon-1024.png`. The retired shield brand board and preview sheet are archived at `Brand/archive/superseded-shield-2026-07-25/` and are not part of the canonical set. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
+**Logos:** canonical asset set at `logos/` — **vector masters in `logos/svg/` (12 + 5 icon layers), rasters rendered from them (16 files)**. Primary emblem (Omen B2: aged-brass **O**, football negative space), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), and the 1024 store/native master `omen-app-icon-1024.png`. The retired shield brand board and preview sheet are archived at `Brand/archive/superseded-shield-2026-07-25/` and are not part of the canonical set. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
 **Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
 
 ---
@@ -259,8 +259,27 @@ The brand board (`logos/omen-full-brand-board.png`) names four pillars for exter
 - **Horizontal lockup** `omen-horizontal-lockup.png` — **default logo for identity slots.** Header, NavDrawer, Landing hero, OmenLanding, marketing hero, share-card header, Sign-In screen. Now shipping in transparent variant `omen-horizontal-lockup-transparent.png` for light-theme safety.
 - **Favicon set** `omen-favicon-{16,32,48,64,180,256,512}.png` — browser tab, PWA manifest, apple-touch-icon, tiles.
 - **App icon** `omen-favicon-app-icon.png` — PWA install / home-screen icon slot. 1024×1024, rounded corners baked in, alpha outside the badge.
-- **Store / native master** `omen-app-icon-1024.png` — 1024×1024, **opaque, square, no alpha, no baked corners**. The submission asset for App Store Connect and the source for the iOS `AppIcon` set and the Android launcher mipmaps. Never used in-app; the OS applies its own mask.
+- **Store master** `omen-app-icon-1024.png` — 1024×1024, **opaque, square, no alpha, no baked corners**. The App Store Connect submission asset. Never used in-app; the OS applies its own mask.
+- **Maskable PWA icon** `omen-maskable-512.png` — 512×512 with the mark held to 52% of the canvas so it survives an aggressive circular mask. This is the **only** asset that may be declared `"purpose": "maskable"`; the full-bleed favicons must not be, because the mark's apexes fall outside the maskable safe zone.
+- **SVG favicon** `omen-favicon.svg` — the browser-tab icon for every SVG-capable browser. PNG favicons remain as fallback.
 - **Retired shield board + preview sheet** — archived at `Brand/archive/superseded-shield-2026-07-25/`. Historical only, never as UI.
+
+### 12.1a Vector masters (canonical at `logos/svg/`)
+
+**SVG is the master format. Every raster in `logos/` is a render of one of these.** Exported from Figma file `Lmj3VyXmE1u2WhGbQOqUIk` ("Omen Favicon Exploration v1"), page `05 — Export Masters`. That file — not the Native Design House file — is the identity source of truth.
+
+| File | What it is |
+|---|---|
+| `omen-symbol-primary.svg` | The B2 mark, full detail: brass gradient plus the radial sheen. Square, Raven ground. |
+| `omen-app-icon-master-1024.svg` | App-icon composition (rounded-rect ground baked in for preview only). |
+| `omen-wordmark-{bone,raven}.svg` | Source-faithful vector trace of the OMEN wordmark. |
+| `omen-lockup-{horizontal,stacked}.svg` | The two official lockups. |
+| `omen-symbol-micro-{16,32}.svg` | Purpose-drawn small cuts — **not** the primary mark scaled down. Use at ≤32px. |
+| `omen-symbol-{brass,bone,raven}-on-{raven,bone}.svg` | Flat monochrome variants for constrained or single-colour surfaces. |
+| `icon-layers/omen-icon-layer-{1-outer-o,2-football,3-laces}.svg` | Flat, unshaded, unmasked layers authored for Apple Icon Composer. |
+| `icon-layers/1024-grid/` | The same layers remapped onto the 1024 icon grid, restructured into the two layers the shipping `.icon` actually uses. |
+
+Rule: **do not scale the primary symbol below 32px** — switch to the micro cut, which is drawn for that size.
 
 ### 12.2 Framing rule
 
@@ -277,13 +296,18 @@ Canonical assets live at `omen/logos/`. Build-served copies must live at `omen/f
 
 ### 12.4a Native icon slots
 
-The native apps do not read from `logos/` at build time — each platform needs the mark committed in its own required layout. All of it derives from `omen-app-icon-1024.png`; when that master changes, regenerate all three sets in the same commit.
+The native apps do not read from `logos/` at build time — each platform needs the mark committed in its own required layout. **Both native slots are vector**, cut from `logos/svg/`; only App Store Connect needs a raster.
 
 | Slot | Location | Contents |
 |---|---|---|
 | App Store Connect | `logos/omen-app-icon-1024.png` | 1024×1024, opaque, **no alpha channel** — App Store Connect rejects alpha. No pre-baked corners; Apple applies the mask. |
-| iOS | `mobile/ios/OmenIOS/OmenIOS/Assets.xcassets/AppIcon.appiconset/` | Single universal 1024 entry. Xcode's `actool` derives every device size and writes `CFBundleIconName`. Registered explicitly in `project.pbxproj` (this project has no `PBXFileSystemSynchronizedRootGroup`) and selected by `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`. |
-| Android | `mobile/android/app/src/main/res/mipmap-*/` | Adaptive icon (`mipmap-anydpi-v26/`): Raven Black `@color/ic_launcher_background` + a 108dp foreground holding the mark inside the 72dp safe zone. Legacy square/round PNGs at mdpi→xxxhdpi for pre-API-26. `<monochrome>` is an **alpha-only** glyph — never the color bitmap, which themed mode would render as a solid block. Wired via `android:icon` / `android:roundIcon`. |
+| iOS | `mobile/ios/OmenIOS/OmenIOS/Omen.icon/` | An **Icon Composer document**, not an `.appiconset`. `icon.json` plus two SVG layers — a brass ring and the laces — over a Raven ground. iOS 26 renders it as a layered Liquid Glass icon (the system supplies specular, refraction, and shadow; the artwork must not) and back-deploys a flattened icon to older releases. Registered in `project.pbxproj` as `folder.iconcomposer.icon` and selected by `ASSETCATALOG_COMPILER_APPICON_NAME = Omen`. |
+| Android | `mobile/android/app/src/main/res/` | Adaptive icon (`mipmap-anydpi-v26/`): Raven Black `@color/ic_launcher_background` plus **VectorDrawable** foreground and monochrome layers in `drawable/`. No PNG mipmap ladder — `minSdk = 26` guarantees adaptive-icon support, so the rasters were dead weight. Wired via `android:icon` / `android:roundIcon`. |
+
+**Two rules that are easy to get wrong, both learned the hard way here:**
+
+1. **The football must be a cutout, never a dark shape painted on top.** In the layer artwork it is an `evenOdd` subtraction from the brass ring, so the ground shows through. Paint it as a black layer instead and Icon Composer glassifies it — the mark collapses into a featureless brass blob. Same reasoning drives the Android `fillType="evenOdd"`.
+2. **The `<monochrome>` drawable must be a flat silhouette**, sharing the foreground's geometry but one colour. Point it at the coloured artwork and themed-icon mode renders a solid block.
 
 The install-icon badge is the framing exception from §12.2 — it is the only container the mark sits inside, and only because the OS demands a square.
 

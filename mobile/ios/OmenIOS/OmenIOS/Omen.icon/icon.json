@@ -1,0 +1,25 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.03922,0.03922,0.04314,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        { "image-name" : "omen-icon-ring.svg", "name" : "Brass O" }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "specular" : true
+    },
+    {
+      "layers" : [
+        { "image-name" : "omen-icon-laces.svg", "name" : "Laces" }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "specular" : true
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [ "watchOS" ],
+    "squares" : [ "iOS", "macOS" ]
+  }
+}
