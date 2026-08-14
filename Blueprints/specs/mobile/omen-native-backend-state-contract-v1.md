@@ -78,3 +78,41 @@ Each PR must update `Blueprints/handoffs/backend-to-frontend.md` with its exact 
 - Yahoo deep-link return, provider-state API, and idempotent connection behavior remain separate PRs after F2.
 - Native project scaffolding, app-store configuration, credentials, provider-cookie flows, schema changes, deployment, and real-account verification require their own approved gates.
 - Any new response field or changed public meaning beyond this contract requires a frontend/backend handoff update before merge.
+
+## Command Center Platforms Compact Strip — client state contract (added 2026-08-14)
+
+**Authority:** Figma [`73:2`](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3?node-id=73-2)
+(`APPROVED COMPOSITION — Justin, 2026-08-01`) and the 2026-08-14 amendment to
+`omen-mobile-visual-briefs-v1.md` §1.1. Recorded here because the compact strip was approved
+visually with **no state contract behind it**, which blocked implementation until now.
+
+### Shape
+
+One row per provider Omen supports, in fixed order: **Sleeper, Yahoo, ESPN**. Fixed order, not
+connection-sorted — a strip that reorders itself as connections change makes the row a moving
+target for muscle memory and for accessibility focus order.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `platform` | `OmenPlatform` | existing enum; drives `PlatformBadge` only |
+| `status` | `OmenConnectionStatus` | **existing** shared enum (`connected · disconnected · needsReauth · error · pending · recovering`) — the strip does **not** introduce a second status vocabulary |
+| `lastSyncText` | `String?` | pre-formatted relative time (e.g. `"4m ago"`), `nil` when not connected |
+
+### Rules
+
+- **The client never formats or derives status.** `lastSyncText` arrives pre-rendered; the client
+  does not compute relative time, so a stale screen cannot silently age into a wrong claim.
+- **`lastSyncText` is shown only for `connected`.** Every other state suppresses it — showing a
+  last-sync time next to `Reauth needed` reads as "working, recently" and is the exact dishonesty
+  the design house's "status never hides" rule forbids.
+- **No color-only status.** Text is authoritative; the badge tone reinforces it.
+- **No fabricated connection.** A signed-in user with no connections gets three `disconnected`
+  rows, never a placeholder connected row. Demo fixtures stay explicitly named as demo.
+
+### Deferred — not in this PR
+
+Live wiring to `/api/dashboard/summary` is **not** included. The strip ships against fixtures on
+both platforms, exactly as Ledger and League Pulse did in the 2026-08-13 parity pass. The summary
+route already returns per-platform connection state, but it does **not** return a last-sync
+timestamp, so `lastSyncText` has no server source yet. Adding one is a backend change with its own
+contract update and is filed as a follow-up. **Do not claim the strip is live until that lands.**
