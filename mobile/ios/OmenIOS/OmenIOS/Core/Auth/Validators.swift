@@ -17,7 +17,12 @@ enum EmailValidator {
 
 /// Mirrors Android `core/auth/Validators.kt`'s `OtpCodeValidator`: exactly six digits.
 enum OtpCodeValidator {
+    static func normalize(_ code: String) -> String {
+        code.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     static func isValid(_ code: String) -> Bool {
-        code.count == 6 && code.allSatisfy(\.isNumber)
+        let normalized = normalize(code)
+        return normalized.count == 6 && normalized.allSatisfy(\.isNumber)
     }
 }

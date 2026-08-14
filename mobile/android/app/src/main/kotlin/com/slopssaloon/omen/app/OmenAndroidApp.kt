@@ -38,6 +38,7 @@ import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
 import com.slopssaloon.omen.core.auth.AccountDeletion
 import com.slopssaloon.omen.core.auth.AccountDeletionOutcome
+import com.slopssaloon.omen.core.auth.OtpCodeValidator
 import com.slopssaloon.omen.core.auth.AccountRepository
 import com.slopssaloon.omen.core.auth.AuthEvent
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
@@ -129,7 +130,9 @@ fun OmenAndroidApp() {
             is AuthFlowState.RequestingOtp ->
                 scope.launch { dispatch(AuthEvent.OtpRequestResult(repo.requestEmailOtp(next.email))) }
             is AuthFlowState.VerifyingOtp ->
-                scope.launch { dispatch(AuthEvent.OtpVerifyResult(repo.verifyEmailOtp(next.email, code))) }
+                scope.launch {
+                    dispatch(AuthEvent.OtpVerifyResult(repo.verifyEmailOtp(next.email, OtpCodeValidator.normalize(code))))
+                }
             is AuthFlowState.LaunchingGoogle -> scope.launch {
                 when (val tokenResult = googleProvider.getIdToken(rawNonce = UUID.randomUUID().toString())) {
                     is GoogleIdTokenResult.Token -> {
@@ -164,6 +167,9 @@ fun OmenAndroidApp() {
     // OAUTH_CALLBACK_MISMATCH through the reducer.
     LaunchedEffect(oauthProvider) {
         OAuthCallbackBus.callbacks.collect { uri ->
+            // Consume the replay immediately. The current handling attempt is authoritative;
+            // retaining a completed or rejected callback would make a later collector replay it.
+            OAuthCallbackBus.clear()
             val providerId = (flow as? AuthFlowState.LaunchingOAuth)?.providerId ?: run {
                 // Not launching anything — feed a mismatch so any stale callback fails safely.
                 dispatch(

@@ -55,7 +55,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func submitOtp() {
-        let code = otpField
+        let code = OtpCodeValidator.normalize(otpField)
         dispatch(.otpSubmitted(code: code))
         guard case .verifyingOtp(let email) = flowState else { return }
         Task {

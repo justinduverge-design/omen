@@ -24,6 +24,8 @@ class ValidatorsTest {
 
     @Test fun acceptsSixDigitCode() {
         assertTrue(OtpCodeValidator.isValid("123456"))
+        assertTrue(OtpCodeValidator.isValid(" 123456\n"))
+        assertEquals("123456", OtpCodeValidator.normalize(" 123456\n"))
     }
 
     @Test fun rejectsBadCodes() {
