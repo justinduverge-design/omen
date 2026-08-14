@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { fetchNFLScores, fetchPendingMoves, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
+const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
@@ -105,7 +105,7 @@ test("runScoring groups reads by each move's stored season/week and dry-run neve
   assert.deepEqual(calls.fetches.sort(), ["2024:17", "2025:2"]);
   assert.equal(calls.archive, 1);
   assert.equal(calls.score, 0);
-  assert.deepEqual(result, { dryRun: true, archiveCount: 1, scoredCount: 2, failedCount: 0 });
+  assert.deepEqual(result, { dryRun: true, archiveCount: 1, scoredCount: 2, failedCount: 0, deferredCount: 0 });
 });
 
 test("runScoring uses the PPR fallback when deployed moves omit the legacy scoring field", async () => {
@@ -137,5 +137,74 @@ test("runScoring uses the PPR fallback when deployed moves omit the legacy scori
   });
 
   assert.equal(saved, 1);
-  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 1, failedCount: 0 });
+  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 1, failedCount: 0, deferredCount: 0 });
+});
+
+test("fetchNFLScores defers on an unpublished season CSV without writing cache", async () => {
+  const originalFetch = global.fetch;
+  let cacheWrites = 0;
+  const redis = {
+    get: async () => null,
+    set: async () => { cacheWrites += 1; },
+  };
+  global.fetch = async () => ({ ok: false, status: 404, statusText: "Not Found" });
+
+  try {
+    const scores = await fetchNFLScores({ season: 2026, weekNum: 1, redis });
+    assert.equal(isDeferredScores(scores), true);
+    assert.match(scores.reason, /player_stats_2026\.csv/);
+    assert.equal(cacheWrites, 0);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("fetchNFLScores still fails closed on a non-404 upstream error", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({ ok: false, status: 500, statusText: "Server Error" });
+
+  try {
+    await assert.rejects(
+      fetchNFLScores({ season: 2026, weekNum: 1 }),
+      /nflverse 500/,
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("runScoring defers a pre-season move instead of marking it failed", async () => {
+  let saved = 0;
+  const result = await runScoring({
+    env: {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_KEY: "test-service-key",
+    },
+    dependencies: {
+      createSupabase: () => ({}),
+      createRedis: () => null,
+      archiveNotExecutedMoves: async () => 0,
+      fetchPendingMoves: async () => [{
+        id: "pre-season-move",
+        target_player: "Unplayed Runner",
+        scoring: "PPR",
+        confidence: 60,
+        season: 2026,
+        week_num: 1,
+      }],
+      fetchNFLScores: async () => {
+        const originalFetch = global.fetch;
+        global.fetch = async () => ({ ok: false, status: 404, statusText: "Not Found" });
+        try {
+          return await fetchNFLScores({ season: 2026, weekNum: 1 });
+        } finally {
+          global.fetch = originalFetch;
+        }
+      },
+      saveScoredMove: async () => { saved += 1; },
+    },
+  });
+
+  assert.equal(saved, 0);
+  assert.deepEqual(result, { dryRun: false, archiveCount: 0, scoredCount: 0, failedCount: 0, deferredCount: 1 });
 });
