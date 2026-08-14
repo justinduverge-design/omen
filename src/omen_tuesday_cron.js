@@ -202,6 +202,19 @@ async function archiveNotExecutedMoves(supabase, now = new Date(), { dryRun = fa
   return rows.length;
 }
 
+// A season CSV that nflverse has not published yet is an expected pre-season
+// state, not an upstream failure. It is represented as a deferred marker so the
+// caller can leave the pending move alone and retry on a later scheduled run.
+const DEFERRED_SCORES = Symbol.for("omen.scoring.deferred");
+
+function deferredScores(reason) {
+  return { [DEFERRED_SCORES]: true, reason };
+}
+
+function isDeferredScores(value) {
+  return Boolean(value && value[DEFERRED_SCORES] === true);
+}
+
 async function fetchNFLScores({ weekNum, season = CURRENT_SEASON, redis = null, env = process.env }) {
   const cacheKey = `ssff:scores:${season}:${weekNum}`;
   const cached = await redisGetJson(redis, cacheKey);
@@ -209,6 +222,10 @@ async function fetchNFLScores({ weekNum, season = CURRENT_SEASON, redis = null, 
 
   const url = `${NFLVERSE_BASE_URL}/player_stats_${season}.csv`;
   const response = await fetch(url);
+  if (response.status === 404) {
+    // Not published yet: no cache write, no Supabase write, retry next run.
+    return deferredScores(`nflverse has not published player_stats_${season}.csv yet`);
+  }
   if (!response.ok) throw new Error(`nflverse ${response.status} ${response.statusText}`);
   const playerScores = nflverseScoresFromCsv(await response.text(), { season, weekNum });
 
@@ -292,11 +309,12 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
   const pendingMoves = await resolvedFetchPendingMoves(supabase, now);
 
   if (!pendingMoves.length) {
-    return { dryRun, archiveCount, scoredCount: 0, failedCount: 0 };
+    return { dryRun, archiveCount, scoredCount: 0, failedCount: 0, deferredCount: 0 };
   }
 
   let scoredCount = 0;
   let failedCount = 0;
+  let deferredCount = 0;
   const scoreMaps = new Map();
 
   for (const move of pendingMoves) {
@@ -311,6 +329,11 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
         scoreMaps.set(scoreKey, await resolvedFetchNFLScores({ weekNum, season, redis, env }));
       }
       const playerScores = scoreMaps.get(scoreKey);
+      if (isDeferredScores(playerScores)) {
+        deferredCount += 1;
+        log.info(`Move ${move.id} deferred for ${scoreKey}: ${playerScores.reason}`);
+        continue;
+      }
       if (!Object.keys(playerScores || {}).length) {
         throw new Error(`No nflverse player scores available for ${scoreKey}`);
       }
@@ -323,7 +346,7 @@ async function runScoring({ env = process.env, now = new Date(), dependencies = 
     }
   }
 
-  return { dryRun, archiveCount, scoredCount, failedCount };
+  return { dryRun, archiveCount, scoredCount, failedCount, deferredCount };
 }
 
 async function main({ env = process.env } = {}) {
@@ -333,7 +356,7 @@ async function main({ env = process.env } = {}) {
   }
 
   const result = await runScoring({ env });
-  log.info(`Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount}`);
+  log.info(`Tuesday scoring complete: archived=${result.archiveCount} scored=${result.scoredCount} failed=${result.failedCount} deferred=${result.deferredCount}`);
   return result;
 }
 
@@ -373,6 +396,7 @@ module.exports = {
   fetchPendingMoves,
   findBestMatch,
   getMostRecentSunday,
+  isDeferredScores,
   isDryRun,
   isScoringEnabled,
   main,
