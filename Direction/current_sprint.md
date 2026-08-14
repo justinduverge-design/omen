@@ -352,8 +352,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-LedgerPreview — Ledger preview composition + wiring
 
-- **Status:** READY
-- **Blocked by:** None — Figma proposal approved (node `72:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Status:** VERIFIED
+- **Blocked by:** None
+- **Unblock:** 2026-08-13 CLEARED — the founder authorized the native UI parity pass. The approved node `72:2` composition now replaces the placeholder in SwiftUI and Compose, with labeled demo snapshots, honest disconnected/empty states, and routing into the existing Omen destination.
+- **Evidence:** `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`; local Xcode 26.6 simulator run **123 tests / 0 failures**; Android API 36 Command Center instrumentation **4/4**; primitive-enforcement scanner and `:app:assembleDebug` green; signed build installed and launched on the paired iPhone.
 - **Priority:** P2 — **ship if it fits.** Cut without hesitation if Phase 2 runs long.
 - **Cost:** small–medium
 - **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
@@ -362,8 +364,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-LeaguePulse — League Pulse composition + wiring
 
-- **Status:** READY
-- **Blocked by:** None — visual brief §1.6 and Figma proposal (node `74:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01") both approved. No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Status:** VERIFIED
+- **Blocked by:** None
+- **Unblock:** 2026-08-13 CLEARED — the founder authorized the native UI parity pass. The visual brief §1.6 / approved node `74:2` composition now replaces the placeholder in SwiftUI and Compose; demo standings remain explicitly labeled and the activity area states that no real feed exists rather than inventing events.
+- **Evidence:** `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`; local Xcode 26.6 simulator run **123 tests / 0 failures**; Android API 36 Command Center instrumentation **4/4**; primitive-enforcement scanner and `:app:assembleDebug` green; signed build installed and launched on the paired iPhone.
 - **Priority:** P2 — **ship if it fits.** An honest empty state is an acceptable 1.0 answer.
 - **Cost:** small–medium
 - **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.

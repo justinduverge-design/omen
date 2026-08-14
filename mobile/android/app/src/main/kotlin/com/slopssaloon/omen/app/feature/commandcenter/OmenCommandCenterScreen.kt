@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStrip
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
+import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
@@ -48,8 +50,8 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
  *   2. Persistent OmenContextStrip (approved node 25:2)
  *   3. OmenMatchupHero / Matchup Spine (approved node 25:26)
  *   4. Waiver Watch — approved M4-CC-WaiverWatch composition
- *   5. Ledger preview placeholder — blocked follow-up M4-CC-LedgerPreview
- *   6. League Pulse placeholder — blocked follow-up M4-CC-LeaguePulse
+ *   5. Ledger preview — approved node 72:2
+ *   6. League Pulse — approved node 74:2
  *
  * Callers own the [OmenCommandCenterState] and choose an honest fixture (demo mode vs
  * real signed-in user). This composition never selects a "connected" fixture on its own —
@@ -64,6 +66,8 @@ fun OmenCommandCenterScreen(
     onOpenMatchup: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
     onOpenOmen: (() -> Unit)? = null,
+    onOpenLedger: ((OmenLedgerEntry) -> Unit)? = null,
+    onOpenLeague: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -82,8 +86,8 @@ fun OmenCommandCenterScreen(
         OmenContextStrip(state = state.context, onSwitch = onSwitchContext)
         OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
         WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
-        LedgerPlaceholder()
-        LeaguePulsePlaceholder()
+        LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
+        LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
     }
 }
 
@@ -94,7 +98,10 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4),
+        ) {
             Text(
                 text = "Command Center",
                 style = OmenTheme.typography.eyebrow.toTextStyle(),
@@ -240,26 +247,99 @@ private fun OmenWaiverOpportunity.accessibilityLabel(rank: Int?): String = listO
 ).joinToString(", ")
 
 @Composable
-private fun LedgerPlaceholder() {
+private fun LedgerPreview(state: OmenLedgerPreviewState, onOpenLedger: ((OmenLedgerEntry) -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        SectionLabel("The Ledger")
-        OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "The Ledger is landing next",
-            message = "Blocked on the Figma-approved Ledger preview proposal (sprint item M4-CC-LedgerPreview).",
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionLabel("The Ledger")
+            if (state is OmenLedgerPreviewState.Entries && state.entries.isNotEmpty() && onOpenLedger != null) {
+                OmenButton(
+                    text = "See all →",
+                    onClick = { onOpenLedger(state.entries.first()) },
+                    variant = OmenButtonVariant.Link,
+                    size = OmenButtonSize.Md,
+                )
+            }
+        }
+        when (state) {
+            is OmenLedgerPreviewState.Entries -> state.entries.take(3).forEach { entry ->
+                OmenListRow(
+                    title = "${entry.period} · ${entry.callType}",
+                    subtitle = "${entry.summary}\n${entry.outcome}",
+                    onClick = onOpenLedger?.let { callback -> { callback(entry) } },
+                    leadingContent = {
+                        Box(
+                            Modifier
+                                .width(OmenTheme.spacing.step4)
+                                .height(OmenTheme.spacing.step48)
+                                .background(OmenTheme.color.accent)
+                        )
+                    },
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = entry.accessibilityLabel
+                    },
+                )
+            }
+            OmenLedgerPreviewState.Empty -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Empty,
+                title = "No Ledger entries yet",
+                message = "Omen’s recent recommendations will appear here as immutable snapshots.",
+            )
+            OmenLedgerPreviewState.NotConnected -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Disconnected,
+                title = "The Ledger needs a league",
+                message = "Connect a league to keep an evidence-bound record of Omen’s recommendations.",
+            )
+        }
     }
 }
 
 @Composable
-private fun LeaguePulsePlaceholder() {
+private fun LeaguePulse(state: OmenLeaguePulseState, onOpenLeague: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        SectionLabel("League Pulse")
-        OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "League Pulse is landing next",
-            message = "Blocked on the Figma-approved League Pulse proposal (sprint item M4-CC-LeaguePulse).",
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionLabel("League Pulse")
+            if (onOpenLeague != null) {
+                OmenButton(
+                    text = "League →",
+                    onClick = onOpenLeague,
+                    variant = OmenButtonVariant.Link,
+                    size = OmenButtonSize.Md,
+                )
+            }
+        }
+        when (state) {
+            is OmenLeaguePulseState.Available -> OmenCard(variant = OmenCardVariant.Outlined) {
+                Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                    Text(state.position, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
+                    Text(state.cutLine, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    Text("Around the League", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    Text(state.activity, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                }
+            }
+            is OmenLeaguePulseState.OffSeason -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Empty,
+                title = "Off-season league context",
+                message = state.summary,
+            )
+            OmenLeaguePulseState.Unavailable -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Loading,
+                title = "Standings temporarily unavailable",
+                message = "Omen is not showing a stale rank. Try again when your league refreshes.",
+            )
+            OmenLeaguePulseState.NotConnected -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Disconnected,
+                title = "League Pulse needs a league",
+                message = "Connect a league to see verified standings. League activity stays empty until a real feed exists.",
+            )
+        }
     }
 }
 
@@ -284,7 +364,32 @@ data class OmenCommandCenterState(
     val context: OmenContextStripState,
     val matchup: OmenMatchupHeroState,
     val waiverWatch: OmenWaiverWatchState = OmenWaiverWatchState.NotConnected,
+    val ledger: OmenLedgerPreviewState = OmenLedgerPreviewState.NotConnected,
+    val leaguePulse: OmenLeaguePulseState = OmenLeaguePulseState.NotConnected,
 )
+
+sealed interface OmenLedgerPreviewState {
+    data class Entries(val entries: List<OmenLedgerEntry>) : OmenLedgerPreviewState
+    data object Empty : OmenLedgerPreviewState
+    data object NotConnected : OmenLedgerPreviewState
+}
+
+data class OmenLedgerEntry(
+    val id: String,
+    val period: String,
+    val callType: String,
+    val summary: String,
+    val outcome: String,
+) {
+    val accessibilityLabel: String = listOf(period, callType, summary, outcome).joinToString(", ")
+}
+
+sealed interface OmenLeaguePulseState {
+    data class Available(val position: String, val cutLine: String, val activity: String) : OmenLeaguePulseState
+    data class OffSeason(val summary: String) : OmenLeaguePulseState
+    data object Unavailable : OmenLeaguePulseState
+    data object NotConnected : OmenLeaguePulseState
+}
 
 /**
  * View-only Waiver Watch contract. Callers supply only verified data or an explicit state;
@@ -345,6 +450,24 @@ object OmenCommandCenterFixtures {
                 OmenWaiverOpportunity("Demo Player B", "TE", "SEA", "Available", "Future opportunity."),
             ),
         ),
+        ledger = OmenLedgerPreviewState.Entries(
+            listOf(
+                OmenLedgerEntry(
+                    id = "demo-start-sit-week-6", period = "DEMO WEEK 6", callType = "START/SIT",
+                    summary = "Start DeVonta Smith over Chris Olave",
+                    outcome = "Smith 18.4 · Olave 11.2 · Demo outcome aligned.",
+                ),
+                OmenLedgerEntry(
+                    id = "demo-waiver-week-6", period = "DEMO WEEK 6", callType = "WAIVER",
+                    summary = "Add Tyrone Tracy Jr.", outcome = "Demo claim pending.",
+                ),
+            ),
+        ),
+        leaguePulse = OmenLeaguePulseState.Available(
+            position = "Demo: 3rd of 12 · In a playoff spot",
+            cutLine = "Demo standing · 2 games clear of the cut line",
+            activity = "No demo league activity feed — this section stays honest until one exists.",
+        ),
     )
 
     /**
@@ -367,5 +490,7 @@ object OmenCommandCenterFixtures {
         greeting = "Restoring your session…",
         context = OmenContextStripState.Empty,
         matchup = OmenMatchupHeroState.NoMatchup(reason = "Loading…"),
+        ledger = OmenLedgerPreviewState.Empty,
+        leaguePulse = OmenLeaguePulseState.Unavailable,
     )
 }

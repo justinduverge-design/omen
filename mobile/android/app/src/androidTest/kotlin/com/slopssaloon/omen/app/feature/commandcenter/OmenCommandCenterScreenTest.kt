@@ -1,13 +1,17 @@
 package com.slopssaloon.omen.app.feature.commandcenter
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.slopssaloon.omen.app.screenshot.ScreenshotScenarioHost
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.assertEquals
@@ -59,5 +63,32 @@ class OmenCommandCenterScreenTest {
             composeRule.runOnIdle { waiverWatch = state }
             assertTrue(composeRule.onAllNodesWithText(expectedText).fetchSemanticsNodes().isNotEmpty())
         }
+    }
+
+    @Test
+    fun demoRendersApprovedLedgerAndLeaguePulseAndRoutesTheirActions() {
+        var openedLedger = false
+        var openedLeague = false
+        composeRule.setContent {
+            OmenCommandCenterScreen(
+                state = OmenCommandCenterFixtures.demoConnected,
+                onOpenLedger = { openedLedger = true },
+                onOpenLeague = { openedLeague = true },
+            )
+        }
+
+        assertEquals(0, composeRule.onAllNodesWithText("The Ledger is landing next").fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("League Pulse is landing next").fetchSemanticsNodes().size)
+        composeRule.onNodeWithText("See all →").performScrollTo().performClick()
+        composeRule.onNodeWithText("League →").performScrollTo().performClick()
+        assertTrue(openedLedger)
+        assertTrue(openedLeague)
+        assertTrue(composeRule.onAllNodesWithText("No demo league activity feed", substring = true).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test
+    fun screenshotShellIncludesContextualAccountControl() {
+        composeRule.setContent { ScreenshotScenarioHost("command-center.demo-connected") }
+        composeRule.onNodeWithContentDescription("Account and profile").assertIsDisplayed()
     }
 }

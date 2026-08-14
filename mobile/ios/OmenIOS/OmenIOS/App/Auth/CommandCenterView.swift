@@ -25,7 +25,9 @@ struct CommandCenterView: View {
                     ? OmenCommandCenterFixtures.demoConnected
                     : OmenCommandCenterFixtures.realDisconnected,
                 onOpenAccount: { showAccountSheet = true },
-                onOpenOmen: { selectedTab = .omen }
+                onOpenOmen: { selectedTab = .omen },
+                onOpenLedger: { _ in selectedTab = .omen },
+                onOpenLeague: { selectedTab = .league }
             )
             .tabItem { Label("Command", systemImage: "sparkles") }
             .tag(CommandCenterTab.command)

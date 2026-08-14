@@ -94,7 +94,12 @@ private struct FauxShell: View {
 
     var body: some View {
         TabView {
-            OmenCommandCenterScreen(state: commandState)
+            OmenCommandCenterScreen(
+                state: commandState,
+                onOpenAccount: {},
+                onOpenLedger: { _ in },
+                onOpenLeague: {}
+            )
                 .tabItem { Label("Command", systemImage: "sparkles") }
 
             OmenDecisionScreen(state: omenState)

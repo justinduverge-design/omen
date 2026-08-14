@@ -11,6 +11,8 @@
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>UILaunchScreen</key>
+    <dict/>
     <key>OMEN_API_BASE_URL</key><string>$(OMEN_API_BASE_URL)</string>
     <key>OMEN_SUPABASE_URL</key><string>$(OMEN_SUPABASE_URL)</string>
     <key>OMEN_SUPABASE_ANON_KEY</key><string>$(OMEN_SUPABASE_ANON_KEY)</string>
