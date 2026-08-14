@@ -147,7 +147,10 @@ private fun CommandCenterInShell(demo: Boolean) {
                 FauxNavTab.Command -> OmenCommandCenterScreen(
                     state = if (demo) OmenCommandCenterFixtures.demoConnected
                     else OmenCommandCenterFixtures.realDisconnected,
+                    onOpenAccount = {},
                     onOpenOmen = { selected = FauxNavTab.Omen },
+                    onOpenLedger = { selected = FauxNavTab.Omen },
+                    onOpenLeague = { selected = FauxNavTab.League },
                 )
                 else -> Text(
                     text = "${selected.label} — screenshot fixture only",
@@ -169,7 +172,7 @@ private enum class FauxNavTab(val label: String, val iconRes: Int, val contentDe
     Command("Command", R.drawable.ic_nav_command, "Command Center"),
     Omen("Omen", R.drawable.ic_nav_omen, "Omen of the Week"),
     Trade("Trade", R.drawable.ic_nav_trade, "Trade Analyzer"),
-    League("League", R.drawable.ic_nav_account, "League"),
+    League("League", R.drawable.ic_nav_league, "League"),
 }
 
 @Composable

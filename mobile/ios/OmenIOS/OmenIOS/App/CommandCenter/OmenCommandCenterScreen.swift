@@ -10,8 +10,8 @@ import SwiftUI
 ///   2. Persistent OmenContextStrip (approved node 25:2)
 ///   3. OmenMatchupHero / Matchup Spine (approved node 25:26)
 ///   4. Waiver Watch — approved M4-CC-WaiverWatch composition
-///   5. Ledger preview placeholder — blocked follow-up M4-CC-LedgerPreview
-///   6. League Pulse placeholder — blocked follow-up M4-CC-LeaguePulse
+///   5. Ledger preview — approved node 72:2
+///   6. League Pulse — approved node 74:2
 ///
 /// Callers own the state and choose an honest fixture (demo mode vs real signed-in user).
 /// This composition never selects a "connected" fixture on its own — exposing
@@ -22,19 +22,25 @@ struct OmenCommandCenterScreen: View {
     let onOpenMatchup: (() -> Void)?
     let onOpenAccount: (() -> Void)?
     let onOpenOmen: (() -> Void)?
+    let onOpenLedger: ((OmenLedgerEntry) -> Void)?
+    let onOpenLeague: (() -> Void)?
 
     init(
         state: OmenCommandCenterState,
         onSwitchContext: (() -> Void)? = nil,
         onOpenMatchup: (() -> Void)? = nil,
         onOpenAccount: (() -> Void)? = nil,
-        onOpenOmen: (() -> Void)? = nil
+        onOpenOmen: (() -> Void)? = nil,
+        onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
+        onOpenLeague: (() -> Void)? = nil
     ) {
         self.state = state
         self.onSwitchContext = onSwitchContext
         self.onOpenMatchup = onOpenMatchup
         self.onOpenAccount = onOpenAccount
         self.onOpenOmen = onOpenOmen
+        self.onOpenLedger = onOpenLedger
+        self.onOpenLeague = onOpenLeague
     }
 
     var body: some View {
@@ -44,8 +50,8 @@ struct OmenCommandCenterScreen: View {
                 OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
                 OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
                 waiverWatch
-                ledgerPlaceholder
-                leaguePulsePlaceholder
+                ledgerPreview
+                leaguePulse
             }
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step24)
@@ -185,25 +191,72 @@ struct OmenCommandCenterScreen: View {
         }
     }
 
-    private var ledgerPlaceholder: some View {
+    @ViewBuilder
+    private var ledgerPreview: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("The Ledger")
-            OmenStateSurface(
-                kind: .empty,
-                title: "The Ledger is landing next",
-                message: "Blocked on the Figma-approved Ledger preview proposal (sprint item M4-CC-LedgerPreview)."
-            )
+            HStack {
+                sectionLabel("The Ledger")
+                Spacer()
+                if case .entries = state.ledger, let first = state.ledger.entries.first, let onOpenLedger {
+                    OmenButton(title: "See all →", action: { onOpenLedger(first) }, variant: .link, size: .md)
+                }
+            }
+            switch state.ledger {
+            case .entries(let entries):
+                VStack(spacing: 0) {
+                    ForEach(Array(entries.prefix(3))) { entry in
+                        OmenListRow(
+                            title: "\(entry.period) · \(entry.callType)",
+                            subtitle: "\(entry.summary)\n\(entry.outcome)",
+                            action: onOpenLedger.map { callback in { callback(entry) } },
+                            leading: {
+                                Rectangle()
+                                    .fill(OmenColor.accent)
+                                    .frame(width: 2, height: 44)
+                                    .accessibilityHidden(true)
+                            },
+                            trailing: { EmptyView() }
+                        )
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(entry.accessibilityLabel)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            case .empty:
+                OmenStateSurface(kind: .empty, title: "No Ledger entries yet", message: "Omen’s recent recommendations will appear here as immutable snapshots.")
+            case .notConnected:
+                OmenStateSurface(kind: .disconnected, title: "The Ledger needs a league", message: "Connect a league to keep an evidence-bound record of Omen’s recommendations.")
+            }
         }
     }
 
-    private var leaguePulsePlaceholder: some View {
+    @ViewBuilder
+    private var leaguePulse: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            sectionLabel("League Pulse")
-            OmenStateSurface(
-                kind: .empty,
-                title: "League Pulse is landing next",
-                message: "Blocked on the Figma-approved League Pulse proposal (sprint item M4-CC-LeaguePulse)."
-            )
+            HStack {
+                sectionLabel("League Pulse")
+                Spacer()
+                if let onOpenLeague {
+                    OmenButton(title: "League →", action: onOpenLeague, variant: .link, size: .md)
+                }
+            }
+            switch state.leaguePulse {
+            case let .available(position, cutLine, activity):
+                OmenCard(variant: .outlined) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                        Text(position).omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
+                        Text(cutLine).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                        Text("Around the League").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
+                        Text(activity).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
+                    }
+                }
+            case let .offSeason(summary):
+                OmenStateSurface(kind: .empty, title: "Off-season league context", message: summary)
+            case .unavailable:
+                OmenStateSurface(kind: .loading, title: "Standings temporarily unavailable", message: "Omen is not showing a stale rank. Try again when your league refreshes.")
+            case .notConnected:
+                OmenStateSurface(kind: .disconnected, title: "League Pulse needs a league", message: "Connect a league to see verified standings. League activity stays empty until a real feed exists.")
+            }
         }
     }
 
@@ -220,18 +273,52 @@ struct OmenCommandCenterState {
     let context: OmenContextStripState
     let matchup: OmenMatchupHeroState
     let waiverWatch: OmenWaiverWatchState
+    let ledger: OmenLedgerPreviewState
+    let leaguePulse: OmenLeaguePulseState
 
     init(
         greeting: String,
         context: OmenContextStripState,
         matchup: OmenMatchupHeroState,
-        waiverWatch: OmenWaiverWatchState = .notConnected
+        waiverWatch: OmenWaiverWatchState = .notConnected,
+        ledger: OmenLedgerPreviewState = .notConnected,
+        leaguePulse: OmenLeaguePulseState = .notConnected
     ) {
         self.greeting = greeting
         self.context = context
         self.matchup = matchup
         self.waiverWatch = waiverWatch
+        self.ledger = ledger
+        self.leaguePulse = leaguePulse
     }
+}
+
+enum OmenLedgerPreviewState {
+    case entries([OmenLedgerEntry])
+    case empty
+    case notConnected
+
+    var entries: [OmenLedgerEntry] {
+        guard case .entries(let entries) = self else { return [] }
+        return entries
+    }
+}
+
+struct OmenLedgerEntry: Identifiable {
+    let id: String
+    let period: String
+    let callType: String
+    let summary: String
+    let outcome: String
+
+    var accessibilityLabel: String { [period, callType, summary, outcome].joined(separator: ", ") }
+}
+
+enum OmenLeaguePulseState {
+    case available(position: String, cutLine: String, activity: String)
+    case offSeason(summary: String)
+    case unavailable
+    case notConnected
 }
 
 /// View-only contract: callers provide verified data or an explicit honest state. This view never
@@ -281,6 +368,22 @@ enum OmenCommandCenterFixtures {
                 OmenWaiverOpportunity(playerName: "Demo Player A", position: "WR", team: "ATL", availability: "Available", reason: "Dynasty upside."),
                 OmenWaiverOpportunity(playerName: "Demo Player B", position: "TE", team: "SEA", availability: "Available", reason: "Future opportunity.")
             ]
+        ),
+        ledger: .entries([
+            OmenLedgerEntry(
+                id: "demo-start-sit-week-6", period: "DEMO WEEK 6", callType: "START/SIT",
+                summary: "Start DeVonta Smith over Chris Olave",
+                outcome: "Smith 18.4 · Olave 11.2 · Demo outcome aligned."
+            ),
+            OmenLedgerEntry(
+                id: "demo-waiver-week-6", period: "DEMO WEEK 6", callType: "WAIVER",
+                summary: "Add Tyrone Tracy Jr.", outcome: "Demo claim pending."
+            )
+        ]),
+        leaguePulse: .available(
+            position: "Demo: 3rd of 12 · In a playoff spot",
+            cutLine: "Demo standing · 2 games clear of the cut line",
+            activity: "No demo league activity feed — this section stays honest until one exists."
         )
     )
 
@@ -296,7 +399,9 @@ enum OmenCommandCenterFixtures {
     static let realLoading = OmenCommandCenterState(
         greeting: "Restoring your session…",
         context: .empty,
-        matchup: .noMatchup(reason: "Loading…")
+        matchup: .noMatchup(reason: "Loading…"),
+        ledger: .empty,
+        leaguePulse: .unavailable
     )
 }
 

@@ -3,8 +3,8 @@ import SwiftUI
 @testable import Omen
 
 /// Mirrors Android `OmenCommandCenterScreenTest.kt`. Contract-style assertions on the v1.1
-/// hierarchy: demo-connected exposes a labeled mock context + live matchup + placeholders;
-/// real-disconnected exposes honest empty state + no-matchup + placeholders; no fixture
+/// hierarchy: demo-connected exposes a labeled mock context, live matchup, Ledger, and League Pulse;
+/// real-disconnected exposes honest empty states; no fixture
 /// mints a "connected provider" claim for a real user.
 final class OmenCommandCenterScreenTests: XCTestCase {
 
@@ -63,8 +63,44 @@ final class OmenCommandCenterScreenTests: XCTestCase {
             onSwitchContext: {},
             onOpenMatchup: {},
             onOpenAccount: {},
-            onOpenOmen: {}
+            onOpenOmen: {},
+            onOpenLedger: { _ in },
+            onOpenLeague: {}
         )
+    }
+
+    func testDemoFixtureProvidesApprovedLedgerAndLeaguePulseCompositions() {
+        let state = OmenCommandCenterFixtures.demoConnected
+        if case .entries(let entries) = state.ledger {
+            XCTAssertEqual(entries.count, 2)
+            XCTAssertTrue(entries.allSatisfy { $0.period.lowercased().contains("demo") })
+            XCTAssertEqual(entries.first?.callType, "START/SIT")
+        } else {
+            XCTFail("demo fixture must exercise the approved Ledger preview composition.")
+        }
+
+        if case let .available(position, cutLine, activity) = state.leaguePulse {
+            XCTAssertTrue(position.lowercased().contains("demo"))
+            XCTAssertTrue(cutLine.lowercased().contains("demo"))
+            XCTAssertTrue(activity.lowercased().contains("no demo league activity feed"))
+        } else {
+            XCTFail("demo fixture must exercise the approved League Pulse composition.")
+        }
+    }
+
+    func testDisconnectedAndLoadingFixturesNeverInventLedgerOrStandingsData() {
+        if case .notConnected = OmenCommandCenterFixtures.realDisconnected.ledger {} else {
+            XCTFail("realDisconnected Ledger must require a connected league.")
+        }
+        if case .notConnected = OmenCommandCenterFixtures.realDisconnected.leaguePulse {} else {
+            XCTFail("realDisconnected League Pulse must require a connected league.")
+        }
+        if case .empty = OmenCommandCenterFixtures.realLoading.ledger {} else {
+            XCTFail("realLoading Ledger should be an honest empty state.")
+        }
+        if case .unavailable = OmenCommandCenterFixtures.realLoading.leaguePulse {} else {
+            XCTFail("realLoading League Pulse must not display a stale rank.")
+        }
     }
 
     func testWaiverWatchRegistersEveryApprovedState() {

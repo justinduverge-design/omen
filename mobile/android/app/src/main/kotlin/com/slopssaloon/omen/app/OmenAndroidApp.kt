@@ -327,6 +327,7 @@ fun OmenAndroidApp() {
                             isDemo = s.userId == SessionManager.DEMO_USER_ID,
                             onOpenAccount = { showAccountSheet = true },
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
+                            onOpenLeague = { selectedDestination = NavDestination.League },
                         )
                     }
                     OmenModalSheet(
@@ -368,7 +369,8 @@ fun OmenAndroidApp() {
  *
  * The `ic_nav_draft.xml` and `ic_nav_account.xml` drawables remain checked in for the
  * seasonal Draft reintroduction inside League and the Account header affordance
- * respectively — neither is orphaned.
+ * respectively — neither is orphaned. League uses its own group glyph so it cannot be
+ * mistaken for the contextual Account action.
  */
 private enum class NavDestination(
     val label: String,
@@ -392,12 +394,7 @@ private enum class NavDestination(
     ),
     League(
         label = "League",
-        // Registry §3.2 uses OmenPlatformBadge for league identity — a permanent nav icon
-        // still needs one shared glyph across all leagues, so we reuse the account_circle
-        // silhouette as a neutral "group / league" pointer until a dedicated Material
-        // Symbol lands. Follow-up: pick a `groups` / `group_work` symbol under addendum §4
-        // when we add another local drawable (out of scope for corrective v1.1).
-        iconRes = R.drawable.ic_nav_account,
+        iconRes = R.drawable.ic_nav_league,
         contentDescription = "League",
     ),
 }
@@ -442,6 +439,7 @@ private fun SignedInDestination(
     isDemo: Boolean,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
+    onOpenLeague: () -> Unit,
 ) {
     when (destination) {
         NavDestination.Command -> OmenCommandCenterScreen(
@@ -449,6 +447,8 @@ private fun SignedInDestination(
             else OmenCommandCenterFixtures.realDisconnected,
             onOpenAccount = onOpenAccount,
             onOpenOmen = onOpenOmen,
+            onOpenLedger = { onOpenOmen() },
+            onOpenLeague = onOpenLeague,
         )
         NavDestination.Omen -> OmenDecisionScreen(
             state = if (isDemo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,

@@ -1,13 +1,19 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-08-12 — founder pinned the native iOS authorization closeout after the Mac/physical-device bring-up. Reconciled against the local Xcode/device evidence, `main`, and the public AASA URL. Handoffs are pointers, not standalone proof.
+**Refreshed:** 2026-08-13 — native authorization is merged and the first native UI parity pass is locally verified. Reconciled against the approved Figma Command Center contract, both simulators, and the paired physical iPhone. Handoffs are pointers, not standalone proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
-## Founder pin — 2026-08-12 native iOS authorization closeout
+## Historical founder pin — 2026-08-12 native iOS authorization closeout (superseded 2026-08-13)
 
 The iOS passkey half is promoted from the deferred backlog as `M4-Auth-Passkeys-iOS-Onramp`. Local implementation is complete on `feat/m3a-ios-apple-auth`: native AuthenticationServices ceremonies, official Supabase first-factor passkey transport, account add/list/remove, pairing offer, Sign in with Apple entitlement/tests, Associated Domains entitlement, and the exact AASA artifact/route. Xcode 26.6 passes 121 tests with 0 failures; Automatic Signing builds and installs on the paired iPhone under team `6RWR5G9894`.
 
-The remaining boundary is intentionally external: the public AASA URL is still 404 until the reviewed PR is merged and production-deployed, then the founder must complete pair → sign out → passkey sign-in with Face ID. M3A-QA also remains open beyond its one successful founder-observed Apple happy path. Do not let the older 2026-08-11 queue below displace this pin.
+At the time of this pin, the remaining boundary was external: the public AASA URL returned 404 pending review/deploy, followed by the founder's Face ID ceremony. That description is historical, not current—the authorization PR later merged and the founder subsequently proved Face ID passkey entry. `M3A-QA` still owns the deliberately unperformed destructive/account-deletion and remaining Android interactive matrix; the native UI parity pass below superseded this pin for the current session.
+
+## ✅ Resolved 2026-08-13 — first native UI parity pass
+
+The approved Command Center contract now renders full-screen on current iOS, exposes the contextual Account control on both native shells, uses a distinct Android League glyph, and replaces the Ledger and League Pulse placeholders with approved, honest-state compositions. `M4-CC-LedgerPreview` and `M4-CC-LeaguePulse` are VERIFIED with evidence in `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`.
+
+This does **not** complete the native UI program. `M4-CC-PlatformsCompact` remains the next named beta-blocking Command Center item. The permanent Trade and League destinations still contain explicit placeholders and need their own approved screen slices; do not describe this pass as web/native feature parity.
 
 ## ✅ Resolved 2026-08-01 — CI works; the "billing hold" diagnosis was wrong
 
