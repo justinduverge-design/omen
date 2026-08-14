@@ -82,7 +82,11 @@ struct OmenPlatformCompactRow: View {
 
     private var rowContent: some View {
         HStack(spacing: OmenSpacing.step8) {
+            // Found at Dynamic Type XXXL on iPhone SE: without this the badge is compressed and
+            // wraps ("SLEEPE / R"), breaking the single-line row height the strip's ~2-row cap
+            // depends on. Fixed here rather than in the shared badge, which is not this task's.
             OmenPlatformBadge(platform: state.platform)
+                .fixedSize(horizontal: true, vertical: false)
 
             Text(state.platformName)
                 .omenTextStyle(OmenTypography.label)
