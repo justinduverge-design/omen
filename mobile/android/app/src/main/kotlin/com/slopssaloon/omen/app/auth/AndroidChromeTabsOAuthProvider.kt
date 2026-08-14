@@ -17,7 +17,9 @@ import java.util.concurrent.ConcurrentHashMap
  * redirect_to=...&code_challenge=...&code_challenge_method=s256` in a Custom Tabs session.
  * Supabase in turn redirects to the third-party OAuth server (e.g. Discord); the third party
  * redirects back to Supabase's own `/auth/v1/callback`, which then redirects to our
- * `com.slopssaloon.omen://auth/callback?code=<pkce_code>&state=<echoed_state>` deep link.
+ * `com.slopssaloon.omen://auth/callback?state=<omen_state>&code=<pkce_code>` deep link.
+ * Omen state travels inside `redirect_to`; the top-level `state` query parameter belongs to
+ * Supabase's provider round trip and must not be overridden by the client.
  *
  * `parseCallback` validates the returned `state` against the value stashed at launch (CSRF
  * defense per RFC 6749 §10.12) and, on match, returns the PKCE `codeVerifier` for the caller
@@ -74,13 +76,15 @@ class AndroidChromeTabsOAuthProvider(
 
     private fun buildAuthorizeUri(providerId: String, pkce: com.slopssaloon.omen.core.auth.PkceParams): android.net.Uri {
         val base = supabaseUrl.trimEnd('/') + "/auth/v1/authorize"
+        val callbackUri = redirectUri.toUri().buildUpon()
+            .appendQueryParameter("state", pkce.state)
+            .build()
         return base.toUri().buildUpon()
             .appendQueryParameter("provider", providerId)
             .appendQueryParameter("flow_type", "pkce")
-            .appendQueryParameter("redirect_to", redirectUri)
+            .appendQueryParameter("redirect_to", callbackUri.toString())
             .appendQueryParameter("code_challenge", pkce.codeChallenge)
             .appendQueryParameter("code_challenge_method", pkce.codeChallengeMethod)
-            .appendQueryParameter("state", pkce.state)
             .build()
     }
 }

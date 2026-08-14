@@ -29,7 +29,8 @@ class MainActivity : ComponentActivity() {
     }
 
     // Custom Tabs is a separate process; the callback deep link comes back as a NEW intent
-    // routed to the singleTask-style Activity (default), which is delivered here.
+    // routed to the manifest's singleTask Activity, which is delivered here without replacing
+    // the Compose tree that owns the pending PKCE verifier.
     // See M4-Auth-Providers-v1 §2.4 for the callback contract.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

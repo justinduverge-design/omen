@@ -17,8 +17,10 @@ object EmailValidator {
 object OtpCodeValidator {
     const val LENGTH = 6
 
+    fun normalize(raw: String): String = raw.trim()
+
     fun isValid(raw: String): Boolean {
-        val code = raw.trim()
+        val code = normalize(raw)
         return code.length == LENGTH && code.all { it.isDigit() }
     }
 }

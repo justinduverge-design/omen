@@ -20,6 +20,8 @@ final class ValidatorsTests: XCTestCase {
 
     func testAcceptsSixDigitCode() {
         XCTAssertTrue(OtpCodeValidator.isValid("123456"))
+        XCTAssertTrue(OtpCodeValidator.isValid(" 123456\n"))
+        XCTAssertEqual(OtpCodeValidator.normalize(" 123456\n"), "123456")
     }
 
     func testRejectsBadCodes() {

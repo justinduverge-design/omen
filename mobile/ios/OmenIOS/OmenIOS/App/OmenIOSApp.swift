@@ -30,13 +30,19 @@ struct OmenIOSApp: App {
             passkeyProvider = UnsupportedPasskeyProvider()
         }
 
-        _authViewModel = StateObject(wrappedValue: AuthViewModel(
+        let viewModel = AuthViewModel(
             repository: repository,
             appleProvider: appleProvider,
             oauthProvider: oauthProvider,
             passkeyProvider: passkeyProvider,
             sessionManager: manager
-        ))
+        )
+        if let nativeOAuthProvider = oauthProvider as? ASWebAuthenticationOAuthProvider {
+            nativeOAuthProvider.callbackHandler = { [weak viewModel] url in
+                viewModel?.handleOAuthCallback(url)
+            }
+        }
+        _authViewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some Scene {

@@ -10,7 +10,9 @@ import UIKit
 /// redirect_to=...&code_challenge=...&code_challenge_method=s256` in a system-hosted web view.
 /// Supabase redirects to the third-party OAuth server (e.g. Discord); the third party redirects
 /// back to Supabase, which in turn redirects to our `com.slopssaloon.omen://auth/callback?
-/// code=...&state=...` deep link. The `.onOpenURL` handler in `OmenIOSApp` feeds that URL
+/// state=...&code=...` deep link. Omen state travels inside `redirect_to`; the top-level
+/// `state` query parameter belongs to Supabase's provider round trip and must not be overridden.
+/// The `.onOpenURL` handler in `OmenIOSApp` feeds that URL
 /// back to `AuthViewModel.handleOAuthCallback(_:)`.
 ///
 /// `parseCallback` validates the returned `state` against the stashed value (CSRF defense per
@@ -33,6 +35,10 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
     }
     private var pending: [String: Pending] = [:]
     private var activeSession: ASWebAuthenticationSession?
+    /// `ASWebAuthenticationSession` normally consumes the callback URL instead of forwarding it
+    /// through SwiftUI's `onOpenURL`. The app installs this handler so the captured URL reaches
+    /// the same state/PKCE validation path immediately.
+    var callbackHandler: ((URL) -> Void)?
 
     init(
         supabaseURL: URL,
@@ -62,9 +68,12 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
                 let session = ASWebAuthenticationSession(
                     url: authorizeURL,
                     callbackURLScheme: self.callbackScheme
-                ) { _, _ in
-                    // Success path is driven by `.onOpenURL` in `OmenIOSApp`; the completion
-                    // handler here just ends the session (and reports cancellation).
+                ) { [weak self] callbackURL, _ in
+                    guard let callbackURL else { return }
+                    Task { @MainActor in
+                        self?.activeSession = nil
+                        self?.callbackHandler?(callbackURL)
+                    }
                 }
                 session.presentationContextProvider = self
                 session.prefersEphemeralWebBrowserSession = false
@@ -88,14 +97,19 @@ final class ASWebAuthenticationOAuthProvider: NSObject, SupabaseOAuthProvider, A
     }
 
     private func buildAuthorizeURL(providerId: String, pkce: PkceParams) -> URL? {
+        guard var callback = URLComponents(string: redirectURI) else { return nil }
+        callback.queryItems = (callback.queryItems ?? []) + [
+            URLQueryItem(name: "state", value: pkce.state)
+        ]
+        guard let callbackURL = callback.url else { return nil }
+
         var components = URLComponents(url: supabaseURL.appendingPathComponent("auth/v1/authorize"), resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "provider", value: providerId),
             URLQueryItem(name: "flow_type", value: "pkce"),
-            URLQueryItem(name: "redirect_to", value: redirectURI),
+            URLQueryItem(name: "redirect_to", value: callbackURL.absoluteString),
             URLQueryItem(name: "code_challenge", value: pkce.codeChallenge),
             URLQueryItem(name: "code_challenge_method", value: pkce.codeChallengeMethod),
-            URLQueryItem(name: "state", value: pkce.state),
         ]
         return components?.url
     }
