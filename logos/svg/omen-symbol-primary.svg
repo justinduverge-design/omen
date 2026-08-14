@@ -1,0 +1,27 @@
+<svg width="360" height="360" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="omen-symbol-primary">
+<rect width="360" height="360" fill="#0A0A0B"/>
+<g id="Omen B2 &#226;&#128;&#148; Final Candidate">
+<path id="Outer O" d="M180 37.1094C246.35 37.1094 283.671 112.127 283.671 180C283.671 247.873 246.35 322.891 180 322.891C113.65 322.891 76.3289 247.873 76.3289 180C76.3289 112.127 113.65 37.1094 180 37.1094Z" fill="url(#paint0_linear_103_3)"/>
+<path id="Brass sheen" opacity="0.65" d="M122.066 76.4648C106.82 105.527 101.23 141.25 101.23 180C101.23 219.355 107.329 255.684 123.082 285.352C130.197 279.297 135.787 272.031 140.869 263.555C128.164 238.73 123.082 210.879 123.082 180C123.082 149.727 128.164 121.27 140.869 97.0508C135.787 88.5742 129.689 81.9141 122.066 76.4648Z" fill="url(#paint1_radial_103_3)"/>
+<path id="Football interior" d="M180 37.1094C180.341 49.9695 236.77 89.4073 236.77 180C236.77 270.593 180.341 310.03 180 322.891C179.659 310.03 123.23 270.593 123.23 180C123.23 89.4073 179.659 49.9695 180 37.1094Z" fill="#0A0A0B"/>
+<path id="Apex notch top" d="M180.819 38.7441C180.819 37.8413 180.452 37.1094 180 37.1094C179.548 37.1094 179.181 37.8413 179.181 38.7441V46.373C179.181 47.2759 179.548 48.0078 180 48.0078C180.452 48.0078 180.819 47.2759 180.819 46.373V38.7441Z" fill="#0A0A0B"/>
+<path id="Apex notch bottom" d="M180.819 313.627C180.819 312.724 180.452 311.992 180 311.992C179.548 311.992 179.181 312.724 179.181 313.627V321.256C179.181 322.159 179.548 322.891 180 322.891C180.452 322.891 180.819 322.159 180.819 321.256V313.627Z" fill="#0A0A0B"/>
+<path id="Lace spine" d="M180 118.552V243.631" stroke="#A67C2E" stroke-width="10.4203" stroke-linecap="round"/>
+<path id="Lace bars" d="M165.601 137.476H194.399M165.601 166.187H194.399M165.601 194.899H194.399M165.601 223.61H194.399" stroke="#A67C2E" stroke-width="9.87223" stroke-linecap="round"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_103_3" x1="97.0631" y1="51.3984" x2="322.609" y2="235.493" gradientUnits="userSpaceOnUse">
+<stop stop-color="#D8BB73"/>
+<stop offset="0.35" stop-color="#B88D42"/>
+<stop offset="0.72" stop-color="#80541F"/>
+<stop offset="1" stop-color="#C59A49"/>
+</linearGradient>
+<radialGradient id="paint1_radial_103_3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(112.329 128.687) scale(31.7112 167.109)">
+<stop stop-color="white" stop-opacity="0.18"/>
+<stop offset="0.36" stop-color="white" stop-opacity="0.035"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>
