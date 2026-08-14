@@ -62,27 +62,33 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 > **Provider truth as of 2026-08-11, verified live:** ESPN connected (1 league), Sleeper connected (1 league, *Omen App Data*), Yahoo connected with a **live token** after new credentials were installed on KVM1. `waiver_wire` still reports `needs_platform` and `omen_of_the_week` reports `off_season` — the first is item 1 below, the second is correct August behavior.
 
+> **⚠️ Staleness correction — 2026-08-14.** Items 1, 2, and 3 below are **DONE and VERIFIED** and must not be pulled. They were fixed by PRs [#292](https://github.com/justinduverge-design/omen/pull/292), [#293](https://github.com/justinduverge-design/omen/pull/293), and the waiver-gate change, then left sitting at `READY` in this file. Re-verified against `main` on 2026-08-14 with the full suite passing **530/530** (not the 481/481 quoted higher up in this file). **The only live items in this list are 4 and 5.** This is the second time this queue has described already-merged work as pullable — check `main` first, as the section above this one says.
+
 ### 1. P1-YahooLeagueBinding — Yahoo can never reach `ready`
 
-- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** PR #293 shipped `GET /api/yahoo/leagues`, `POST /api/yahoo/league`, and the `ConnectLeague.jsx` picker. Its one open condition was "tests hand-traced, never executed"; `npm test` has now run and passes. Live Yahoo round-trip still waits on Yahoo's entitlement, which is not this item.
+- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
 - **Why first:** **P0, root cause, and provably reproducible.** `src/services/yahooAuth.js:71` writes `league_id: "yahoo"` when no league is supplied; `hasUsableLeagueId()` rejects any row where `league_id === platform`. The writer stores a value the reader is guaranteed to refuse. No caller ever supplies a league, and there is no leagues endpoint or picker to repair it. This — not the token, not the buttons — is why Yahoo has never worked. Blocks F7, which blocks Section K.
 - **Boundary:** fix the writer, not `hasUsableLeagueId()`. Loosening the predicate to accept `"yahoo"` would make an unusable connection report ready.
 
 ### 2. P1-WaiverGateMultiProvider — waiver readiness is hardcoded to Yahoo
 
-- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** `buildWaiverTool()` uses `isOmenReadyConnection` across any active row; tests prove `waiver_wire: "ready"` for Sleeper-only and ESPN-only users.
+- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
 - **Why next:** P0 and *it buries shipped work*. `src/routes/dashboard.js:213-226` computes waiver availability from `usableYahoo` alone, so the merged-and-VERIFIED ESPN (#266) and Sleeper (#259) waiver paths are unreachable from the dashboard. Highest ratio of value recovered to lines changed in the queue.
 - **Boundary:** `isOmenReadyConnection()` is already correct and already used by `omen_of_the_week`. This is a gate bug, not a predicate bug.
 
 ### 3. P1-YahooConnectButtons — two dead Connect buttons + a lossy error path
 
-- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** PR #292. Both `window.location.href` call sites are gone; `frontend/src/lib/yahooAuth.js:5` is now the only `/api/yahoo/auth` reference in the frontend. `providerError` is logged before the state row is deleted.
+- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
 - **Why next:** P0. `PlatformConnections.jsx:369` and `WaiverWire.jsx:60` navigate to an auth-required GET, which cannot carry a bearer token — the founder reproduced this by hand. `startYahooOAuth()` is the working reference implementation; point both at it. Also log Yahoo's `providerError` before `yahoo.js:118` discards it: today that swallowed an `invalid redirect uri` and cost an hour of misdiagnosis.
 - **Also in scope:** `/api/platforms` and `/api/dashboard/summary` currently give contradictory answers about the same connection.
 
 ### 4. P1-DraftAssistantSideline — remove Draft Assistant from the 1.0 surface
 
-- **Status:** READY · **Claim:** unclaimed · **Blocked by:** None
+- **Status:** **READY — genuinely open, re-confirmed 2026-08-14.** A case-insensitive grep for "draft assistant" across `frontend/src/` still returns **16 hits**, including the primary nav (`components/layout/Header.jsx:26`), the help drawer (`components/help/HelpButton.jsx`, 5 hits), and the Football tab strip (`pages/Football.jsx:27`). It is still shipping to every visitor, 9 days after the founder cut it. **This is now the top live item in this queue.**
+- **Claim:** unclaimed · **Blocked by:** None
 - **Why next:** P1, founder-decided 2026-08-11, and it is currently shipping to every visitor. Legal copy in `Privacy.jsx` and `Terms.jsx` describes a feature that will not exist in 1.0.
 - **Boundary:** **preserve the implementation.** 2027 ships it on a Slops-built ADP; `adp.js`, `sleeperDraft.js`, and `sleeperDraftAccess.js` are that head start. Remove the reachable surface only.
 
