@@ -38,6 +38,16 @@ import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformCompactStrip
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformConnectionCard
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatformRowState
+import com.slopssaloon.omen.core.designsystem.component.OmenConnectionStatus
 
 /**
  * Registry §3.2 approved **screen assembly** (feature layer). Rebuilt for v1.1 per
@@ -58,6 +68,7 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
  * exposing a demo-connected provider claim to a real user would violate facts-of-record
  * #7 (mock/demo data must be visibly labeled, never presented as live).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OmenCommandCenterScreen(
     state: OmenCommandCenterState,
@@ -68,7 +79,12 @@ fun OmenCommandCenterScreen(
     onOpenOmen: (() -> Unit)? = null,
     onOpenLedger: ((OmenLedgerEntry) -> Unit)? = null,
     onOpenLeague: (() -> Unit)? = null,
+    onConnectPlatform: ((OmenPlatform) -> Unit)? = null,
 ) {
+    // Drives the tap-through detail sheet. The sheet carries the existing
+    // OmenPlatformConnectionCard content — that content is moved off the main surface, not new.
+    var detailRow by remember { mutableStateOf<OmenPlatformRowState?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -84,10 +100,44 @@ fun OmenCommandCenterScreen(
     ) {
         HeaderBlock(state.greeting, onOpenAccount)
         OmenContextStrip(state = state.context, onSwitch = onSwitchContext)
+        // Visual brief §1.1 position 3 (amended 2026-08-14) · Figma `73:2`. Capped at ~2
+        // row-heights so the Matchup Hero keeps the fold.
+        OmenPlatformCompactStrip(
+            rows = state.platforms,
+            onOpenDetail = { detailRow = it },
+            onConnect = onConnectPlatform?.let { handler -> { row -> handler(row.platform) } },
+        )
         OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
         WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
         LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
         LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
+    }
+
+    // Figma `73:2`: "Android opens the detail sheet as a ModalBottomSheet".
+    val row = detailRow
+    if (row != null) {
+        ModalBottomSheet(onDismissRequest = { detailRow = null }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(OmenTheme.spacing.step16),
+                verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),
+            ) {
+                Text(
+                    text = row.platformName,
+                    style = OmenTheme.typography.h2.toTextStyle(),
+                    color = OmenTheme.color.textPrimary,
+                )
+                OmenPlatformConnectionCard(
+                    platform = row.platform,
+                    status = row.status,
+                    description = row.resolvedLastSyncText?.let { "Last sync $it" }
+                        ?: "No sync recorded.",
+                    actionLabel = if (row.isConnected) "Manage league" else "Connect",
+                    onAction = { onConnectPlatform?.invoke(row.platform) },
+                )
+            }
+        }
     }
 }
 
@@ -362,6 +412,8 @@ private fun SectionLabel(text: String) {
 data class OmenCommandCenterState(
     val greeting: String,
     val context: OmenContextStripState,
+    /** Fixed provider order (Sleeper, Yahoo, ESPN) — never connection-sorted. Empty hides the strip. */
+    val platforms: List<OmenPlatformRowState> = emptyList(),
     val matchup: OmenMatchupHeroState,
     val waiverWatch: OmenWaiverWatchState = OmenWaiverWatchState.NotConnected,
     val ledger: OmenLedgerPreviewState = OmenLedgerPreviewState.NotConnected,
@@ -433,6 +485,11 @@ object OmenCommandCenterFixtures {
             leagueName = "Demo Slate (mock league)",
             teamName = "Demo Titans",
         ),
+        platforms = listOf(
+            OmenPlatformRowState(OmenPlatform.Sleeper, OmenConnectionStatus.Connected, "4m ago"),
+            OmenPlatformRowState(OmenPlatform.Yahoo, OmenConnectionStatus.Disconnected),
+            OmenPlatformRowState(OmenPlatform.Espn, OmenConnectionStatus.Disconnected),
+        ),
         matchup = OmenMatchupHeroState.Live(
             selectedTeam = OmenMatchupTeam(name = "Demo Titans", record = "6–1", scoreText = "64.8"),
             opponent = OmenMatchupTeam(name = "Demo Rivals", record = "5–2", scoreText = "58.1"),
@@ -477,6 +534,11 @@ object OmenCommandCenterFixtures {
     val realDisconnected: OmenCommandCenterState = OmenCommandCenterState(
         greeting = "Connect a league to see your matchup.",
         context = OmenContextStripState.Empty,
+        platforms = listOf(
+            OmenPlatformRowState(OmenPlatform.Sleeper, OmenConnectionStatus.Disconnected),
+            OmenPlatformRowState(OmenPlatform.Yahoo, OmenConnectionStatus.Disconnected),
+            OmenPlatformRowState(OmenPlatform.Espn, OmenConnectionStatus.Disconnected),
+        ),
         matchup = OmenMatchupHeroState.NoMatchup(
             reason = "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.",
         ),
