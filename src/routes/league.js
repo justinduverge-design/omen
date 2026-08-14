@@ -15,7 +15,11 @@ const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
-const PLATFORM_PRIORITY = ["yahoo", "sleeper", "espn"];
+// Providers are peers - no platform is preferred over another. This order is a
+// deterministic tie-break for which usable connection is attempted first; every
+// candidate is tried before the request is allowed to fail, so one dead provider
+// can never take down a user who has a healthy connection elsewhere.
+const PLATFORM_ORDER = ["espn", "sleeper", "yahoo"];
 const ERROR_COPY = Object.freeze({
   invalid_platform: {
     error: "Invalid platform",
@@ -59,15 +63,19 @@ function connectionUsable(row) {
   return false;
 }
 
-function selectConnection(rows, { platform, leagueId }) {
-  const candidates = (rows || [])
+/** Every usable connection, ordered. Callers should try these in sequence. */
+function selectConnections(rows, { platform, leagueId }) {
+  return (rows || [])
     .filter(connectionUsable)
     .filter((row) => !platform || row.platform === platform)
-    .filter((row) => !leagueId || String(row.league_id) === String(leagueId));
+    .filter((row) => !leagueId || String(row.league_id) === String(leagueId))
+    .sort((a, b) => (
+      PLATFORM_ORDER.indexOf(a.platform) - PLATFORM_ORDER.indexOf(b.platform)
+    ));
+}
 
-  return candidates.sort((a, b) => (
-    PLATFORM_PRIORITY.indexOf(a.platform) - PLATFORM_PRIORITY.indexOf(b.platform)
-  ))[0] || null;
+function selectConnection(rows, options) {
+  return selectConnections(rows, options)[0] || null;
 }
 
 async function getConnectionRows(userId) {
@@ -149,6 +157,16 @@ async function espnStandings(connection, userId, context) {
   return baseEnvelope(connection, context, { standings });
 }
 
+/** Dispatch to the right adapter. Unknown platforms reject rather than return null. */
+function fetchStandings(connection, userId, context) {
+  if (connection.platform === "yahoo") return yahooStandings(connection, userId, context);
+  if (connection.platform === "sleeper") return sleeperStandings(connection, context);
+  if (connection.platform === "espn") return espnStandings(connection, userId, context);
+  const err = new Error(`Unsupported platform: ${connection.platform}`);
+  err.status = 400;
+  return Promise.reject(err);
+}
+
 function providerAuthCode(platform) {
   return `${platform}_reconnect_required`;
 }
@@ -182,50 +200,55 @@ router.get("/standings", requireAuth, async (req, res, next) => {
   try {
     const context = getCurrentNflWeekContext();
     const rows = await getConnectionRows(req.user.id);
-    const connection = selectConnection(rows, { platform, leagueId });
+    const candidates = selectConnections(rows, { platform, leagueId });
 
-    if (!connection) {
+    if (!candidates.length) {
       const result = errorEnvelope({ code: "league_not_connected", status: 404 });
       return res.status(result.status).json(result.body);
     }
 
     if (isOffSeason()) {
-      return res.json(baseEnvelope(connection, context));
+      return res.json(baseEnvelope(candidates[0], context));
     }
 
-    try {
-      if (connection.platform === "yahoo") {
-        return res.json(await yahooStandings(connection, req.user.id, context));
-      }
-      if (connection.platform === "sleeper") {
-        return res.json(await sleeperStandings(connection, context));
-      }
-      if (connection.platform === "espn") {
-        return res.json(await espnStandings(connection, req.user.id, context));
-      }
-    } catch (e) {
-      if (e?.status === 401 || e?.status === 404) {
-        const result = errorEnvelope({
-          code: providerAuthCode(connection.platform),
-          status: e.status,
+    // Try every usable connection. A provider that is down, rate-limited, or
+    // not yet provisioned must not block a user whose other league still works.
+    const failures = [];
+    for (const connection of candidates) {
+      try {
+        return res.json(await fetchStandings(connection, req.user.id, context));
+      } catch (e) {
+        failures.push({
+          platform: connection.platform,
+          status: typeof e?.status === "number" ? e.status : null,
+        });
+        logger.warn("League standings provider failed, trying next", {
+          err: e.message,
           platform: connection.platform,
         });
-        return res.status(result.status).json(result.body);
       }
+    }
 
-      logger.error("League standings provider failed", {
-        err: e.message,
-        platform: connection.platform,
-      });
+    logger.error("All league standings providers failed", {
+      attempted: failures.map((f) => `${f.platform}:${f.status || "error"}`).join(","),
+    });
+
+    // Only ask the user to reconnect when that is genuinely the blocker.
+    const authFailure = failures.find((f) => f.status === 401 || f.status === 404);
+    if (authFailure) {
       const result = errorEnvelope({
-        code: "league_standings_provider_failed",
-        status: 502,
-        platform: connection.platform,
+        code: providerAuthCode(authFailure.platform),
+        status: authFailure.status,
+        platform: authFailure.platform,
       });
       return res.status(result.status).json(result.body);
     }
 
-    const result = errorEnvelope({ code: "invalid_platform", status: 400 });
+    const result = errorEnvelope({
+      code: "league_standings_provider_failed",
+      status: 502,
+      platform: failures[0]?.platform || null,
+    });
     return res.status(result.status).json(result.body);
   } catch (e) {
     return next(e);
@@ -234,5 +257,6 @@ router.get("/standings", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.selectConnection = selectConnection;
+module.exports.selectConnections = selectConnections;
 module.exports.connectionUsable = connectionUsable;
 module.exports.errorEnvelope = errorEnvelope;
