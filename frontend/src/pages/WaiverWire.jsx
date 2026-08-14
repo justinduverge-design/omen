@@ -6,7 +6,11 @@ import MockBanner from '../components/ui/MockBanner.jsx';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { supabase } from '../lib/supabase.js';
-import { startYahooOAuth } from '../lib/yahooAuth.js';
+import {
+  startYahooOAuth,
+  YAHOO_CONNECTIONS_ENABLED,
+  YAHOO_UNAVAILABLE_MESSAGE,
+} from '../lib/yahooAuth.js';
 
 const PLATFORM_LABELS = { yahoo: 'Yahoo', sleeper: 'Sleeper', espn: 'ESPN' };
 
@@ -65,18 +69,24 @@ function TokenExpiredState() {
   return (
     <div className="rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)] p-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">Waiver Wire</p>
-      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">Yahoo session expired</p>
-      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-        Reconnect your Yahoo account to restore your live waiver rankings.
+      <p className="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">
+        {YAHOO_CONNECTIONS_ENABLED ? 'Yahoo session expired' : 'Yahoo is on hold'}
       </p>
-      <button
-        className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20 disabled:cursor-not-allowed disabled:opacity-50"
-        type="button"
-        disabled={reconnecting}
-        onClick={handleReconnect}
-      >
-        {reconnecting ? 'Reconnecting…' : 'Reconnect Yahoo →'}
-      </button>
+      <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+        {YAHOO_CONNECTIONS_ENABLED
+          ? 'Reconnect your Yahoo account to restore your live waiver rankings.'
+          : YAHOO_UNAVAILABLE_MESSAGE}
+      </p>
+      {YAHOO_CONNECTIONS_ENABLED && (
+        <button
+          className="mt-6 inline-flex min-h-[44px] items-center rounded-md bg-[var(--color-accent-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/20 disabled:cursor-not-allowed disabled:opacity-50"
+          type="button"
+          disabled={reconnecting}
+          onClick={handleReconnect}
+        >
+          {reconnecting ? 'Reconnecting…' : 'Reconnect Yahoo →'}
+        </button>
+      )}
       {error && (
         <p className="mt-3 text-xs text-red-300" role="alert">{error}</p>
       )}

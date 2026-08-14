@@ -142,6 +142,12 @@ function platformStatus(rows) {
     yahoo: {
       connected: Boolean(yahoo?.is_active && yahoo?.token_secret_id),
       platform: "yahoo",
+      // `available` answers "can a user start a new Yahoo connection right now",
+      // which is a different question from `connected`. Both are needed: an
+      // existing connection can be connected-but-unavailable while Yahoo's
+      // Fantasy API entitlement is pending.
+      available: config.yahoo.enabled,
+      unavailableReason: config.yahoo.enabled ? null : "pending_provider_approval",
     },
     sleeper: {
       connected: Boolean(sleeper?.is_active && sleeper?.platform_username),
@@ -192,6 +198,8 @@ function platformStatusContract(rows) {
         platform: "yahoo",
         status: legacy.yahoo.connected ? "connected" : "disconnected",
         connected: legacy.yahoo.connected,
+        available: legacy.yahoo.available,
+        unavailableReason: legacy.yahoo.unavailableReason,
         leagues: selectedLeagueFromConnection(byPlatform.get("yahoo")),
       },
       espn: {

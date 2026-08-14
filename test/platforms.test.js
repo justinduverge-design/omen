@@ -110,6 +110,7 @@ function loadPlatformsRouter({
   redisUnavailable = false,
   redisErrorMessage = "redis unavailable",
   redisFailOnSet = null,
+  yahooEnabled = false,
 } = {}) {
   const routePath = require.resolve("../src/routes/platforms");
   delete require.cache[routePath];
@@ -136,7 +137,11 @@ function loadPlatformsRouter({
       return { createClient: () => fakeSupabase };
     }
     if (request === "../config" && parent?.filename === routePath) {
-      return { redisUrl: "https://redis.example", redisToken: "test-redis-token" };
+      return {
+        redisUrl: "https://redis.example",
+        redisToken: "test-redis-token",
+        yahoo: { enabled: yahooEnabled },
+      };
     }
     if (request === "@upstash/redis" && parent?.filename === routePath) {
       return {
@@ -269,16 +274,49 @@ test("GET /api/platforms/status returns default shape for all three platforms", 
   const res = await request(app, "/api/platforms/status");
 
   assert.equal(res.status, 200);
+  const yahooDefault = {
+    connected: false,
+    platform: "yahoo",
+    available: false,
+    unavailableReason: "pending_provider_approval",
+  };
   assert.deepEqual(res.body, {
-    yahoo: { connected: false, platform: "yahoo" },
+    yahoo: yahooDefault,
     sleeper: { connected: false, platform: "sleeper", username: null },
     espn: { connected: false, platform: "espn" },
     connections: {
-      yahoo: { connected: false, platform: "yahoo" },
+      yahoo: yahooDefault,
       sleeper: { connected: false, platform: "sleeper", username: null },
       espn: { connected: false, platform: "espn" },
     },
   });
+});
+
+test("Yahoo reports connected-but-unavailable while the entitlement is pending", async () => {
+  // The trap this guards: a row written before the pause still reads
+  // `connected: true`, which says nothing about whether Yahoo can serve data.
+  const { app } = buildApp({
+    rows: [
+      { user_id: "test-slops-user", platform: "yahoo", is_active: true, token_secret_id: "yahoo-token" },
+    ],
+  });
+  const res = await request(app, "/api/platforms/status");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.yahoo.connected, true);
+  assert.equal(res.body.yahoo.available, false);
+  assert.equal(res.body.yahoo.unavailableReason, "pending_provider_approval");
+});
+
+test("flipping YAHOO_ENABLED reports Yahoo as available again", async () => {
+  // Proves the pause is one flag, not a code change: this is the whole
+  // re-enable procedure once Yahoo grants the entitlement.
+  const { app } = buildApp({ yahooEnabled: true });
+  const res = await request(app, "/api/platforms/status");
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.yahoo.available, true);
+  assert.equal(res.body.yahoo.unavailableReason, null);
 });
 
 test("GET /api/platforms/status returns connected true when rows have credentials", async () => {

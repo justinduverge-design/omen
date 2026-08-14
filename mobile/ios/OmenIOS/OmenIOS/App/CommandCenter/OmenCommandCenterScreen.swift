@@ -392,7 +392,7 @@ enum OmenCommandCenterFixtures {
     static let realDisconnected = OmenCommandCenterState(
         greeting: "Connect a league to see your matchup.",
         context: .empty,
-        matchup: .noMatchup(reason: "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.")
+        matchup: .noMatchup(reason: "No matchup yet — connect Sleeper or ESPN to see your team's week.")
     )
 
     /// Honest loading state — session restore or dashboard-summary in flight.

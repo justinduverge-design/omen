@@ -39,7 +39,7 @@ const PAGE_HELP = {
     title: 'Omen of the Week',
     description: 'Your highest-confidence move each week — one call, plain English, no noise.',
     tips: [
-      { label: 'Platform required', body: 'Connect Yahoo, Sleeper, or ESPN so Omen can read your roster.' },
+      { label: 'Platform required', body: 'Connect Sleeper or ESPN so Omen can read your roster.' },
       { label: 'Run it', body: 'Hit the button — Omen reads your lineup and surfaces the move.' },
       { label: 'Lock it in', body: 'Submit feedback after the week so Omen can learn from your results.' },
     ],

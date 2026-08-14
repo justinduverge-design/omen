@@ -478,7 +478,7 @@ object OmenCommandCenterFixtures {
         greeting = "Connect a league to see your matchup.",
         context = OmenContextStripState.Empty,
         matchup = OmenMatchupHeroState.NoMatchup(
-            reason = "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.",
+            reason = "No matchup yet — connect Sleeper or ESPN to see your team's week.",
         ),
     )
 

@@ -3,7 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
-import { startYahooOAuth } from '../lib/yahooAuth.js';
+import {
+  startYahooOAuth,
+  YAHOO_CONNECTIONS_ENABLED,
+  YAHOO_UNAVAILABLE_MESSAGE,
+} from '../lib/yahooAuth.js';
 import {
   Button,
   Input,
@@ -349,6 +353,22 @@ function YahooCard({ connected, leagues = [], disabled, onRefresh }) {
         primaryAction={(
           <Button variant="tertiary" size="lg" disabled={disabled} onClick={handleDisconnect}>
             Disconnect
+          </Button>
+        )}
+      />
+    );
+  }
+
+  if (!YAHOO_CONNECTIONS_ENABLED) {
+    return (
+      <PlatformConnectionCard
+        platform="yahoo"
+        status="disconnected"
+        title="Yahoo"
+        description={YAHOO_UNAVAILABLE_MESSAGE}
+        primaryAction={(
+          <Button size="lg" disabled>
+            On hold
           </Button>
         )}
       />
