@@ -25,6 +25,7 @@ public Ollama/OpenClaw address.
 | `YAHOO_CLIENT_ID` | Yahoo OAuth app client id. | Yahoo | No |
 | `YAHOO_CLIENT_SECRET` | Yahoo OAuth app client secret. | Yahoo | Yes |
 | `YAHOO_REDIRECT_URI` | Yahoo OAuth callback URL. | Yahoo | No |
+| `YAHOO_ENABLED` | Gates starting a **new** Yahoo connection. Defaults to `false` while Yahoo's Fantasy Sports API entitlement for app `ZcZJXm8V` is pending. Set to `true` on **both** `omen_api` and `omen_cron` once granted. | Omen | No |
 | `LLM_BASE_URL` | Private KVM2 Ollama/OpenClaw model base URL for narration. | LLM | Private-only endpoint |
 | `LLM_MODEL` | Model name sent to the LLM service. | LLM | No |
 | `LLM_TIMEOUT` | LLM request timeout in milliseconds. | LLM | No |

@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../lib/api.js';
 import { platformButtonStyle } from '../../lib/platformChip.js';
-import { startYahooOAuth } from '../../lib/yahooAuth.js';
+import {
+  startYahooOAuth,
+  YAHOO_CONNECTIONS_ENABLED,
+  YAHOO_UNAVAILABLE_MESSAGE,
+} from '../../lib/yahooAuth.js';
 
 const EMPTY_STATUS = {
   yahoo: { connected: false, platform: 'yahoo' },
@@ -358,15 +362,20 @@ export default function PlatformConnections({ recoveryState = null }) {
                 Yahoo
               </p>
               <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                {status.yahoo.connected
-                  ? 'Signed in via Yahoo OAuth.'
-                  : 'Connect through Yahoo OAuth.'}
+                {!YAHOO_CONNECTIONS_ENABLED
+                  ? YAHOO_UNAVAILABLE_MESSAGE
+                  : status.yahoo.connected
+                    ? 'Signed in via Yahoo OAuth.'
+                    : 'Connect through Yahoo OAuth.'}
               </p>
             </div>
 
             {loadingStatus ? (
               <StatusSkeleton />
             ) : status.yahoo.connected ? (
+              // An existing connection stays disconnectable even while Yahoo is
+              // paused — otherwise a user who connected before the pause is stuck
+              // with a row they cannot act on.
               <div className="flex shrink-0 items-center gap-3">
                 <ConnectedBadge />
                 <GhostButton
@@ -377,6 +386,16 @@ export default function PlatformConnections({ recoveryState = null }) {
                   {action === 'disconnect-yahoo' ? 'Disconnecting…' : 'Disconnect'}
                 </GhostButton>
               </div>
+            ) : !YAHOO_CONNECTIONS_ENABLED ? (
+              <span
+                className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
+                style={{
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                On hold
+              </span>
             ) : (
               <AccentButton platform="yahoo" disabled={disabled} onClick={connectYahoo}>
                 {action === 'connect-yahoo' ? 'Connecting…' : 'Connect Yahoo'}

@@ -16,7 +16,11 @@ import {
   teamWinLabel,
 } from '../lib/postWinPulse.js';
 import { useTheme } from '../lib/themeMode.js';
-import { startYahooOAuth } from '../lib/yahooAuth.js';
+import {
+  startYahooOAuth,
+  YAHOO_CONNECTIONS_ENABLED,
+  YAHOO_UNAVAILABLE_MESSAGE,
+} from '../lib/yahooAuth.js';
 import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
 import TradeAnalyzer from './TradeAnalyzer';
@@ -87,10 +91,18 @@ function PlatformStatusBar({ platforms, loading }) {
 
       {tokenExpired.map(([key]) => {
         const label = PLATFORM_LABELS[key] ?? key;
-        const canReconnect = key === 'yahoo';
+        // Reconnecting Yahoo cannot restore data while the Fantasy API
+        // entitlement is pending — the handshake would succeed and every data
+        // call would still fail. Say so instead of offering a dead retry.
+        const canReconnect = key === 'yahoo' && YAHOO_CONNECTIONS_ENABLED;
+        const pausedNotice = key === 'yahoo' && !YAHOO_CONNECTIONS_ENABLED;
         return (
           <Alert key={key} tone="omen" className="justify-between" style={{ color: 'var(--color-text-primary)' }}>
-            <p>{label} session expired — reconnect to restore your live data</p>
+            <p>
+              {pausedNotice
+                ? `${label} is on hold — ${YAHOO_UNAVAILABLE_MESSAGE}`
+                : `${label} session expired — reconnect to restore your live data`}
+            </p>
             {canReconnect && (
               <button
                 className="ml-4 inline-flex min-h-[44px] shrink-0 items-center text-xs font-semibold transition-colors"

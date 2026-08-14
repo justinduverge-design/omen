@@ -86,7 +86,7 @@ function makeSupabase(state) {
   };
 }
 
-function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient } = {}) {
+function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient, yahooEnabled = true } = {}) {
   const routePath = require.resolve("../src/routes/yahoo");
   const authPath = require.resolve("../src/middleware/auth");
   delete require.cache[routePath];
@@ -110,6 +110,10 @@ function loadYahooRouter({ oauthRows = [], getAuthenticatedYahooClient } = {}) {
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === "@supabase/supabase-js") {
       return { createClient: () => fakeSupabase };
+    }
+    if (request === "../config" && parent?.filename === routePath) {
+      const realConfig = originalLoad.call(this, request, parent, isMain);
+      return { ...realConfig, yahoo: { ...realConfig.yahoo, enabled: yahooEnabled } };
     }
     if (request === "../middleware/logging" && (parent?.filename === routePath || parent?.filename === authPath)) {
       return {
@@ -554,4 +558,43 @@ test("POST /api/yahoo/league returns 404 when there is no Yahoo connection", asy
 
   assert.equal(res.status, 404);
   assert.equal(state.updates.length, 0);
+});
+
+// --- Yahoo entry-point gate ------------------------------------------------
+// Yahoo's Fantasy API entitlement is pending, so starting a *new* connection is
+// blocked. These lock in that the gate fails closed and that flipping
+// YAHOO_ENABLED restores the route without any other change (see the
+// enabled-path tests above, which run with yahooEnabled defaulting to true).
+
+test("POST /api/yahoo/auth is refused while Yahoo connections are disabled", async () => {
+  const { app, state } = buildApp({ yahooEnabled: false });
+  const res = await request(app, "/api/yahoo/auth", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-token" },
+    body: {},
+  });
+
+  assert.equal(res.status, 503);
+  assert.equal(res.body.error, "yahoo_unavailable");
+  // Fail closed means no OAuth state row is written and no auth URL is minted.
+  assert.equal(state.upserts.length, 0);
+  assert.equal(state.authUrlStates.length, 0);
+});
+
+test("GET /api/yahoo/auth is refused while Yahoo connections are disabled", async () => {
+  const { app, state } = buildApp({ yahooEnabled: false });
+  const res = await request(app, "/api/yahoo/auth", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 503);
+  assert.equal(state.authUrlStates.length, 0);
+});
+
+test("the Yahoo callback stays reachable so an in-flight consent cannot strand", async () => {
+  const { app } = buildApp({ yahooEnabled: false });
+  const res = await request(app, "/api/yahoo/callback");
+
+  // Any status except the gate's 503 proves the callback was not gated.
+  assert.notEqual(res.status, 503);
 });

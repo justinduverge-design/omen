@@ -49,6 +49,9 @@ services:
       YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID:?YAHOO_CLIENT_ID is required}
       YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET:?YAHOO_CLIENT_SECRET is required}
       YAHOO_REDIRECT_URI: ${YAHOO_REDIRECT_URI:?YAHOO_REDIRECT_URI is required}
+      # Gates starting a NEW Yahoo connection. Default false while Yahoo's
+      # Fantasy API entitlement is pending. Must match on api and cron.
+      YAHOO_ENABLED: ${YAHOO_ENABLED:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGINS: ${CORS_ORIGINS}
       LLM_BASE_URL: ${LLM_BASE_URL}
@@ -91,6 +94,9 @@ services:
       YAHOO_CLIENT_ID: ${YAHOO_CLIENT_ID:?YAHOO_CLIENT_ID is required}
       YAHOO_CLIENT_SECRET: ${YAHOO_CLIENT_SECRET:?YAHOO_CLIENT_SECRET is required}
       YAHOO_REDIRECT_URI: ${YAHOO_REDIRECT_URI:?YAHOO_REDIRECT_URI is required}
+      # Gates starting a NEW Yahoo connection. Default false while Yahoo's
+      # Fantasy API entitlement is pending. Must match on api and cron.
+      YAHOO_ENABLED: ${YAHOO_ENABLED:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGINS: ${CORS_ORIGINS}
       LLM_BASE_URL: ${LLM_BASE_URL}

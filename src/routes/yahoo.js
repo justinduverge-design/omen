@@ -73,7 +73,23 @@ async function createYahooAuthStart(req, leagueId, nativeReturn = false) {
   return { url: getYahooAuthUrl(state) };
 }
 
-router.get("/auth", requireAuth, async (req, res, next) => {
+/**
+ * Blocks starting a new Yahoo connection while the Fantasy Sports API
+ * entitlement is pending. Gates the entry point only — `/callback` still has
+ * to run so an in-flight consent round-trip cannot strand, and `/access-probe`
+ * stays open because it is how the entitlement gets re-checked.
+ * See `config.yahoo.enabled` for the flip procedure.
+ */
+function requireYahooEnabled(req, res, next) {
+  if (config.yahoo.enabled) return next();
+  return res.status(503).json({
+    error: "yahoo_unavailable",
+    message:
+      "Yahoo connections are paused while Yahoo reviews Omen's Fantasy Sports API access. Sleeper and ESPN are unaffected.",
+  });
+}
+
+router.get("/auth", requireAuth, requireYahooEnabled, async (req, res, next) => {
   try {
     const leagueId = req.query.leagueId || req.query.league_id || null;
     const { url } = await createYahooAuthStart(req, leagueId);
@@ -84,7 +100,7 @@ router.get("/auth", requireAuth, async (req, res, next) => {
   }
 });
 
-router.post("/auth", requireAuth, async (req, res, next) => {
+router.post("/auth", requireAuth, requireYahooEnabled, async (req, res, next) => {
   try {
     const leagueId = req.body?.leagueId || req.body?.league_id || null;
     const { url } = await createYahooAuthStart(req, leagueId, req.body?.native_return === true);
