@@ -9,7 +9,15 @@ Reads your own `espn_s2`/`SWID` ESPN Fantasy cookies from this browser and fills
 3. Click "Fill into Omen". It stages the values in `chrome.storage.session` (cleared when the browser closes — not permanent storage) and opens Omen's connect page.
 4. Omen's connect page picks the staged values up, fills the form, and immediately clears the staged copy. You still click Omen's own "Connect" button — the extension only fills the form, it doesn't submit anything on your behalf.
 
-## Load it locally (not yet published to a store)
+## Install it
+
+**Published and public on the Chrome Web Store and on Microsoft Edge Add-ons** (confirmed by the founder, 2026-08-15). Most users should install it from their browser's store rather than loading it unpacked.
+
+> **Store listing URLs still need to be pasted in here.** This section previously read "not yet published to a store," which was false by the time anyone read it. Leaving the links out is a smaller error than leaving that sentence in, but it is still a gap — add both URLs on the next touch.
+
+This extension is the practical ESPN connection path, so where it is published matters beyond this file: it is also the honest answer for ESPN users in the native apps, which cannot ask for cookies directly (see `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §5 — ESPN is research-gated on native).
+
+### Load it locally (development only)
 
 Chrome / Edge:
 1. Go to `chrome://extensions` (or `edge://extensions`).
