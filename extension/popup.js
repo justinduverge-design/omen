@@ -42,11 +42,13 @@ async function getActiveTabUrl() {
 
 const ESPN_ORIGIN_PATTERN = "https://*.espn.com/*";
 
-// Safari grants host permissions per site at runtime, where Chrome and Edge grant
-// everything in `host_permissions` at install. So on iOS the cookies API can succeed and
-// return nothing purely because the user has not allowed the extension on espn.com yet —
-// indistinguishable, from the code's point of view, from "not logged in". Verified on a
-// real iPhone 2026-08-15: signed in to ESPN, popup still reported no session.
+// Safari grants host permissions per site at runtime, where Chrome and Edge grant everything
+// in `host_permissions` at install. A denied site therefore looks identical to "not logged in"
+// from here, so the two are worth telling apart.
+//
+// **This was not the cause of the 2026-08-15 iPhone failure** — espn.com was already set to
+// Allow and the popup still found nothing. The check is kept because it is correct and cheap,
+// not because it fixed that bug. See `getCookieFrom` for the actual suspect.
 async function hasEspnAccess() {
   try {
     return await chrome.permissions.contains({ origins: [ESPN_ORIGIN_PATTERN] });
@@ -57,12 +59,36 @@ async function hasEspnAccess() {
   }
 }
 
-function getCookieFrom(domainUrl, name) {
+// Safari implements the WebExtension APIs as **promise-returning**. Chrome MV3 supports both
+// promises and the legacy callback form. The original code passed a callback only — on Safari
+// that can resolve with `undefined` while the real value is delivered through the returned
+// promise that nobody awaited, which looks exactly like "no cookie".
+//
+// Verified on a real iPhone 2026-08-15: espn.com permission set to Allow, signed in to ESPN,
+// and the popup still reported no session — so a missing permission was NOT the cause.
+//
+// Try the promise form first and fall back to the callback form, so both engines work.
+// `outcome` records what happened per domain, never the cookie value.
+async function getCookieFrom(domainUrl, name) {
+  const details = { url: domainUrl, name };
+
+  try {
+    const viaPromise = chrome.cookies.get(details);
+    if (viaPromise && typeof viaPromise.then === "function") {
+      const cookie = await viaPromise;
+      return { value: cookie?.value || null, outcome: cookie?.value ? "ok" : "empty(promise)" };
+    }
+  } catch (error) {
+    return { value: null, outcome: `error(promise):${error?.name || "unknown"}` };
+  }
+
   return new Promise((resolve) => {
     try {
-      chrome.cookies.get({ url: domainUrl, name }, (cookie) => resolve(cookie?.value || null));
-    } catch {
-      resolve(null);
+      chrome.cookies.get(details, (cookie) => {
+        resolve({ value: cookie?.value || null, outcome: cookie?.value ? "ok" : "empty(callback)" });
+      });
+    } catch (error) {
+      resolve({ value: null, outcome: `error(callback):${error?.name || "unknown"}` });
     }
   });
 }
@@ -77,7 +103,10 @@ function getCookieFrom(domainUrl, name) {
 // log from a real tab.
 async function getCookie(name) {
   const results = await Promise.all(
-    CANDIDATE_COOKIE_DOMAINS.map(async (domain) => ({ domain, value: await getCookieFrom(domain, name) }))
+    CANDIDATE_COOKIE_DOMAINS.map(async (domain) => {
+      const read = await getCookieFrom(domain, name);
+      return { domain, value: read.value, outcome: read.outcome };
+    })
   );
 
   const present = results.filter((r) => r.value != null);
@@ -89,6 +118,9 @@ async function getCookie(name) {
       foundOn: present.map((r) => r.domain),
       agree: distinctValues.size <= 1,
       distinctValueCount: distinctValues.size,
+      // Per-domain outcome, never the value. This is what turns "no session found" from a
+      // dead end into something diagnosable without a Mac attached.
+      outcomes: results.map((r) => `${r.domain.replace("https://", "")}=${r.outcome}`),
     },
   };
 }
@@ -130,6 +162,11 @@ async function init() {
     }
 
     el("notLoggedIn").hidden = false;
+    // Show what actually happened per domain. No cookie value is ever rendered.
+    el("cookieDiagnostic").textContent =
+      `espn_s2 → ${espnS2Result.diagnostic.outcomes.join(", ")}` +
+      ` · SWID → ${swidResult.diagnostic.outcomes.join(", ")}` +
+      ` · cookies API: ${typeof chrome.cookies === "undefined" ? "missing" : "present"}`;
     el("openEspn").addEventListener("click", () => {
       // `/football/` 404s — verified 2026-08-15. `/football/team` is the live entry point.
       chrome.tabs.create({ url: "https://fantasy.espn.com/football/team" });
