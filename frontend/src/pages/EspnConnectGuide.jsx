@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import PublicInfoLayout, { InfoSection } from '../components/layout/PublicInfoLayout.jsx';
+import EspnBrowserSupport from '../components/espn/EspnBrowserSupport.jsx';
 
 const GUIDE_URL = 'https://slopssaloon.com/espn-connect';
-const EXTENSION_URL = 'https://github.com/justinduverge-design/omen/tree/main/extension';
+// Store listings, not the GitHub source tree — a repo URL is a dead end for a normal user
+// and asks them to sideload rather than install.
+const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm';
 const SHARE_TEXT = 'Finish ESPN setup on a computer with Omen’s desktop helper.';
 
 export default function EspnConnectGuide() {
@@ -23,7 +26,8 @@ export default function EspnConnectGuide() {
         <a className="min-h-[44px] rounded-md border px-4 py-2 font-semibold" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} href={href}>Email link</a>
       </div>
     </InfoSection>
-    <InfoSection title="What happens next"><ol className="list-decimal space-y-2 pl-5"><li>On a computer, load the Omen ESPN Connect helper in Chrome or Edge.</li><li>Sign in to ESPN Fantasy in that browser.</li><li>Choose Fill into Omen.</li><li>Review the filled form, then select Connect ESPN yourself.</li></ol><a className="inline-block min-h-[44px] pt-4 font-semibold underline" style={{ color: 'var(--color-accent)' }} href={EXTENSION_URL} target="_blank" rel="noreferrer">Open the desktop helper guide</a></InfoSection>
+    <InfoSection title="Which browser to use"><EspnBrowserSupport /></InfoSection>
+    <InfoSection title="What happens next"><ol className="list-decimal space-y-2 pl-5"><li>On a computer, install the Omen ESPN Connect helper in Chrome or Edge.</li><li>Sign in to ESPN Fantasy in that browser.</li><li>Choose Fill into Omen.</li><li>Review the filled form, then select Connect ESPN yourself.</li></ol><p className="pt-3 text-sm">Using Safari or Firefox on a computer? The helper can’t run there, but you can still connect — the ESPN card on the connect page walks you through copying the two values by hand.</p><a className="inline-block min-h-[44px] pt-4 font-semibold underline" style={{ color: 'var(--color-accent)' }} href={CHROME_STORE_URL} target="_blank" rel="noreferrer">Install the helper for Chrome</a></InfoSection>
     <InfoSection title="Watch the walkthrough"><p>A mock 90-second Chrome/Edge walkthrough is coming here. It will show the flow without using a real ESPN account or credentials.</p></InfoSection>
     <p className="text-xs">The helper only fills the Omen form you open; it does not submit it. Platform trademarks belong to their respective owners. Omen is not endorsed by or affiliated with ESPN.</p>
   </PublicInfoLayout>;
