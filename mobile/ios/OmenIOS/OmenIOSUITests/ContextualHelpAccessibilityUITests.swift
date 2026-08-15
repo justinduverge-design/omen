@@ -34,7 +34,23 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", dynamicType]
         }
         app.launch()
+        // Wait for foreground here rather than in each test. Without it, a test that runs
+        // straight after another one can begin interacting while the previous instance is
+        // still tearing down, and taps get swallowed.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30), "\(scenario) did not reach the foreground")
         return app
+    }
+
+    /// Tap only once the control is actually hittable.
+    ///
+    /// `waitForExistence` is not enough: an element can be in the tree while the view is still
+    /// settling, and `tap()` on a non-hittable element is silently a no-op. That made
+    /// `testCommandCenterHelpAffordanceIsLabeledAndOpensItsExplanation` pass in isolation and
+    /// fail in the full suite — a flake in the test, not in the app.
+    private func tapWhenReady(_ element: XCUIElement, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+        let hittable = expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: element)
+        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed, message, file: file, line: line)
+        element.tap()
     }
 
     // MARK: - The affordance itself
@@ -50,20 +66,20 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
         // It is distinguishable from the profile control sitting beside it.
         XCTAssertTrue(app.buttons["Account and profile"].exists)
 
-        help.tap()
+        tapWhenReady(help, "help affordance never became tappable")
 
         // Asserted on the summary, not on a tip label: "Waiver Watch" and "Ledger" are also
         // section headings on the Command Center screen underneath, so matching those would
         // pass whether or not the sheet ever opened.
         XCTAssertTrue(
-            app.staticTexts[Self.commandCenterSummary].waitForExistence(timeout: 5),
+            app.staticTexts[Self.commandCenterSummary].waitForExistence(timeout: 10),
             "tapping help did not present its explanation"
         )
 
         // Spec §2: dismissing returns to the exact prior state.
-        app.buttons["Done"].tap()
+        tapWhenReady(app.buttons["Done"], "help sheet's Done button never became tappable")
         XCTAssertTrue(
-            help.waitForExistence(timeout: 5),
+            help.waitForExistence(timeout: 10),
             "dismissing help did not return to the originating screen"
         )
     }
@@ -106,7 +122,6 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
             "contextual-help.account",
         ] {
             let app = launch(scenario)
-            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "\(scenario) did not launch")
             try app.performAccessibilityAudit(for: Self.auditedCategories)
             app.terminate()
         }
@@ -119,7 +134,6 @@ final class ContextualHelpAccessibilityUITests: XCTestCase {
             "contextual-help.connect",
             dynamicType: "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"
         )
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         try app.performAccessibilityAudit(for: Self.auditedCategories)
     }
 

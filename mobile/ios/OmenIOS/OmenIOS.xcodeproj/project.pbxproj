@@ -1,17 +1,17 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXBuildFile section */
 		A10000000000000000000001 /* OmenIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* OmenIOSApp.swift */; };
 		A10000000000000000000002 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* AppShellView.swift */; };
 		A10000000000000000000003 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* AppEnvironment.swift */; };
 		A10000000000000000000004 /* OmenCommandCenterScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* OmenCommandCenterScreen.swift */; };
 		A10000000000000000000005 /* ScreenshotScenarios.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* ScreenshotScenarios.swift */; };
-		E10000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000011 /* Assets.xcassets */; };
-		E10000000000000000000002 /* Omen.icon in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000012 /* Omen.icon */; };
 		A20000000000000000000001 /* OmenColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* OmenColor.swift */; };
 		A20000000000000000000002 /* OmenSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* OmenSpacing.swift */; };
 		A20000000000000000000003 /* OmenTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* OmenTypography.swift */; };
@@ -40,13 +40,11 @@
 		A20000000000000000000040 /* OmenDecisionBrief.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000041 /* OmenDecisionBrief.swift */; };
 		A20000000000000000000042 /* OmenContextStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000043 /* OmenContextStrip.swift */; };
 		A20000000000000000000044 /* OmenMatchupHero.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000045 /* OmenMatchupHero.swift */; };
-
 		B10000000000000000000001 /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* SessionState.swift */; };
 		B10000000000000000000002 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* Session.swift */; };
 		B10000000000000000000003 /* SecureSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* SecureSessionStore.swift */; };
 		B10000000000000000000004 /* KeychainSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* KeychainSessionStore.swift */; };
 		B10000000000000000000005 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* SessionManager.swift */; };
-
 		B20000000000000000000001 /* AuthMechanism.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000011 /* AuthMechanism.swift */; };
 		B20000000000000000000002 /* AuthOutcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* AuthOutcome.swift */; };
 		B20000000000000000000003 /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* Validators.swift */; };
@@ -60,25 +58,7 @@
 		B20000000000000000000021 /* SupabaseOAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* SupabaseOAuthProvider.swift */; };
 		B20000000000000000000022 /* PasskeyProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000032 /* PasskeyProvider.swift */; };
 		B20000000000000000000023 /* PkceCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000033 /* PkceCodes.swift */; };
-		B30000000000000000000021 /* ASWebAuthenticationOAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */; };
-		B30000000000000000000022 /* URLHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000032 /* URLHelpers.swift */; };
-		D30000000000000000000001 /* NativePasskeyProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30000000000000000000011 /* NativePasskeyProvider.swift */; };
-
 		B30000000000000000000001 /* URLSessionGoTrueTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000011 /* URLSessionGoTrueTransport.swift */; };
-		F10000000000000000000005 /* LeagueStandings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* LeagueStandings.swift */; };
-		E60000000000000000000004 /* LeagueStandingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000014 /* LeagueStandingsTests.swift */; };
-		F10000000000000000000006 /* ConnectFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* ConnectFlow.swift */; };
-		F10000000000000000000007 /* ConnectRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* ConnectRepository.swift */; };
-		F10000000000000000000008 /* ConnectViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000018 /* ConnectViewModel.swift */; };
-		F10000000000000000000009 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000019 /* ConnectView.swift */; };
-		E60000000000000000000005 /* ConnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000015 /* ConnectFlowTests.swift */; };
-		F10000000000000000000001 /* OmenApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* OmenApiClient.swift */; };
-		F10000000000000000000002 /* DashboardSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* DashboardSummary.swift */; };
-		F10000000000000000000003 /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* DashboardRepository.swift */; };
-		F10000000000000000000004 /* CommandCenterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000014 /* CommandCenterViewModel.swift */; };
-		E60000000000000000000001 /* OmenApiClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000011 /* OmenApiClientTests.swift */; };
-		E60000000000000000000002 /* DashboardSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000012 /* DashboardSummaryTests.swift */; };
-		E60000000000000000000003 /* CommandCenterViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000013 /* CommandCenterViewModelTests.swift */; };
 		B30000000000000000000002 /* URLSessionAccountRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000012 /* URLSessionAccountRepository.swift */; };
 		B30000000000000000000003 /* NativeAppleIDTokenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000013 /* NativeAppleIDTokenProvider.swift */; };
 		B30000000000000000000004 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000014 /* AuthViewModel.swift */; };
@@ -87,13 +67,8 @@
 		B30000000000000000000007 /* CommandCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000017 /* CommandCenterView.swift */; };
 		B30000000000000000000008 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000018 /* AccountView.swift */; };
 		B30000000000000000000009 /* DeleteAccountConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000019 /* DeleteAccountConfirmationView.swift */; };
-		C10000000000000000000001 /* OmenHelpSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000011 /* OmenHelpSupportView.swift */; };
-		C20000000000000000000001 /* OmenHelpSupportViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000011 /* OmenHelpSupportViewTests.swift */; };
-		C30000000000000000000001 /* OmenContextualHelp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000011 /* OmenContextualHelp.swift */; };
-		C30000000000000000000002 /* OmenContextualHelpContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000012 /* OmenContextualHelpContent.swift */; };
-		C30000000000000000000003 /* OmenContextualHelpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000013 /* OmenContextualHelpTests.swift */; };
-		E90000000000000000000002 /* ContextualHelpAccessibilityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */; };
-
+		B30000000000000000000021 /* ASWebAuthenticationOAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */; };
+		B30000000000000000000022 /* URLHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000032 /* URLHelpers.swift */; };
 		B60000000000000000000001 /* SessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000011 /* SessionManagerTests.swift */; };
 		B60000000000000000000002 /* AuthFlowReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000012 /* AuthFlowReducerTests.swift */; };
 		B60000000000000000000003 /* ValidatorsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000013 /* ValidatorsTests.swift */; };
@@ -109,20 +84,60 @@
 		B6000000000000000000000D /* OmenCommandCenterScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6000000000000000000001D /* OmenCommandCenterScreenTests.swift */; };
 		B6000000000000000000000E /* OmenContextStripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6000000000000000000001E /* OmenContextStripTests.swift */; };
 		B6000000000000000000000F /* OmenMatchupHeroTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6000000000000000000001F /* OmenMatchupHeroTests.swift */; };
+		C10000000000000000000001 /* OmenHelpSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000011 /* OmenHelpSupportView.swift */; };
+		C20000000000000000000001 /* OmenHelpSupportViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000011 /* OmenHelpSupportViewTests.swift */; };
+		C30000000000000000000001 /* OmenContextualHelp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000011 /* OmenContextualHelp.swift */; };
+		C30000000000000000000002 /* OmenContextualHelpContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000012 /* OmenContextualHelpContent.swift */; };
+		C30000000000000000000003 /* OmenContextualHelpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000013 /* OmenContextualHelpTests.swift */; };
 		D20000000000000000000001 /* SecureNonceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000011 /* SecureNonceTests.swift */; };
 		D20000000000000000000002 /* AuthViewModelAppleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000012 /* AuthViewModelAppleTests.swift */; };
+		D30000000000000000000001 /* NativePasskeyProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30000000000000000000011 /* NativePasskeyProvider.swift */; };
 		D40000000000000000000001 /* AuthViewModelPasskeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D40000000000000000000011 /* AuthViewModelPasskeyTests.swift */; };
 		D50000000000000000000001 /* URLSessionGoTruePasskeyTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50000000000000000000011 /* URLSessionGoTruePasskeyTransportTests.swift */; };
+		E10000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000011 /* Assets.xcassets */; };
+		E10000000000000000000002 /* Omen.icon in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000012 /* Omen.icon */; };
+		E60000000000000000000001 /* OmenApiClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000011 /* OmenApiClientTests.swift */; };
+		E60000000000000000000002 /* DashboardSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000012 /* DashboardSummaryTests.swift */; };
+		E60000000000000000000003 /* CommandCenterViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000013 /* CommandCenterViewModelTests.swift */; };
+		E60000000000000000000004 /* LeagueStandingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000014 /* LeagueStandingsTests.swift */; };
+		E60000000000000000000005 /* ConnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60000000000000000000015 /* ConnectFlowTests.swift */; };
+		E90000000000000000000002 /* ContextualHelpAccessibilityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */; };
+		F10000000000000000000001 /* OmenApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* OmenApiClient.swift */; };
+		F10000000000000000000002 /* DashboardSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* DashboardSummary.swift */; };
+		F10000000000000000000003 /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* DashboardRepository.swift */; };
+		F10000000000000000000004 /* CommandCenterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000014 /* CommandCenterViewModel.swift */; };
+		F10000000000000000000005 /* LeagueStandings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* LeagueStandings.swift */; };
+		F10000000000000000000006 /* ConnectFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* ConnectFlow.swift */; };
+		F10000000000000000000007 /* ConnectRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* ConnectRepository.swift */; };
+		F10000000000000000000008 /* ConnectViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000018 /* ConnectViewModel.swift */; };
+		F10000000000000000000009 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000019 /* ConnectView.swift */; };
+/* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B50000000000000000000040 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000070 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000050;
+			remoteInfo = OmenIOS;
+		};
+		E90000000000000000000040 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000070 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000050;
+			remoteInfo = OmenIOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
 		A10000000000000000000011 /* OmenIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenIOSApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* OmenCommandCenterScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenCommandCenterScreen.swift; sourceTree = "<group>"; };
-		A10000000000000000000016 /* ScreenshotScenarios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotScenarios.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		E10000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		E10000000000000000000012 /* Omen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Omen.icon; sourceTree = "<group>"; };
-		A10000000000000000000020 /* OmenIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = OmenIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000016 /* ScreenshotScenarios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotScenarios.swift; sourceTree = "<group>"; };
+		A10000000000000000000020 /* Omen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = Omen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000011 /* OmenColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenColor.swift; sourceTree = "<group>"; };
 		A20000000000000000000012 /* OmenSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenSpacing.swift; sourceTree = "<group>"; };
 		A20000000000000000000013 /* OmenTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenTypography.swift; sourceTree = "<group>"; };
@@ -151,13 +166,11 @@
 		A20000000000000000000041 /* OmenDecisionBrief.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenDecisionBrief.swift; sourceTree = "<group>"; };
 		A20000000000000000000043 /* OmenContextStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextStrip.swift; sourceTree = "<group>"; };
 		A20000000000000000000045 /* OmenMatchupHero.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenMatchupHero.swift; sourceTree = "<group>"; };
-
 		B10000000000000000000011 /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
 		B10000000000000000000012 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		B10000000000000000000013 /* SecureSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureSessionStore.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* KeychainSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainSessionStore.swift; sourceTree = "<group>"; };
 		B10000000000000000000015 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
-
 		B20000000000000000000011 /* AuthMechanism.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthMechanism.swift; sourceTree = "<group>"; };
 		B20000000000000000000012 /* AuthOutcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthOutcome.swift; sourceTree = "<group>"; };
 		B20000000000000000000013 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
@@ -171,24 +184,7 @@
 		B20000000000000000000031 /* SupabaseOAuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseOAuthProvider.swift; sourceTree = "<group>"; };
 		B20000000000000000000032 /* PasskeyProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeyProvider.swift; sourceTree = "<group>"; };
 		B20000000000000000000033 /* PkceCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PkceCodes.swift; sourceTree = "<group>"; };
-		B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASWebAuthenticationOAuthProvider.swift; sourceTree = "<group>"; };
-		B30000000000000000000032 /* URLHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLHelpers.swift; sourceTree = "<group>"; };
-
 		B30000000000000000000011 /* URLSessionGoTrueTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionGoTrueTransport.swift; sourceTree = "<group>"; };
-		F10000000000000000000015 /* LeagueStandings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueStandings.swift; sourceTree = "<group>"; };
-		E60000000000000000000014 /* LeagueStandingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueStandingsTests.swift; sourceTree = "<group>"; };
-		F10000000000000000000016 /* ConnectFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectFlow.swift; sourceTree = "<group>"; };
-		F10000000000000000000017 /* ConnectRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectRepository.swift; sourceTree = "<group>"; };
-		F10000000000000000000018 /* ConnectViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectViewModel.swift; sourceTree = "<group>"; };
-		F10000000000000000000019 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
-		E60000000000000000000015 /* ConnectFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectFlowTests.swift; sourceTree = "<group>"; };
-		F10000000000000000000011 /* OmenApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenApiClient.swift; sourceTree = "<group>"; };
-		F10000000000000000000012 /* DashboardSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSummary.swift; sourceTree = "<group>"; };
-		F10000000000000000000013 /* DashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRepository.swift; sourceTree = "<group>"; };
-		F10000000000000000000014 /* CommandCenterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterViewModel.swift; sourceTree = "<group>"; };
-		E60000000000000000000011 /* OmenApiClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenApiClientTests.swift; sourceTree = "<group>"; };
-		E60000000000000000000012 /* DashboardSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSummaryTests.swift; sourceTree = "<group>"; };
-		E60000000000000000000013 /* CommandCenterViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterViewModelTests.swift; sourceTree = "<group>"; };
 		B30000000000000000000012 /* URLSessionAccountRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionAccountRepository.swift; sourceTree = "<group>"; };
 		B30000000000000000000013 /* NativeAppleIDTokenProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAppleIDTokenProvider.swift; sourceTree = "<group>"; };
 		B30000000000000000000014 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -197,18 +193,10 @@
 		B30000000000000000000017 /* CommandCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterView.swift; sourceTree = "<group>"; };
 		B30000000000000000000018 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		B30000000000000000000019 /* DeleteAccountConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountConfirmationView.swift; sourceTree = "<group>"; };
-		C10000000000000000000011 /* OmenHelpSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenHelpSupportView.swift; sourceTree = "<group>"; };
-		C20000000000000000000011 /* OmenHelpSupportViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenHelpSupportViewTests.swift; sourceTree = "<group>"; };
-		C30000000000000000000011 /* OmenContextualHelp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelp.swift; sourceTree = "<group>"; };
-		C30000000000000000000012 /* OmenContextualHelpContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelpContent.swift; sourceTree = "<group>"; };
-		C30000000000000000000013 /* OmenContextualHelpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelpTests.swift; sourceTree = "<group>"; };
-		E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualHelpAccessibilityUITests.swift; sourceTree = "<group>"; };
-		E90000000000000000000001 /* OmenIOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmenIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-
+		B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASWebAuthenticationOAuthProvider.swift; sourceTree = "<group>"; };
+		B30000000000000000000032 /* URLHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLHelpers.swift; sourceTree = "<group>"; };
 		B40000000000000000000011 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
-
 		B50000000000000000000001 /* OmenIOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmenIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-
 		B60000000000000000000011 /* SessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagerTests.swift; sourceTree = "<group>"; };
 		B60000000000000000000012 /* AuthFlowReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowReducerTests.swift; sourceTree = "<group>"; };
 		B60000000000000000000013 /* ValidatorsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidatorsTests.swift; sourceTree = "<group>"; };
@@ -224,64 +212,791 @@
 		B6000000000000000000001D /* OmenCommandCenterScreenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenCommandCenterScreenTests.swift; sourceTree = "<group>"; };
 		B6000000000000000000001E /* OmenContextStripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextStripTests.swift; sourceTree = "<group>"; };
 		B6000000000000000000001F /* OmenMatchupHeroTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenMatchupHeroTests.swift; sourceTree = "<group>"; };
+		C10000000000000000000011 /* OmenHelpSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenHelpSupportView.swift; sourceTree = "<group>"; };
+		C20000000000000000000011 /* OmenHelpSupportViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenHelpSupportViewTests.swift; sourceTree = "<group>"; };
+		C30000000000000000000011 /* OmenContextualHelp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelp.swift; sourceTree = "<group>"; };
+		C30000000000000000000012 /* OmenContextualHelpContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelpContent.swift; sourceTree = "<group>"; };
+		C30000000000000000000013 /* OmenContextualHelpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenContextualHelpTests.swift; sourceTree = "<group>"; };
+		D10000000000000000000001 /* OmenIOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OmenIOS.entitlements; sourceTree = "<group>"; };
 		D20000000000000000000011 /* SecureNonceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureNonceTests.swift; sourceTree = "<group>"; };
 		D20000000000000000000012 /* AuthViewModelAppleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelAppleTests.swift; sourceTree = "<group>"; };
-		D10000000000000000000001 /* OmenIOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OmenIOS.entitlements; sourceTree = "<group>"; };
 		D30000000000000000000011 /* NativePasskeyProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePasskeyProvider.swift; sourceTree = "<group>"; };
 		D40000000000000000000011 /* AuthViewModelPasskeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelPasskeyTests.swift; sourceTree = "<group>"; };
 		D50000000000000000000011 /* URLSessionGoTruePasskeyTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionGoTruePasskeyTransportTests.swift; sourceTree = "<group>"; };
+		E10000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E10000000000000000000012 /* Omen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Omen.icon; sourceTree = "<group>"; };
+		E60000000000000000000011 /* OmenApiClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenApiClientTests.swift; sourceTree = "<group>"; };
+		E60000000000000000000012 /* DashboardSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSummaryTests.swift; sourceTree = "<group>"; };
+		E60000000000000000000013 /* CommandCenterViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterViewModelTests.swift; sourceTree = "<group>"; };
+		E60000000000000000000014 /* LeagueStandingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueStandingsTests.swift; sourceTree = "<group>"; };
+		E60000000000000000000015 /* ConnectFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectFlowTests.swift; sourceTree = "<group>"; };
+		E90000000000000000000001 /* OmenIOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OmenIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualHelpAccessibilityUITests.swift; sourceTree = "<group>"; };
+		F10000000000000000000011 /* OmenApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmenApiClient.swift; sourceTree = "<group>"; };
+		F10000000000000000000012 /* DashboardSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSummary.swift; sourceTree = "<group>"; };
+		F10000000000000000000013 /* DashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRepository.swift; sourceTree = "<group>"; };
+		F10000000000000000000014 /* CommandCenterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000015 /* LeagueStandings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueStandings.swift; sourceTree = "<group>"; };
+		F10000000000000000000016 /* ConnectFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectFlow.swift; sourceTree = "<group>"; };
+		F10000000000000000000017 /* ConnectRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectRepository.swift; sourceTree = "<group>"; };
+		F10000000000000000000018 /* ConnectViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000019 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
 
-		A10000000000000000000030 = {isa = PBXGroup; children = (A10000000000000000000031 /* OmenIOS */, B40000000000000000000020 /* Config */, B60000000000000000000020 /* OmenIOSTests */, E90000000000000000000020 /* OmenIOSUITests */, A10000000000000000000032 /* Products */); sourceTree = "<group>"; };
-		E90000000000000000000020 /* OmenIOSUITests */ = {isa = PBXGroup; children = (E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */); path = OmenIOSUITests; sourceTree = "<group>"; };
-		A10000000000000000000031 /* OmenIOS */ = {isa = PBXGroup; children = (D10000000000000000000001 /* OmenIOS.entitlements */, A10000000000000000000033 /* App */, A20000000000000000000020 /* DesignSystem */, B10000000000000000000020 /* Session */, B20000000000000000000030 /* Auth */, B30000000000000000000030 /* AppAuth */, E10000000000000000000011 /* Assets.xcassets */, E10000000000000000000012 /* Omen.icon */, A10000000000000000000015 /* Info.plist */); path = OmenIOS; sourceTree = "<group>"; };
-		A10000000000000000000032 /* Products */ = {isa = PBXGroup; children = (A10000000000000000000020 /* OmenIOS.app */, B50000000000000000000001 /* OmenIOSTests.xctest */, E90000000000000000000001 /* OmenIOSUITests.xctest */); name = Products; sourceTree = "<group>"; };
-		F10000000000000000000030 /* AppApi */ = {isa = PBXGroup; children = (F10000000000000000000011 /* OmenApiClient.swift */, F10000000000000000000012 /* DashboardSummary.swift */, F10000000000000000000013 /* DashboardRepository.swift */, F10000000000000000000014 /* CommandCenterViewModel.swift */, F10000000000000000000015 /* LeagueStandings.swift */); path = Api; sourceTree = "<group>"; };
-		F10000000000000000000031 /* AppConnect */ = {isa = PBXGroup; children = (F10000000000000000000016 /* ConnectFlow.swift */, F10000000000000000000017 /* ConnectRepository.swift */, F10000000000000000000018 /* ConnectViewModel.swift */, F10000000000000000000019 /* ConnectView.swift */); path = Connect; sourceTree = "<group>"; };
-		A10000000000000000000033 /* App */ = {isa = PBXGroup; children = (A10000000000000000000011 /* OmenIOSApp.swift */, A10000000000000000000012 /* AppShellView.swift */, A10000000000000000000013 /* AppEnvironment.swift */, F10000000000000000000030 /* AppApi */, F10000000000000000000031 /* AppConnect */, A10000000000000000000034 /* CommandCenter */, A10000000000000000000035 /* Screenshot */, C10000000000000000000020 /* Help */); path = App; sourceTree = "<group>"; };
-		A10000000000000000000034 /* CommandCenter */ = {isa = PBXGroup; children = (A10000000000000000000014 /* OmenCommandCenterScreen.swift */); path = CommandCenter; sourceTree = "<group>"; };
-		A10000000000000000000035 /* Screenshot */ = {isa = PBXGroup; children = (A10000000000000000000016 /* ScreenshotScenarios.swift */); path = Screenshot; sourceTree = "<group>"; };
-		C10000000000000000000020 /* Help */ = {isa = PBXGroup; children = (C10000000000000000000011 /* OmenHelpSupportView.swift */, C30000000000000000000012 /* OmenContextualHelpContent.swift */); path = Help; sourceTree = "<group>"; };
-		A20000000000000000000020 /* DesignSystem */ = {isa = PBXGroup; children = (A20000000000000000000011 /* OmenColor.swift */, A20000000000000000000012 /* OmenSpacing.swift */, A20000000000000000000013 /* OmenTypography.swift */, A20000000000000000000014 /* OmenFocusRing.swift */, A20000000000000000000015 /* OmenButton.swift */, A20000000000000000000016 /* OmenIconButton.swift */, A20000000000000000000017 /* OmenFormField.swift */, A20000000000000000000018 /* OmenTextField.swift */, A20000000000000000000019 /* OmenPicker.swift */, A2000000000000000000001A /* OmenCard.swift */, A2000000000000000000001B /* OmenBadge.swift */, A2000000000000000000001C /* OmenChip.swift */, A2000000000000000000001D /* OmenModalSheet.swift */, A2000000000000000000001E /* OmenStateSurface.swift */, A2000000000000000000001F /* OmenListRow.swift */, A20000000000000000000030 /* OmenPlatformBadge.swift */, A20000000000000000000031 /* OmenConfirmationDialog.swift */, A20000000000000000000033 /* OmenConfidenceBar.swift */, A20000000000000000000034 /* OmenRiskPanel.swift */, A20000000000000000000035 /* OmenMetricStrip.swift */, A20000000000000000000036 /* OmenSignalList.swift */, A20000000000000000000037 /* OmenPlayerRow.swift */, A20000000000000000000038 /* OmenConnectionStatusBadge.swift */, A20000000000000000000039 /* OmenPlatformConnectionCard.swift */, A20000000000000000000041 /* OmenDecisionBrief.swift */, A20000000000000000000043 /* OmenContextStrip.swift */, A20000000000000000000045 /* OmenMatchupHero.swift */, C30000000000000000000011 /* OmenContextualHelp.swift */, A20000000000000000000032 /* DesignSystemGalleryView.swift */); path = DesignSystem; sourceTree = "<group>"; };
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000042 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B50000000000000000000012 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E90000000000000000000012 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
-		B10000000000000000000020 /* Session */ = {isa = PBXGroup; children = (B10000000000000000000011 /* SessionState.swift */, B10000000000000000000012 /* Session.swift */, B10000000000000000000013 /* SecureSessionStore.swift */, B10000000000000000000014 /* KeychainSessionStore.swift */, B10000000000000000000015 /* SessionManager.swift */); path = Core/Session; sourceTree = "<group>"; };
-		B20000000000000000000030 /* Auth */ = {isa = PBXGroup; children = (B20000000000000000000011 /* AuthMechanism.swift */, B20000000000000000000012 /* AuthOutcome.swift */, B20000000000000000000013 /* Validators.swift */, B20000000000000000000014 /* GoTrueTransport.swift */, B20000000000000000000015 /* AuthRepository.swift */, B20000000000000000000016 /* AppleIDTokenProvider.swift */, B20000000000000000000017 /* SupabaseAuthRepository.swift */, B20000000000000000000018 /* AccountDeletion.swift */, B20000000000000000000019 /* FakeAuthRepository.swift */, B20000000000000000000020 /* AuthFlow.swift */, B20000000000000000000031 /* SupabaseOAuthProvider.swift */, B20000000000000000000032 /* PasskeyProvider.swift */, B20000000000000000000033 /* PkceCodes.swift */); path = Core/Auth; sourceTree = "<group>"; };
-		B30000000000000000000030 /* AppAuth */ = {isa = PBXGroup; children = (B30000000000000000000011 /* URLSessionGoTrueTransport.swift */, B30000000000000000000012 /* URLSessionAccountRepository.swift */, B30000000000000000000013 /* NativeAppleIDTokenProvider.swift */, D30000000000000000000011 /* NativePasskeyProvider.swift */, B30000000000000000000014 /* AuthViewModel.swift */, B30000000000000000000015 /* WelcomeView.swift */, B30000000000000000000016 /* SignInView.swift */, B30000000000000000000017 /* CommandCenterView.swift */, B30000000000000000000018 /* AccountView.swift */, B30000000000000000000019 /* DeleteAccountConfirmationView.swift */, B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */, B30000000000000000000032 /* URLHelpers.swift */); path = App/Auth; sourceTree = "<group>"; };
-		B40000000000000000000020 /* Config */ = {isa = PBXGroup; children = (B40000000000000000000011 /* Base.xcconfig */); path = Config; sourceTree = "<group>"; };
-		B60000000000000000000020 /* OmenIOSTests */ = {isa = PBXGroup; children = (B60000000000000000000011 /* SessionManagerTests.swift */, B60000000000000000000012 /* AuthFlowReducerTests.swift */, B60000000000000000000013 /* ValidatorsTests.swift */, B60000000000000000000014 /* FakeAuthRepositoryTests.swift */, B60000000000000000000015 /* SupabaseAuthRepositoryTests.swift */, B60000000000000000000016 /* AccountDeletionTests.swift */, B60000000000000000000017 /* OmenPlatformBadgeTests.swift */, B60000000000000000000018 /* OmenConfirmationDialogTests.swift */, B60000000000000000000019 /* PrimitiveEnforcementTests.swift */, B6000000000000000000001A /* OmenMetricPrimitivesTests.swift */, B6000000000000000000001B /* OmenConnectionPrimitivesTests.swift */, B6000000000000000000001C /* OmenDecisionBriefTests.swift */, B6000000000000000000001D /* OmenCommandCenterScreenTests.swift */, B6000000000000000000001E /* OmenContextStripTests.swift */, B6000000000000000000001F /* OmenMatchupHeroTests.swift */, D20000000000000000000011 /* SecureNonceTests.swift */, D20000000000000000000012 /* AuthViewModelAppleTests.swift */, D40000000000000000000011 /* AuthViewModelPasskeyTests.swift */, D50000000000000000000011 /* URLSessionGoTruePasskeyTransportTests.swift */, C20000000000000000000011 /* OmenHelpSupportViewTests.swift */, C30000000000000000000013 /* OmenContextualHelpTests.swift */, E60000000000000000000011 /* OmenApiClientTests.swift */, E60000000000000000000012 /* DashboardSummaryTests.swift */, E60000000000000000000013 /* CommandCenterViewModelTests.swift */, E60000000000000000000014 /* LeagueStandingsTests.swift */, E60000000000000000000015 /* ConnectFlowTests.swift */); path = OmenIOSTests; sourceTree = "<group>"; };
+/* Begin PBXGroup section */
+		A10000000000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000031 /* OmenIOS */,
+				B40000000000000000000020 /* Config */,
+				B60000000000000000000020 /* OmenIOSTests */,
+				E90000000000000000000020 /* OmenIOSUITests */,
+				A10000000000000000000032 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000031 /* OmenIOS */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000001 /* OmenIOS.entitlements */,
+				A10000000000000000000033 /* App */,
+				A20000000000000000000020 /* DesignSystem */,
+				B10000000000000000000020 /* Core/Session */,
+				B20000000000000000000030 /* Core/Auth */,
+				B30000000000000000000030 /* App/Auth */,
+				E10000000000000000000011 /* Assets.xcassets */,
+				E10000000000000000000012 /* Omen.icon */,
+				A10000000000000000000015 /* Info.plist */,
+			);
+			path = OmenIOS;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000032 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000020 /* Omen.app */,
+				B50000000000000000000001 /* OmenIOSTests.xctest */,
+				E90000000000000000000001 /* OmenIOSUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000033 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000011 /* OmenIOSApp.swift */,
+				A10000000000000000000012 /* AppShellView.swift */,
+				A10000000000000000000013 /* AppEnvironment.swift */,
+				F10000000000000000000030 /* Api */,
+				F10000000000000000000031 /* Connect */,
+				A10000000000000000000034 /* CommandCenter */,
+				A10000000000000000000035 /* Screenshot */,
+				C10000000000000000000020 /* Help */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000034 /* CommandCenter */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000014 /* OmenCommandCenterScreen.swift */,
+			);
+			path = CommandCenter;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000035 /* Screenshot */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000016 /* ScreenshotScenarios.swift */,
+			);
+			path = Screenshot;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000020 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000011 /* OmenColor.swift */,
+				A20000000000000000000012 /* OmenSpacing.swift */,
+				A20000000000000000000013 /* OmenTypography.swift */,
+				A20000000000000000000014 /* OmenFocusRing.swift */,
+				A20000000000000000000015 /* OmenButton.swift */,
+				A20000000000000000000016 /* OmenIconButton.swift */,
+				A20000000000000000000017 /* OmenFormField.swift */,
+				A20000000000000000000018 /* OmenTextField.swift */,
+				A20000000000000000000019 /* OmenPicker.swift */,
+				A2000000000000000000001A /* OmenCard.swift */,
+				A2000000000000000000001B /* OmenBadge.swift */,
+				A2000000000000000000001C /* OmenChip.swift */,
+				A2000000000000000000001D /* OmenModalSheet.swift */,
+				A2000000000000000000001E /* OmenStateSurface.swift */,
+				A2000000000000000000001F /* OmenListRow.swift */,
+				A20000000000000000000030 /* OmenPlatformBadge.swift */,
+				A20000000000000000000031 /* OmenConfirmationDialog.swift */,
+				A20000000000000000000033 /* OmenConfidenceBar.swift */,
+				A20000000000000000000034 /* OmenRiskPanel.swift */,
+				A20000000000000000000035 /* OmenMetricStrip.swift */,
+				A20000000000000000000036 /* OmenSignalList.swift */,
+				A20000000000000000000037 /* OmenPlayerRow.swift */,
+				A20000000000000000000038 /* OmenConnectionStatusBadge.swift */,
+				A20000000000000000000039 /* OmenPlatformConnectionCard.swift */,
+				A20000000000000000000041 /* OmenDecisionBrief.swift */,
+				A20000000000000000000043 /* OmenContextStrip.swift */,
+				A20000000000000000000045 /* OmenMatchupHero.swift */,
+				C30000000000000000000011 /* OmenContextualHelp.swift */,
+				A20000000000000000000032 /* DesignSystemGalleryView.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		B10000000000000000000020 /* Core/Session */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000011 /* SessionState.swift */,
+				B10000000000000000000012 /* Session.swift */,
+				B10000000000000000000013 /* SecureSessionStore.swift */,
+				B10000000000000000000014 /* KeychainSessionStore.swift */,
+				B10000000000000000000015 /* SessionManager.swift */,
+			);
+			path = Core/Session;
+			sourceTree = "<group>";
+		};
+		B20000000000000000000030 /* Core/Auth */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000011 /* AuthMechanism.swift */,
+				B20000000000000000000012 /* AuthOutcome.swift */,
+				B20000000000000000000013 /* Validators.swift */,
+				B20000000000000000000014 /* GoTrueTransport.swift */,
+				B20000000000000000000015 /* AuthRepository.swift */,
+				B20000000000000000000016 /* AppleIDTokenProvider.swift */,
+				B20000000000000000000017 /* SupabaseAuthRepository.swift */,
+				B20000000000000000000018 /* AccountDeletion.swift */,
+				B20000000000000000000019 /* FakeAuthRepository.swift */,
+				B20000000000000000000020 /* AuthFlow.swift */,
+				B20000000000000000000031 /* SupabaseOAuthProvider.swift */,
+				B20000000000000000000032 /* PasskeyProvider.swift */,
+				B20000000000000000000033 /* PkceCodes.swift */,
+			);
+			path = Core/Auth;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000030 /* App/Auth */ = {
+			isa = PBXGroup;
+			children = (
+				B30000000000000000000011 /* URLSessionGoTrueTransport.swift */,
+				B30000000000000000000012 /* URLSessionAccountRepository.swift */,
+				B30000000000000000000013 /* NativeAppleIDTokenProvider.swift */,
+				D30000000000000000000011 /* NativePasskeyProvider.swift */,
+				B30000000000000000000014 /* AuthViewModel.swift */,
+				B30000000000000000000015 /* WelcomeView.swift */,
+				B30000000000000000000016 /* SignInView.swift */,
+				B30000000000000000000017 /* CommandCenterView.swift */,
+				B30000000000000000000018 /* AccountView.swift */,
+				B30000000000000000000019 /* DeleteAccountConfirmationView.swift */,
+				B30000000000000000000031 /* ASWebAuthenticationOAuthProvider.swift */,
+				B30000000000000000000032 /* URLHelpers.swift */,
+			);
+			path = App/Auth;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000020 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				B40000000000000000000011 /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		B60000000000000000000020 /* OmenIOSTests */ = {
+			isa = PBXGroup;
+			children = (
+				B60000000000000000000011 /* SessionManagerTests.swift */,
+				B60000000000000000000012 /* AuthFlowReducerTests.swift */,
+				B60000000000000000000013 /* ValidatorsTests.swift */,
+				B60000000000000000000014 /* FakeAuthRepositoryTests.swift */,
+				B60000000000000000000015 /* SupabaseAuthRepositoryTests.swift */,
+				B60000000000000000000016 /* AccountDeletionTests.swift */,
+				B60000000000000000000017 /* OmenPlatformBadgeTests.swift */,
+				B60000000000000000000018 /* OmenConfirmationDialogTests.swift */,
+				B60000000000000000000019 /* PrimitiveEnforcementTests.swift */,
+				B6000000000000000000001A /* OmenMetricPrimitivesTests.swift */,
+				B6000000000000000000001B /* OmenConnectionPrimitivesTests.swift */,
+				B6000000000000000000001C /* OmenDecisionBriefTests.swift */,
+				B6000000000000000000001D /* OmenCommandCenterScreenTests.swift */,
+				B6000000000000000000001E /* OmenContextStripTests.swift */,
+				B6000000000000000000001F /* OmenMatchupHeroTests.swift */,
+				D20000000000000000000011 /* SecureNonceTests.swift */,
+				D20000000000000000000012 /* AuthViewModelAppleTests.swift */,
+				D40000000000000000000011 /* AuthViewModelPasskeyTests.swift */,
+				D50000000000000000000011 /* URLSessionGoTruePasskeyTransportTests.swift */,
+				C20000000000000000000011 /* OmenHelpSupportViewTests.swift */,
+				C30000000000000000000013 /* OmenContextualHelpTests.swift */,
+				E60000000000000000000011 /* OmenApiClientTests.swift */,
+				E60000000000000000000012 /* DashboardSummaryTests.swift */,
+				E60000000000000000000013 /* CommandCenterViewModelTests.swift */,
+				E60000000000000000000014 /* LeagueStandingsTests.swift */,
+				E60000000000000000000015 /* ConnectFlowTests.swift */,
+			);
+			path = OmenIOSTests;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000020 /* Help */ = {
+			isa = PBXGroup;
+			children = (
+				C10000000000000000000011 /* OmenHelpSupportView.swift */,
+				C30000000000000000000012 /* OmenContextualHelpContent.swift */,
+			);
+			path = Help;
+			sourceTree = "<group>";
+		};
+		E90000000000000000000020 /* OmenIOSUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E90000000000000000000011 /* ContextualHelpAccessibilityUITests.swift */,
+			);
+			path = OmenIOSUITests;
+			sourceTree = "<group>";
+		};
+		F10000000000000000000030 /* Api */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000011 /* OmenApiClient.swift */,
+				F10000000000000000000012 /* DashboardSummary.swift */,
+				F10000000000000000000013 /* DashboardRepository.swift */,
+				F10000000000000000000014 /* CommandCenterViewModel.swift */,
+				F10000000000000000000015 /* LeagueStandings.swift */,
+			);
+			path = Api;
+			sourceTree = "<group>";
+		};
+		F10000000000000000000031 /* Connect */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000016 /* ConnectFlow.swift */,
+				F10000000000000000000017 /* ConnectRepository.swift */,
+				F10000000000000000000018 /* ConnectViewModel.swift */,
+				F10000000000000000000019 /* ConnectView.swift */,
+			);
+			path = Connect;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
 
-		A10000000000000000000040 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* OmenIOSApp.swift in Sources */, A10000000000000000000002 /* AppShellView.swift in Sources */, A10000000000000000000003 /* AppEnvironment.swift in Sources */, A10000000000000000000004 /* OmenCommandCenterScreen.swift in Sources */, A10000000000000000000005 /* ScreenshotScenarios.swift in Sources */, C10000000000000000000001 /* OmenHelpSupportView.swift in Sources */, C30000000000000000000001 /* OmenContextualHelp.swift in Sources */, C30000000000000000000002 /* OmenContextualHelpContent.swift in Sources */, A20000000000000000000001 /* OmenColor.swift in Sources */, A20000000000000000000002 /* OmenSpacing.swift in Sources */, A20000000000000000000003 /* OmenTypography.swift in Sources */, A20000000000000000000004 /* OmenFocusRing.swift in Sources */, A20000000000000000000005 /* OmenButton.swift in Sources */, A20000000000000000000006 /* OmenIconButton.swift in Sources */, A20000000000000000000007 /* OmenFormField.swift in Sources */, A20000000000000000000008 /* OmenTextField.swift in Sources */, A20000000000000000000009 /* OmenPicker.swift in Sources */, A20000000000000000000010 /* OmenCard.swift in Sources */, A20000000000000000000021 /* OmenBadge.swift in Sources */, A20000000000000000000022 /* OmenChip.swift in Sources */, A20000000000000000000023 /* OmenModalSheet.swift in Sources */, A20000000000000000000024 /* OmenStateSurface.swift in Sources */, A20000000000000000000025 /* OmenListRow.swift in Sources */, A20000000000000000000026 /* OmenPlatformBadge.swift in Sources */, A20000000000000000000027 /* OmenConfirmationDialog.swift in Sources */, A20000000000000000000029 /* OmenConfidenceBar.swift in Sources */, A2000000000000000000002A /* OmenRiskPanel.swift in Sources */, A2000000000000000000002B /* OmenMetricStrip.swift in Sources */, A2000000000000000000002C /* OmenSignalList.swift in Sources */, A2000000000000000000002D /* OmenPlayerRow.swift in Sources */, A2000000000000000000002E /* OmenConnectionStatusBadge.swift in Sources */, A2000000000000000000002F /* OmenPlatformConnectionCard.swift in Sources */, A20000000000000000000040 /* OmenDecisionBrief.swift in Sources */, A20000000000000000000042 /* OmenContextStrip.swift in Sources */, A20000000000000000000044 /* OmenMatchupHero.swift in Sources */, A20000000000000000000028 /* DesignSystemGalleryView.swift in Sources */, B10000000000000000000001 /* SessionState.swift in Sources */, B10000000000000000000002 /* Session.swift in Sources */, B10000000000000000000003 /* SecureSessionStore.swift in Sources */, B10000000000000000000004 /* KeychainSessionStore.swift in Sources */, B10000000000000000000005 /* SessionManager.swift in Sources */, B20000000000000000000001 /* AuthMechanism.swift in Sources */, B20000000000000000000002 /* AuthOutcome.swift in Sources */, B20000000000000000000003 /* Validators.swift in Sources */, B20000000000000000000004 /* GoTrueTransport.swift in Sources */, B20000000000000000000005 /* AuthRepository.swift in Sources */, B20000000000000000000006 /* AppleIDTokenProvider.swift in Sources */, B20000000000000000000007 /* SupabaseAuthRepository.swift in Sources */, B20000000000000000000008 /* AccountDeletion.swift in Sources */, B20000000000000000000009 /* FakeAuthRepository.swift in Sources */, B20000000000000000000010 /* AuthFlow.swift in Sources */, B20000000000000000000021 /* SupabaseOAuthProvider.swift in Sources */, B20000000000000000000022 /* PasskeyProvider.swift in Sources */, B20000000000000000000023 /* PkceCodes.swift in Sources */, B30000000000000000000001 /* URLSessionGoTrueTransport.swift in Sources */, B30000000000000000000002 /* URLSessionAccountRepository.swift in Sources */, B30000000000000000000003 /* NativeAppleIDTokenProvider.swift in Sources */, D30000000000000000000001 /* NativePasskeyProvider.swift in Sources */, B30000000000000000000004 /* AuthViewModel.swift in Sources */, B30000000000000000000005 /* WelcomeView.swift in Sources */, B30000000000000000000006 /* SignInView.swift in Sources */, B30000000000000000000007 /* CommandCenterView.swift in Sources */, B30000000000000000000008 /* AccountView.swift in Sources */, B30000000000000000000009 /* DeleteAccountConfirmationView.swift in Sources */, B30000000000000000000021 /* ASWebAuthenticationOAuthProvider.swift in Sources */, B30000000000000000000022 /* URLHelpers.swift in Sources */, F10000000000000000000001 /* OmenApiClient.swift in Sources */, F10000000000000000000002 /* DashboardSummary.swift in Sources */, F10000000000000000000003 /* DashboardRepository.swift in Sources */, F10000000000000000000004 /* CommandCenterViewModel.swift in Sources */, F10000000000000000000005 /* LeagueStandings.swift in Sources */, F10000000000000000000006 /* ConnectFlow.swift in Sources */, F10000000000000000000007 /* ConnectRepository.swift in Sources */, F10000000000000000000008 /* ConnectViewModel.swift in Sources */, F10000000000000000000009 /* ConnectView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
-		A10000000000000000000041 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (E10000000000000000000001 /* Assets.xcassets in Resources */, E10000000000000000000002 /* Omen.icon in Resources */, ); runOnlyForDeploymentPostprocessing = 0; };
-		A10000000000000000000042 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* Begin PBXNativeTarget section */
+		A10000000000000000000050 /* OmenIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000060 /* Build configuration list for PBXNativeTarget "OmenIOS" */;
+			buildPhases = (
+				A10000000000000000000040 /* Sources */,
+				A10000000000000000000041 /* Resources */,
+				A10000000000000000000042 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OmenIOS;
+			productName = OmenIOS;
+			productReference = A10000000000000000000020 /* Omen.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B50000000000000000000020 /* OmenIOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B50000000000000000000030 /* Build configuration list for PBXNativeTarget "OmenIOSTests" */;
+			buildPhases = (
+				B50000000000000000000010 /* Sources */,
+				B50000000000000000000011 /* Resources */,
+				B50000000000000000000012 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B50000000000000000000041 /* PBXTargetDependency */,
+			);
+			name = OmenIOSTests;
+			productName = OmenIOSTests;
+			productReference = B50000000000000000000001 /* OmenIOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E90000000000000000000030 /* OmenIOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E90000000000000000000050 /* Build configuration list for PBXNativeTarget "OmenIOSUITests" */;
+			buildPhases = (
+				E90000000000000000000010 /* Sources */,
+				E90000000000000000000013 /* Resources */,
+				E90000000000000000000012 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E90000000000000000000041 /* PBXTargetDependency */,
+			);
+			name = OmenIOSUITests;
+			productName = OmenIOSUITests;
+			productReference = E90000000000000000000001 /* OmenIOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
 
-		B50000000000000000000010 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B60000000000000000000001 /* SessionManagerTests.swift in Sources */, C20000000000000000000001 /* OmenHelpSupportViewTests.swift in Sources */, C30000000000000000000003 /* OmenContextualHelpTests.swift in Sources */, B60000000000000000000002 /* AuthFlowReducerTests.swift in Sources */, B60000000000000000000003 /* ValidatorsTests.swift in Sources */, B60000000000000000000004 /* FakeAuthRepositoryTests.swift in Sources */, B60000000000000000000005 /* SupabaseAuthRepositoryTests.swift in Sources */, B60000000000000000000006 /* AccountDeletionTests.swift in Sources */, B60000000000000000000007 /* OmenPlatformBadgeTests.swift in Sources */, B60000000000000000000008 /* OmenConfirmationDialogTests.swift in Sources */, B60000000000000000000009 /* PrimitiveEnforcementTests.swift in Sources */, B6000000000000000000000A /* OmenMetricPrimitivesTests.swift in Sources */, B6000000000000000000000B /* OmenConnectionPrimitivesTests.swift in Sources */, B6000000000000000000000C /* OmenDecisionBriefTests.swift in Sources */, B6000000000000000000000D /* OmenCommandCenterScreenTests.swift in Sources */, B6000000000000000000000E /* OmenContextStripTests.swift in Sources */, B6000000000000000000000F /* OmenMatchupHeroTests.swift in Sources */, D20000000000000000000001 /* SecureNonceTests.swift in Sources */, D20000000000000000000002 /* AuthViewModelAppleTests.swift in Sources */, D40000000000000000000001 /* AuthViewModelPasskeyTests.swift in Sources */, D50000000000000000000001 /* URLSessionGoTruePasskeyTransportTests.swift in Sources */, E60000000000000000000001 /* OmenApiClientTests.swift in Sources */, E60000000000000000000002 /* DashboardSummaryTests.swift in Sources */, E60000000000000000000003 /* CommandCenterViewModelTests.swift in Sources */, E60000000000000000000004 /* LeagueStandingsTests.swift in Sources */, E60000000000000000000005 /* ConnectFlowTests.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
-		B50000000000000000000011 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		B50000000000000000000012 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		E90000000000000000000010 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E90000000000000000000002 /* ContextualHelpAccessibilityUITests.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
-		E90000000000000000000013 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		E90000000000000000000012 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* Begin PBXProject section */
+		A10000000000000000000070 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					A10000000000000000000050 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					B50000000000000000000020 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A10000000000000000000050;
+					};
+					E90000000000000000000030 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A10000000000000000000050;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000071 /* Build configuration list for PBXProject "OmenIOS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000030;
+			productRefGroup = A10000000000000000000032 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000050 /* OmenIOS */,
+				B50000000000000000000020 /* OmenIOSTests */,
+				E90000000000000000000030 /* OmenIOSUITests */,
+			);
+		};
+/* End PBXProject section */
 
-		B50000000000000000000040 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = A10000000000000000000070 /* Project object */; proxyType = 1; remoteGlobalIDString = A10000000000000000000050; remoteInfo = OmenIOS; };
-		B50000000000000000000041 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A10000000000000000000050 /* OmenIOS */; targetProxy = B50000000000000000000040 /* PBXContainerItemProxy */; };
-		E90000000000000000000040 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = A10000000000000000000070 /* Project object */; proxyType = 1; remoteGlobalIDString = A10000000000000000000050; remoteInfo = OmenIOS; };
-		E90000000000000000000041 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A10000000000000000000050 /* OmenIOS */; targetProxy = E90000000000000000000040 /* PBXContainerItemProxy */; };
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000041 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E10000000000000000000001 /* Assets.xcassets in Resources */,
+				E10000000000000000000002 /* Omen.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B50000000000000000000011 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E90000000000000000000013 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
-		A10000000000000000000050 /* OmenIOS */ = {isa = PBXNativeTarget; buildConfigurationList = A10000000000000000000060 /* Build configuration list for PBXNativeTarget */; buildPhases = (A10000000000000000000040 /* Sources */, A10000000000000000000041 /* Resources */, A10000000000000000000042 /* Frameworks */); buildRules = (); dependencies = (); name = OmenIOS; productName = OmenIOS; productReference = A10000000000000000000020 /* OmenIOS.app */; productType = "com.apple.product-type.application"; };
-		B50000000000000000000020 /* OmenIOSTests */ = {isa = PBXNativeTarget; buildConfigurationList = B50000000000000000000030 /* Build configuration list for PBXNativeTarget "OmenIOSTests" */; buildPhases = (B50000000000000000000010 /* Sources */, B50000000000000000000011 /* Resources */, B50000000000000000000012 /* Frameworks */); buildRules = (); dependencies = (B50000000000000000000041 /* PBXTargetDependency */); name = OmenIOSTests; productName = OmenIOSTests; productReference = B50000000000000000000001 /* OmenIOSTests.xctest */; productType = "com.apple.product-type.bundle.unit-test"; };
-		E90000000000000000000030 /* OmenIOSUITests */ = {isa = PBXNativeTarget; buildConfigurationList = E90000000000000000000050 /* Build configuration list for PBXNativeTarget "OmenIOSUITests" */; buildPhases = (E90000000000000000000010 /* Sources */, E90000000000000000000013 /* Resources */, E90000000000000000000012 /* Frameworks */); buildRules = (); dependencies = (E90000000000000000000041 /* PBXTargetDependency */); name = OmenIOSUITests; productName = OmenIOSUITests; productReference = E90000000000000000000001 /* OmenIOSUITests.xctest */; productType = "com.apple.product-type.bundle.ui-testing"; };
-		A10000000000000000000070 /* Project object */ = {isa = PBXProject; attributes = { LastUpgradeCheck = 1600; TargetAttributes = { A10000000000000000000050 = { CreatedOnToolsVersion = 16.0; }; B50000000000000000000020 = { CreatedOnToolsVersion = 16.0; TestTargetID = A10000000000000000000050; }; E90000000000000000000030 = { CreatedOnToolsVersion = 16.0; TestTargetID = A10000000000000000000050; }; }; }; buildConfigurationList = A10000000000000000000071 /* Build configuration list for PBXProject */; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A10000000000000000000030; productRefGroup = A10000000000000000000032 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (A10000000000000000000050 /* OmenIOS */, B50000000000000000000020 /* OmenIOSTests */, E90000000000000000000030 /* OmenIOSUITests */); };
-		A10000000000000000000071 /* Build configuration list for PBXProject */ = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000072 /* Debug */, A10000000000000000000073 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		A10000000000000000000060 /* Build configuration list for PBXNativeTarget */ = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000061 /* Debug */, A10000000000000000000062 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		A10000000000000000000072 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = Omen; ASSETCATALOG_COMPILER_APPICON_NAME = Omen; CLANG_ENABLE_MODULES = YES; }; name = Debug; };
-		A10000000000000000000073 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; }; name = Release; };
-		A10000000000000000000061 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = B40000000000000000000011 /* Base.xcconfig */; buildSettings = { CODE_SIGN_ENTITLEMENTS = OmenIOS/OmenIOS.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; ENABLE_TESTABILITY = YES; INFOPLIST_FILE = OmenIOS/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen; PRODUCT_NAME = Omen; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
-		A10000000000000000000062 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = B40000000000000000000011 /* Base.xcconfig */; buildSettings = { CODE_SIGN_ENTITLEMENTS = OmenIOS/OmenIOS.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; INFOPLIST_FILE = OmenIOS/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen; PRODUCT_NAME = Omen; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000040 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* OmenIOSApp.swift in Sources */,
+				A10000000000000000000002 /* AppShellView.swift in Sources */,
+				A10000000000000000000003 /* AppEnvironment.swift in Sources */,
+				A10000000000000000000004 /* OmenCommandCenterScreen.swift in Sources */,
+				A10000000000000000000005 /* ScreenshotScenarios.swift in Sources */,
+				C10000000000000000000001 /* OmenHelpSupportView.swift in Sources */,
+				C30000000000000000000001 /* OmenContextualHelp.swift in Sources */,
+				C30000000000000000000002 /* OmenContextualHelpContent.swift in Sources */,
+				A20000000000000000000001 /* OmenColor.swift in Sources */,
+				A20000000000000000000002 /* OmenSpacing.swift in Sources */,
+				A20000000000000000000003 /* OmenTypography.swift in Sources */,
+				A20000000000000000000004 /* OmenFocusRing.swift in Sources */,
+				A20000000000000000000005 /* OmenButton.swift in Sources */,
+				A20000000000000000000006 /* OmenIconButton.swift in Sources */,
+				A20000000000000000000007 /* OmenFormField.swift in Sources */,
+				A20000000000000000000008 /* OmenTextField.swift in Sources */,
+				A20000000000000000000009 /* OmenPicker.swift in Sources */,
+				A20000000000000000000010 /* OmenCard.swift in Sources */,
+				A20000000000000000000021 /* OmenBadge.swift in Sources */,
+				A20000000000000000000022 /* OmenChip.swift in Sources */,
+				A20000000000000000000023 /* OmenModalSheet.swift in Sources */,
+				A20000000000000000000024 /* OmenStateSurface.swift in Sources */,
+				A20000000000000000000025 /* OmenListRow.swift in Sources */,
+				A20000000000000000000026 /* OmenPlatformBadge.swift in Sources */,
+				A20000000000000000000027 /* OmenConfirmationDialog.swift in Sources */,
+				A20000000000000000000029 /* OmenConfidenceBar.swift in Sources */,
+				A2000000000000000000002A /* OmenRiskPanel.swift in Sources */,
+				A2000000000000000000002B /* OmenMetricStrip.swift in Sources */,
+				A2000000000000000000002C /* OmenSignalList.swift in Sources */,
+				A2000000000000000000002D /* OmenPlayerRow.swift in Sources */,
+				A2000000000000000000002E /* OmenConnectionStatusBadge.swift in Sources */,
+				A2000000000000000000002F /* OmenPlatformConnectionCard.swift in Sources */,
+				A20000000000000000000040 /* OmenDecisionBrief.swift in Sources */,
+				A20000000000000000000042 /* OmenContextStrip.swift in Sources */,
+				A20000000000000000000044 /* OmenMatchupHero.swift in Sources */,
+				A20000000000000000000028 /* DesignSystemGalleryView.swift in Sources */,
+				B10000000000000000000001 /* SessionState.swift in Sources */,
+				B10000000000000000000002 /* Session.swift in Sources */,
+				B10000000000000000000003 /* SecureSessionStore.swift in Sources */,
+				B10000000000000000000004 /* KeychainSessionStore.swift in Sources */,
+				B10000000000000000000005 /* SessionManager.swift in Sources */,
+				B20000000000000000000001 /* AuthMechanism.swift in Sources */,
+				B20000000000000000000002 /* AuthOutcome.swift in Sources */,
+				B20000000000000000000003 /* Validators.swift in Sources */,
+				B20000000000000000000004 /* GoTrueTransport.swift in Sources */,
+				B20000000000000000000005 /* AuthRepository.swift in Sources */,
+				B20000000000000000000006 /* AppleIDTokenProvider.swift in Sources */,
+				B20000000000000000000007 /* SupabaseAuthRepository.swift in Sources */,
+				B20000000000000000000008 /* AccountDeletion.swift in Sources */,
+				B20000000000000000000009 /* FakeAuthRepository.swift in Sources */,
+				B20000000000000000000010 /* AuthFlow.swift in Sources */,
+				B20000000000000000000021 /* SupabaseOAuthProvider.swift in Sources */,
+				B20000000000000000000022 /* PasskeyProvider.swift in Sources */,
+				B20000000000000000000023 /* PkceCodes.swift in Sources */,
+				B30000000000000000000001 /* URLSessionGoTrueTransport.swift in Sources */,
+				B30000000000000000000002 /* URLSessionAccountRepository.swift in Sources */,
+				B30000000000000000000003 /* NativeAppleIDTokenProvider.swift in Sources */,
+				D30000000000000000000001 /* NativePasskeyProvider.swift in Sources */,
+				B30000000000000000000004 /* AuthViewModel.swift in Sources */,
+				B30000000000000000000005 /* WelcomeView.swift in Sources */,
+				B30000000000000000000006 /* SignInView.swift in Sources */,
+				B30000000000000000000007 /* CommandCenterView.swift in Sources */,
+				B30000000000000000000008 /* AccountView.swift in Sources */,
+				B30000000000000000000009 /* DeleteAccountConfirmationView.swift in Sources */,
+				B30000000000000000000021 /* ASWebAuthenticationOAuthProvider.swift in Sources */,
+				B30000000000000000000022 /* URLHelpers.swift in Sources */,
+				F10000000000000000000001 /* OmenApiClient.swift in Sources */,
+				F10000000000000000000002 /* DashboardSummary.swift in Sources */,
+				F10000000000000000000003 /* DashboardRepository.swift in Sources */,
+				F10000000000000000000004 /* CommandCenterViewModel.swift in Sources */,
+				F10000000000000000000005 /* LeagueStandings.swift in Sources */,
+				F10000000000000000000006 /* ConnectFlow.swift in Sources */,
+				F10000000000000000000007 /* ConnectRepository.swift in Sources */,
+				F10000000000000000000008 /* ConnectViewModel.swift in Sources */,
+				F10000000000000000000009 /* ConnectView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B50000000000000000000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B60000000000000000000001 /* SessionManagerTests.swift in Sources */,
+				C20000000000000000000001 /* OmenHelpSupportViewTests.swift in Sources */,
+				C30000000000000000000003 /* OmenContextualHelpTests.swift in Sources */,
+				B60000000000000000000002 /* AuthFlowReducerTests.swift in Sources */,
+				B60000000000000000000003 /* ValidatorsTests.swift in Sources */,
+				B60000000000000000000004 /* FakeAuthRepositoryTests.swift in Sources */,
+				B60000000000000000000005 /* SupabaseAuthRepositoryTests.swift in Sources */,
+				B60000000000000000000006 /* AccountDeletionTests.swift in Sources */,
+				B60000000000000000000007 /* OmenPlatformBadgeTests.swift in Sources */,
+				B60000000000000000000008 /* OmenConfirmationDialogTests.swift in Sources */,
+				B60000000000000000000009 /* PrimitiveEnforcementTests.swift in Sources */,
+				B6000000000000000000000A /* OmenMetricPrimitivesTests.swift in Sources */,
+				B6000000000000000000000B /* OmenConnectionPrimitivesTests.swift in Sources */,
+				B6000000000000000000000C /* OmenDecisionBriefTests.swift in Sources */,
+				B6000000000000000000000D /* OmenCommandCenterScreenTests.swift in Sources */,
+				B6000000000000000000000E /* OmenContextStripTests.swift in Sources */,
+				B6000000000000000000000F /* OmenMatchupHeroTests.swift in Sources */,
+				D20000000000000000000001 /* SecureNonceTests.swift in Sources */,
+				D20000000000000000000002 /* AuthViewModelAppleTests.swift in Sources */,
+				D40000000000000000000001 /* AuthViewModelPasskeyTests.swift in Sources */,
+				D50000000000000000000001 /* URLSessionGoTruePasskeyTransportTests.swift in Sources */,
+				E60000000000000000000001 /* OmenApiClientTests.swift in Sources */,
+				E60000000000000000000002 /* DashboardSummaryTests.swift in Sources */,
+				E60000000000000000000003 /* CommandCenterViewModelTests.swift in Sources */,
+				E60000000000000000000004 /* LeagueStandingsTests.swift in Sources */,
+				E60000000000000000000005 /* ConnectFlowTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E90000000000000000000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E90000000000000000000002 /* ContextualHelpAccessibilityUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
 
-		E90000000000000000000050 /* Build configuration list for PBXNativeTarget "OmenIOSUITests" */ = {isa = XCConfigurationList; buildConfigurations = (E90000000000000000000051 /* Debug */, E90000000000000000000052 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		E90000000000000000000051 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = OmenIOS; }; name = Debug; };
-		E90000000000000000000052 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = OmenIOS; }; name = Release; };
-		B50000000000000000000030 /* Build configuration list for PBXNativeTarget "OmenIOSTests" */ = {isa = XCConfigurationList; buildConfigurations = (B50000000000000000000031 /* Debug */, B50000000000000000000032 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		B50000000000000000000031 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Omen.app/Omen"; }; name = Debug; };
-		B50000000000000000000032 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = 6RWR5G9894; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Omen.app/Omen"; }; name = Release; };
+/* Begin PBXTargetDependency section */
+		B50000000000000000000041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000050 /* OmenIOS */;
+			targetProxy = B50000000000000000000040 /* PBXContainerItemProxy */;
+		};
+		E90000000000000000000041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000050 /* OmenIOS */;
+			targetProxy = E90000000000000000000040 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000061 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B40000000000000000000011 /* Base.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = OmenIOS/OmenIOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_TESTABILITY = YES;
+				INFOPLIST_FILE = OmenIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen;
+				PRODUCT_NAME = Omen;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10000000000000000000062 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B40000000000000000000011 /* Base.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = OmenIOS/OmenIOS.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = OmenIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen;
+				PRODUCT_NAME = Omen;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A10000000000000000000072 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Omen;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6RWR5G9894;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+			};
+			name = Debug;
+		};
+		A10000000000000000000073 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6RWR5G9894;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B50000000000000000000031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Omen.app/Omen";
+			};
+			name = Debug;
+		};
+		B50000000000000000000032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Omen.app/Omen";
+			};
+			name = Release;
+		};
+		E90000000000000000000051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OmenIOS;
+			};
+			name = Debug;
+		};
+		E90000000000000000000052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.slopssaloon.omen.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = OmenIOS;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000060 /* Build configuration list for PBXNativeTarget "OmenIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000061 /* Debug */,
+				A10000000000000000000062 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000071 /* Build configuration list for PBXProject "OmenIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000072 /* Debug */,
+				A10000000000000000000073 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B50000000000000000000030 /* Build configuration list for PBXNativeTarget "OmenIOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B50000000000000000000031 /* Debug */,
+				B50000000000000000000032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E90000000000000000000050 /* Build configuration list for PBXNativeTarget "OmenIOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E90000000000000000000051 /* Debug */,
+				E90000000000000000000052 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
 	};
 	rootObject = A10000000000000000000070 /* Project object */;
 }
