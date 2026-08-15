@@ -1,8 +1,9 @@
 # Handoff — 2026-08-15 — Native API scope, nflverse path repair, A5 memo
 
-**Session type:** reconnaissance → scoping → one bounded repair
-**Branch:** `main` (working tree; nothing pushed, merged, or deployed)
+**Session type:** reconnaissance → scoping → one bounded repair → M5 slices A + B (iOS)
+**Branch:** `fix/a5-nflverse-path-and-native-api-scope` → PR [#309](https://github.com/justinduverge-design/omen/pull/309). Pushed and open; **not merged, not deployed.**
 **Backend suite:** **537/537 pass** (`npm test`, node `--test`, ~4.6s). Baseline at session start was 535/535.
+**iOS suite:** **145/0** on Xcode 26.6 / iPhone 17 Pro simulator, against a 123/0 baseline. See the addendum at the end of this file.
 
 ---
 
