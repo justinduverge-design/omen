@@ -368,8 +368,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M7-EspnSafariExtension — Bundle the ESPN connect helper into the Omen iOS app
 
-- **Status:** BLOCKED
-- **Blocked by:** FOUNDER_APPROVAL — a new bundle identifier (`com.slopssaloon.omen.<suffix>`) must be registered on the Apple Developer account, and a bundled Safari extension adds permissions and privacy-questionnaire answers to the Omen App Store listing. Apple credentials and store settings are do-not-touch for agents.
+- **Status:** **IN_PROGRESS — target built and embedding; on-device Safari proof outstanding.**
+- **Claim:** Claude, 2026-08-15
+- **Founder gates cleared 2026-08-15:** the App ID `com.slopssaloon.omen.espnconnect` was registered under team `6RWR5G9894`, and the founder approved the added store-review surface.
+- **Evidence:** `OmenEspnConnectExtension` target added to `OmenIOS.xcodeproj`; app builds for the simulator with `PlugIns/OmenEspnConnectExtension.appex` embedded, `CFBundleIdentifier = com.slopssaloon.omen.espnconnect`, `NSExtensionPointIdentifier = com.apple.Safari.web-extension`, and all five web-extension resources present. iOS suite **158/0** on this branch — no regression. The bundled `manifest.json` is byte-identical to `extension/manifest.json`.
+- **Single source of truth:** the target references `extension/*` by relative path rather than copying, so the Chrome/Edge listings and the Safari build cannot drift apart. Do not "fix" this by copying files into the iOS target.
+- **Still open before this can be called done:** enable the extension in Safari settings on a real iPhone and complete one ESPN connect end to end; add the extension icons (now user-visible in Safari settings, so no longer cosmetic); confirm the **web** connect page is usable at phone width, since the whole mobile flow depends on it.
 - **Priority:** P1 — it is the only path that lets an iPhone user connect ESPN **without leaving their phone**.
 - **Cost:** medium
 - **Authority / feasibility:** `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md`, which discharges onboarding-contract deliverable 7 **for iOS**. §10's block on "ESPN connected" UI should be lifted for iOS only.

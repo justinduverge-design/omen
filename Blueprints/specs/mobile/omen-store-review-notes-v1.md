@@ -5,6 +5,7 @@
 **Companion:** `omen-store-privacy-and-rating-answers-v1.md` — R4 privacy labels and R5 age-rating answers.
 **Applies to:** iOS (App Store Connect → App Review Information → Notes) and Android (Play Console → App content → App access)
 **Bundle / application id:** `com.slopssaloon.omen`
+**iOS embedded extension (from `M7-EspnSafariExtension`):** `com.slopssaloon.omen.espnconnect` — Safari Web Extension, team `6RWR5G9894`
 
 ## Why Omen does not supply a demo account
 
@@ -58,6 +59,43 @@ delete, so the option is correctly hidden in that state.
 
 Omen is free. There are no purchases, subscriptions, or paywalls anywhere in
 the app.
+```
+
+---
+
+## PASTE BLOCK addition — App Store Connect "Notes", Safari extension
+
+**Paste this only once `M7-EspnSafariExtension` actually ships in the build being submitted.** If the extension is not in the binary, leave it out entirely — describing a feature that is not there is its own rejection risk.
+
+```text
+ABOUT THE INCLUDED SAFARI EXTENSION ("Omen ESPN Connect")
+
+You do not need to use it to review the app. Demo Mode covers the full review
+path and requires no account and no fantasy league.
+
+Why it exists:
+ESPN Fantasy has no public OAuth API. The only way a user can authorize Omen to
+read their ESPN league is by supplying two of their own ESPN session cookies.
+Those cookies are HttpOnly, so an ordinary web page cannot read them - which is
+precisely why this is a browser extension rather than a web form.
+
+What it does:
+1. The user signs in to ESPN in Safari, as they normally would.
+2. The user taps the extension, which reads only their own espn_s2 and SWID
+   cookies for espn.com, after Safari's own per-site permission prompt.
+3. It fills those values into Omen's connect form.
+4. The USER taps Omen's own Connect button. The extension never submits on the
+   user's behalf.
+
+What it does not do:
+- It makes no network request of its own. It has no server and no analytics.
+- It reads no site other than espn.com.
+- It never displays, logs, or stores those cookie values beyond the moment
+  needed to fill the form, and it clears them immediately afterward.
+- It holds no App Groups and shares no data with the Omen app.
+
+The user can disable it at any time in Safari settings without affecting the
+rest of the app.
 ```
 
 ---
