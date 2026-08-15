@@ -52,6 +52,11 @@ import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
 import com.slopssaloon.omen.core.auth.SupabaseOAuthProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
+import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
+import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
+import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
+import com.slopssaloon.omen.app.feature.api.OmenApiClient
+import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
@@ -107,6 +112,19 @@ fun OmenAndroidApp() {
     }
     val discordConfigured = remember(oauthProvider) { oauthProvider.isConfigured("discord") }
     val accountRepo: AccountRepository = remember { OkHttpAccountRepository(env.apiBaseUrl) }
+
+    // M5 slices B + C. Built from the same public `apiBaseUrl` the account repository uses —
+    // `AppEnvironment` holds public config only, never a secret. The token is read lazily from
+    // the secure store at call time rather than captured, so a re-auth is picked up on reload.
+    val commandCenterViewModel = remember {
+        val client = OmenApiClient(env.apiBaseUrl)
+        CommandCenterViewModel(
+            repository = ApiDashboardRepository(client),
+            leagueRepository = ApiLeagueRepository(client),
+            sessionManager = sessionManager,
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
     val sessionState by sessionManager.state.collectAsState()
 
     LaunchedEffect(Unit) { sessionManager.restore() }
@@ -325,6 +343,8 @@ fun OmenAndroidApp() {
                         SignedInDestination(
                             destination = selectedDestination,
                             isDemo = s.userId == SessionManager.DEMO_USER_ID,
+                            userId = s.userId,
+                            commandCenterViewModel = commandCenterViewModel,
                             onOpenAccount = { showAccountSheet = true },
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
                             onOpenLeague = { selectedDestination = NavDestination.League },
@@ -437,19 +457,46 @@ private fun OmenBottomNav(selected: NavDestination, onSelect: (NavDestination) -
 private fun SignedInDestination(
     destination: NavDestination,
     isDemo: Boolean,
+    userId: String,
+    commandCenterViewModel: CommandCenterViewModel,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
     onOpenLeague: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     when (destination) {
-        NavDestination.Command -> OmenCommandCenterScreen(
-            state = if (isDemo) OmenCommandCenterFixtures.demoConnected
-            else OmenCommandCenterFixtures.realDisconnected,
-            onOpenAccount = onOpenAccount,
-            onOpenOmen = onOpenOmen,
-            onOpenLedger = { onOpenOmen() },
-            onOpenLeague = onOpenLeague,
-        )
+        NavDestination.Command -> {
+            LaunchedEffect(userId) { commandCenterViewModel.load(userId) }
+            val failure = commandCenterViewModel.failure
+            if (failure != null) {
+                // M5 slice B: an unreadable shell renders an explicit failure surface. It must
+                // NOT silently fall through to the disconnected fixture, which would state as
+                // fact that the user has no leagues.
+                Column(
+                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
+                    verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),
+                ) {
+                    OmenStateSurface(
+                        kind = OmenStateSurfaceKind.Error,
+                        title = "Couldn't reach Omen",
+                        message = commandCenterFailureMessage(failure),
+                    )
+                    OmenButton(
+                        text = "Try again",
+                        onClick = { scope.launch { commandCenterViewModel.load(userId) } },
+                        variant = OmenButtonVariant.Secondary,
+                    )
+                }
+            } else {
+                OmenCommandCenterScreen(
+                    state = commandCenterViewModel.commandCenterState,
+                    onOpenAccount = onOpenAccount,
+                    onOpenOmen = onOpenOmen,
+                    onOpenLedger = { onOpenOmen() },
+                    onOpenLeague = onOpenLeague,
+                )
+            }
+        }
         NavDestination.Omen -> OmenDecisionScreen(
             state = if (isDemo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
         )
@@ -491,4 +538,20 @@ private fun AccountSheetBody(
             OmenButton(text = "Delete account", onClick = onDelete, variant = OmenButtonVariant.Danger)
         }
     }
+}
+
+/**
+ * User-facing copy for a shell read failure. Deliberately says what the user can do and never
+ * surfaces a token, URL, or provider identifier — [OmenApiError] carries only a status code, so
+ * there is nothing sensitive to leak here by construction.
+ */
+private fun commandCenterFailureMessage(error: OmenApiError): String = when (error) {
+    is OmenApiError.Network ->
+        "We couldn't reach Omen. Check your connection and try again."
+    is OmenApiError.Unauthorized ->
+        "Your session expired. Sign in again to see your leagues."
+    is OmenApiError.Server ->
+        "Omen had a problem on our side (error ${error.status}). Try again in a moment."
+    is OmenApiError.Decode ->
+        "Omen sent something this version of the app couldn't read. Updating the app may fix it."
 }

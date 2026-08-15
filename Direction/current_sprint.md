@@ -126,6 +126,34 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Founder steer (2026-08-11):** prefer another **free** source in the nflverse class. Building a Slops-owned scraper is an accepted fallback but is the last option, not the opener — it converts a data problem into a maintenance obligation that runs every Tuesday during the season. Evaluate free sources first and say plainly whether any clears licence and latency.
 - **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; the build-our-own option is costed against them including in-season maintenance; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
 - **Do not touch:** paid commitments, new dependencies, or provider contracts without explicit approval.
+- **Memo delivered 2026-08-15:** `Direction/reviews/2026-08-15-a5-scoring-source-options.md`. Two free in-class sources evaluated (Sleeper, ESPN), the fork costed against them, recommendation and trigger date recorded. **Awaiting the founder pick — the agent half of this item is discharged; the decision is not.**
+- **Founder steer amended 2026-08-15 — vendor-agnostic.** The requirement is that scoring survive any one source dying, for Sleeper, ESPN, and Yahoo users alike. The memo's key finding is that this is *source*-agnosticism, not provider-agnosticism: weekly fantasy points are a league-independent NFL fact, and the pipeline already keys on normalized player name, emits all three scoring formats, and dependency-injects `fetchNFLScores`. The seam exists; the memo proposes formalizing it as a `ScoreSource` interface with ordered fallback.
+- **Premise corrected 2026-08-15.** This item was written as "if nflverse never publishes `player_stats_2026.csv`." That file was never going to exist under that name for any season — see `A5-NflversePath` below. The real question is fallback resilience, not one missing file.
+
+### A5-NflversePath — Correct the retired nflverse release path
+
+- **Status:** **VERIFIED 2026-08-15.** Full backend suite **537/537** (was 535; +2 new tests). The corrected URL is proven against the live release index — `stats_player_week_2025.csv` downloads (8.6 MB, required columns present); the old path 404s for every season from 2025 on.
+- **Blocked by:** None
+- **Priority:** P0 — silent-failure class
+- **Cost:** small
+- **Source:** 2026-08-15 live probe of the nflverse release index during A5 research.
+- **What was wrong:** `src/omen_tuesday_cron.js` fetched `.../releases/download/player_stats/player_stats_<season>.csv`. nflverse reorganized its releases; the `player_stats` tag stopped receiving new seasons after **2024**, and weekly stats now ship under the `stats_player` tag as `stats_player_week_<season>.csv`. The old path 404s for 2025 *and* 2026.
+- **Why it was urgent rather than cosmetic:** PR #302 (correctly) made a 404 a silent deferral instead of a failure. Combined with a permanently-404ing URL, Tuesday scoring would have deferred every move forever and reported healthy — `failed=0`, no error, no alert. The fix that made pre-season safe is what made this stale path invisible.
+- **Also fixed:** `season_type` is now a required column and rows are filtered to `REG` by default. nflverse ships `REG` (weeks 1–18) and `POST` (19–22) in one file and never ships `PRE`; any source that *does* carry preseason (Sleeper does) would otherwise collide preseason week N with regular week N. Requiring the column fails closed on further upstream schema drift rather than silently scoring an unfiltered file.
+- **Evidence:** `Blueprints/handoffs/2026-08-15-native-api-scope-and-scoring-source.md`; `test/omenTuesdayCronNflverse.test.js` — URL-shape assertion including a negative `player_stats` guard, a PRE/REG collision test, and a schema-drift fail-closed test.
+- **Do not touch:** the `OMEN_CRON_SCORING_ENABLED` flag, which stays false; A4's production enablement is unchanged by this repair.
+
+### A6-MovesScoringFormat — Persist league scoring format on recommendations
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — adds a column to the deployed `moves` schema; per facts-of-record #8 an agent authors the SQL as review-only source and never applies it
+- **Priority:** P1 — correctness defect in the grading loop
+- **Cost:** small
+- **Source:** 2026-08-15 A5 research.
+- **What is wrong:** `fetchPendingMoves` selects without `scoring`, carrying the in-source note "`scoring` is not present in the deployed moves schema. scoreMove already defaults an absent format to PPR." So **every** move is graded as PPR. A standard or half-PPR league's recommendation is graded against points its league does not award. `nflverseScoresFromCsv` already computes `rec_std`, `rec_half`, and `rec_ppr` — all three are produced and two are discarded.
+- **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
+- **Done when:** the league's scoring format is captured at recommendation time and persisted on the move; `scoreMove` reads it rather than defaulting; the PPR default remains only for historical rows that predate the column; review-only SQL authored in `sql/`, not applied.
+- **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production.
 
 ## R. Store and release — critical path, founder-executed
 
@@ -289,6 +317,71 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
+
+### M5-Native-API-Client — Wire native screens to the existing Omen API
+
+- **Status:** **VERIFIED (slices A + B + C, both platforms) 2026-08-15.** Slices D–G remain unstarted and are tracked below; this item is not closed.
+- **Claim:** Claude, 2026-08-15 — slices A + B + C
+- **Evidence (iOS A + B + C):** Xcode 26.6 (`17F113`) `xcodebuild test`, iPhone 17 Pro simulator — **158 tests / 0 failures**, up from a 123/0 baseline measured on the same machine by stashing the branch. Includes the primitive-enforcement scanner. Files: `App/Api/OmenApiClient.swift`, `DashboardSummary.swift`, `DashboardRepository.swift`, `CommandCenterViewModel.swift`, `LeagueStandings.swift`, wired through `AppShellView` → `CommandCenterView`. Handoff: `Blueprints/handoffs/2026-08-15-native-api-scope-and-scoring-source.md`.
+- **Evidence (Android A + B + C):** `:app:assembleDebug` and `:app:assembleDebugAndroidTest` green; **26 connected instrumentation tests / 0 failures** on the `medium_phone` API 36 emulator (4 pre-existing Command Center tests + 22 new); `:core:auth`, `:core:session`, `:core:designsystem` JVM unit tests green. Files: `app/feature/api/OmenApiClient.kt`, `DashboardSummary.kt`, `LeagueStandings.kt`, `Repositories.kt`, `CommandCenterViewModel.kt`, wired through `OmenAndroidApp.kt`. Uses `org.json` and existing OkHttp — **no new dependency and no build-config change.**
+- **Android test placement note:** the app module has no JVM `src/test` source set, and adding one would change build configuration and dependencies — outside this item's boundary. The slice A–C tests are pure logic but live in `androidTest` for that reason. If a future item adds a unit-test source set to `:app`, these should move.
+- **Open:** slices **D–G**. D (Omen destination) and E (Ledger) are wiring against shipped routes. **F and G are not wiring** — they are new screens whose M1 screen-contract slices do not exist; do not pull them without approved design.
+- **Slice C scope correction, 2026-08-15 (founder-approved).** The original slice C was written as `GET /api/platforms/state`. The Command Center's real gap was provider *identity* — league name and team name — which `platform-provider-state.v1` does not carry and `dashboard-summary.v1` does not either. **`league-standings.v1` already carries both**, for all three providers: `league_name` on the envelope (`src/routes/league.js:98`) and `team_name` + `is_current_user` per row (`adapters/sleeper.js:312`, `adapters/espn.js`, `services/yahoo.js`). So this needed **no backend change** — it was a client composition problem. An earlier note in this item calling it a backend ask was wrong and is retracted.
+- **Progressive fill is the required shape, not a preference.** `dashboard-summary.v1` reads our own rows; `league-standings.v1` makes a **live provider call** — slower, independently failable, and correctly empty in the off-season. The Command Center renders fully from shell truth first, then upgrades the context strip in place if standings succeeds. A standings failure must never fail the screen, and the strip must never regress or fill with a placeholder. Tests lock all three.
+- **Modeling note found in build (worth keeping):** `buildWaiverTool()` in `src/routes/dashboard.js` returns only `ready` or `needs_platform` — it has **no** off-season branch, because the season gate lives on `omen_of_the_week` via `isOffSeason()`. Waiver UI state must therefore take the season from the Omen status, or a connected user is told to watch waivers in August. A test caught this; the Android mapping must reproduce it.
+- **Blocked by:** None. The backend routes, their contracts, and the native state mapping are all approved and live; no new backend, design, or founder gate is involved.
+- **Priority:** **P0 — beta blocker.** Every approved Command Center and Omen composition renders hardcoded fixtures on a real signed-in device. `M4-CC-LedgerPreview`, `M4-CC-LeaguePulse`, `M4-CC-WaiverWatch`, and `M4-Omen-Screen` are all VERIFIED as *compositions* and all still show invented state to a real user. This item is what makes them true.
+- **Cost:** medium
+- **Agent-buildable:** yes, in full
+- **Source:** 2026-08-15 native/backend reconciliation. A grep for `URLSession` / `dashboard/summary` across `mobile/ios` returns only auth and account files. The native app has no product API layer at all; both platforms say so in-source — `CommandCenterView.swift:23` selects `OmenCommandCenterFixtures.realDisconnected`, and `OmenCommandCenterScreen.kt:426` reads "context sees `realDisconnected` until live wiring exists."
+- **Precedent:** `URLSessionAccountRepository.swift` / `OkHttpAccountRepository.kt` are a working repository pair against `DELETE /api/user/delete`. Every slice below repeats that pattern — base URL from `AppEnvironment`, bearer from `SessionManager`, typed outcome mapping.
+
+**Slices, in dependency order. Each is independently shippable.**
+
+| Slice | Route → contract | Replaces |
+| --- | --- | --- |
+| A. Transport | — | Shared client: base URL, bearer injection, timeout, typed error enum (`network` / `unauthorized` / `server` / `decode`). No screen changes. |
+| B. Shell truth | `GET /api/dashboard/summary` → `dashboard-summary.v1` | `OmenCommandCenterFixtures.realDisconnected` |
+| C. Provider strip | `GET /api/platforms/state` → `platform-provider-state.v1` | Hardcoded connection cards. Pairs with `M4-CC-PlatformsCompact`. |
+| D. Omen destination | `POST /api/omen/mvp-move` → `2026-05-18.omen-live.v1` | `OmenDecisionFixtures` |
+| E. Ledger | `GET /api/moves` → `moves-history.v1` | Ledger preview fixture (node `72:2` composition unchanged) |
+| F. League page | `GET /api/league/standings` → `league-standings.v1` | "League is landing next" placeholder |
+| G. Trade page | `POST /api/trade/compare` | "Trade is landing next" placeholder |
+
+- **Beta-minimum is A + B + C + D.** That is a real signed-in user seeing their real connections and their real Omen. E is cheap once D lands. **F and G are not pure wiring** — they are new screens whose Figma slices do not exist yet (`M1` screen-contract items 4 and 5); do not pull them as part of this item, and keep the honest placeholders until those slices are approved.
+- **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
+- **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
+
+### M5-NativeConnect — Build the native connect flow (onboarding steps 3–6)
+
+- **Status:** READY
+- **Blocked by:** None for the Sleeper path. See the provider reality below — Yahoo and ESPN are *scoped out*, not blocking.
+- **Priority:** **P0 — beta blocker, and arguably ahead of M5 slices D–G.** As of M5 A–C the native apps correctly tell a user "Connect a league to see your matchup" and then offer **no way to do it**. There is no connect screen, no provider picker, and no call to `/api/platforms/sleeper/connect` on either platform; `OmenPlatformConnectionCard` exists as a design-system component used only in the gallery.
+- **Cost:** medium
+- **Authority:** `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §4 — approved, and it already specifies this as first-launch steps **3. Choose next step → 4. Choose provider → 5. Connect or recover → 6. First useful destination**. Steps 1 (Welcome) and 2 (Omen account) are already built. This item is not a design question; it is unbuilt spec.
+- **Provider reality — this is what makes the item shippable rather than blocked:**
+  - **Sleeper — the only native connect path for beta.** The contract names it "first native connection candidate": username → resolve → choose league → validate, against the shipped `POST /api/platforms/sleeper/resolve` and `/connect`.
+  - **Yahoo — scoped out.** Paused behind `YAHOO_ENABLED` pending a Fantasy API entitlement only Yahoo can grant (`P1-YahooReauth`). Show the honest "On hold" state; do not build the OAuth path against a provider that 403s every call.
+  - **ESPN — scoped out by the contract itself.** §5 is explicit: ESPN is research-gated on native and a store build must **not** ask for a password or raw cookie entry. §10: no "ESPN connected" UI starts until the ESPN mobile feasibility memo (deliverable 7) is resolved. **The honest native answer for ESPN is to point at the web flow plus the published browser extension** — `extension/README.md`, live on the Chrome Web Store and Edge Add-ons. Connections are stored server-side per user, so a league connected on web is connected in the app.
+- **Done when:** a signed-in native user with no connections can reach a provider picker, complete a Sleeper connection, and land on a Command Center that reflects it; Yahoo and ESPN render honest, non-dead-end states; leaving and returning mid-flow does not lose the safe stage; the acceptance cases in contract §9 that apply to Sleeper are exercised; iOS `xcodebuild test` and Android `:app:assembleDebug` + connected tests green.
+- **Do not touch:** ESPN cookie entry on native (contract §5 and facts-of-record #6 — cookie values are never shown, logged, or echoed). Do not re-enable Yahoo. Do not invent a status meaning outside F2.
+
+### M6-ContextualHelp — Teach the product in place, per destination
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — founder-raised 2026-08-15. The native app shows people states and numbers without ever explaining what they are, how to read a recommendation, or how to use a tool.
+- **Cost:** medium
+- **Authority — this is already specified, contrary to an earlier read in this session.** `Blueprints/specs/mobile/m4-help-support-v1.md` §1 defines **two** distinct things, and only the second was built:
+  1. **Contextual Help** — "explains the current Omen concept, state, or next step without taking the person away from their work," via a nearby `What is this?` / info affordance using the existing Tooltip/Help primitive. **This is the unbuilt half and the subject of this item.**
+  2. **Help + Support** — the calm Account-reached destination. Built under `M4-Help-Support-Implementation` (`OmenHelpSupportView` / `OmenHelpSupportScreen`).
+- **Content source:** the web `frontend/src/components/help/HelpButton.jsx` `PAGE_HELP` map — per-route `title` / `description` / `tips` — is the proven pattern and the founder's reference. **The spec is explicit that it is "content inventory only and is not a mobile layout source"** (§1): mine the copy, express it natively.
+- **Two content corrections required on port — do not copy verbatim:**
+  - `PAGE_HELP` still contains **Draft Assistant** entries. Draft Assistant is cut from 1.0 (`P1-DraftAssistantSideline`, facts-of-record #9). It must not appear in native help copy.
+  - The `/omen` entry says "Connect Sleeper or ESPN." On native, ESPN cannot be connected at all (see `M5-NativeConnect`). Native help copy must reflect native provider reality, not the web's.
+- **Boundaries from the spec:** Contextual Help "must never become an unsolicited modal, block a decision, or impersonate live provider support," and dismissing must return to the exact prior state. Account stays the durable home for Help Center, feedback, and reporting a problem.
+- **Done when:** each shipped native destination exposes a contextual help affordance whose content is accurate for native; no coach-mark or modal interrupts a first run; VoiceOver/TalkBack and Dynamic Type/font-scale verified; no Draft Assistant and no unavailable-provider copy; scanner/tests/assembly green per platform.
+- **Do not touch:** the Help + Support destination contract, new API endpoints, telemetry, or any claim that support is staffed/live.
 
 ### M3A-QA — Native auth interactive real-device QA
 

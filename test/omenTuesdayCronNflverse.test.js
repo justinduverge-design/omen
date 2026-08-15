@@ -9,9 +9,9 @@ const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseS
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
-    "player_name,season,week,fantasy_points,fantasy_points_ppr",
-    "Amon-Ra St. Brown,2025,7,14.5,19.5",
-    "Other Week,2025,8,20,25",
+    "player_name,season,week,season_type,fantasy_points,fantasy_points_ppr",
+    "Amon-Ra St. Brown,2025,7,REG,14.5,19.5",
+    "Other Week,2025,8,REG,20,25",
   ].join("\n"), { season: 2025, weekNum: 7 });
 
   assert.deepEqual(scores.amonra_st_brown, {
@@ -21,6 +21,30 @@ test("nflverseScoresFromCsv maps one stored season/week into all scoring formats
     rec_ppr: 19.5,
   });
   assert.equal(scores.other_week, undefined);
+});
+
+test("nflverseScoresFromCsv keeps regular-season rows apart from same-numbered preseason and postseason rows", () => {
+  const csv = [
+    "player_name,season,week,season_type,fantasy_points,fantasy_points_ppr",
+    "Collision Runner,2026,1,PRE,30,35",
+    "Collision Runner,2026,1,REG,10,12",
+  ].join("\n");
+
+  const regular = nflverseScoresFromCsv(csv, { season: 2026, weekNum: 1 });
+  assert.equal(regular.collision_runner.rec_ppr, 12, "week 1 must resolve to the REG row, not the PRE row");
+
+  const preseason = nflverseScoresFromCsv(csv, { season: 2026, weekNum: 1, seasonType: "PRE" });
+  assert.equal(preseason.collision_runner.rec_ppr, 35, "an explicit PRE request still resolves the PRE row");
+});
+
+test("nflverseScoresFromCsv fails closed when the upstream schema drops season_type", () => {
+  assert.throws(
+    () => nflverseScoresFromCsv([
+      "player_name,season,week,fantasy_points,fantasy_points_ppr",
+      "Unfilterable Runner,2025,7,14.5,19.5",
+    ].join("\n"), { season: 2025, weekNum: 7 }),
+    /missing required scoring columns/,
+  );
 });
 
 test("isDryRun is true only for the explicit no-write flag", () => {
@@ -57,15 +81,21 @@ test("fetchNFLScores reads the public nflverse season CSV without a provider key
     return {
       ok: true,
       text: async () => [
-        "player_name,season,week,fantasy_points,fantasy_points_ppr",
-        "Public Runner,2025,3,10,12",
+        "player_name,season,week,season_type,fantasy_points,fantasy_points_ppr",
+        "Public Runner,2025,3,REG,10,12",
       ].join("\n"),
     };
   };
 
   try {
     const scores = await fetchNFLScores({ season: 2025, weekNum: 3 });
-    assert.match(requestedUrl, /nflverse-data\/releases\/download\/player_stats\/player_stats_2025\.csv$/);
+    // Guards the 2026-08-15 repair: the retired `player_stats` tag 404s for every
+    // season from 2025 on, and a 404 is now silently deferred rather than raised.
+    assert.match(
+      requestedUrl,
+      /nflverse-data\/releases\/download\/stats_player\/stats_player_week_2025\.csv$/,
+    );
+    assert.doesNotMatch(requestedUrl, /\/player_stats\//);
     assert.equal(scores.public_runner.rec_ppr, 12);
   } finally {
     global.fetch = originalFetch;
@@ -152,7 +182,7 @@ test("fetchNFLScores defers on an unpublished season CSV without writing cache",
   try {
     const scores = await fetchNFLScores({ season: 2026, weekNum: 1, redis });
     assert.equal(isDeferredScores(scores), true);
-    assert.match(scores.reason, /player_stats_2026\.csv/);
+    assert.match(scores.reason, /stats_player_week_2026\.csv/);
     assert.equal(cacheWrites, 0);
   } finally {
     global.fetch = originalFetch;
