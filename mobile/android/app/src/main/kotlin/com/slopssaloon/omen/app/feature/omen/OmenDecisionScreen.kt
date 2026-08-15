@@ -1,7 +1,9 @@
 package com.slopssaloon.omen.app.feature.omen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,7 +11,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBrief
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefAlternative
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
@@ -32,12 +37,22 @@ fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modif
             .verticalScroll(rememberScrollState())
             .padding(OmenTheme.spacing.cardInterior),
     ) {
-        Text(
-            text = "Omen",
-            style = OmenTheme.typography.h1.toTextStyle(),
-            color = OmenTheme.color.textPrimary,
-            modifier = Modifier.padding(bottom = OmenTheme.spacing.step16),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = OmenTheme.spacing.step16),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Omen",
+                style = OmenTheme.typography.h1.toTextStyle(),
+                color = OmenTheme.color.textPrimary,
+            )
+            // M6-ContextualHelp: confidence, risk, and "why is this empty?" are the three
+            // things people ask here, so help sits with the title.
+            OmenHelpButton(OmenHelpDestination.Omen)
+        }
         OmenDecisionBrief(state = state, modifier = Modifier.fillMaxWidth())
     }
 }

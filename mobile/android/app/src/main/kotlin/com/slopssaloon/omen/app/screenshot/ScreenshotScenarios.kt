@@ -19,8 +19,11 @@ import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
+import com.slopssaloon.omen.core.designsystem.component.OmenContextualHelpSheet
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -82,10 +85,43 @@ object ScreenshotScenarios {
             label = "Help + Support — provider recovery",
             render = { HelpSupportInShell(OmenHelpSupportState.ProviderRecovery) },
         ),
+        // M6-ContextualHelp. The sheet body is rendered directly rather than through a tap:
+        // screenshot mode has no interaction, and the content is what needs proving.
+        "contextual-help.command-center" to ScreenshotScenario(
+            label = "Contextual help — Command Center",
+            render = { ContextualHelpBody(OmenHelpDestination.CommandCenter) },
+        ),
+        "contextual-help.omen" to ScreenshotScenario(
+            label = "Contextual help — Omen of the Week",
+            render = { ContextualHelpBody(OmenHelpDestination.Omen) },
+        ),
+        "contextual-help.connect" to ScreenshotScenario(
+            label = "Contextual help — Connect a league (native provider truth)",
+            render = { ContextualHelpBody(OmenHelpDestination.Connect) },
+        ),
+        "contextual-help.account" to ScreenshotScenario(
+            label = "Contextual help — Account",
+            render = { ContextualHelpBody(OmenHelpDestination.Account) },
+        ),
     )
 
     fun isKnown(key: String?): Boolean = key != null && entries.containsKey(key)
     fun get(key: String): ScreenshotScenario = entries.getValue(key)
+}
+
+/**
+ * The real [OmenContextualHelpSheet] held open, so the captured evidence is the shipped
+ * component rather than a screenshot-only restatement of its layout.
+ */
+@Composable
+private fun ContextualHelpBody(destination: OmenHelpDestination) {
+    Box(Modifier.fillMaxSize()) {
+        OmenContextualHelpSheet(
+            topic = ContextualHelpContent.topic(destination),
+            visible = true,
+            onDismissRequest = {},
+        )
+    }
 }
 
 @Composable

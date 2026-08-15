@@ -24,6 +24,8 @@ import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStrip
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
+import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
@@ -125,6 +127,9 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
                 color = OmenTheme.color.textPrimary,
             )
         }
+        // M6-ContextualHelp. Sits beside the profile control so help is reachable from the
+        // header without competing with it for the eye.
+        OmenHelpButton(OmenHelpDestination.CommandCenter)
         if (onOpenAccount != null) {
             OmenIconButton(
                 contentDescription = "Account and profile",

@@ -50,7 +50,32 @@ enum ScreenshotScenarios {
             label: "Help + Support — provider recovery",
             content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
         ),
+        // M6-ContextualHelp. The sheet body is captured directly rather than through a tap:
+        // screenshot mode has no interaction, and the content is what needs proving.
+        "contextual-help.command-center": ScreenshotScenario(
+            label: "Contextual help — Command Center",
+            content: { AnyView(contextualHelp(.commandCenter)) }
+        ),
+        "contextual-help.omen": ScreenshotScenario(
+            label: "Contextual help — Omen of the Week",
+            content: { AnyView(contextualHelp(.omen)) }
+        ),
+        "contextual-help.connect": ScreenshotScenario(
+            label: "Contextual help — Connect a league (native provider truth)",
+            content: { AnyView(contextualHelp(.connect)) }
+        ),
+        "contextual-help.account": ScreenshotScenario(
+            label: "Contextual help — Account",
+            content: { AnyView(contextualHelp(.account)) }
+        ),
     ]
+
+    private static func contextualHelp(_ destination: OmenHelpDestination) -> some View {
+        OmenContextualHelpSheet(
+            topic: OmenContextualHelpContent.topic(for: destination),
+            onDismiss: {}
+        )
+    }
 
     /// Read the launch-argument value that names the current scenario, if any.
     static func active(from environment: [String: String], arguments: [String]) -> String? {

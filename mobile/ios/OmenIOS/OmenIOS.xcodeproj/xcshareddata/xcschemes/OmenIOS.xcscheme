@@ -52,6 +52,16 @@
                ReferencedContainer = "container:OmenIOS.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E90000000000000000000030"
+               BuildableName = "OmenIOSUITests.xctest"
+               BlueprintName = "OmenIOSUITests"
+               ReferencedContainer = "container:OmenIOS.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
