@@ -27,6 +27,11 @@ struct OmenCommandCenterScreen: View {
     let onConnect: (() -> Void)?
     let onOpenLedger: ((OmenLedgerEntry) -> Void)?
     let onOpenLeague: (() -> Void)?
+    let onConnectPlatform: ((OmenPlatform) -> Void)?
+
+    /// Drives the tap-through detail sheet. The sheet carries the existing
+    /// `OmenPlatformConnectionCard` content — that content is moved off the main surface, not new.
+    @State private var detailRow: OmenPlatformRowState?
 
     init(
         state: OmenCommandCenterState,
@@ -36,8 +41,10 @@ struct OmenCommandCenterScreen: View {
         onConnect: (() -> Void)? = nil,
         onOpenOmen: (() -> Void)? = nil,
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
-        onOpenLeague: (() -> Void)? = nil
+        onOpenLeague: (() -> Void)? = nil,
+        onConnectPlatform: ((OmenPlatform) -> Void)? = nil
     ) {
+        self.onConnectPlatform = onConnectPlatform
         self.state = state
         self.onSwitchContext = onSwitchContext
         self.onOpenMatchup = onOpenMatchup
@@ -53,6 +60,7 @@ struct OmenCommandCenterScreen: View {
             VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
                 header
                 OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
+                platformsStrip
                 OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
                 if let onConnect, showsConnectCallToAction {
                     // Honest-state doctrine: the screen already tells a disconnected user to
@@ -70,6 +78,43 @@ struct OmenCommandCenterScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(OmenColor.bg.ignoresSafeArea())
+        .sheet(item: $detailRow) { row in
+            platformDetailSheet(row)
+        }
+    }
+
+    /// Native `.sheet` per Figma `73:2` ("iOS: tap presents the detail sheet as a native .sheet").
+    private func platformDetailSheet(_ row: OmenPlatformRowState) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            Text(row.platformName)
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            OmenPlatformConnectionCard(
+                platform: row.platform,
+                status: row.status,
+                description: row.resolvedLastSyncText.map { "Last sync \($0)" } ?? "No sync recorded.",
+                actionLabel: row.isConnected ? "Manage league" : "Connect",
+                onAction: { onConnectPlatform?(row.platform) }
+            )
+            Spacer(minLength: 0)
+        }
+        .padding(OmenSpacing.step16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(OmenColor.bg.ignoresSafeArea())
+        .presentationDetents([.medium])
+    }
+
+    /// Visual brief §1.1 position 3 (amended 2026-08-14) · Figma `73:2`. Capped at ~2 row-heights
+    /// so the Matchup Hero keeps the fold — that cap is the whole reason this strip is compact.
+    @ViewBuilder
+    private var platformsStrip: some View {
+        if !state.platforms.isEmpty {
+            OmenPlatformCompactStrip(
+                rows: state.platforms,
+                onOpenDetail: { detailRow = $0 },
+                onConnect: onConnectPlatform.map { handler in { handler($0.platform) } }
+            )
+        }
     }
 
     private var header: some View {
@@ -295,6 +340,8 @@ extension OmenCommandCenterScreen {
 struct OmenCommandCenterState {
     let greeting: String
     let context: OmenContextStripState
+    /// Fixed provider order (Sleeper, Yahoo, ESPN) — never connection-sorted. Empty hides the strip.
+    let platforms: [OmenPlatformRowState]
     let matchup: OmenMatchupHeroState
     let waiverWatch: OmenWaiverWatchState
     let ledger: OmenLedgerPreviewState
@@ -303,6 +350,7 @@ struct OmenCommandCenterState {
     init(
         greeting: String,
         context: OmenContextStripState,
+        platforms: [OmenPlatformRowState] = [],
         matchup: OmenMatchupHeroState,
         waiverWatch: OmenWaiverWatchState = .notConnected,
         ledger: OmenLedgerPreviewState = .notConnected,
@@ -310,6 +358,7 @@ struct OmenCommandCenterState {
     ) {
         self.greeting = greeting
         self.context = context
+        self.platforms = platforms
         self.matchup = matchup
         self.waiverWatch = waiverWatch
         self.ledger = ledger
@@ -376,6 +425,11 @@ enum OmenCommandCenterFixtures {
     static let demoConnected = OmenCommandCenterState(
         greeting: "Demo · this week's move is ready.",
         context: .selected(platform: .sleeper, leagueName: "Demo Slate (mock league)", teamName: "Demo Titans"),
+        platforms: [
+            OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago"),
+            OmenPlatformRowState(platform: .yahoo, status: .disconnected),
+            OmenPlatformRowState(platform: .espn, status: .disconnected)
+        ],
         matchup: .live(
             selectedTeam: OmenMatchupTeam(name: "Demo Titans", record: "6–1", scoreText: "64.8"),
             opponent: OmenMatchupTeam(name: "Demo Rivals", record: "5–2", scoreText: "58.1"),
@@ -416,6 +470,15 @@ enum OmenCommandCenterFixtures {
     static let realDisconnected = OmenCommandCenterState(
         greeting: "Connect a league to see your matchup.",
         context: .empty,
+        platforms: [
+            OmenPlatformRowState(platform: .sleeper, status: .disconnected),
+            OmenPlatformRowState(platform: .yahoo, status: .disconnected),
+            OmenPlatformRowState(platform: .espn, status: .disconnected)
+        ],
+        // Conflict resolution (M6 merge): this branch's row list is kept, but its matchup
+        // copy — "connect Sleeper, Yahoo, or ESPN" — is not. Yahoo is `.onHold`: it cannot be
+        // connected anywhere right now, so naming it here would send someone to a dead end.
+        // Sleeper connects in the app and ESPN connects on the Omen website, so both belong.
         matchup: .noMatchup(reason: "No matchup yet — connect Sleeper or ESPN to see your team's week.")
     )
 

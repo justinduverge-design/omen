@@ -154,3 +154,53 @@ final class OmenCommandCenterScreenTests: XCTestCase {
         XCTAssertNil(ScreenshotScenarios.active(from: [:], arguments: []))
     }
 }
+
+/// Platforms compact strip — visual brief §1.1 position 3 (amended 2026-08-14), Figma `73:2`,
+/// state contract in `omen-native-backend-state-contract-v1.md`.
+/// Mirrors Android `OmenPlatformCompactRowTest.kt`.
+final class OmenPlatformCompactStripTests: XCTestCase {
+
+    func testLastSyncRendersOnlyWhenConnected() {
+        let connected = OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago")
+        XCTAssertEqual(connected.resolvedLastSyncText, "4m ago")
+
+        // A last-sync time beside a non-connected status reads as "working, recently".
+        for status in [OmenConnectionStatus.disconnected, .needsReauth, .error, .pending, .recovering] {
+            let row = OmenPlatformRowState(platform: .yahoo, status: status, lastSyncText: "4m ago")
+            XCTAssertNil(row.resolvedLastSyncText, "\(status) must suppress last sync")
+        }
+    }
+
+    func testAccessibilityLabelCombinesPlatformStatusAndSyncIntoOneElement() {
+        let row = OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago")
+        XCTAssertEqual(row.accessibilityLabel, "Sleeper, Connected, last sync 4m ago")
+
+        let reauth = OmenPlatformRowState(platform: .yahoo, status: .needsReauth, lastSyncText: "2h ago")
+        XCTAssertEqual(reauth.accessibilityLabel, "Yahoo, Reauth needed")
+    }
+
+    func testStatusTextComesFromTheSharedEnumNotASecondVocabulary() {
+        // The strip must not invent status words; it reads the shared badge label source.
+        XCTAssertEqual(omenConnectionStatusLabel(.needsReauth), "Reauth needed")
+        XCTAssertEqual(omenConnectionStatusLabel(.connected), "Connected")
+    }
+
+    func testRealDisconnectedFixtureNeverMintsAConnectedRow() {
+        let rows = OmenCommandCenterFixtures.realDisconnected.platforms
+        XCTAssertEqual(rows.count, 3)
+        XCTAssertTrue(rows.allSatisfy { $0.status == .disconnected })
+        XCTAssertTrue(rows.allSatisfy { $0.resolvedLastSyncText == nil })
+    }
+
+    func testProviderOrderIsFixedAndNotConnectionSorted() {
+        // Sleeper is the only connected provider in the demo fixture; it must not float to the top
+        // by virtue of being connected — order is Sleeper, Yahoo, ESPN in every state.
+        for state in [OmenCommandCenterFixtures.demoConnected, OmenCommandCenterFixtures.realDisconnected] {
+            XCTAssertEqual(state.platforms.map(\.platform), [.sleeper, .yahoo, .espn])
+        }
+    }
+
+    func testStripIsHiddenWhenNoRowsAreSupplied() {
+        XCTAssertTrue(OmenCommandCenterFixtures.realLoading.platforms.isEmpty)
+    }
+}
