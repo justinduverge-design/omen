@@ -119,6 +119,17 @@ struct CommandCenterView: View {
                 )
                 .navigationTitle("Connect")
                 .navigationBarTitleDisplayMode(.inline)
+                // M6-ContextualHelp on the toolbar rather than inside `providerPicker`, so it
+                // is still reachable from the error, on-hold, and ESPN-unsupported states —
+                // which is exactly where "why can't I connect this?" gets asked.
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        OmenContextualHelpButton(
+                            topic: OmenContextualHelpContent.topic(for: .connect),
+                            size: .sm
+                        )
+                    }
+                }
             }
         }
         .sheet(isPresented: $showAccountSheet) {
@@ -127,6 +138,12 @@ struct CommandCenterView: View {
                     .navigationTitle("Account")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            OmenContextualHelpButton(
+                                topic: OmenContextualHelpContent.topic(for: .account),
+                                size: .sm
+                            )
+                        }
                         ToolbarItem(placement: .topBarTrailing) {
                             OmenButton(title: "Done", action: { showAccountSheet = false }, variant: .link, size: .sm)
                         }
@@ -161,7 +178,13 @@ struct OmenDecisionScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                Text("Omen").omenTextStyle(OmenTypography.h1).foregroundStyle(OmenColor.textPrimary)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Omen").omenTextStyle(OmenTypography.h1).foregroundStyle(OmenColor.textPrimary)
+                    Spacer(minLength: OmenSpacing.step8)
+                    // M6-ContextualHelp: confidence, risk, and "why is this empty?" are the
+                    // three things people ask here, so help sits with the title.
+                    OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .omen))
+                }
                 OmenDecisionBrief(state: state)
             }
             .padding(OmenSpacing.step24)

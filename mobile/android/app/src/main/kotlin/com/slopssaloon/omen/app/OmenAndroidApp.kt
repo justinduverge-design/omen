@@ -3,7 +3,9 @@ package com.slopssaloon.omen.app
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -59,6 +61,9 @@ import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
+import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
+import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonSize
 import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
@@ -368,6 +373,10 @@ fun OmenAndroidApp() {
                         onDismissRequest = { showConnectSheet = false },
                         title = "Connect",
                     ) {
+                        // M6-ContextualHelp above the flow rather than inside a single step,
+                        // so it is still reachable from the error, on-hold, and
+                        // ESPN-unsupported states — where "why can't I connect this?" is asked.
+                        ContextualHelpRow(OmenHelpDestination.Connect)
                         ConnectScreen(
                             viewModel = connectViewModel,
                             onConnected = {
@@ -384,6 +393,7 @@ fun OmenAndroidApp() {
                         onDismissRequest = { showAccountSheet = false },
                         title = "Account",
                     ) {
+                        ContextualHelpRow(OmenHelpDestination.Account)
                         AccountSheetBody(
                             userId = s.userId,
                             onOpenHelpSupport = { showHelpSupportSheet = true },
@@ -543,6 +553,20 @@ private fun SignedInDestination(
             message = "League roster/matchup/standings, plus seasonal Draft entry, arrive in the M4-League-Screen slice.",
             modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
         )
+    }
+}
+
+/**
+ * M6-ContextualHelp affordance for a sheet whose title is owned by [OmenModalSheet].
+ * Right-aligned on its own row so it never displaces the sheet's own content or actions.
+ */
+@Composable
+private fun ContextualHelpRow(destination: OmenHelpDestination) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        OmenHelpButton(destination, size = OmenIconButtonSize.Sm)
     }
 }
 

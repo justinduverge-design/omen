@@ -83,6 +83,9 @@ struct OmenCommandCenterScreen: View {
                     .foregroundStyle(OmenColor.textPrimary)
             }
             Spacer(minLength: OmenSpacing.step8)
+            // M6-ContextualHelp. Sits beside the profile control so help is reachable from the
+            // header without competing with it for the eye.
+            OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .commandCenter))
             if let onOpenAccount {
                 OmenIconButton(
                     contentDescription: "Account and profile",

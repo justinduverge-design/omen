@@ -1,12 +1,48 @@
 # Omen Known Issues
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## Current Context Risks
 
 - Some historical docs may still reference retired pre-DBS paths.
 - Some archive/checkpoint files describe older launch states and should not be treated as current truth.
 - Justin may still rewrite `AGENT.md` and `CLAUDE.md`; until then, follow `AGENTS.md`, `AGENT.md`, `Direction/`, and `Blueprints/handoffs/`.
+
+## Native Accessibility Risks — found 2026-08-15 during M6-ContextualHelp
+
+These surfaced when the first `XCUIApplication.performAccessibilityAudit()` run in this repo was
+added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a regression from it.
+
+- **`text-secondary` on `surface-2` is 4.43:1 in light mode — under AA (4.5:1).** Caught by the audit
+  as "Contrast nearly passed" on the new contextual-help surface, and fixed *there* by following the
+  registry §3.1 Tooltip/Help row, which specifies `surface-2` + **`text-primary`**. **The token pair
+  itself is still available to every other component**, and any existing screen that puts secondary
+  text on a surface-2 background has the same defect. Worth a design-system sweep and possibly a
+  darker `text-secondary` in light mode.
+- **The Command Center screen fails the audit's `contrast` check outright** — a stronger verdict than
+  the "nearly passed" above, so it is a separate, larger gap. `ContextualHelpAccessibilityUITests.testCommandCenterScreenAuditRecordsTwoPreExistingFailures`
+  pins it under `XCTExpectFailure`, so the day it is fixed that test fails loudly and can be retired.
+- **`OmenTypography` is invisible to the audit's Dynamic Type check, app-wide.** Every role is built
+  as `Font(UIFontMetrics.scaledFont(for:))`, which resolves a point size at construction rather than
+  vending a text-style-relative font, so the audit reports "Dynamic Type font sizes are unsupported"
+  on every screen. **This is a mechanism finding, not a functional one:** the same surface was
+  rendered at `UICTContentSizeCategoryM` and `UICTContentSizeCategoryAccessibilityXXXL` and the text
+  scales and reflows correctly, because SwiftUI recomputes the metric-scaled font when the category
+  changes. The `.dynamicType` category is therefore excluded from the M6 audit with that reasoning
+  recorded at the exclusion site. Revisit if the locked font families ever land.
+
+## Native Copy Risks
+
+- **[CORRECTED 2026-08-15 — this is not a defect.]** During M6 verification the Command Center
+  matchup hero was read off the live TalkBack tree as `"No matchup yet — connect Sleeper or ESPN to
+  see your team's week."` and was **wrongly** filed here as a false capability claim. **ESPN is
+  connectable and we want people to connect it** — the connection is made once on the Omen website
+  and then shows up in the app. What native lacks is only the in-app credential handoff, and the
+  in-app path already handles that honestly: choosing ESPN in Connect reaches
+  `ConnectProvider.espn` → `.useWeb`, which routes the person to the website rather than dead-ending.
+  So the hero's advice is actionable as written. The only available improvement is naming *where*
+  ESPN connects, which is a copy nicety, not a correctness bug — **do not "fix" this by removing
+  ESPN from the copy.**
 
 ## Product Risks
 
