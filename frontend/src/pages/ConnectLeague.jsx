@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { apiFetch } from '../lib/api.js';
+import EspnBrowserSupport from '../components/espn/EspnBrowserSupport.jsx';
 import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
 import { supabase } from '../lib/supabase.js';
 import {
@@ -447,15 +448,16 @@ function MobileEspnCard() {
       platform="espn"
       status="disconnected"
       title="ESPN"
-      description="Finish this connection from a desktop browser. Omen's ESPN helper fills the existing form there; it never submits on your behalf."
-      stepGuide={<div className="flex flex-col gap-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-        <p>On a computer, load the Omen ESPN Connect extension, sign in to ESPN Fantasy, then choose “Fill into Omen.” Review the filled form and select Connect ESPN yourself.</p>
+      description="ESPN needs one step on a computer. Phone browsers can't reach the values ESPN requires — this is the only part of Omen that works that way."
+      stepGuide={<div className="flex flex-col gap-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+        <EspnBrowserSupport />
+        <p>On a computer: sign in to ESPN Fantasy, then either use the Omen helper in Chrome or Edge, or copy the two values yourself in any desktop browser. Either way you review the filled form and press Connect ESPN — Omen never submits it for you.</p>
         <Button asChild size="lg">
           <a href={ESPN_EXTENSION_GUIDE_URL} target="_blank" rel="noreferrer">
             Open ESPN setup guide
           </a>
         </Button>
-        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>The extension is local-only and passes your ESPN session values only into the Omen form you open.</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Sleeper connects right here on your phone if you'd rather start there.</p>
       </div>}
     />
   );

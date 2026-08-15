@@ -17,7 +17,7 @@ export const YAHOO_CONNECTIONS_ENABLED = false;
 
 /** Short, user-facing reason. Keep it factual — no date we cannot hold. */
 export const YAHOO_UNAVAILABLE_MESSAGE =
-  'Yahoo is on hold while Yahoo reviews our Fantasy API access. Sleeper and ESPN work today.';
+  'Yahoo is on hold while Yahoo reviews our Fantasy API access. Sleeper connects in a minute; ESPN needs one step on a computer.';
 
 export class YahooUnavailableError extends Error {
   constructor() {
