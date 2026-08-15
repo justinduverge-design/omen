@@ -20,10 +20,26 @@ First-screen order:
 
 1. Page title and contextual profile/avatar control.
 2. Persistent selected team/league context strip.
-3. Matchup Hero.
-4. Waiver Watch.
-5. Ledger preview.
-6. League Pulse.
+3. **Platforms compact strip.**
+4. Matchup Hero.
+5. Waiver Watch.
+6. Ledger preview.
+7. League Pulse.
+
+> **Amendment — 2026-08-14 (founder-approved).** This order previously had **six** entries and no
+> platforms surface; the compact strip is new at position 3. The conflict this resolves: Figma node
+> [`73:2`](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3?node-id=73-2) — "Platforms Compact
+> Row", stamped `APPROVED COMPOSITION — Justin, 2026-08-01` — specifies "compact rows in a simple
+> VStack above Command Center's Omen hero", which this section did not admit. Verified against
+> `main` on 2026-08-14: commit `9a4f401` (2026-07-22) rebuilt Command Center to this section's
+> six-item order and removed the platform cards entirely, one day before the founder feedback
+> (2026-07-23) that motivated the compact proposal. So `M4-CC-PlatformsCompact`'s framing — "shrink
+> the existing cards" — was wrong on its face: **there was nothing left to shrink.** The founder
+> resolved the conflict on 2026-08-14 in favor of the newer Figma approval, and this section is
+> amended to match rather than left to contradict it.
+>
+> **The strip must not cost the hero its fold.** The whole point is that Omen stays dominant, so the
+> strip is hard-capped at ~2 row-heights. If it ever exceeds that, the strip is wrong — not the cap.
 
 The surface uses Raven black/deep-charcoal layers, bone-white type, selective aged-brass structure, verdigris for verified favorable/available states, and sparing crimson for material risk. It must not repaint itself in NFL/team colors, use bird/raven imagery, crescents, NFL-shield styling, flashing, or decorative “AI” motion.
 
