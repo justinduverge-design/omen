@@ -6,6 +6,40 @@
 
 ---
 
+## ⛔ SUPERSEDED — the iOS recommendation in this memo is WRONG. Read this first.
+
+**Corrected 2026-08-15, same day, on real-device evidence.**
+
+**Safari Web Extensions cannot read HttpOnly cookies.** Apple states this is not supported, on iOS and macOS alike. `espn_s2` is HttpOnly — which is the entire reason this has to be an extension rather than a web page. **So the iOS Safari path cannot work, and §7.1 of this memo should not be acted on.**
+
+### The evidence
+
+On a real iPhone, with the extension installed and enabled, `espn.com` permission set to **Allow**, and the user signed in and viewing their own team page, the popup's own diagnostic reported:
+
+```
+espn_s2 → www.espn.com=empty(promise), fantasy.espn.com=empty(promise), espn.com=empty(promise)
+SWID    → www.espn.com=empty(promise), fantasy.espn.com=empty(promise), espn.com=empty(promise)
+cookies API: present
+```
+
+The API exists, the promise form resolves, permission is granted — and every read is empty. That is the documented HttpOnly limitation, not a bug in our code.
+
+### How this memo got it wrong
+
+§3 verified that the `cookies` **API is present** on Safari iOS 15+ using MDN browser-compat-data, and §4 verified the extension **converts and builds**. Both are true. Neither establishes that the API can read the *specific kind of cookie this product depends on*. **API presence was mistaken for capability**, and the one check that would have caught it — does Safari return HttpOnly cookies — was never run.
+
+The build succeeding made it look verified. It wasn't; it was only compiled.
+
+### What this changes
+
+- **iOS ESPN via Safari extension: dead.** Not a bug to fix.
+- **`M7-EspnSafariExtension`** must not be described as feasible. The target itself is sound engineering and stays in the tree, but it cannot deliver ESPN on iOS.
+- **Android may now be the *only* mobile path.** Firefox's cookies API does return HttpOnly cookies, which inverts this memo's §3 conclusion a second time: Firefox needs a `setAccessLevel` port, but it can actually read what we need. **Verify that before building anything.**
+- **iPhone users connect ESPN on desktop** for the foreseeable future. Sleeper remains the in-app path (`M5-NativeConnect`).
+- One unexplored avenue from Apple's forums: a `storeId` parameter on the cookies call. Treat as unverified folklore, not a plan.
+
+---
+
 ## 0. Summary
 
 ESPN on mobile is **feasible on iOS today**, via a Safari Web Extension shipped inside the Omen iOS app. This was verified by conversion and build, not reasoned about.

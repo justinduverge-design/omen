@@ -368,7 +368,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M7-EspnSafariExtension — Bundle the ESPN connect helper into the Omen iOS app
 
-- **Status:** **IN_PROGRESS — target built and embedding; on-device Safari proof outstanding.**
+- **Status:** **BLOCKED — the approach cannot work. Do not continue without a founder decision.**
+- **Killed by real-device evidence 2026-08-15:** **Safari Web Extensions cannot read HttpOnly cookies** (Apple: unsupported, iOS and macOS). `espn_s2` is HttpOnly, which is precisely why this must be an extension. On a real iPhone — extension enabled, `espn.com` set to Allow, user signed in on their team page — all six cookie reads returned empty with the API present and the promise resolving. The target builds and embeds correctly; it simply cannot obtain the credential.
+- **Root cause of the wrong call:** the feasibility memo verified the cookies API was *present* on Safari iOS and that the extension *built*. Neither proves it can read the kind of cookie this depends on. A green build was mistaken for a working feature.
 - **Claim:** Claude, 2026-08-15
 - **Founder gates cleared 2026-08-15:** the App ID `com.slopssaloon.omen.espnconnect` was registered under team `6RWR5G9894`, and the founder approved the added store-review surface.
 - **Evidence:** `OmenEspnConnectExtension` target added to `OmenIOS.xcodeproj`; app builds for the simulator with `PlugIns/OmenEspnConnectExtension.appex` embedded, `CFBundleIdentifier = com.slopssaloon.omen.espnconnect`, `NSExtensionPointIdentifier = com.apple.Safari.web-extension`, and all five web-extension resources present. iOS suite **158/0** on this branch — no regression. The bundled `manifest.json` is byte-identical to `extension/manifest.json`.
