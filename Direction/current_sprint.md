@@ -320,7 +320,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M5-Native-API-Client — Wire native screens to the existing Omen API
 
-- **Status:** READY
+- **Status:** **IN_PROGRESS — slices A + B complete and verified on iOS 2026-08-15; Android parity for the same two slices is the open half.**
+- **Claim:** Claude, 2026-08-15 — slices A + B
+- **Evidence (iOS A + B):** Xcode 26.6 (`17F113`) `xcodebuild test`, iPhone 17 Pro simulator — **145 tests / 0 failures**, up from a 123/0 baseline measured on the same machine by stashing the branch. Includes the primitive-enforcement scanner. Files: `App/Api/OmenApiClient.swift`, `App/Api/DashboardSummary.swift`, `App/Api/DashboardRepository.swift`, `App/Api/CommandCenterViewModel.swift`, wired through `AppShellView` → `CommandCenterView`. Handoff: `Blueprints/handoffs/2026-08-15-native-api-scope-and-scoring-source.md`.
+- **Open:** **Android A + B parity** — `OkHttpOmenApiClient`, the same `dashboard-summary.v1` decode and honest-state mapping, view model, and `:app:assembleDebug` + connected-test evidence. Slices C–G unchanged and unstarted. Do not mark this item VERIFIED on the iOS half alone.
+- **Modeling note found in build (worth keeping):** `buildWaiverTool()` in `src/routes/dashboard.js` returns only `ready` or `needs_platform` — it has **no** off-season branch, because the season gate lives on `omen_of_the_week` via `isOffSeason()`. Waiver UI state must therefore take the season from the Omen status, or a connected user is told to watch waivers in August. A test caught this; the Android mapping must reproduce it.
 - **Blocked by:** None. The backend routes, their contracts, and the native state mapping are all approved and live; no new backend, design, or founder gate is involved.
 - **Priority:** **P0 — beta blocker.** Every approved Command Center and Omen composition renders hardcoded fixtures on a real signed-in device. `M4-CC-LedgerPreview`, `M4-CC-LeaguePulse`, `M4-CC-WaiverWatch`, and `M4-Omen-Screen` are all VERIFIED as *compositions* and all still show invented state to a real user. This item is what makes them true.
 - **Cost:** medium

@@ -88,3 +88,36 @@ No backend contract changed. No provider account, credential, or cookie accessed
 `slops-quality-baseline` (suite + evidence discipline) used. `pre-build-research` substituted with direct live endpoint probing — for a source-availability question, probing the actual endpoints is stronger evidence than a literature pass, and the memo records raw results rather than summaries. `slops-git-flow` / `slops-ship` N/A — nothing pushed. `slops-data-ingest-plan` partially applied: the memo covers source evaluation but stops short of a pipeline design, which waits on the founder's pick.
 
 **Skill improvement:** the recurring failure in this repo is queue items whose *premise* silently expires — A5 was written against a file that never existed under that name, and three inbox items described merged work as pullable. A research skill should verify the premise of an item before researching its question. That check cost one HTTP call and changed the entire shape of the answer.
+
+---
+
+# Addendum — M5-Native-API-Client slices A + B, iOS (same day)
+
+**Branch:** `fix/a5-nflverse-path-and-native-api-scope`. Backend PR [#309](https://github.com/justinduverge-design/omen/pull/309) carries the scoring/doc half.
+
+## Result
+
+**Xcode 26.6 (`17F113`), iPhone 17 Pro simulator: 145 tests / 0 failures.** Baseline on the same machine, measured by stashing this branch, was **123 / 0** — so +22 tests, no regressions. The primitive-enforcement scanner is inside that count.
+
+## What shipped
+
+- **Slice A — transport.** `App/Api/OmenApiClient.swift`: base URL from `AppEnvironment`, bearer injection, typed `OmenApiError` (`network` / `unauthorized` / `server(status:)` / `decode`), `OmenHTTPFetching` seam so tests need no `URLProtocol` stub. `Result`-returning rather than throwing, because every call site must render an honest failure surface.
+- **Slice B — shell truth.** `DashboardSummary.swift` decodes `dashboard-summary.v1`; `DashboardRepository.swift` is the repository seam plus a stub; `CommandCenterViewModel.swift` owns loading/loaded/failed/demo. `AppShellView` constructs the repository; `CommandCenterView` renders it.
+
+## Design decisions worth carrying to Android
+
+1. **The contract carries no league name, team name, or matchup.** The mapping renders honest absence — context strip stays `.empty` — rather than inventing a label. The missing display-name fields are a backend ask, not something to paper over in the client. A test asserts this so a later "helpful" change can't quietly fabricate a league name.
+2. **A ready waiver tool does not mean an empty opportunity list.** `.calm([])` would read as "Omen looked and found nothing." The mapping uses `.availabilityUnknown`, which is what is actually true from this contract.
+3. **A failed read never falls back to the disconnected fixture.** It renders an explicit error surface with a retry. Falling back would state as fact that the user has no leagues — the exact mock/live confusion facts-of-record #7 forbids.
+4. **Unknown tool statuses degrade to `.unknown`, not a decode failure.** This contract has grown before and will again; an unrecognized status must not black out a Command Center.
+5. **Demo never touches the network** and is asserted by a test with a repository that fails if called.
+6. **Season comes from the Omen status, not the waiver status.** `buildWaiverTool()` has no off-season branch — the gate lives on `omen_of_the_week` via `isOffSeason()`. Without the override a connected user is told to watch waivers in August. A test caught this during the build; the mapping was fixed rather than the test.
+
+## Two build-mechanics notes for the next session
+
+- The Xcode target's module name is **`Omen`**, not `OmenIOS` — `@testable import Omen`. The directory, project, and scheme are all `OmenIOS`, so this is easy to get wrong and produces a confusing "unable to resolve module dependency" that names only the new files.
+- `project.pbxproj` has no file-system-synchronized groups, so new files need manual `PBXBuildFile` / `PBXFileReference` / group / Sources-phase registration. Two traps hit here: nested groups use **relative** `path` (`Api`, not `App/Api`), and the hand-assigned ID space already uses the `E1` prefix for `Assets.xcassets` / `Omen.icon` — collisions silently reroute a file to the wrong path. Check a prefix is free before using it.
+
+## Not done
+
+**Android slices A + B.** Same two slices, `OkHttp`-based, with `:app:assembleDebug`, connected tests, and the primitive scanner as evidence. `M5-Native-API-Client` stays `IN_PROGRESS`; it must not be recorded VERIFIED on the iOS half. Slices C–G are untouched.

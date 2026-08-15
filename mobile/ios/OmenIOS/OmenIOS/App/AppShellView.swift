@@ -41,7 +41,17 @@ struct AppShellView: View {
                 )
 
             case .signedIn(let userID):
-                CommandCenterView(userID: userID, sessionManager: sessionManager, authViewModel: authViewModel)
+                // M5 slice B: the dashboard repository is constructed here from the same
+                // public `apiBaseURL` the account repository already uses. No secret is
+                // involved — `AppEnvironment` holds public config only.
+                CommandCenterView(
+                    userID: userID,
+                    sessionManager: sessionManager,
+                    authViewModel: authViewModel,
+                    dashboardRepository: ApiDashboardRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    )
+                )
             }
         }
         .task { sessionManager.restore() }
