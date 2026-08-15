@@ -126,6 +126,34 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Founder steer (2026-08-11):** prefer another **free** source in the nflverse class. Building a Slops-owned scraper is an accepted fallback but is the last option, not the opener — it converts a data problem into a maintenance obligation that runs every Tuesday during the season. Evaluate free sources first and say plainly whether any clears licence and latency.
 - **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; the build-our-own option is costed against them including in-season maintenance; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
 - **Do not touch:** paid commitments, new dependencies, or provider contracts without explicit approval.
+- **Memo delivered 2026-08-15:** `Direction/reviews/2026-08-15-a5-scoring-source-options.md`. Two free in-class sources evaluated (Sleeper, ESPN), the fork costed against them, recommendation and trigger date recorded. **Awaiting the founder pick — the agent half of this item is discharged; the decision is not.**
+- **Founder steer amended 2026-08-15 — vendor-agnostic.** The requirement is that scoring survive any one source dying, for Sleeper, ESPN, and Yahoo users alike. The memo's key finding is that this is *source*-agnosticism, not provider-agnosticism: weekly fantasy points are a league-independent NFL fact, and the pipeline already keys on normalized player name, emits all three scoring formats, and dependency-injects `fetchNFLScores`. The seam exists; the memo proposes formalizing it as a `ScoreSource` interface with ordered fallback.
+- **Premise corrected 2026-08-15.** This item was written as "if nflverse never publishes `player_stats_2026.csv`." That file was never going to exist under that name for any season — see `A5-NflversePath` below. The real question is fallback resilience, not one missing file.
+
+### A5-NflversePath — Correct the retired nflverse release path
+
+- **Status:** **VERIFIED 2026-08-15.** Full backend suite **537/537** (was 535; +2 new tests). The corrected URL is proven against the live release index — `stats_player_week_2025.csv` downloads (8.6 MB, required columns present); the old path 404s for every season from 2025 on.
+- **Blocked by:** None
+- **Priority:** P0 — silent-failure class
+- **Cost:** small
+- **Source:** 2026-08-15 live probe of the nflverse release index during A5 research.
+- **What was wrong:** `src/omen_tuesday_cron.js` fetched `.../releases/download/player_stats/player_stats_<season>.csv`. nflverse reorganized its releases; the `player_stats` tag stopped receiving new seasons after **2024**, and weekly stats now ship under the `stats_player` tag as `stats_player_week_<season>.csv`. The old path 404s for 2025 *and* 2026.
+- **Why it was urgent rather than cosmetic:** PR #302 (correctly) made a 404 a silent deferral instead of a failure. Combined with a permanently-404ing URL, Tuesday scoring would have deferred every move forever and reported healthy — `failed=0`, no error, no alert. The fix that made pre-season safe is what made this stale path invisible.
+- **Also fixed:** `season_type` is now a required column and rows are filtered to `REG` by default. nflverse ships `REG` (weeks 1–18) and `POST` (19–22) in one file and never ships `PRE`; any source that *does* carry preseason (Sleeper does) would otherwise collide preseason week N with regular week N. Requiring the column fails closed on further upstream schema drift rather than silently scoring an unfiltered file.
+- **Evidence:** `Blueprints/handoffs/2026-08-15-native-api-scope-and-scoring-source.md`; `test/omenTuesdayCronNflverse.test.js` — URL-shape assertion including a negative `player_stats` guard, a PRE/REG collision test, and a schema-drift fail-closed test.
+- **Do not touch:** the `OMEN_CRON_SCORING_ENABLED` flag, which stays false; A4's production enablement is unchanged by this repair.
+
+### A6-MovesScoringFormat — Persist league scoring format on recommendations
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — adds a column to the deployed `moves` schema; per facts-of-record #8 an agent authors the SQL as review-only source and never applies it
+- **Priority:** P1 — correctness defect in the grading loop
+- **Cost:** small
+- **Source:** 2026-08-15 A5 research.
+- **What is wrong:** `fetchPendingMoves` selects without `scoring`, carrying the in-source note "`scoring` is not present in the deployed moves schema. scoreMove already defaults an absent format to PPR." So **every** move is graded as PPR. A standard or half-PPR league's recommendation is graded against points its league does not award. `nflverseScoresFromCsv` already computes `rec_std`, `rec_half`, and `rec_ppr` — all three are produced and two are discarded.
+- **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
+- **Done when:** the league's scoring format is captured at recommendation time and persisted on the move; `scoreMove` reads it rather than defaulting; the PPR default remains only for historical rows that predate the column; review-only SQL authored in `sql/`, not applied.
+- **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production.
 
 ## R. Store and release — critical path, founder-executed
 
@@ -289,6 +317,32 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
+
+### M5-Native-API-Client — Wire native screens to the existing Omen API
+
+- **Status:** READY
+- **Blocked by:** None. The backend routes, their contracts, and the native state mapping are all approved and live; no new backend, design, or founder gate is involved.
+- **Priority:** **P0 — beta blocker.** Every approved Command Center and Omen composition renders hardcoded fixtures on a real signed-in device. `M4-CC-LedgerPreview`, `M4-CC-LeaguePulse`, `M4-CC-WaiverWatch`, and `M4-Omen-Screen` are all VERIFIED as *compositions* and all still show invented state to a real user. This item is what makes them true.
+- **Cost:** medium
+- **Agent-buildable:** yes, in full
+- **Source:** 2026-08-15 native/backend reconciliation. A grep for `URLSession` / `dashboard/summary` across `mobile/ios` returns only auth and account files. The native app has no product API layer at all; both platforms say so in-source — `CommandCenterView.swift:23` selects `OmenCommandCenterFixtures.realDisconnected`, and `OmenCommandCenterScreen.kt:426` reads "context sees `realDisconnected` until live wiring exists."
+- **Precedent:** `URLSessionAccountRepository.swift` / `OkHttpAccountRepository.kt` are a working repository pair against `DELETE /api/user/delete`. Every slice below repeats that pattern — base URL from `AppEnvironment`, bearer from `SessionManager`, typed outcome mapping.
+
+**Slices, in dependency order. Each is independently shippable.**
+
+| Slice | Route → contract | Replaces |
+| --- | --- | --- |
+| A. Transport | — | Shared client: base URL, bearer injection, timeout, typed error enum (`network` / `unauthorized` / `server` / `decode`). No screen changes. |
+| B. Shell truth | `GET /api/dashboard/summary` → `dashboard-summary.v1` | `OmenCommandCenterFixtures.realDisconnected` |
+| C. Provider strip | `GET /api/platforms/state` → `platform-provider-state.v1` | Hardcoded connection cards. Pairs with `M4-CC-PlatformsCompact`. |
+| D. Omen destination | `POST /api/omen/mvp-move` → `2026-05-18.omen-live.v1` | `OmenDecisionFixtures` |
+| E. Ledger | `GET /api/moves` → `moves-history.v1` | Ledger preview fixture (node `72:2` composition unchanged) |
+| F. League page | `GET /api/league/standings` → `league-standings.v1` | "League is landing next" placeholder |
+| G. Trade page | `POST /api/trade/compare` | "Trade is landing next" placeholder |
+
+- **Beta-minimum is A + B + C + D.** That is a real signed-in user seeing their real connections and their real Omen. E is cheap once D lands. **F and G are not pure wiring** — they are new screens whose Figma slices do not exist yet (`M1` screen-contract items 4 and 5); do not pull them as part of this item, and keep the honest placeholders until those slices are approved.
+- **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
+- **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
 
 ### M3A-QA — Native auth interactive real-device QA
 

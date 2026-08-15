@@ -22,8 +22,23 @@ const REQUIRED_SCORING_ENV = Object.freeze([
 ]);
 
 const CURRENT_SEASON = new Date().getFullYear();
+// nflverse reorganized its releases: the `player_stats` tag stopped receiving new
+// seasons after 2024, and weekly stats now ship under `stats_player` as
+// `stats_player_week_<season>.csv`. The old path 404s for every season from 2025
+// on, which the 404-deferral path would otherwise read as "not published yet"
+// forever. Verified against the live release index 2026-08-15.
 const NFLVERSE_BASE_URL =
-  "https://github.com/nflverse/nflverse-data/releases/download/player_stats";
+  "https://github.com/nflverse/nflverse-data/releases/download/stats_player";
+
+function nflverseStatsFileName(season) {
+  return `stats_player_week_${season}.csv`;
+}
+
+// nflverse publishes REG (weeks 1-18) and POST (weeks 19-22) rows in one file and
+// never publishes PRE. Omen grades regular-season weeks, so REG is the default —
+// without this filter a source that does carry preseason rows (Sleeper does) would
+// collide preseason week N with regular week N.
+const DEFAULT_SEASON_TYPE = "REG";
 
 function timestamp() {
   return new Date().toISOString();
@@ -133,21 +148,26 @@ function parseCsvLine(line = "") {
   return values;
 }
 
-function nflverseScoresFromCsv(csvText, { season, weekNum } = {}) {
+function nflverseScoresFromCsv(csvText, { season, weekNum, seasonType = DEFAULT_SEASON_TYPE } = {}) {
   const lines = String(csvText || "").trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return {};
   const headers = parseCsvLine(lines[0]).map((header) => header.trim());
-  const required = ["player_name", "season", "week", "fantasy_points", "fantasy_points_ppr"];
+  // `season_type` is required rather than optional-when-present: a file without it
+  // cannot be filtered, and silently scoring an unfiltered file is the failure mode
+  // this column exists to prevent. Fail closed and make the schema drift visible.
+  const required = ["player_name", "season", "week", "season_type", "fantasy_points", "fantasy_points_ppr"];
   if (required.some((column) => !headers.includes(column))) {
     throw new Error("nflverse player stats are missing required scoring columns");
   }
 
   const targetSeason = Number(season);
   const targetWeek = Number(weekNum);
+  const targetSeasonType = String(seasonType).toUpperCase();
   const scores = {};
   for (const line of lines.slice(1)) {
     const values = parseCsvLine(line);
     const row = Object.fromEntries(headers.map((header, index) => [header, values[index]?.trim() || ""]));
+    if (row.season_type.toUpperCase() !== targetSeasonType) continue;
     if (Number(row.season) !== targetSeason || Number(row.week) !== targetWeek) continue;
     const standard = Number(row.fantasy_points);
     const ppr = Number(row.fantasy_points_ppr);
@@ -215,19 +235,25 @@ function isDeferredScores(value) {
   return Boolean(value && value[DEFERRED_SCORES] === true);
 }
 
-async function fetchNFLScores({ weekNum, season = CURRENT_SEASON, redis = null, env = process.env }) {
+async function fetchNFLScores({
+  weekNum,
+  season = CURRENT_SEASON,
+  seasonType = DEFAULT_SEASON_TYPE,
+  redis = null,
+  env = process.env,
+}) {
   const cacheKey = `ssff:scores:${season}:${weekNum}`;
   const cached = await redisGetJson(redis, cacheKey);
   if (cached) return cached;
 
-  const url = `${NFLVERSE_BASE_URL}/player_stats_${season}.csv`;
-  const response = await fetch(url);
+  const fileName = nflverseStatsFileName(season);
+  const response = await fetch(`${NFLVERSE_BASE_URL}/${fileName}`);
   if (response.status === 404) {
     // Not published yet: no cache write, no Supabase write, retry next run.
-    return deferredScores(`nflverse has not published player_stats_${season}.csv yet`);
+    return deferredScores(`nflverse has not published ${fileName} yet`);
   }
   if (!response.ok) throw new Error(`nflverse ${response.status} ${response.statusText}`);
-  const playerScores = nflverseScoresFromCsv(await response.text(), { season, weekNum });
+  const playerScores = nflverseScoresFromCsv(await response.text(), { season, weekNum, seasonType });
 
   await redisSetJson(redis, cacheKey, playerScores, 3600);
   return playerScores;
