@@ -352,6 +352,37 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
 - **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
 
+### M5-NativeConnect — Build the native connect flow (onboarding steps 3–6)
+
+- **Status:** READY
+- **Blocked by:** None for the Sleeper path. See the provider reality below — Yahoo and ESPN are *scoped out*, not blocking.
+- **Priority:** **P0 — beta blocker, and arguably ahead of M5 slices D–G.** As of M5 A–C the native apps correctly tell a user "Connect a league to see your matchup" and then offer **no way to do it**. There is no connect screen, no provider picker, and no call to `/api/platforms/sleeper/connect` on either platform; `OmenPlatformConnectionCard` exists as a design-system component used only in the gallery.
+- **Cost:** medium
+- **Authority:** `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §4 — approved, and it already specifies this as first-launch steps **3. Choose next step → 4. Choose provider → 5. Connect or recover → 6. First useful destination**. Steps 1 (Welcome) and 2 (Omen account) are already built. This item is not a design question; it is unbuilt spec.
+- **Provider reality — this is what makes the item shippable rather than blocked:**
+  - **Sleeper — the only native connect path for beta.** The contract names it "first native connection candidate": username → resolve → choose league → validate, against the shipped `POST /api/platforms/sleeper/resolve` and `/connect`.
+  - **Yahoo — scoped out.** Paused behind `YAHOO_ENABLED` pending a Fantasy API entitlement only Yahoo can grant (`P1-YahooReauth`). Show the honest "On hold" state; do not build the OAuth path against a provider that 403s every call.
+  - **ESPN — scoped out by the contract itself.** §5 is explicit: ESPN is research-gated on native and a store build must **not** ask for a password or raw cookie entry. §10: no "ESPN connected" UI starts until the ESPN mobile feasibility memo (deliverable 7) is resolved. **The honest native answer for ESPN is to point at the web flow plus the published browser extension** — `extension/README.md`, live on the Chrome Web Store and Edge Add-ons. Connections are stored server-side per user, so a league connected on web is connected in the app.
+- **Done when:** a signed-in native user with no connections can reach a provider picker, complete a Sleeper connection, and land on a Command Center that reflects it; Yahoo and ESPN render honest, non-dead-end states; leaving and returning mid-flow does not lose the safe stage; the acceptance cases in contract §9 that apply to Sleeper are exercised; iOS `xcodebuild test` and Android `:app:assembleDebug` + connected tests green.
+- **Do not touch:** ESPN cookie entry on native (contract §5 and facts-of-record #6 — cookie values are never shown, logged, or echoed). Do not re-enable Yahoo. Do not invent a status meaning outside F2.
+
+### M6-ContextualHelp — Teach the product in place, per destination
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — founder-raised 2026-08-15. The native app shows people states and numbers without ever explaining what they are, how to read a recommendation, or how to use a tool.
+- **Cost:** medium
+- **Authority — this is already specified, contrary to an earlier read in this session.** `Blueprints/specs/mobile/m4-help-support-v1.md` §1 defines **two** distinct things, and only the second was built:
+  1. **Contextual Help** — "explains the current Omen concept, state, or next step without taking the person away from their work," via a nearby `What is this?` / info affordance using the existing Tooltip/Help primitive. **This is the unbuilt half and the subject of this item.**
+  2. **Help + Support** — the calm Account-reached destination. Built under `M4-Help-Support-Implementation` (`OmenHelpSupportView` / `OmenHelpSupportScreen`).
+- **Content source:** the web `frontend/src/components/help/HelpButton.jsx` `PAGE_HELP` map — per-route `title` / `description` / `tips` — is the proven pattern and the founder's reference. **The spec is explicit that it is "content inventory only and is not a mobile layout source"** (§1): mine the copy, express it natively.
+- **Two content corrections required on port — do not copy verbatim:**
+  - `PAGE_HELP` still contains **Draft Assistant** entries. Draft Assistant is cut from 1.0 (`P1-DraftAssistantSideline`, facts-of-record #9). It must not appear in native help copy.
+  - The `/omen` entry says "Connect Sleeper or ESPN." On native, ESPN cannot be connected at all (see `M5-NativeConnect`). Native help copy must reflect native provider reality, not the web's.
+- **Boundaries from the spec:** Contextual Help "must never become an unsolicited modal, block a decision, or impersonate live provider support," and dismissing must return to the exact prior state. Account stays the durable home for Help Center, feedback, and reporting a problem.
+- **Done when:** each shipped native destination exposes a contextual help affordance whose content is accurate for native; no coach-mark or modal interrupts a first run; VoiceOver/TalkBack and Dynamic Type/font-scale verified; no Draft Assistant and no unavailable-provider copy; scanner/tests/assembly green per platform.
+- **Do not touch:** the Help + Support destination contract, new API endpoints, telemetry, or any claim that support is staffed/live.
+
 ### M3A-QA — Native auth interactive real-device QA
 
 - **Status:** READY

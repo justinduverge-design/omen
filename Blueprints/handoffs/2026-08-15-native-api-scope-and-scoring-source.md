@@ -208,3 +208,39 @@ I could not find a Gradle task, script, or CI step implementing an Android primi
 | G — Trade screen | ⛔ needs design | ⛔ needs design |
 
 D and E are wiring against shipped routes. **F and G are not wiring** — they are new screens whose M1 screen-contract slices do not exist. Do not pull them without approved design.
+
+---
+
+# Addendum 4 — Connect flow and contextual help: two items minted, one earlier read corrected
+
+## Correction
+
+Earlier in this session I told the founder that in-product education "is a real gap the spec does not cover" and would need a founder brief before any build. **That was wrong.** `Blueprints/specs/mobile/m4-help-support-v1.md` §1 already separates:
+
+1. **Contextual Help** — explains the current concept/state/next step in place, via a nearby `What is this?`/info affordance on the existing Tooltip/Help primitive. **Unbuilt.**
+2. **Help + Support** — the Account-reached destination. **Built** under `M4-Help-Support-Implementation`.
+
+Only #2 shipped, and the item name made it look like the whole contract was satisfied. The founder's instinct — reuse the web helper-button pattern — matches what §1 already specifies, and §2 even names the entry points. So this is buildable now, not blocked on a brief. Minted as `M6-ContextualHelp`.
+
+The web `HelpButton.jsx` `PAGE_HELP` map is the content source, and the spec pre-empts the obvious mistake: it is "content inventory only and is not a mobile layout source."
+
+## Two content traps in the web help copy
+
+Porting `PAGE_HELP` verbatim would ship two falsehoods to native:
+
+- It still contains **Draft Assistant** entries, cut from 1.0 (facts-of-record #9). Same root cause as `P1-DraftAssistantSideline`, which lists `HelpButton.jsx` among its 16 live hits.
+- Its `/omen` entry says "Connect Sleeper or ESPN." **On native, ESPN cannot be connected at all** — see below.
+
+## The connect gap, and why ESPN scopes it
+
+`M5-NativeConnect` is minted P0. After M5 A–C the apps honestly say "Connect a league to see your matchup" and offer no way to do it: no connect screen, no provider picker, no call to the shipped Sleeper connect routes on either platform.
+
+The onboarding contract (§4) already specifies this as first-launch steps 3–6, with steps 1–2 built. So it is unbuilt spec, not an open design question. The provider matrix decides the scope:
+
+| Provider | Native beta | Why |
+|---|---|---|
+| **Sleeper** | **the path** | Contract names it "first native connection candidate"; routes shipped |
+| Yahoo | honest "On hold" | `YAHOO_ENABLED` false; Fantasy entitlement is Yahoo's to grant |
+| ESPN | point at web + extension | §5 research-gated; a store build must not ask for password or raw cookie entry, and §10 blocks "ESPN connected" UI until deliverable 7 resolves |
+
+**The extension is load-bearing for that last row.** It is published and public — Chrome Web Store and Edge Add-ons, both listed as *Omen ESPN Connect*; URLs now recorded in `extension/README.md`, which previously claimed it was unpublished. Since `platform_connections` is server-side per user, a league connected on the web is connected in the app, which makes "connect ESPN on desktop, use the app after" an honest beta story rather than a dead end.

@@ -11,9 +11,12 @@ Reads your own `espn_s2`/`SWID` ESPN Fantasy cookies from this browser and fills
 
 ## Install it
 
-**Published and public on the Chrome Web Store and on Microsoft Edge Add-ons** (confirmed by the founder, 2026-08-15). Most users should install it from their browser's store rather than loading it unpacked.
+**Published and public.** Install it from your browser's store rather than loading it unpacked:
 
-> **Store listing URLs still need to be pasted in here.** This section previously read "not yet published to a store," which was false by the time anyone read it. Leaving the links out is a smaller error than leaving that sentence in, but it is still a gap — add both URLs on the next touch.
+- **Chrome:** https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm
+- **Edge:** https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl
+
+(Both listings are named **Omen ESPN Connect**. Links are the canonical listing URLs with share/tracking parameters stripped.)
 
 This extension is the practical ESPN connection path, so where it is published matters beyond this file: it is also the honest answer for ESPN users in the native apps, which cannot ask for cookies directly (see `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §5 — ESPN is research-gated on native).
 
