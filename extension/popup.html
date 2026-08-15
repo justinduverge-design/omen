@@ -68,15 +68,22 @@
       margin-top: 10px;
       min-height: 16px;
     }
-    #status.error { color: #b91c1c; }
+    #status.error, #accessStatus.error { color: #b91c1c; }
     #status.ok { color: #15803d; }
+    #cookieDiagnostic { margin-top: 10px; font-size: 11px; color: #6b7280; word-break: break-all; }
   </style>
 </head>
 <body>
   <h1>Omen ESPN Connect</h1>
+  <div id="needsAccess" hidden>
+    <p>Omen needs your permission to read your ESPN session from this browser. It only ever reads espn.com, and the values go straight into Omen's connect form — nowhere else.</p>
+    <button class="primary" id="grantAccess">Allow access to ESPN</button>
+    <div id="accessStatus"></div>
+  </div>
   <div id="notLoggedIn" hidden>
     <p>No ESPN session found in this browser. Log into ESPN Fantasy first, then reopen this popup.</p>
     <button class="secondary" id="openEspn">Open ESPN Fantasy</button>
+    <div id="cookieDiagnostic"></div>
   </div>
   <div id="loggedIn" hidden>
     <p>ESPN session found in this browser.</p>

@@ -1,12 +1,48 @@
 # Omen Known Issues
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## Current Context Risks
 
 - Some historical docs may still reference retired pre-DBS paths.
 - Some archive/checkpoint files describe older launch states and should not be treated as current truth.
 - Justin may still rewrite `AGENT.md` and `CLAUDE.md`; until then, follow `AGENTS.md`, `AGENT.md`, `Direction/`, and `Blueprints/handoffs/`.
+
+## Native Accessibility Risks — found 2026-08-15 during M6-ContextualHelp
+
+These surfaced when the first `XCUIApplication.performAccessibilityAudit()` run in this repo was
+added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a regression from it.
+
+- **`text-secondary` on `surface-2` is 4.43:1 in light mode — under AA (4.5:1).** Caught by the audit
+  as "Contrast nearly passed" on the new contextual-help surface, and fixed *there* by following the
+  registry §3.1 Tooltip/Help row, which specifies `surface-2` + **`text-primary`**. **The token pair
+  itself is still available to every other component**, and any existing screen that puts secondary
+  text on a surface-2 background has the same defect. Worth a design-system sweep and possibly a
+  darker `text-secondary` in light mode.
+- **The Command Center screen fails the audit's `contrast` check outright** — a stronger verdict than
+  the "nearly passed" above, so it is a separate, larger gap. `ContextualHelpAccessibilityUITests.testCommandCenterScreenAuditRecordsTwoPreExistingFailures`
+  pins it under `XCTExpectFailure`, so the day it is fixed that test fails loudly and can be retired.
+- **`OmenTypography` is invisible to the audit's Dynamic Type check, app-wide.** Every role is built
+  as `Font(UIFontMetrics.scaledFont(for:))`, which resolves a point size at construction rather than
+  vending a text-style-relative font, so the audit reports "Dynamic Type font sizes are unsupported"
+  on every screen. **This is a mechanism finding, not a functional one:** the same surface was
+  rendered at `UICTContentSizeCategoryM` and `UICTContentSizeCategoryAccessibilityXXXL` and the text
+  scales and reflows correctly, because SwiftUI recomputes the metric-scaled font when the category
+  changes. The `.dynamicType` category is therefore excluded from the M6 audit with that reasoning
+  recorded at the exclusion site. Revisit if the locked font families ever land.
+
+## Native Copy Risks
+
+- **[CORRECTED 2026-08-15 — this is not a defect.]** During M6 verification the Command Center
+  matchup hero was read off the live TalkBack tree as `"No matchup yet — connect Sleeper or ESPN to
+  see your team's week."` and was **wrongly** filed here as a false capability claim. **ESPN is
+  connectable and we want people to connect it** — the connection is made once on the Omen website
+  and then shows up in the app. What native lacks is only the in-app credential handoff, and the
+  in-app path already handles that honestly: choosing ESPN in Connect reaches
+  `ConnectProvider.espn` → `.useWeb`, which routes the person to the website rather than dead-ending.
+  So the hero's advice is actionable as written. The only available improvement is naming *where*
+  ESPN connects, which is a copy nicety, not a correctness bug — **do not "fix" this by removing
+  ESPN from the copy.**
 
 ## Product Risks
 
@@ -15,6 +51,7 @@ Last updated: 2026-08-14
 
 ## Backend / Data Risks
 
+- **Yahoo connections are paused in-product as of 2026-08-14 — this is intended, not a regression.** Starting a new Yahoo connection is disabled behind `YAHOO_ENABLED` (default false) because the OAuth handshake still succeeds while every Fantasy call 403s, producing a connection that reads `connected` and serves nothing. Yahoo remains visible labelled "On hold"; existing rows stay disconnectable; `/api/yahoo/callback` and `/api/yahoo/access-probe` are deliberately left un-gated. Full rationale and the one-flag re-enable procedure are in `Direction/decision_log.md` (2026-08-14), `P1-YahooReauth`, and issue [#308](https://github.com/justinduverge-design/omen/issues/308). **Do not "fix" this by re-enabling the button** — the entitlement below is still the blocker.
 - **Yahoo's API access is refused at the app-entitlement level (verified live 2026-08-13).** This supersedes the token-level diagnosis below as the *active* blocker. After the P1-Yahoo fixes shipped (PRs #291–#293, #295), a temporary access probe (`GET /api/yahoo/access-probe`, PR #296) ran four Yahoo calls of increasing specificity against a **freshly issued** token on **updated** production credentials. **All four returned 403 — including `/game/nfl`, which is public game metadata requiring no user scope at all.** That rules out, with evidence: stale/expired tokens (fresh reconnect), a dead user grant (public data needs none), the query shape (simplest call fails identically), and wrong client credentials (those fail earlier at authorize with `invalid_client`; the OAuth handshake succeeds). **The remaining explanation is that the Yahoo app whose credentials are deployed does not hold Fantasy Sports API entitlement.** Yahoo requires a separate reviewed application (`https://sports.yahoo.com/developer/access/`) beyond checking the Fantasy Sports permission box on the app — so either that approval is pending, or it belongs to a different app than the one deployed. **No code fix is possible;** this is founder-side on the Yahoo developer account. Re-run the probe endpoint to re-verify once resolved.
   - **Narrowed 2026-08-13 (same session).** The "different app" branch is **eliminated**: the deployed `YAHOO_CLIENT_ID` was decoded (Yahoo embeds the App ID inside the client id as base64 `ai=<AppID>`) and resolves to **`ZcZJXm8V` — "SlopsSaloon Fanatasy Football MVP"**, which the founder confirmed by screenshot *does* have `Fantasy Sports - Read` checked, `Confidential Client` selected, and redirect URI `https://slopssaloon.com/api/yahoo/callback` matching Omen exactly. A second Yahoo app exists (`3GnEYhVE`, "Omen") whose permissions are OpenID + **TW Auction** with no fantasy scope, but it is **not** the deployed one. So: right app, right checkbox, right redirect, right requested scope (`openid fspt-r`), successful handshake — and still a blanket 403. **The checkbox is a request, not a grant.** Yahoo grants Fantasy Sports API access through a separately reviewed application (`https://sports.yahoo.com/developer/access/`); their docs state a checked-but-unapproved app returns exactly this 403. The founder's earlier Fantasy API approval most likely attached to the **previous app, which was deleted** — deleting it destroyed the grant, and the replacement app needs its own approval. **Action: re-apply for Fantasy Sports API access for app `ZcZJXm8V`.**
 - **[SUPERSEDED — historical, retained for provenance]** **Yahoo's stored OAuth token is currently unusable (verified live 2026-08-11).** *This token-level diagnosis was correct at the time but is no longer the active fault; the entitlement finding above replaced it on 2026-08-13, and a fresh token has since been issued. Do not act on this entry.* `GET /api/platforms` reports `yahoo: connected, 1 league`, so the `platform_connections` row is active with a valid league id — but `/api/dashboard/summary` returns `waiver_wire: "needs_platform"`, a branch reachable only when `hasUsableYahooToken()` fails. Per `src/services/omenReadiness.js:8-14` that means `token_secret_id` is absent or `token_expires_at` has passed. **"Connected" in the platforms payload does not mean "usable"** — the two answer different questions, and reading the first as the second is what let this sit unnoticed. Tracked as `P1-YahooReauth`. Yahoo API access was separately re-approved in early 2026-08.
@@ -27,6 +64,8 @@ Last updated: 2026-08-14
 - ADP and provider-backed data should be verified before launch claims.
 - Legacy API files remain mounted and should be handled carefully.
 - Tuesday scoring is executable but intentionally gated behind `OMEN_CRON_SCORING_ENABLED=true` until production scoring/provider validation is complete.
+- **The nflverse release path was retired upstream and Omen was still pointed at it (found and fixed 2026-08-15, `A5-NflversePath`).** The cron fetched `.../releases/download/player_stats/player_stats_<season>.csv`. nflverse reorganized: the `player_stats` tag stopped receiving new seasons after **2024**, and weekly stats now ship under the `stats_player` tag as `stats_player_week_<season>.csv`. The old path 404s for **2025 as well as 2026** — so this was never only a "current season not published yet" condition, which is how #263 and `A5` both described it. **The dangerous interaction:** the #302 fix below (correctly) turned a 404 into a silent deferral, so a permanently-404ing URL would have deferred every move all season and reported healthy — `failed=0`, no error, no alert. Corrected path verified live (`stats_player_week_2025.csv`, 8.6 MB, required columns present); suite **537/537**. `season_type` is now required and filtered to `REG`, because nflverse ships `REG` 1–18 and `POST` 19–22 in one file and never ships `PRE`, while a preseason-carrying source would collide preseason week N with regular week N.
+- **Every scored move is graded as PPR regardless of league settings (found 2026-08-15, tracked as `A6-MovesScoringFormat`).** `fetchPendingMoves` selects without `scoring` — the deployed `moves` schema has no such column — and `scoreMove` defaults an absent format to PPR. `nflverseScoresFromCsv` computes `rec_std`, `rec_half`, and `rec_ppr`; two are discarded. A standard or half-PPR league's recommendation is graded against points its league does not award. Founder-gated: fixing it adds a column to a deployed schema.
 - **Pre-season nflverse absence no longer fails a move (fixed 2026-08-14, PR [#302](https://github.com/justinduverge-design/omen/pull/302), closes #263).** nflverse publishes `player_stats_<season>.csv` only once a season is under way; before that the 404 was counted as a *failed* pending move, which is what produced `archived=0 scored=0 failed=1` in the 2026-08-02 dry run. A 404 now returns an explicit deferred marker: no Redis write, no Supabase write, the move stays pending and retries on a later run, and `runScoring` reports a `deferredCount`. Every non-404 status, malformed CSV, and empty score map for a published season still fails closed.
 - Legacy `src/omen_gdpr.js` remains present with historical account-deletion copy; the mounted `/api/user` route is `src/routes/userPrivacy.js` and uses `"DELETE MY OMEN DATA"`.
 

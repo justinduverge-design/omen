@@ -90,6 +90,28 @@ Sensitive Info. None are collected.
 > secrets held on the user's behalf. **I recommend declaring them.** Under-declaring
 > is the failure mode Apple actually penalises.
 
+### iOS Safari Web Extension — what it changes, and what it does not
+
+**Applies from `M7-EspnSafariExtension` onward.** Bundle id `com.slopssaloon.omen.espnconnect`, embedded in `com.slopssaloon.omen`. Team `6RWR5G9894`.
+
+**Apple's privacy labels cover the app *and* its extensions**, so this has to be answered deliberately rather than assumed to be out of scope.
+
+**The label set does not change.** The extension reads the user's own `espn_s2` / `SWID` cookies from Safari and fills them into Omen's existing web connect form. It transmits nothing itself — no server of ours, no analytics, no logging. Those values reach Omen's backend only when the **user** taps Omen's own Connect button, which is the already-declared path under **Other Data → Connection credentials**. Declaring a second time would double-count one collection.
+
+**What must be true for that answer to stay honest** — re-verify each before submitting:
+
+- [ ] The extension has **no** network permission and makes no outbound request of its own
+- [ ] `host_permissions` stays scoped to `https://*.espn.com/*`; it does not read cookies for unrelated sites
+- [ ] The staged values are cleared immediately after the form is filled, and staging uses session-scoped storage that does not survive a browser restart
+- [ ] The extension never submits the form on the user's behalf — the user's own tap is what transmits
+- [ ] No analytics SDK is added to the extension target, ever
+
+**Capabilities: none.** The App ID is registered with every capability unchecked. Notably **no App Groups** — the extension shares no data with the Omen app, and adding the capability would create a data path we would then have to declare.
+
+**Age rating: unchanged.** The extension adds no content, no UGC surface, and no purchase path.
+
+> **Judgement call, flagged like the credentials one above.** A reviewer may reasonably ask whether a cookie-reading extension is "collecting" data even though it never transmits. The defensible answer is that reading on-device without transmission is not collection under Apple's definition, and the subsequent transmission *is* declared. **If challenged, do not argue the point — the honest fallback is to say the credentials are declared under Other Data and point at that line.** Under-declaring is the failure mode Apple penalises; here we are not under-declaring, we are avoiding declaring the same thing twice.
+
 ---
 
 ## R4 — Google Play Data Safety
@@ -205,6 +227,7 @@ Every line must be true at submission, not just today.
 - [ ] UGC answer reflects trade-share, on both stores
 - [ ] Sentry declared as *conditional* — if it is not deployed at submission, say so honestly rather than declaring collection that is not happening
 - [ ] No screenshot or asset contains an ESPN cookie, provider token, real league id, or real username
+- [ ] **Safari extension (from `M7`):** reviewer notes explain it, it holds no capabilities, it makes no network request of its own, and its icons exist — once bundled they are user-visible in Safari settings, so the missing-icon gap in `extension/README.md` stops being cosmetic
 
 ## Standing constraints
 

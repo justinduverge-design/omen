@@ -24,6 +24,8 @@ import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStrip
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
+import com.slopssaloon.omen.app.feature.help.OmenHelpButton
+import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
@@ -76,6 +78,11 @@ fun OmenCommandCenterScreen(
     onSwitchContext: (() -> Unit)? = null,
     onOpenMatchup: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
+    /**
+     * M5-NativeConnect. Supplied only when a connect path exists; when null the screen shows
+     * no call to action it cannot honor.
+     */
+    onConnect: (() -> Unit)? = null,
     onOpenOmen: (() -> Unit)? = null,
     onOpenLedger: ((OmenLedgerEntry) -> Unit)? = null,
     onOpenLeague: (() -> Unit)? = null,
@@ -108,6 +115,13 @@ fun OmenCommandCenterScreen(
             onConnect = onConnectPlatform?.let { handler -> { row -> handler(row.platform) } },
         )
         OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
+        // Honest-state doctrine: the screen already tells a disconnected user to connect a
+        // league. Before M5-NativeConnect there was no way to act on it. Shown only when the
+        // shell has no verified context AND a connect path exists, so it cannot advertise a
+        // dead end or sit beside a real league name.
+        if (onConnect != null && state.context is OmenContextStripState.Empty) {
+            OmenButton(text = "Connect a league", onClick = onConnect)
+        }
         WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
         LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
         LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
@@ -163,6 +177,9 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
                 color = OmenTheme.color.textPrimary,
             )
         }
+        // M6-ContextualHelp. Sits beside the profile control so help is reachable from the
+        // header without competing with it for the eye.
+        OmenHelpButton(OmenHelpDestination.CommandCenter)
         if (onOpenAccount != null) {
             OmenIconButton(
                 contentDescription = "Account and profile",
@@ -540,7 +557,7 @@ object OmenCommandCenterFixtures {
             OmenPlatformRowState(OmenPlatform.Espn, OmenConnectionStatus.Disconnected),
         ),
         matchup = OmenMatchupHeroState.NoMatchup(
-            reason = "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.",
+            reason = "No matchup yet — connect Sleeper or ESPN to see your team's week.",
         ),
     )
 

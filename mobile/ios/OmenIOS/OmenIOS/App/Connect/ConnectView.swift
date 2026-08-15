@@ -1,0 +1,222 @@
+import SwiftUI
+
+/// M5-NativeConnect — onboarding steps 4–6 as a single navigable sheet.
+///
+/// Every screen here is assembled from approved primitives; no one-off component is
+/// introduced. Spec §6 governs the copy rules: no bare "Loading…", every non-success state
+/// carries a safe next action, and cancelling is never framed as a failure.
+struct ConnectView: View {
+    @StateObject private var viewModel: ConnectViewModel
+    /// Called when a league is connected, so the shell can refresh and route on.
+    let onConnected: () -> Void
+    let onDismiss: () -> Void
+
+    init(
+        repository: ConnectRepository,
+        sessionManager: SessionManager,
+        onConnected: @escaping () -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        _viewModel = StateObject(wrappedValue: ConnectViewModel(
+            repository: repository,
+            sessionManager: sessionManager
+        ))
+        self.onConnected = onConnected
+        self.onDismiss = onDismiss
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
+                switch viewModel.state {
+                case .notStarted:
+                    providerPicker
+                    sleeperUsernameEntry
+                case .resolvingAccount, .validatingConnection:
+                    busySection
+                case .choosingLeague(let account):
+                    leaguePicker(account)
+                case .connected(let league):
+                    connectedSection(league)
+                case .canceled:
+                    canceledSection
+                case .retryableError(let failure):
+                    errorSection(failure)
+                case .needsReauth:
+                    reauthSection
+                case .unsupportedOnMobile(let provider):
+                    unsupportedSection(provider)
+                }
+            }
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.vertical, OmenSpacing.step24)
+        }
+        .background(OmenColor.bg.ignoresSafeArea())
+    }
+
+    // MARK: - Step 4 — choose provider
+
+    private var providerPicker: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Connect a league")
+                .omenTextStyle(OmenTypography.h1)
+                .foregroundStyle(OmenColor.textPrimary)
+            // Spec §4: explain the benefit in one sentence.
+            Text("Connect a league so Omen can use your roster, scoring, and matchup.")
+                .omenTextStyle(OmenTypography.body)
+                .foregroundStyle(OmenColor.textSecondary)
+
+            // No provider is selected by default (spec §4). Availability is stated up front
+            // rather than discovered by tapping into a dead end.
+            ForEach(ConnectProvider.allCases) { provider in
+                OmenListRow(
+                    title: provider.displayName,
+                    subtitle: availabilityLabel(provider),
+                    action: { viewModel.selectProvider(provider) },
+                    leading: { OmenPlatformBadge(platform: provider.platform) },
+                    trailing: { EmptyView() }
+                )
+            }
+        }
+    }
+
+    private func availabilityLabel(_ provider: ConnectProvider) -> String {
+        switch provider.availability {
+        case .available: return "Connect with your username"
+        case .onHold: return "On hold"
+        case .useWeb: return "Connect on the web"
+        }
+    }
+
+    // MARK: - Step 5 — connect
+
+    private var sleeperUsernameEntry: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Sleeper")
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            // The contract is explicit that Omen never collects a provider password.
+            Text("Enter your Sleeper username. Omen never asks for your Sleeper password.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+
+            OmenTextField(
+                value: $viewModel.username,
+                label: "Sleeper username",
+                placeholder: "username",
+                enabled: !viewModel.state.isBusy
+            )
+
+            OmenButton(
+                title: "Find my leagues",
+                action: { Task { await viewModel.resolveUsername() } },
+                variant: .primary,
+                size: .md,
+                enabled: viewModel.canSubmitUsername
+            )
+        }
+    }
+
+    private var busySection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .loading,
+                title: "Just a moment",
+                // Spec §6: never a bare "Loading…" — say what is happening.
+                message: viewModel.state.progressLabel ?? "Working…"
+            )
+            // Leaving mid-flight is safe: the connect call is idempotent by request id.
+            OmenButton(title: "Cancel", action: { viewModel.cancel() }, variant: .link, size: .sm)
+        }
+    }
+
+    private func leaguePicker(_ account: ResolvedSleeperAccount) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Choose a league")
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            Text("Signed in as \(account.username).")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+
+            ForEach(account.leagues) { league in
+                OmenListRow(
+                    title: league.name,
+                    subtitle: league.subtitle.isEmpty ? nil : league.subtitle,
+                    action: { Task { await viewModel.selectLeague(league) } },
+                    leading: { OmenPlatformBadge(platform: .sleeper) },
+                    trailing: { EmptyView() }
+                )
+            }
+
+            OmenButton(title: "Use a different username", action: { viewModel.startOver() }, variant: .link, size: .sm)
+        }
+    }
+
+    // MARK: - Step 6 and recovery
+
+    private func connectedSection(_ league: SleeperLeague) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .empty,
+                title: "\(league.name) is connected",
+                message: "Omen can now read this league's roster, scoring, and matchup."
+            )
+            OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+        }
+    }
+
+    /// Cancelling is normal. No error styling, no apology, no scolding.
+    private var canceledSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .empty,
+                title: "No problem",
+                message: "Nothing was connected. You can pick a provider whenever you're ready."
+            )
+            OmenButton(title: "Choose a provider", action: { viewModel.startOver() }, variant: .secondary, size: .md)
+            OmenButton(title: "Not now", action: onDismiss, variant: .link, size: .sm)
+        }
+    }
+
+    private func errorSection(_ failure: ConnectFailure) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(kind: .error, title: "That didn't work", message: failure.message)
+            // Spec §6: every non-success state has a safe next action.
+            OmenButton(title: "Try again", action: { viewModel.startOver() }, variant: .secondary, size: .md)
+            OmenButton(title: "Explore the demo instead", action: onDismiss, variant: .link, size: .sm)
+        }
+    }
+
+    private var reauthSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .error,
+                title: "Sign in again",
+                message: "Your Omen session expired. Sign in again, then connect your league."
+            )
+            OmenButton(title: "Close", action: onDismiss, variant: .secondary, size: .md)
+        }
+    }
+
+    /// A provider Omen cannot connect here. Never a dead end — it names the path that works.
+    private func unsupportedSection(_ provider: ConnectProvider) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .disconnected,
+                title: "\(provider.displayName) can't be connected in the app yet",
+                message: unsupportedMessage(provider)
+            )
+            OmenButton(title: "Choose another provider", action: { viewModel.startOver() }, variant: .secondary, size: .md)
+        }
+    }
+
+    private func unsupportedMessage(_ provider: ConnectProvider) -> String {
+        switch provider.availability {
+        case .onHold(let reason), .useWeb(let reason):
+            return reason
+        case .available:
+            return ""
+        }
+    }
+}

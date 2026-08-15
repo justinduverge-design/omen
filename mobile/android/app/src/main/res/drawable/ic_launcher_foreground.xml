@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Omen B2 mark. Generated from logos/svg/omen-app-icon-master-1024.svg (320 unit artboard).
+     Group transform maps the 320 artboard into the 108dp adaptive canvas with the mark inside
+     the 72dp safe zone. The football is a true evenOdd cutout, so the adaptive background
+     shows through instead of being painted over. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.223214"
+        android:scaleY="0.223214"
+        android:translateX="18.286"
+        android:translateY="18.286">
+        <path
+            android:fillType="evenOdd"
+            android:pathData="M160 48C212.006 48 241.259 106.8 241.259 160C241.259 213.2 212.006 272 160 272C107.994 272 78.7407 213.2 78.7407 160C78.7407 106.8 107.994 48 160 48ZM160 48C160.267 58.08 204.497 88.992 204.497 160C204.497 231.008 160.267 261.92 160 272C159.733 261.92 115.502 231.008 115.502 160C115.502 88.992 159.733 58.08 160 48ZM160.642 49.2814C160.642 48.5737 160.354 48 160 48C159.645 48 159.358 48.5737 159.358 49.2814V55.261C159.358 55.9687 159.645 56.5424 160 56.5424C160.354 56.5424 160.642 55.9687 160.642 55.261V49.2814ZM160.642 264.739C160.642 264.031 160.354 263.458 160 263.458C159.645 263.458 159.358 264.031 159.358 264.739V270.719C159.358 271.426 159.645 272 160 272C160.354 272 160.642 271.426 160.642 270.719V264.739Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="94.9925"
+                    android:startY="59.2"
+                    android:endX="271.779"
+                    android:endY="203.497">
+                    <item android:offset="0" android:color="#FFD8BB73" />
+                    <item android:offset="0.35" android:color="#FFB88D42" />
+                    <item android:offset="0.72" android:color="#FF80541F" />
+                    <item android:offset="1" android:color="#FFC59A49" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M160 111.836V209.875"
+            android:strokeColor="#FFA67C2E"
+            android:strokeWidth="8.16762"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M148.714 126.669H171.286M148.714 149.173H171.286M148.714 171.678H171.286M148.714 194.182H171.286"
+            android:strokeColor="#FFA67C2E"
+            android:strokeWidth="7.73801"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

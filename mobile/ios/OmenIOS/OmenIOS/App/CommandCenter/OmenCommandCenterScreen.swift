@@ -22,6 +22,9 @@ struct OmenCommandCenterScreen: View {
     let onOpenMatchup: (() -> Void)?
     let onOpenAccount: (() -> Void)?
     let onOpenOmen: (() -> Void)?
+    /// M5-NativeConnect. Supplied only when a connect path exists; when nil the screen keeps
+    /// its previous behavior and shows no call to action it cannot honor.
+    let onConnect: (() -> Void)?
     let onOpenLedger: ((OmenLedgerEntry) -> Void)?
     let onOpenLeague: (() -> Void)?
     let onConnectPlatform: ((OmenPlatform) -> Void)?
@@ -35,6 +38,7 @@ struct OmenCommandCenterScreen: View {
         onSwitchContext: (() -> Void)? = nil,
         onOpenMatchup: (() -> Void)? = nil,
         onOpenAccount: (() -> Void)? = nil,
+        onConnect: (() -> Void)? = nil,
         onOpenOmen: (() -> Void)? = nil,
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
         onOpenLeague: (() -> Void)? = nil,
@@ -46,6 +50,7 @@ struct OmenCommandCenterScreen: View {
         self.onOpenMatchup = onOpenMatchup
         self.onOpenAccount = onOpenAccount
         self.onOpenOmen = onOpenOmen
+        self.onConnect = onConnect
         self.onOpenLedger = onOpenLedger
         self.onOpenLeague = onOpenLeague
     }
@@ -57,6 +62,13 @@ struct OmenCommandCenterScreen: View {
                 OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
                 platformsStrip
                 OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
+                if let onConnect, showsConnectCallToAction {
+                    // Honest-state doctrine: the screen already tells a disconnected user to
+                    // connect a league. Before M5-NativeConnect there was no way to act on
+                    // that. The button appears only when the shell has no usable context AND
+                    // a connect path exists, so it can never advertise a dead end.
+                    OmenButton(title: "Connect a league", action: onConnect, variant: .primary, size: .md)
+                }
                 waiverWatch
                 ledgerPreview
                 leaguePulse
@@ -116,6 +128,9 @@ struct OmenCommandCenterScreen: View {
                     .foregroundStyle(OmenColor.textPrimary)
             }
             Spacer(minLength: OmenSpacing.step8)
+            // M6-ContextualHelp. Sits beside the profile control so help is reachable from the
+            // header without competing with it for the eye.
+            OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .commandCenter))
             if let onOpenAccount {
                 OmenIconButton(
                     contentDescription: "Account and profile",
@@ -313,6 +328,15 @@ struct OmenCommandCenterScreen: View {
 }
 
 /// Immutable view state.
+extension OmenCommandCenterScreen {
+    /// Only when the strip has no verified league. A connected user does not need this CTA,
+    /// and showing it beside a real league name would read as "your league didn't work."
+    var showsConnectCallToAction: Bool {
+        if case .empty = state.context { return true }
+        return false
+    }
+}
+
 struct OmenCommandCenterState {
     let greeting: String
     let context: OmenContextStripState
@@ -451,7 +475,11 @@ enum OmenCommandCenterFixtures {
             OmenPlatformRowState(platform: .yahoo, status: .disconnected),
             OmenPlatformRowState(platform: .espn, status: .disconnected)
         ],
-        matchup: .noMatchup(reason: "No matchup yet — connect Sleeper, Yahoo, or ESPN to see your team's week.")
+        // Conflict resolution (M6 merge): this branch's row list is kept, but its matchup
+        // copy — "connect Sleeper, Yahoo, or ESPN" — is not. Yahoo is `.onHold`: it cannot be
+        // connected anywhere right now, so naming it here would send someone to a dead end.
+        // Sleeper connects in the app and ESPN connects on the Omen website, so both belong.
+        matchup: .noMatchup(reason: "No matchup yet — connect Sleeper or ESPN to see your team's week.")
     )
 
     /// Honest loading state — session restore or dashboard-summary in flight.

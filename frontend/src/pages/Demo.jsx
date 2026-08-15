@@ -118,7 +118,7 @@ function ConversionFooter() {
           className="mt-1 text-sm leading-6"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          Connect Yahoo, Sleeper, or ESPN and Omen reads your actual roster.
+          Connect Sleeper or ESPN and Omen reads your actual roster.
         </p>
       </div>
       <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">

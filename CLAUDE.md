@@ -2,7 +2,7 @@
 
 You are working in the Omen product layer. Lanes are a scheduling convenience, never an authority boundary — any runtime may be assigned any item. Confirm this session's actual capabilities and read Runtime Policy before applying any authority.
 
-**Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The native mobile pivot is active authority; the web app is secondary and new web page migrations are paused. Omen is **free indefinitely** — no Stripe, subscription, or paywall code exists. **Draft Assistant is cut from 1.0** (2026-08-05) and ships 2027 on a Slops-built ADP; do not reference it in store metadata, onboarding copy, or marketing claims.
+**Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The native mobile pivot is active authority; the web app is secondary and new web page migrations are paused. Omen is **free indefinitely** — no Stripe, subscription, or paywall code exists. **Draft Assistant is cut from 1.0** (2026-08-05) and ships for the **2027 fantasy draft** on a Slops-built ADP. Amended 2026-08-14: a single factual "2027 fantasy draft" mention is permitted on the marketing site and in a clearly-labelled in-app "not in this version" note — never "coming soon", never a month. It stays out of **store metadata**, onboarding copy, navigation, legal copy, and the advertised tool list.
 
 ## Read in order before pulling a task
 

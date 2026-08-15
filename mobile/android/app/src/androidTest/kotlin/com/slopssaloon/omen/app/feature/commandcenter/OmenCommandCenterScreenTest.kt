@@ -37,7 +37,14 @@ class OmenCommandCenterScreenTest {
                 .fetchSemanticsNodes().isNotEmpty()
         )
         assertEquals(0, composeRule.onAllNodesWithText("Waiver Watch is landing next").fetchSemanticsNodes().size)
-        composeRule.onNodeWithText("Review Omen’s waiver analysis", substring = true).performClick()
+        // `performScrollTo` before the click: the platforms strip added a section above Waiver
+        // Watch, so on a phone-height viewport this link now starts below the fold. Without the
+        // scroll the tap lands outside the viewport and the callback never fires — the node
+        // lookup above still succeeds, which is why the failure surfaced on the click assertion
+        // rather than the text one.
+        composeRule.onNodeWithText("Review Omen’s waiver analysis", substring = true)
+            .performScrollTo()
+            .performClick()
         assertTrue(openedOmen)
     }
 

@@ -3,7 +3,7 @@
 **Status:** Canonical | Last updated: 2026-08-02
 **Renamed:** Corvus → Omen (2026-06-22). The feature formerly called "Omen" is now the app name. The `corvus/` repo directory remains only as a legacy Git/deploy boundary until the external cutover.
 **Source files:** `brand.md`, `positioning.md`, `BRAND_STRATEGY.md`, `omen-ux-ui-design-system-v1.md`
-**Logos:** canonical asset set at `logos/` (13 files) — primary emblem (shield), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), full brand board, and PNG preview sheet. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
+**Logos:** canonical asset set at `logos/` — **vector masters in `logos/svg/` (12 + 5 icon layers), rasters rendered from them (16 files)**. Primary emblem (Omen B2: aged-brass **O**, football negative space), standalone wordmark, horizontal lockup, app icon (rounded-square badge), favicon set (16/32/48/64/180/256/512), and the 1024 store/native master `omen-app-icon-1024.png`. The retired shield brand board and preview sheet are archived at `Brand/archive/superseded-shield-2026-07-25/` and are not part of the canonical set. All PNGs on solid black backgrounds. Build-served copies must exist at `frontend/public/`; per-slot wire-up rules and current gap live in §12 Logo Usage.
 **Scope:** Brand decisions only. Roadmap, sitemap, pricing, architecture, and operating rules live elsewhere.
 
 ---
@@ -195,14 +195,14 @@ Every feature must serve at least one. A feature that serves none does not belon
 
 ## 10a. Marketing Pillars (Provisional)
 
-The brand board (`logos/omen-full-brand-board.png`) names four pillars for external positioning:
+The retired shield brand board (archived at `Brand/archive/superseded-shield-2026-07-25/omen-full-brand-board.png`) named four pillars for external positioning:
 
 1. **DETECT THE SIGNAL**
 2. **ANALYZE THE DATA**
 3. **PREDICT THE OUTCOME**
 4. **WIN WITH CONFIDENCE**
 
-**Status: provisional.** The concept is right — this is the shape of what Omen does. The specific phrasing was drafted on the brand board and has not been intentionally locked by Justin as our marketing voice. Do not put these on marketing pages, ads, or in-app copy until confirmed. Parked as an open decision, same posture as Decision 13 of `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md`.
+**Status: provisional.** The concept is right — this is the shape of what Omen does. The specific phrasing was drafted on the brand board and has not been intentionally locked by Justin as our marketing voice. Do not use on marketing pages, ads, or in-app copy until confirmed. Parked as an open decision, same posture as Decision 13 of `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md` (provisional tagline lock).
 
 **Do not confuse with §10 Product Pillars.** §10's Decision Intelligence / Engagement / Trust / Accessibility are *internal engineering principles* — every feature must serve at least one. §10a's Detect / Analyze / Predict / Win are (would be) *external marketing pillars* — how Omen tells its own story publicly. Different jobs, different scopes. Do not mix.
 
@@ -219,39 +219,60 @@ The brand board (`logos/omen-full-brand-board.png`) names four pillars for exter
 
 ---
 
-## 10a. Marketing Pillars (Provisional)
-
-The brand board (`logos/omen-full-brand-board.png`) names four pillars for external positioning:
-
-1. **DETECT THE SIGNAL**
-2. **ANALYZE THE DATA**
-3. **PREDICT THE OUTCOME**
-4. **WIN WITH CONFIDENCE**
-
-**Status: provisional.** The concept is right — this is the shape of what Omen does. The specific phrasing was drafted on the brand board and has not been intentionally locked by Justin as our marketing voice. Do not use on marketing pages, ads, or in-app copy until confirmed. Parked as an open decision, same posture as Decision 13 of `slops-saloon/Direction/decisions/corvus-ux-ui-direction-v1.md` (provisional tagline lock).
-
-**Do not confuse with §10 Product Pillars.** §10's Decision Intelligence / Engagement / Trust / Accessibility are *internal engineering principles* — every feature must serve at least one. §10a's Detect / Analyze / Predict / Win are (would be) *external marketing pillars* — how Omen tells its own story publicly. Different jobs, different scopes. Do not mix.
-
----
-
 ## 12. Logo Usage
 
-**Load-bearing rule:** the emblem is a shield. The shield is its own frame. It never sits inside a circle. It sits inside a rounded-square only when the OS demands one — that's the favicon / app-icon container from the brand board, and nowhere else.
+**Load-bearing rule:** the emblem is the **Omen B2** mark — an aged-brass letter **O** whose inner negative space is a literal American football. The mark's own brass ring is its frame. It never sits inside a circle. It sits inside a rounded-square only when the OS demands one — the favicon / app-icon / launcher container — and nowhere else.
+
+> **Amendment — 2026-07-25 (founder-approved).** This section originally described the emblem as a
+> **shield** with a **gold border**. That description is **withdrawn**. The shield was retired on
+> 2026-07-25 and replaced by the approved **Omen B2** mark; the production asset swap landed
+> 2026-07-26 in PR #199 (`ca96559`), and the retired files are archived at
+> `Brand/archive/superseded-shield-2026-07-25/`.
+>
+> The clause's real intent survives and still holds: **the mark carries its own frame, so product
+> surfaces must not add one.** No CSS ring, circular mask, glow, drop shadow, or square container
+> around the emblem, wordmark, or lockup. Only the OS-demanded install-icon badge may contain it.
+>
+> Read with `Blueprints/specs/mobile/omen-mobile-visual-briefs-v1.md` §1.1, which was amended the
+> same day to withdraw its blanket ban on "literal footballs" — the football lives in the identity,
+> never as ornament inside product UI.
 
 ### 12.1 Asset inventory (canonical at `logos/`)
 
-- **Primary emblem** `omen-primary-emblem.png` — favicon slots, small-badge contexts, notification-icon parent. Alone in small contexts; paired with wordmark uses the horizontal lockup instead.
-- **Standalone wordmark** `omen-standalone-wordmark.png` — typography-lockup moments where the emblem would clutter (footer sign-offs, share-card headings, hero paragraphs).
-- **Horizontal lockup** `omen-horizontal-lockup.png` — **default logo for identity slots.** Header, NavDrawer, Landing hero, OmenLanding, marketing hero, share-card header, Sign-In screen. Now shipping in transparent variant `omen-horizontal-lockup-transparent.png` for light-theme safety.
-- **Favicon set** `omen-favicon-{16,32,48,64,180,256,512}.png` — browser tab, PWA manifest, apple-touch-icon, tiles.
-- **App icon** `omen-favicon-app-icon.png` — PWA install / home-screen icon slot.
-- **Brand board** `omen-full-brand-board.png` — doctrine reference only. Never as UI.
-- **Preview sheet** `omen-png-preview-sheet.png` — doctrine reference only.
+| Asset | File | Use it here | Never use it here |
+|---|---|---|---|
+| Primary emblem | `omen-primary-emblem.png` | Alone: small-badge contexts, share-card corner mark, notification-icon parent. Paired with the wordmark: use the horizontal lockup instead. | Alone in any large / hero context — pair with the wordmark or use the lockup. |
+| Standalone wordmark | `omen-standalone-wordmark.png` | Typography-lockup moments where the emblem would compete or clutter — footer sign-offs, share-card headings, marketing hero paragraphs. | Anywhere the B2 mark helps identity carry — use the horizontal lockup. |
+| Horizontal lockup | `omen-horizontal-lockup.png` | **Default logo for identity slots.** `Header.jsx`, Landing hero, `OmenLanding.jsx`, marketing hero, share-card header, Sign-In screen. Ships as `-transparent` (dark surfaces) and `-raven` (light surfaces). | Inside anything smaller than ~32px tall — the wordmark becomes illegible; use the emblem alone. |
+| Stacked lockup | `svg/omen-lockup-stacked.svg` | Centred moments — launch screens, posters, social treatments. | Inline in dense UI; it needs vertical room. |
+| Favicon set | `omen-favicon-{16,32,48,64,180,256,512}.png` | Browser tab, PWA manifest, apple-touch-icon, taskbar / home-screen tiles. | Inside the app UI as a logo. Never declared `maskable` — the apexes clip. |
+| SVG favicon | `omen-favicon.svg` | Browser tab on every SVG-capable browser; declared ahead of the PNGs. | As an in-app logo. |
+| App icon | `omen-favicon-app-icon.png` | PWA install / home-screen slot where a rounded-square badge is expected. 1024², corners baked in, alpha outside the badge. | Inside the app UI. Not an App Store submission asset — it has alpha. |
+| Store master | `omen-app-icon-1024.png` | App Store Connect submission. 1024², **opaque, square, no alpha, no baked corners**. | Anywhere in-app. The OS applies its own mask. |
+| Maskable PWA icon | `omen-maskable-512.png` | The **only** asset that may be declared `"purpose": "maskable"` — mark held to 52% of canvas so it survives an aggressive circular mask. | As a normal favicon; it is deliberately over-padded. |
+| Retired shield board + preview sheet | `Brand/archive/superseded-shield-2026-07-25/` | Historical reference only. | Never as UI, never in product, marketing, or store listings. |
+
+### 12.1a Vector masters (canonical at `logos/svg/`)
+
+**SVG is the master format. Every raster in `logos/` is a render of one of these.** Exported from Figma file `Lmj3VyXmE1u2WhGbQOqUIk` ("Omen Favicon Exploration v1"), page `05 — Export Masters`. That file — not the Native Design House file — is the identity source of truth.
+
+| File | What it is |
+|---|---|
+| `omen-symbol-primary.svg` | The B2 mark, full detail: brass gradient plus the radial sheen. Square, Raven ground. |
+| `omen-app-icon-master-1024.svg` | App-icon composition (rounded-rect ground baked in for preview only). |
+| `omen-wordmark-{bone,raven}.svg` | Source-faithful vector trace of the OMEN wordmark. |
+| `omen-lockup-{horizontal,stacked}.svg` | The two official lockups. |
+| `omen-symbol-micro-{16,32}.svg` | Purpose-drawn small cuts — **not** the primary mark scaled down. Use at ≤32px. |
+| `omen-symbol-{brass,bone,raven}-on-{raven,bone}.svg` | Flat monochrome variants for constrained or single-colour surfaces. |
+| `icon-layers/omen-icon-layer-{1-outer-o,2-football,3-laces}.svg` | Flat, unshaded, unmasked layers authored for Apple Icon Composer. |
+| `icon-layers/1024-grid/` | The same layers remapped onto the 1024 icon grid, restructured into the two layers the shipping `.icon` actually uses. |
+
+Rule: **do not scale the primary symbol below 32px** — switch to the micro cut, which is drawn for that size.
 
 ### 12.2 Framing rule
 
-- **In-app UI:** emblem, standalone wordmark, and horizontal lockup are presented **raw** — no border, no glow, no drop shadow, no circular mask, no square container. Each asset carries its own frame. Ambient effects around the mark (background gradient, hairline rule) are fine. Wrappers that *contain* the mark are not.
-- **App-icon slot only exception:** the rounded-square dark badge shown on the brand board is the *only* container the shield ever sits inside. OS-demanded shape for install icons. Nowhere else.
+- **In-app UI:** emblem, standalone wordmark, and horizontal lockup are presented **raw** — no border, no glow, no drop shadow, no circular mask, no square container. Each asset already carries its own frame (the B2 mark's aged-brass ring; the wordmark's built-in negative space). Ambient effects around the mark (background gradient, hairline rule) are fine. Wrappers that *contain* the mark are not.
+- **App-icon slot only exception:** the rounded-square dark badge is the *only* container the B2 mark ever sits inside. OS-demanded shape for install icons (web app-icon, iOS AppIcon, Android launcher). Nowhere else.
 
 ### 12.3 Wordmark rule — asset, not text
 
@@ -260,38 +281,29 @@ The wordmark **is the designed asset** (`omen-standalone-wordmark.png` or its em
 ### 12.4 Build-serve requirement
 
 Canonical assets live at `omen/logos/`. Build-served copies must live at `omen/frontend/public/`. Vite serves from `public/`, not `logos/`. Any asset used in the app must exist in both locations. When the canonical asset is updated, the build-served copy must be re-copied in the same commit.
-### 12.1 Asset inventory
 
-| Asset | File | Use it here | Never use it here |
-|---|---|---|---|
-| Primary emblem | `omen-primary-emblem.png` | Alone: favicon slots, small-badge contexts, share-card corner mark, notification-icon parent. Paired with wordmark: use the horizontal lockup instead. | Alone in any large / hero context — pair with the wordmark or use the lockup. |
-| Standalone wordmark | `omen-standalone-wordmark.png` | Typography-lockup moments where the emblem would compete or clutter — footer sign-offs, share-card headings, marketing hero paragraphs. | Anywhere the shield helps identity carry — use the horizontal lockup. |
-| Horizontal lockup | `omen-horizontal-lockup.png` | **Default logo for identity slots.** `Header.jsx`, `NavDrawer`, `Landing.jsx` hero, `OmenLanding.jsx`, marketing hero, share-card header, Sign-In screen. | Inside anything smaller than ~32px tall — wordmark becomes illegible; use the emblem alone. |
-| Favicon set | `omen-favicon-{16,32,48,64,180,256,512}.png` | Browser tab, PWA manifest, apple-touch-icon, taskbar / home-screen tiles. | Inside the app UI as a logo. |
-| App icon | `omen-favicon-app-icon.png` | PWA install / home-screen icon slot where a rounded-square badge is expected. | Inside the app UI. |
-| Brand board | `omen-full-brand-board.png` | Doctrine reference only — this document, pitch decks, contractor handoffs. | Never as UI. Never in the app. |
-| Preview sheet | `omen-png-preview-sheet.png` | Doctrine reference / QA of the asset set. | Never as UI. |
+**The rule is "used by the web app", not "every file in `logos/`."** Submission and native-only masters — `omen-app-icon-1024.png` and everything in `logos/svg/icon-layers/` — must **not** be copied to `public/`; the web app never requests them and shipping them only bloats the bundle. As of 2026-08-14 every asset the web app does reference is present and byte-identical in both locations.
 
-### 12.2 Framing rule
+### 12.4a Native icon slots
 
-- **In-app UI:** the emblem, standalone wordmark, and horizontal lockup are presented **raw** — no border, no glow, no drop shadow, no circular mask, no square container. Each asset already carries its own frame (the shield's gold border; the wordmark's built-in negative space). Ambient effects around the mark (a subtle background gradient, a section divider, a hairline rule) are fine. Wrappers that *contain* the mark are not.
-- **App-icon slot only exception:** the rounded-square dark badge shown on the brand board is the *only* container the shield ever sits inside. This is because the OS demands a square shape for install icons. Nowhere else.
+The native apps do not read from `logos/` at build time — each platform needs the mark committed in its own required layout. **Both native slots are vector**, cut from `logos/svg/`; only App Store Connect needs a raster.
 
-### 12.3 Wordmark rule — asset, not text
+| Slot | Location | Contents |
+|---|---|---|
+| App Store Connect | `logos/omen-app-icon-1024.png` | 1024×1024, opaque, **no alpha channel** — App Store Connect rejects alpha. No pre-baked corners; Apple applies the mask. |
+| iOS | `mobile/ios/OmenIOS/OmenIOS/Omen.icon/` | An **Icon Composer document**, not an `.appiconset`. `icon.json` plus two SVG layers — a brass ring and the laces — over a Raven ground. iOS 26 renders it as a layered Liquid Glass icon (the system supplies specular, refraction, and shadow; the artwork must not) and back-deploys a flattened icon to older releases. Registered in `project.pbxproj` as `folder.iconcomposer.icon` and selected by `ASSETCATALOG_COMPILER_APPICON_NAME = Omen`. |
+| Android | `mobile/android/app/src/main/res/` | Adaptive icon (`mipmap-anydpi-v26/`): Raven Black `@color/ic_launcher_background` plus **VectorDrawable** foreground and monochrome layers in `drawable/`. No PNG mipmap ladder — `minSdk = 26` guarantees adaptive-icon support, so the rasters were dead weight. Wired via `android:icon` / `android:roundIcon`. |
 
-The wordmark **is the designed asset** (`omen-standalone-wordmark.png` or its embedded appearance inside the horizontal lockup). Alegreya-Sans-rendered "Omen" is a *text label* — used in `<title>`, meta tags, ARIA labels, `alt` attributes, and inline body copy where the visual mark cannot render. Where the visual identity is expressed, the asset is used, not the text.
+**Two rules that are easy to get wrong, both learned the hard way here:**
 
-**The current `[C]`-in-circle-plus-text-wordmark treatment in `Header.jsx` and `NavDrawer` is doctrine debt.** It predates the wordmark asset shipping. The fix — swap for the horizontal lockup — is scoped in the Codex prompt at `Blueprints/prompts/codex-logo-suite-swap.md`.
+1. **The football must be a cutout, never a dark shape painted on top.** In the layer artwork it is an `evenOdd` subtraction from the brass ring, so the ground shows through. Paint it as a black layer instead and Icon Composer glassifies it — the mark collapses into a featureless brass blob. Same reasoning drives the Android `fillType="evenOdd"`.
+2. **The `<monochrome>` drawable must be a flat silhouette**, sharing the foreground's geometry but one colour. Point it at the coloured artwork and themed-icon mode renders a solid block.
 
-### 12.4 Build-serve requirement
-
-Canonical assets live at `omen/logos/`. Build-served copies must live at `omen/frontend/public/` — Vite serves from `public/`, not from `logos/`. Any asset used in the app must exist in both locations. When the canonical asset is updated, the build-served copy must be re-copied in the same commit.
-
-**Current gap (as of 2026-07-03):** the horizontal lockup, standalone wordmark, app-icon, and the 48 / 64 favicon sizes exist canonically at `logos/` but have not been copied to `frontend/public/`. The Vite build cannot currently serve them. Closing this gap is scoped in the Codex prompt referenced above.
+The install-icon badge is the framing exception from §12.2 — it is the only container the mark sits inside, and only because the OS demands a square.
 
 ### 12.5 Inheritance from the fan-experience doctrine
 
-Per `slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md`, the load-bearing principle is *Look Good — Play Good.* The logo-usage rules above serve that principle directly: the shield's own gold border does the framing job better than a redundant CSS ring, and the horizontal lockup expresses more identity per pixel than an emblem-plus-loose-text pattern. Rule of thumb: **presence of identity, not decoration of identity.**
+Per `slops-saloon/Direction/decisions/slops-saloon-fan-experience-doctrine-v1.md`, the load-bearing principle is *Look Good — Play Good.* The logo-usage rules above serve that principle directly: the B2 mark's own aged-brass ring does the framing job better than a redundant CSS ring, and the horizontal lockup expresses more identity per pixel than an emblem-plus-loose-text pattern. Rule of thumb: **presence of identity, not decoration of identity.**
 
 ---
 
