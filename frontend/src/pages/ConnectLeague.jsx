@@ -497,16 +497,50 @@ function EspnGuide({ browser, setBrowser }) {
   );
 }
 
+/**
+ * True on phone-sized viewports. Deliberately a viewport check rather than user-agent
+ * sniffing: what matters is whether the person can realistically follow desktop
+ * developer-tools instructions, and a narrow window is the honest proxy. Re-evaluates on
+ * resize so rotating or resizing does not strand someone on the wrong card.
+ */
+function useIsMobileViewport(breakpointPx = 768) {
+  const query = `(max-width: ${breakpointPx}px)`;
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia?.(query).matches === true,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const list = window.matchMedia(query);
+    const onChange = (event) => setIsMobile(event.matches);
+    setIsMobile(list.matches);
+    list.addEventListener('change', onChange);
+    return () => list.removeEventListener('change', onChange);
+  }, [query]);
+
+  return isMobile;
+}
+
 function EspnCard({ connected, disabled, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [browser, setBrowser] = useState('Chrome or Edge');
   const [form, setForm] = useState({ espn_s2: '', swid: '', league_id: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const isMobileViewport = useIsMobileViewport();
 
   const ESPN_ENABLED = import.meta.env.VITE_ESPN_ENABLED === 'true';
   const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE_BUILD === 'true';
-  if (APP_STORE_BUILD) return <MobileEspnCard />;
+  // A phone cannot complete this flow at all. The cookies ESPN requires are HttpOnly, so
+  // only a browser extension can read them — and no mobile browser we can reach exposes
+  // them: Chrome has no extensions on phones, and Safari Web Extensions cannot read
+  // HttpOnly cookies at all (Apple: unsupported on iOS and macOS; confirmed on a real
+  // iPhone 2026-08-15, where every read returned empty with permission granted).
+  //
+  // Showing the cookie-paste form to a phone user is therefore a guaranteed dead end: the
+  // steps below tell them to open developer tools, which no mobile browser has. Give them
+  // the honest card instead — the same one the app-store build already uses.
+  if (APP_STORE_BUILD || isMobileViewport) return <MobileEspnCard />;
   if (!ESPN_ENABLED && !connected) return null;
 
   async function handleConnect(e) {

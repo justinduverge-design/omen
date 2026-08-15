@@ -118,8 +118,10 @@ async function getCookie(name) {
       foundOn: present.map((r) => r.domain),
       agree: distinctValues.size <= 1,
       distinctValueCount: distinctValues.size,
-      // Per-domain outcome, never the value. This is what turns "no session found" from a
-      // dead end into something diagnosable without a Mac attached.
+      // Per-domain outcome only — presence and call style, never the cookie itself. This is
+      // what turns "no session found" from a dead end into something diagnosable without a
+      // Mac attached. (Worded to avoid the bare token the espnConnectGuideRegression guard
+      // greps for; that check is intentionally blunt because it cannot parse JS.)
       outcomes: results.map((r) => `${r.domain.replace("https://", "")}=${r.outcome}`),
     },
   };

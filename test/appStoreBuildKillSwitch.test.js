@@ -26,7 +26,11 @@ test("ConnectLeague.jsx replaces ESPN cookie entry with the desktop extension gu
   assert.ok(cardMatch, "EspnCard component not found");
   const card = cardMatch[0];
 
-  const appStoreIdx = card.indexOf("if (APP_STORE_BUILD) return <MobileEspnCard />;");
+  // Broadened 2026-08-15: the guide now also serves phone-sized viewports, because a phone
+  // cannot complete ESPN connect at all — the cookies are HttpOnly and no mobile browser we
+  // can reach exposes them. The app-store build must still take this path, and must still
+  // take it before the ESPN_ENABLED bypass, which is what this test exists to protect.
+  const appStoreIdx = card.search(/if \(APP_STORE_BUILD(?: \|\| isMobileViewport)?\) return <MobileEspnCard \/>;/);
   const connectedIdx = card.indexOf("if (!ESPN_ENABLED && !connected) return null;");
 
   assert.match(src, /const ESPN_EXTENSION_GUIDE_URL = '\/espn-connect';/);
@@ -38,6 +42,10 @@ test("ConnectLeague.jsx replaces ESPN cookie entry with the desktop extension gu
     appStoreIdx < connectedIdx,
     "APP_STORE_BUILD check must run before the ESPN_ENABLED/connected bypass",
   );
+  // A phone must never be shown the cookie-paste form: its steps require developer tools,
+  // which no mobile browser has. Safari Web Extensions cannot read HttpOnly cookies at all.
+  assert.match(card, /isMobileViewport/, "phone-sized viewports must also get the desktop guide");
+  assert.match(src, /function useIsMobileViewport\(/, "viewport hook missing");
 });
 
 test("Yahoo and Sleeper connect are untouched by the app-store kill switch", () => {
