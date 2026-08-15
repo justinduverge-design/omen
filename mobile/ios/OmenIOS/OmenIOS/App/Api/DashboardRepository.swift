@@ -31,3 +31,32 @@ struct StubDashboardRepository: DashboardRepository {
         result
     }
 }
+
+// MARK: - Slice C — league standings
+
+/// Separate from `DashboardRepository` on purpose: the two have different cost and failure
+/// profiles. The dashboard reads our own rows; standings makes a live provider call. Keeping
+/// them apart stops a slow or failing provider from being able to hold up the shell.
+protocol LeagueRepository {
+    func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError>
+}
+
+struct ApiLeagueRepository: LeagueRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
+        await client.get("api/league/standings", accessToken: accessToken, as: LeagueStandings.self)
+    }
+}
+
+struct StubLeagueRepository: LeagueRepository {
+    let result: Result<LeagueStandings, OmenApiError>
+
+    func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
+        result
+    }
+}

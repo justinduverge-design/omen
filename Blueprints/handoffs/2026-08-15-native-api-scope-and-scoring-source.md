@@ -3,7 +3,7 @@
 **Session type:** reconnaissance → scoping → one bounded repair → M5 slices A + B (iOS)
 **Branch:** `fix/a5-nflverse-path-and-native-api-scope` → PR [#309](https://github.com/justinduverge-design/omen/pull/309). Pushed and open; **not merged, not deployed.**
 **Backend suite:** **537/537 pass** (`npm test`, node `--test`, ~4.6s). Baseline at session start was 535/535.
-**iOS suite:** **145/0** on Xcode 26.6 / iPhone 17 Pro simulator, against a 123/0 baseline. See the addendum at the end of this file.
+**iOS suite:** **158/0** on Xcode 26.6 / iPhone 17 Pro simulator, against a 123/0 baseline. See the addenda at the end of this file.
 
 ---
 
@@ -122,3 +122,48 @@ No backend contract changed. No provider account, credential, or cookie accessed
 ## Not done
 
 **Android slices A + B.** Same two slices, `OkHttp`-based, with `:app:assembleDebug`, connected tests, and the primitive scanner as evidence. `M5-Native-API-Client` stays `IN_PROGRESS`; it must not be recorded VERIFIED on the iOS half. Slices C–G are untouched.
+
+---
+
+# Addendum 2 — M5 slice C, iOS: real league identity on the Command Center
+
+**Result: 158 tests / 0 failures** (Xcode 26.6, iPhone 17 Pro simulator). Baseline 123/0; slices A+B+C together add 35 tests.
+
+## The correction that made this cheap
+
+Addendum 1 recorded the missing league/team display names as a **backend ask**. That was wrong, and the correction is worth keeping because it changed the plan from "extend a contract" to "compose two existing ones."
+
+`GET /api/league/standings` → `league-standings.v1` already carries everything the context strip needs, for **all three providers**:
+
+- `league_name` on the envelope — `src/routes/league.js:98`
+- `team_name` and **`is_current_user`** per row — `adapters/sleeper.js:312`, `adapters/espn.js`, `services/yahoo.js` each set the flag
+
+So no backend change, no new contract, and no crossing of the backend ownership boundary. Slice C became a client composition of two shipped routes.
+
+## Progressive fill — required, not stylistic
+
+The two routes have different cost and failure profiles, and conflating them would have been the real mistake:
+
+| | `dashboard-summary.v1` | `league-standings.v1` |
+|---|---|---|
+| Reads | our own Supabase rows | **live provider API** |
+| Speed | fast | provider-dependent |
+| Off-season | returns tool gates | returns `200` with `standings: []` |
+| Failure | fails the shell | must **not** fail the shell |
+
+Shape implemented: summary lands → screen is fully usable with honest states. Then, **only when the shell says a provider is actually connected**, standings is fetched and the context strip upgrades in place. Every standings failure path is silent to the user.
+
+## What the tests lock down
+
+1. Context fills only with a **verified** identity — real platform, non-empty league name, and a team the provider marked `is_current_user`. Any partial answer yields no strip rather than a placeholder next to a real value.
+2. A missing `is_current_user` flag means "not known to be mine", never "mine" — otherwise the league leader would be silently claimed as the user's team.
+3. An unrecognized provider string yields no platform mark and no strip, rather than a guess that would badge a league with the wrong provider.
+4. A standings failure leaves the shell **loaded** and the strip empty — `viewModel.failure` stays nil.
+5. A disconnected user never issues the standings call at all (asserted with a counting repository).
+6. Off-season empty standings produces no strip.
+
+## Not done
+
+**Android A + B + C parity.** `M5-Native-API-Client` stays `IN_PROGRESS`. Slices D–G untouched.
+
+The Android mapping must reproduce two non-obvious behaviors found on the iOS side: the season override (waiver state comes from the Omen status, because `buildWaiverTool()` has no off-season branch) and the progressive-fill gating (no standings call for a disconnected user).

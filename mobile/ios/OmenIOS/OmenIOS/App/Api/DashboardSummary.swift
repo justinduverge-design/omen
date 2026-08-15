@@ -93,13 +93,16 @@ extension OmenCommandCenterState {
     /// would be invention, and the matchup carries a reason derived from the real status.
     /// The missing display-name fields are a backend ask, recorded in
     /// `Blueprints/handoffs/frontend-to-backend.md` — not something to paper over here.
-    static func from(summary: DashboardSummary) -> OmenCommandCenterState {
+    /// `context` is slice C's overlay. It is `nil` until (and unless) `league-standings.v1`
+    /// yields a platform, a league name, and a team this user owns — so the default here
+    /// stays `.empty` and the screen only ever gains detail, never loses it.
+    static func from(summary: DashboardSummary, context: OmenContextStripState? = nil) -> OmenCommandCenterState {
         let omenStatus = summary.tools.omenOfTheWeek.status
         let connected = summary.platforms.anyConnected
 
         return OmenCommandCenterState(
             greeting: greeting(for: omenStatus),
-            context: .empty,
+            context: context ?? .empty,
             matchup: .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
             waiverWatch: waiverWatch(for: summary.tools.waiverWire.status, season: omenStatus),
             ledger: omenStatus == .needsPlatform ? .notConnected : .empty,

@@ -50,6 +50,9 @@ struct AppShellView: View {
                     authViewModel: authViewModel,
                     dashboardRepository: ApiDashboardRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
+                    leagueRepository: ApiLeagueRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
                     )
                 )
             }

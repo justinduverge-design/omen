@@ -21,13 +21,15 @@ struct CommandCenterView: View {
         userID: String,
         sessionManager: SessionManager,
         authViewModel: AuthViewModel,
-        dashboardRepository: DashboardRepository
+        dashboardRepository: DashboardRepository,
+        leagueRepository: LeagueRepository
     ) {
         self.userID = userID
         self.sessionManager = sessionManager
         self.authViewModel = authViewModel
         _commandCenterViewModel = StateObject(wrappedValue: CommandCenterViewModel(
             repository: dashboardRepository,
+            leagueRepository: leagueRepository,
             sessionManager: sessionManager
         ))
     }

@@ -43,7 +43,11 @@ final class CommandCenterViewModelTests: XCTestCase {
             }
         }
         let repository = FailingRepository()
-        let viewModel = CommandCenterViewModel(repository: repository, sessionManager: makeSessionManager(withToken: "t"))
+        let viewModel = CommandCenterViewModel(
+            repository: repository,
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
 
         await viewModel.load(userID: SessionManager.demoUserID)
 
@@ -55,6 +59,7 @@ final class CommandCenterViewModelTests: XCTestCase {
     func testSuccessfulLoadMapsSummaryIntoCommandCenterState() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omen: "ready"))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: "t")
         )
 
@@ -69,6 +74,7 @@ final class CommandCenterViewModelTests: XCTestCase {
     func testFailedLoadSurfacesFailureRatherThanClaimingNoLeagues() async {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: "t")
         )
 
@@ -80,6 +86,7 @@ final class CommandCenterViewModelTests: XCTestCase {
     func testMissingAccessTokenIsUnauthorizedRatherThanACrash() async {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: nil)
         )
 
@@ -95,11 +102,124 @@ final class CommandCenterViewModelTests: XCTestCase {
         sessionManager.restore()
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .failure(.unauthorized)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
             sessionManager: sessionManager
         )
 
         await viewModel.load(userID: "user-1")
 
         XCTAssertEqual(sessionManager.state, .needsReauth)
+    }
+}
+
+// MARK: - Slice C — progressive context fill
+
+extension CommandCenterViewModelTests {
+    private func standings(currentUser: Bool = true) throws -> LeagueStandings {
+        try JSONDecoder().decode(LeagueStandings.self, from: Data("""
+        {
+          "contract_version": "league-standings.v1",
+          "platform": "sleeper",
+          "league_id": "1",
+          "league_name": "Slops Dynasty",
+          "standings": [{"team_name":"Team Slops","is_current_user":\(currentUser),"rank":3}]
+        }
+        """.utf8))
+    }
+
+    /// Slice C upgrades the strip in place after the shell is already renderable.
+    func testStandingsUpgradesTheContextStripAfterTheShellLoads() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try connectedSummary())),
+            leagueRepository: StubLeagueRepository(result: .success(try standings())),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        guard case .selected(_, let leagueName, let teamName)? = viewModel.context else {
+            return XCTFail("expected the context strip to be filled from standings")
+        }
+        XCTAssertEqual(leagueName, "Slops Dynasty")
+        XCTAssertEqual(teamName, "Team Slops")
+    }
+
+    /// The whole point of progressive fill: a provider hiccup must not turn a working
+    /// Command Center into an error screen. The shell stays loaded and simply stays unfilled.
+    func testStandingsFailureLeavesTheShellLoadedAndTheStripEmpty() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try connectedSummary())),
+            leagueRepository: StubLeagueRepository(result: .failure(.server(status: 502))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertNil(viewModel.failure, "a standings failure must not fail the whole screen")
+        XCTAssertNil(viewModel.context)
+        guard case .empty = viewModel.commandCenterState.context else {
+            return XCTFail("expected the strip to stay empty rather than regress or invent")
+        }
+    }
+
+    /// Asking a disconnected user's provider for standings is a guaranteed round-trip to an
+    /// error, so the shell gates it.
+    func testDisconnectedUserNeverIssuesTheStandingsCall() async throws {
+        final class CountingLeagueRepository: LeagueRepository {
+            var calls = 0
+            func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
+                calls += 1
+                return .failure(.network)
+            }
+        }
+        let league = CountingLeagueRepository()
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try disconnectedSummary())),
+            leagueRepository: league,
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(league.calls, 0)
+    }
+
+    func testStandingsWithoutTheUsersTeamLeavesTheStripEmpty() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try connectedSummary())),
+            leagueRepository: StubLeagueRepository(result: .success(try standings(currentUser: false))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertNil(viewModel.context)
+    }
+
+    private func connectedSummary() throws -> DashboardSummary {
+        try summaryJSON(sleeperConnected: true)
+    }
+
+    private func disconnectedSummary() throws -> DashboardSummary {
+        try summaryJSON(sleeperConnected: false)
+    }
+
+    private func summaryJSON(sleeperConnected: Bool) throws -> DashboardSummary {
+        try JSONDecoder().decode(DashboardSummary.self, from: Data("""
+        {
+          "contract_version": "dashboard-summary.v1",
+          "is_mock": false,
+          "user": { "favorite_team": null },
+          "platforms": {
+            "yahoo": { "connected": false },
+            "sleeper": { "connected": \(sleeperConnected), "username": "slops" },
+            "espn": { "connected": false }
+          },
+          "tools": {
+            "omen_of_the_week": { "available": true, "status": "ready" },
+            "waiver_wire": { "available": true, "status": "ready" }
+          }
+        }
+        """.utf8))
     }
 }
