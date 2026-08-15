@@ -1,7 +1,7 @@
 # Handoff — 2026-08-15 — Native API scope, nflverse path repair, A5 memo
 
 **Session type:** reconnaissance → scoping → one bounded repair → M5 slices A + B + C (iOS)
-**Branch:** `fix/a5-nflverse-path-and-native-api-scope` → PR [#309](https://github.com/justinduverge-design/omen/pull/309). Pushed and open; **not merged, not deployed.**
+**Branch:** `fix/a5-nflverse-path-and-native-api-scope` → PR [#309](https://github.com/justinduverge-design/omen/pull/309). Merge state is carried by git history and `Blueprints/done/LEDGER.md`, not asserted here — a handoff that hardcodes "not merged" is stale the moment it is. **Not deployed:** merging to `main` does not deploy the native apps, and `OMEN_CRON_SCORING_ENABLED` stays false.
 **Backend suite:** **537/537 pass** (`npm test`, node `--test`, ~4.6s). Baseline at session start was 535/535.
 **iOS suite:** **158/0** on Xcode 26.6 / iPhone 17 Pro simulator, against a 123/0 baseline. See the addenda at the end of this file.
 
