@@ -40,9 +40,30 @@ async function getActiveTabUrl() {
   return tab?.url || null;
 }
 
+const ESPN_ORIGIN_PATTERN = "https://*.espn.com/*";
+
+// Safari grants host permissions per site at runtime, where Chrome and Edge grant
+// everything in `host_permissions` at install. So on iOS the cookies API can succeed and
+// return nothing purely because the user has not allowed the extension on espn.com yet —
+// indistinguishable, from the code's point of view, from "not logged in". Verified on a
+// real iPhone 2026-08-15: signed in to ESPN, popup still reported no session.
+async function hasEspnAccess() {
+  try {
+    return await chrome.permissions.contains({ origins: [ESPN_ORIGIN_PATTERN] });
+  } catch {
+    // Older/edge implementations without the permissions API: assume granted rather than
+    // blocking a browser where manifest host permissions are install-time.
+    return true;
+  }
+}
+
 function getCookieFrom(domainUrl, name) {
   return new Promise((resolve) => {
-    chrome.cookies.get({ url: domainUrl, name }, (cookie) => resolve(cookie?.value || null));
+    try {
+      chrome.cookies.get({ url: domainUrl, name }, (cookie) => resolve(cookie?.value || null));
+    } catch {
+      resolve(null);
+    }
   });
 }
 
@@ -86,9 +107,32 @@ async function init() {
   ]);
 
   if (!espnS2Result.value || !swidResult.value) {
+    // Distinguish "we were never allowed to look" from "we looked and found nothing".
+    // Telling a signed-in user to sign in is the worst possible message, and it is exactly
+    // what this popup did on iOS before the permission check existed.
+    if (!(await hasEspnAccess())) {
+      el("needsAccess").hidden = false;
+      el("grantAccess").addEventListener("click", async () => {
+        // Must run from a user gesture; Safari shows its own consent sheet here.
+        const granted = await chrome.permissions.request({ origins: [ESPN_ORIGIN_PATTERN] })
+          .catch(() => false);
+        if (granted) {
+          el("needsAccess").hidden = true;
+          await init();
+        } else {
+          const accessStatus = el("accessStatus");
+          accessStatus.textContent =
+            "Omen still doesn't have access to ESPN. You can also allow it in Safari settings → Extensions.";
+          accessStatus.className = "error";
+        }
+      });
+      return;
+    }
+
     el("notLoggedIn").hidden = false;
     el("openEspn").addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://fantasy.espn.com/football/" });
+      // `/football/` 404s — verified 2026-08-15. `/football/team` is the live entry point.
+      chrome.tabs.create({ url: "https://fantasy.espn.com/football/team" });
     });
     return;
   }
