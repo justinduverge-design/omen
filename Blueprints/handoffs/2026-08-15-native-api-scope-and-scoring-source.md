@@ -167,3 +167,44 @@ Shape implemented: summary lands → screen is fully usable with honest states. 
 **Android A + B + C parity.** `M5-Native-API-Client` stays `IN_PROGRESS`. Slices D–G untouched.
 
 The Android mapping must reproduce two non-obvious behaviors found on the iOS side: the season override (waiver state comes from the Omen status, because `buildWaiverTool()` has no off-season branch) and the progressive-fill gating (no standings call for a disconnected user).
+
+---
+
+# Addendum 3 — M5 slices A + B + C, Android: both platforms level
+
+**Evidence:** `:app:assembleDebug` and `:app:assembleDebugAndroidTest` green. **26 connected instrumentation tests / 0 failures** on the `medium_phone` API 36 emulator — 4 pre-existing Command Center tests plus 22 new. `:core:auth`, `:core:session`, `:core:designsystem` JVM unit tests green.
+
+Direct mirror of the iOS files, same package layout under `app/feature/api/`. Uses `org.json` and the OkHttp dependency `OkHttpAccountRepository` already pulls in — **no new dependency, no build-config change.**
+
+## The two behaviors carried over from the iOS build
+
+Both were flagged in Addendum 2 as things Android had to reproduce, and both are now covered by tests:
+
+1. **Season comes from the Omen status, not the waiver status.** `buildWaiverTool()` has no off-season branch. Without the override a connected user is told to watch waivers in August.
+2. **A disconnected user never issues the standings call.** Asking a disconnected provider is a guaranteed round-trip to an error.
+
+## Test placement — a real constraint, not a preference
+
+The `:app` module has **no JVM `src/test` source set**, only `androidTest`. Adding one means adding `testImplementation` dependencies and changing `build.gradle.kts` — squarely inside this repo's "do not touch package files or dependencies" guardrail.
+
+So slices A–C's tests are pure logic that nonetheless runs on an emulator. That is slower than it should be and it makes these tests unavailable to anyone without a device. **If a future item legitimately adds a unit-test source set to `:app`, these tests should move there** — recorded here rather than silently accepted.
+
+## Primitive-enforcement scanner
+
+I could not find a Gradle task, script, or CI step implementing an Android primitive-enforcement scanner, despite several prior handoffs and Done-when lines citing "primitive scanner green" as Android evidence. On iOS it is a real XCTest (`PrimitiveEnforcementTests`, inside the 158). On Android it appears to be either a manual step, a retired tool, or a citation that was carried forward without a mechanism behind it.
+
+**I am not claiming it green for Android.** Worth a look before the next item cites it — an evidence line nobody can run is the same failure mode as the stale queue entries this session already found twice.
+
+## State of M5
+
+| Slice | iOS | Android |
+|---|---|---|
+| A — transport | ✅ | ✅ |
+| B — dashboard summary | ✅ | ✅ |
+| C — league standings / context | ✅ | ✅ |
+| D — Omen destination | ⬜ | ⬜ |
+| E — Ledger | ⬜ | ⬜ |
+| F — League screen | ⛔ needs design | ⛔ needs design |
+| G — Trade screen | ⛔ needs design | ⛔ needs design |
+
+D and E are wiring against shipped routes. **F and G are not wiring** — they are new screens whose M1 screen-contract slices do not exist. Do not pull them without approved design.
