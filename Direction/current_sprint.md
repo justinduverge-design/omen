@@ -1083,6 +1083,7 @@ These are real but are **not** active tasks and carry no status. They must not d
 - G6 Umami integration — **unblocked by O1** once that lands; promote then.
 - G8 baked-black PNG fallback deletion waits on a clean production soak.
 - G9 code TODOs must be split into separate tasks.
+- **Platforms strip status dot (post-beta polish)** — founder decision 2026-08-14: **not for beta, revisit before launch.** Add a status indicator dot to `OmenPlatformCompactRow` on both platforms. Two constraints are not optional when it is picked up: (1) use the existing **verdigris / crimson** semantic tokens, **not raw green/red** — red/green is the worst pair for the most common colorblindness (~8% of men); (2) give the dot a **non-color differentiator** (filled = connected, hollow ring = disconnected), because the design house forbids status that color alone carries. **Bonus the dot unlocks:** a dot is far narrower than the word "Connected", so the row can drop the redundant platform-name text at large Dynamic Type and stop truncating to `Co…` at XXXL on iPhone SE. The founder accepted that truncation on 2026-08-14 (`#304`), so this is polish, not a defect fix — but the two land naturally together.
 - G10 post-live learning waits on Release Done, seven stable days, and `slops-product-pulse`.
 - M5 theme packs / skins deferred behind M4 — core Omen themes and accessibility first.
 
