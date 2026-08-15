@@ -368,7 +368,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M7-EspnSafariExtension — Bundle the ESPN connect helper into the Omen iOS app
 
-- **Status:** **BLOCKED — the approach cannot work. Do not continue without a founder decision.**
+- **Status:** **CLOSED · Closure: DESCOPED** — founder decision 2026-08-15. The approach cannot work and the target was cut before merge.
+- **What was removed and why:** the `OmenEspnConnectExtension` target built correctly and embedded correctly — it simply cannot obtain the credential, because Safari Web Extensions cannot read HttpOnly cookies. Merging it would have carried a second bundle identifier, added permissions and privacy-questionnaire answers on the App Store listing, and user-visible extension icons in Safari settings, all for **zero user benefit**. Store-review surface you do not need is the wrong thing to carry into a beta.
+- **Kept:** the corrected feasibility memo (`Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md`), which records *why* iOS is closed so this is not re-litigated, and the `extension/` fixes, which still matter for the published Chrome and Edge builds.
+- **Cost to revive:** small — roughly an hour of project-file work, plus re-registering the bundle identifier. If Apple ever lifts the HttpOnly restriction, start from the memo.
+- **Also reverted:** `SDKROOT` / `SUPPORTED_PLATFORMS` had been added to the app and test target configurations as collateral from a bulk edit while wiring the extension. The project file is now byte-identical to `main`.
 - **Killed by real-device evidence 2026-08-15:** **Safari Web Extensions cannot read HttpOnly cookies** (Apple: unsupported, iOS and macOS). `espn_s2` is HttpOnly, which is precisely why this must be an extension. On a real iPhone — extension enabled, `espn.com` set to Allow, user signed in on their team page — all six cookie reads returned empty with the API present and the promise resolving. The target builds and embeds correctly; it simply cannot obtain the credential.
 - **Root cause of the wrong call:** the feasibility memo verified the cookies API was *present* on Safari iOS and that the extension *built*. Neither proves it can read the kind of cookie this depends on. A green build was mistaken for a working feature.
 - **Claim:** Claude, 2026-08-15
