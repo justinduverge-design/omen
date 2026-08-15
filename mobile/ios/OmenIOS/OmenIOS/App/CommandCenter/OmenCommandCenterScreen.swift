@@ -22,6 +22,9 @@ struct OmenCommandCenterScreen: View {
     let onOpenMatchup: (() -> Void)?
     let onOpenAccount: (() -> Void)?
     let onOpenOmen: (() -> Void)?
+    /// M5-NativeConnect. Supplied only when a connect path exists; when nil the screen keeps
+    /// its previous behavior and shows no call to action it cannot honor.
+    let onConnect: (() -> Void)?
     let onOpenLedger: ((OmenLedgerEntry) -> Void)?
     let onOpenLeague: (() -> Void)?
 
@@ -30,6 +33,7 @@ struct OmenCommandCenterScreen: View {
         onSwitchContext: (() -> Void)? = nil,
         onOpenMatchup: (() -> Void)? = nil,
         onOpenAccount: (() -> Void)? = nil,
+        onConnect: (() -> Void)? = nil,
         onOpenOmen: (() -> Void)? = nil,
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
         onOpenLeague: (() -> Void)? = nil
@@ -39,6 +43,7 @@ struct OmenCommandCenterScreen: View {
         self.onOpenMatchup = onOpenMatchup
         self.onOpenAccount = onOpenAccount
         self.onOpenOmen = onOpenOmen
+        self.onConnect = onConnect
         self.onOpenLedger = onOpenLedger
         self.onOpenLeague = onOpenLeague
     }
@@ -49,6 +54,13 @@ struct OmenCommandCenterScreen: View {
                 header
                 OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
                 OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
+                if let onConnect, showsConnectCallToAction {
+                    // Honest-state doctrine: the screen already tells a disconnected user to
+                    // connect a league. Before M5-NativeConnect there was no way to act on
+                    // that. The button appears only when the shell has no usable context AND
+                    // a connect path exists, so it can never advertise a dead end.
+                    OmenButton(title: "Connect a league", action: onConnect, variant: .primary, size: .md)
+                }
                 waiverWatch
                 ledgerPreview
                 leaguePulse
@@ -268,6 +280,15 @@ struct OmenCommandCenterScreen: View {
 }
 
 /// Immutable view state.
+extension OmenCommandCenterScreen {
+    /// Only when the strip has no verified league. A connected user does not need this CTA,
+    /// and showing it beside a real league name would read as "your league didn't work."
+    var showsConnectCallToAction: Bool {
+        if case .empty = state.context { return true }
+        return false
+    }
+}
+
 struct OmenCommandCenterState {
     let greeting: String
     let context: OmenContextStripState
