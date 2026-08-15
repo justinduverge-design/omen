@@ -366,6 +366,28 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** a signed-in native user with no connections can reach a provider picker, complete a Sleeper connection, and land on a Command Center that reflects it; Yahoo and ESPN render honest, non-dead-end states; leaving and returning mid-flow does not lose the safe stage; the acceptance cases in contract §9 that apply to Sleeper are exercised; iOS `xcodebuild test` and Android `:app:assembleDebug` + connected tests green.
 - **Do not touch:** ESPN cookie entry on native (contract §5 and facts-of-record #6 — cookie values are never shown, logged, or echoed). Do not re-enable Yahoo. Do not invent a status meaning outside F2.
 
+### M7-EspnSafariExtension — Bundle the ESPN connect helper into the Omen iOS app
+
+- **Status:** BLOCKED
+- **Blocked by:** FOUNDER_APPROVAL — a new bundle identifier (`com.slopssaloon.omen.<suffix>`) must be registered on the Apple Developer account, and a bundled Safari extension adds permissions and privacy-questionnaire answers to the Omen App Store listing. Apple credentials and store settings are do-not-touch for agents.
+- **Priority:** P1 — it is the only path that lets an iPhone user connect ESPN **without leaving their phone**.
+- **Cost:** medium
+- **Authority / feasibility:** `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md`, which discharges onboarding-contract deliverable 7 **for iOS**. §10's block on "ESPN connected" UI should be lifted for iOS only.
+- **Feasibility is proven, not assumed:** `xcrun safari-web-extension-converter` converts `extension/` with no errors and the generated iOS project builds. Every API the extension uses is supported on Safari iOS — `cookies` from iOS 15, `storage.session.setAccessLevel` from Safari 16.4 — resolved against MDN browser-compat-data. **No extension code changes are required for iOS.**
+- **Scope:** an app-extension target *inside* the existing Omen iOS app, not the converter's default standalone wrapper app — a second App Store app would mean a second download and would discard the entire benefit.
+- **Known snag to expect:** the converter derives the app bundle id from the app *name*, producing "Embedded binary's bundle identifier is not prefixed with the parent app's bundle identifier." Inside Omen this resolves naturally, since the parent is `com.slopssaloon.omen`.
+- **Also in scope:** extension icons stop being cosmetic once bundled — they become user-visible in Safari settings. And confirm the **web** connect page is usable at phone width, since the mobile flow depends on it.
+- **Do not touch:** Apple credentials, provisioning profiles, store metadata, or the ESPN cookie values themselves (facts-of-record #6).
+
+### M8-EspnAndroidHelper — Decide the Android ESPN path (deferred)
+
+- **Status:** BLOCKED
+- **Blocked by:** FOUNDER_DECISION — see the memo §7.2. Not started, and deliberately not parallel to `M7`.
+- **Priority:** P2
+- **Why it is not a mirror of iOS:** **Firefox does not support `storage.session.setAccessLevel` on any platform** (MDN browser-compat-data). `background.js` calls it precisely so the content script can read the payload the popup staged; without it that read throws and the handoff fails silently. A Firefox port is a **code change**, not a repackage — the staging step would move to message passing or a `storage.local` write with an immediate clear, which carries its own privacy review since `storage.local` persists where `storage.session` does not. An earlier read this session called Firefox Android "the most open path"; on the API that matters it is the closed one.
+- **Edge Android** is on by default for Android 11+/Edge 123+ but uses a curated, sandboxed store. Verify Microsoft's current mobile curation policy directly before planning around it — the available sources were secondary and mixed quality.
+- **Interim answer:** Android ESPN users connect on desktop via the published Chrome/Edge listings. Documented, not hidden.
+
 ### M6-ContextualHelp — Teach the product in place, per destination
 
 - **Status:** READY
