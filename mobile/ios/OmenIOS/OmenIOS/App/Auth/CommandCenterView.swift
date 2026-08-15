@@ -14,7 +14,9 @@ struct CommandCenterView: View {
     @ObservedObject var sessionManager: SessionManager
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
+    private let connectRepository: ConnectRepository
     @State private var showAccountSheet: Bool = false
+    @State private var showConnectSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
 
     init(
@@ -22,8 +24,10 @@ struct CommandCenterView: View {
         sessionManager: SessionManager,
         authViewModel: AuthViewModel,
         dashboardRepository: DashboardRepository,
-        leagueRepository: LeagueRepository
+        leagueRepository: LeagueRepository,
+        connectRepository: ConnectRepository
     ) {
+        self.connectRepository = connectRepository
         self.userID = userID
         self.sessionManager = sessionManager
         self.authViewModel = authViewModel
@@ -63,6 +67,7 @@ struct CommandCenterView: View {
                     OmenCommandCenterScreen(
                         state: commandCenterViewModel.commandCenterState,
                         onOpenAccount: { showAccountSheet = true },
+                        onConnect: { showConnectSheet = true },
                         onOpenOmen: { selectedTab = .omen },
                         onOpenLedger: { _ in selectedTab = .omen },
                         onOpenLeague: { selectedTab = .league }
@@ -98,6 +103,23 @@ struct CommandCenterView: View {
             .background(OmenColor.bg)
             .tabItem { Label("League", systemImage: "person.3.fill") }
             .tag(CommandCenterTab.league)
+        }
+        .sheet(isPresented: $showConnectSheet) {
+            NavigationStack {
+                ConnectView(
+                    repository: connectRepository,
+                    sessionManager: sessionManager,
+                    onConnected: {
+                        showConnectSheet = false
+                        // Re-read the shell so the new connection is reflected immediately
+                        // rather than waiting for the next cold launch.
+                        Task { await commandCenterViewModel.load(userID: userID) }
+                    },
+                    onDismiss: { showConnectSheet = false }
+                )
+                .navigationTitle("Connect")
+                .navigationBarTitleDisplayMode(.inline)
+            }
         }
         .sheet(isPresented: $showAccountSheet) {
             NavigationStack {

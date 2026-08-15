@@ -354,7 +354,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M5-NativeConnect — Build the native connect flow (onboarding steps 3–6)
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-15 (Sleeper path, both platforms).**
+- **Claim:** Claude, 2026-08-15
+- **Evidence:** iOS **174 tests / 0 failures** (Xcode 26.6 `17F113`, iPhone 17 Pro simulator; 158/0 baseline). Android **42 connected instrumentation tests / 0 failures** on the `medium_phone` API 36 emulator (26/0 baseline), plus `:app:assembleDebug`, `:app:assembleDebugAndroidTest`, and `:core:*` unit tests green. Backend unchanged at 537/537. Files: iOS `App/Connect/{ConnectFlow,ConnectRepository,ConnectViewModel,ConnectView}.swift`; Android `app/feature/connect/{ConnectFlow,ConnectRepository,ConnectViewModel,ConnectScreen}.kt`. Handoff: `Blueprints/handoffs/2026-08-15-native-connect-flow.md`.
+- **Flake recorded, not hidden:** the first full Android connected run aborted mid-suite (`Expected 42 tests, received 23`) with a collateral failure in the pre-existing `OmenCommandCenterScreenTest`. Both classes then passed in isolation (4/4, 16/16) and **three consecutive full runs passed 42/42**. Treated as emulator instability on first boot, not a product defect — but recorded here so a future recurrence is recognized rather than re-diagnosed.
+- **Scope actually shipped:** Sleeper connect end to end (provider picker → username → league picker → validate → connected), plus honest non-dead-end states for Yahoo ("On hold") and ESPN (routed to the web + published extension). Cancellation is a first-class state, not an error. Retry of a given attempt reuses its `request_id` so the backend replay guard still applies.
+- **Not covered — needs real-device/QA follow-up:** the contract §9 acceptance matrix beyond unit level — real Sleeper account round trip, app backgrounding/termination mid-connect, slow/no-network behavior, VoiceOver/TalkBack, and large-text layouts. This item proves the state machine and policy, not the device matrix.
+- **Superseded status line:** READY
 - **Blocked by:** None for the Sleeper path. See the provider reality below — Yahoo and ESPN are *scoped out*, not blocking.
 - **Priority:** **P0 — beta blocker, and arguably ahead of M5 slices D–G.** As of M5 A–C the native apps correctly tell a user "Connect a league to see your matchup" and then offer **no way to do it**. There is no connect screen, no provider picker, and no call to `/api/platforms/sleeper/connect` on either platform; `OmenPlatformConnectionCard` exists as a design-system component used only in the gallery.
 - **Cost:** medium

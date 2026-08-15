@@ -57,6 +57,9 @@ import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
+import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
+import com.slopssaloon.omen.app.feature.connect.ConnectScreen
+import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
@@ -125,6 +128,15 @@ fun OmenAndroidApp() {
             accessTokenProvider = { store.load()?.accessToken },
         )
     }
+
+    // M5-NativeConnect. Same public base URL; the token is read lazily from secure storage.
+    val connectViewModel = remember {
+        ConnectViewModel(
+            repository = ApiConnectRepository(OmenApiClient(env.apiBaseUrl)),
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
+    var showConnectSheet by remember { mutableStateOf(false) }
     val sessionState by sessionManager.state.collectAsState()
 
     LaunchedEffect(Unit) { sessionManager.restore() }
@@ -345,9 +357,26 @@ fun OmenAndroidApp() {
                             isDemo = s.userId == SessionManager.DEMO_USER_ID,
                             userId = s.userId,
                             commandCenterViewModel = commandCenterViewModel,
+                            onConnect = { showConnectSheet = true },
                             onOpenAccount = { showAccountSheet = true },
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
                             onOpenLeague = { selectedDestination = NavDestination.League },
+                        )
+                    }
+                    OmenModalSheet(
+                        visible = showConnectSheet,
+                        onDismissRequest = { showConnectSheet = false },
+                        title = "Connect",
+                    ) {
+                        ConnectScreen(
+                            viewModel = connectViewModel,
+                            onConnected = {
+                                showConnectSheet = false
+                                // Re-read the shell so the new connection shows immediately
+                                // rather than waiting for the next cold launch.
+                                scope.launch { commandCenterViewModel.load(s.userId) }
+                            },
+                            onDismiss = { showConnectSheet = false },
                         )
                     }
                     OmenModalSheet(
@@ -459,6 +488,7 @@ private fun SignedInDestination(
     isDemo: Boolean,
     userId: String,
     commandCenterViewModel: CommandCenterViewModel,
+    onConnect: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
     onOpenLeague: () -> Unit,
@@ -490,6 +520,7 @@ private fun SignedInDestination(
             } else {
                 OmenCommandCenterScreen(
                     state = commandCenterViewModel.commandCenterState,
+                    onConnect = onConnect,
                     onOpenAccount = onOpenAccount,
                     onOpenOmen = onOpenOmen,
                     onOpenLedger = { onOpenOmen() },

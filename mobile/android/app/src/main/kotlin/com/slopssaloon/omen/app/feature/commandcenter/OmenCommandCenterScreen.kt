@@ -65,6 +65,11 @@ fun OmenCommandCenterScreen(
     onSwitchContext: (() -> Unit)? = null,
     onOpenMatchup: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
+    /**
+     * M5-NativeConnect. Supplied only when a connect path exists; when null the screen shows
+     * no call to action it cannot honor.
+     */
+    onConnect: (() -> Unit)? = null,
     onOpenOmen: (() -> Unit)? = null,
     onOpenLedger: ((OmenLedgerEntry) -> Unit)? = null,
     onOpenLeague: (() -> Unit)? = null,
@@ -85,6 +90,13 @@ fun OmenCommandCenterScreen(
         HeaderBlock(state.greeting, onOpenAccount)
         OmenContextStrip(state = state.context, onSwitch = onSwitchContext)
         OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
+        // Honest-state doctrine: the screen already tells a disconnected user to connect a
+        // league. Before M5-NativeConnect there was no way to act on it. Shown only when the
+        // shell has no verified context AND a connect path exists, so it cannot advertise a
+        // dead end or sit beside a real league name.
+        if (onConnect != null && state.context is OmenContextStripState.Empty) {
+            OmenButton(text = "Connect a league", onClick = onConnect)
+        }
         WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
         LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
         LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
