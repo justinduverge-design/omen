@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { apiFetch } from '../../lib/api.js';
 import { storeNextUrl } from '../../lib/nextUrl.js';
+import { isOnboardingDone, syncOnboardingFromServer } from '../../lib/onboarding.js';
 import { supabase } from '../../lib/supabase.js';
 
 export default function ProtectedRoute({ children }) {
   const location = useLocation();
   const [session, setSession] = useState(undefined); // undefined = still loading
+  // undefined = not yet resolved against the server.
+  const [onboarded, setOnboarded] = useState(() => (isOnboardingDone() ? true : undefined));
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +44,20 @@ export default function ProtectedRoute({ children }) {
     });
   }, [session]);
 
-  if (session === undefined) {
+  // The local flag is a cache, not the record. When it is absent, ask the server
+  // once before assuming this is a new user — otherwise a cleared cache, a new
+  // browser, an incognito window, or a second device re-onboards an established
+  // account. Exempt /onboarding itself so the page can run its own check.
+  useEffect(() => {
+    if (!session || onboarded !== undefined) return;
+    let mounted = true;
+    syncOnboardingFromServer(apiFetch).then((done) => {
+      if (mounted) setOnboarded(done);
+    });
+    return () => { mounted = false; };
+  }, [session, onboarded]);
+
+  if (session === undefined || (session && onboarded === undefined && location.pathname !== '/onboarding')) {
     return (
       <div
         className="flex min-h-[100dvh] items-center justify-center"
@@ -62,11 +78,7 @@ export default function ProtectedRoute({ children }) {
 
   // Onboarding gate — redirect new users until setup is complete.
   // Exempt /onboarding itself to avoid a redirect loop.
-  if (
-    !localStorage.getItem('omen.onboarding.done') &&
-    !localStorage.getItem('corvus.onboarding.done') &&
-    location.pathname !== '/onboarding'
-  ) {
+  if (!onboarded && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

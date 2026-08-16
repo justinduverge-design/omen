@@ -661,7 +661,11 @@ event traceable.
 
 ### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-16.** Both halves fixed together, as the item required. `Done when:` met in full.
+- **Claim:** Claude, 2026-08-16 — released on verification.
+- **Evidence:** branch `claude/p1-connect-continue-route`. RED first: `test/connectContinueRoute.test.mjs` failed on the missing `consumeConnectDestination` / `syncOnboardingFromServer` helpers. GREEN: 12/12 focused, full `npm test` **549/549** (537 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean. Handoff: `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. **Not pushed, merged, or deployed.**
+- **Third defect found while fixing the first:** `ConnectLeague.jsx:696` stores `/account/connect` as the post-login destination when a signed-out visitor hits the connect page. Honoring the stored `next` verbatim therefore returned the user to the screen they had just completed — so fixing only the empty-`next` default would have left a second, less obvious wrong landing. `consumeConnectDestination()` treats `/account/connect`, `/onboarding`, and anything `sanitize()` rejects as "no destination" and lands on `/football`.
+- **Cost of the gate fix, stated plainly:** `ProtectedRoute` now holds the spinner for one `/api/platforms` round-trip when the local flag is absent. Users who have the flag pay nothing. It fails closed — a network error or an unauthenticated answer leaves the flag unset and sends the user to onboarding, never past it.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** small

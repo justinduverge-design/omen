@@ -12,9 +12,12 @@ test("connected platform completes onboarding and the explicit skip cannot redir
   const onboarding = read("frontend", "src", "pages", "Onboarding.jsx");
   const connectLeague = read("frontend", "src", "pages", "ConnectLeague.jsx");
 
-  assert.match(onboarding, /apiFetch\('\/api\/platforms'\)/,
+  assert.match(onboarding, /syncOnboardingFromServer\(apiFetch\)/,
     "onboarding must check the platform connection contract, not recommendation readiness");
-  assert.match(connectLeague, /function markOnboardingDone\(\)/,
+  // The shared action moved to `frontend/src/lib/onboarding.js` (2026-08-16,
+  // P1-ConnectContinueRoute) so the gate, the help drawer, and both exit paths
+  // read one record instead of four inline localStorage reads.
+  assert.match(connectLeague, /import \{ markOnboardingDone \} from '\.\.\/lib\/onboarding\.js'/,
     "connection exit paths need one shared onboarding-completion action");
   assert.match(connectLeague, /function handleSkip\(\)[\s\S]*?markOnboardingDone\(\)/,
     "Skip must mark onboarding complete before navigating to the protected dashboard");

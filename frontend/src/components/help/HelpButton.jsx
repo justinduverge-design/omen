@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useFocusTrap } from '../../lib/useFocusTrap.js';
+import { isOnboardingDone } from '../../lib/onboarding.js';
 
 // ── Page-specific help content ─────────────────────────────────────────────
 
@@ -122,8 +123,7 @@ function HelpPanel({ open, onClose, pathname }) {
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const help = getPageHelp(pathname);
-  const showOnboardingLink = !localStorage.getItem('omen.onboarding.done')
-    && !localStorage.getItem('corvus.onboarding.done');
+  const showOnboardingLink = !isOnboardingDone();
 
   useEffect(() => {
     if (open) {

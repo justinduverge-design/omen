@@ -2,14 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { Card } from '../components/ui/Card.jsx';
-
-const DONE_KEY = 'omen.onboarding.done';
-const LEGACY_DONE_KEY = 'corvus.onboarding.done';
-const PLATFORM_KEYS = ['sleeper', 'yahoo', 'espn'];
-
-function hasConnectedPlatform(data) {
-  return PLATFORM_KEYS.some((platform) => data?.platforms?.[platform]?.connected === true);
-}
+import {
+  hasConnectedPlatform,
+  isOnboardingDone,
+  markOnboardingDone,
+  syncOnboardingFromServer,
+} from '../lib/onboarding.js';
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -220,18 +218,17 @@ export default function Onboarding() {
   const [noConnection, setNoConnection] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(DONE_KEY) || localStorage.getItem(LEGACY_DONE_KEY)) {
+    if (isOnboardingDone()) {
       navigate('/football', { replace: true });
       return;
     }
-    // Returning users may have a valid connection before live recommendations are ready.
-    apiFetch('/api/platforms')
-      .then((data) => {
-        if (hasConnectedPlatform(data)) {
-          setStep(2);
-        }
-      })
-      .catch(() => {});
+    // Returning users may have a valid connection before live recommendations
+    // are ready. A server-side connection *is* a completed onboarding, so record
+    // it and leave — a fresh browser must not walk an established user back
+    // through setup.
+    syncOnboardingFromServer(apiFetch).then((connected) => {
+      if (connected) navigate('/football', { replace: true });
+    });
   }, [navigate]);
 
   const checkConnection = useCallback(async () => {
@@ -252,7 +249,7 @@ export default function Onboarding() {
   }, []);
 
   function complete() {
-    localStorage.setItem(DONE_KEY, 'true');
+    markOnboardingDone();
     navigate('/football', { replace: true });
   }
 
