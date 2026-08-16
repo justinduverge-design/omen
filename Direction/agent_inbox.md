@@ -58,7 +58,7 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
 
-**Claim:** Claude, 2026-08-16 (later session) — `P1-DraftAssistantSideline`, branch `claude/p1-draft-assistant-sideline`.
+**Claim:** none open. Claude, 2026-08-16 (later session) — `P1-DraftAssistantSideline` **and** `R7`, both **CLOSED**, merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f` with all four checks green. Not deployed. Selection below is stale from item 1 down; re-derive before the next pull.
 
 ### ⚠️ Correction — `P1-ConnectContinueRoute` is CLOSED, not open
 
@@ -68,7 +68,7 @@ The cause is now precise enough to fix mechanically: **the handoff is written pr
 
 **Selection below is renumbered from that correction.** 4 items remain from the original 5; all `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim four.
 
-### 1. P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
+### ~~1. P1-DraftAssistantSideline~~ — ✅ CLOSED 2026-08-16 (merged `08aa73f`)
 
 P1, medium, founder-decided 2026-08-11 and **still shipping to every visitor**. Nav, route, `dashboard.js:268` tool entry, help drawer, landing copy, and the `Privacy.jsx` / `Terms.jsx` legal clauses. Preserve the implementation — 2027 ships it on a Slops-built ADP. Note the 2026-08-14 amendment: one factual "2027 fantasy draft" mention is permitted on the marketing site and in a labelled in-app note, never in store metadata.
 

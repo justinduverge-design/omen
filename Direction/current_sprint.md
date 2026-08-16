@@ -250,7 +250,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R7 — Scrub store metadata of Draft Assistant claims
 
-- **Status:** **VERIFIED 2026-08-16.** `Done when:` met in full, and the recorded grep is below. Branch `claude/p1-draft-assistant-sideline`. **Not pushed, merged, or deployed.**
+- **Status:** **CLOSED 2026-08-16.**
+- **Closure:** COMPLETED — merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`, all four checks green. **Not deployed.** `Done when:` met in full; the recorded grep is below.
 - **Claim:** Claude, 2026-08-16 — released on verification.
 - **The store metadata was already clean; the defect was in the app.** `omen-store-listing-copy-v1.md`, `omen-store-review-notes-v1.md`, and `omen-store-privacy-and-rating-answers-v1.md` name Draft Assistant only as a *prohibition* with unticked R7 checkboxes, and the listing is still "Draft for founder review. Not submitted." Nothing there needed scrubbing. **Two false claims were live in shipped native copy on both platforms**, which this item's `Done when:` also covers ("in-app onboarding copy"):
   1. The **League placeholder** promised "…plus seasonal **Draft entry**, arrive in the M4-League-Screen slice" — a forward promise of a cut feature, which reads to a user as "coming soon", the phrasing `CLAUDE.md` prohibits.
@@ -698,7 +699,8 @@ event traceable.
 
 ### P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
 
-- **Status:** **VERIFIED 2026-08-16.** `Done when:` met in full. Branch `claude/p1-draft-assistant-sideline`. **Not pushed, merged, or deployed** — this line is accurate as written and must be re-checked the moment the PR lands; see the correction on `P1-ConnectContinueRoute` above for why.
+- **Status:** **CLOSED 2026-08-16.**
+- **Closure:** COMPLETED — merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`, all four checks green. **Not deployed.** Receipt in `Direction/sprints_completed.md`; ledger row in `Blueprints/done/LEDGER.md`. `Done when:` met in full.
 - **Claim:** Claude, 2026-08-16 — released on verification.
 - **Evidence:** RED first, twice. Pass one: `test/draftAssistantSideline.test.js` failed 8 of 10, and the new `dashboardSummary` assertion failed against the hardcoded `{available: true, status: "ready"}`. Pass two, after the founder override: the draft-dark route assertions failed while `/api/sleeper/draft*` was still registered. GREEN: full `npm test` **563/563** (549 baseline, +14), `npm --prefix frontend run build` clean, `git diff --check` clean. **Strongest single piece of evidence:** the production bundle contains zero occurrences of `Draft Assistant`, `draft-assistant`, or `Draft Position` — the page tree-shakes out entirely once unrouted, so it is unreachable rather than merely unlinked. Handoff: `Blueprints/handoffs/2026-08-16-p1-draft-assistant-sideline.md`.
 - **Fourth surface found while sweeping:** `frontend/src/lib/nextUrl.js` allowlisted `/draft` as a post-login redirect destination, so a stored or crafted `?next=/draft` passed validation and would have landed a freshly signed-in user on a 404. Removed. An allowlist entry for a route that no longer exists is a dead end, not a permission.
