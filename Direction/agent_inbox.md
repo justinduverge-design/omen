@@ -58,27 +58,29 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
 
-**Claim:** Claude, 2026-08-16 — `P1-ConnectContinueRoute`. **Released same day: VERIFIED**, branch `claude/p1-connect-continue-route`, `npm test` 549/549, handoff `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. Not pushed or merged. Item 2 is now the top live pull.
+**Claim:** Claude, 2026-08-16 (later session) — `P1-DraftAssistantSideline`, branch `claude/p1-draft-assistant-sideline`.
 
-**5 items**, `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim five.
+### ⚠️ Correction — `P1-ConnectContinueRoute` is CLOSED, not open
 
-### 1. P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page — ✅ **VERIFIED 2026-08-16**
+The selection written above during the reconciliation pass listed it as item 1 and said "Not pushed or merged." **It had already merged** as PR [#314](https://github.com/justinduverge-design/omen/pull/314) / `107ed66`, 2026-08-16T14:55Z. That is the **sixth** recorded instance of this queue advertising shipped work as pullable, and the second within a single day — the reconciliation pass that was meant to end this pattern reproduced it on its own item.
 
-P1, small, web. Two bugs with one cause: `handleContinue()` falls back to `/account` because `localStorage['omen.auth.next']` is empty in a real session, and onboarding-completion is tracked only in `localStorage['omen.onboarding.done']`, so a fresh browser re-onboards an established account even though `/api/platforms` already knows better. Fix both or the routing fix looks intermittent. Fast local proof: `npm test`, `node --test`, ~7s.
+The cause is now precise enough to fix mechanically: **the handoff is written pre-merge and nothing re-reads it once the PR lands**, so `current_sprint.md` and this file both inherit a stale sentence. The reconciliation's own proposal — flag any sprint item whose key appears in a merged PR title while its `Status:` is not `CLOSED` — should be built rather than repeating the manual sweep a seventh time. Closure receipt: `Direction/sprints_completed.md` → "Post-reconciliation closure — 2026-08-16".
 
-### 2. P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
+**Selection below is renumbered from that correction.** 4 items remain from the original 5; all `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim four.
+
+### 1. P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
 
 P1, medium, founder-decided 2026-08-11 and **still shipping to every visitor**. Nav, route, `dashboard.js:268` tool entry, help drawer, landing copy, and the `Privacy.jsx` / `Terms.jsx` legal clauses. Preserve the implementation — 2027 ships it on a Slops-built ADP. Note the 2026-08-14 amendment: one factual "2027 fantasy draft" mention is permitted on the marketing site and in a labelled in-app note, never in store metadata.
 
-### 3. M5-Native-API-Client slice D (Omen destination) or E (Ledger)
+### 2. M5-Native-API-Client slice D (Omen destination) or E (Ledger)
 
 P0 beta blocker. Slices A+B+C shipped 2026-08-15, so the client, repository, and view-model patterns exist on both platforms; D and E wire against already-shipped routes. One slice per session — not two. F/G need their M1 screen-contract slices first.
 
-### 4. M4-CC-PlatformsCompact — finish the evidence, then close it
+### 3. M4-CC-PlatformsCompact — finish the evidence, then close it
 
 `VERIFIED` as of this pass, not closed. What is missing is small and mechanical: a Pixel-6a-class Android render proving the Omen card sits above the fold, `:app:assembleDebug` + scanner + connected-test results, and a handoff for `6466a4c`. It blocks `B-FREEZE`.
 
-### 5. F9 — Mock / live labeling sweep
+### 4. F9 — Mock / live labeling sweep
 
 P0 and trust-critical. The web half and the full surface inventory are agent-workable now; "every surface on both native apps" needs device evidence, so scope and label the halves rather than claiming the whole.
 
