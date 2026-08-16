@@ -1,7 +1,8 @@
 # Handoff — 2026-08-16 — M5-Native-API-Client slice D (Omen destination)
 
-**Branch:** `feat/m5-slice-d-omen-destination` · **Not pushed, merged, or deployed at time of writing.**
-*(If this line still reads that way after the PR lands, it is stale — see PR #316 for why that keeps happening.)*
+**Merged** as PR [#317](https://github.com/justinduverge-design/omen/pull/317) / `80ee3fa`, 2026-08-16. **Not deployed.**
+
+> Corrected immediately after the merge, per the closeout rule this session set out to fix. No PR checks ran — `pr-quality.yml` is path-filtered and this change is mobile-only, the same precedent recorded for `M5-NativeConnect` (#310). Local evidence is the substitute and is recorded below.
 
 ## What was wrong
 
