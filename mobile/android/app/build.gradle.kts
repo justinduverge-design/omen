@@ -185,6 +185,27 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    // JVM unit tests for `:app`. Added 2026-08-16 after the missing source set cost a second
+    // slice: M5 slices A-D and the R7 copy ban all wrote PURE LOGIC tests that had to run in
+    // `androidTest` on a booted emulator because `:app` had nowhere else to put them — ~50s
+    // and an AVD for assertions that touch no Android framework class.
+    //
+    // No new dependency: `libs.junit` and `libs.kotlin.test.junit` are already in the version
+    // catalog and already used by every `:core:*` module. This enables a source set with
+    // libraries the project has, rather than pulling anything in.
+    //
+    // Rule of thumb for where a test goes: if it needs a Compose semantics tree, a real
+    // Context, or a device behaviour, it belongs in `androidTest`. Otherwise `src/test`.
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test.junit)
+    // TEST-ONLY. The android.jar on the unit-test classpath ships `org.json` as stubs that
+    // throw from every method, so contract-parsing code cannot be unit-tested without the
+    // real implementation. The alternative — `unitTests.isReturnDefaultValues = true` —
+    // returns nulls and zeros instead of throwing, which would turn "this parser is broken"
+    // into a quietly passing test. This never reaches the app: at runtime Android supplies
+    // its own `org.json`, so production behaviour is unchanged.
+    testImplementation(libs.json.unit.test)
+
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -311,6 +311,47 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
 - **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
 
+### M5-Slice-E-Ledger — Wire the Ledger to `GET /api/moves`
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — the last pure-wiring slice of the beta-minimum client.
+- **Cost:** small
+- **Agent-buildable:** yes, in full
+- **Source:** `M5-Native-API-Client` slice E. Slices A–D shipped; the transport, repository, view-model, and contract-mapping patterns all exist on both platforms and were re-proven by slice D on 2026-08-16. **Copy slice D, do not reinvent it** — `OmenDecision.swift` / `OmenDecision.kt` and their view models are the template, including the honest-absence rules.
+- **Scope:** `GET /api/moves` → `moves-history.v1` replaces the Ledger preview fixture. The approved composition (Figma node `72:2`) is unchanged — this is wiring only, no visual work.
+- **Carry the slice-D lessons in:** grep `src/routes/moves.js` for the literal states/shapes it emits before modelling the client (slice D found eleven states where the specs named four); render the server's own message for recovery states rather than a client re-wording; fail safe on an unrecognised shape rather than force-fitting it; never fabricate a field to satisfy a non-optional type — drop the row instead.
+- **Skills:** `slops-tdd`, native read gate
+- **Done when:** the Ledger decodes `moves-history.v1` into existing native state types on both platforms; loading, empty, and error route to `OmenStateSurface` rather than crashing or substituting a fixture; demo still renders labeled fixtures via the demo user id and a test proves the live path is unreachable from demo; iOS `xcodebuild test` and Android `:app:testDebugUnitTest` + `:app:assembleDebug` green, with `xcodebuild -version` recorded per the local-substitute rule. **Pure mapping tests now belong in `:app/src/test`** — the JVM source set landed 2026-08-16; only tests needing a semantics tree or a real Context go in `androidTest`.
+- **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not collapse the demo path (facts-of-record #7).
+
+### M1-Screen-Trade — M1 screen contract: Trade builder + verdict
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the pass is design authority; a screen contract is not self-ratifying. Agent may produce the full proposal; only the founder can approve it.
+- **Priority:** P1 — **this is what blocks `M5` slice G.** The native Trade destination ships an honest "landing next" placeholder today and must keep it until this is approved.
+- **Cost:** medium
+- **Agent-buildable:** proposal yes; approval no.
+- **Source:** `m1-figma-screen-contract-pass-v1.md` §2 "04 — iOS Screens / 05 — Android Screens", flow **4 (Trade builder + verdict)**, plus its golden-screen pair under "Trade verdict". Named as a blocker in `M5-Native-API-Client`: slices F and G "are not wiring — they are new screens whose Figma slices do not exist yet."
+- **Backend is already live and is not the gate:** `POST /api/trade/compare` ships today and Trade Analyzer is free and public on web. What is missing is the native screen contract, not the data.
+- **Skills:** `figma:figma-generate-design`, `design:design-critique`, native read gate
+- **Done when:** low-fidelity iOS and Android screen contracts exist for the Trade builder and its verdict, each with primary plus most-important alternate state; the golden-screen pair exists; every visible element maps to an approved component or an explicit proposal; platform differences are intentional and documented; and §4's acceptance clauses are satisfied and recorded in "06 — QA & Evidence".
+- **Do not touch:** do not invent or rename semantic tokens; do not create an unapproved production component; do not use competitor layouts or copy; do not begin `M5` slice G implementation on an unapproved contract.
+
+### M1-Screen-League — M1 screen contract: League matchup + standings/activity
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — same as above; the proposal is agent work, the ratification is not.
+- **Priority:** P1 — **this is what blocks `M5` slice F.** The native League destination ships an honest placeholder today and must keep it until this is approved.
+- **Cost:** medium
+- **Agent-buildable:** proposal yes; approval no.
+- **Source:** `m1-figma-screen-contract-pass-v1.md` §2, flow **5 (League matchup + standings/activity)**.
+- **Backend is already live and is not the gate:** `GET /api/league/standings` → `league-standings.v1` ships and is already consumed by the Command Center context strip (slice C), so the data shape is proven in native code.
+- **Scope correction carried in, 2026-08-16 (R7):** the app-shell contract used to define this destination as carrying a **"seasonal Draft entry."** Draft is cut from 1.0 and the whole draft path is dark; `omen-native-app-shell-auth-api-contract-v1.md` §1.4 is amended and the `draft` row is preserved for 2027. **This screen contract must not include a Draft entry.**
+- **Skills:** `figma:figma-generate-design`, `design:design-critique`, native read gate
+- **Done when:** low-fidelity iOS and Android screen contracts exist for League matchup and standings/activity with primary plus alternate state, including the honest off-season empty state (`league-standings.v1` correctly returns `standings: []` out of season — facts-of-record #10); every element maps to an approved component or explicit proposal; §4 acceptance recorded in "06 — QA & Evidence".
+- **Do not touch:** no Draft entry; no invented tokens; no unapproved production component; do not begin `M5` slice F on an unapproved contract.
+
 ### M8-EspnAndroidHelper — Decide the Android ESPN path (deferred)
 
 - **Status:** BLOCKED
