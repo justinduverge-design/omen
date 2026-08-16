@@ -250,7 +250,16 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R7 — Scrub store metadata of Draft Assistant claims
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-16.** `Done when:` met in full, and the recorded grep is below. Branch `claude/p1-draft-assistant-sideline`. **Not pushed, merged, or deployed.**
+- **Claim:** Claude, 2026-08-16 — released on verification.
+- **The store metadata was already clean; the defect was in the app.** `omen-store-listing-copy-v1.md`, `omen-store-review-notes-v1.md`, and `omen-store-privacy-and-rating-answers-v1.md` name Draft Assistant only as a *prohibition* with unticked R7 checkboxes, and the listing is still "Draft for founder review. Not submitted." Nothing there needed scrubbing. **Two false claims were live in shipped native copy on both platforms**, which this item's `Done when:` also covers ("in-app onboarding copy"):
+  1. The **League placeholder** promised "…plus seasonal **Draft entry**, arrive in the M4-League-Screen slice" — a forward promise of a cut feature, which reads to a user as "coming soon", the phrasing `CLAUDE.md` prohibits.
+  2. The **off-season Waiver Watch** state said Omen "will surface relevant **draft** and roster opportunities". With the draft path dark, 1.0 surfaces none.
+- **Why `M6-ContextualHelp`'s existing ban did not catch either:** it bans the exact product name "Draft Assistant" in *help* copy. Neither string contains it, and neither is help copy. The new tests ban the **word** inside user-facing literals, which is the level the claim actually lives at.
+- **Found while fixing it — an unrelated leak in the same sentences.** Both "landing next" placeholders told users their feature arrives "in the **M4-League-Screen** / **M4-Trade-Screen** slice". A sprint key is not a date, a version, or anything a user can act on. Removed from all five sites and banned by a shape-matching rule, so a newly-minted key cannot slip through either.
+- **Contract amended, not silently overridden.** `omen-native-app-shell-auth-api-contract-v1.md` defined the League destination as carrying a "seasonal Draft entry" — it was the older authority, and the native copy was faithfully implementing it. Per governance §3 the conflict is recorded rather than quietly resolved: the `draft` destination row is **preserved** for 2027 and marked out of 1.0 scope, with an amendment note at §1.4.
+- **Evidence:** RED proven on both platforms by restoring the original strings — iOS named both files and quoted both sentences; Android failed on `State=OffSeason`. GREEN: **iOS 192/192** (`xcodebuild test`, Xcode **26.6** build **17F113**, iPhone 17 Pro simulator; baseline 188 + 4 new incl. the `OmenIOSUITests` set), **Android 51/51** connected instrumentation on `medium_phone` API **36** (baseline 50, +1) with `:app:assembleDebug` green, backend **563/563**, frontend build clean, `git diff --check` clean.
+- **Recorded grep (the `Done when:` artifact):** `grep -rniE '"[^"]*\bdrafts?\b[^"]*"'` across `mobile/ios/OmenIOS/OmenIOS` and `mobile/android/app/src/main` returns exactly **one** hit — `DesignSystemGalleryView.swift:334` `"Leave draft?"`, a discard-unsaved-work confirmation in the dev-only design-system gallery. Different sense of the word, never shipped in a fantasy context. `M4-Trade-Screen` / `M4-League-Screen` return none.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** small

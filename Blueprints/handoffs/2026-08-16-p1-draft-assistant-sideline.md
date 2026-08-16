@@ -1,4 +1,4 @@
-# Handoff — 2026-08-16 — P1-DraftAssistantSideline
+# Handoff — 2026-08-16 — P1-DraftAssistantSideline + R7
 
 **Branch:** `claude/p1-draft-assistant-sideline` · **Not pushed, merged, or deployed.**
 
@@ -62,7 +62,7 @@ Verified on this branch before any change:
 ## Costs and limits, stated
 
 - **Not browser-verified.** Nobody loaded `/draft` in a running app to watch the 404. The bundle grep plus the catch-all route assertion stand in for it.
-- **`R7` is not closed by this.** It is a separate item covering store metadata; this pass re-checked it and found nothing to fix, but the checkbox is `R7`'s to tick.
+- **`R7` was pulled into this branch** after the re-check turned up live claims in native copy. See its own section below.
 - **Landing layout:** the "More from Omen" grid keeps `sm:grid-cols-2` with one child, so `OmenMiniCard` renders at exactly its previous width instead of stretching to full bleed. That is the minimum-risk visual outcome, not necessarily the right design — a one-item "More from Omen" section is worth a designer's eye.
 - **Native untouched.** This is web + backend only.
 
@@ -88,6 +88,40 @@ The three routes now register only behind `DRAFT_ASSISTANT_ENABLED`, so they are
 | `true` | `/draft`, `/draft/:draftId`, `/draft/:draftId/state`, `/roster` |
 
 Final numbers after the override: `npm test` **563/563** (549 baseline, +14), frontend build clean, `git diff --check` clean, and the shipped Privacy copy reads `matchups, transactions` in the built bundle.
+
+
+## R7 — scrub Draft Assistant claims from store metadata and in-app copy
+
+Pulled after the `Done when:` re-check above turned up more than a checkbox.
+
+**The store metadata was already clean.** All three store specs name Draft Assistant only as a *prohibition* with unticked R7 boxes, and the listing is still "Draft for founder review. **Not submitted.**" Nothing to scrub.
+
+**Two false claims were live in shipped native copy, on both platforms** — which R7's `Done when:` covers as in-app copy:
+
+| Claim | Where | Why it is false |
+|---|---|---|
+| "…plus seasonal **Draft entry**, arrive in the M4-League-Screen slice" | iOS `CommandCenterView`, `ScreenshotScenarios`; Android `OmenAndroidApp` | A forward promise of a cut feature. To a user this reads as "coming soon" — the exact phrasing `CLAUDE.md` prohibits. |
+| "Omen will surface relevant **draft** and roster opportunities…" | iOS + Android `OmenCommandCenterScreen`, off-season Waiver Watch | With the draft path dark, 1.0 surfaces no draft opportunities at all. |
+
+**Why the existing ban missed both.** `M6-ContextualHelp` bans the exact product name "Draft Assistant" in *help* copy. Neither string contains it, and neither is help copy. The new tests ban the **word** inside user-facing string literals — the level the claim actually lives at. That is the durable lesson: when a feature is cut, ban the noun and its capability language, not the marketing name in one surface.
+
+**An unrelated leak, found in the same sentences.** Both "landing next" placeholders told users their feature arrives "in the **M4-League-Screen** / **M4-Trade-Screen** slice". A sprint key is not a date, a version, or anything a user can act on — internal planning vocabulary that escaped into the product. Removed from all five sites, and banned by a rule that matches the *shape* of a sprint key, so a newly-minted one cannot slip through either.
+
+**A contract was amended rather than silently overridden.** `omen-native-app-shell-auth-api-contract-v1.md` defined the League destination as carrying a "seasonal Draft entry" — the native copy was faithfully implementing an approved contract that predated the sideline. Governance §3 says stop and flag; the conflict is recorded at §1.4, and the `draft` destination row is **preserved** for 2027 rather than deleted, so its contract survives the sideline. **This is the piece most worth a second opinion.**
+
+### Evidence
+
+- **RED proven on both platforms** by restoring the original strings: iOS named both files and quoted both sentences; Android failed on `State=OffSeason`. Then restored.
+- **iOS 192/192** — `xcodebuild test`, **Xcode 26.6, build 17F113**, iPhone 17 Pro simulator (baseline 188, +4).
+- **Android 51/51** connected instrumentation on `medium_phone` **API 36** (baseline 50, +1), with `:app:assembleDebug` green.
+- **Backend 563/563**, frontend build clean, `git diff --check` clean.
+- **Recorded grep** (`Done when:` artifact): `grep -rniE '"[^"]*\bdrafts?\b[^"]*"'` across `mobile/ios/OmenIOS/OmenIOS` and `mobile/android/app/src/main` returns exactly **one** hit — `DesignSystemGalleryView.swift:334` `"Leave draft?"`, a discard-unsaved-work confirmation in the dev-only gallery. Different sense of the word. Sprint-key grep returns none.
+
+### Limits
+
+- **Android's test is narrower than the iOS twin.** iOS scans every string literal under `OmenIOS/App/` from disk; Android asserts the *rendered* semantics tree across the six waiver states, because instrumentation runs on-device where the repo source does not exist and `:app` still has **no JVM unit-test source set** — a pre-existing, founder-gated build-config change, the same limitation recorded for the M5 slice A–C tests. Port the scanner if that source set lands.
+- **Screenshots were not regenerated.** `ScreenshotScenarios.swift` copy changed, so any store screenshot built from it is stale until re-captured.
+- **No Android render captured** for the changed placeholders — the copy is proven by test, not by eye.
 
 ## Skills
 

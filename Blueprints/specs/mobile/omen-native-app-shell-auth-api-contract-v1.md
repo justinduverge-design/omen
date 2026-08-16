@@ -50,9 +50,18 @@ Top-level destinations (limited): **Command Center · Omen · Trade · League**.
 | `command` | Command Center | yes | first useful destination |
 | `omen` | Omen | yes | calls `POST /api/omen/mvp-move` |
 | `trade` | Trade Room | no (public) | Trade Analyzer is free/public |
-| `draft` | Draft Room | yes | Seasonal destination; reached through League and promoted from Command Center during a draft-relevant period, not a permanent tab. |
-| `league` | League | yes | Roster, matchup, standings, connected-league context, and seasonal Draft entry. Fourth top-level destination. |
+| `draft` | Draft Room | yes | **Not in 1.0 — amended 2026-08-16 (R7).** Seasonal destination; reached through League and promoted from Command Center during a draft-relevant period, not a permanent tab. Returns for the 2027 draft alongside `DRAFT_ASSISTANT_ENABLED`; see the re-activation path in `Direction/decision_log.md`. |
+| `league` | League | yes | Roster, matchup, standings, and connected-league context. Fourth top-level destination. ~~Plus seasonal Draft entry~~ — **removed from 1.0 scope 2026-08-16 (R7)**, restored for 2027. |
 | `account` | Account/Connections | yes | Reached from a contextual profile/avatar control; profile, providers, privacy, appearance, support, and in-app account deletion. |
+
+> **Amendment — 2026-08-16 (R7, propagating the founder decision of 2026-08-11).**
+> This contract defined the League destination as carrying a "seasonal Draft entry", and the
+> native League placeholder on both platforms promised it in user-facing copy. Draft is **cut
+> from 1.0** and the entire draft path is dark (facts-of-record #9; decision log 2026-08-16),
+> so this contract was the older authority and has been amended rather than flagged-and-left.
+> Governance §3 says a conflicting artifact must be stopped and flagged; the conflict is
+> recorded here and in the decision log, and the `draft` destination is preserved in this table
+> for 2027 rather than deleted, so its contract survives the sideline.
 
 ### 1.4 Surface ownership — Command Center vs. Omen
 
@@ -63,7 +72,7 @@ These destinations must not duplicate each other. The distinction is behavioral,
 | **Command Center** | **Orient and prioritize.** “What matters for this selected team and league right now?” | League/team switcher; **current matchup and record** directly beneath the context strip; then **Waiver Watch** urgency (deadline, roster need, injury/bye-week openings, trending opportunity); compact league pulse (standing, meaningful stats); the most recent 1–3 Ledger entries | The full waiver analysis, Start/Sit decision workspace, and complete Ledger in Omen |
 | **Omen** | **Advise and explain.** “Help me make the move.” | Full **Start/Sit** workspace; full waiver recommendation analysis (add/drop, alternatives, confidence, reasoning); complete Ledger/history and outcomes | Not applicable — this is the decision workspace |
 | **Trade** | **Evaluate a proposed trade.** | Public Trade Analyzer and its reasoning | Relevant player/league context only where it clarifies the trade |
-| **League** | **Explore league context.** | Roster, matchup, standings, connected-league context, and seasonal Draft entry | Omen analysis when a user asks for a recommendation |
+| **League** | **Explore league context.** | Roster, matchup, standings, and connected-league context (~~seasonal Draft entry~~ — out of 1.0 scope, 2026-08-16) | Omen analysis when a user asks for a recommendation |
 
 ### 1.4.1 League page hierarchy
 
