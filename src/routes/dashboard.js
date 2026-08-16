@@ -263,7 +263,11 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       user: userProfile,
       platforms: await buildPlatformSummaryForUser(rows, req.user.id),
       tools: {
-        draft_assistant: { available: true, mode: "free", status: "ready" },
+        // `draft_assistant` was hardcoded `available: true, status: "ready"`
+        // here and removed 2026-08-16 (P1-DraftAssistantSideline). Draft
+        // Assistant is cut from 1.0 and must not appear in the advertised tool
+        // list (facts-of-record #9). Restore this line for 2027 alongside
+        // DRAFT_ASSISTANT_ENABLED; see `config.draftAssistant`.
         omen_of_the_week: buildOmenTool({ rows, offSeason: isOffSeason() }),
         start_sit: { available: true, mode: "free", status: "ready" },
         trade_analyzer: { available: true, mode: "free", status: "ready" },

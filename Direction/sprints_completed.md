@@ -221,3 +221,17 @@ Evidence is per-task and exact. Broad ranges are not used: the prior `#125–#13
 | Task key | Title | Closure date | Reason |
 | :--- | :--- | :--- | :--- |
 | M7-EspnSafariExtension | Bundle the ESPN connect helper into the Omen iOS app | 2026-08-15 | Founder decision. **Safari Web Extensions cannot read HttpOnly cookies** — the extension compiled, embedded, and installed, and could never have worked. Cut before merge; feasibility memo and the corrected connect page landed in PR #311 `e3038d2`. Android path is deferred separately as `M8-EspnAndroidHelper`. |
+
+---
+
+## Post-reconciliation closure — 2026-08-16 (later session)
+
+One item, closed in the session immediately after the reconciliation above. It is filed separately rather than appended to that table because it was **not** part of that pass: it merged after it, and the reconciliation's own inbox refresh went on to describe it as unmerged.
+
+### CLOSED / COMPLETED (1)
+
+| Task key | Title | Closure date | Exact evidence |
+| :--- | :--- | :--- | :--- |
+| P1-ConnectContinueRoute | "Continue" after connecting lands on the wrong page | 2026-08-16 | Merged PR [#314](https://github.com/justinduverge-design/omen/pull/314) / `107ed66` (2026-08-16T14:55Z). New `frontend/src/lib/onboarding.js`; `consumeConnectDestination()` in `nextUrl.js` defaults to `/football`; `ProtectedRoute.jsx` treats the local flag as a cache in front of `/api/platforms` and fails closed. RED first (`test/connectContinueRoute.test.mjs`); GREEN 12/12 focused, full `npm test` **549/549** (537 baseline), frontend build clean. Handoff: `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. Ledger row: `Blueprints/done/LEDGER.md`, 2026-08-16. **Merged, not deployed.** |
+
+**Why this needed a correction pass at all.** Both `current_sprint.md` and `agent_inbox.md` still read "Not pushed or merged" after `107ed66` landed — the **sixth** recorded instance of this queue advertising shipped work as open, and the second inside one day. The mechanism is now specific enough to name: the handoff is written before the PR merges and nothing revisits it afterward, so every downstream file inherits a pre-merge sentence. The reconciliation pass itself proposed the fix — *a check that flags any sprint item whose key appears in a merged PR title while its `Status:` is not `CLOSED`* — and this recurrence is the argument for building it rather than repeating the manual sweep a seventh time.

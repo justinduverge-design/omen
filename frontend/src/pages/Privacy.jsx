@@ -15,7 +15,14 @@ export default function Privacy() {
       <InfoSection title="Information we collect">
         <ul className="list-disc space-y-2 pl-5">
           <li><strong>Account information:</strong> email address, authentication identifier, display name, and account timestamps.</li>
-          <li><strong>Fantasy-platform information:</strong> platform identifiers, usernames, selected leagues and teams, rosters, standings, matchups, drafts, transactions, players, and related metadata.</li>
+          {/* "drafts" removed 2026-08-16 (P1-DraftAssistantSideline, founder
+              decision: the whole draft path is dark for 1.0). This list states
+              what Omen actually collects. With /api/sleeper/draft* unmounted,
+              1.0 collects no draft data, and claiming otherwise would overstate
+              collection. Restore this word in the same pass that re-enables
+              DRAFT_ASSISTANT_ENABLED — collection copy and the routes that do
+              the collecting have to move together, in both directions. */}
+          <li><strong>Fantasy-platform information:</strong> platform identifiers, usernames, selected leagues and teams, rosters, standings, matchups, transactions, players, and related metadata.</li>
           <li><strong>Connection credentials:</strong> OAuth tokens and, when you choose ESPN connection, ESPN session-cookie values needed to attempt that connection.</li>
           <li><strong>Omen activity:</strong> recommendations, saved moves, consent records, connection status, and feature interactions.</li>
           <li><strong>Device and diagnostic information:</strong> IP address, user agent, request details, security events, and error or performance data.</li>
@@ -30,7 +37,7 @@ export default function Privacy() {
       <InfoSection title="How we use information">
         <p>
           We use information to authenticate you; connect the leagues you select; provide rosters, standings,
-          recommendations, history, and draft tools; operate the waitlist; respond to requests; secure, debug, and improve
+          recommendations, and history; operate the waitlist; respond to requests; secure, debug, and improve
           Omen; enforce our Terms; and meet legal obligations.
         </p>
         <p>

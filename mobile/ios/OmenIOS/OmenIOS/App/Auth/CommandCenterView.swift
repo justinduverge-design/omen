@@ -85,7 +85,7 @@ struct CommandCenterView: View {
             OmenStateSurface(
                 kind: .empty,
                 title: "Trade is landing next",
-                message: "Trade Analyzer arrives in the M4-Trade-Screen slice."
+                message: "Trade Analyzer arrives here. It is free and open on the Omen website today."
             )
             .padding(OmenSpacing.step24)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -96,7 +96,7 @@ struct CommandCenterView: View {
             OmenStateSurface(
                 kind: .empty,
                 title: "League is landing next",
-                message: "League roster/matchup/standings, plus seasonal Draft entry, arrive in the M4-League-Screen slice."
+                message: "Roster, matchup, and standings for your connected league arrive here."
             )
             .padding(OmenSpacing.step24)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

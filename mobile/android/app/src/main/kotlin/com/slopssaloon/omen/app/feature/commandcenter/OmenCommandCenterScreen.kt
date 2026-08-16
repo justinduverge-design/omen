@@ -227,7 +227,7 @@ private fun WaiverWatch(state: OmenWaiverWatchState, onOpenOmen: (() -> Unit)?) 
             OmenWaiverWatchState.OffSeason -> OmenStateSurface(
                 kind = OmenStateSurfaceKind.Empty,
                 title = "Long-horizon waiver context",
-                message = "Omen will surface relevant draft and roster opportunities without weekly waiver urgency.",
+                message = "Omen will surface relevant roster opportunities without weekly waiver urgency.",
             )
         }
     }

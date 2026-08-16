@@ -69,6 +69,28 @@ const config = {
     enabled:      String(process.env.YAHOO_ENABLED || "").trim().toLowerCase() === "true",
   },
 
+  // --- Draft Assistant (sidelined to 2027) ----------------------
+  //
+  // Draft Assistant is cut from 1.0 and sidelined to the 2027 fantasy draft
+  // (founder decision 2026-08-11; facts-of-record #9). The implementation is
+  // PRESERVED, not deleted — `src/routes/draftAssistant.js`,
+  // `src/services/adp.js`, `src/services/sleeperDraft.js`, and
+  // `src/services/sleeperDraftAccess.js` are the head start that 2027 ships on
+  // a Slops-built ADP. Deleting them costs next season.
+  //
+  // This gates the *mount* only, and it fails closed: with the flag unset,
+  // `/api/draft-assistant/*` is never registered, so it returns the app's
+  // standard not-found rather than a disabled-feature error that would still
+  // confirm the feature exists.
+  //
+  // To bring it back for 2027: set DRAFT_ASSISTANT_ENABLED=true, restore the
+  // frontend route/nav/help entries listed in the decision-log re-activation
+  // path, and re-add the `draft_assistant` entry to the dashboard tool list.
+  // Nothing else needs to change.
+  draftAssistant: {
+    enabled: String(process.env.DRAFT_ASSISTANT_ENABLED || "").trim().toLowerCase() === "true",
+  },
+
   // --- Resend (transactional email) -----------------------------
   resend: {
     apiKey: process.env.RESEND_API_KEY || null,

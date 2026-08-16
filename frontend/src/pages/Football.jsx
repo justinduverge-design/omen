@@ -21,14 +21,12 @@ import {
   YAHOO_CONNECTIONS_ENABLED,
   YAHOO_UNAVAILABLE_MESSAGE,
 } from '../lib/yahooAuth.js';
-import DraftAssistant from './DraftAssistant.jsx';
 import OmenOfTheWeek from './OmenOfTheWeek';
 import TradeAnalyzer from './TradeAnalyzer';
 
 const TABS = [
   { id: 'trade', label: 'Trade Analyzer' },
   { id: 'omen', label: 'Omen of the Week' },
-  { id: 'draft', label: 'Draft Assistant' },
   { id: 'history', label: 'History' },
 ];
 
@@ -207,9 +205,6 @@ export default function Football() {
 
   function renderTab(id) {
     switch (id) {
-      case 'draft':
-        return <DraftAssistant platforms={summary?.platforms} />;
-
       case 'omen':
         if (summaryLoading) {
           return <div className="h-32 animate-pulse motion-reduce:animate-none rounded-xl" style={{ background: 'var(--color-surface-2)' }} />;
@@ -283,7 +278,7 @@ export default function Football() {
           Hall of Records
         </h1>
         <p className="mt-4 text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
-          Start with a trade check, prepare for the draft, then let Omen of the Week fold
+          Start with a trade check, then let Omen of the Week fold
           start/sit and waiver choices into one plain-English weekly move.
         </p>
       </section>

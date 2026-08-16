@@ -23,7 +23,8 @@ const NAV_SECTIONS = [
     auth: false,
     items: [
       { label: 'Trade Analyzer',  to: '/trade' },
-      { label: 'Draft Assistant', to: '/draft' },
+      // Draft Assistant removed 2026-08-16 — cut from 1.0, returns for the
+      // 2027 fantasy draft (P1-DraftAssistantSideline).
       { label: 'Waiver Wire',     to: '/waiver', auth: true },
     ],
   },

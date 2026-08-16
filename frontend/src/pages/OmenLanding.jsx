@@ -32,9 +32,13 @@ function Header() {
 
 // ─── Feature pills ────────────────────────────────────────────────────────────
 
+// Draft Assistant was listed here and removed 2026-08-16
+// (P1-DraftAssistantSideline) — cut from 1.0, returns for the 2027 draft.
+// Trade Analyzer takes the slot: it is the front door per the tool hierarchy
+// in Direction/context.md, and it was conspicuously missing from this list.
 const FEATURES = [
   { label: 'Omen of the Week', desc: 'One move. Every week.' },
-  { label: 'Draft Assistant', desc: 'Know your pick before your turn.' },
+  { label: 'Trade Analyzer', desc: 'Know the deal before you take it.' },
   { label: 'Team Themes', desc: 'Your colors. Your interface.' },
 ];
 

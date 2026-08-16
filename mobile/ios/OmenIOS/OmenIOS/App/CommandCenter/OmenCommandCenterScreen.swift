@@ -177,7 +177,7 @@ struct OmenCommandCenterScreen: View {
                 OmenStateSurface(
                     kind: .empty,
                     title: "Long-horizon waiver context",
-                    message: "Omen will surface relevant draft and roster opportunities without weekly waiver urgency."
+                    message: "Omen will surface relevant roster opportunities without weekly waiver urgency."
                 )
             }
         }

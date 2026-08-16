@@ -110,12 +110,22 @@ try {
   logger.error("Account router failed to load", { err: e.message, stack: e.stack });
 }
 
-// --- Draft Assistant mock contract routes -----------------------
-try {
-  const draftAssistantRoutes = require("./routes/draftAssistant");
-  app.use("/api/draft-assistant", publicToolRateLimit, draftAssistantRoutes);
-} catch (e) {
-  logger.error("Draft Assistant router failed to load", { err: e.message, stack: e.stack });
+// --- Draft Assistant — sidelined to 2027, not mounted -----------
+//
+// Cut from 1.0 (founder decision 2026-08-11; facts-of-record #9). The router
+// is preserved in the tree for the 2027 draft and is mounted only when
+// DRAFT_ASSISTANT_ENABLED=true. Unmounted, the path falls through to the
+// app's standard 404 — the feature is absent, not merely refused, so nothing
+// on the public surface confirms it exists. See `config.draftAssistant` for
+// the full re-activation procedure.
+if (config.draftAssistant.enabled) {
+  try {
+    const draftAssistantRoutes = require("./routes/draftAssistant");
+    app.use("/api/draft-assistant", publicToolRateLimit, draftAssistantRoutes);
+    logger.warn("Draft Assistant mounted — this feature is cut from 1.0");
+  } catch (e) {
+    logger.error("Draft Assistant router failed to load", { err: e.message, stack: e.stack });
+  }
 }
 
 // --- Player search autocomplete routes --------------------------
