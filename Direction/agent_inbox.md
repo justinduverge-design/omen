@@ -58,11 +58,11 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
 
-**Claim:** Claude, 2026-08-16 — `P1-ConnectContinueRoute`.
+**Claim:** Claude, 2026-08-16 — `P1-ConnectContinueRoute`. **Released same day: VERIFIED**, branch `claude/p1-connect-continue-route`, `npm test` 549/549, handoff `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. Not pushed or merged. Item 2 is now the top live pull.
 
 **5 items**, `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim five.
 
-### 1. P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page — **CLAIMED**
+### 1. P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page — ✅ **VERIFIED 2026-08-16**
 
 P1, small, web. Two bugs with one cause: `handleContinue()` falls back to `/account` because `localStorage['omen.auth.next']` is empty in a real session, and onboarding-completion is tracked only in `localStorage['omen.onboarding.done']`, so a fresh browser re-onboards an established account even though `/api/platforms` already knows better. Fix both or the routing fix looks intermittent. Fast local proof: `npm test`, `node --test`, ~7s.
 
