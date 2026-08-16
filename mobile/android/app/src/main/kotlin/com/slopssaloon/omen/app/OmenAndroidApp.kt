@@ -31,7 +31,6 @@ import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
-import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
@@ -56,9 +55,11 @@ import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
+import com.slopssaloon.omen.app.feature.api.ApiOmenDecisionRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
+import com.slopssaloon.omen.app.feature.api.OmenDecisionViewModel
 import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
@@ -129,6 +130,17 @@ fun OmenAndroidApp() {
         CommandCenterViewModel(
             repository = ApiDashboardRepository(client),
             leagueRepository = ApiLeagueRepository(client),
+            sessionManager = sessionManager,
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
+
+    // M5 slice D. Its own view model rather than a field on the Command Center one: the live
+    // engine call is slower and independently failable, so the Omen destination owns its own
+    // loading state instead of blocking the shell.
+    val omenDecisionViewModel = remember {
+        OmenDecisionViewModel(
+            repository = ApiOmenDecisionRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
             accessTokenProvider = { store.load()?.accessToken },
         )
@@ -359,9 +371,9 @@ fun OmenAndroidApp() {
                     ) {
                         SignedInDestination(
                             destination = selectedDestination,
-                            isDemo = s.userId == SessionManager.DEMO_USER_ID,
                             userId = s.userId,
                             commandCenterViewModel = commandCenterViewModel,
+                            omenDecisionViewModel = omenDecisionViewModel,
                             onConnect = { showConnectSheet = true },
                             onOpenAccount = { showAccountSheet = true },
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
@@ -495,9 +507,9 @@ private fun OmenBottomNav(selected: NavDestination, onSelect: (NavDestination) -
 @Composable
 private fun SignedInDestination(
     destination: NavDestination,
-    isDemo: Boolean,
     userId: String,
     commandCenterViewModel: CommandCenterViewModel,
+    omenDecisionViewModel: OmenDecisionViewModel,
     onConnect: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
@@ -538,9 +550,20 @@ private fun SignedInDestination(
                 )
             }
         }
-        NavDestination.Omen -> OmenDecisionScreen(
-            state = if (isDemo) OmenDecisionFixtures.demo else OmenDecisionFixtures.realDisconnected,
-        )
+        NavDestination.Omen -> {
+            // M5 slice D: the Omen destination renders the live engine's answer. Previously
+            // this picked a fixture — `realDisconnected` for every real signed-in user,
+            // regardless of their actual leagues.
+            LaunchedEffect(userId) {
+                omenDecisionViewModel.onConnect = onConnect
+                omenDecisionViewModel.load(userId)
+            }
+            OmenDecisionScreen(
+                state = omenDecisionViewModel.briefState(
+                    onReload = { scope.launch { omenDecisionViewModel.reload() } },
+                ),
+            )
+        }
         NavDestination.Trade -> OmenStateSurface(
             kind = OmenStateSurfaceKind.Empty,
             title = "Trade is landing next",

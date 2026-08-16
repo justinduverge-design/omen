@@ -41,3 +41,27 @@ class StubLeagueRepository(
 ) : LeagueRepository {
     override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> = result
 }
+
+/**
+ * Slice D — `POST /api/omen/mvp-move`.
+ *
+ * Separate again, and for the same reason: this is the expensive call. It runs the live
+ * engine against a provider, so the Omen destination owns its own loading state rather than
+ * blocking the shell. Per the route contract the client sends `{}` — the server derives
+ * league, week, and provider from the authenticated session, so there is no context the
+ * client could get wrong.
+ */
+interface OmenDecisionRepository {
+    suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope>
+}
+
+class ApiOmenDecisionRepository(private val client: OmenApiClient) : OmenDecisionRepository {
+    override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> =
+        client.post("api/omen/mvp-move", accessToken, "{}", OmenDecisionEnvelope::parse)
+}
+
+class StubOmenDecisionRepository(
+    private val result: OmenApiResult<OmenDecisionEnvelope>,
+) : OmenDecisionRepository {
+    override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> = result
+}

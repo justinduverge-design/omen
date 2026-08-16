@@ -60,3 +60,36 @@ struct StubLeagueRepository: LeagueRepository {
         result
     }
 }
+
+// MARK: - Slice D — Omen decision
+
+/// `POST /api/omen/mvp-move`. Kept separate from the dashboard for the same reason
+/// standings is: this is the expensive call. It runs the live engine against a provider,
+/// so it is slower and independently failable, and the Omen destination owns its own
+/// loading state rather than blocking anything else.
+///
+/// Per the route contract the live UI sends `{}` — the server derives league, week, and
+/// provider from the authenticated session. The client passes no context it could get wrong.
+protocol OmenDecisionRepository {
+    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError>
+}
+
+struct ApiOmenDecisionRepository: OmenDecisionRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+        await client.post("api/omen/mvp-move", accessToken: accessToken, body: [:], as: OmenDecisionEnvelope.self)
+    }
+}
+
+struct StubOmenDecisionRepository: OmenDecisionRepository {
+    let result: Result<OmenDecisionEnvelope, OmenApiError>
+
+    func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
+        result
+    }
+}
