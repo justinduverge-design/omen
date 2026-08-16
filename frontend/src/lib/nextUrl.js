@@ -34,11 +34,27 @@ export function storeNextUrl(raw) {
   }
 }
 
-export function consumeNextUrl() {
+export function consumeNextUrl(fallback = '/account') {
   const stored = localStorage.getItem(STORAGE_KEY)
     || localStorage.getItem(LEGACY_STORAGE_KEY)
-    || '/account';
+    || fallback;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(LEGACY_STORAGE_KEY);
   return sanitize(stored);
+}
+
+// Destinations that are not a valid place to land *after finishing connect*.
+// '/account/connect' is the trap: ConnectLeague stores it when a signed-out
+// visitor hits the page, so honoring the stored value verbatim returns the user
+// to the screen they just completed. '/' is what sanitize() returns for anything
+// it rejects.
+const CONNECT_DEAD_ENDS = new Set(['/', '/account/connect', '/onboarding']);
+
+// Where "Continue" goes after a league is connected. Defaults to the dashboard,
+// not '/account' — finishing onboarding should land on the product, not on
+// settings.
+export function consumeConnectDestination() {
+  const dest = consumeNextUrl('/football');
+  const [pathname] = dest.split('?');
+  return CONNECT_DEAD_ENDS.has(pathname) ? '/football' : dest;
 }

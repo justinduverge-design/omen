@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import EspnBrowserSupport from '../components/espn/EspnBrowserSupport.jsx';
-import { consumeNextUrl, storeNextUrl } from '../lib/nextUrl.js';
+import { consumeConnectDestination, storeNextUrl } from '../lib/nextUrl.js';
+import { markOnboardingDone } from '../lib/onboarding.js';
 import { supabase } from '../lib/supabase.js';
 import {
   startYahooOAuth,
@@ -717,19 +718,16 @@ export default function ConnectLeague() {
     if (!checkingAuth) fetchPlatforms();
   }, [checkingAuth]);
 
-  function markOnboardingDone() {
-    localStorage.setItem('omen.onboarding.done', 'true');
-  }
-
   function handleSkip() {
     // Consume any stored ?next= and discard it — skip means go to dashboard
-    consumeNextUrl();
+    consumeConnectDestination();
     markOnboardingDone();
     navigate('/football', { replace: true });
   }
 
   function handleContinue() {
-    const dest = consumeNextUrl();
+    // Defaults to /football, and refuses to bounce back to the connect page.
+    const dest = consumeConnectDestination();
     markOnboardingDone();
     navigate(dest, { replace: true });
   }

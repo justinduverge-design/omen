@@ -1,6 +1,6 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-08-13 — native authorization is merged and the first native UI parity pass is locally verified. Reconciled against the approved Figma Command Center contract, both simulators, and the paired physical iPhone. Handoffs are pointers, not standalone proof.
+**Refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection below re-derived from what is actually open. Handoffs are pointers, not standalone proof; `main` is the proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
 ## Historical founder pin — 2026-08-12 native iOS authorization closeout (superseded 2026-08-13)
@@ -13,7 +13,7 @@ At the time of this pin, the remaining boundary was external: the public AASA UR
 
 The approved Command Center contract now renders full-screen on current iOS, exposes the contextual Account control on both native shells, uses a distinct Android League glyph, and replaces the Ledger and League Pulse placeholders with approved, honest-state compositions. `M4-CC-LedgerPreview` and `M4-CC-LeaguePulse` are VERIFIED with evidence in `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`.
 
-This does **not** complete the native UI program. `M4-CC-PlatformsCompact` remains the next named beta-blocking Command Center item. The permanent Trade and League destinations still contain explicit placeholders and need their own approved screen slices; do not describe this pass as web/native feature parity.
+This does **not** complete the native UI program. `M4-CC-PlatformsCompact` remains the next named beta-blocking Command Center item. *(Updated 2026-08-16: its implementation merged as `6466a4c` and it is now `VERIFIED`; only the Android above-the-fold evidence and a handoff remain before it can close.)* The permanent Trade and League destinations still contain explicit placeholders and need their own approved screen slices; do not describe this pass as web/native feature parity.
 
 ## ✅ Resolved 2026-08-01 — CI works; the "billing hold" diagnosis was wrong
 
@@ -54,53 +54,35 @@ This section previously stated the Actions allotment was exhausted, that no work
 
 Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## Selected Queue — 2026-08-11 (superseded for this session by the founder pin above)
+## Selected Queue — 2026-08-16
 
-**5 items**, selected from `Status: READY` in `Direction/current_sprint.md` and ordered by the selection rule (founder pin → actionable `IN_PROGRESS` → effective priority → downstream unblock reach → direct unblock count → progress-now → file order). This historical selection had no founder pin; the 2026-08-12 pin above now overrides it.
+**Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
 
-> **What changed today.** A live-production verification pass against `slopssaloon.com` found four defects that existed in the product but not in this queue. They are now the top of it. Unlike the 2026-07-30 selection — where every item was founder- or externally-blocked — **the first four items below are unblocked agent work that can start immediately.** The founder is waiting only on Google Play organization review (`R2-Android`, `EXTERNAL`).
+**Claim:** Claude, 2026-08-16 — `P1-ConnectContinueRoute`. **Released same day: VERIFIED**, branch `claude/p1-connect-continue-route`, `npm test` 549/549, handoff `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. Not pushed or merged. Item 2 is now the top live pull.
 
-> **Provider truth as of 2026-08-11, verified live:** ESPN connected (1 league), Sleeper connected (1 league, *Omen App Data*), Yahoo connected with a **live token** after new credentials were installed on KVM1. `waiver_wire` still reports `needs_platform` and `omen_of_the_week` reports `off_season` — the first is item 1 below, the second is correct August behavior.
+**5 items**, `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim five.
 
-> **⚠️ Staleness correction — 2026-08-14.** Items 1, 2, and 3 below are **DONE and VERIFIED** and must not be pulled. They were fixed by PRs [#292](https://github.com/justinduverge-design/omen/pull/292), [#293](https://github.com/justinduverge-design/omen/pull/293), and the waiver-gate change, then left sitting at `READY` in this file. Re-verified against `main` on 2026-08-14 with the full suite passing **530/530** (not the 481/481 quoted higher up in this file). **The only live items in this list are 4 and 5.** This is the second time this queue has described already-merged work as pullable — check `main` first, as the section above this one says.
+### 1. P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page — ✅ **VERIFIED 2026-08-16**
 
-### 1. P1-YahooLeagueBinding — Yahoo can never reach `ready`
+P1, small, web. Two bugs with one cause: `handleContinue()` falls back to `/account` because `localStorage['omen.auth.next']` is empty in a real session, and onboarding-completion is tracked only in `localStorage['omen.onboarding.done']`, so a fresh browser re-onboards an established account even though `/api/platforms` already knows better. Fix both or the routing fix looks intermittent. Fast local proof: `npm test`, `node --test`, ~7s.
 
-- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** PR #293 shipped `GET /api/yahoo/leagues`, `POST /api/yahoo/league`, and the `ConnectLeague.jsx` picker. Its one open condition was "tests hand-traced, never executed"; `npm test` has now run and passes. Live Yahoo round-trip still waits on Yahoo's entitlement, which is not this item.
-- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
-- **Why first:** **P0, root cause, and provably reproducible.** `src/services/yahooAuth.js:71` writes `league_id: "yahoo"` when no league is supplied; `hasUsableLeagueId()` rejects any row where `league_id === platform`. The writer stores a value the reader is guaranteed to refuse. No caller ever supplies a league, and there is no leagues endpoint or picker to repair it. This — not the token, not the buttons — is why Yahoo has never worked. Blocks F7, which blocks Section K.
-- **Boundary:** fix the writer, not `hasUsableLeagueId()`. Loosening the predicate to accept `"yahoo"` would make an unusable connection report ready.
+### 2. P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
 
-### 2. P1-WaiverGateMultiProvider — waiver readiness is hardcoded to Yahoo
+P1, medium, founder-decided 2026-08-11 and **still shipping to every visitor**. Nav, route, `dashboard.js:268` tool entry, help drawer, landing copy, and the `Privacy.jsx` / `Terms.jsx` legal clauses. Preserve the implementation — 2027 ships it on a Slops-built ADP. Note the 2026-08-14 amendment: one factual "2027 fantasy draft" mention is permitted on the marketing site and in a labelled in-app note, never in store metadata.
 
-- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** `buildWaiverTool()` uses `isOmenReadyConnection` across any active row; tests prove `waiver_wire: "ready"` for Sleeper-only and ESPN-only users.
-- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
-- **Why next:** P0 and *it buries shipped work*. `src/routes/dashboard.js:213-226` computes waiver availability from `usableYahoo` alone, so the merged-and-VERIFIED ESPN (#266) and Sleeper (#259) waiver paths are unreachable from the dashboard. Highest ratio of value recovered to lines changed in the queue.
-- **Boundary:** `isOmenReadyConnection()` is already correct and already used by `omen_of_the_week`. This is a gate bug, not a predicate bug.
+### 3. M5-Native-API-Client slice D (Omen destination) or E (Ledger)
 
-### 3. P1-YahooConnectButtons — two dead Connect buttons + a lossy error path
+P0 beta blocker. Slices A+B+C shipped 2026-08-15, so the client, repository, and view-model patterns exist on both platforms; D and E wire against already-shipped routes. One slice per session — not two. F/G need their M1 screen-contract slices first.
 
-- **Status:** ✅ **VERIFIED 2026-08-14 — do not pull.** PR #292. Both `window.location.href` call sites are gone; `frontend/src/lib/yahooAuth.js:5` is now the only `/api/yahoo/auth` reference in the frontend. `providerError` is logged before the state row is deleted.
-- **Historical framing below, kept for provenance:** · **Claim:** unclaimed · **Blocked by:** None
-- **Why next:** P0. `PlatformConnections.jsx:369` and `WaiverWire.jsx:60` navigate to an auth-required GET, which cannot carry a bearer token — the founder reproduced this by hand. `startYahooOAuth()` is the working reference implementation; point both at it. Also log Yahoo's `providerError` before `yahoo.js:118` discards it: today that swallowed an `invalid redirect uri` and cost an hour of misdiagnosis.
-- **Also in scope:** `/api/platforms` and `/api/dashboard/summary` currently give contradictory answers about the same connection.
+### 4. M4-CC-PlatformsCompact — finish the evidence, then close it
 
-### 4. P1-DraftAssistantSideline — remove Draft Assistant from the 1.0 surface
+`VERIFIED` as of this pass, not closed. What is missing is small and mechanical: a Pixel-6a-class Android render proving the Omen card sits above the fold, `:app:assembleDebug` + scanner + connected-test results, and a handoff for `6466a4c`. It blocks `B-FREEZE`.
 
-- **Status:** **READY — genuinely open, re-confirmed 2026-08-14.** A case-insensitive grep for "draft assistant" across `frontend/src/` still returns **16 hits**, including the primary nav (`components/layout/Header.jsx:26`), the help drawer (`components/help/HelpButton.jsx`, 5 hits), and the Football tab strip (`pages/Football.jsx:27`). It is still shipping to every visitor, 9 days after the founder cut it. **This is now the top live item in this queue.**
-- **Claim:** unclaimed · **Blocked by:** None
-- **Why next:** P1, founder-decided 2026-08-11, and it is currently shipping to every visitor. Legal copy in `Privacy.jsx` and `Terms.jsx` describes a feature that will not exist in 1.0.
-- **Boundary:** **preserve the implementation.** 2027 ships it on a Slops-built ADP; `adp.js`, `sleeperDraft.js`, and `sleeperDraftAccess.js` are that head start. Remove the reachable surface only.
+### 5. F9 — Mock / live labeling sweep
 
-### 5. A4 — Tuesday scoring production enablement
+P0 and trust-critical. The web half and the full surface inventory are agent-workable now; "every surface on both native apps" needs device evidence, so scope and label the halves rather than claiming the whole.
 
-- **Status:** BLOCKED · **Claim:** unclaimed
-- **Blocked by:** FOUNDER_APPROVAL — production-change pin for the environment flip
-- **Blocked by:** EXTERNAL — nflverse issue #263
-- **Blocked by:** TASK-A5 — fallback source decision
-- **Why listed:** P0 and season-relevant, but see the note below — **the fix may already be written.**
-
-> **Check `codex/a4-preseason-deferral` before starting A4.** That branch holds unmerged *code* (`src/omen_tuesday_cron.js` +48/−11, plus two tests) adding a `NFLVERSE_SEASON_UNAVAILABLE` path that defers on a 404 for a current-season file instead of recording a failed move. `origin/main` has no such handling, and the condition is live right now. Verified 2026-08-11 across a full 177-branch patch-id triage: this was the **only** branch holding unmerged work that matters.
+**Founder-gated, not selectable:** `A4`, `A5` (decision, trigger 2026-09-01), `A6` (schema approval), `R2-Android` (Google review), `R3`–`R6`, `M3A-QA`, `M4-Auth-Passkeys-iOS-Onramp`, `B2-D3-S2` deploy step. **External:** `P1-YahooReauth` → `F7`. **Season-floored:** `F6`, `F7`, `F8` cannot pass their Omen halves until the 2026 regular season opens.
 
 ## Planning intake — pending planning-pass
 
