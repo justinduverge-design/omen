@@ -670,9 +670,11 @@ event traceable.
 
 ### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
 
-- **Status:** **VERIFIED 2026-08-16.** Both halves fixed together, as the item required. `Done when:` met in full.
+- **Status:** **CLOSED 2026-08-16.**
+- **Closure:** COMPLETED — merged to `main` as PR [#314](https://github.com/justinduverge-design/omen/pull/314) / `107ed66` (2026-08-16T14:55Z). Receipt in `Direction/sprints_completed.md`; ledger row in `Blueprints/done/LEDGER.md` (2026-08-16).
 - **Claim:** Claude, 2026-08-16 — released on verification.
-- **Evidence:** branch `claude/p1-connect-continue-route`. RED first: `test/connectContinueRoute.test.mjs` failed on the missing `consumeConnectDestination` / `syncOnboardingFromServer` helpers. GREEN: 12/12 focused, full `npm test` **549/549** (537 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean. Handoff: `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. **Not pushed, merged, or deployed.**
+- **Evidence:** merged `107ed66`, from branch `claude/p1-connect-continue-route`. RED first: `test/connectContinueRoute.test.mjs` failed on the missing `consumeConnectDestination` / `syncOnboardingFromServer` helpers. GREEN: 12/12 focused, full `npm test` **549/549** (537 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean. Handoff: `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. **Merged, not deployed.**
+- **Correction, 2026-08-16 (same day, later session):** this record and the inbox both read "Not pushed, merged, or deployed" *after* the work had merged — the **sixth** recorded instance of this queue mis-describing shipped work, and the second in a single day. The handoff was written pre-merge and never revised post-merge, which is the mechanism: a handoff is a point-in-time artifact, and nothing re-reads it when the PR lands. Not deployed remains true.
 - **Third defect found while fixing the first:** `ConnectLeague.jsx:696` stores `/account/connect` as the post-login destination when a signed-out visitor hits the connect page. Honoring the stored `next` verbatim therefore returned the user to the screen they had just completed — so fixing only the empty-`next` default would have left a second, less obvious wrong landing. `consumeConnectDestination()` treats `/account/connect`, `/onboarding`, and anything `sanitize()` rejects as "no destination" and lands on `/football`.
 - **Cost of the gate fix, stated plainly:** `ProtectedRoute` now holds the spinner for one `/api/platforms` round-trip when the local flag is absent. Users who have the flag pay nothing. It fails closed — a network error or an unauthenticated answer leaves the flag unset and sends the user to onboarding, never past it.
 - **Blocked by:** None
@@ -687,7 +689,11 @@ event traceable.
 
 ### P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
 
-- **Status:** READY
+- **Status:** **VERIFIED 2026-08-16.** `Done when:` met in full. Branch `claude/p1-draft-assistant-sideline`. **Not pushed, merged, or deployed** — this line is accurate as written and must be re-checked the moment the PR lands; see the correction on `P1-ConnectContinueRoute` above for why.
+- **Claim:** Claude, 2026-08-16 — released on verification.
+- **Evidence:** RED first — `test/draftAssistantSideline.test.js` failed 8/10 and the new `dashboardSummary` assertion failed on the hardcoded `{available: true, status: "ready"}`. GREEN: full `npm test` **561/561** (549 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean. **Strongest single piece of evidence:** the production bundle contains zero occurrences of `Draft Assistant`, `draft-assistant`, or `Draft Position` — the page tree-shakes out entirely once unrouted, so it is unreachable rather than merely unlinked. Handoff: `Blueprints/handoffs/2026-08-16-p1-draft-assistant-sideline.md`.
+- **Fourth surface found while sweeping:** `frontend/src/lib/nextUrl.js` allowlisted `/draft` as a post-login redirect destination, so a stored or crafted `?next=/draft` passed validation and would have landed a freshly signed-in user on a 404. Removed. An allowlist entry for a route that no longer exists is a dead end, not a permission.
+- **Two boundaries held deliberately, both for founder review:** `/api/sleeper/draft*` stays mounted (Sleeper live-draft *tracking*, not Draft Assistant; auth-gated, advertised nowhere, and what keeps the Privacy "drafts" data-collection line truthful), and no "2027 fantasy draft" marketing line was added — the 2026-08-14 amendment permits one but does not require it, and new marketing copy is a founder call.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** medium

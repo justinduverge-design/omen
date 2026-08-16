@@ -13,7 +13,6 @@ const PAGE_HELP = {
       { label: 'League Standings', body: 'Updates from your connected platform. Tap the header to collapse.' },
       { label: 'Omen of the Week', body: 'Your one move that matters most. Drops Tuesdays after locks.' },
       { label: 'Move History', body: 'Your season record. Tracks every Omen you followed or skipped.' },
-      { label: 'Draft Assistant', body: 'Free pick recommendations any time — no account needed.' },
     ],
   },
   '/trade': {
@@ -24,16 +23,6 @@ const PAGE_HELP = {
       { label: 'Both sides', body: 'Fill in Send and Receive, then hit Compare Trade.' },
       { label: 'Trade Room', body: 'Strategy tips on the right keep context in view while you build.' },
       { label: 'Player names', body: 'Start typing and use autocomplete to lock in the right player.' },
-    ],
-  },
-  '/draft': {
-    title: 'Draft Assistant',
-    description: 'Tell Omen where you are in the draft and get your best available pick.',
-    tips: [
-      { label: 'No account required', body: 'Use Draft Assistant without signing in.' },
-      { label: 'Preview Mode', body: 'Live personalization activates once the season opens.' },
-      { label: 'Position needs', body: 'Select what you still need to fill before each pick.' },
-      { label: 'Scoring format', body: 'Switch between PPR, Half PPR, and Standard to match your league.' },
     ],
   },
   '/omen': {
@@ -86,7 +75,6 @@ function getPageHelp(pathname) {
     tips: [
       { label: 'Trade Analyzer', body: 'Free — analyze any trade before you make it.' },
       { label: 'Omen of the Week', body: 'Your one weekly move, surfaced every Tuesday.' },
-      { label: 'Draft Assistant', body: 'Free — pick recommendations for your draft.' },
       { label: 'Connect a league', body: 'Link Yahoo, Sleeper, or ESPN to unlock the full experience.' },
     ],
   };
@@ -251,7 +239,6 @@ function HelpPanel({ open, onClose, pathname }) {
               {[
                 { label: 'Football Dashboard', to: '/football' },
                 { label: 'Trade Analyzer', to: '/trade' },
-                { label: 'Draft Assistant', to: '/draft' },
                 { label: 'Connect a Platform', to: '/account/connect' },
                 { label: 'Account', to: '/account' },
               ].map(({ label, to }) => (

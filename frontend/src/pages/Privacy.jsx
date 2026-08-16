@@ -30,7 +30,7 @@ export default function Privacy() {
       <InfoSection title="How we use information">
         <p>
           We use information to authenticate you; connect the leagues you select; provide rosters, standings,
-          recommendations, history, and draft tools; operate the waitlist; respond to requests; secure, debug, and improve
+          recommendations, and history; operate the waitlist; respond to requests; secure, debug, and improve
           Omen; enforce our Terms; and meet legal obligations.
         </p>
         <p>

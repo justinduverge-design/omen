@@ -526,3 +526,36 @@ test("GET /api/dashboard/summary omits subscription entirely now that Omen is fr
   assert.equal(res.status, 200);
   assert.equal(res.body.subscription, undefined);
 });
+
+// P1-DraftAssistantSideline (2026-08-16). Draft Assistant is cut from 1.0 and
+// sidelined to the 2027 season (facts-of-record #9). The tool entry was
+// hardcoded `available: true, status: "ready"`, so every signed-in user was
+// told a feature exists that must not appear in the advertised tool list.
+test("GET /api/dashboard/summary does not advertise Draft Assistant", async () => {
+  const app = buildApp({
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "sleeper",
+        is_active: true,
+        platform_username: "sleepy",
+      },
+    ],
+    userRows: [{ id: "test-user" }],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.tools.draft_assistant, undefined,
+    "draft_assistant must not appear in the advertised tool list");
+  assert.ok(!Object.keys(res.body.tools).some((key) => /draft/i.test(key)),
+    "no tool key may reference the draft");
+  // The tools that ARE in 1.0 must be untouched by the removal.
+  assert.equal(res.body.tools.trade_analyzer.status, "ready");
+  assert.equal(res.body.tools.start_sit.status, "ready");
+  assert.ok(res.body.tools.omen_of_the_week);
+  assert.ok(res.body.tools.waiver_wire);
+});

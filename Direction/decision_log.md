@@ -1,5 +1,23 @@
 # Omen Decision Log
 
+## 2026-08-16 — Draft Assistant removed from the 1.0 surface; the preserved code gets a re-activation path
+
+- **Executed `P1-DraftAssistantSideline`.** The 2026-08-11 decision to sideline Draft Assistant to 2027 was recorded but never carried out: verified again on this branch, the product still shipped it to every visitor — nav entry, `/draft` route, a hardcoded `draft_assistant: {available: true, status: "ready"}` in `/api/dashboard/summary`, a Football tab, a landing mini-card, an about-page feature pill, four help-drawer entries, and clauses in both Privacy and Terms. A decision recorded in the log and not executed in the code is indistinguishable, from the user's side, from no decision at all.
+
+- **Removal is from the reachable surface only; nothing is deleted.** Preserved in place and unreferenced: `src/routes/draftAssistant.js`, `src/services/adp.js`, `src/services/sleeperDraft.js`, `src/services/sleeperDraftAccess.js`, `frontend/src/pages/DraftAssistant.jsx`, and `frontend/src/data/privateDemoFixtures.js`. `test/draftAssistantSideline.test.js` asserts each file still exists, so a later cleanup pass that deletes them fails loudly rather than quietly costing next season's head start.
+
+- **The backend mount fails closed rather than refusing politely.** `/api/draft-assistant` is now mounted only when `DRAFT_ASSISTANT_ENABLED=true` (`src/config/index.js`, mirroring the existing `YAHOO_ENABLED` pattern). Unmounted, the path returns the app's standard 404. A disabled-feature error was rejected as the alternative: a 403 or a "feature unavailable" body still confirms the feature exists, which is exactly the claim the sideline is meant to stop making. Only the exact string `true` enables it — `1`, `yes`, and a blank value all stay off, and that is pinned by test.
+
+- **Draft Assistant re-activation path (2027).** In order, to bring it back:
+  1. Set `DRAFT_ASSISTANT_ENABLED=true` on `omen_api` and redeploy — this remounts `src/routes/draftAssistant.js` at `/api/draft-assistant`.
+  2. Restore the `draft_assistant` tool entry in `src/routes/dashboard.js` (its removal site carries a comment naming this step).
+  3. Restore the frontend surface: the nav item in `components/layout/Header.jsx`, the `/draft` route in `routes/index.jsx` (the page is untouched at `pages/DraftAssistant.jsx`), the Football tab in `pages/Football.jsx`, and the `/draft` help entry plus quick link in `components/help/HelpButton.jsx`.
+  4. Restore the marketing and legal copy: the landing mini-card, the about-page feature pill, and the "draft tools" clauses in `pages/Privacy.jsx` and `pages/Terms.jsx`.
+  5. Delete or invert `test/draftAssistantSideline.test.js`, which is written to fail the moment any of the above returns.
+  Every removal site carries a dated `P1-DraftAssistantSideline` comment, so step 3 and step 4 are greppable rather than archaeological.
+
+- **Two boundaries held deliberately, both flagged for founder review.** First, `/api/sleeper/draft*` (`src/routes/sleeper.js`) stays mounted: it is Sleeper live-draft *tracking*, not Draft Assistant, it is auth-gated, and it is advertised nowhere — and it is what keeps the Privacy "drafts" data-collection line truthful. Removing that line while the endpoints still collect draft data would understate collection, which is the worse legal error. Second, no "2027 fantasy draft" marketing line was added. The 2026-08-14 amendment *permits* one factual mention on the marketing site and one labelled in-app note; it does not require them, and writing new marketing copy is a founder call, not a cleanup side effect.
+
 ## 2026-08-15 — The native app has no API layer; scoring needs source-agnosticism, not a fork
 
 - **"Omen needs an API client" meant the native HTTP layer, not a new backend.** Omen already exposes 51 mounted routes, and every route the native pages need is live and contract-documented — `dashboard-summary.v1`, `2026-05-18.omen-live.v1`, `platform-provider-state.v1`, `league-standings.v1`, `moves-history.v1`. The native side has exactly one product-route caller (`URLSessionAccountRepository` / `OkHttpAccountRepository`, against account deletion). Everything else renders fixtures. Minted as `M5-Native-API-Client` (P0, beta blocker) rather than any backend work.

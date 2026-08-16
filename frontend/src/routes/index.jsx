@@ -6,7 +6,6 @@ import Account from '../pages/Account.jsx';
 import ConnectLeague from '../pages/ConnectLeague.jsx';
 import Demo from '../pages/Demo.jsx';
 import DeleteAccount from '../pages/DeleteAccount.jsx';
-import DraftAssistant from '../pages/DraftAssistant.jsx';
 import Football from '../pages/Football';
 import OmenLanding from '../pages/OmenLanding.jsx';
 import Landing from '../pages/Landing.jsx';
@@ -49,7 +48,9 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/trade" element={<AppLayout><TradeAnalyzer /></AppLayout>} />
       <Route path="/trade/share/:hash" element={<AppLayout><TradeShare /></AppLayout>} />
-      <Route path="/draft" element={<AppLayout><DraftAssistant /></AppLayout>} />
+      {/* /draft removed 2026-08-16 (P1-DraftAssistantSideline) — cut from 1.0,
+          returns for the 2027 fantasy draft. Falls through to the catch-all 404.
+          The page itself is preserved at pages/DraftAssistant.jsx. */}
       <Route path="/demo" element={<Demo />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />

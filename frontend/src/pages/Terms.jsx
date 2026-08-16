@@ -22,7 +22,7 @@ export default function Terms() {
       <InfoSection title="What Omen provides">
         <p>
           Omen is a free fantasy-football decision-support product. It may provide league information, recommendations,
-          draft tools, standings, and plain-English explanations. Features may be labeled beta, preview, demo, or
+          standings, and plain-English explanations. Features may be labeled beta, preview, demo, or
           unavailable and may change as the product develops.
         </p>
       </InfoSection>

@@ -4,7 +4,11 @@ const LEGACY_STORAGE_KEY = 'corvus.auth.next';
 const ALLOWED_DESTINATIONS = new Set([
   '/',
   '/trade',
-  '/draft',
+  // '/draft' removed 2026-08-16 (P1-DraftAssistantSideline). The route no
+  // longer exists, so leaving it allowlisted meant a stored or crafted
+  // `?next=/draft` would pass validation and land the user on a 404 after
+  // sign-in. An allowlist entry for a route that does not exist is a dead end,
+  // not a permission.
   '/omen',
   '/account',
   '/account/connect',

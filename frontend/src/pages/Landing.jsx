@@ -252,57 +252,6 @@ function OmenMiniCard() {
   );
 }
 
-function DraftAssistantMiniCard() {
-  const tiers = [
-    { rank: 1, name: "Ja'Marr Chase", pos: 'WR', tag: 'Elite' },
-    { rank: 2, name: 'CeeDee Lamb', pos: 'WR', tag: 'Elite' },
-    { rank: 3, name: 'Christian McCaffrey', pos: 'RB', tag: 'Top 3' },
-  ];
-  return (
-    <article className="relative overflow-hidden rounded-2xl border border-white/12 bg-[var(--color-surface-1)]/90 shadow-xl shadow-black/50">
-      <div className="pointer-events-none absolute left-0 top-0 h-36 w-36 rounded-full bg-[var(--color-risk-high)]/12 blur-3xl" />
-      <div className="relative p-5">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-text-primary)]/55">
-            Draft Assistant
-          </p>
-          <span className="rounded-full border border-white/12 px-2.5 py-0.5 text-[10px] text-[var(--color-text-primary)]/38">
-            Preview
-          </span>
-        </div>
-        <h3 className="mb-3 text-lg font-semibold text-[var(--color-text-primary)]">
-          Know your pick before it's your turn.
-        </h3>
-        <div className="mb-4 flex flex-col gap-1.5">
-          {tiers.map((p) => (
-            <div
-              key={p.rank}
-              className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.025] px-3 py-2"
-            >
-              <span className="w-4 shrink-0 text-xs text-[var(--color-text-primary)]/28">{p.rank}</span>
-              <span className="flex-1 text-sm text-[var(--color-text-primary)]">{p.name}</span>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-primary)]/38">
-                {p.pos}
-              </span>
-              <span className="rounded border border-[var(--color-accent)]/22 px-1.5 py-0.5 text-[10px] text-[var(--color-accent)]/65">
-                {p.tag}
-              </span>
-            </div>
-          ))}
-        </div>
-        <a
-          className="flex min-h-[44px] items-center justify-center text-center text-xs uppercase tracking-[0.24em] text-[var(--color-text-primary)]/45 transition-colors hover:text-[var(--color-text-primary)]/75"
-          href="/draft"
-        >
-          Open Draft Assistant →
-        </a>
-      </div>
-    </article>
-  );
-}
-
-// ─── Sign-in shortcut (existing users) ───────────────────────────────────────
-
 function SignInForm() {
   return (
     <div className="mt-3">
@@ -613,8 +562,10 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
+            {/* DraftAssistantMiniCard removed 2026-08-16 (P1-DraftAssistantSideline).
+                The two-column grid is intentionally kept so OmenMiniCard renders at
+                exactly its previous width instead of stretching to full bleed. */}
             <OmenMiniCard />
-            <DraftAssistantMiniCard />
           </div>
         </section>
 
