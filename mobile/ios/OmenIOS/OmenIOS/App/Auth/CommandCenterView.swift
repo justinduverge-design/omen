@@ -14,6 +14,7 @@ struct CommandCenterView: View {
     @ObservedObject var sessionManager: SessionManager
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
+    @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
     private let connectRepository: ConnectRepository
     @State private var showAccountSheet: Bool = false
     @State private var showConnectSheet: Bool = false
@@ -25,6 +26,7 @@ struct CommandCenterView: View {
         authViewModel: AuthViewModel,
         dashboardRepository: DashboardRepository,
         leagueRepository: LeagueRepository,
+        omenDecisionRepository: OmenDecisionRepository,
         connectRepository: ConnectRepository
     ) {
         self.connectRepository = connectRepository
@@ -36,9 +38,11 @@ struct CommandCenterView: View {
             leagueRepository: leagueRepository,
             sessionManager: sessionManager
         ))
+        _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
+            repository: omenDecisionRepository,
+            sessionManager: sessionManager
+        ))
     }
-
-    private var isDemo: Bool { userID == SessionManager.demoUserID }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -78,7 +82,14 @@ struct CommandCenterView: View {
             .tabItem { Label("Command", systemImage: "sparkles") }
             .tag(CommandCenterTab.command)
 
-            OmenDecisionScreen(state: isDemo ? OmenDecisionFixtures.demo : OmenDecisionFixtures.realDisconnected)
+            // M5 slice D: the Omen destination now renders the live engine's answer.
+            // Previously this picked a fixture — `realDisconnected` for every real
+            // signed-in user, regardless of their actual leagues.
+            OmenDecisionScreen(state: omenDecisionViewModel.briefState)
+            .task {
+                omenDecisionViewModel.onConnect = { showConnectSheet = true }
+                await omenDecisionViewModel.load(userID: userID)
+            }
             .tabItem { Label("Omen", systemImage: "bolt.fill") }
             .tag(CommandCenterTab.omen)
 
