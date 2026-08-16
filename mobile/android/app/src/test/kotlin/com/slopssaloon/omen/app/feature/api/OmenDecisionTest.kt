@@ -17,9 +17,14 @@ import org.junit.Test
  * (`expected_value_delta`, `comparison_player`, `why_it_matters`, `recovery.message`) are
  * the server's, not invented for the test.
  *
- * These live in `androidTest` because `:app` has no JVM unit-test source set; adding one is
- * a build-configuration change outside this slice's boundary, the same pre-existing
- * limitation recorded for slices A–C. The logic under test is pure.
+ * Runs as a JVM unit test. `:app` gained a `src/test` source set on 2026-08-16 precisely
+ * because tests like these — pure mapping logic touching no Android framework class — had
+ * been forced onto an emulator for want of anywhere else to live.
+ *
+ * `org.json` is stubbed on the JVM (the android.jar on the unit-test classpath throws from
+ * every method), so `testOptions.unitTests.isReturnDefaultValues` alone would give silent
+ * wrong answers rather than errors. The real implementation is on the test classpath
+ * instead — see the `:app` build script.
  */
 class OmenDecisionTest {
 

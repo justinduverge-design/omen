@@ -7,6 +7,10 @@ coreKtx = "1.19.0"
 lifecycle = "2.11.0"
 coroutines = "1.11.0"
 junit = "4.13.2"
+# Real org.json for JVM unit tests only. The android.jar on the unit-test classpath ships
+# stubs that throw from every method, so mapping code that parses JSON cannot be unit-tested
+# without it. Never a production dependency — the app uses the platform org.json at runtime.
+jsonUnitTest = "20250107"
 credentials = "1.6.0"
 googleid = "1.2.0"
 okhttp = "5.4.0"
@@ -28,6 +32,7 @@ androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", vers
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
+json-unit-test = { module = "org.json:json", version.ref = "jsonUnitTest" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "androidxBrowser" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }

@@ -58,7 +58,19 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
 
-**Claim:** none open. Claude, 2026-08-16 (later session) — `P1-DraftAssistantSideline` **and** `R7`, both **CLOSED**, merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f` with all four checks green. Not deployed. Selection below is stale from item 1 down; re-derive before the next pull.
+**Claim:** none open.
+
+**Closed 2026-08-16:** `P1-DraftAssistantSideline` + `R7` (PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`), `P1-ConnectContinueRoute` (#314), and `M5-Native-API-Client` **slice D** (PR [#317](https://github.com/justinduverge-design/omen/pull/317) / `80ee3fa`). None deployed.
+
+### Next pull — read `Blueprints/prompts/canvas-m1-screen-contracts.md` first
+
+That canvas explains, in one page, what each native destination actually shows a real user today and why two of them cannot be built yet. Three new items are queued:
+
+1. **`M5-Slice-E-Ledger`** — the last pure-wiring slice, and the cheapest work on the board: slice D just built every pattern it needs. Start here.
+2. **`M1-Screen-Trade`** — the screen contract blocking `M5` slice G. Proposal is agent work; approval is founder-only.
+3. **`M1-Screen-League`** — the screen contract blocking `M5` slice F. Same split. Must **not** include a Draft entry (see the R7 amendment).
+
+**Before closing anything, run `node scripts/check-sprint-staleness.js`.** It exists because this queue has advertised shipped work as pullable seven times; it now catches that automatically.
 
 ### ⚠️ Correction — `P1-ConnectContinueRoute` is CLOSED, not open
 
