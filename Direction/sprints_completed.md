@@ -182,7 +182,7 @@ Evidence is per-task and exact. Broad ranges are not used: the prior `#125–#13
 
 23 items were carrying `Status: VERIFIED` (or, for `M7`, `CLOSED · DESCOPED`) in `Direction/current_sprint.md` while their `Done when:` criteria were already met. They are closed here and removed from the active queue, which is now active work only. `CLOSED` is terminal — a regression creates a new linked task rather than reopening one of these.
 
-**Held back deliberately — still in `current_sprint.md`, not closed:**
+**Held back deliberately — still in `current_sprint.md`, not closed.** Each of the four now carries an explicit **✅ DONE — do not rebuild** / **🔨 REMAINING** split at the top of its record, so whoever pulls one can see at a glance what already shipped and what is actually owed. Do not re-derive the finished half:
 
 - `M5-Native-API-Client` — slices A+B+C verified; **D–G unstarted**. Partial work is not a closure.
 - `M4-CC-WaiverWatch` — merged (#271), but the six-state iOS render/accessibility evidence its `Done when:` requires is still outstanding.
