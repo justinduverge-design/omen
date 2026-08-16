@@ -1,8 +1,8 @@
 # Handoff — 2026-08-16 — P1-DraftAssistantSideline + R7
 
-**Branch:** `claude/p1-draft-assistant-sideline` · **Not pushed, merged, or deployed.**
+**Merged** as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`, 2026-08-16. **Not deployed.**
 
-> **Read this line again when the PR lands.** The previous handoff in this repo said exactly the same thing and was still saying it after its PR merged, which produced the sixth recorded instance of the queue advertising shipped work as open. That is a property of handoffs, not of that session: a handoff is written before the merge and nothing re-reads it afterward. This session's first commit corrects that record; this sentence will need the same correction.
+> **This line was corrected in the same session that wrote it.** It originally read "Not pushed, merged, or deployed", with a note predicting it would go stale the moment the PR landed — because the previous handoff said exactly that and was still saying it after its own PR merged, producing the sixth instance of this queue advertising shipped work as open. The prediction was the point: a handoff is written pre-merge and nothing re-reads it afterward. So it was re-read, on purpose, immediately after the merge. All four PR checks passed before merge (backend tests and audit, frontend and client builds, server-boots-with-SPA, ui-quality).
 
 This session also carried a queue correction for `P1-ConnectContinueRoute`. It is the first commit on the branch and is described at the bottom. (Its `current_sprint.md` hunk rides in the second commit, because that file carries both changes and splitting a single file across two commits would have been more confusing than the impurity it fixed.)
 
