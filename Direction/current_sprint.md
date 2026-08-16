@@ -80,8 +80,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - Production is live on KVM1; `/api/health` and `/api/ready` healthy at the latest verified baseline.
 - Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. The production Supabase table/column cleanup remains a separately gated database action.
-- Backend test baseline: **506/506 green** (`npm test`, 2026-08-02, PR #272), plus focused B2-D 84/84. PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
-- Native: iOS 79 Swift files, Android 88 Kotlin files. Discord OAuth merged both platforms (#198).
+- Backend test baseline: **537/537 green** (`npm test`, 2026-08-15, PR #309). PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
+- Native test baseline: iOS **188** (Xcode 26.6, iPhone 17 Pro sim), Android **50** connected instrumentation on API 36, both after `M6-ContextualHelp` (#312).
+- Native: Discord OAuth merged both platforms (#198). A signed-in native user can connect a Sleeper league and see real league state (#309, #310).
+- **Queue reconciled 2026-08-16.** 23 finished items moved to `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16". This file now carries active work only.
 - **No provider is proven with a real connected account.** This is the top beta risk.
 - **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
 - Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
@@ -89,16 +91,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 # Active queue
 
 ## A. Founder / review gates — do not auto-pull
-
-### A3 — Production security and Supabase review
-
-- **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-a3-production-security-supabase-review.md`. Both originally-flagged live-access items closed 2026-08-01: TLS confirmed via direct handshake (Let's Encrypt, valid through 2026-09-06); RLS confirmed enabled on all 11 public tables via Supabase MCP. New WARN-level finding surfaced: leaked-password protection disabled in Supabase Auth (one-toggle fix, not urgent — carried into S1).
-- **Priority:** P0
-- **Cost:** small
-- **Agent-buildable:** audit preparation only
-- **Done when:** production settings/secrets checklist is reviewed without exposing values; findings are classified; any mutation is separately approved.
-- **Do not touch:** secret values, production database, DNS, Nginx, TLS, or environment variables.
 
 ### A4 — Tuesday scoring production enablement
 
@@ -130,19 +122,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Founder steer amended 2026-08-15 — vendor-agnostic.** The requirement is that scoring survive any one source dying, for Sleeper, ESPN, and Yahoo users alike. The memo's key finding is that this is *source*-agnosticism, not provider-agnosticism: weekly fantasy points are a league-independent NFL fact, and the pipeline already keys on normalized player name, emits all three scoring formats, and dependency-injects `fetchNFLScores`. The seam exists; the memo proposes formalizing it as a `ScoreSource` interface with ordered fallback.
 - **Premise corrected 2026-08-15.** This item was written as "if nflverse never publishes `player_stats_2026.csv`." That file was never going to exist under that name for any season — see `A5-NflversePath` below. The real question is fallback resilience, not one missing file.
 
-### A5-NflversePath — Correct the retired nflverse release path
-
-- **Status:** **VERIFIED 2026-08-15.** Full backend suite **537/537** (was 535; +2 new tests). The corrected URL is proven against the live release index — `stats_player_week_2025.csv` downloads (8.6 MB, required columns present); the old path 404s for every season from 2025 on.
-- **Blocked by:** None
-- **Priority:** P0 — silent-failure class
-- **Cost:** small
-- **Source:** 2026-08-15 live probe of the nflverse release index during A5 research.
-- **What was wrong:** `src/omen_tuesday_cron.js` fetched `.../releases/download/player_stats/player_stats_<season>.csv`. nflverse reorganized its releases; the `player_stats` tag stopped receiving new seasons after **2024**, and weekly stats now ship under the `stats_player` tag as `stats_player_week_<season>.csv`. The old path 404s for 2025 *and* 2026.
-- **Why it was urgent rather than cosmetic:** PR #302 (correctly) made a 404 a silent deferral instead of a failure. Combined with a permanently-404ing URL, Tuesday scoring would have deferred every move forever and reported healthy — `failed=0`, no error, no alert. The fix that made pre-season safe is what made this stale path invisible.
-- **Also fixed:** `season_type` is now a required column and rows are filtered to `REG` by default. nflverse ships `REG` (weeks 1–18) and `POST` (19–22) in one file and never ships `PRE`; any source that *does* carry preseason (Sleeper does) would otherwise collide preseason week N with regular week N. Requiring the column fails closed on further upstream schema drift rather than silently scoring an unfiltered file.
-- **Evidence:** `Blueprints/handoffs/2026-08-15-native-api-scope-and-scoring-source.md`; `test/omenTuesdayCronNflverse.test.js` — URL-shape assertion including a negative `player_stats` guard, a PRE/REG collision test, and a schema-drift fail-closed test.
-- **Do not touch:** the `OMEN_CRON_SCORING_ENABLED` flag, which stays false; A4's production enablement is unchanged by this repair.
-
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** READY
@@ -158,18 +137,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ## R. Store and release — critical path, founder-executed
 
 **Phase 1.** This lane is the longest pole and most of it is calendar time no agent can compress. Agents may prepare artifacts; **Justin executes every item here.** Run these first each week — everything else can proceed in parallel, these cannot.
-
-### R1 — Verify App Store Connect is operable during the Valor Ventures transfer
-
-- **Status:** VERIFIED — **resolved 2026-08-05**
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** small
-- **Agent-buildable:** no — founder account access
-- **Finding and resolution (2026-08-05):** App Store Connect was reachable but **not operable** — the New App form opened and accepted input, but Create failed with a generic "An error has occurred. Try again later." Root cause was **agreements, not the account transfer**: agreement/tax setup under Business → Agreements, Tax, and Banking had to be completed under the Valor Ventures entity. Once completed, the app record created successfully.
-- **Evidence:** App Store Connect record live — **`Omen — Fantasy Football Tool`**, iOS App Version 1.0, status "Prepare for Submission", bundle ID `com.slopssaloon.omen`, SKU `omen-ios`.
-- **Lesson recorded:** reaching a store form is not the same as being able to complete it. Verify the *write* operation, not the page load. An earlier pass in this session briefly called R1 passed on the form opening; that was wrong and cost a false green.
-- **Do not touch:** n/a — closed.
 
 ### R2-Android — Google Play Console account + app record
 
@@ -191,30 +158,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **App record:** `applicationId = com.slopssaloon.omen` (verified `mobile/android/app/build.gradle.kts:23`, matching iOS). App (not game). **Free** — note Play allows paid→free but **never free→paid**, which suits the free-indefinitely posture.
 - **Done when:** the organization developer account is verified and the app record exists with the application ID matching the Android build.
 - **Do not touch:** pricing, public availability, or release scheduling.
-
-### R2-iOS — Create the App Store Connect app record
-
-- **Status:** VERIFIED — **2026-08-05**
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** small
-- **Evidence:** record live at App Store Connect — iOS App Version 1.0, "Prepare for Submission". Bundle ID `com.slopssaloon.omen` (matches `PRODUCT_BUNDLE_IDENTIFIER` in Debug and Release, and the App ID in `Blueprints/specs/mobile/m3a-ios-auth-parity-spec.md` under Team `6RWR5G9894`). SKU `omen-ios`. Platform iOS only. Full Access. `com.slopssaloon.omen.web` was correctly **not** used — that is the Sign in with Apple Services ID, not an app identifier.
-- **Do not touch:** pricing, public availability, or release scheduling.
-
-> ### ⚠ Do not press "Add for Review"
->
-> That button submits to the **public App Store** and starts App Review. It is a
-> **Phase 7** action. The beta path is: signed build → **TestFlight → Internal
-> Testing** (≤100 testers, **no review required**). Submitting for review now —
-> with no build, no screenshots, and R5's gambling questionnaire unanswered —
-> would draw a rejection for nothing.
-
-### R2-NAME — App Store display name of record
-
-- **Status:** VERIFIED — **2026-08-05**
-- **Evidence:** the App Store listing name is **`Omen — Fantasy Football Tool`**. The product name remains **Omen**; `PRODUCT_NAME = Omen` in Xcode and the home-screen name are unaffected. The store name carries a search descriptor for discoverability — this is deliberate ASO, not a rebrand.
-- **Consequence:** Brand, marketing, and store copy must not treat "Omen — Fantasy Football Tool" as the product name. It is the listing title only. Feeds R7 and K1.
-- **Do not touch:** the in-app or brand name; they stay "Omen".
 
 ### R3-BUILD-iOS — Establish an iOS build-and-signing path
 
@@ -352,49 +295,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
 - **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
 
-### M5-NativeConnect — Build the native connect flow (onboarding steps 3–6)
-
-- **Status:** **VERIFIED 2026-08-15 (Sleeper path, both platforms).**
-- **Claim:** Claude, 2026-08-15
-- **Evidence:** iOS **174 tests / 0 failures** (Xcode 26.6 `17F113`, iPhone 17 Pro simulator; 158/0 baseline). Android **42 connected instrumentation tests / 0 failures** on the `medium_phone` API 36 emulator (26/0 baseline), plus `:app:assembleDebug`, `:app:assembleDebugAndroidTest`, and `:core:*` unit tests green. Backend unchanged at 537/537. Files: iOS `App/Connect/{ConnectFlow,ConnectRepository,ConnectViewModel,ConnectView}.swift`; Android `app/feature/connect/{ConnectFlow,ConnectRepository,ConnectViewModel,ConnectScreen}.kt`. Handoff: `Blueprints/handoffs/2026-08-15-native-connect-flow.md`.
-- **Flake recorded, not hidden:** the first full Android connected run aborted mid-suite (`Expected 42 tests, received 23`) with a collateral failure in the pre-existing `OmenCommandCenterScreenTest`. Both classes then passed in isolation (4/4, 16/16) and **three consecutive full runs passed 42/42**. Treated as emulator instability on first boot, not a product defect — but recorded here so a future recurrence is recognized rather than re-diagnosed.
-- **Scope actually shipped:** Sleeper connect end to end (provider picker → username → league picker → validate → connected), plus honest non-dead-end states for Yahoo ("On hold") and ESPN (routed to the web + published extension). Cancellation is a first-class state, not an error. Retry of a given attempt reuses its `request_id` so the backend replay guard still applies.
-- **Not covered — needs real-device/QA follow-up:** the contract §9 acceptance matrix beyond unit level — real Sleeper account round trip, app backgrounding/termination mid-connect, slow/no-network behavior, VoiceOver/TalkBack, and large-text layouts. This item proves the state machine and policy, not the device matrix.
-- **Superseded status line:** READY
-- **Blocked by:** None for the Sleeper path. See the provider reality below — Yahoo and ESPN are *scoped out*, not blocking.
-- **Priority:** **P0 — beta blocker, and arguably ahead of M5 slices D–G.** As of M5 A–C the native apps correctly tell a user "Connect a league to see your matchup" and then offer **no way to do it**. There is no connect screen, no provider picker, and no call to `/api/platforms/sleeper/connect` on either platform; `OmenPlatformConnectionCard` exists as a design-system component used only in the gallery.
-- **Cost:** medium
-- **Authority:** `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md` §4 — approved, and it already specifies this as first-launch steps **3. Choose next step → 4. Choose provider → 5. Connect or recover → 6. First useful destination**. Steps 1 (Welcome) and 2 (Omen account) are already built. This item is not a design question; it is unbuilt spec.
-- **Provider reality — this is what makes the item shippable rather than blocked:**
-  - **Sleeper — the only native connect path for beta.** The contract names it "first native connection candidate": username → resolve → choose league → validate, against the shipped `POST /api/platforms/sleeper/resolve` and `/connect`.
-  - **Yahoo — scoped out.** Paused behind `YAHOO_ENABLED` pending a Fantasy API entitlement only Yahoo can grant (`P1-YahooReauth`). Show the honest "On hold" state; do not build the OAuth path against a provider that 403s every call.
-  - **ESPN — scoped out by the contract itself.** §5 is explicit: ESPN is research-gated on native and a store build must **not** ask for a password or raw cookie entry. §10: no "ESPN connected" UI starts until the ESPN mobile feasibility memo (deliverable 7) is resolved. **The honest native answer for ESPN is to point at the web flow plus the published browser extension** — `extension/README.md`, live on the Chrome Web Store and Edge Add-ons. Connections are stored server-side per user, so a league connected on web is connected in the app.
-- **Done when:** a signed-in native user with no connections can reach a provider picker, complete a Sleeper connection, and land on a Command Center that reflects it; Yahoo and ESPN render honest, non-dead-end states; leaving and returning mid-flow does not lose the safe stage; the acceptance cases in contract §9 that apply to Sleeper are exercised; iOS `xcodebuild test` and Android `:app:assembleDebug` + connected tests green.
-- **Do not touch:** ESPN cookie entry on native (contract §5 and facts-of-record #6 — cookie values are never shown, logged, or echoed). Do not re-enable Yahoo. Do not invent a status meaning outside F2.
-
-### M7-EspnSafariExtension — Bundle the ESPN connect helper into the Omen iOS app
-
-- **Status:** **CLOSED · Closure: DESCOPED** — founder decision 2026-08-15. The approach cannot work and the target was cut before merge.
-- **What was removed and why:** the `OmenEspnConnectExtension` target built correctly and embedded correctly — it simply cannot obtain the credential, because Safari Web Extensions cannot read HttpOnly cookies. Merging it would have carried a second bundle identifier, added permissions and privacy-questionnaire answers on the App Store listing, and user-visible extension icons in Safari settings, all for **zero user benefit**. Store-review surface you do not need is the wrong thing to carry into a beta.
-- **Kept:** the corrected feasibility memo (`Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md`), which records *why* iOS is closed so this is not re-litigated, and the `extension/` fixes, which still matter for the published Chrome and Edge builds.
-- **Cost to revive:** small — roughly an hour of project-file work, plus re-registering the bundle identifier. If Apple ever lifts the HttpOnly restriction, start from the memo.
-- **Also reverted:** `SDKROOT` / `SUPPORTED_PLATFORMS` had been added to the app and test target configurations as collateral from a bulk edit while wiring the extension. The project file is now byte-identical to `main`.
-- **Killed by real-device evidence 2026-08-15:** **Safari Web Extensions cannot read HttpOnly cookies** (Apple: unsupported, iOS and macOS). `espn_s2` is HttpOnly, which is precisely why this must be an extension. On a real iPhone — extension enabled, `espn.com` set to Allow, user signed in on their team page — all six cookie reads returned empty with the API present and the promise resolving. The target builds and embeds correctly; it simply cannot obtain the credential.
-- **Root cause of the wrong call:** the feasibility memo verified the cookies API was *present* on Safari iOS and that the extension *built*. Neither proves it can read the kind of cookie this depends on. A green build was mistaken for a working feature.
-- **Claim:** Claude, 2026-08-15
-- **Founder gates cleared 2026-08-15:** the App ID `com.slopssaloon.omen.espnconnect` was registered under team `6RWR5G9894`, and the founder approved the added store-review surface.
-- **Evidence:** `OmenEspnConnectExtension` target added to `OmenIOS.xcodeproj`; app builds for the simulator with `PlugIns/OmenEspnConnectExtension.appex` embedded, `CFBundleIdentifier = com.slopssaloon.omen.espnconnect`, `NSExtensionPointIdentifier = com.apple.Safari.web-extension`, and all five web-extension resources present. iOS suite **158/0** on this branch — no regression. The bundled `manifest.json` is byte-identical to `extension/manifest.json`.
-- **Single source of truth:** the target references `extension/*` by relative path rather than copying, so the Chrome/Edge listings and the Safari build cannot drift apart. Do not "fix" this by copying files into the iOS target.
-- **Still open before this can be called done:** enable the extension in Safari settings on a real iPhone and complete one ESPN connect end to end; add the extension icons (now user-visible in Safari settings, so no longer cosmetic); confirm the **web** connect page is usable at phone width, since the whole mobile flow depends on it.
-- **Priority:** P1 — it is the only path that lets an iPhone user connect ESPN **without leaving their phone**.
-- **Cost:** medium
-- **Authority / feasibility:** `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md`, which discharges onboarding-contract deliverable 7 **for iOS**. §10's block on "ESPN connected" UI should be lifted for iOS only.
-- **Feasibility is proven, not assumed:** `xcrun safari-web-extension-converter` converts `extension/` with no errors and the generated iOS project builds. Every API the extension uses is supported on Safari iOS — `cookies` from iOS 15, `storage.session.setAccessLevel` from Safari 16.4 — resolved against MDN browser-compat-data. **No extension code changes are required for iOS.**
-- **Scope:** an app-extension target *inside* the existing Omen iOS app, not the converter's default standalone wrapper app — a second App Store app would mean a second download and would discard the entire benefit.
-- **Known snag to expect:** the converter derives the app bundle id from the app *name*, producing "Embedded binary's bundle identifier is not prefixed with the parent app's bundle identifier." Inside Omen this resolves naturally, since the parent is `com.slopssaloon.omen`.
-- **Also in scope:** extension icons stop being cosmetic once bundled — they become user-visible in Safari settings. And confirm the **web** connect page is usable at phone width, since the mobile flow depends on it.
-- **Do not touch:** Apple credentials, provisioning profiles, store metadata, or the ESPN cookie values themselves (facts-of-record #6).
-
 ### M8-EspnAndroidHelper — Decide the Android ESPN path (deferred)
 
 - **Status:** BLOCKED
@@ -403,27 +303,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Why it is not a mirror of iOS:** **Firefox does not support `storage.session.setAccessLevel` on any platform** (MDN browser-compat-data). `background.js` calls it precisely so the content script can read the payload the popup staged; without it that read throws and the handoff fails silently. A Firefox port is a **code change**, not a repackage — the staging step would move to message passing or a `storage.local` write with an immediate clear, which carries its own privacy review since `storage.local` persists where `storage.session` does not. An earlier read this session called Firefox Android "the most open path"; on the API that matters it is the closed one.
 - **Edge Android** is on by default for Android 11+/Edge 123+ but uses a curated, sandboxed store. Verify Microsoft's current mobile curation policy directly before planning around it — the available sources were secondary and mixed quality.
 - **Interim answer:** Android ESPN users connect on desktop via the published Chrome/Edge listings. Documented, not hidden.
-
-### M6-ContextualHelp — Teach the product in place, per destination
-
-- **Status:** VERIFIED
-- **Progress — 2026-08-15 — built and locally verified on both platforms; ONE done-when criterion remains.** The `Tooltip/Help` primitive (registry §3.1) did not exist on either platform and was built as part of this pass; the `What is this?` affordance now ships on all four **shipped** destinations (Command Center, Omen, Connect, Account). Trade and League are deliberately excluded while they remain "landing next" placeholders, and a test pins that omission. Both required content corrections are enforced by tests on both platforms — no Draft Assistant, and every ESPN sentence routes to the website — with the Yahoo/ESPN sentences pinned character-for-character against `ConnectProvider.availability` so help and the connect screen cannot drift. iOS **183/183** (Xcode 26.6, iPhone 17 Pro sim; baseline 174); Android **50/50** instrumented on an API 36 AVD (baseline 42) plus `:core:designsystem:test` and `:app:assembleDebug` green. Renders captured light/dark at font scale 1.0 and 1.8; a large-text layout defect (last line under the gesture nav bar) was found in the screenshots and fixed. Evidence: `Blueprints/handoffs/2026-08-15-m6-contextual-help.md`. **Not pushed, merged, or deployed.**
-- **Accessibility done-when — discharged 2026-08-15, with one substitution named.** **TalkBack was genuinely driven** on an API 36 AVD: service confirmed bound with touch exploration on, affordance announces `What is this? Command Center`, node measures 48dp, TalkBack's own double-tap opened the sheet, and System Back dismissed it back to Command Center without leaving the app. **iOS VoiceOver is impossible on the Simulator** — `com.apple.VoiceOverTouch` is a background-only launchd job that never acquires a PID — so it is **SUBSTITUTED** with Apple's `performAccessibilityAudit()` under a new `OmenIOSUITests` target (5/5; iOS total now **188**). Dynamic Type/font scale verified on both platforms by render, not assertion. **The audit found a real AA defect in this component: `text-secondary` on `surface-2` is 4.43:1 in light mode.** Fixed on both platforms by following registry §3.1's `surface-2` + `text-primary` pairing.
-- **Residual, all outside this item:** a real-device VoiceOver pass (Simulator cannot do it); a pre-existing Command Center `contrast` failure and the app-wide `OmenTypography` Dynamic Type mechanism finding, both logged in `Direction/known_issues.md` and pinned under `XCTExpectFailure`; the 8 new screenshot scenarios have no `.github/workflows/native-visual-evidence.yml` matrix rows (CI-config edit, outside this pass's approved file list); and the Android content test sits in `androidTest` because `:app` has no JVM unit-test source set (adding one is a founder-gated `build.gradle.kts` edit).
-- **Evidence:** `Blueprints/handoffs/2026-08-15-m6-contextual-help.md` — iOS 183 unit + 5 UI, Android 50/50 instrumented + `:core:designsystem:test` + `:app:assembleDebug`, renders light/dark at font scale 1.0 and 1.8 on both platforms. **Not pushed, merged, or deployed.**
-- **Blocked by:** None
-- **Priority:** P1 — founder-raised 2026-08-15. The native app shows people states and numbers without ever explaining what they are, how to read a recommendation, or how to use a tool.
-- **Cost:** medium
-- **Authority — this is already specified, contrary to an earlier read in this session.** `Blueprints/specs/mobile/m4-help-support-v1.md` §1 defines **two** distinct things, and only the second was built:
-  1. **Contextual Help** — "explains the current Omen concept, state, or next step without taking the person away from their work," via a nearby `What is this?` / info affordance using the existing Tooltip/Help primitive. **This is the unbuilt half and the subject of this item.**
-  2. **Help + Support** — the calm Account-reached destination. Built under `M4-Help-Support-Implementation` (`OmenHelpSupportView` / `OmenHelpSupportScreen`).
-- **Content source:** the web `frontend/src/components/help/HelpButton.jsx` `PAGE_HELP` map — per-route `title` / `description` / `tips` — is the proven pattern and the founder's reference. **The spec is explicit that it is "content inventory only and is not a mobile layout source"** (§1): mine the copy, express it natively.
-- **Two content corrections required on port — do not copy verbatim:**
-  - `PAGE_HELP` still contains **Draft Assistant** entries. Draft Assistant is cut from 1.0 (`P1-DraftAssistantSideline`, facts-of-record #9). It must not appear in native help copy.
-  - The `/omen` entry says "Connect Sleeper or ESPN." ~~On native, ESPN cannot be connected at all (see `M5-NativeConnect`).~~ **CORRECTED 2026-08-15 (founder): this phrasing is wrong and it misled the M6 pass into filing a false defect.** ESPN **can** be connected and Omen **wants** those connections — the league is linked once on the Omen website and then appears in the app. `ConnectProvider.espn` is `.useWeb`, which is a *route*, not an absence. What native lacks is only the in-app credential handoff, and Connect already routes that honestly. So native help must name **where** ESPN connects; it must **not** drop ESPN. (Contrast with Yahoo, which is `.onHold` and genuinely cannot be connected anywhere right now — the two are worded differently on purpose.)
-- **Boundaries from the spec:** Contextual Help "must never become an unsolicited modal, block a decision, or impersonate live provider support," and dismissing must return to the exact prior state. Account stays the durable home for Help Center, feedback, and reporting a problem.
-- **Done when:** each shipped native destination exposes a contextual help affordance whose content is accurate for native; no coach-mark or modal interrupts a first run; VoiceOver/TalkBack and Dynamic Type/font-scale verified; no Draft Assistant and no unavailable-provider copy; scanner/tests/assembly green per platform.
-- **Do not touch:** the Help + Support destination contract, new API endpoints, telemetry, or any claim that support is staffed/live.
 
 ### M3A-QA — Native auth interactive real-device QA
 
@@ -440,8 +319,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
-- **Status:** READY
-- **Blocked by:** None — Figma proposal approved (node `73:2`, badge "APPROVED COMPOSITION — Justin, 2026-08-01"). No trust assignment yet covers writing SwiftUI/Compose code for this item.
+- **Status:** **VERIFIED 2026-08-16 — implementation merged, one done-when clause unevidenced.** Shipped as PR [#304](https://github.com/justinduverge-design/omen/pull/304) / `6466a4c` (2026-08-15). This item sat at `READY` after it merged — the fourth time this queue has advertised shipped work as pullable.
+- **Evidence:** `6466a4c` — `OmenPlatformCompactRow.swift` (+197) and `OmenPlatformCompactRow.kt` (+173) with paired tests (`OmenCommandCenterScreenTests.swift` +50, `OmenPlatformCompactRowTest.kt` +52, `OmenCommandCenterScreenTest.kt` amended), wired into both `OmenCommandCenterScreen` files; iPhone SE renders at `References/evidence/2026-08-14-cc-platforms-compact/iphone-se-command-center-demo.png` and `iphone-se-dynamic-type-xxxl.png`; visual-brief and state-contract updates in the same commit. The status-dot sub-scope was deferred to post-beta polish by PR [#305](https://github.com/justinduverge-design/omen/pull/305).
+- **Unevidenced clause — do not claim it:** the `Done when:` requires the Omen card above the fold on **Pixel 6a-class Android** as well as iPhone SE. Only iPhone SE captures were committed, and PR #304 shipped **no handoff file**, so no `:app:assembleDebug` / scanner / connected-test result is recorded anywhere in the repo for this change. That is why this is `VERIFIED`, not `CLOSED`: close it by attaching the Android render and assembly evidence, not by deleting the clause.
+- **Blocked by:** AGENT_RESOLVABLE — Android compact-row render + assembly/scanner evidence, and a handoff record for `6466a4c`
 - **Priority:** **P1 — beta blocker.** The connect flow is the first screen that matters to a new tester.
 - **Cost:** small–medium
 - **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
@@ -484,30 +365,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** `https://slopssaloon.com/.well-known/apple-app-site-association` serves the exact team/bundle association as JSON without redirect; a fresh physical-device install can add a passkey, list/remove it in Account, sign out, and sign back in with Face ID; sanitized evidence records the ceremony without credential material.
 - **Evidence:** `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
 - **Do not touch:** Android passkeys, Xcode Cloud, archive/TestFlight, production deployment, provider secrets, UI redesign, or Figma in this item.
-
-### M4-CC-LedgerPreview — Ledger preview composition + wiring
-
-- **Status:** VERIFIED
-- **Blocked by:** None
-- **Unblock:** 2026-08-13 CLEARED — the founder authorized the native UI parity pass. The approved node `72:2` composition now replaces the placeholder in SwiftUI and Compose, with labeled demo snapshots, honest disconnected/empty states, and routing into the existing Omen destination.
-- **Evidence:** `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`; local Xcode 26.6 simulator run **123 tests / 0 failures**; Android API 36 Command Center instrumentation **4/4**; primitive-enforcement scanner and `:app:assembleDebug` green; signed build installed and launched on the paired iPhone.
-- **Priority:** P2 — **ship if it fits.** Cut without hesitation if Phase 2 runs long.
-- **Cost:** small–medium
-- **Scope:** replace the "The Ledger is landing next" placeholder with the approved composition per mobile-visual-briefs §1.4 (immutable snapshot rows, outcome language table, no win-rate/streak/celebration).
-- **Done when:** the approved composition renders on both platforms with scanner and tests green.
-- **Do not touch:** the ledger data model (owned by backend), real move outcomes without verified sources.
-
-### M4-CC-LeaguePulse — League Pulse composition + wiring
-
-- **Status:** VERIFIED
-- **Blocked by:** None
-- **Unblock:** 2026-08-13 CLEARED — the founder authorized the native UI parity pass. The visual brief §1.6 / approved node `74:2` composition now replaces the placeholder in SwiftUI and Compose; demo standings remain explicitly labeled and the activity area states that no real feed exists rather than inventing events.
-- **Evidence:** `Blueprints/handoffs/2026-08-13-native-ui-parity-command-center.md`; local Xcode 26.6 simulator run **123 tests / 0 failures**; Android API 36 Command Center instrumentation **4/4**; primitive-enforcement scanner and `:app:assembleDebug` green; signed build installed and launched on the paired iPhone.
-- **Priority:** P2 — **ship if it fits.** An honest empty state is an acceptable 1.0 answer.
-- **Cost:** small–medium
-- **Scope:** replace the "League Pulse is landing next" placeholder once the approved composition exists.
-- **Done when:** the approved composition renders on both platforms, or an honest empty state ships until real events flow in.
-- **Do not touch:** invented league-activity data.
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
@@ -552,71 +409,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Source:** the discipline that makes the rest of the plan possible. After freeze: bug fixes only, until beta feedback justifies new work.
 - **Done when:** freeze is declared in `Direction/decision_log.md`; every remaining non-bug item is moved to the deferred backlog; agents are instructed to reject new feature scope.
 - **Do not touch:** new features after this lands.
-
-### B2-D — Complete the canonical Omen engine: live Waiver + Trade intelligence
-
-- **Status:** VERIFIED
-- **Evidence:** current `main` commits `c021b52` (selected context), `ffa8999` (Yahoo guarded waiver), `a0dea67` (deterministic selector), `521268b` (Sleeper trade), `171508f` (ESPN adapter), and `623068a` (ESPN canonical wiring); focused B2-D tests 84/84 and full `npm test` 506/506 on 2026-08-02; capability matrix reconciled in `Blueprints/specs/b2d-canonical-omen-context-and-capability-contract-v1.md`; sanitized provider proofs in `Blueprints/handoffs/2026-07-29-b2d-s3-sleeper-live-proof.md` and `Blueprints/handoffs/2026-08-02-b2d-e3-espn-live-proof.md`.
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** large
-- **Source of truth:** GitHub issue #162.
-- **Done when:** #162 acceptance evidence is complete — server-verified multi-league context; real waiver/player-pool logic; personalized trade logic; deterministic recommendation selection; provider capability matrix; no mock/stub advice presented as live.
-- **Do not touch:** provider credentials, deployment, production data mutations, or store configuration without separate approval.
-
-### B2-D-E1 — Normalize the ESPN waiver pool
-
-- **Status:** VERIFIED (merged as PR #265 / `171508f`; fixture-tested; no deployment or production-route claim)
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** medium
-- **Done when:** `kona_player_info` pagination, position/status request filter, `onTeamId === 0` ownership exclusion, requested-week projected-stat extraction, and no-cookie logging behavior are fixture-tested; the adapter returns normalized eligible players or an honest unavailable/empty result.
-- **Do not touch:** ESPN credentials, real-account requests, SQL, dependencies, canonical Omen service, public Trade Analyzer, deployment, or production data.
-
-### B2-D-E2 — Wire ESPN waiver candidates into canonical Omen
-
-- **Status:** VERIFIED (merged as PR #266 / `623068a`; fixture-tested; no deployment or production-route claim)
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** medium
-- **Done when:** canonical service/route tests prove selected-context ownership, live candidate selection, unavailable/empty behavior, and no mock fallback; Yahoo/Sleeper remain unchanged.
-- **Do not touch:** provider credentials, public Trade Analyzer, SQL, dependencies, mobile clients, deployment, or production data.
-
-### B2-D-E3 — Prove ESPN roster subtraction in a drafted league
-
-- **Status:** VERIFIED (2026-08-02 founder-authorized read-only provider proof; aggregate evidence only; no deployment or production-route claim)
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** small
-- **Done when:** rostered-player leakage and `onTeamId` results are recorded without cookies, league ID, team name, username, or player lists; the ESPN waiver capability matrix is updated honestly.
-- **Do not touch:** credential values, transactions, application code, deployment, or production data.
-
-### B2-D3-S — Live trade capability: Sleeper
-
-- **Status:** VERIFIED
-- **Evidence:** merged `521268b` (PR #259); `test/sleeperAdapter.test.js`, `test/tradeLineup.test.js`, and `test/omenMvpLiveService.test.js`; credential-free drafted-league aggregate proof in `Blueprints/handoffs/2026-08-02-b2d3-sleeper-live-trade-capability.md`.
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** medium
-- **Key rule:** suggest only trades where **both** teams' projected starting lineup improves; `decisionScore` is the user's weekly lineup delta, with `tradeValue.js` VORP used as a fairness guard, never as the score.
-- **Do not touch:** the public Trade Analyzer route, Yahoo/ESPN trade rows, provider credentials, deploy, SQL, production data.
-
-### B3 — Replace Sportradar with nflverse for Tuesday scoring
-
-- **Status:** VERIFIED
-- **Evidence:** PRs [#260](https://github.com/justinduverge-design/omen/pull/260), [#261](https://github.com/justinduverge-design/omen/pull/261), [#262](https://github.com/justinduverge-design/omen/pull/262); KVM1 deploy run [30754635716](https://github.com/justinduverge-design/omen/actions/runs/30754635716); production process-only dry run completed with `archived=0`, `scored=0`, and no Supabase or Redis writes. The sole pending move could not be scored because nflverse has not published the 2026 season file; follow-up [#263](https://github.com/justinduverge-design/omen/issues/263) owns explicit pre-season deferral behavior.
-- **Blocked by:** None
-- **Priority:** P1
-- **Cost:** medium
-- **Do not touch:** the production `OMEN_CRON_SCORING_ENABLED` flag; no production cron deploy without separate approval.
-
-### D1 — Real `GET /api/trade/pulse`
-
-- **Status:** VERIFIED
-- **Evidence:** live-hit `https://slopssaloon.com/api/trade/pulse` 2026-08-01T03:10:53Z — returned `"status":"live","is_mock":false,"source_status":"live_adp"` with 5 real current players. `Direction/reviews/2026-08-01-d1-adp-source-research.md`; `test/adpService.test.js` (9 tests), `test/tradeRoute.test.js` live/unavailable cases.
-- **Priority:** P1
-- **Cost:** small
-- **Do not touch:** paid data source or new dependency without approval.
 
 ## S. Security lane
 
@@ -736,15 +528,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ## O. Ops and observability lane
 
 **Phase 3.** This is the lane that decides whether you can diagnose anything after beta opens. **O1 and O6 are the highest-value items in the whole plan** — mobile is worse than web here, because you cannot read a user's console.
-
-### O1 — Infrastructure observability
-
-- **Status:** **VERIFIED — already built, 2026-08-08.** Corrected 2026-08-05→10.
-- **Blocked by:** None
-- **Priority:** P0
-- **Evidence:** the Raspberry Pi Command Center stack (external tracker: *Slops OS Raspberry Pi Deployment Plan & Build Tracker*, Layer 2 COMPLETE). **Uptime Kuma** on Command Center (Pi 4, Tailscale-bound `100.98.81.0:3001`) runs three content-aware Omen monitors — public HTTPS, `/api/health`, `/api/ready` — with proven content-failure detection, DOWN→UP recovery, restart persistence, and full-host reboot survival. **Beszel** hub (`100.98.81.0:8090`) collects host/container telemetry from Command Center, **KVM1** (`omen_api` + `omen_cron`, via a loopback-only read-only Docker socket proxy), **KVM2** (native least-privilege systemd agent), Steward, and Sentinel. Agent-loss detection and reconnect proven on KVM1 without disturbing production. Whole stack sits under the <1 GiB Pi budget, no public exposure, TCP 45876 closed everywhere.
-- **Correction:** this item previously read "Sentry + Umami + Vector per `self-hosted-observability-runbook` — without it a beta crash is invisible." That understated existing infrastructure. **Availability, readiness, host, and container observability are done, and done well.** What remains is a genuinely different signal class — see O1b and O6.
-- **Do not touch:** the Pi stack's private Tailscale binds; never publish Kuma or Beszel.
 
 ### O1b — Application error tracking (Sentry-class)
 
@@ -876,55 +659,6 @@ event traceable.
 - **Superseding finding 2026-08-13 — the fault is app-level, not grant-level.** Step 1's diagnostic order below was followed and completed: the founder updated `YAHOO_CLIENT_ID`/`YAHOO_CLIENT_SECRET` on KVM1, force-recreated both containers, and completed a fresh disconnect/reconnect OAuth round-trip. Yahoo still refuses every Fantasy Sports call. A temporary access probe (`GET /api/yahoo/access-probe`, PR [#296](https://github.com/justinduverge-design/omen/pull/296)) returned **403 on all four calls, including public `/game/nfl` metadata that requires no user scope** — which disproves the "dead user grant" default hypothesis stated below, and also disproves bad client credentials (those fail at authorize with `invalid_client`; the handshake succeeds). **The deployed Yahoo app does not hold Fantasy Sports API entitlement.** Yahoo gates that behind a separately reviewed application (`https://sports.yahoo.com/developer/access/`), distinct from the permission checkbox on the app record. Remaining work is founder-side on the Yahoo developer account. **Narrowed the same session:** the deployed client id decodes to app **`ZcZJXm8V`** ("SlopsSaloon Fanatasy Football MVP"), which is confirmed to have `Fantasy Sports - Read` checked and the correct redirect URI — so the wrong-app branch is eliminated and the deployed credentials are correct. The checkbox is a *request*, not a *grant*: Yahoo issues Fantasy Sports API access via a separately reviewed application (`https://sports.yahoo.com/developer/access/`), and a checked-but-unapproved app returns exactly this 403. The prior approval most likely attached to the earlier app that was deleted. **Action: re-apply for Fantasy Sports API access for `ZcZJXm8V`; no agent-buildable code fix exists.** See `Direction/known_issues.md`.
 - **Do not touch:** client secrets in logs, agent output, commit messages, or the repo. All four local `.env*` files are gitignored and none has ever been committed (verified 2026-08-11) — keep it that way. Do not delete the existing `platform_connections` row; it is fine, and re-creating it loses the league binding.
 
-### P1-YahooLeagueBinding — Yahoo can never reach `ready`: no league is ever bound
-
-- **Status:** **VERIFIED 2026-08-14** (PR [#293](https://github.com/justinduverge-design/omen/pull/293)). The blocking condition recorded below — "tests are hand-traced against fixtures, not executed (no node/npm in that session); `npm test` must run and pass before this item can move to VERIFIED" — **is now discharged.** Node 24.19.0 was installed on the founder's Mac on 2026-08-14 and `npm test` ran the full suite: **530/530 pass**, including `POST /api/yahoo/league binds a real Yahoo league and persists it`, the not-your-league rejection, and the no-connection 404. `GET /api/yahoo/leagues` + `POST /api/yahoo/league` + the `ConnectLeague.jsx` picker close the write/read mismatch. **Caveat that is not this item's fault:** the end-to-end path still cannot be exercised against live Yahoo data, because Yahoo refuses every Fantasy call at the app-entitlement level (see `P1-YahooReauth`). The binding code is verified; the live round-trip waits on Yahoo.
-- **Blocked by:** None
-- **Priority:** **P0 — Yahoo is structurally non-functional; this is the root cause, not the token**
-- **Cost:** medium
-- **Agent-buildable:** yes
-- **Proven end-to-end 2026-08-11.** After new credentials were installed and OAuth completed successfully (`/account/connect?connected=yahoo`), the token is live — `/api/dashboard/summary` reports `yahoo: {connected: true}` with no `token_expired`. **`waiver_wire` is still `needs_platform`.** The reason is `league_id`.
-- **The defect:** `src/services/yahooAuth.js:71` upserts `league_id: leagueId || existing?.league_id || "yahoo"`. With no league supplied it stores the literal string `"yahoo"`. `hasUsableLeagueId()` (`src/services/omenReadiness.js:3-6`) returns false whenever `league_id === connection.platform`. **The write path stores a value the read path is guaranteed to reject.** Verified live: `summary.platforms.yahoo.league_id === "yahoo"`.
-- **No caller ever supplies a league.** `startYahooOAuth()` (`frontend/src/lib/yahooAuth.js:3`) accepts `{leagueId}` but the only production caller — the Football reconnect button, `Football.jsx:99` — invokes it with no arguments. Both broken Connect buttons navigate bare. So every Yahoo connection made through the product gets the placeholder.
-- **And there is no recovery path.** `src/routes/yahoo.js` exposes only `GET /auth`, `POST /auth`, `GET /callback`, and `GET /roster`. **There is no leagues-list endpoint and no league-picker UI.** `/roster` requires a `leagueKey` (e.g. `nfl.l.12345`) the user has no way to discover in-product. Once the placeholder is written, nothing in the shipped surface can replace it.
-- **Consequence for the F-lane:** F7 cannot pass on the current build even with valid credentials and a live token. Its acceptance includes Omen recommendations and League Standings, both of which need a real league key. This is a code gap, not a QA gap.
-- **Skills:** `slops-tdd`, `slops-code-review`, `slops-verify`
-- **Done when:** a Yahoo leagues endpoint returns the authenticated user's leagues; connect flow either binds a league during OAuth or prompts immediately after; an existing placeholder row can be repaired without disconnecting; and a test asserts `waiver_wire` reaches `ready` for a Yahoo-only user with a bound league.
-- **Do not touch:** `hasUsableLeagueId()` — it is correct. The bug is the writer, not the validator. Do not "fix" this by loosening the predicate to accept `"yahoo"`; that would make an unusable connection report as ready.
-- **Correction 2026-08-13 — do not persist `null`.** This item's `Done when:` previously read "`league_id` is never written as the platform name — persist `null` and treat the connection as incomplete rather than storing a value that fails validation." That is wrong against the live schema: `sql/omen_rls_security.sql:82` defines `platform_connections.league_id` as `text not null`. Writing `null` would fail every first-time Yahoo connect with a Postgres constraint violation — the opposite of the intended fix. The `"yahoo"` placeholder is correct to keep exactly as-is; `hasUsableLeagueId()` already rejects it. The actual gap was that nothing could ever supply or repair a *real* `league_id` — closed by `GET /api/yahoo/leagues` + `POST /api/yahoo/league` and a `ConnectLeague.jsx` picker. **Implemented, not yet verified:** PR [#293](https://github.com/justinduverge-design/omen/pull/293), branch `claude/p1-yahoo-league-binding`. Tests are hand-traced against fixtures, not executed (no node/npm in that session) — `npm test` must run and pass before this item can move to `VERIFIED`. See `Direction/decision_log.md` "2026-08-13 — Yahoo league binding".
-
-### P1-YahooConnectButtons — No working UI path to connect or reconnect Yahoo
-
-- **Status:** **VERIFIED 2026-08-14** (PR [#292](https://github.com/justinduverge-design/omen/pull/292)). Re-verified against `main`: a repo-wide grep for `/api/yahoo/auth` in `frontend/src/` now returns **exactly one hit** — `frontend/src/lib/yahooAuth.js:5`, the correct `apiFetch` POST. Both `window.location.href` navigations (`PlatformConnections.jsx`, `WaiverWire.jsx`) are gone. Yahoo's `providerError` is logged before the state row is deleted (`src/routes/yahoo.js:118-119`). The `/api/platforms` vs `/api/dashboard/summary` disagreement is documented in `Direction/known_issues.md` rather than collapsed. **Residual, accepted:** the `GET /api/yahoo/auth` route still exists behind `requireAuth` (`src/routes/yahoo.js:76`) rather than being removed — it is no longer reachable from any UI surface, so it cannot be linked into again by the product, but it will still answer `{"error":"Missing bearer token"}` to a hand-typed URL. Not worth a separate item; fold it into the next `src/routes/yahoo.js` touch.
-- **Blocked by:** None
-- **Priority:** **P0 — blocks P1-YahooReauth, which blocks F7, which blocks Section K**
-- **Cost:** small
-- **Agent-buildable:** yes
-- **Source:** reproduced by the founder 2026-08-11 — navigating to `/api/yahoo/auth` returns `{"error":"Missing bearer token"}`. That is not a misuse; it is exactly what two of the product's own buttons do.
-- **Two broken call sites:**
-  1. `frontend/src/components/platforms/PlatformConnections.jsx:369` — "Connect Yahoo" runs `window.location.href = '/api/yahoo/auth'`. A top-level navigation sends cookies but **not** the `Authorization: Bearer` header, and `src/routes/yahoo.js:76` wraps the GET route in `requireAuth`. Always fails.
-  2. `frontend/src/pages/WaiverWire.jsx:60` — identical broken navigation.
-- **The correct reference implementation already exists and works.** `frontend/src/pages/Football.jsx:99` "Reconnect Yahoo" calls `startYahooOAuth()` (`frontend/src/lib/yahooAuth.js:3-15`), which POSTs via `apiFetch` so the bearer is attached (`frontend/src/lib/api.js:20-21`), then follows the returned `url`. **Verified working 2026-08-11** — it produced a valid `api.login.yahoo.com/oauth2/request_auth` URL (HTTP 200, `response_type=code`, state present). Point the two broken call sites at this.
-- **Correction (2026-08-11):** an earlier draft of this item claimed the working reconnect button never renders because the API returns `'connected'`. **That was wrong and is withdrawn.** `/api/dashboard/summary` — which is what `Football.jsx:279` actually reads — correctly returns `yahoo: {connected: false, status: "token_expired"}` (`src/routes/dashboard.js:70-78`). The reconnect alert does render. The error came from checking `/api/platforms` instead of the endpoint the component consumes.
-- **Real inconsistency, still open:** `/api/platforms` reports `yahoo: connected: true` while `/api/dashboard/summary` reports `connected: false, status: token_expired` — **two endpoints giving contradictory answers about the same connection, at the same moment.** `/api/platforms` reports row existence; the summary folds in token health. Any consumer reading the wrong one draws the wrong conclusion, which is what happened during this very investigation.
-- **Diagnostic defect:** `src/routes/yahoo.js:118-121` discards Yahoo's `error` query param — it deletes the OAuth state and redirects to a generic `yahoo_access_denied` without logging what Yahoo actually said. `oauthCompletionRedirect()` (lines 53-57) then collapses every non-connected outcome into that same string. Yahoo's real reason (`invalid_client`, `redirect_uri_mismatch`, genuine user denial) is unrecoverable after the fact. Log `providerError` before discarding it.
-- **Skills:** `slops-code-review`, `slops-tdd`, `security-privacy-evidence`
-- **Done when:** both `window.location.href = '/api/yahoo/auth'` call sites use `startYahooOAuth()`; `/api/platforms` and `/api/dashboard/summary` agree on connection health or the difference is documented and each consumer is checked against the right one; Yahoo's `providerError` is logged before the state row is deleted; a test covers "connected row + dead token" and asserts a reachable, working reconnect affordance; and the raw GET `/api/yahoo/auth` route either accepts a session or is removed so it cannot be linked to again.
-- **Do not touch:** the POST `/api/yahoo/auth` contract or `startYahooOAuth()` — both are correct and are the reference implementation.
-
-### P1-WaiverGateMultiProvider — Waiver readiness is hardcoded to Yahoo
-
-- **Status:** **VERIFIED 2026-08-14.** Closed and re-verified against `main` on a machine that can actually run the suite. `buildWaiverTool()` (`src/routes/dashboard.js`) now derives readiness from `activeRows.some(isOmenReadyConnection)` — the shared predicate — with no Yahoo-specific branch anywhere in the gate. `test/dashboardSummary.test.js` asserts `waiver_wire: {available: true, status: "ready"}` for a **Sleeper-only** user and for an **ESPN-only** user. Full backend suite: **530/530 pass**. The ESPN (#266) and Sleeper (#259) waiver work is reachable from the dashboard. This item had been sitting at READY after it was already fixed.
-- **Blocked by:** None
-- **Priority:** **P0 — silently buries shipped work**
-- **Cost:** small–medium
-- **Agent-buildable:** yes
-- **Source:** verified live 2026-08-11. `src/routes/dashboard.js:213-226` computes waiver readiness from `usableYahoo` **alone**. With ESPN and Sleeper both `connected` with one league each, `/api/dashboard/summary` still returns `waiver_wire: "needs_platform"`.
-- **Why it matters:** `B2-D-E2` (ESPN waiver candidates, PR #266) and `B2-D3-S` (Sleeper live trade, PR #259) are both marked **VERIFIED**. That backend work is real, merged, and tested — and a user cannot reach any of it, because the gate in front of it asks "do you have Yahoo?" This is the clearest example in the queue of merged ≠ delivered.
-- **Skills:** `slops-tdd`, `slops-verify`
-- **Done when:** waiver readiness is computed from *any* Omen-ready connection using the existing `isOmenReadyConnection()` predicate rather than a Yahoo-only check; a test proves `waiver_wire: "ready"` for an ESPN-only user and for a Sleeper-only user; and the ESPN/Sleeper waiver paths proven by #266 and #259 are shown reachable end-to-end from the dashboard.
-- **Do not touch:** the per-provider readiness predicates themselves — `isOmenReadyConnection()` is already correct and is used by `omen_of_the_week`. This is a gate bug, not a predicate bug.
-
 ### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
 
 - **Status:** READY
@@ -1046,22 +780,6 @@ event traceable.
 - **Scope:** record the ~90-second walkthrough using mock/demo data only — no real ESPN account or credentials. Embed on `EspnConnectGuide.jsx`, replacing the placeholder.
 - **Done when:** the asset exists, renders on desktop and mobile, and contains no real ESPN credentials, cookies, or account data.
 - **Do not touch:** real ESPN account/credentials in the recording; any live cookie values.
-
-### F1 — Service-key Supabase route-scoping audit
-
-- **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-f1-service-key-route-scoping-audit.md`; `test/userPrivacyIsolation.test.js` (4 tests), `test/espnRouteIsolation.test.js` (3 tests); `npm test` 476/476 at the time of closure.
-- **Priority:** P1
-- **Cost:** medium
-- **Do not touch:** production data; secret values.
-
-### F4 — ESPN public handoff production verification
-
-- **Status:** VERIFIED
-- **Evidence:** `Direction/reviews/2026-07-31-f4-espn-public-handoff-verification.md`; `test/espnConnectGuideRegression.test.js` (5 tests); `npm test` 481/481 at the time of closure.
-- **Priority:** P1
-- **Cost:** small
-- **Do not touch:** ESPN cookie values in logs, UI, URLs, or payloads.
 
 ## K. Marketing — hold until Phase 4 closes
 
