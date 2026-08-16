@@ -150,6 +150,63 @@ test("the backend mounts /api/draft-assistant only behind the flag", () => {
     "the /api/draft-assistant mount must sit inside the DRAFT_ASSISTANT_ENABLED guard");
 });
 
+test("the whole draft path is dark — Sleeper live-draft tracking too", (t) => {
+  // Founder decision 2026-08-16. The first pass held /api/sleeper/draft*
+  // mounted on the argument that live-draft *tracking* is a different feature
+  // from Draft Assistant. True, and not the point: 1.0 ships no draft surface
+  // at all. These routes are now registered only behind the same flag.
+  //
+  // Registered, not refused — an express router that never registers the path
+  // 404s, so the feature is absent rather than visibly disabled. This is the
+  // same reasoning as the /api/draft-assistant mount.
+  const routerPath = require.resolve("../src/routes/sleeper");
+  const configPath = require.resolve("../src/config");
+  const original = process.env.DRAFT_ASSISTANT_ENABLED;
+  t.after(() => {
+    if (original === undefined) delete process.env.DRAFT_ASSISTANT_ENABLED;
+    else process.env.DRAFT_ASSISTANT_ENABLED = original;
+    delete require.cache[routerPath];
+    delete require.cache[configPath];
+  });
+
+  const pathsWith = (value) => {
+    if (value === undefined) delete process.env.DRAFT_ASSISTANT_ENABLED;
+    else process.env.DRAFT_ASSISTANT_ENABLED = value;
+    delete require.cache[routerPath];
+    delete require.cache[configPath];
+    return require("../src/routes/sleeper").stack
+      .filter((layer) => layer.route)
+      .map((layer) => layer.route.path);
+  };
+
+  const dark = pathsWith(undefined);
+  assert.ok(!dark.some((p) => p.includes("draft")),
+    `no draft route may be registered in 1.0, got ${JSON.stringify(dark)}`);
+  assert.ok(dark.includes("/roster"),
+    "the rest of the Sleeper router must be unaffected by the draft gate");
+
+  // The re-activation path in the decision log promises these come back with
+  // one flag. Proving the restore direction is what makes that promise real —
+  // a preserved feature nobody has re-enabled once is a guess, not a plan.
+  const lit = pathsWith("true");
+  assert.deepEqual(lit, ["/draft", "/draft/:draftId", "/draft/:draftId/state", "/roster"],
+    "flipping the flag must restore every draft route, in order, alongside /roster");
+});
+
+test("Privacy no longer claims to collect draft data", () => {
+  // Collection copy and the routes that collect have to move together. With
+  // /api/sleeper/draft* unmounted, 1.0 receives no draft data, and listing it
+  // would OVERSTATE collection — the mirror image of the error that kept this
+  // word in place during the first pass, when the endpoints were still live.
+  const privacy = readRendered("frontend", "src", "pages", "Privacy.jsx");
+
+  assert.ok(!/\bdrafts\b/i.test(privacy),
+    "Privacy must not list drafts among collected fantasy-platform data");
+  // The rest of the collection list must survive.
+  assert.match(privacy, /rosters, standings, matchups/);
+  assert.match(privacy, /transactions, players/);
+});
+
 test("the Draft Assistant flag fails closed", (t) => {
   // This is the one genuinely behavioral piece of the removal — a decision,
   // so it is tested for real rather than by grep. Default-off is the whole

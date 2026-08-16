@@ -1,6 +1,6 @@
 # Omen Decision Log
 
-## 2026-08-16 — Draft Assistant removed from the 1.0 surface; the preserved code gets a re-activation path
+## 2026-08-16 — The draft path goes dark for 1.0; the preserved code gets a re-activation path
 
 - **Executed `P1-DraftAssistantSideline`.** The 2026-08-11 decision to sideline Draft Assistant to 2027 was recorded but never carried out: verified again on this branch, the product still shipped it to every visitor — nav entry, `/draft` route, a hardcoded `draft_assistant: {available: true, status: "ready"}` in `/api/dashboard/summary`, a Football tab, a landing mini-card, an about-page feature pill, four help-drawer entries, and clauses in both Privacy and Terms. A decision recorded in the log and not executed in the code is indistinguishable, from the user's side, from no decision at all.
 
@@ -9,14 +9,18 @@
 - **The backend mount fails closed rather than refusing politely.** `/api/draft-assistant` is now mounted only when `DRAFT_ASSISTANT_ENABLED=true` (`src/config/index.js`, mirroring the existing `YAHOO_ENABLED` pattern). Unmounted, the path returns the app's standard 404. A disabled-feature error was rejected as the alternative: a 403 or a "feature unavailable" body still confirms the feature exists, which is exactly the claim the sideline is meant to stop making. Only the exact string `true` enables it — `1`, `yes`, and a blank value all stay off, and that is pinned by test.
 
 - **Draft Assistant re-activation path (2027).** In order, to bring it back:
-  1. Set `DRAFT_ASSISTANT_ENABLED=true` on `omen_api` and redeploy — this remounts `src/routes/draftAssistant.js` at `/api/draft-assistant`.
+  1. Set `DRAFT_ASSISTANT_ENABLED=true` on `omen_api` and redeploy — this remounts `src/routes/draftAssistant.js` at `/api/draft-assistant` **and** re-registers the three Sleeper live-draft tracking routes at `/api/sleeper/draft*`. Both directions of this flag are proven by test, so the restore is a demonstrated path rather than an assumption.
   2. Restore the `draft_assistant` tool entry in `src/routes/dashboard.js` (its removal site carries a comment naming this step).
   3. Restore the frontend surface: the nav item in `components/layout/Header.jsx`, the `/draft` route in `routes/index.jsx` (the page is untouched at `pages/DraftAssistant.jsx`), the Football tab in `pages/Football.jsx`, and the `/draft` help entry plus quick link in `components/help/HelpButton.jsx`.
-  4. Restore the marketing and legal copy: the landing mini-card, the about-page feature pill, and the "draft tools" clauses in `pages/Privacy.jsx` and `pages/Terms.jsx`.
+  4. Restore the marketing and legal copy: the landing mini-card, the about-page feature pill, the "draft tools" clauses in `pages/Privacy.jsx` and `pages/Terms.jsx`, and the word **"drafts"** in the Privacy collected-data list — step 1 makes Omen collect draft data again, so that word has to come back in the same pass.
   5. Delete or invert `test/draftAssistantSideline.test.js`, which is written to fail the moment any of the above returns.
   Every removal site carries a dated `P1-DraftAssistantSideline` comment, so step 3 and step 4 are greppable rather than archaeological.
 
-- **Two boundaries held deliberately, both flagged for founder review.** First, `/api/sleeper/draft*` (`src/routes/sleeper.js`) stays mounted: it is Sleeper live-draft *tracking*, not Draft Assistant, it is auth-gated, and it is advertised nowhere — and it is what keeps the Privacy "drafts" data-collection line truthful. Removing that line while the endpoints still collect draft data would understate collection, which is the worse legal error. Second, no "2027 fantasy draft" marketing line was added. The 2026-08-14 amendment *permits* one factual mention on the marketing site and one labelled in-app note; it does not require them, and writing new marketing copy is a founder call, not a cleanup side effect.
+- **Founder decision, same day: the entire draft path goes dark for 1.0.** The first pass held `/api/sleeper/draft*` (`src/routes/sleeper.js`) mounted, on the argument that Sleeper live-draft *tracking* is a different feature from Draft Assistant — auth-gated, advertised nowhere, and protected by the item's own do-not-touch line. The founder overrode that: **1.0 ships no draft surface at all.** Draft is a 2027 story, not a 1.0 feature with a quiet API. Those three routes are now registered only behind `DRAFT_ASSISTANT_ENABLED`, so they are absent rather than refused, and the rest of the Sleeper router (`/roster` and below) is untouched. `test/sleeperDraftRoute.test.js` opts the flag on explicitly so the preserved implementation stays green — preserved code that silently rots is undeleted, not preserved.
+
+- **The Privacy "drafts" collection line moves with the routes, in the opposite direction.** While the endpoints were live, removing that word would have *understated* collection — the worse legal error, which is why the first pass kept it. With them unmounted, 1.0 receives no draft data and keeping the word *overstates* collection. Collection copy and the routes that collect have to move together in both directions; the removal site says so, and `test/draftAssistantSideline.test.js` pins it.
+
+- **No "2027 fantasy draft" marketing line was added, and the founder confirmed none is wanted.** The 2026-08-14 amendment *permits* one factual mention on the marketing site and one labelled in-app note; it does not require them, and writing new marketing copy is a founder call, not a cleanup side effect.
 
 ## 2026-08-15 — The native app has no API layer; scoring needs source-agnosticism, not a fork
 

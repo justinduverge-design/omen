@@ -5,6 +5,15 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 delete process.env.REDIS_URL;
 delete process.env.REDIS_TOKEN;
 
+// P1-DraftAssistantSideline (2026-08-16): the draft path is dark for 1.0, so
+// `/api/sleeper/draft*` is registered only when DRAFT_ASSISTANT_ENABLED=true.
+// This suite covers the PRESERVED implementation that returns for the 2027
+// draft, so it opts the flag on explicitly. Keeping it green is the point —
+// preserved code that silently rots is not preserved, it is just undeleted.
+// That the routes are *absent* by default is proven separately, in
+// `test/draftAssistantSideline.test.js`.
+process.env.DRAFT_ASSISTANT_ENABLED = "true";
+
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const Module = require("node:module");

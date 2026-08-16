@@ -41,7 +41,9 @@ Verified on this branch before any change:
 | `frontend/src/components/help/HelpButton.jsx` | The `/draft` help entry, two tips, and the quick link removed. |
 | `frontend/src/pages/Landing.jsx` | `DraftAssistantMiniCard` component and its usage removed. |
 | `frontend/src/pages/OmenLanding.jsx` | Feature pill replaced with Trade Analyzer. |
-| `frontend/src/pages/Privacy.jsx` / `Terms.jsx` | "draft tools" clauses removed. |
+| `src/routes/sleeper.js` | The three `/draft*` route registrations move inside the same flag guard. `/roster` and below untouched. |
+| `frontend/src/pages/Privacy.jsx` / `Terms.jsx` | "draft tools" clauses removed; **"drafts"** also dropped from the Privacy collected-data list once the endpoints went dark. |
+| `test/sleeperDraftRoute.test.js` | Opts `DRAFT_ASSISTANT_ENABLED=true` so the preserved routes keep their 12 tests green. |
 | `frontend/src/lib/nextUrl.js` | `/draft` removed from the redirect allowlist. |
 | `Direction/decision_log.md` | New entry with the five-step re-activation path. |
 
@@ -51,8 +53,8 @@ Verified on this branch before any change:
 
 ## Evidence
 
-- **RED first:** `test/draftAssistantSideline.test.js` failed 8 of 10, and the new assertion in `test/dashboardSummary.test.js` failed against the live hardcoded `{available: true, status: "ready"}`.
-- **GREEN:** full `npm test` **561/561** (549 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean.
+- **RED first, twice.** Pass one: `test/draftAssistantSideline.test.js` failed 8 of 10, and the new assertion in `test/dashboardSummary.test.js` failed against the live hardcoded `{available: true, status: "ready"}`. Pass two, after the founder override: the draft-dark assertions failed while `/api/sleeper/draft*` was still registered, and the Privacy assertion failed on the word still being there.
+- **GREEN:** full `npm test` **563/563** (549 baseline, +14), `npm --prefix frontend run build` clean, `git diff --check` clean.
 - **Local substitute for CI:** this item's `Done when:` cites no CI. Backend `node --test` (~5s) plus the frontend build is the recorded substitute; `pr-quality.yml` runs the same two on the PR.
 - **The strongest evidence is the bundle, not the tests.** `frontend/dist/assets/*.js` contains **zero** occurrences of `Draft Assistant`, `draft-assistant`, or `Draft Position`. Once unrouted, the page tree-shakes out of the production build entirely — so it is unreachable, not merely unlinked. A source grep could not have established that.
 - **Store/onboarding re-check** (required by `Done when:`): no shipped store metadata or onboarding copy advertises the feature. The store-copy specs carry it only as a *prohibition* with an open `R7` checkbox, and native help copy was already guarded by tests from `M6-ContextualHelp`.
@@ -64,10 +66,28 @@ Verified on this branch before any change:
 - **Landing layout:** the "More from Omen" grid keeps `sm:grid-cols-2` with one child, so `OmenMiniCard` renders at exactly its previous width instead of stretching to full bleed. That is the minimum-risk visual outcome, not necessarily the right design — a one-item "More from Omen" section is worth a designer's eye.
 - **Native untouched.** This is web + backend only.
 
-## Two boundaries held deliberately — both need a founder call
+## Founder override, same session — the whole draft path is dark
 
-1. **`/api/sleeper/draft*` stays mounted.** It is Sleeper live-draft *tracking*, not Draft Assistant: auth-gated, advertised on no surface, and explicitly protected by the item's own do-not-touch line. It is also what keeps the Privacy **"drafts"** data-collection line truthful — those endpoints do still receive draft data, and removing that line while they run would *understate* collection, which is the worse legal error. If the founder wants the whole draft data path dark for 1.0, that is a second item and the Privacy line moves with it.
-2. **No "2027 fantasy draft" marketing line was added.** The 2026-08-14 amendment *permits* one factual mention on the marketing site and one clearly-labelled in-app "not in this version" note. It does not require them, and writing new marketing copy is a founder decision, not a cleanup side effect. The slot is available whenever you want it.
+I flagged two boundaries for review. The founder resolved both, and one reversed my call.
+
+**1. `/api/sleeper/draft*` is now unmounted too.** My argument for keeping it was that Sleeper live-draft *tracking* is a different feature from Draft Assistant — auth-gated, advertised nowhere, and explicitly protected by the item's do-not-touch line. That reasoning was correct and beside the point: **1.0 ships no draft surface at all.** Draft is a 2027 story, not a 1.0 feature with a quiet API left running.
+
+The three routes now register only behind `DRAFT_ASSISTANT_ENABLED`, so they are absent rather than refused — same reasoning as the `/api/draft-assistant` mount. `/roster` and the rest of the Sleeper router are untouched, and that is asserted, not assumed.
+
+**2. The Privacy "drafts" line moved with them — in the opposite direction to my first analysis.** While the endpoints were live, deleting that word would have *understated* collection, which is the worse legal error and is why the first pass kept it. With them unmounted, 1.0 receives no draft data, so keeping it *overstates* collection. Both readings were right for their moment; the lesson is that collection copy and the routes that collect must move together **in both directions**, which the removal site now says in a comment.
+
+**3. No 2027 marketing line** — confirmed, nothing to do.
+
+**`test/sleeperDraftRoute.test.js` opts the flag on explicitly** so the preserved implementation keeps running its 12 tests. Preserved code that silently rots is undeleted, not preserved. That the routes are *absent by default* is proven separately.
+
+**Both directions of the flag are now proven**, which is what makes the re-activation path a demonstrated procedure rather than an assumption:
+
+| `DRAFT_ASSISTANT_ENABLED` | Registered on the Sleeper router |
+|---|---|
+| unset | `/roster` |
+| `true` | `/draft`, `/draft/:draftId`, `/draft/:draftId/state`, `/roster` |
+
+Final numbers after the override: `npm test` **563/563** (549 baseline, +14), frontend build clean, `git diff --check` clean, and the shipped Privacy copy reads `matchups, transactions` in the built bundle.
 
 ## Skills
 

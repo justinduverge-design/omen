@@ -81,70 +81,85 @@ function draftError(res, error, operation) {
   });
 }
 
-router.get("/draft", requireAuth, async (req, res, next) => {
-  try {
-    const { leagueId } = req.query;
-    if (!leagueId) {
-      return res.status(400).json({ error: "leagueId query param required" });
+// --- Sleeper live-draft tracking — dark for 1.0 -----------------
+//
+// Founder decision 2026-08-16: the whole draft path goes dark for 1.0, not
+// just Draft Assistant. These three routes are Sleeper live-draft *tracking*
+// — a different feature from Draft Assistant — but they are draft surface, and
+// 1.0 ships no draft surface at all.
+//
+// They are registered only when DRAFT_ASSISTANT_ENABLED=true, so with the flag
+// off they are absent rather than refused and `/api/sleeper/draft*` returns the
+// app's standard 404. The handlers and their services are preserved untouched
+// for the 2027 draft; see `config.draftAssistant` for the re-activation path.
+//
+// Everything else on this router — /roster and below — is unaffected.
+if (config.draftAssistant.enabled) {
+  router.get("/draft", requireAuth, async (req, res, next) => {
+    try {
+      const { leagueId } = req.query;
+      if (!leagueId) {
+        return res.status(400).json({ error: "leagueId query param required" });
+      }
+
+      await sleeperDraftAccess.assertLeagueAccess(req.user.id, leagueId);
+      const drafts = await sleeperAdapter.fetchSleeperLeagueDrafts(leagueId);
+      return res.json(buildDraftListResponse({ leagueId, drafts }));
+    } catch (e) {
+      return draftError(res, e, "list");
     }
+  });
 
-    await sleeperDraftAccess.assertLeagueAccess(req.user.id, leagueId);
-    const drafts = await sleeperAdapter.fetchSleeperLeagueDrafts(leagueId);
-    return res.json(buildDraftListResponse({ leagueId, drafts }));
-  } catch (e) {
-    return draftError(res, e, "list");
-  }
-});
+  router.get("/draft/:draftId", requireAuth, async (req, res, next) => {
+    try {
+      const { draftId } = req.params;
+      if (!draftId) {
+        return res.status(400).json({ error: "draftId path param required" });
+      }
 
-router.get("/draft/:draftId", requireAuth, async (req, res, next) => {
-  try {
-    const { draftId } = req.params;
-    if (!draftId) {
-      return res.status(400).json({ error: "draftId path param required" });
+      const draft = await sleeperAdapter.fetchSleeperDraft(draftId);
+      const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
+      return res.json(buildDraftMetaResponse({
+        draftId,
+        draft,
+        platformUserId: connection.platform_user_id,
+      }));
+    } catch (e) {
+      return draftError(res, e, "meta");
     }
+  });
 
-    const draft = await sleeperAdapter.fetchSleeperDraft(draftId);
-    const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
-    return res.json(buildDraftMetaResponse({
-      draftId,
-      draft,
-      platformUserId: connection.platform_user_id,
-    }));
-  } catch (e) {
-    return draftError(res, e, "meta");
-  }
-});
+  router.get("/draft/:draftId/state", requireAuth, async (req, res, next) => {
+    try {
+      const { draftId } = req.params;
+      if (!draftId) {
+        return res.status(400).json({ error: "draftId path param required" });
+      }
 
-router.get("/draft/:draftId/state", requireAuth, async (req, res, next) => {
-  try {
-    const { draftId } = req.params;
-    if (!draftId) {
-      return res.status(400).json({ error: "draftId path param required" });
+      const sinceCursor = parseSinceCursor(req.query.since);
+      if (sinceCursor === null) {
+        return res.status(400).json({ error: "since must be a non-negative integer" });
+      }
+
+      const [draft, picks] = await Promise.all([
+        sleeperAdapter.fetchSleeperDraft(draftId),
+        sleeperAdapter.fetchSleeperDraftPicks(draftId),
+      ]);
+      const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
+
+      return res.json(buildDraftStateResponse({
+        draftId,
+        draft,
+        picks,
+        since: sinceCursor,
+        debounceMs: DEFAULT_DEBOUNCE_MS,
+        platformUserId: connection.platform_user_id,
+      }));
+    } catch (e) {
+      return draftError(res, e, "state");
     }
-
-    const sinceCursor = parseSinceCursor(req.query.since);
-    if (sinceCursor === null) {
-      return res.status(400).json({ error: "since must be a non-negative integer" });
-    }
-
-    const [draft, picks] = await Promise.all([
-      sleeperAdapter.fetchSleeperDraft(draftId),
-      sleeperAdapter.fetchSleeperDraftPicks(draftId),
-    ]);
-    const connection = await sleeperDraftAccess.assertDraftAccess(req.user.id, draft);
-
-    return res.json(buildDraftStateResponse({
-      draftId,
-      draft,
-      picks,
-      since: sinceCursor,
-      debounceMs: DEFAULT_DEBOUNCE_MS,
-      platformUserId: connection.platform_user_id,
-    }));
-  } catch (e) {
-    return draftError(res, e, "state");
-  }
-});
+  });
+}
 
 router.get("/roster", requireAuth, async (req, res, next) => {
   try {
