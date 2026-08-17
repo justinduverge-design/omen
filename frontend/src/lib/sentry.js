@@ -3,6 +3,9 @@ import * as Sentry from '@sentry/react';
 const SCRUBBED = '[scrubbed]';
 const SENSITIVE_KEY_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault/i;
 const SENSITIVE_HEADER_PATTERN = /^(cookie|set-cookie|authorization|x-api-key)$|token|secret/i;
+// Mirrors src/middleware/sentry.js — query strings additionally carry OAuth `code`
+// and `state`, which are not object keys and so are absent from SENSITIVE_KEY_PATTERN.
+const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault|^(code|state)$/i;
 const SENSITIVE_TEXT_PATTERN = /\b(password|cookie|token|secret|swid|espn_s2|vault)(\s*[:=]\s*)([^&\s,;]+)/gi;
 const ESPN_CREDENTIAL_URL_PATTERNS = [
   /\/api\/platforms\/espn\/connect(?:[/?#]|$)/i,
@@ -58,7 +61,7 @@ function scrubUrl(rawUrl) {
   const parsed = parseRequestUrl(rawUrl);
   if (!parsed) return rawUrl;
   for (const key of Array.from(parsed.searchParams.keys())) {
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
+    if (SENSITIVE_QUERY_PARAMETER_PATTERN.test(key)) {
       parsed.searchParams.set(key, SCRUBBED);
     }
   }
@@ -114,6 +117,23 @@ export function scrubSentryEvent(event, hint) {
   return truncateStackFrames(event);
 }
 
+// Breadcrumb URLs live under non-sensitive key names (`url`, `from`, `to`), so
+// scrubValue's key-based matching never reaches them. Navigation and fetch/xhr
+// breadcrumbs on an OAuth return page carry `?code=`/`?state=` in exactly those
+// fields, which is the same reachable path scrubUrl closes on event.request.url.
+const URL_BEARING_BREADCRUMB_KEYS = ['url', 'from', 'to'];
+
+function scrubBreadcrumbUrls(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const next = { ...data };
+  for (const key of URL_BEARING_BREADCRUMB_KEYS) {
+    if (typeof next[key] === 'string') {
+      next[key] = scrubUrl(next[key]);
+    }
+  }
+  return next;
+}
+
 export function scrubSentryBreadcrumb(crumb) {
   if (!crumb) return crumb;
   if (crumb?.category === 'console') return null;
@@ -127,7 +147,7 @@ export function scrubSentryBreadcrumb(crumb) {
     return {
       ...crumb,
       message: scrubText(crumb.message),
-      data: scrubValue(crumb.data),
+      data: scrubBreadcrumbUrls(scrubValue(crumb.data)),
     };
   }
 

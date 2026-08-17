@@ -1,6 +1,27 @@
 # Omen Known Issues
 
-Last updated: 2026-08-15
+Last updated: 2026-08-18
+
+## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, OPEN)
+
+**Severity: low–moderate. Open.** The frontend equivalent is fixed (see below); this one is not.
+
+- `src/middleware/sentry.js`'s `scrubSentryBreadcrumb` passes `crumb.data` through `scrubValue`, which matches on **key names**. Breadcrumb URLs live under `url` / `from` / `to`, none of which are sensitive key names, so the URL **value** is never examined and any query string inside it survives — including OAuth `code` / `state`.
+- The frontend fix added `scrubBreadcrumbUrls` for exactly this. The backend has no equivalent.
+- **Lower severity than the frontend case** because Node breadcrumbs are less likely to carry an OAuth return URL than a browser navigation breadcrumb on the callback page. Not zero: HTTP breadcrumbs can carry outbound provider URLs.
+- **Fix:** mirror `scrubBreadcrumbUrls` from `frontend/src/lib/sentry.js` into `src/middleware/sentry.js`, with a test alongside the existing `test/sentryBoot.test.js`. The backend has a real test runner, so this one can be covered directly.
+
+## Security — Frontend Sentry did not scrub OAuth `code` / `state` (found 2026-08-17) — ✅ FIXED
+
+**Severity was moderate. Fixed 2026-08-17**, verified live same day. Found during `O1b` verification against the new Sentry account — invisible until a real event was exercised through the client.
+
+**Original defect:** `frontend/src/lib/sentry.js:61` scrubbed query parameters using `SENSITIVE_KEY_PATTERN` (`/password|cookie|token|secret|swid|espn_s2|vault/i`), which contains **no `code` and no `state`**, while the backend had a dedicated `SENSITIVE_QUERY_PARAMETER_PATTERN` including `^(code|state)$`. Reachable via Yahoo and Discord OAuth returns, which land on frontend routes carrying `?code=&state=`. `Direction/decision_log.md` (OAuth-artifacts entry) and `Direction/sprints_completed.md:134` both asserted the covered behavior without distinguishing the two halves — **the documentation was as much the risk as the code**, since it would let a reviewer conclude the path was covered.
+
+**Fix:** `frontend/src/lib/sentry.js` gained its own `SENSITIVE_QUERY_PARAMETER_PATTERN` mirroring `src/middleware/sentry.js:8`, plus `scrubBreadcrumbUrls` covering the `url` / `from` / `to` breadcrumb fields — a second gap found while fixing the first, on the *same* reachable page, so fixing only `request.url` would have left the leak open.
+
+**Verification** (live client `beforeSend` / `beforeBreadcrumb`, the same method that found it): `?code=AUTHCODE123&state=ST8&espn_s2=LEAK&team=Ravens` → all three sensitive params `[scrubbed]`, benign `team=Ravens` preserved; all three breadcrumb URL fields scrubbed; **zero leaks** across the whole probe set. Regressions held: ESPN-credential URLs still drop the event entirely, console breadcrumbs still drop, relative URLs still scrub correctly, query-less URLs pass through untouched. Backend `npm test` **563/563**, frontend build clean, `npm audit` 0.
+
+**Standing lesson:** both the 2026-07-24 code review and the Phase 1.2 handoff called this scrubbing complete, and both were written by *reading* the code. One synthetic payload through the shipping function surfaced the gap in minutes. For any claim of the form "sensitive data never reaches X", **execute it**.
 
 ## Current Context Risks
 
