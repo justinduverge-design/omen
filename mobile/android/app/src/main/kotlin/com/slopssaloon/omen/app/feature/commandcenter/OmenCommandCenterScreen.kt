@@ -360,6 +360,16 @@ private fun LedgerPreview(state: OmenLedgerPreviewState, onOpenLedger: ((OmenLed
                 title = "The Ledger needs a league",
                 message = "Connect a league to keep an evidence-bound record of Omen’s recommendations.",
             )
+            OmenLedgerPreviewState.Loading -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Loading,
+                title = "Loading the Ledger",
+                message = "Reading your recorded moves.",
+            )
+            is OmenLedgerPreviewState.Error -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Error,
+                title = "The Ledger didn’t load",
+                message = state.message,
+            )
         }
     }
 }
@@ -441,6 +451,14 @@ sealed interface OmenLedgerPreviewState {
     data class Entries(val entries: List<OmenLedgerEntry>) : OmenLedgerPreviewState
     data object Empty : OmenLedgerPreviewState
     data object NotConnected : OmenLedgerPreviewState
+
+    /**
+     * Slice E. The Ledger loads on its own request after the shell is already on screen, so it
+     * needs its own in-flight and failure states. Both render through `OmenStateSurface`;
+     * neither substitutes a fixture (facts-of-record #7).
+     */
+    data object Loading : OmenLedgerPreviewState
+    data class Error(val message: String) : OmenLedgerPreviewState
 }
 
 data class OmenLedgerEntry(

@@ -93,3 +93,36 @@ struct StubOmenDecisionRepository: OmenDecisionRepository {
         result
     }
 }
+
+// MARK: - Slice E — Ledger
+
+/// `GET /api/moves`. Kept separate from the dashboard for consistency with the slices above,
+/// though its cost profile is closer to the dashboard's than to standings': it reads our own
+/// `moves` rows and makes no provider call. It is still independently failable, and the
+/// Command Center must not lose its shell because the Ledger request did.
+protocol MovesRepository {
+    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError>
+}
+
+struct ApiMovesRepository: MovesRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    /// No query string. `season` defaults to the current NFL season server-side and `limit`
+    /// defaults to 20 — the preview shows three. Sending our own season would mean the client
+    /// deciding what "this season" is, which `getCurrentNflWeekContext()` already owns.
+    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+        await client.get("api/moves", accessToken: accessToken, as: MovesHistory.self)
+    }
+}
+
+struct StubMovesRepository: MovesRepository {
+    let result: Result<MovesHistory, OmenApiError>
+
+    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+        result
+    }
+}

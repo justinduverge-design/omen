@@ -55,6 +55,7 @@ import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
+import com.slopssaloon.omen.app.feature.api.ApiMovesRepository
 import com.slopssaloon.omen.app.feature.api.ApiOmenDecisionRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
@@ -130,6 +131,7 @@ fun OmenAndroidApp() {
         CommandCenterViewModel(
             repository = ApiDashboardRepository(client),
             leagueRepository = ApiLeagueRepository(client),
+            movesRepository = ApiMovesRepository(client),
             sessionManager = sessionManager,
             accessTokenProvider = { store.load()?.accessToken },
         )

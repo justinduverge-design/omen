@@ -54,6 +54,9 @@ struct AppShellView: View {
                     leagueRepository: ApiLeagueRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     ),
+                    movesRepository: ApiMovesRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
                     omenDecisionRepository: ApiOmenDecisionRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     ),

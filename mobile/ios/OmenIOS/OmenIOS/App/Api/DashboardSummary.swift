@@ -96,7 +96,14 @@ extension OmenCommandCenterState {
     /// `context` is slice C's overlay. It is `nil` until (and unless) `league-standings.v1`
     /// yields a platform, a league name, and a team this user owns — so the default here
     /// stays `.empty` and the screen only ever gains detail, never loses it.
-    static func from(summary: DashboardSummary, context: OmenContextStripState? = nil) -> OmenCommandCenterState {
+    /// `ledger` is slice E's overlay and follows the same never-regress rule as `context`:
+    /// `nil` keeps the shell-derived default below, and a supplied value always wins because
+    /// `moves-history.v1` is the only source that actually knows whether rows exist.
+    static func from(
+        summary: DashboardSummary,
+        context: OmenContextStripState? = nil,
+        ledger: OmenLedgerPreviewState? = nil
+    ) -> OmenCommandCenterState {
         let omenStatus = summary.tools.omenOfTheWeek.status
         let connected = summary.platforms.anyConnected
 
@@ -105,7 +112,7 @@ extension OmenCommandCenterState {
             context: context ?? .empty,
             matchup: .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
             waiverWatch: waiverWatch(for: summary.tools.waiverWire.status, season: omenStatus),
-            ledger: omenStatus == .needsPlatform ? .notConnected : .empty,
+            ledger: ledger ?? (omenStatus == .needsPlatform ? .notConnected : .empty),
             leaguePulse: leaguePulse(for: omenStatus)
         )
     }

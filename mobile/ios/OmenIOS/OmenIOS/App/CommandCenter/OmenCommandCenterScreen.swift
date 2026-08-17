@@ -286,6 +286,10 @@ struct OmenCommandCenterScreen: View {
                 OmenStateSurface(kind: .empty, title: "No Ledger entries yet", message: "Omen’s recent recommendations will appear here as immutable snapshots.")
             case .notConnected:
                 OmenStateSurface(kind: .disconnected, title: "The Ledger needs a league", message: "Connect a league to keep an evidence-bound record of Omen’s recommendations.")
+            case .loading:
+                OmenStateSurface(kind: .loading, title: "Loading the Ledger", message: "Reading your recorded moves.")
+            case .error(let message):
+                OmenStateSurface(kind: .error, title: "The Ledger didn’t load", message: message)
             }
         }
     }
@@ -370,6 +374,11 @@ enum OmenLedgerPreviewState {
     case entries([OmenLedgerEntry])
     case empty
     case notConnected
+    /// Slice E. The Ledger loads on its own request after the shell is already on screen, so
+    /// it needs its own in-flight and failure states. Both render through `OmenStateSurface`;
+    /// neither substitutes a fixture (facts-of-record #7).
+    case loading
+    case error(String)
 
     var entries: [OmenLedgerEntry] {
         guard case .entries(let entries) = self else { return [] }
