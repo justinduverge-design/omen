@@ -1,7 +1,7 @@
 [versions]
 agp = "9.3.1"
 kotlin = "2.4.10"
-composeBom = "2026.06.01"
+composeBom = "2026.08.00"
 activityCompose = "1.13.0"
 coreKtx = "1.19.0"
 lifecycle = "2.11.0"
@@ -10,7 +10,7 @@ junit = "4.13.2"
 # Real org.json for JVM unit tests only. The android.jar on the unit-test classpath ships
 # stubs that throw from every method, so mapping code that parses JSON cannot be unit-tested
 # without it. Never a production dependency — the app uses the platform org.json at runtime.
-jsonUnitTest = "20250107"
+jsonUnitTest = "20260719"
 credentials = "1.6.0"
 googleid = "1.2.0"
 okhttp = "5.4.0"
