@@ -1,5 +1,19 @@
 # Omen Decision Log
 
+## 2026-08-16 — The Ledger tells the truth about a failed read, and slice C's silence is deliberately not copied
+
+- **`M5-Native-API-Client` slice E is wired.** The Command Center Ledger reads `GET /api/moves` → `moves-history.v1` instead of inferring its state from `dashboard-summary.v1`, which carries no move rows. Before this, every connected signed-in user was told "No Ledger entries yet" regardless of their actual history — the same class of defect slice D fixed on the Omen destination.
+
+- **A Ledger failure is loud where a standings failure is silent, and the difference is the point.** Slice C swallows a standings error because an unfilled context strip claims nothing; the screen stays correct. The Ledger's resting state is *"No Ledger entries yet"* — a positive claim about the user's past. Rendering it after a failed read would tell a user with a full history that they have none. So the Ledger gains its own `loading` and `error` states, both rendered through the existing `OmenStateSurface`, while the rest of the screen stays up. **Rule: an honest resting state may absorb a failure; a resting state that asserts something may not.**
+
+- **Every field but `id` is optional, because `normalizeMove()` nulls them independently.** `recommendation` is `headline || reasoning || null`; `move_type`, `followed`, `stars`, `effectiveness_pct`, and `created_at` are each null on an ordinary ungraded row. Modelling them as required would turn the most common row shape into a decode failure and tell the user their Ledger is unreadable when the truth is "this move hasn't been graded yet". On Android this also meant abandoning `org.json`'s `optString`/`optInt`/`optBoolean`, which return `""`, `0`, and `false` for an absent key — the exact mechanism by which a missing grade becomes a fabricated one.
+
+- **The client asks for nothing it could get wrong.** No query string: `season` defaults to the current NFL season server-side via `getCurrentNflWeekContext()` and `limit` defaults to 20. A client-side season would be a second, drifting opinion about what "this season" means.
+
+- **A 401 on the Ledger does not tear down the session.** The summary call that just succeeded used the same token, so a 401 here is far more likely a route-level problem than a dead session; `sessionManager.onRefreshFailed()` is deliberately not called. The user sees an honest Ledger error and keeps a working screen.
+
+- **`needs_platform` never issues the request.** That user's Ledger is `notConnected` by definition, and spending a round trip to hear "no rows" would replace a true answer with a weaker one.
+
 ## 2026-08-16 — The draft path goes dark for 1.0; the preserved code gets a re-activation path
 
 - **Executed `P1-DraftAssistantSideline`.** The 2026-08-11 decision to sideline Draft Assistant to 2027 was recorded but never carried out: verified again on this branch, the product still shipped it to every visitor — nav entry, `/draft` route, a hardcoded `draft_assistant: {available: true, status: "ready"}` in `/api/dashboard/summary`, a Football tab, a landing mini-card, an about-page feature pill, four help-drawer entries, and clauses in both Privacy and Terms. A decision recorded in the log and not executed in the code is indistinguishable, from the user's side, from no decision at all.

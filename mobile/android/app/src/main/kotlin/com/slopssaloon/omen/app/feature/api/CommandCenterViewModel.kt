@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.session.SessionManager
 
@@ -19,6 +20,7 @@ import com.slopssaloon.omen.core.session.SessionManager
 class CommandCenterViewModel(
     private val repository: DashboardRepository,
     private val leagueRepository: LeagueRepository,
+    private val movesRepository: MovesRepository,
     private val sessionManager: SessionManager,
     private val accessTokenProvider: () -> String?,
 ) {
@@ -47,6 +49,13 @@ class CommandCenterViewModel(
         private set
 
     /**
+     * Slice E. Null means "the Ledger request has not produced an answer yet, so keep the
+     * shell-derived default" — the same never-regress rule slice C uses for the context strip.
+     */
+    var ledger: OmenLedgerPreviewState? by mutableStateOf(null)
+        private set
+
+    /**
      * The Command Center state to render.
      *
      * Slice C overlays the verified context strip when — and only when — standings has produced
@@ -57,7 +66,7 @@ class CommandCenterViewModel(
         get() = when (val state = viewState) {
             is ViewState.Loading -> OmenCommandCenterFixtures.realLoading
             is ViewState.Demo -> OmenCommandCenterFixtures.demoConnected
-            is ViewState.Loaded -> state.summary.toCommandCenterState(context)
+            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger)
             is ViewState.Failed -> OmenCommandCenterFixtures.realDisconnected
         }
 
@@ -82,6 +91,7 @@ class CommandCenterViewModel(
 
         viewState = ViewState.Loading
         context = null
+        ledger = null
 
         when (val result = repository.fetchSummary(accessToken)) {
             is OmenApiResult.Success -> {
@@ -90,6 +100,12 @@ class CommandCenterViewModel(
                 // a provider is actually connected — asking a disconnected user's provider for
                 // standings is a guaranteed round-trip to an error.
                 if (result.value.platforms.anyConnected) loadContext(accessToken)
+                // Slice E. Skipped entirely when the shell says no usable platform: that user's
+                // Ledger is NotConnected by definition, and "no entries yet" would be a weaker,
+                // slightly wrong answer bought with a pointless round trip.
+                if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
+                    loadLedger(accessToken)
+                }
             }
             is OmenApiResult.Failure -> {
                 if (result.error is OmenApiError.Unauthorized) sessionManager.onRefreshFailed()
@@ -107,5 +123,36 @@ class CommandCenterViewModel(
      */
     private suspend fun loadContext(accessToken: String) {
         context = leagueRepository.fetchStandings(accessToken).successOrNull()?.contextStrip
+    }
+
+    /**
+     * Fills the Ledger section from `moves-history.v1`.
+     *
+     * Unlike the context strip, a failure here is **not** silent. The strip has an honest
+     * resting state — an unfilled strip claims nothing. The Ledger's resting state is "No Ledger
+     * entries yet", which is a positive claim about the user's history, and rendering it after a
+     * failed read would tell a user with a full Ledger that they have none.
+     */
+    private suspend fun loadLedger(accessToken: String) {
+        ledger = OmenLedgerPreviewState.Loading
+        ledger = when (val result = movesRepository.fetchMoves(accessToken)) {
+            is OmenApiResult.Success -> result.value.ledgerState
+            // A 401 here is not routed to re-auth: the summary call that just succeeded used the
+            // same token, so this is far more likely a route-level problem than a dead session,
+            // and tearing down a working shell over it would be the worse failure.
+            is OmenApiResult.Failure -> OmenLedgerPreviewState.Error(ledgerMessageFor(result.error))
+        }
+    }
+
+    /** Transport failures only — this route has no in-band contract states to defer to. */
+    private fun ledgerMessageFor(error: OmenApiError): String = when (error) {
+        is OmenApiError.Network ->
+            "Omen couldn't reach the server to load your Ledger. Check your connection."
+        is OmenApiError.Unauthorized ->
+            "Omen couldn't read your Ledger with this session. Sign in again to see it."
+        // The status code is deliberately not shown; it tells a user nothing actionable.
+        is OmenApiError.Server -> "Omen is having trouble loading your Ledger. Try again in a moment."
+        is OmenApiError.Decode ->
+            "Your Ledger came back in a format this version of the app couldn't read."
     }
 }

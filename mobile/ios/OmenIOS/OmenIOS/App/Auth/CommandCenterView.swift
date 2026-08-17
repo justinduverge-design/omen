@@ -26,6 +26,7 @@ struct CommandCenterView: View {
         authViewModel: AuthViewModel,
         dashboardRepository: DashboardRepository,
         leagueRepository: LeagueRepository,
+        movesRepository: MovesRepository,
         omenDecisionRepository: OmenDecisionRepository,
         connectRepository: ConnectRepository
     ) {
@@ -36,6 +37,7 @@ struct CommandCenterView: View {
         _commandCenterViewModel = StateObject(wrappedValue: CommandCenterViewModel(
             repository: dashboardRepository,
             leagueRepository: leagueRepository,
+            movesRepository: movesRepository,
             sessionManager: sessionManager
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(

@@ -313,7 +313,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M5-Slice-E-Ledger — Wire the Ledger to `GET /api/moves`
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Evidence:** `Blueprints/handoffs/2026-08-16-m5-slice-e-ledger.md`; `mobile/ios/OmenIOS/OmenIOS/App/Api/MovesHistory.swift` + `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/api/MovesHistory.kt`; iOS 221/221 unit + 5/5 UI (Xcode 26.6 `17F113`, iPhone 16 sim), Android `:app:testDebugUnitTest` 27/27 + `:app:assembleDebug` + `:core:designsystem` 22/22. **Local only — not committed to a shared branch, pushed, merged, or deployed.**
 - **Blocked by:** None
 - **Priority:** P0 — the last pure-wiring slice of the beta-minimum client.
 - **Cost:** small

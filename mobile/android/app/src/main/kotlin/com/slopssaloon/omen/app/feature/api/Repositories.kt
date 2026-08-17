@@ -65,3 +65,29 @@ class StubOmenDecisionRepository(
 ) : OmenDecisionRepository {
     override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> = result
 }
+
+/**
+ * Slice E — `GET /api/moves`.
+ *
+ * Its cost profile is closer to the dashboard's than to standings': it reads our own `moves`
+ * rows and makes no provider call. It is still independently failable, and the Command Center
+ * must not lose its shell because the Ledger request did.
+ *
+ * No query string. `season` defaults to the current NFL season server-side and `limit` defaults
+ * to 20 — the preview shows three. Sending our own season would mean the client deciding what
+ * "this season" is, which `getCurrentNflWeekContext()` already owns.
+ */
+interface MovesRepository {
+    suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory>
+}
+
+class ApiMovesRepository(private val client: OmenApiClient) : MovesRepository {
+    override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> =
+        client.get("api/moves", accessToken, MovesHistory::parse)
+}
+
+class StubMovesRepository(
+    private val result: OmenApiResult<MovesHistory>,
+) : MovesRepository {
+    override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> = result
+}

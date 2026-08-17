@@ -94,6 +94,7 @@ data class DashboardSummary(
  */
 fun DashboardSummary.toCommandCenterState(
     context: OmenContextStripState? = null,
+    ledger: OmenLedgerPreviewState? = null,
 ): OmenCommandCenterState = OmenCommandCenterState(
     greeting = greetingFor(omenStatus),
     context = context ?: OmenContextStripState.Empty,
@@ -101,7 +102,10 @@ fun DashboardSummary.toCommandCenterState(
         reason = matchupReasonFor(omenStatus, platforms.anyConnected),
     ),
     waiverWatch = waiverWatchFor(waiverStatus, omenStatus),
-    ledger = if (omenStatus == DashboardSummary.ToolStatus.NeedsPlatform) {
+    // [ledger] is slice E's overlay and follows the same never-regress rule as [context]: null
+    // keeps the shell-derived default, and a supplied value always wins because
+    // `moves-history.v1` is the only source that actually knows whether rows exist.
+    ledger = ledger ?: if (omenStatus == DashboardSummary.ToolStatus.NeedsPlatform) {
         OmenLedgerPreviewState.NotConnected
     } else {
         OmenLedgerPreviewState.Empty
