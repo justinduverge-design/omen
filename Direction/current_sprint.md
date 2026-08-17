@@ -330,6 +330,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** READY
 - **Blocked by:** FOUNDER_APPROVAL — the pass is design authority; a screen contract is not self-ratifying. Agent may produce the full proposal; only the founder can approve it.
+- **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions (see `Direction/decision_log.md`). The verdict enum gains its fourth state **on the server** (additive `contract_version` + evaluability signal on `POST /api/trade/compare`), and **"Personalize" waits for real league context** — the personalized half of slice G stays blocked until `/compare` accepts league/roster context, and native ships no scoring-format-only Personalize affordance. Both routed to the backend lane. Ratification of the contract itself is still outstanding.
+- **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity iOS/Android frames and the golden pair **already existed** from the M1-P pass (iOS `41:130`/`41:143`/`41:176`/`41:192` + golden `38:2`; Android `41:153`/`41:166`/`41:202`/`41:218` + golden `39:2`); what was missing was §2's "01 — Principles & References" board and the "06 — QA & Evidence" record, both now written (`86:2`, `87:2`). Two open questions need a founder call before `M5` slice G — the shipped three-value verdict enum vs the approved four-label vocabulary, and "Personalize" having no backend input. Both are recorded in `Blueprints/handoffs/frontend-to-backend.md`.
+- **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `87:2` (QA & Evidence record); `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
 - **Priority:** P1 — **this is what blocks `M5` slice G.** The native Trade destination ships an honest "landing next" placeholder today and must keep it until this is approved.
 - **Cost:** medium
 - **Agent-buildable:** proposal yes; approval no.
@@ -343,6 +346,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** READY
 - **Blocked by:** FOUNDER_APPROVAL — same as above; the proposal is agent work, the ratification is not.
+- **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions. **The empty activity section is the v1 build target:** both Primary frames are redrawn and renamed "standings live, activity empty (v1)", and the populated composition is preserved as a labelled future state (iOS `90:2`, Android `90:8`). **Off-season uses clean omission for 1.0**; prior-season history is parked as a future backend capability. Slice F may build standings plus an empty activity section once the contract is ratified. Ratification itself is still outstanding.
+- **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity frames already existed (iOS `30:162`/`30:181`, Android `30:194`/`30:213`); the missing halves — references board and QA & Evidence record — are written (`86:2`, `88:2`). The R7 scope correction was executed **in Figma**: both M2 app-shell frames still listed a `Draft` destination and were amended with a dated note (iOS `18:7`, Android `18:20`). One open question needs a founder call: the Primary frame draws a populated "Around the League" section for which **no backend feed exists**, so either that frame or the v1 build target has to change.
+- **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `88:2` (QA & Evidence record), plus corrected `18:7` / `18:20`; `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
 - **Priority:** P1 — **this is what blocks `M5` slice F.** The native League destination ships an honest placeholder today and must keep it until this is approved.
 - **Cost:** medium
 - **Agent-buildable:** proposal yes; approval no.
@@ -352,6 +358,41 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Skills:** `figma:figma-generate-design`, `design:design-critique`, native read gate
 - **Done when:** low-fidelity iOS and Android screen contracts exist for League matchup and standings/activity with primary plus alternate state, including the honest off-season empty state (`league-standings.v1` correctly returns `standings: []` out of season — facts-of-record #10); every element maps to an approved component or explicit proposal; §4 acceptance recorded in "06 — QA & Evidence".
 - **Do not touch:** no Draft entry; no invented tokens; no unapproved production component; do not begin `M5` slice F on an unapproved contract.
+
+### M1-QA-EvidenceGate — Close the M1 screen-contract pass acceptance gate
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2 — no beta feature depends on it, but §4 is the gate that makes every M1 screen contract citable as approved design authority rather than a drawing someone made.
+- **Cost:** medium
+- **Agent-buildable:** yes, in full (proposal); founder ratifies.
+- **Source:** the 2026-08-16 `M1-Screen-Trade` / `M1-Screen-League` pass. That session found all eight low-fidelity flows and all three golden pairs already drawn on both platforms, but pages **`01 — Principles & References`** and **`06 — QA & Evidence`** were **empty**, and `m1-figma-screen-contract-pass-v1.md` §4 requires both. It wrote them for two flows only: references board `86:2` (scoped to Trade + League) and QA records `87:2` / `88:2`.
+- **Scope:** the remaining **six** flows — Command Center, Omen lead + Start/Sit detail, Waiver Analysis, team/league switcher sheet, Account → Connected Leagues, and Welcome/provider connection. For each: a `06` QA record in the shape already established (frames + contract links + states + intentional platform differences + open questions + approval status), and its reference influence annotated on `01`. Audit each flow against shipped backend truth the way the Trade and League records did — that audit is what surfaced the verdict-enum and activity-feed gaps.
+- **Done when:** `06 — QA & Evidence` holds a record for all eight flows; `01 — Principles & References` annotates every source that influenced any of them; every visible element in the six audited flows maps to an approved component or an explicit proposal; and any conflict found is recorded as an open question rather than resolved inside a screen (§1).
+- **Do not touch:** do not redraw the existing frames — they are the M1-P pass's approved work. Do not mark anything approved; ratification is founder-only. No new tokens, no unapproved production component, no competitor artifact.
+
+### M9-NativeScreenBacklog — Mint delivery items for the four approved-but-unbuilt screens
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2 — planning, not build. It exists because the gap is currently invisible: these screens are designed, approved, and nowhere in the queue.
+- **Cost:** small
+- **Agent-buildable:** yes (planning-pass shape); founder ratifies priority.
+- **Source:** the 2026-08-16 screen-contract audit. Native ships four surfaces — Command Center, Omen, Connect, Help. `M5-Native-API-Client` covers slices A–G and stops. **Four approved screen contracts have no delivery item anywhere:** Waiver Analysis (visual briefs §6), Start/Sit detail (§5), the Ledger **detail** screen (§7 — slice E wired only the Command Center *preview*), and the team/league switcher sheet (§10.2). The switcher is the load-bearing one: `M5` slice C fills the context strip, and §10.1 makes that strip the control that switches every personalized surface — today it has nothing to open.
+- **Done when:** each of the four carries a canonical task record with key, priority, `Done when:`, `Blocked by:`, and a stated backend dependency (or none), ordered against the beta-minimum; and any that is deliberately post-1.0 says so with a reason rather than being left unqueued.
+- **Do not touch:** no implementation. This is a planning act.
+
+### M10-DesignLaneStaleness — Extend the staleness check to design work
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Cost:** small
+- **Agent-buildable:** yes, in full
+- **Source:** `scripts/check-sprint-staleness.js` matches sprint keys against merged **PR titles**, so it can only ever see the code lane. On 2026-08-16 the queue offered `M1-Screen-Trade` and `M1-Screen-League` as work to be done when every frame they asked for already existed in Figma — the **eighth** recorded instance of this pattern and the first the script structurally could not catch, on the same day the script was written to end it.
+- **Scope:** for any sprint item whose evidence is a Figma node rather than a PR, assert the named frames are **absent** before the item is presented as pullable. The node ids are already recorded in each item's `Evidence:` line, so the check can read them from `current_sprint.md` and query the file. Keep the existing signal-quality discipline: report a hit as a finding only when it is unambiguous, and exit 0 with an explicit "this is NOT an all-clear" when Figma access is unavailable.
+- **Done when:** the check flags a design item whose frames exist while its `Status:` is not `CLOSED`, is proven against the real 2026-08-16 case, stays quiet on genuinely-unstarted items, and edits nothing — closing an item stays a human judgement.
+- **Do not touch:** do not auto-close anything; do not write to Figma.
 
 ### M8-EspnAndroidHelper — Decide the Android ESPN path (deferred)
 
