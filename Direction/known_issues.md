@@ -1,6 +1,17 @@
 # Omen Known Issues
 
-Last updated: 2026-08-15
+Last updated: 2026-08-17
+
+## Security — Frontend Sentry does not scrub OAuth `code` / `state` (found 2026-08-17)
+
+**Severity: moderate. Open, not fixed.** Found during `O1b` live verification against the new Sentry account — it was invisible until a real event was actually exercised through the client.
+
+- **What:** `frontend/src/lib/sentry.js:61` scrubs URL query parameters using `SENSITIVE_KEY_PATTERN` (`/password|cookie|token|secret|swid|espn_s2|vault/i`), which contains **no `code` and no `state`**. The backend has a *separate* `SENSITIVE_QUERY_PARAMETER_PATTERN` at `src/middleware/sentry.js:8` that does include `^(code|state)$`. The frontend has no equivalent.
+- **Proof:** the live client's own `beforeSend`, given `request.url = https://slopssaloon.com/api/omen/mvp-move?code=AUTHCODE123&state=ST8`, returned that URL **unchanged**. Headers were correctly dropped and every sensitive body key correctly became `[scrubbed]` in the same test, so the rest of the scrubbing is sound — this is one specific gap, not a broken scrubber.
+- **Reachable path:** Yahoo and Discord OAuth returns land on frontend routes carrying `?code=&state=`. Any error captured on those pages transmits the URL to Sentry.
+- **Why it matters beyond the leak:** `Direction/decision_log.md:994` states *"Sentry additionally scrubs OAuth `code` and `state` query parameters"* and `Direction/sprints_completed.md:134` says the frontend scrubbers "mirror the backend." **The backend honors both claims; the frontend does not, and neither document distinguishes them.** The documentation is the risk here as much as the code — it would let a reviewer conclude the path is covered.
+- **Mitigating factors:** OAuth authorization codes are single-use and short-lived, and Sentry is a trusted processor. This is a hardening gap, not an active credential disclosure.
+- **Fix:** give `frontend/src/lib/sentry.js` its own `SENSITIVE_QUERY_PARAMETER_PATTERN` mirroring `src/middleware/sentry.js:8`, with a test. Deliberately not applied in the pass that found it — security code, and it warrants its own coverage rather than a silent one-line edit.
 
 ## Current Context Risks
 

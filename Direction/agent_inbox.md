@@ -62,13 +62,29 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **Closed 2026-08-16:** `P1-DraftAssistantSideline` + `R7` (PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`), `P1-ConnectContinueRoute` (#314), and `M5-Native-API-Client` **slice D** (PR [#317](https://github.com/justinduverge-design/omen/pull/317) / `80ee3fa`). None deployed.
 
-### Next pull — read `Blueprints/prompts/canvas-m1-screen-contracts.md` first
+**Closed 2026-08-17:** `M5-Slice-E-Ledger` (PR [#320](https://github.com/justinduverge-design/omen/pull/320) / `ee4387f`). Not deployed. **Slices A–E of `M5-Native-API-Client` are now all shipped**; F and G remain gated on the `M1` screen contracts, which are themselves awaiting founder ratification.
 
-That canvas explains, in one page, what each native destination actually shows a real user today and why two of them cannot be built yet. Three new items are queued:
+### ⚠️ Superseded 2026-08-17 — all three "next pull" items below are spent
 
-1. **`M5-Slice-E-Ledger`** — the last pure-wiring slice, and the cheapest work on the board: slice D just built every pattern it needs. Start here.
-2. **`M1-Screen-Trade`** — the screen contract blocking `M5` slice G. Proposal is agent work; approval is founder-only.
-3. **`M1-Screen-League`** — the screen contract blocking `M5` slice F. Same split. Must **not** include a Draft entry (see the R7 amendment).
+The 2026-08-16 selection listed `M5-Slice-E-Ledger`, `M1-Screen-Trade`, and `M1-Screen-League` as the next three pulls. **None of them is agent-pullable today**, and the section is retained struck-through rather than deleted so the pattern stays visible:
+
+1. ~~`M5-Slice-E-Ledger`~~ — **CLOSED**, merged as PR [#320](https://github.com/justinduverge-design/omen/pull/320) / `ee4387f` on 2026-08-17. This is the **ninth** recorded instance of this queue advertising shipped work as pullable. `scripts/check-sprint-staleness.js` correctly reports no staleness — the sprint record *was* updated to `CLOSED`; it was **this file** that was not. The script reads `current_sprint.md`, so it structurally cannot catch a stale `agent_inbox.md`. That is a second blind spot alongside the design-lane one `M10-DesignLaneStaleness` already tracks.
+2. ~~`M1-Screen-Trade`~~ — proposal **complete and routed** 2026-08-16 (Figma `86:2`, `87:2`). Now `Blocked by: FOUNDER_APPROVAL`. The agent half is done; only ratification remains.
+3. ~~`M1-Screen-League`~~ — same. Proposal complete (Figma `86:2`, `88:2`, plus corrected `18:7`/`18:20`). Awaiting ratification only.
+
+Read `Blueprints/prompts/canvas-m1-screen-contracts.md` for what each native destination shows a real user today.
+
+### Next pull — re-derived 2026-08-17
+
+Selection below is re-derived from `current_sprint.md` by the status-model selection order. **Claim: none open.**
+
+1. **`S5` — mobile token storage review.** P0, `Blocked by: None`, `Agent-buildable: yes`. The only P0 on the board that is completable end-to-end in one session with no device, founder, or external gate. Confirms no session/provider token reaches plaintext `UserDefaults` / `SharedPreferences`.
+2. **`O7` — forced-update / minimum-version gate.** P0, `Blocked by: None`, agent-buildable. Mobile has no rollback; this is the only lever when a bad build ships.
+3. **`F9` — mock/live labeling sweep.** P0, trust-critical. Web half and full surface inventory are agent-workable now; the native half needs device evidence — scope and label the halves rather than claiming the whole.
+4. **`M4-CC-PlatformsCompact`** — `VERIFIED`, not closed. Needs a Pixel-6a-class Android above-the-fold render, `:app:assembleDebug` + scanner + connected-test results, and a handoff for `6466a4c`. Blocks `B-FREEZE`.
+5. **`M1-QA-EvidenceGate`** — P2, `Blocked by: None`, agent-buildable in full. Six remaining flows need `06 — QA & Evidence` records.
+
+**`O1b` is not on this list.** It moved to `Blocked by: FOUNDER_APPROVAL` on 2026-08-17 — the comparison memo is complete (`Direction/reviews/2026-08-17-o1b-error-tracking-comparison.md`) and the destination decision is founder-only.
 
 **Before closing anything, run `node scripts/check-sprint-staleness.js`.** It exists because this queue has advertised shipped work as pullable seven times; it now catches that automatically.
 
@@ -84,9 +100,9 @@ The cause is now precise enough to fix mechanically: **the handoff is written pr
 
 P1, medium, founder-decided 2026-08-11 and **still shipping to every visitor**. Nav, route, `dashboard.js:268` tool entry, help drawer, landing copy, and the `Privacy.jsx` / `Terms.jsx` legal clauses. Preserve the implementation — 2027 ships it on a Slops-built ADP. Note the 2026-08-14 amendment: one factual "2027 fantasy draft" mention is permitted on the marketing site and in a labelled in-app note, never in store metadata.
 
-### 2. M5-Native-API-Client slice D (Omen destination) or E (Ledger)
+### ~~2. M5-Native-API-Client slice D (Omen destination) or E (Ledger)~~ — ✅ BOTH CLOSED
 
-P0 beta blocker. Slices A+B+C shipped 2026-08-15, so the client, repository, and view-model patterns exist on both platforms; D and E wire against already-shipped routes. One slice per session — not two. F/G need their M1 screen-contract slices first.
+Slice D merged 2026-08-16 (`80ee3fa`, [#317](https://github.com/justinduverge-design/omen/pull/317)); slice E merged 2026-08-17 (`ee4387f`, [#320](https://github.com/justinduverge-design/omen/pull/320)). **A–E are all shipped.** F and G are not wiring — they are new screens gated on the `M1` screen contracts, which are awaiting founder ratification. Do not pull them.
 
 ### 3. M4-CC-PlatformsCompact — finish the evidence, then close it
 
