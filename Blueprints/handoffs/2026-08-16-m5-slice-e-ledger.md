@@ -1,6 +1,8 @@
 # Handoff — 2026-08-16 — M5-Native-API-Client slice E (Ledger)
 
-**Local only.** Not committed to a shared branch, not pushed, not merged, not deployed at the time of writing. Local evidence is recorded below; no CI ran.
+**Merged** as PR [#320](https://github.com/justinduverge-design/omen/pull/320) / `ee4387f`, 2026-08-17T00:41Z. **Not deployed.**
+
+> Corrected after the merge, per the closeout rule this repo keeps relearning. No PR checks ran — `pr-quality.yml` is path-filtered and this change is mobile-only, the same precedent recorded for slice D (#317) and `M5-NativeConnect` (#310). Local evidence is the substitute and is recorded below.
 
 ## What was wrong
 
