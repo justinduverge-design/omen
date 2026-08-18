@@ -636,17 +636,19 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### O1b — Application error tracking (Sentry-class)
 
-- **Status:** READY
-- **Blocked by:** None
-- **Priority:** **P0 — the gap Kuma and Beszel cannot close**
-- **Cost:** medium
-- **Agent-buildable:** research and configuration; the deploy action is founder-gated
-- **Why this is not covered by O1:** Uptime Kuma answers *"is the endpoint up?"* Beszel answers *"is the host healthy?"* Neither can answer *"a user just got a 500 on `POST /api/omen/mvp-move` because ESPN returned malformed JSON, here is the stack trace."* Synthetic checks stay green while individual user requests fail. That is the signal beta feedback depends on.
-- **⚠ Do not default to self-hosted Sentry.** It wants ~16 GB RAM and a large compose stack (Kafka, ClickHouse, Snuba, Relay, Postgres, Redis). It **cannot** run on Command Center (Pi 4, 4 GB, <1 GiB budget), **must not** run on KVM1 (3.8 GB, production, 49% disk), and would dominate KVM2 (7.8 GB, the AI host).
-- **Evaluate GlitchTip first** — Sentry-SDK-compatible, Django + Postgres + Redis, roughly 1–2 GB. Existing Sentry client integrations work unchanged. **Verify arm64 image availability and current resource profile before committing.**
-- **Skills:** `pre-build-research`, `self-hosted-observability-runbook`, `security-privacy-evidence`
-- **Done when:** a deliberate backend error appears in the chosen tool within 60 seconds, with a usable stack trace; host and resource cost are recorded; no PII, provider credential, or ESPN cookie appears in any captured payload.
-- **Do not touch:** KVM1 production resources; public exposure of the error-tracking UI.
+- **Status:** **CLOSED 2026-08-17.**
+- **Closure:** COMPLETED — GlitchTip deployed on Command Center, all four `Done when:` clauses met with direct evidence.
+- **Claim:** Claude, 2026-08-17 — released on verification.
+- **The resource estimate here was conservative, and checking it changed the hosting call.** This item's own text estimated GlitchTip at "roughly 1–2 GB." The primary source (`glitchtip.com/documentation/install`) states 256–512 MB is enough and arm64 is officially supported. That meant Command Center's 3.2 GB available headroom was plenty — no need to reach for KVM2. Self-hosted Sentry was never evaluated further; its ~16 GB footprint was disqualifying on sight, as already recorded above.
+- **Stack:** `postgres:18` + `valkey/valkey:9` + `glitchtip/glitchtip:6` (`SERVER_ROLE: all_in_one`) at `/opt/command-center/glitchtip/compose.yml`, bound to `100.98.81.0:8000` only — Tailscale-only, matching the existing Kuma/Beszel convention on that host, never `0.0.0.0`. `ALLOWED_HOSTS` pinned to the Tailscale IP rather than left on Django's wildcard default. Email alerts route through Resend SMTP, the same provider Supabase auth already uses for `slopssaloon.com`, on a separate scoped API key rather than reusing Supabase's.
+- **A real defect was found and fixed during deploy, not assumed away.** GlitchTip's `smtp://…@host:465` URL does not imply implicit TLS — it opened a plaintext connection into a TLS-only port and hung until timeout, which is what surfaced mid-session as "registration taking forever." Confirmed with a direct `smtplib` reproduction (plaintext-on-465 times out; implicit-SSL-on-465 and STARTTLS-on-587 both work against Resend). Fixed by moving to port 587. **Carry forward: don't trust a bare `smtp://host:port` pairing to imply the right TLS mode — verify the protocol handshake, not just TCP reachability.**
+- **`mem_limit` needed real follow-through to actually enforce, not just declare.** Command Center's stock kernel had no cgroup memory accounting, so Docker silently discarded the 768m/256m/768m caps — confirmed via `docker inspect` (`HostConfig.Memory: 0`) and the live cgroup file reading `max`, not inferred from `docker stats`' misleading fallback display. Fixed with the standard Raspberry Pi fix (`cgroup_enable=memory cgroup_memory=1` in `/boot/firmware/cmdline.txt`, backup taken first) plus a reboot. **A plain daemon-restart after reboot was not enough** — it reuses each container's already-baked config rather than re-resolving it against the newly-available kernel capability; a `docker compose up -d --force-recreate` was required before the caps actually applied. Re-verified: `HostConfig.Memory` correctly reads 805306368 / 268435456 bytes post-recreate. All seven containers on the host (Pi-hole, Beszel, Beszel-agent, Kuma, plus GlitchTip's three) survived the reboot cleanly via `restart: unless-stopped`.
+- **Done-when evidence:**
+  - *Deliberate error, within 60s, usable stack trace:* a synthetic `ESPNMalformedResponseError` (mirroring this item's own canonical example) was POSTed to the ingest API from an external host and confirmed stored, grouped, and queryable with full stack frames intact in **under 1 second** — verified directly against `issue_events_issueevent` in Postgres, not inferred from the ingest endpoint's 200 response alone.
+  - *Host and resource cost recorded:* ~300 MB RAM measured (519Mi → 812Mi host `used`, before/after the full stack), ~2.9 GB disk (2.88 GB images + 87 MB volumes) — both comfortably inside Command Center's headroom.
+  - *No PII/credential/cookie in payload:* the verification event was entirely synthetic, explicitly labeled as a test in its own `extra` field.
+- **Downstream:** `O6` listed `TASK-O1b` as a blocker on both platforms; that half is now resolved. See `O6` below for the remaining `R3-BUILD-iOS` gate on the iOS half only.
+- **Do not touch:** KVM1 production resources (untouched — GlitchTip lives entirely on Command Center); public exposure of the error-tracking UI (confirmed Tailscale-bound only, never `0.0.0.0`).
 
 ### O1c — Product analytics (Umami) — deferred
 
@@ -658,10 +660,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### O6 — Native crash reporting on both platforms
 
 - **Status:** BLOCKED
-- **Blocked by:** TASK-O1b — needs an error-tracking backend before symbols have anywhere to land
 - **Blocked by:** TASK-R3-BUILD-iOS — iOS symbolication specifically; the Android half is not gated on it
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped prose blocker into typed lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Unblock:** 2026-08-12 REASSESSED — the local Mac/device development-signing prerequisite is now satisfied, but this blocker stands: no archive/dSYM upload or deliberate native crash was performed, `TASK-O1b` is still open, and `R3-BUILD-iOS` has not reached TestFlight.
+- **Unblock:** 2026-08-17 RESOLVED — `TASK-O1b` closed; GlitchTip is live on Command Center (`http://100.98.81.0:8000`, Tailscale-only) with a proven ingest path (deliberate test error confirmed stored with a full stack trace in <1s). This item's Android-half blocker is satisfied — Android crash-reporting integration is now agent-buildable. Overall `Status` stays `BLOCKED` because `Done when:` requires **both** platforms, and iOS symbolication still needs `TASK-R3-BUILD-iOS` to reach a signed build for dSYM upload.
 - **Priority:** **P0 — hard Phase 3 gate, and the single largest blind spot in the whole system**
 - **Cost:** medium
 - **Agent-buildable:** yes
@@ -718,14 +720,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### O5 — Supabase backup and restore verification
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — database access
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** checklist only
-- **Source:** never verified. An untested backup is not a backup.
-- **Done when:** a backup is confirmed to exist on a known schedule and a restore is exercised into a non-production target, with recovery-point and recovery-time recorded.
-- **Do not touch:** production data; never restore over production.
+- **Status:** **CLOSED 2026-08-17 (doc reconciliation — the work itself completed 2026-08-11).**
+- **Closure:** COMPLETED — this item sat as "never verified" while the actual pipeline was built and proven in a parallel, undocumented context (the Slops OS infrastructure fleet) a full week earlier. Found and reconciled during the `O1b`/Drive-migration session.
+- **Evidence:** `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md` → "Layer 3 — Steward Automation → The backup pipeline." Encrypted Restic pipeline KVM1 → KVM2, including explicit Supabase Auth export (`auth.users`/`auth.identities`/`auth.mfa_factors`, which the default `supabase db dump` excludes); scheduled every 6 hours; **full disaster-recovery drill proven** — snapshot restored into an isolated, network-disconnected disposable Postgres container with every recovered row count matching source exactly (`moves=1`, `platform_connections=8`, `profiles=3`, `users=3`, `waitlist_signups=10`, zero orphaned Auth identities). Steward monitors freshness (HEALTHY / WARNING >8h / DOWN) through a forced-command-restricted channel that never touches Supabase or Restic credentials.
+- **Known residual gap, honestly carried forward:** KVM1 and KVM2 are both Hostinger — this is off-host but not off-provider disaster separation. A second copy on a different provider/local storage remains undone.
+- **Do not touch:** production data; never restore over production. (Honored throughout — every restore drill ran in an isolated, network-disconnected container, never against production.)
 
 ## P. Launch-blocking defects — discovered 2026-08-11
 
