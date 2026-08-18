@@ -54,49 +54,25 @@ This section previously stated the Actions allotment was exhausted, that no work
 
 Handoffs in this repo have repeatedly said "implemented locally; not pushed, merged, deployed" for work that was already on `main`. **`main` is the proof.** Before pulling anything, `grep` for the symbol on `main` and check `gh pr list`.
 
-## Selected Queue — 2026-08-16
+## Selected Queue — 2026-08-18
 
-**Refreshed after a full sprint-queue reconciliation.** 23 finished items were closed out of `Direction/current_sprint.md` into `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16", and the two missing Done-ledger rows were written. The 2026-08-11 selection that used to sit here is gone: items 1–3 of it had been merged for days, and item 5 (`A4`) is founder- and externally-gated. That was the fourth time this queue described shipped work as pullable — `M4-CC-PlatformsCompact` was the fifth, found at `READY` after merging as `6466a4c`.
+**Refreshed by Claude.** The 2026-08-16 selection above went stale within a day: its item 1, `M5-Slice-E-Ledger`, merged and closed 2026-08-17 (PR #320) — the same "handoff written pre-merge, never re-read" failure the 2026-08-16 pass itself was written to end. Items 1 (`P1-DraftAssistantSideline`) and 2 (`M5-Native-API-Client` slice D) from that list are also both already closed (`08aa73f`, `80ee3fa`). Items 3 (`M4-CC-PlatformsCompact`) and 4 (`F9`) were **not** re-checked this pass — verify directly against `current_sprint.md` rather than trust either line here.
 
-**Claim:** none open.
+`node scripts/check-sprint-staleness.js` was run against 100 merged PRs and found the rest of `current_sprint.md` consistent with `main` — only this file's cached list had lagged. `gh pr list` shows zero PRs open. Also closed since the last refresh and not previously recorded here: `O1b` (GlitchTip error tracking) and `O5` (Supabase backup, doc-reconciled), both PR #329.
 
-**Closed 2026-08-16:** `P1-DraftAssistantSideline` + `R7` (PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`), `P1-ConnectContinueRoute` (#314), and `M5-Native-API-Client` **slice D** (PR [#317](https://github.com/justinduverge-design/omen/pull/317) / `80ee3fa`). None deployed.
+**Claim:** Claude, 2026-08-18 — `S5` (mobile token storage review), in progress.
 
-### Next pull — read `Blueprints/prompts/canvas-m1-screen-contracts.md` first
+### Next pull — re-derived 2026-08-18, `Blocked by: None`, agent-buildable, priority-ordered
 
-That canvas explains, in one page, what each native destination actually shows a real user today and why two of them cannot be built yet. Three new items are queued:
+1. **`S5`** — mobile token storage review. **Claimed above.**
+2. **`O7`** — forced-update/minimum-version gate. P0: mobile ships with no rollback otherwise.
+3. **`O2`** — named rollback owner + tested rollback path. P0; the rollback exercise itself is founder-executed, the documentation half is agent work.
+4. **`O8`** — wire GlitchTip into Omen's actual error paths. P1, and the direct payoff of `O1b`: nothing in `src/` sends a real error to GlitchTip yet.
+5. **`S8`** — triage the 6 open Dependabot PRs. P1 for #281 specifically (sits on a hard-failure rule); merging stays founder-only.
 
-1. **`M5-Slice-E-Ledger`** — the last pure-wiring slice, and the cheapest work on the board: slice D just built every pattern it needs. Start here.
-2. **`M1-Screen-Trade`** — the screen contract blocking `M5` slice G. Proposal is agent work; approval is founder-only.
-3. **`M1-Screen-League`** — the screen contract blocking `M5` slice F. Same split. Must **not** include a Draft entry (see the R7 amendment).
+**Before closing anything, run `node scripts/check-sprint-staleness.js`.**
 
-**Before closing anything, run `node scripts/check-sprint-staleness.js`.** It exists because this queue has advertised shipped work as pullable seven times; it now catches that automatically.
-
-### ⚠️ Correction — `P1-ConnectContinueRoute` is CLOSED, not open
-
-The selection written above during the reconciliation pass listed it as item 1 and said "Not pushed or merged." **It had already merged** as PR [#314](https://github.com/justinduverge-design/omen/pull/314) / `107ed66`, 2026-08-16T14:55Z. That is the **sixth** recorded instance of this queue advertising shipped work as pullable, and the second within a single day — the reconciliation pass that was meant to end this pattern reproduced it on its own item.
-
-The cause is now precise enough to fix mechanically: **the handoff is written pre-merge and nothing re-reads it once the PR lands**, so `current_sprint.md` and this file both inherit a stale sentence. The reconciliation's own proposal — flag any sprint item whose key appears in a merged PR title while its `Status:` is not `CLOSED` — should be built rather than repeating the manual sweep a seventh time. Closure receipt: `Direction/sprints_completed.md` → "Post-reconciliation closure — 2026-08-16".
-
-**Selection below is renumbered from that correction.** 4 items remain from the original 5; all `Status: READY`, `Blocked by: None`, ordered by the selection rule. A shortlist is not authority to claim four.
-
-### ~~1. P1-DraftAssistantSideline~~ — ✅ CLOSED 2026-08-16 (merged `08aa73f`)
-
-P1, medium, founder-decided 2026-08-11 and **still shipping to every visitor**. Nav, route, `dashboard.js:268` tool entry, help drawer, landing copy, and the `Privacy.jsx` / `Terms.jsx` legal clauses. Preserve the implementation — 2027 ships it on a Slops-built ADP. Note the 2026-08-14 amendment: one factual "2027 fantasy draft" mention is permitted on the marketing site and in a labelled in-app note, never in store metadata.
-
-### 2. M5-Native-API-Client slice D (Omen destination) or E (Ledger)
-
-P0 beta blocker. Slices A+B+C shipped 2026-08-15, so the client, repository, and view-model patterns exist on both platforms; D and E wire against already-shipped routes. One slice per session — not two. F/G need their M1 screen-contract slices first.
-
-### 3. M4-CC-PlatformsCompact — finish the evidence, then close it
-
-`VERIFIED` as of this pass, not closed. What is missing is small and mechanical: a Pixel-6a-class Android render proving the Omen card sits above the fold, `:app:assembleDebug` + scanner + connected-test results, and a handoff for `6466a4c`. It blocks `B-FREEZE`.
-
-### 4. F9 — Mock / live labeling sweep
-
-P0 and trust-critical. The web half and the full surface inventory are agent-workable now; "every surface on both native apps" needs device evidence, so scope and label the halves rather than claiming the whole.
-
-**Founder-gated, not selectable:** `A4`, `A5` (decision, trigger 2026-09-01), `A6` (schema approval), `R2-Android` (Google review), `R3`–`R6`, `M3A-QA`, `M4-Auth-Passkeys-iOS-Onramp`, `B2-D3-S2` deploy step. **External:** `P1-YahooReauth` → `F7`. **Season-floored:** `F6`, `F7`, `F8` cannot pass their Omen halves until the 2026 regular season opens.
+**Founder-gated, not selectable:** `A4`, `A5` (decision, trigger 2026-09-01), `A6` (schema approval), `R2-Android` (Google review), `R3`–`R6`, `M3A-QA`, `M4-Auth-Passkeys-iOS-Onramp`, `B2-D3-S2` deploy step, `M1-Screen-Trade` / `M1-Screen-League` (proposals delivered 2026-08-16, ratification pending). **External:** `P1-YahooReauth` → `F7`. **Season-floored:** `F6`, `F7`, `F8` cannot pass their Omen halves until the 2026 regular season opens.
 
 ## Planning intake — pending planning-pass
 

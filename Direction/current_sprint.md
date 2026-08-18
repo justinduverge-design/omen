@@ -621,8 +621,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S5 — Mobile token storage review
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** **VERIFIED 2026-08-18.**
+- **Claim:** Claude, 2026-08-18 — released on verification.
+- **Evidence:** `Direction/reviews/2026-08-18-s5-mobile-token-storage-review.md`; `Blueprints/handoffs/2026-08-18-s5-mobile-token-storage-review.md`. **Storage was already compliant on both platforms — no plaintext token storage found, no source fix required.** iOS uses Keychain Services (`kSecClassGenericPassword`, `AfterFirstUnlockThisDeviceOnly`); Android encrypts with an AndroidKeyStore-backed AES-256/GCM key before ciphertext touches `SharedPreferences`. The actual gap was test coverage: neither store had a direct test before this pass. Added `KeychainSessionStoreTests.swift` (5 tests) and `AndroidKeystoreSessionStoreTest.kt` (5 tests, new `androidTest` source set on `core/session`), both exercising the real secure-storage APIs with a regression guard proving tokens never surface in plaintext prefs. iOS full suite 229/231 passed (1 pre-existing pinned `XCTExpectFailure`, 1 flaky UI test in an unrelated subsystem — confirmed passing on isolated retry; baseline 226 + 5 new = 231 exactly). Android: new tests 5/5 on `medium_phone` API 36 connected instrumentation, `:app:assembleDebug` and the existing `SessionManagerTest` (6/6) both green.
 - **Priority:** **P0 — new threat model.** A leaked provider token on a stolen phone is not the same risk as a web session.
 - **Cost:** small–medium
 - **Agent-buildable:** yes
