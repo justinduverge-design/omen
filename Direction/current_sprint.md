@@ -560,12 +560,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - **Status:** READY
 - **Blocked by:** None
+- **Unblock:** 2026-08-18 CORRECTED — this item's scope previously read "...or Sentry payloads once O1 lands." That reference was always wrong: `O1` (Kuma/Beszel) never emitted Sentry-shaped payloads — that was `O1b`'s job, and `O1b` closing on 2026-08-17 proved the tool works, not that anything sends to it. `O8` is what will actually emit adapter-failure payloads. The log/error-envelope half of this item's scope is testable now regardless.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** yes
-- **Scope:** error paths specifically — happy paths are already covered. Provoke adapter failures for Yahoo, Sleeper, and ESPN and confirm nothing leaks into logs, error envelopes, or Sentry payloads once O1 lands.
+- **Scope:** error paths specifically — happy paths are already covered. Provoke adapter failures for Yahoo, Sleeper, and ESPN and confirm nothing leaks into logs or error envelopes now; extend the same proof to GlitchTip payloads once `O8` ships.
 - **Skills:** `security-privacy-evidence`, `slops-investigate`
-- **Done when:** a test proves each adapter's failure path emits no cookie, token, or credential fragment; ESPN cookie names and values are absent from every surface.
+- **Done when:** a test proves each adapter's failure path emits no cookie, token, or credential fragment in logs and error envelopes; ESPN cookie names and values are absent from every surface, including GlitchTip payloads once `O8` exists.
 - **Do not touch:** real credential values in test fixtures.
 
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
@@ -647,6 +648,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
   - *Deliberate error, within 60s, usable stack trace:* a synthetic `ESPNMalformedResponseError` (mirroring this item's own canonical example) was POSTed to the ingest API from an external host and confirmed stored, grouped, and queryable with full stack frames intact in **under 1 second** — verified directly against `issue_events_issueevent` in Postgres, not inferred from the ingest endpoint's 200 response alone.
   - *Host and resource cost recorded:* ~300 MB RAM measured (519Mi → 812Mi host `used`, before/after the full stack), ~2.9 GB disk (2.88 GB images + 87 MB volumes) — both comfortably inside Command Center's headroom.
   - *No PII/credential/cookie in payload:* the verification event was entirely synthetic, explicitly labeled as a test in its own `extra` field.
+- **Operational resilience proven 2026-08-18, matching the discipline every other Slops OS layer got (see `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`) rather than resting on the one synthetic ingest test above.** The original closure proved GlitchTip *accepts and stores* an error; it did not prove GlitchTip *survives* anything, which is a different and equally necessary claim. Two controlled tests: (1) `glitchtip-web` stopped deliberately — confirmed the site actually went down (`HTTP 000`, connection refused), restarted, confirmed recovery in ~18s, confirmed the pre-existing issue row survived the outage untouched. (2) Command Center rebooted a second time, cleanly this time (not incidental to chasing the cgroup bug) — all seven containers on the host came back via `restart: unless-stopped` alone with **zero manual intervention**, GlitchTip returned `HTTP 200` on the first post-boot attempt, and critically `HostConfig.Memory` still read the correct `805306368`/`268435456` bytes without needing another `--force-recreate` — proving the mem_limit fix above was a durable configuration change, not a one-time patch that would silently regress on the next reboot.
+- **Kuma monitor added and proven 2026-08-18** — closes the gap above. `GlitchTip` monitor (`HTTP(s) - Keyword`, target `http://100.98.81.0:8000/`, keyword `GlitchTip`, 60s interval), matching the pattern of the three Omen monitors. Proven with a controlled kill/recover cycle observed directly in the Kuma UI, not inferred: stopping `glitchtip-web` produced a real `[GlitchTip] [DOWN] timeout of 48000ms exceeded` event and the badge dropped to red; restarting produced a confirmed `Up` status with a healthy 16ms current response time. GlitchTip now has the same synthetic-monitoring coverage the three Omen endpoints do.
 - **Downstream:** `O6` listed `TASK-O1b` as a blocker on both platforms; that half is now resolved. See `O6` below for the remaining `R3-BUILD-iOS` gate on the iOS half only.
 - **Do not touch:** KVM1 production resources (untouched — GlitchTip lives entirely on Command Center); public exposure of the error-tracking UI (confirmed Tailscale-bound only, never `0.0.0.0`).
 
@@ -725,6 +728,33 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Evidence:** `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md` → "Layer 3 — Steward Automation → The backup pipeline." Encrypted Restic pipeline KVM1 → KVM2, including explicit Supabase Auth export (`auth.users`/`auth.identities`/`auth.mfa_factors`, which the default `supabase db dump` excludes); scheduled every 6 hours; **full disaster-recovery drill proven** — snapshot restored into an isolated, network-disconnected disposable Postgres container with every recovered row count matching source exactly (`moves=1`, `platform_connections=8`, `profiles=3`, `users=3`, `waitlist_signups=10`, zero orphaned Auth identities). Steward monitors freshness (HEALTHY / WARNING >8h / DOWN) through a forced-command-restricted channel that never touches Supabase or Restic credentials.
 - **Known residual gap, honestly carried forward:** KVM1 and KVM2 are both Hostinger — this is off-host but not off-provider disaster separation. A second copy on a different provider/local storage remains undone.
 - **Do not touch:** production data; never restore over production. (Honored throughout — every restore drill ran in an isolated, network-disconnected container, never against production.)
+
+### O8 — Wire GlitchTip into Omen's actual error paths
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — this is the payoff `O1b` was built for. Today `O1b`'s done-when was proven with a synthetic error sent by hand from a terminal; nothing in `src/` sends anything to GlitchTip yet. Closing `O1b` proved the tool works — it did not prove the tool catches anything real, and those are different claims. Do not conflate them in future status language.
+- **Cost:** medium
+- **Agent-buildable:** yes, with one dependency caveat below
+- **Source:** `Blueprints/handoffs/2026-08-17-o1b-glitchtip-error-tracking.md`, "What is NOT proven" — flagged the same day GlitchTip was deployed.
+- **Scope:** capture real unhandled backend errors, starting with the sprint's own recurring example — Yahoo/Sleeper/ESPN adapter failures — plus a global Express error handler and `process.on('uncaughtException' / 'unhandledRejection')`. **Prefer a direct HTTP integration against GlitchTip's store/envelope endpoint** over adding `@sentry/node` or an equivalent SDK: this session proved the wire format by hand (plain JSON POST with an `X-Sentry-Auth` header, no library needed), and `package.json`/dependencies are on this repo's standing do-not-touch list (`agent_inbox.md`) — a hand-rolled integration avoids that gate entirely. If the SDK later proves genuinely necessary (breadcrumbs, auto-instrumentation), that is a separate, explicitly-approved step, not a default.
+- **Must scrub PII/provider credentials/ESPN cookie values before sending.** This is the exact property `S4` exists to verify — build this with `S4`'s acceptance bar in mind rather than as an afterthought to be cleaned up later.
+- **Must never let demo-user activity reach the real GlitchTip project** (facts-of-record #7 — mock and live stay separated; a demo error would pollute real signal and make genuine issues harder to see).
+- **Skills:** core implementation + `security-privacy-evidence`
+- **Done when:** a real, provoked adapter failure (not a curl-synthetic test) appears in GlitchTip with a usable stack trace; a test proves no credential/cookie/PII fragment reaches the payload; a test proves demo-mode errors never reach the real project.
+- **Do not touch:** adding a new npm dependency without explicit approval; KVM1 production behavior beyond the error-reporting hook itself.
+
+### O9 — Route GlitchTip issues through the existing Layer 5 Discord alerting
+
+- **Status:** READY
+- **Blocked by:** None. Higher-value once `O8` lands (nothing real to alert on until then), but the alert *path* itself can be built and proven with a synthetic issue now, the same way `O1b`'s own done-when was proven before any real integration existed.
+- **Priority:** P2
+- **Cost:** small–medium
+- **Agent-buildable:** research/configuration yes; treat with the same care as `O1b` — the actual change lives on Command Center's dispatcher, not in this repo, so the deploy step there is founder-gated the same way.
+- **Source:** founder-flagged 2026-08-18. GlitchTip (`O1b`) and the Layer 5 Discord dispatcher (`Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`) don't know about each other — the dispatcher already polls Kuma/Steward/Sentinel every 5 minutes and is proven notification-only, but it predates GlitchTip and has no path to it.
+- **Scope:** evaluate two options against Layer 5's existing noise-control rules (dedup on unchanged signature, one recovery notice, notification-only — no remediation capability) before picking one: (a) extend the Command Center dispatcher to poll GlitchTip's issues API the same way it polls Kuma, or (b) use GlitchTip's own native alert/webhook capability pointed at the same Discord webhook.
+- **Done when:** a deliberate new GlitchTip issue reaches `#slops-alerts` on Discord; existing Kuma/Steward/Sentinel alerting is unaffected; the same dedup/recovery behavior already proven for Layer 5's other signals is proven for this one too.
+- **Do not touch:** the dispatcher's remediation boundary (notification-only stays notification-only, per the Constitution in the infrastructure spec); Command Center's resource budget (the `mem_limit` discipline `O1b` established applies here too).
 
 ## P. Launch-blocking defects — discovered 2026-08-11
 
