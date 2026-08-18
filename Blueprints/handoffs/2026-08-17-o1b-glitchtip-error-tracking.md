@@ -60,6 +60,25 @@ O1b: *"a deliberate backend error appears in the chosen tool within 60 seconds, 
 
 `O6` (native crash reporting) listed `TASK-O1b` as a blocker for both platforms — resolved now that a working error-tracking backend exists. Its `Status` stays `BLOCKED` overall because `Done when:` requires both iOS and Android, and iOS symbolication still needs `TASK-R3-BUILD-iOS` to reach a signed build. **Android crash-reporting integration is now agent-buildable on its own.**
 
+## Operational resilience (added 2026-08-18)
+
+The done-when evidence above proves GlitchTip *accepts and stores* an error. It does not prove GlitchTip *survives* anything — a different claim, and the one every other Slops OS layer (Kuma, Beszel, Steward's automation jobs, Sentinel's sensors) was required to prove before being called done: a kill-and-recover cycle, plus a reboot survival test. GlitchTip had neither until this pass.
+
+**Container-level kill/recover, proven:**
+1. `glitchtip-web` stopped deliberately at 03:01:14 UTC.
+2. Confirmed genuinely down: `HTTP 000` (connection refused), not a graceful error page. `postgres`/`valkey` stayed up unaffected, as expected — killing the frontend doesn't touch the data layer.
+3. Restarted; `HTTP 200` again ~18 seconds later, after the container's normal partition-maintenance startup step.
+4. The pre-existing test issue (`ESPNMalformedResponseError`) was queried and confirmed unchanged in Postgres throughout — data persistence survived the outage, not just the container.
+
+**Full host reboot, proven a second time — cleanly, not as a side effect:**
+This morning's reboot (to apply the cgroup fix) already showed the stack coming back, but that test was entangled with the `--force-recreate` needed to fix `mem_limit` in the first place, so it didn't cleanly answer "does a plain reboot work now, unassisted." This pass re-ran it in isolation:
+- All seven containers on the host (Pi-hole, Beszel, Beszel-agent, Uptime Kuma, and GlitchTip's three) came back via `restart: unless-stopped` alone, with zero manual intervention, reachable again ~25 seconds after the reboot command.
+- GlitchTip returned `HTTP 200` on the **first** post-boot check — no cold-migration wait this time, since only partition-maintenance runs on a restart of an already-migrated database.
+- **The critical check:** `docker inspect` confirmed `HostConfig.Memory` still read `805306368` (web/postgres) and `268435456` (valkey) bytes — the correct caps — with **no `--force-recreate` needed this time**. This proves this morning's fix produced a durable configuration baked into each container, not a one-time patch that would silently regress and need reapplying on every future reboot.
+- The test issue row was confirmed present and unchanged after the full host reboot.
+
+**Kuma monitor added and proven 2026-08-18.** Founder logged into Kuma directly; monitor created as `GlitchTip` (`HTTP(s) - Keyword`, `http://100.98.81.0:8000/`, keyword `GlitchTip`, 60s interval) matching the three existing Omen monitors' pattern. Proven with a controlled kill/recover cycle, observed live in the Kuma UI rather than inferred: stopping `glitchtip-web` produced `[GlitchTip] [DOWN] timeout of 48000ms exceeded` and the status badge went red; restarting produced a confirmed `Up` badge with a 16ms current response time. GlitchTip now has the same synthetic-monitoring coverage as the three Omen endpoints — this was the last piece of the "prove it the way every other Slops OS layer was proven" bar from the 2026-08-18 session.
+
 ## What is NOT proven
 
 - **No native SDK integration.** GlitchTip is live and proven to accept/process events, but nothing in `src/` (backend), `mobile/ios/`, or `mobile/android/` has been wired to actually send to it yet. The backend Node/Express SDK wiring (so real production errors — like the ESPN-malformed-JSON case this test mirrored — actually reach GlitchTip) is separate, unstarted work.
