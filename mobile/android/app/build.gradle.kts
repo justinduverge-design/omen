@@ -80,6 +80,7 @@ android {
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
+            buildConfigField("String", "OMEN_ANDROID_SENTRY_DSN", "\"${cfg("omen.androidSentryDsn")}\"")
         }
         create("staging") {
             initWith(getByName("debug"))
@@ -97,6 +98,7 @@ android {
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
+            buildConfigField("String", "OMEN_ANDROID_SENTRY_DSN", "\"${cfg("omen.androidSentryDsn")}\"")
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }

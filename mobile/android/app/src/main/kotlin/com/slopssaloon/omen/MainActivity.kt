@@ -6,12 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.slopssaloon.omen.app.OmenAndroidApp
 import com.slopssaloon.omen.app.auth.OAuthCallbackBus
+import com.slopssaloon.omen.app.crashreporting.SentryEnvelopeReporter
 import com.slopssaloon.omen.app.screenshot.ScreenshotScenarioHost
 import com.slopssaloon.omen.app.screenshot.ScreenshotScenarios
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashReporter()
         // Screenshot short-circuit — when the native-visual-evidence CI workflow launches
         // the app with `--es OMEN_SCREENSHOT_SCENARIO <slug>`, mount only the requested
         // scenario. No session, no network. Unknown or missing key falls through to the
@@ -42,6 +44,22 @@ class MainActivity : ComponentActivity() {
         val data = intent?.data ?: return
         if (data.scheme == "com.slopssaloon.omen" && data.host == "auth") {
             OAuthCallbackBus.post(data)
+        }
+    }
+
+    // O6 — a deliberate crash must reach the error backend within 60s, symbolicated, PII-free.
+    // Installed as early in onCreate as possible; empty DSN (not yet provisioned for this build
+    // variant) disables reporting entirely rather than sending anywhere. Chains to whatever
+    // handler was previously installed so normal OS crash behavior — the "app has stopped"
+    // dialog, process teardown, Play's own vitals — is unaffected; this only observes.
+    private fun installCrashReporter() {
+        val dsn = BuildConfig.OMEN_ANDROID_SENTRY_DSN
+        if (dsn.isBlank()) return
+        val reporter = SentryEnvelopeReporter(dsn)
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            reporter.report(throwable)
+            previousHandler?.uncaughtException(thread, throwable)
         }
     }
 }
