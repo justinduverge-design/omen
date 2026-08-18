@@ -36,6 +36,11 @@ omen.supabaseAnonKey=your-public-anon-key
 # honestly rather than failing at the tap.
 omen.googleWebClientId=
 
+# Optional until provisioned (O6). A Sentry DSN is a write-only ingest identifier —
+# safe to ship inside the app binary, not a secret the way an API key is. Empty
+# disables crash reporting entirely rather than sending anywhere.
+omen.androidSentryDsn=
+
 # ------------------------------------------------------------- Release signing --
 # Required to produce an uploadable AAB. Google Play rejects unsigned artifacts.
 #
