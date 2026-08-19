@@ -102,4 +102,16 @@ final class SentryEnvelopeReporterTests: XCTestCase {
     func testReportWithABlankDSNDoesNothing() {
         SentryEnvelopeReporter(dsn: "").report(name: "NSGenericException", reason: "x", callStack: [])
     }
+
+    /// The deliberate-crash hook must stay inert without its launch argument.
+    ///
+    /// It runs unconditionally in `OmenIOSApp.init`, so a bug in this guard crashes the app on
+    /// launch for every user. Worth a test precisely because the failure mode is total, and
+    /// because a test that *asserts the crash* cannot exist — it would take the runner with it.
+    func testCrashHookIsInertWithoutItsLaunchArgument() {
+        CrashReporting.crashIfRequested(arguments: ["Omen", "-SomeOtherFlag", "OMEN_CRASH_TEST"])
+        CrashReporting.crashIfRequested(arguments: [])
+        // Reaching here at all is the assertion: neither call raised.
+        XCTAssertTrue(true)
+    }
 }

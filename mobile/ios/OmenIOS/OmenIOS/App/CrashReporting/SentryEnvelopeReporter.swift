@@ -43,7 +43,18 @@ struct SentryEnvelopeReporter {
             .data(using: .utf8)
 
         let done = DispatchSemaphore(value: 0)
-        session.dataTask(with: request) { _, _, _ in done.signal() }.resume()
+        session.dataTask(with: request) { _, response, error in
+            // Mirrors Android's `Log.i(TAG, "…response code …")`. This line is the only way
+            // to prove ingestion from the device side — a crash handler has no UI and the
+            // process is about to die, so without it a silent failure looks identical to a
+            // success. Logs the status only; never the DSN, the body, or the payload.
+            if let http = response as? HTTPURLResponse {
+                NSLog("[OmenCrashReporting] Reported crash to Sentry, response code \(http.statusCode)")
+            } else {
+                NSLog("[OmenCrashReporting] Crash report failed to send: \(error?.localizedDescription ?? "unknown")")
+            }
+            done.signal()
+        }.resume()
         _ = done.wait(timeout: .now() + timeout)
     }
 
@@ -114,5 +125,24 @@ enum CrashReporting {
             )
             CrashReporting.previousHandler?(exception)
         }
+    }
+
+    /// Deliberate crash for O6's `Done when:` proof, triggered only by a launch argument.
+    ///
+    /// Raises an **`NSException`** specifically, because that is the class of failure this
+    /// handler actually catches — a `fatalError()` would die via `SIGTRAP` without ever
+    /// reaching it and would prove nothing. Mirrors Android's `adb shell am crash`, which iOS
+    /// has no OS-level equivalent of.
+    ///
+    /// Not reachable by an end user: nothing in the UI passes this argument, and a shipped
+    /// build has no surface that sets it — the same containment the screenshot-scenario
+    /// short-circuit relies on.
+    static func crashIfRequested(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard arguments.contains("-OMEN_CRASH_TEST") else { return }
+        NSException(
+            name: .init("OmenDeliberateTestCrash"),
+            reason: "O6 verification — deliberate NSException, no user data attached",
+            userInfo: nil
+        ).raise()
     }
 }
