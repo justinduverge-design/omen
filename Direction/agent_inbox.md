@@ -66,13 +66,15 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 1. **`O2`** — named rollback owner + tested rollback path. **P0, and now the last unclosed P0 in the Ops lane.** The rollback exercise itself is founder-executed; the documentation half is agent work. O7 closing makes this more urgent, not less: O7's `Done when:` records "no rollback — O7 forced-update is the mitigation" as the *mobile* answer, and O2 is where that sentence has to actually be written down alongside the backend path.
 2. **`O8`** — wire GlitchTip into Omen's actual error paths. P1, and the direct payoff of `O1b`: nothing in `src/` sends a real error to GlitchTip yet.
-3. **`S8`** — triage the 6 open Dependabot PRs. P1 for #281 specifically (sits on a hard-failure rule); merging stays founder-only.
+3. ~~**`S8`** — triage the 6 open Dependabot PRs.~~ **CLOSED 2026-08-19 — it was already done on 2026-08-11 and nobody advanced the status.** Zero Dependabot PRs are open; #281 is merged. **This line is left struck through rather than deleted because it is the evidence**: S8 was offered as an available P1 pull on the same day the reconciliation proved it finished. `check-sprint-staleness.js` could not catch it — it matches sprint keys against PR *titles*, and Dependabot titles never contain a sprint key.
 4. **`O3`** — post-deploy canary. P1, recommend-only.
 5. **`O4`** — load-test the three hot routes. P1; `scripts/load-omen-routes.js` exists and has never been run.
 
-### 📌 Queued by the founder — run after O7 verifies
+### ✅ Done 2026-08-19 — known-issues ↔ GitHub reconciliation
 
-**Reconcile `Direction/known_issues.md` against GitHub.** Sort every entry into already-fixed (close it with the PR that did it), still-open-and-known (carry forward), and still-open-but-buried (surface it — mint a task or raise an issue). The full note, and why it deserves a dedicated pass, is at the top of `Direction/known_issues.md`. **O7 is now closed, so this is live.**
+Ran after `O7` merged (#337). Results in `Direction/known_issues.md` § "Reconciled against GitHub — 2026-08-19". Four buried issues surfaced as [#338](https://github.com/justinduverge-design/omen/issues/338) (fonts), [#339](https://github.com/justinduverge-design/omen/issues/339) (backend Sentry breadcrumbs), [#340](https://github.com/justinduverge-design/omen/issues/340) (contrast), [#341](https://github.com/justinduverge-design/omen/issues/341) (Android status bar). One contradiction corrected in `facts-of-record.md` (Yahoo entitlement). One stale entry corrected (`omen_gdpr.js`). `S8` closed as already-done.
+
+**Standing rule from this pass:** a real, unresolved known issue gets a GitHub issue and carries its number in the heading. If it is not worth an issue, it is not worth an entry. **Re-run this reconciliation periodically — no script covers it**, and the one script that exists (`check-sprint-staleness.js`) is blind to both dependency PRs and cross-file contradictions.
 
 **Before closing anything, run `node scripts/check-sprint-staleness.js`.**
 

@@ -591,7 +591,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S8 — Triage the standing Dependabot queue
 
-- **Status:** READY
+- **Status:** **CLOSED 2026-08-19.**
+- **Closure:** COMPLETED — **the work was finished 2026-08-11 and the status was never advanced.** Verified against GitHub 2026-08-19: **zero open Dependabot PRs.** All six named below are resolved exactly as this item's own verdicts prescribed — #273, #274, #277, #281, #282 **merged**; #280 **closed** (correctly: it carried `tailwindcss` 3→4 and `vite` 7→8, which would have broken the build) and now covered by an `ignore` rule so it stops reopening. `.github/dependabot.yml` carries the ignore rules and the phantom-label defect is fixed. Every `Done when:` clause is met: written verdicts for all six, #281 resolved by merge, each red diagnosed to the real cause (a single `nanoid` frontend dev-advisory on `main`, not the PRs), and the config amended rather than PRs manually closed.
+- **Why this sat open for eight days.** `scripts/check-sprint-staleness.js` matches sprint keys against merged **PR titles**, and Dependabot PR titles are `build(deps): …` — they never contain the key `S8`. So the one mechanism that exists to catch this drift is structurally blind to dependency work. **This item was still being offered as an available P1 pull on 2026-08-19** — it was listed as candidate #3 in that morning's re-derived queue before this reconciliation caught it.
 - **Blocked by:** None
 - **Priority:** **P1 — one open PR sits on a hard-failure rule** (see below); the rest are P2 hygiene
 - **Cost:** small per PR, medium for the batch
