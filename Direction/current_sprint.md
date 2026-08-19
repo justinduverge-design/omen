@@ -591,7 +591,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S8 — Triage the standing Dependabot queue
 
-- **Status:** READY
+- **Status:** **CLOSED 2026-08-19.**
+- **Closure:** COMPLETED — **the work was finished 2026-08-11 and the status was never advanced.** Verified against GitHub 2026-08-19: **zero open Dependabot PRs.** All six named below are resolved exactly as this item's own verdicts prescribed — #273, #274, #277, #281, #282 **merged**; #280 **closed** (correctly: it carried `tailwindcss` 3→4 and `vite` 7→8, which would have broken the build) and now covered by an `ignore` rule so it stops reopening. `.github/dependabot.yml` carries the ignore rules and the phantom-label defect is fixed. Every `Done when:` clause is met: written verdicts for all six, #281 resolved by merge, each red diagnosed to the real cause (a single `nanoid` frontend dev-advisory on `main`, not the PRs), and the config amended rather than PRs manually closed.
+- **Why this sat open for eight days.** `scripts/check-sprint-staleness.js` matches sprint keys against merged **PR titles**, and Dependabot PR titles are `build(deps): …` — they never contain the key `S8`. So the one mechanism that exists to catch this drift is structurally blind to dependency work. **This item was still being offered as an available P1 pull on 2026-08-19** — it was listed as candidate #3 in that morning's re-derived queue before this reconciliation caught it.
 - **Blocked by:** None
 - **Priority:** **P1 — one open PR sits on a hard-failure rule** (see below); the rest are P2 hygiene
 - **Cost:** small per PR, medium for the batch
@@ -861,7 +863,9 @@ event traceable.
 ### F6 — Real-account QA: ESPN
 
 - **Status:** READY
-- **Blocked by:** None
+- **Blocked by:** 2026 NFL regular season has not opened. `GET /api/dashboard/summary` returns `omen_of_the_week: "off_season"` via `isOffSeason()` in `src/services/nflSchedule.js` — correct behavior, not a defect (facts-of-record #10). The scope's *Omen recommendations* clause therefore cannot pass yet, on any account, by anyone.
+- **Unblock:** the 2026 regular season opening. **Nothing a founder or an agent can do before then.**
+- **Corrected 2026-08-19.** This line previously read `Blocked by: None`, which made a season-floored P0 read as immediately pullable — and it was surfaced as a candidate by the staleness sweep for exactly that reason. The connect/recovery/waiver/drafted-league halves *are* workable now and can be matrixed ahead of time; only the Omen-recommendation half is floored. Split the evidence and state which half was proven, per facts-of-record #10.
 - **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate; Omen-half acceptance still waits on season start.
 - **Priority:** **P0 — highest risk item in the plan**
 - **Cost:** medium

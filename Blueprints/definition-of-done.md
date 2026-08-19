@@ -75,6 +75,12 @@ This means a red PR merged during the hold carries **no implied verification**. 
 
 Run a sweep before the first new closure: re-trigger the workflows for every open PR and every DEFERRED-CI ledger row, and convert each deferral to a real result or a defect. Track it as one task, not per-PR cleanup.
 
+## Record integrity — before any closure
+
+Run `node scripts/check-sprint-staleness.js`. It compares the direction files against `main`, merged PRs, and GitHub issues, and never edits anything.
+
+**Read the coverage block, not just the verdict.** It prints what it did *not* inspect on every run, and reports "DID NOT RUN" rather than passing when GitHub is unreachable — a clean result is only meaningful against a stated scope. Index of the checkers and how to add one: `scripts/checks/README.md`; all scripts: `scripts/README.md`.
+
 ## The ledger
 
 Every closure is recorded in `done/LEDGER.md`. Review monthly — gates skipped often signal a prompt or skill to revisit.

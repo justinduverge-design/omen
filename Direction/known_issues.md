@@ -1,28 +1,23 @@
 # Omen Known Issues
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
-## 📌 Pending pass — reconcile this file against GitHub (queued 2026-08-19)
+## ✅ Reconciled against GitHub — 2026-08-19
 
-**Founder-requested, to run once `O7` is done and verified.** Every entry in this file is to be
-compared against GitHub — merged PRs, closed issues, and current `main` — and sorted into:
+Founder-requested pass, run after `O7` closed. Every entry was checked against `main`, merged PRs, and open issues rather than re-read. **Entries now carry a GitHub issue number where one exists, so this file and GitHub say the same thing.**
 
-1. **Already fixed** — the issue was resolved by later work and nobody came back to update this
-   file. Close it out with the PR/commit that did it.
-2. **Still open and known** — carry forward as-is.
-3. **Still open and buried** — real, unresolved, and invisible because it lives only here. These
-   are the ones to surface: mint a task, or raise a GitHub issue, so the queue can see them.
+**What the pass found.**
 
-**Why this is worth a dedicated pass.** This repo's recorded failure mode is not "work is wrong",
-it is "work is real but the record disagrees with `main`" — the `check-sprint-staleness.js` script
-exists because the sprint queue drifted that way eight-plus times. `known_issues.md` has never had
-the same reconciliation, has no equivalent script, and is the file most likely to hold a stale
-"OPEN" for something already fixed. **A fixed issue left marked open costs a future session real
-time; an open issue nobody can see costs a user.**
+- **One contradiction, in the wrong direction.** `facts-of-record.md` #11 claimed Yahoo API access *"was re-approved… the developer application is live again"* while this file had recorded the opposite since 2026-08-13 — a live-verified 403 on all four probe calls, entitlement refused, issue [#308](https://github.com/justinduverge-design/omen/issues/308) open. The optimistic version was sitting in the **higher-authority** file that agents read first. Corrected in `facts-of-record.md`, with the provenance kept rather than overwritten.
+- **One entry describing code that no longer exists.** `src/omen_gdpr.js` was listed as "remains present"; it was deleted by PR [#119](https://github.com/justinduverge-design/omen/pull/119) ("retire orphan gdpr") — it was an orphan, never mounted, so no capability was lost. Corrected below.
+- **Four real issues that lived only in this file** are now GitHub issues: [#338](https://github.com/justinduverge-design/omen/issues/338) fonts, [#339](https://github.com/justinduverge-design/omen/issues/339) backend Sentry breadcrumbs, [#340](https://github.com/justinduverge-design/omen/issues/340) contrast, [#341](https://github.com/justinduverge-design/omen/issues/341) Android status bar.
+- **This file was more honest than the sprint queue.** Every entry marked FIXED or RESOLVED here was verified genuinely fixed against `main`. The stale record was `S8` in `current_sprint.md`, which advertised "six open Dependabot PRs" when there were **zero** — all six resolved on 2026-08-11 exactly as S8's own verdicts prescribed, and the status never advanced.
 
-Do not do this piecemeal while closing `O7` — it is its own pass with its own evidence.
+**The gap that allowed it, stated plainly.** `scripts/check-sprint-staleness.js` compares the sprint queue against merged PRs. **Nothing compares this file against `facts-of-record.md`, and nothing compares either against GitHub issues.** Yahoo had an open issue, a facts-of-record entry, and an entry here, and no mechanism ever looked at all three together. The contradiction was not missed through carelessness — nothing was watching. Until a checker exists, this reconciliation must be re-run by hand: **treat it as recurring, not one-off.**
 
-## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, OPEN)
+**Rule going forward:** an entry here that is real and unresolved gets a GitHub issue, and the issue number goes in the heading. If it is not worth an issue, it is not worth an entry.
+
+## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, OPEN — [#339](https://github.com/justinduverge-design/omen/issues/339))
 
 **Severity: low–moderate. Open.** The frontend equivalent is fixed (see below); this one is not.
 
@@ -49,7 +44,7 @@ Do not do this piecemeal while closing `O7` — it is its own pass with its own 
 - Some archive/checkpoint files describe older launch states and should not be treated as current truth.
 - Justin may still rewrite `AGENT.md` and `CLAUDE.md`; until then, follow `AGENTS.md`, `AGENT.md`, `Direction/`, and `Blueprints/handoffs/`.
 
-## Native Accessibility Risks — found 2026-08-15 during M6-ContextualHelp
+## Native Accessibility Risks — found 2026-08-15 during M6-ContextualHelp (contrast: [#340](https://github.com/justinduverge-design/omen/issues/340); fonts: [#338](https://github.com/justinduverge-design/omen/issues/338))
 
 These surfaced when the first `XCUIApplication.performAccessibilityAudit()` run in this repo was
 added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a regression from it.
@@ -72,7 +67,9 @@ added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a re
   changes. The `.dynamicType` category is therefore excluded from the M6 audit with that reasoning
   recorded at the exclusion site. Revisit if the locked font families ever land.
 
-## Native Accessibility / Appearance — Android light-mode status bar is washed out (found 2026-08-19, OPEN)
+- **The locked font families were never acquired, so the app ships in system fallbacks (found 2026-08-19, OPEN — [#338](https://github.com/justinduverge-design/omen/issues/338)).** `Alegreya Sans` / `Alegreya` / `DM Mono` are the locked families, and **there are no font files in this repo** — no `.ttf`, `.otf`, or `.woff*` anywhere. Both platforms resolve to system stand-ins: iOS `.default`/`.serif`/`.monospaced` (SF Pro / **New York** / SF Mono), Android `SansSerif`/`Serif`/`Monospace`. The sans-heading, serif-body contrast visible in the product is the intended *shape* of the three-role system rendered in the wrong typefaces. **Not a regression and not an overridden decision** — the build brief §7 explicitly excludes acquisition (*"M2 and a separately approved asset/source decision own those actions"*), so it was correctly deferred to a founder decision and then never re-raised. The swap seam held: `OmenFontDesign` (iOS) / `OmenFontFamilies` (Android) are the only places a family is named. Alegreya and DM Mono are both SIL Open Font License, so this is likely download-and-commit rather than a purchase. **Landing this is also the stated trigger for revisiting the Dynamic Type finding above.**
+
+## Native Accessibility / Appearance — Android light-mode status bar is washed out (found 2026-08-19, OPEN — [#341](https://github.com/justinduverge-design/omen/issues/341))
 
 Found while rendering O7's forced-update screen on the `medium_phone` emulator. In **light mode**
 the system status bar draws its clock and icons in **white on `#FAFAF9`**, which is very close to
@@ -124,7 +121,7 @@ it affects every light-mode screen on Android.
 - **`matchupService.js` (DvP matchup context) had the identical retired-URL bug, missed by the `A5-NflversePath` fix above because that fix only touched the cron (found and fixed 2026-08-18, prompted by a founder question asking how the earlier fix could be trusted for 2026).** A repo-wide sweep for every nflverse URL-construction site (not just the two already known) found exactly one more: `matchupService.js` was still building `player_stats_<season>.csv` under the dead `player_stats` tag — confirmed 404 directly, not assumed. Fixed to the same `stats_player_week_<season>.csv` path the cron already proved, and `season_type` filtering added (was previously absent entirely, so a fix that stopped there would have started silently mixing playoff games into a "regular-season defense tendency" average). **A second, more serious bug surfaced only by testing the fix against the real live file rather than hand-written fixtures:** `matchupService.js`'s CSV parser used naive `line.split(",")`, but nflverse's real rows carry a quoted `headshot_url` field containing an unescaped comma (Cloudinary transform params, e.g. `"...f_auto,q_auto/..."`), which silently shifts every later column — `season`, `week`, `season_type`, `opponent_team`, `fantasy_points` — off by one for every row. This was not hypothetical: a real query (`SF`, `WR`, week 10, 2025) returned `null` against the live file even after the URL fix, which is what surfaced it. The cron's own `parseCsvLine` already handles this correctly (proven, already in production) and was ported in rather than reinvented. Re-verified against live data post-fix: `SF` allows `WR`s an average of 7.3 points across 41 real samples ("tough"), no longer `null`. Full backend suite **566/566**. **Carry forward: whichever of these two files is touched next when nflverse changes something again, check the other one too** — this is the second time a real fix shipped to one nflverse consumer while an identical-shaped consumer sat unfixed a few files away.
 - **Every scored move is graded as PPR regardless of league settings (found 2026-08-15, tracked as `A6-MovesScoringFormat`).** `fetchPendingMoves` selects without `scoring` — the deployed `moves` schema has no such column — and `scoreMove` defaults an absent format to PPR. `nflverseScoresFromCsv` computes `rec_std`, `rec_half`, and `rec_ppr`; two are discarded. A standard or half-PPR league's recommendation is graded against points its league does not award. Founder-gated: fixing it adds a column to a deployed schema.
 - **Pre-season nflverse absence no longer fails a move (fixed 2026-08-14, PR [#302](https://github.com/justinduverge-design/omen/pull/302), closes #263).** nflverse publishes `player_stats_<season>.csv` only once a season is under way; before that the 404 was counted as a *failed* pending move, which is what produced `archived=0 scored=0 failed=1` in the 2026-08-02 dry run. A 404 now returns an explicit deferred marker: no Redis write, no Supabase write, the move stays pending and retries on a later run, and `runScoring` reports a `deferredCount`. Every non-404 status, malformed CSV, and empty score map for a published season still fails closed.
-- Legacy `src/omen_gdpr.js` remains present with historical account-deletion copy; the mounted `/api/user` route is `src/routes/userPrivacy.js` and uses `"DELETE MY OMEN DATA"`.
+- **[CORRECTED 2026-08-19 — the entry was stale.]** This previously read "Legacy `src/omen_gdpr.js` remains present". That file was deleted by PR [#119](https://github.com/justinduverge-design/omen/pull/119) ("retire orphan gdpr") and **was never mounted**, so removing it cost no capability. The live privacy surface is `src/routes/userPrivacy.js`, mounted at `src/server.js:216` under `/api/user`, exposing `export`, `delete` (confirmation phrase `"DELETE MY OMEN DATA"`), `consent`, and `legal-acceptance` — all behind `requireAuth`, covered by `test/userPrivacyRoute.test.js` and `test/userPrivacyIsolation.test.js`. **These are technical mechanisms only; this is not a statement of legal compliance**, which depends on policy wording and retention terms and is not an engineering determination.
 
 ## Figma / Design-House Notes
 
