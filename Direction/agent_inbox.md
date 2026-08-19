@@ -62,6 +62,17 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **No active claim.** `S5` closed 2026-08-18; `O7` closed 2026-08-19 (PR #337).
 
+## 📌 Founder pin — 2026-08-19 — `O2` (named rollback owner + tested rollback path)
+
+**Pinned by the founder. This is the next task; skip auto-populate.**
+
+`O2` is the **last unclosed P0 in the Ops lane.** Its two halves split cleanly by who can do them:
+
+- **Agent half:** write the rollback documentation — the backend rollback procedure, and the mobile answer recorded explicitly as *"no rollback — O7 forced-update is the mitigation."* `O7` closed 2026-08-19, so that sentence can now be written with a real mechanism behind it instead of an intention.
+- **Founder half:** actually executing the rollback once against a non-critical deploy, and being named as the rollback owner. Neither is delegable — rolling back production is an action-level founder approval per the safety gates, and "named owner" means a person.
+
+**Read before starting:** `O2`'s own record in `current_sprint.md`, `O7`'s closure (the mobile mitigation it now points at), and `Blueprints/done/release-done.md`.
+
 ### Next pull — re-derived 2026-08-19, `Blocked by: None`, agent-buildable, priority-ordered
 
 1. **`O2`** — named rollback owner + tested rollback path. **P0, and now the last unclosed P0 in the Ops lane.** The rollback exercise itself is founder-executed; the documentation half is agent work. O7 closing makes this more urgent, not less: O7's `Done when:` records "no rollback — O7 forced-update is the mitigation" as the *mobile* answer, and O2 is where that sentence has to actually be written down alongside the backend path.
