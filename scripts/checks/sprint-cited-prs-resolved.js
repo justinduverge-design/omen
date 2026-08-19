@@ -17,7 +17,7 @@
  */
 
 const {
-  SPRINT_FILE, parseSprintItems, isAvailableWork, referencedNumbers,
+  SPRINT_FILE, parseSprintItems, isAvailableWork, isBlocked, referencedNumbers,
 } = require("./markdown");
 
 /**
@@ -43,7 +43,8 @@ module.exports = {
     // both available *and* citing enough PR numbers to be judged? If not, the left fielder
     // stays put and no PR listing is fetched on this check's behalf.
     const candidates = parseSprintItems(text).filter(
-      (i) => isAvailableWork(i.status) && referencedNumbers(i.body.join("\n")).length >= MIN_CITED_PRS
+      (i) => isAvailableWork(i.status) && !isBlocked(i)
+        && referencedNumbers(i.body.join("\n")).length >= MIN_CITED_PRS
     );
     if (candidates.length === 0) {
       return {
@@ -60,6 +61,8 @@ module.exports = {
 
     for (const item of parseSprintItems(ctx.read(SPRINT_FILE))) {
       if (!isAvailableWork(item.status)) continue;
+      // A stated blocker is the item accounting for itself — see isBlocked().
+      if (isBlocked(item)) continue;
 
       const cited = citedPrsFor(item, byNumber);
       if (cited.length < MIN_CITED_PRS) continue;

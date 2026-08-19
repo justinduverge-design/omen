@@ -863,7 +863,9 @@ event traceable.
 ### F6 — Real-account QA: ESPN
 
 - **Status:** READY
-- **Blocked by:** None
+- **Blocked by:** 2026 NFL regular season has not opened. `GET /api/dashboard/summary` returns `omen_of_the_week: "off_season"` via `isOffSeason()` in `src/services/nflSchedule.js` — correct behavior, not a defect (facts-of-record #10). The scope's *Omen recommendations* clause therefore cannot pass yet, on any account, by anyone.
+- **Unblock:** the 2026 regular season opening. **Nothing a founder or an agent can do before then.**
+- **Corrected 2026-08-19.** This line previously read `Blocked by: None`, which made a season-floored P0 read as immediately pullable — and it was surfaced as a candidate by the staleness sweep for exactly that reason. The connect/recovery/waiver/drafted-league halves *are* workable now and can be matrixed ahead of time; only the Omen-recommendation half is floored. Split the evidence and state which half was proven, per facts-of-record #10.
 - **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate; Omen-half acceptance still waits on season start.
 - **Priority:** **P0 — highest risk item in the plan**
 - **Cost:** medium

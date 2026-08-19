@@ -29,7 +29,7 @@ function parseSprintItems(markdown) {
     const heading = line.match(TASK_HEADING);
     if (heading) {
       if (current) items.push(current);
-      current = { key: heading[1], status: null, heading: line.trim(), body: [] };
+      current = { key: heading[1], status: null, blockedBy: null, heading: line.trim(), body: [] };
       continue;
     }
     if (!current) continue;
@@ -39,6 +39,12 @@ function parseSprintItems(markdown) {
     if (!current.status) {
       const status = line.match(/^\s*-\s*\*\*Status:\*\*\s*(.+)$/);
       if (status) current.status = status[1].replace(/\*/g, "").trim();
+    }
+
+    // `- **Blocked by:** None` / `- **Blocked by:** 2026 NFL regular season has not opened.`
+    if (!current.blockedBy) {
+      const blocked = line.match(/^\s*-\s*\*\*Blocked by:\*\*\s*(.+)$/);
+      if (blocked) current.blockedBy = blocked[1].replace(/\*/g, "").trim();
     }
   }
   if (current) items.push(current);
@@ -66,6 +72,20 @@ function isClosed(status) {
 function isAvailableWork(status) {
   if (!status) return false;
   return /^\s*(READY|IN_PROGRESS)\b/i.test(status);
+}
+
+/**
+ * A stated blocker is the item saying "yes, this is open, and here is why" — which is the
+ * status model working, not drift.
+ *
+ * `F6` is the case: `READY`, every cited PR merged, and genuinely unstartable because the
+ * 2026 regular season has not opened (facts-of-record #10). Flagging it taught nothing and
+ * cost a read. An item whose `Blocked by:` is anything other than `None` has already
+ * accounted for itself.
+ */
+function isBlocked(item) {
+  if (!item.blockedBy) return false;
+  return !/^none\b/i.test(item.blockedBy);
 }
 
 /** Split a markdown file into `## `/`### ` sections so a claim can be tied to its heading. */
@@ -100,6 +120,7 @@ module.exports = {
   parseSprintItems,
   isClosed,
   isAvailableWork,
+  isBlocked,
   sections,
   referencedNumbers,
   REF_PATTERN,

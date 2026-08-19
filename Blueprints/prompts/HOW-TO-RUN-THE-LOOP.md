@@ -9,6 +9,8 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Kickoff:** `Blueprints/prompts/kickoff-l2.md` — one layer- and capability-named starter for every runtime. It confirms the session's actual capabilities and reads Runtime Policy before applying any authority.
 - **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
+- **Scripts index:** `scripts/README.md` — every operational script, what it does, and whether it is safe to run. **Check it before writing a new one**; several existing scripts were written twice because a session did not know an equivalent existed. The record-integrity checks live at `scripts/checks/` and are indexed there.
+- **Record integrity:** `node scripts/check-sprint-staleness.js` before closing anything. **Read the coverage block it prints, not just the verdict** — it states what it did not inspect, and says "DID NOT RUN" instead of passing when GitHub is unreachable.
 - **Company baseline:** `Blueprints/playbooks/omen-company-baseline.md`
 - **Skill routing:** `Blueprints/playbooks/skill-activation-runbook.md`
 - **Skill evidence:** `Blueprints/playbooks/skill-usage-ledger.md`
