@@ -1,0 +1,21 @@
+diff --git a/.github/workflows/native-visual-evidence.yml b/.github/workflows/native-visual-evidence.yml
+index 9775860..1d4d4ac 100644
+--- a/.github/workflows/native-visual-evidence.yml
++++ b/.github/workflows/native-visual-evidence.yml
+@@ -40,6 +40,8 @@ jobs:
+           - command-center.disconnected
+           - omen.demo
+           - omen.disconnected
++          - forced-update.blocked
++          - forced-update.no-store-link
+     steps:
+       - uses: actions/checkout@v7
+ 
+@@ -128,6 +130,7 @@ jobs:
+           - command-center.disconnected
+           - omen.demo
+           - omen.disconnected
++          - forced-update.blocked
+     steps:
+       - uses: actions/checkout@v7
+ 

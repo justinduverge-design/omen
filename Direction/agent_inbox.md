@@ -60,15 +60,19 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 `node scripts/check-sprint-staleness.js` was run against 100 merged PRs and found the rest of `current_sprint.md` consistent with `main` — only this file's cached list had lagged. `gh pr list` shows zero PRs open. Also closed since the last refresh and not previously recorded here: `O1b` (GlitchTip error tracking) and `O5` (Supabase backup, doc-reconciled), both PR #329.
 
-**Claim:** Claude, 2026-08-18 — `S5` (mobile token storage review), in progress.
+**No active claim.** `S5` closed 2026-08-18; `O7` closed 2026-08-19 (PR #337).
 
-### Next pull — re-derived 2026-08-18, `Blocked by: None`, agent-buildable, priority-ordered
+### Next pull — re-derived 2026-08-19, `Blocked by: None`, agent-buildable, priority-ordered
 
-1. **`S5`** — mobile token storage review. **Claimed above.**
-2. **`O7`** — forced-update/minimum-version gate. P0: mobile ships with no rollback otherwise.
-3. **`O2`** — named rollback owner + tested rollback path. P0; the rollback exercise itself is founder-executed, the documentation half is agent work.
-4. **`O8`** — wire GlitchTip into Omen's actual error paths. P1, and the direct payoff of `O1b`: nothing in `src/` sends a real error to GlitchTip yet.
-5. **`S8`** — triage the 6 open Dependabot PRs. P1 for #281 specifically (sits on a hard-failure rule); merging stays founder-only.
+1. **`O2`** — named rollback owner + tested rollback path. **P0, and now the last unclosed P0 in the Ops lane.** The rollback exercise itself is founder-executed; the documentation half is agent work. O7 closing makes this more urgent, not less: O7's `Done when:` records "no rollback — O7 forced-update is the mitigation" as the *mobile* answer, and O2 is where that sentence has to actually be written down alongside the backend path.
+2. **`O8`** — wire GlitchTip into Omen's actual error paths. P1, and the direct payoff of `O1b`: nothing in `src/` sends a real error to GlitchTip yet.
+3. **`S8`** — triage the 6 open Dependabot PRs. P1 for #281 specifically (sits on a hard-failure rule); merging stays founder-only.
+4. **`O3`** — post-deploy canary. P1, recommend-only.
+5. **`O4`** — load-test the three hot routes. P1; `scripts/load-omen-routes.js` exists and has never been run.
+
+### 📌 Queued by the founder — run after O7 verifies
+
+**Reconcile `Direction/known_issues.md` against GitHub.** Sort every entry into already-fixed (close it with the PR that did it), still-open-and-known (carry forward), and still-open-but-buried (surface it — mint a task or raise an issue). The full note, and why it deserves a dedicated pass, is at the top of `Direction/known_issues.md`. **O7 is now closed, so this is live.**
 
 **Before closing anything, run `node scripts/check-sprint-staleness.js`.**
 
