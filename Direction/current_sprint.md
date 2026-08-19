@@ -140,8 +140,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R2-Android — Google Play Console account + app record
 
-- **Status:** IN_PROGRESS
-- **Blocked by:** EXTERNAL — Google organization verification is **under review** as of 2026-08-11. No further founder action is available until Google responds.
+- **Status:** **VERIFIED — 2026-08-18.** Founder-reported and screenshot-evidenced (Play Console "Create app" flow, package name field), not independently browser-verified the way `R2-iOS`/`R3-BUILD-iOS` were — no live Play Console session was opened the way App Store Connect's was.
+- **Claim:** Justin, 2026-08-18 — organization account approved by Google; app record created with `applicationId = com.slopssaloon.omen`, matching `mobile/android/app/build.gradle.kts:57`.
+- **Blocked by:** None
 - **Unblock:** 2026-08-11 ROUTED — registration was submitted and initially rejected. Root cause was **the wrong D-U-N-S number**: `145076002`, labelled *Resolution Duns* in the D&B correspondence, was being entered instead of the actual assigned D-U-N-S **`14-800-8695` (`148008695`)**. The correct number appears nowhere in that D&B email, which is why it was missed. Resubmitted with `148008695`; Google accepted it and moved the account to review. Two earlier theories — entity-name mismatch and propagation delay — were **wrong and are withdrawn**.
 - **Open correction:** the D&B record still lists **Legal Form: Corporation**. Valor Ventures is an **LLC**. This did not block Google, but it is inaccurate on the record and should be corrected with D&B directly; leaving it risks a mismatch surfacing at a later verification step.
 - **Priority:** **P0 — the unblocked half of Phase 1.**
@@ -202,8 +203,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R3 — Signing and provisioning
 
-- **Status:** BLOCKED
-- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
+- **Status:** IN_PROGRESS — iOS half `VERIFIED` (see `R3-BUILD-iOS`); Android half has a signed local build but has not yet uploaded through Play Console.
+- **Blocked by:** None
+- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only Android-side blocker.
+- **Remaining for full closure:** Android — Play App Signing enrollment (founder click, first-upload flow) and one successful signed-AAB upload to Play Console. iOS half is fully done — see `R3-BUILD-iOS`'s own record.
 - **Priority:** P0
 - **Cost:** small–medium
 - **Agent-buildable:** no — certificates and keys
@@ -212,8 +215,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R4 — Privacy nutrition labels and Data Safety form
 
-- **Status:** BLOCKED
-- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -223,8 +227,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R5 — Age rating and gambling questionnaire
 
-- **Status:** BLOCKED
-- **Blocked by:** None for iOS (R2-iOS VERIFIED 2026-08-05); R2-Android for the Android side
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
