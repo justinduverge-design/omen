@@ -21,3 +21,10 @@
 OMEN_API_BASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)your-local-or-staging-api.example.com
 OMEN_SUPABASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)your-project.supabase.co
 OMEN_SUPABASE_ANON_KEY = your-public-anon-key
+
+// O6 crash reporting. Copy the DSN from the Sentry "iOS" project under the
+// `valor-ventures-llc` org (Settings → Projects → iOS → Client Keys (DSN)).
+// Blank disables the handler entirely — the same blank-is-off contract Android
+// (`omen.androidSentryDsn`) and the backend (`SENTRY_DSN`) use.
+// This file is git-ignored; the DSN never belongs in Base.xcconfig.
+OMEN_IOS_SENTRY_DSN =

@@ -7,6 +7,11 @@ struct OmenIOSApp: App {
 
     init() {
         let environment = AppEnvironment.fromBundle
+
+        // O6 — installed first, before any other setup can throw, so a failure during startup
+        // is still reported. Blank DSN makes this a no-op, matching Android and the backend.
+        CrashReporting.install(dsn: environment.sentryDsn)
+
         let sessionStore: SecureSessionStore = KeychainSessionStore()
         let manager = SessionManager(store: sessionStore)
         _sessionManager = StateObject(wrappedValue: manager)
