@@ -19,6 +19,12 @@ OMEN_API_BASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)example.invalid
 OMEN_SUPABASE_URL =
 OMEN_SUPABASE_ANON_KEY =
 
+// O6 iOS crash reporting. Blank disables the handler entirely (init becomes a no-op),
+// matching Android's `omen.androidSentryDsn` and the backend's blank-SENTRY_DSN behavior.
+// A DSN is a public client key, not a secret — but it stays out of git anyway so a fork
+// cannot post noise into our project. Set it in the git-ignored Local.xcconfig.
+OMEN_IOS_SENTRY_DSN =
+
 // O7 forced-update gate destination. Blank until the App Store listing is live —
 // the gate still blocks correctly with it unset, the button just has nowhere to go,
 // so don't raise MIN_APP_VERSION_IOS before this is filled in.

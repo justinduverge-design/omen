@@ -11,6 +11,11 @@ struct AppEnvironment: Equatable {
     let demoModeEnabled: Bool
     let supabaseURL: URL?
     let supabaseAnonKey: String?
+    /// O6 crash reporting. Empty disables the handler entirely — the same blank-is-off
+    /// contract Android and the backend use, so an unconfigured build reports nothing rather
+    /// than failing at launch.
+    let sentryDsn: String
+
     /// O7 forced-update gate. Nil until the App Store listing is live — set via
     /// `OMEN_IOS_APP_STORE_URL` once R3/R4 close, matching `MIN_APP_VERSION_IOS` on the
     /// backend: don't raise the minimum before there's somewhere to send the user.
@@ -35,6 +40,9 @@ struct AppEnvironment: Equatable {
         let anonKey = (info["OMEN_SUPABASE_ANON_KEY"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let supabaseAnonKey = anonKey.flatMap { $0.isEmpty ? nil : $0 }
 
+        let sentryDsn = ((info["OMEN_IOS_SENTRY_DSN"] as? String) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
         let appStoreURLString = (info["OMEN_IOS_APP_STORE_URL"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let appStoreURL = appStoreURLString.flatMap { $0.isEmpty ? nil : URL(string: $0) }
 
@@ -43,6 +51,7 @@ struct AppEnvironment: Equatable {
             demoModeEnabled: true,
             supabaseURL: supabaseURL,
             supabaseAnonKey: supabaseAnonKey,
+            sentryDsn: sentryDsn,
             appStoreURL: appStoreURL
         )
     }()
