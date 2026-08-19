@@ -278,3 +278,18 @@ Two items, merged together as PR [#315](https://github.com/justinduverge-design/
 **Rendering and reviewing both caught defects that a green suite could not.** Rendering the screen exposed `ForcedUpdateView` drawing the system default background instead of `OmenColor.bg` — invisible to 276 passing tests, iOS-only because Android already hosted it inside a themed `Surface`. The review gate then found three more: Android's fail-open was narrower than iOS's *on a launch crash path*; a suffixed version like `1.0.0-rc1` could never be blocked because unparseable fails open; and the iOS update button was a silent no-op in exactly the configuration that ships today. All four fixed, each with a test that fails without the fix.
 
 **Two findings deliberately carried forward rather than absorbed:** the app-wide Android light-mode status bar is washed out (pre-existing, confirmed against the shipped Command Center), and `AppShellView.init` reads the bundle environment rather than the injected one (latent, no current misbehavior).
+
+---
+
+## Founder-gate clearing — 2026-08-19
+
+Two items closed the same day, both surfaced by the staleness sweep rather than by anyone noticing. Neither needed new implementation.
+
+| Task key | Title | Closure date | Exact evidence |
+| :--- | :--- | :--- | :--- |
+| R3-BUILD-iOS | Establish an iOS build-and-signing path | 2026-08-19 | Every clause but `cost recorded` was evidenced 2026-08-18 (signed build on TestFlight, Version 0.1.0 Build 1, confirmed in App Store Connect). The founder supplied the cost 2026-08-19: **a MacBook Neo at $699**, not the Mac mini the item's Options list assumed. Hardware read from the machine rather than taken from the verbal report — `MacBook Neo`, `Mac17,5`, Apple A18 Pro, 8 GB, macOS 26.5.1 (`25F80`), Xcode 26.6 (`17F113`). Recorded as the actual rather than mapped onto the nearest bullet. |
+| M4-Auth-Providers-v1 | Discord OAuth (iOS passkeys promoted separately) | 2026-08-19 | Implementation landed in PR [#198](https://github.com/justinduverge-design/omen/pull/198); local verification passed 2026-08-13. **Only the recording step was ever missing.** All clauses re-verified against `main` 2026-08-19: provider-conditional rendering read at `OmenAuthFlow.kt:118` and `SignInView.swift:64`; callback exchange read on both platforms; scanner 1/1 each side; Android 22/22 + 43/43 + **connected 51/51** + `assembleDebug`; iOS `xcodebuild test` **234/234** on Xcode 26.6 (`17F113`). The live Discord round-trip evidence remains the 2026-08-13 founder-observed run — today's pass did not repeat it, and does not claim to. |
+
+**Both were found by `check-sprint-staleness.js`, not by a person.** `M4-Auth-Providers-v1` is the `S8` shape exactly: every PR it cited was merged, its own text said "verification only, not implementation", and it sat at `READY` for six days as available P1 work. The widened checker flags that class now.
+
+**The cost line is worth keeping honest.** `R3-BUILD-iOS` listed three options with estimates; the machine actually bought matches none of them on price and is a different form factor entirely. Writing "$699 MacBook Neo" rather than quietly ticking "Option 1: Mac mini (~$599 new M4)" is the difference between a record and a rationalisation — and the next hardware decision will be read off this line.
