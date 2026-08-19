@@ -11,6 +11,10 @@ struct AppEnvironment: Equatable {
     let demoModeEnabled: Bool
     let supabaseURL: URL?
     let supabaseAnonKey: String?
+    /// O7 forced-update gate. Nil until the App Store listing is live — set via
+    /// `OMEN_IOS_APP_STORE_URL` once R3/R4 close, matching `MIN_APP_VERSION_IOS` on the
+    /// backend: don't raise the minimum before there's somewhere to send the user.
+    let appStoreURL: URL?
 
     /// True only when both a Supabase URL and anon key are present, matching Android's
     /// `supabaseConfigured` flag. When false, the app falls back to `FakeAuthRepository` and
@@ -31,11 +35,15 @@ struct AppEnvironment: Equatable {
         let anonKey = (info["OMEN_SUPABASE_ANON_KEY"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let supabaseAnonKey = anonKey.flatMap { $0.isEmpty ? nil : $0 }
 
+        let appStoreURLString = (info["OMEN_IOS_APP_STORE_URL"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let appStoreURL = appStoreURLString.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+
         return AppEnvironment(
             apiBaseURL: apiBaseURL,
             demoModeEnabled: true,
             supabaseURL: supabaseURL,
-            supabaseAnonKey: supabaseAnonKey
+            supabaseAnonKey: supabaseAnonKey,
+            appStoreURL: appStoreURL
         )
     }()
 }

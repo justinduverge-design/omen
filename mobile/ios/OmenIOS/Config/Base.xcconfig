@@ -19,4 +19,9 @@ OMEN_API_BASE_URL = https:$(OMEN_SLASH)$(OMEN_SLASH)example.invalid
 OMEN_SUPABASE_URL =
 OMEN_SUPABASE_ANON_KEY =
 
+// O7 forced-update gate destination. Blank until the App Store listing is live —
+// the gate still blocks correctly with it unset, the button just has nowhere to go,
+// so don't raise MIN_APP_VERSION_IOS before this is filled in.
+OMEN_IOS_APP_STORE_URL =
+
 #include? "Local.xcconfig"

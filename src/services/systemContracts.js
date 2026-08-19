@@ -145,6 +145,71 @@ function configuredStatus(value) {
   return value ? "configured" : "not_configured";
 }
 
+const MIN_VERSION_CONTRACT = "system-min-version.v1";
+const SUPPORTED_PLATFORMS = ["ios", "android"];
+
+/**
+ * Reads the leading numeric core of a version string: `1.2.0`, `1.2`, `1`, and also
+ * `1.2.0-rc1` / `1.2.0+build7` / `1.2.0.4`, all of which reduce to `[1, 2, 0]`.
+ *
+ * A strict `^\d+(\.\d+){0,2}$` would reject every one of the suffixed forms, and an
+ * unparseable version fails open — so a beta build named `1.0.0-rc1` could never be
+ * blocked, silently defeating the only lever O7 exists to provide. A pre-release
+ * therefore compares equal to its release (`1.0.0-rc1` == `1.0.0`), which is the safe
+ * direction: to force those users off, raise the minimum past the release.
+ */
+function parseVersion(version) {
+  if (typeof version !== "string") return null;
+  const core = version.trim().match(/^(\d+(?:\.\d+)*)/);
+  if (!core) return null;
+  const parts = core[1].split(".").slice(0, 3).map(Number);
+  if (parts.some((part) => !Number.isSafeInteger(part))) return null;
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+/** Returns -1 if a<b, 0 if equal, 1 if a>b. Null on either side means "unknown". */
+function compareVersions(a, b) {
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+  }
+  return 0;
+}
+
+/**
+ * Server-driven minimum-version gate (O7). Fails open: any missing or
+ * unparseable input reports "ok" rather than blocking, because a client that
+ * cannot be evaluated must never be locked out by the evaluation itself.
+ */
+function getMinVersionStatus({ platform, version } = {}, config, now = new Date()) {
+  const base = {
+    contract_version: MIN_VERSION_CONTRACT,
+    generated_at: nowIso(now),
+    platform: platform || null,
+    client_version: version || null,
+  };
+
+  if (!SUPPORTED_PLATFORMS.includes(platform)) {
+    return { ...base, status: "ok", minimum_version: null, update_required: false };
+  }
+
+  const minimumVersion = config?.minAppVersion?.[platform] || null;
+  const minParsed = parseVersion(minimumVersion);
+  const clientParsed = parseVersion(version);
+
+  if (!minParsed || !clientParsed) {
+    return { ...base, status: "ok", minimum_version: minimumVersion, update_required: false };
+  }
+
+  const updateRequired = compareVersions(clientParsed, minParsed) < 0;
+  return {
+    ...base,
+    status: updateRequired ? "update_required" : "ok",
+    minimum_version: minimumVersion,
+    update_required: updateRequired,
+  };
+}
+
 function getPlatformStatus(config, now = new Date()) {
   const llmStatus = getLlmBridgeStatus();
 
@@ -234,4 +299,5 @@ module.exports = {
   getOmenOfTheWeekMock,
   getOmenLiveEmpty,
   getPlatformStatus,
+  getMinVersionStatus,
 };

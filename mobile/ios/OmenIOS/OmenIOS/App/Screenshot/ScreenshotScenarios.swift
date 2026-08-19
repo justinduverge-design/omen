@@ -68,6 +68,31 @@ enum ScreenshotScenarios {
             label: "Contextual help — Account",
             content: { AnyView(contextualHelp(.account)) }
         ),
+        // O7 forced-update gate. Captured directly rather than through the real gate:
+        // screenshot mode has no network, and the blocking composition is what needs
+        // proving. The version is a fixture, not a real minimum.
+        "forced-update.blocked": ScreenshotScenario(
+            label: "Forced update — build below minimum",
+            content: {
+                AnyView(
+                    ForcedUpdateView(
+                        minimumVersion: "1.2.0",
+                        // Fixture URL so the evidence and the accessibility audit cover the
+                        // button state. The real build ships this nil until the listing exists.
+                        storeURL: URL(string: "https://apps.apple.com/app/id0000000000"),
+                        onUpdate: {}
+                    )
+                )
+            }
+        ),
+        // The state that actually ships today: no App Store listing yet, so `storeURL` is nil
+        // and no button is drawn. Captured because it is the live configuration, not an edge case.
+        "forced-update.no-store-link": ScreenshotScenario(
+            label: "Forced update — below minimum, no store listing yet",
+            content: {
+                AnyView(ForcedUpdateView(minimumVersion: "1.2.0", storeURL: nil, onUpdate: {}))
+            }
+        ),
     ]
 
     private static func contextualHelp(_ destination: OmenHelpDestination) -> some View {

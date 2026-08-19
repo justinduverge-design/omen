@@ -229,6 +229,68 @@ test("GET /api/system/current-week returns public NFL week context", async () =>
   assert.ok(["regular", "postseason"].includes(res.body.season_type));
 });
 
+test("GET /api/system/min-version reports update_required below the minimum", async () => {
+  process.env.MIN_APP_VERSION_IOS = "1.2.0";
+  const app = buildApp();
+  const res = await request(app, "/api/system/min-version?platform=ios&version=1.1.9");
+  delete process.env.MIN_APP_VERSION_IOS;
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.contract_version, "system-min-version.v1");
+  assert.equal(res.body.status, "update_required");
+  assert.equal(res.body.update_required, true);
+  assert.equal(res.body.minimum_version, "1.2.0");
+});
+
+test("GET /api/system/min-version reports ok exactly at the minimum", async () => {
+  process.env.MIN_APP_VERSION_ANDROID = "1.2.0";
+  const app = buildApp();
+  const res = await request(app, "/api/system/min-version?platform=android&version=1.2.0");
+  delete process.env.MIN_APP_VERSION_ANDROID;
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "ok");
+  assert.equal(res.body.update_required, false);
+});
+
+test("GET /api/system/min-version fails open when the check itself is unavailable", async () => {
+  const app = buildApp();
+
+  const missingParams = await request(app, "/api/system/min-version");
+  assert.equal(missingParams.status, 200);
+  assert.equal(missingParams.body.status, "ok");
+  assert.equal(missingParams.body.update_required, false);
+
+  const badPlatform = await request(app, "/api/system/min-version?platform=web&version=1.0.0");
+  assert.equal(badPlatform.status, 200);
+  assert.equal(badPlatform.body.status, "ok");
+
+  const badVersion = await request(app, "/api/system/min-version?platform=ios&version=not-a-version");
+  assert.equal(badVersion.status, 200);
+  assert.equal(badVersion.body.status, "ok");
+  assert.equal(badVersion.body.update_required, false);
+});
+
+test("GET /api/system/min-version can still block a suffixed or four-part version", async () => {
+  // A strict dotted-integer parser reports these unparseable, and unparseable fails open —
+  // so a beta build named 1.0.0-rc1 could never be force-updated. Each of these must compare
+  // on its numeric core instead of silently passing.
+  process.env.MIN_APP_VERSION_ANDROID = "1.1.0";
+  const app = buildApp();
+
+  for (const version of ["1.0.0-rc1", "1.0.0+build7", "1.0.0.4"]) {
+    const res = await request(app, `/api/system/min-version?platform=android&version=${encodeURIComponent(version)}`);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.update_required, true, `${version} should be blocked below 1.1.0`);
+  }
+
+  // A pre-release compares equal to its release, so it is not blocked by its own version.
+  const atRelease = await request(app, "/api/system/min-version?platform=android&version=1.1.0-rc1");
+  assert.equal(atRelease.body.update_required, false);
+
+  delete process.env.MIN_APP_VERSION_ANDROID;
+});
+
 test("GET /api/omen-of-the-week is retired without auth", async () => {
   const app = buildApp();
   const res = await request(app, "/api/omen-of-the-week");
