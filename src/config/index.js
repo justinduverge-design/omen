@@ -98,6 +98,18 @@ const config = {
 
   // --- Anthropic ------------------------------------------------
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+
+  // --- Mobile minimum supported version (O7 forced-update gate) --
+  //
+  // Once a build is on a phone it stays there until the user updates.
+  // These are the only lever available to block a bad build after ship.
+  // Bumping them does NOT push an update — it only changes what
+  // GET /api/system/min-version reports. Raise deliberately and only
+  // once the corresponding store version is actually live.
+  minAppVersion: {
+    ios:     process.env.MIN_APP_VERSION_IOS || "0.1.0",
+    android: process.env.MIN_APP_VERSION_ANDROID || "0.1.0",
+  },
 };
 
 // Validate at boot - never let the process come up with required vars missing.

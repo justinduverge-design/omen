@@ -2,6 +2,26 @@
 
 Last updated: 2026-08-18
 
+## 📌 Pending pass — reconcile this file against GitHub (queued 2026-08-19)
+
+**Founder-requested, to run once `O7` is done and verified.** Every entry in this file is to be
+compared against GitHub — merged PRs, closed issues, and current `main` — and sorted into:
+
+1. **Already fixed** — the issue was resolved by later work and nobody came back to update this
+   file. Close it out with the PR/commit that did it.
+2. **Still open and known** — carry forward as-is.
+3. **Still open and buried** — real, unresolved, and invisible because it lives only here. These
+   are the ones to surface: mint a task, or raise a GitHub issue, so the queue can see them.
+
+**Why this is worth a dedicated pass.** This repo's recorded failure mode is not "work is wrong",
+it is "work is real but the record disagrees with `main`" — the `check-sprint-staleness.js` script
+exists because the sprint queue drifted that way eight-plus times. `known_issues.md` has never had
+the same reconciliation, has no equivalent script, and is the file most likely to hold a stale
+"OPEN" for something already fixed. **A fixed issue left marked open costs a future session real
+time; an open issue nobody can see costs a user.**
+
+Do not do this piecemeal while closing `O7` — it is its own pass with its own evidence.
+
 ## Security — Backend Sentry breadcrumbs do not scrub URLs (found 2026-08-17, OPEN)
 
 **Severity: low–moderate. Open.** The frontend equivalent is fixed (see below); this one is not.
@@ -51,6 +71,21 @@ added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a re
   scales and reflows correctly, because SwiftUI recomputes the metric-scaled font when the category
   changes. The `.dynamicType` category is therefore excluded from the M6 audit with that reasoning
   recorded at the exclusion site. Revisit if the locked font families ever land.
+
+## Native Accessibility / Appearance — Android light-mode status bar is washed out (found 2026-08-19, OPEN)
+
+Found while rendering O7's forced-update screen on the `medium_phone` emulator. In **light mode**
+the system status bar draws its clock and icons in **white on `#FAFAF9`**, which is very close to
+illegible. The app never sets the light-appearance status-bar flag for its edge-to-edge surface, so
+the icons stay in their dark-mode treatment regardless of theme.
+
+**This is app-wide and not specific to any one screen** — confirmed by rendering the already-shipped
+`command-center.disconnected` scenario in the same light mode and observing the identical washed-out
+bar. It was deliberately not fixed inside O7 (out of that item's scope), and it predates O7.
+
+Evidence: `Direction/reviews/evidence/2026-08-19-o7/android-forced-update-light.png` shows the gate
+screen; the Command Center comparison capture was taken in the same session. Worth its own item —
+it affects every light-mode screen on Android.
 
 ## Native Copy Risks
 

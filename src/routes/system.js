@@ -7,6 +7,7 @@ const packageJson = require("../../package.json");
 const {
   getHealthStatus,
   getPlatformStatus,
+  getMinVersionStatus,
 } = require("../services/systemContracts");
 const { getLlmBridgeStatus } = require("../services/llm");
 const { authenticateOmenRequest } = require("../services/omen");
@@ -113,6 +114,15 @@ router.get("/system/current-week", (_req, res) => {
     generated_at: new Date().toISOString(),
     ...getCurrentNflWeekContext(),
   });
+});
+
+router.get("/system/min-version", (req, res) => {
+  res.json(
+    getMinVersionStatus(
+      { platform: req.query.platform, version: req.query.version },
+      config
+    )
+  );
 });
 
 router.get("/platform-status", (_req, res) => {

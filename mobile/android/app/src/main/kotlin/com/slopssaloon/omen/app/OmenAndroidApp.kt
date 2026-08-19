@@ -1,5 +1,7 @@
 package com.slopssaloon.omen.app
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import com.slopssaloon.omen.BuildConfig
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
@@ -61,6 +64,10 @@ import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.OmenDecisionViewModel
+import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
+import com.slopssaloon.omen.app.feature.api.MinVersionGateClient
+import com.slopssaloon.omen.app.feature.api.UpdateGateState
+import com.slopssaloon.omen.app.feature.api.UpdateGateViewModel
 import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
@@ -158,7 +165,17 @@ fun OmenAndroidApp() {
     var showConnectSheet by remember { mutableStateOf(false) }
     val sessionState by sessionManager.state.collectAsState()
 
+    // O7 forced-update gate. Unauthenticated and independent of session restore — it must be
+    // able to block a bad build before the user ever signs in.
+    val updateGateViewModel = remember {
+        UpdateGateViewModel(
+            client = MinVersionGateClient(env.apiBaseUrl),
+            currentVersion = BuildConfig.VERSION_NAME,
+        )
+    }
+
     LaunchedEffect(Unit) { sessionManager.restore() }
+    LaunchedEffect(Unit) { updateGateViewModel.check() }
 
     var flow by remember { mutableStateOf<AuthFlowState>(AuthFlowState.Idle) }
     var email by remember { mutableStateOf("") }
@@ -269,7 +286,21 @@ fun OmenAndroidApp() {
 
     OmenTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = OmenTheme.color.bg) {
-            when (val s = sessionState) {
+            val gateState = updateGateViewModel.state
+            if (gateState is UpdateGateState.Blocked) {
+                ForcedUpdateScreen(
+                    minimumVersion = gateState.minimumVersion,
+                    onUpdate = {
+                        val storeUri = "https://play.google.com/store/apps/details?id=${context.packageName}"
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(storeUri))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                    },
+                )
+            } else when (val s = sessionState) {
                 SessionState.Loading -> OmenStateSurface(
                     kind = OmenStateSurfaceKind.Loading,
                     title = "Loading Omen",

@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.screenshot
 
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
+import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
@@ -103,6 +105,13 @@ object ScreenshotScenarios {
             label = "Contextual help — Account",
             render = { ContextualHelpBody(OmenHelpDestination.Account) },
         ),
+        // O7 forced-update gate. Rendered directly rather than through the real gate:
+        // screenshot mode has no network, and the blocking composition is what needs
+        // proving. The version is a fixture, not a real minimum.
+        "forced-update.blocked" to ScreenshotScenario(
+            label = "Forced update — build below minimum",
+            render = { ForcedUpdateBody() },
+        ),
     )
 
     fun isKnown(key: String?): Boolean = key != null && entries.containsKey(key)
@@ -113,6 +122,17 @@ object ScreenshotScenarios {
  * The real [OmenContextualHelpSheet] held open, so the captured evidence is the shipped
  * component rather than a screenshot-only restatement of its layout.
  */
+/**
+ * O7 gate screen on the brand background, matching how `OmenAndroidApp` hosts it inside a
+ * `Surface(color = OmenTheme.color.bg)`.
+ */
+@Composable
+private fun ForcedUpdateBody() {
+    Surface(modifier = Modifier.fillMaxSize(), color = OmenTheme.color.bg) {
+        ForcedUpdateScreen(minimumVersion = "1.2.0", onUpdate = {})
+    }
+}
+
 @Composable
 private fun ContextualHelpBody(destination: OmenHelpDestination) {
     Box(Modifier.fillMaxSize()) {

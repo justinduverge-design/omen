@@ -1,14 +1,40 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct AppShellView: View {
     @EnvironmentObject private var sessionManager: SessionManager
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.omenEnvironment) private var environment
+    @StateObject private var updateGate: UpdateGateViewModel
     @State private var showSignIn = false
+
+    init() {
+        // Reads `environment` fresh here rather than via `@Environment` — the gate client
+        // needs the base URL before the view's environment is fully wired for `init`.
+        _updateGate = StateObject(
+            wrappedValue: UpdateGateViewModel(
+                client: MinVersionGateClient(baseURL: AppEnvironment.fromBundle.apiBaseURL)
+            )
+        )
+    }
 
     var body: some View {
         Group {
-            switch sessionManager.state {
+            if case .blocked(let minimumVersion) = updateGate.state {
+                ForcedUpdateView(
+                    minimumVersion: minimumVersion,
+                    storeURL: environment.appStoreURL
+                ) {
+                    if let url = environment.appStoreURL {
+                        #if canImport(UIKit)
+                        UIApplication.shared.open(url)
+                        #endif
+                    }
+                }
+            } else {
+                switch sessionManager.state {
             case .loading:
                 OmenStateSurface(kind: .loading, title: "Loading Omen", message: "Checking your session.")
                     .padding(OmenSpacing.step24)
@@ -64,9 +90,11 @@ struct AppShellView: View {
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     )
                 )
+                }
             }
         }
         .task { sessionManager.restore() }
+        .task { await updateGate.check() }
         .sheet(
             isPresented: Binding(
                 get: { authViewModel.showsPasskeyPairingOffer },

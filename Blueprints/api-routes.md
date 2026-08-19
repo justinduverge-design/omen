@@ -15,6 +15,7 @@ This file is the quick backend reference for current canonical routes and known 
 | `GET` | `/api/version` | `system-version.v1` | Public deploy/build metadata. Safe fields only. |
 | `GET` | `/api/session` | `session.v1` | Public auth shell; returns authenticated user only when a valid bearer token is supplied. |
 | `GET` | `/api/system/current-week` | `system-current-week.v1` | Public NFL season/week context. |
+| `GET` | `/api/system/min-version` | `system-min-version.v1` | Public forced-update gate (O7). Query: `platform` (`ios`\|`android`), `version` (dotted, e.g. `1.2.0`). Returns `status` (`ok`\|`update_required`), `update_required`, `minimum_version`. **Always 200 and always fails open** — an unknown platform, unparseable version, or missing param reports `ok`, never `update_required`. |
 | `GET` | `/api/platform-status` | `platform-status.v1` | Public platform/config status; no private LLM URL. |
 | `GET` | `/api/demo` | `omen-demo.v1` | Public deterministic sample roster + Omen envelope. Always `mode: "demo"`; never live/mock fallback. |
 
