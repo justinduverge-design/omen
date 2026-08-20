@@ -2,8 +2,11 @@
 
 A release is done when CI is green, deploy succeeds, smoke tests pass, errors are monitored, and rollback steps are understood.
 
-> ⛔ **HARD-BLOCKED as of 2026-07-27 — GitHub Actions billing hold.**
-> Gate 4 requires the deploy workflow to return success, and no workflow can run until the allotment restores (~2026-08-01). **Do not record a Release Done closure during the hold.** Work merged to `main` is merged, not released — never describe it as live or deployed. See `definition-of-done.md` § Degraded verification.
+> ✅ **UNBLOCKED — corrected 2026-08-19.** This file carried a ⛔ HARD-BLOCKED banner citing a GitHub Actions billing hold. **That hold never existed** — it was retracted on 2026-08-01 (see `Direction/agent_inbox.md` § the retraction entry). Actions was executing the whole time; the red was real config bugs, since fixed. The banner outlived the retraction by 18 days and would have blocked a legitimate Release Done closure on a premise already known to be false. Found while writing the `O2` rollback runbook — a stale gate is only discovered by someone trying to pass it.
+>
+> **Still true, and not part of the retraction:** work merged to `main` is merged, **not released** — never describe it as live or deployed without gate 4 evidence.
+
+> **Rollback:** gates 11 and 16 point at `Blueprints/playbooks/rollback-runbook.md` (`O2`). Read it before a release, not during one. It records a real structural weakness — the pipeline publishes only `:main` and prunes the image it replaced — so "redeploy the previous tag" is not currently something you can do.
 
 ## Gates
 

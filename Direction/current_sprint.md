@@ -722,7 +722,14 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### O2 — Named rollback owner and tested rollback path
 
-- **Status:** READY
+- **Status:** IN_PROGRESS — **documentation half delivered 2026-08-19**; the named owner and the live exercise are founder actions.
+- **Claim:** Claude, 2026-08-19 — documentation half only. Released on delivery of the runbook.
+- **Delivered:** `Blueprints/playbooks/rollback-runbook.md` — the backend procedure that works *today*, the mobile answer, and the verification steps. Wired into `Blueprints/done/release-done.md` gates 11 and 16.
+- **⚠️ The finding this task existed to surface: the rollback lever is materially weaker than the plan assumed.** `deploy.yml` publishes **only** `ghcr.io/justinduverge-design/omen:main` — no immutable per-build tag — so `:main` is overwritten on every deploy and there is no previous tag to redeploy. Worse, the deploy step runs `docker image prune -f` immediately after `pull` + `up -d`, which removes the image just replaced, so there is no cached local fallback either. **The pipeline actively destroys the artifact you would roll back to.** What survives is the GHCR digest, so rollback by digest works — but nothing records digests, and reading them needs a `read:packages` token (a plain `gh` token returns 403, confirmed 2026-08-19). The fastest path in an incident therefore depends on a value nobody wrote down.
+- **Recommended fix, not applied — founder-gated.** Add `ghcr.io/justinduverge-design/omen:sha-${{ github.sha }}` to the tags list (one line per image), and either drop `docker image prune -f` from the deploy step or scope it to `--filter "until=168h"`. Deployment workflow changes are founder-gated per `known_issues.md` § Do Not Touch, so this ships as a recommendation with the exact diff attached. **Applying it turns an outage-time digest hunt into a one-line tag change.**
+- **Mobile answer recorded** as the `Done when:` requires: **no rollback exists.** Halting distribution stops new installs and does not remove or downgrade an installed app. `O7`'s forced-update gate is the mitigation, with its ordering constraint stated — store URLs first, minimum second, or a bad build becomes a total lockout.
+- **Remaining, both founder-only:** name the rollback owner (it must be a person — "who do I call at 2am"), and execute the path once against a non-critical deploy. The runbook's last section gives the exact six-step shape, and notes that the number worth timing is how long the digest lookup takes when you do not already know it.
+- **Also corrected while here:** `Blueprints/done/release-done.md` carried a ⛔ HARD-BLOCKED banner citing the GitHub Actions billing hold. That hold was retracted 2026-08-01 — it never existed — and the banner would have blocked a legitimate Release Done closure on a false premise for 18 days.
 - **Blocked by:** None
 - **Priority:** P0
 - **Cost:** small
