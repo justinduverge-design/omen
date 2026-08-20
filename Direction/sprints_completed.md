@@ -281,6 +281,16 @@ Two items, merged together as PR [#315](https://github.com/justinduverge-design/
 
 ---
 
+## S8 — the Dependabot queue was already empty — 2026-08-19
+
+| Task key | Title | Closure date | Exact evidence |
+| :--- | :--- | :--- | :--- |
+| S8 | Triage the standing Dependabot queue | 2026-08-19 | **The work was finished 2026-08-11; only the status never advanced.** Verified against GitHub 2026-08-19: **zero open Dependabot PRs.** All six named in the item resolved exactly as its own recorded verdicts prescribed — [#273](https://github.com/justinduverge-design/omen/pull/273), [#274](https://github.com/justinduverge-design/omen/pull/274), [#277](https://github.com/justinduverge-design/omen/pull/277), [#281](https://github.com/justinduverge-design/omen/pull/281), [#282](https://github.com/justinduverge-design/omen/pull/282) **merged**; [#280](https://github.com/justinduverge-design/omen/pull/280) **closed** (correctly — it carried `tailwindcss` 3→4 and `vite` 7→8, which would have broken the build) and now covered by an `ignore` rule so Dependabot stops reopening it. `.github/dependabot.yml` carries the ignore rules and the phantom-label defect is fixed. Every `Done when:` clause met: written verdicts for all six, #281 resolved by merge, each red diagnosed to its real cause (a single `nanoid` frontend dev-advisory on `main`, not the PRs), and the config amended rather than PRs manually closed. Closed in PR [#342](https://github.com/justinduverge-design/omen/pull/342). |
+
+**It was advertised as an available P1 pull for eight days, and was listed as a candidate in the re-derived queue on the morning it was found.** `check-sprint-staleness.js` was structurally blind to it: the script matched sprint keys against merged PR *titles*, and Dependabot titles are `build(deps): …` — they never carry a sprint key. An entire category of work was invisible to the one mechanism watching for exactly this drift.
+
+**That blindness is now closed.** The `sprint-cited-prs-resolved` checker added the same day flags any `READY`/`IN_PROGRESS` item whose every cited PR is resolved, which is the shape `S8` had all along. See `scripts/checks/README.md`.
+
 ## Founder-gate clearing — 2026-08-19
 
 Two items closed the same day, both surfaced by the staleness sweep rather than by anyone noticing. Neither needed new implementation.
