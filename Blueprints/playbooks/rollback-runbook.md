@@ -8,10 +8,10 @@ What to do when a deploy makes production worse. Written before it is needed, wh
 
 | Role | Who | Notes |
 | :--- | :--- | :--- |
-| Rollback owner | **UNASSIGNED — founder to name** | `A4`'s `Done when:` already requires this. It must be a person, not a team or a role: at 2am the question is "who do I call", and "ops" is not an answer. |
+| Rollback owner | **Justin Duverge** (named 2026-08-19) | `A4`'s `Done when:` required this. It is a person, not a role: at 2am the question is "who do I call", and "ops" is not an answer. |
 | Who may execute | Founder only | Rolling back production is an action-level approval per the kickoff safety gates. General task approval never covers it. |
 
-**This runbook is not usable until the owner line is filled in.** Everything below is mechanically correct and still fails if nobody knows they are on the hook.
+**Single point of failure, stated plainly:** the owner and the only person who may execute are the same person. There is no second pair of hands. That is a real constraint on a solo product, not a defect to fix on paper — but it means the runbook has to stay readable by someone who did not write it, in case that day comes.
 
 ---
 
