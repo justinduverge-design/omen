@@ -15,37 +15,30 @@ What to do when a deploy makes production worse. Written before it is needed, wh
 
 ---
 
-## Read this before you need it: the rollback lever is weaker than it looks
+## The rollback lever — read this before you need it
 
-The deploy pipeline publishes **one tag per image** and then deletes the local copy of what it replaced.
+> **Read the status box first:** the two-tag scheme below is **approved and prepared but not yet on `main`** — see "Status of the fix" further down. **If you are rolling back right now and the patch has not landed, use the digest fallback in step 3, not the tag path.** This section describes where the pipeline is going, and the paragraph after it describes where it still is.
 
-`.github/workflows/deploy.yml` pushes:
+Once landed, every deploy publishes **two** tags per image:
 
 ```
 ghcr.io/justinduverge-design/omen:main
-ghcr.io/justinduverge-design/omen-cron:main
+ghcr.io/justinduverge-design/omen:sha-<full-commit-sha>
 ```
 
-…and the KVM1 step runs, in this order:
+The `sha-` tag is immutable and readable straight off the commit history, so **rolling back becomes a tag change, not a digest hunt.** The prune step is time-scoped (`--filter "until=168h"`), so the previous week of images also survives on KVM1 as a local fallback.
 
-```bash
-docker compose -f docker-compose.prod.yml --project-name omen pull api cron
-docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron
-docker image prune -f          # <— removes the image you just replaced
-```
+### What it looks like today, and why that matters
 
-Two consequences, and they compound:
+**As of this writing the pipeline still publishes only** `:main`, overwritten on every deploy — so "redeploy the previous tag" named nothing. Worse, the deploy step ran a bare `docker image prune -f` immediately after `pull` + `up -d`, deleting the image it had just replaced. **The pipeline destroyed the only local artifact a rollback could have used, moments after creating the need for one.**
 
-1. **There is no previous tag to roll back to.** `:main` is overwritten on every deploy, so "redeploy the last good tag" has no last good tag to name.
-2. **The local fallback is actively destroyed.** Once the new `:main` is pulled, the previous image becomes untagged, and `docker image prune -f` removes it moments later. You cannot retag a cached copy, because there is no cached copy.
+Rollback by GHCR digest still worked, but nothing recorded digests and reading them needs a `read:packages` token — a plain `gh` token returns 403. The recovery path depended on a value nobody had written down, found mid-outage through a UI.
 
-What survives is the **digest** in GHCR — untagged manifests are retained — so rollback by digest works. But nothing in the pipeline records digests, and reading them needs a token with `read:packages` (a plain `gh` token returns `403`, confirmed 2026-08-19). So the fastest path in an incident depends on a value nobody wrote down.
-
-**Fix this before you need it — see [Make rollback cheap](#make-rollback-cheap) at the bottom.** It is one line per image.
+**Kept here permanently, even after the fix lands.** If someone later trims the tag list back to one entry "for cleanliness", this is the paragraph explaining what that costs.
 
 ---
 
-## Backend rollback — the procedure that works today
+## Backend rollback — the procedure
 
 Run everything on KVM1 from `/opt/omen/deploy/hostinger`.
 
@@ -62,40 +55,56 @@ docker logs omen_api 2>&1 | tail -50
 
 `/api/ready` separates dependency failure from app failure. **If `ready` reports Supabase unreachable, a rollback will not help** — the previous image talks to the same Supabase.
 
-### 2. Find the digest of the last known-good image
-
-Needs `read:packages`. In the GitHub UI: **Packages → omen → the version published before the bad deploy → copy its `sha256:` digest.** Or:
+### 2. Find the last known-good commit
 
 ```bash
-gh api "/user/packages/container/omen/versions?per_page=10" \
-  --jq '.[] | {created: .created_at, digest: .name, tags: .metadata.container.tags}'
+curl -fsS https://slopssaloon.com/api/version     # git_sha of what is live NOW
+git log --oneline -10 main                        # pick the commit before the bad one
 ```
 
-Match by `created_at` against the deploy run that broke things. **Write the digest into the incident notes as you go** — you will need it again for the roll-forward.
+The tag you want is `sha-<full-commit-sha>` — the **full** 40-character SHA, not the short form `git log` prints by default. Get it with `git rev-parse <short-sha>`.
 
 ### 3. Pin and restart
 
 ```bash
 cd /opt/omen/deploy/hostinger
-docker pull ghcr.io/justinduverge-design/omen@sha256:<DIGEST>
-docker tag ghcr.io/justinduverge-design/omen@sha256:<DIGEST> \
-           ghcr.io/justinduverge-design/omen:rollback
+GOOD=<full-40-char-sha>
+docker pull ghcr.io/justinduverge-design/omen:sha-$GOOD
 ```
 
-Then point the compose service at `:rollback` and bring it up:
+Point the compose service at that tag and bring it up:
 
 ```bash
-# edit docker-compose.prod.yml: image: ghcr.io/justinduverge-design/omen:rollback
+# edit docker-compose.prod.yml:
+#   image: ghcr.io/justinduverge-design/omen:sha-<GOOD>
 docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api
 ```
 
-**Do not run `docker image prune` during an incident.** It is in the deploy path for disk hygiene and has no place in a recovery.
+**Do not run `docker image prune` during an incident.** It belongs to the deploy path's disk hygiene and has no place in a recovery.
 
 If the cron worker is implicated, repeat for `omen-cron`. Cron is a scheduled worker with no HTTP surface — **stopping it outright is a valid holding action** and safer than a half-understood rollback:
 
 ```bash
 docker compose -f docker-compose.prod.yml --project-name omen stop cron
 ```
+
+<details open>
+<summary><strong>Rollback by digest</strong> — <strong>the live path until the tag patch lands</strong>, and the permanent fallback for builds pushed before it</summary>
+
+Needs a token with `read:packages`. A plain `gh` token returns `403` — confirmed 2026-08-19.
+
+```bash
+gh api "/user/packages/container/omen/versions?per_page=10" \
+  --jq '.[] | {created: .created_at, digest: .name, tags: .metadata.container.tags}'
+
+docker pull ghcr.io/justinduverge-design/omen@sha256:<DIGEST>
+docker tag ghcr.io/justinduverge-design/omen@sha256:<DIGEST> \
+           ghcr.io/justinduverge-design/omen:rollback
+```
+
+Then point compose at `:rollback`. Match the version by `created_at` against the deploy run that broke things, and **write the digest into the incident notes** — you will need it again for the roll-forward.
+
+</details>
 
 ### 4. Verify the rollback actually took
 
@@ -110,7 +119,7 @@ curl -fsS https://slopssaloon.com/api/version      # git_sha / image_tag of what
 
 ### 5. Roll forward, do not leave it pinned
 
-A `:rollback` tag pinned in compose means **the next deploy silently does nothing** — the workflow pulls `:main`, and the service is not pointing at `:main`. That is a worse failure than the original, because everything reports success.
+A `sha-…` or `:rollback` tag pinned in compose means **the next deploy silently does nothing** — the workflow pulls `:main`, and the service is not pointing at `:main`. That is a worse failure than the original, because everything reports success.
 
 Restore `image: ghcr.io/justinduverge-design/omen:main` in `docker-compose.prod.yml` as part of closing the incident, and record the pin *and* the unpin in `Direction/decision_log.md`.
 
@@ -138,21 +147,22 @@ Both minimums currently sit at `0.1.0`, equal to the shipped version, so the gat
 
 ---
 
-## Make rollback cheap
+## ⚠️ Status of the fix — approved, prepared, NOT yet on `main`
 
-**One line per image**, in `.github/workflows/deploy.yml`:
+The immutable-tag and prune changes described at the top are **written and approved but not landed.** Pushing `.github/workflows/**` needs the `workflow` OAuth scope, which the authoring session's token lacked.
 
-```yaml
-tags: |
-  ghcr.io/justinduverge-design/omen:main
-  ghcr.io/justinduverge-design/omen:sha-${{ github.sha }}     # <— add this
+**Until the patch lands, the `sha-` tags do not exist and the digest fallback below is the live procedure.** Read that section, not the tag one, if you need to roll back today.
+
+Apply it from a terminal with the scope:
+
+```bash
+git apply Direction/reviews/evidence/2026-08-19-o2/deploy-immutable-tags.patch
+git add .github/workflows/deploy.yml && git commit -m "feat(ops): publish immutable sha- image tags; time-scope the deploy prune"
 ```
 
-With an immutable per-build tag, steps 2 and 3 above collapse into one command against a name you can read off the commit history, instead of a digest hunt against a package registry during an outage.
+Three edits: `:sha-${{ github.sha }}` alongside `:main` for both images, and `docker image prune -f` scoped to `--filter "until=168h"`.
 
-**Not done here on purpose.** Deployment workflow changes are founder-gated (`Direction/known_issues.md` § Do Not Touch). This is a recommendation with the exact diff attached, not a pending change.
-
-Worth pairing with it: drop `docker image prune -f` from the deploy step, or scope it to `--filter "until=168h"`, so the previous image survives long enough to be a local fallback.
+**Once landed, delete this section** and stop treating the digest path as primary. **Do not undo the change without reading "What it looked like before" at the top of this file** — the one-tag pipeline reads tidier and silently removes your ability to roll back.
 
 ---
 
@@ -162,9 +172,11 @@ Worth pairing with it: drop `docker image prune -f` from the deploy step, or sco
 
 Suggested shape when the founder runs it:
 
-1. Note the current digest from `/api/version` and GHCR.
-2. Deploy a trivial, reversible change (a comment-only commit).
-3. Roll back to the noted digest using the steps above.
-4. Confirm via `/api/version` that the *previous* build is live.
-5. Roll forward, restore `:main` in compose, and record both in `Direction/decision_log.md`.
-6. Time each step. **The number that matters is how long step 2 takes when you do not already know the digest.**
+1. Note the live `git_sha` from `https://slopssaloon.com/api/version`. That is your known-good.
+2. Deploy a trivial, reversible change — a comment-only commit to `main`. Let the workflow finish.
+3. Roll back to the noted commit's `sha-` tag using the steps above.
+4. Confirm via `/api/version` that the **previous** build is live — not what you believe you deployed.
+5. Roll forward, restore `image: …omen:main` in `docker-compose.prod.yml`, and record both in `Direction/decision_log.md`.
+6. Time each step.
+
+**Step 5 is the one people skip, and it is the one that bites.** A pinned tag left in compose means the next deploy pulls `:main`, restarts a service that is not pointing at `:main`, and reports success — a silent no-op that looks exactly like a healthy deploy. Verify with `/api/version` after rolling forward, not just after rolling back.
