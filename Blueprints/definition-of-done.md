@@ -24,6 +24,8 @@ Run cross-cutting gates **in addition** to the primary type. A page change that 
 
 Every task also follows `playbooks/omen-company-baseline.md` and selects applicable skills from `playbooks/skill-activation-runbook.md`. The handoff must state skills invoked, conditional skills considered but not applicable, evidence, and any procedure gap. Append invoked/skipped-required skills to `playbooks/skill-usage-ledger.md` before closing.
 
+If a touched Markdown page declares `metadata_profile: valor-brain/v1`, run `node scripts/check-valor-brain.mjs`. An invalid opted-in page is not done; ordinary Markdown is outside this gate.
+
 ## Foundation: the AAA Framework
 
 From `Brand/brand-system.md` §11: every change must satisfy **Accuracy + Accessibility + Aesthetic Integrity. Two of three is a fail.** Each done-file marks which gates map to which A.
