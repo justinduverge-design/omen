@@ -35,7 +35,7 @@ test('summarizeTradeSnapshot leads with the move and keeps public-share labeling
   assert.equal(summary.netValueLabel, '+2.5');
   assert.equal(summary.confidenceLabel, 'Medium confidence');
   assert.equal(summary.riskLabel, 'Medium risk');
-  assert.equal(summary.dataLabel, 'Public snapshot');
+  assert.equal(summary.dataLabel, 'Input-based analysis');
   assert.match(summary.description, /Receive Starter WR/);
   assert.match(summary.expiresLabel, /Expires Jul 25, 2026/);
 });

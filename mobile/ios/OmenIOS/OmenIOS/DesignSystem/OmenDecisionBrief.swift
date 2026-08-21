@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Registry §3.2 DecisionBrief shell state, per
 /// `Blueprints/specs/mobile/m1-p-p3-decision-brief-shell-brief-v1.md`. One enum for all 8
-/// required state surfaces so callers cannot mix a Success render with a Mock badge — the
+/// required state surfaces so callers cannot mix a Success render with a preview badge — the
 /// shell decides which surface renders.
 enum OmenDecisionBriefState {
     case success(OmenDecisionBriefPayload)
@@ -12,6 +12,7 @@ enum OmenDecisionBriefState {
     case disconnected(connect: (() -> Void)?)
     case stale(OmenDecisionBriefPayload, lastSynced: String)
     case mock(OmenDecisionBriefPayload)
+    case demo(OmenDecisionBriefPayload)
     case offSeason
 }
 
@@ -101,6 +102,13 @@ struct OmenDecisionBrief<Feedback: View>: View {
                     successBody(payload)
                 }
             }
+        case let .demo(payload):
+            OmenCard(variant: .preview) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                    demoBanner
+                    successBody(payload)
+                }
+            }
         case let .empty(message):
             OmenStateSurface(
                 kind: .empty,
@@ -145,6 +153,15 @@ struct OmenDecisionBrief<Feedback: View>: View {
     }
 
     private var mockBanner: some View {
+        HStack(spacing: OmenSpacing.step8) {
+            OmenBadge(label: "Mock", tone: .mock)
+            Text("Fixture data — not live advice.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+        }
+    }
+
+    private var demoBanner: some View {
         HStack(spacing: OmenSpacing.step8) {
             OmenBadge(label: "Demo", tone: .mock)
             Text("Sample data — not live advice.")

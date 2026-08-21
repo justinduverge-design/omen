@@ -11,15 +11,17 @@ import Foundation
 struct OmenDecisionEnvelope: Decodable, Equatable {
     let contractVersion: String?
     let state: String
+    let mode: String?
     let recommendation: Recommendation?
     let recovery: Recovery?
     let explanation: Explanation?
     let confidence: Confidence?
     let warnings: [String]?
+    let signals: [String: Signal]?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
-        case state, recommendation, recovery, explanation, confidence, warnings
+        case state, mode, recommendation, recovery, explanation, confidence, warnings, signals
     }
 
     struct Recommendation: Decodable, Equatable {
@@ -84,6 +86,12 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
             case dataUsed = "data_used"
         }
     }
+
+    struct Signal: Decodable, Equatable {
+        let status: String?
+        let source: String?
+        let message: String?
+    }
 }
 
 // MARK: - Contract → screen state
@@ -108,7 +116,12 @@ extension OmenDecisionEnvelope {
             guard let payload = successPayload() else {
                 return .error(Self.unreadableMessage, retry: onRetry)
             }
-            return .success(payload)
+            switch mode {
+            case "live": return .success(payload)
+            case "mock": return .mock(payload)
+            case "demo": return .demo(payload)
+            default: return .error(Self.unverifiedModeMessage, retry: onRetry)
+            }
 
         case "empty":
             return .empty(explanation?.summary ?? "No move clears the recommendation threshold this week.")
@@ -133,6 +146,8 @@ extension OmenDecisionEnvelope {
 
     private static let unreadableMessage =
         "Omen sent something this version of the app couldn't read. Updating the app may fix it."
+    private static let unverifiedModeMessage =
+        "Omen could not verify whether this recommendation is live. Refresh or update before acting."
 
     private func successPayload() -> OmenDecisionBriefPayload? {
         guard let recommendation else { return nil }
@@ -152,12 +167,36 @@ extension OmenDecisionEnvelope {
             riskReasons: recommendation.risk?.reasons ?? [],
             explanation: Self.explanationLines(explanationBlock),
             metrics: Self.metrics(from: recommendation),
-            // Live data is labeled live. Demo never reaches this path — the view model
-            // short-circuits on `SessionManager.demoUserID` — so there is no way for a
-            // mock signal to be minted here (facts-of-record #7).
-            signals: [OmenSignalItem(label: "Live league data", source: .live)],
+            signals: Self.signalItems(signals),
             alternatives: Self.alternatives(from: recommendation)
         )
+    }
+
+    private static func signalItems(_ signals: [String: Signal]?) -> [OmenSignalItem] {
+        guard let signals else { return [] }
+        return signals.keys.sorted().compactMap { key in
+            guard let signal = signals[key] else { return nil }
+            return OmenSignalItem(
+                label: signalLabel(key),
+                source: signalSource(signal.status),
+                detail: signal.message ?? signal.source
+            )
+        }
+    }
+
+    private static func signalSource(_ status: String?) -> OmenSignalSource {
+        switch status {
+        case "live": return .live
+        case "stub": return .stub
+        case "mock", "demo": return .mock
+        default: return .unavailable
+        }
+    }
+
+    private static func signalLabel(_ key: String) -> String {
+        key.split(separator: "_")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
+            .joined(separator: " ")
     }
 
     private static func impactText(_ delta: ExpectedValueDelta) -> String? {

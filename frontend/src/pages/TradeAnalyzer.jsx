@@ -359,6 +359,9 @@ function ResultPanel({ result, onCreateShare, shareStatus, shareUrl, shareError,
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">
               Result
             </p>
+            <span className="rounded-full border border-[var(--color-data-stub)]/40 px-2.5 py-0.5 text-xs font-semibold text-[var(--color-text-secondary)]">
+              Input-based analysis · not connected league data
+            </span>
             {cultureTag && (
               <span
                 className="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest"

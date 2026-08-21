@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import MockBanner from '../components/ui/MockBanner.jsx';
+import { waiverDataMode } from '../lib/recommendationDataMode.js';
 import { ApiError, apiFetch } from '../lib/api.js';
 import { positionChipStyle } from '../lib/positionChip.js';
 import { supabase } from '../lib/supabase.js';
@@ -216,7 +217,8 @@ export default function WaiverWire() {
 
       {result ? (
         <div className="space-y-4">
-          {result.is_mock && <MockBanner message="Preview — mock data. Live waiver rankings connect to your roster when the season begins." />}
+          {waiverDataMode(result) === 'mock' && <MockBanner message="Preview — mock data. Live waiver rankings connect to your roster when the season begins." />}
+          {waiverDataMode(result) === 'unverified' && <MockBanner message="Data state unverified — these waiver picks are not confirmed live. Refresh before acting." />}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -225,7 +227,7 @@ export default function WaiverWire() {
               </p>
               {result.platform && (
                 <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-text-secondary)]">
-                  {PLATFORM_LABELS[result.platform] ?? result.platform}
+                  {waiverDataMode(result) === 'live' ? 'Live' : waiverDataMode(result) === 'mock' ? 'Mock' : 'Unverified'} · {PLATFORM_LABELS[result.platform] ?? result.platform}
                 </span>
               )}
             </div>

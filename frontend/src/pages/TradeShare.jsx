@@ -167,7 +167,7 @@ export default function TradeShare() {
         </div>
 
         <p className="mt-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm leading-6 text-[var(--color-text-secondary)]">
-          Public snapshot only. It does not include connected-platform context, ESPN cookies, tokens, or private league data.
+          Calculated from the player values entered when this snapshot was created. It is not connected league data and does not include ESPN cookies, tokens, or private league data.
         </p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">

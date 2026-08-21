@@ -38,6 +38,8 @@ class OmenDecisionTest {
             {
               "contract_version": "2026-05-18.omen-live.v1",
               "state": "success",
+              "mode": "live",
+              "signals": {"roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."}},
               "recommendation": {
                 "title": "Add Jaylen Wright for Kenneth Walker III",
                 "move": "Pick up Jaylen Wright to cover your RB slot.",
@@ -74,7 +76,7 @@ class OmenDecisionTest {
     fun negativeDeltaKeepsItsSignAndDirection() {
         val envelope = parse(
             """
-            {"state": "success", "recommendation": {
+            {"state": "success", "mode": "live", "recommendation": {
               "title": "Hold", "move": "Keep your current lineup.",
               "expected_value_delta": {"points": -1.5, "label": "small"}}}
             """.trimIndent(),
@@ -88,6 +90,52 @@ class OmenDecisionTest {
     @Test
     fun successWithNoRenderableRecommendationBecomesAnError() {
         assertTrue(parse("""{"state": "success"}""").briefState() is OmenDecisionBriefState.Error)
+    }
+
+    @Test
+    fun successModeMustBeExplicitAndControlsTheVisibleTruthState() {
+        val recommendation = """"recommendation": {"title": "Start A", "move": "Bench B"}"""
+
+        assertTrue(
+            "missing mode must not be inferred as live",
+            parse("""{"state": "success", $recommendation}""").briefState() is OmenDecisionBriefState.Error,
+        )
+        assertTrue(
+            parse("""{"state": "success", "mode": "mock", $recommendation}""").briefState()
+                is OmenDecisionBriefState.Mock,
+        )
+        assertTrue(
+            parse("""{"state": "success", "mode": "demo", $recommendation}""").briefState()
+                is OmenDecisionBriefState.Demo,
+        )
+        assertTrue(
+            parse("""{"state": "success", "mode": "future_mode", $recommendation}""").briefState()
+                is OmenDecisionBriefState.Error,
+        )
+    }
+
+    @Test
+    fun backendSignalStatusesArePreservedInsteadOfMintingLive() {
+        val state = parse(
+            """
+            {
+              "state": "success",
+              "mode": "live",
+              "signals": {
+                "roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."},
+                "matchup_dvp": {"status": "stub", "source": "baseline", "message": "Matchup model unavailable."},
+                "weather": {"status": "unavailable", "source": "weather", "message": "No weather feed."}
+              },
+              "recommendation": {"title": "Start A", "move": "Bench B"}
+            }
+            """.trimIndent(),
+        ).briefState() as OmenDecisionBriefState.Success
+
+        assertEquals(
+            listOf(OmenSignalSource.Stub, OmenSignalSource.Live, OmenSignalSource.Unavailable),
+            state.payload.signals.map { it.source },
+        )
+        assertEquals("Matchup Dvp", state.payload.signals.first().label)
     }
 
     @Test
@@ -162,7 +210,7 @@ class OmenDecisionTest {
         val payload = (
             parse(
                 """
-                {"state": "success", "recommendation": {
+                {"state": "success", "mode": "live", "recommendation": {
                   "title": "Start someone", "move": "Make the swap.",
                   "comparison_player": {"name": "Someone", "position": "FLEX", "team": "SEA"}}}
                 """.trimIndent(),
@@ -177,7 +225,7 @@ class OmenDecisionTest {
     fun unknownRiskLevelDefaultsToMediumNotLow() {
         val payload = (
             parse(
-                """{"state": "success", "recommendation": {
+                """{"state": "success", "mode": "live", "recommendation": {
                   "title": "T", "move": "M", "risk": {"level": "catastrophic", "reasons": []}}}""",
             ).briefState() as OmenDecisionBriefState.Success
             ).payload

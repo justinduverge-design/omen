@@ -51,6 +51,7 @@ final class OmenDecisionBriefTests: XCTestCase {
         XCTAssertEqual(shellBranchIdentity(.disconnected(connect: nil)), "disconnected")
         XCTAssertEqual(shellBranchIdentity(.stale(payload, lastSynced: "12m ago")), "stale")
         XCTAssertEqual(shellBranchIdentity(.mock(payload)), "mock")
+        XCTAssertEqual(shellBranchIdentity(.demo(payload)), "demo")
         XCTAssertEqual(shellBranchIdentity(.offSeason), "offSeason")
     }
 
@@ -64,6 +65,7 @@ final class OmenDecisionBriefTests: XCTestCase {
         _ = OmenDecisionBrief(state: .disconnected(connect: nil))
         _ = OmenDecisionBrief(state: .stale(payload, lastSynced: "12 minutes ago"))
         _ = OmenDecisionBrief(state: .mock(payload))
+        _ = OmenDecisionBrief(state: .demo(payload))
         _ = OmenDecisionBrief(state: .offSeason)
     }
 
@@ -100,6 +102,7 @@ final class OmenDecisionBriefTests: XCTestCase {
         case .disconnected: return "disconnected"
         case .stale: return "stale"
         case .mock: return "mock"
+        case .demo: return "demo"
         case .offSeason: return "offSeason"
         }
     }

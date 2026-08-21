@@ -208,7 +208,7 @@ struct OmenDecisionScreen: View {
 }
 
 enum OmenDecisionFixtures {
-    static let demo: OmenDecisionBriefState = .mock(OmenDecisionBriefPayload(
+    static let demo: OmenDecisionBriefState = .demo(OmenDecisionBriefPayload(
         verdict: "Start Christian McCaffrey", move: "Bench Ken Walker for the RB1 slot.",
         impact: "+4.1 projected over your bench.", confidence: 72, risk: .low,
         riskReasons: ["Full practice Friday."], explanation: ["The matchup and usage signals favor McCaffrey this week."],
