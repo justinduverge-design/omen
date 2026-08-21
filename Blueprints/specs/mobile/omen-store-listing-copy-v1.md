@@ -97,6 +97,8 @@ Omen is for people 13 and older.
 
 ---
 
+This application uses fantasy data provided by Yahoo Fantasy.
+
 Omen is not endorsed by or affiliated with Yahoo, Sleeper, ESPN, Disney, or the NFL. Platform trademarks belong to their respective owners.
 ```
 
@@ -136,8 +138,10 @@ in-season messaging.
 
 ### Description
 
-Reuse the Play full description above, minus the trailing attribution line
-(Apple handles trademark attribution separately). Apple does not render bullet
+Reuse the Play full description above, minus the trailing **trademark/non-affiliation**
+line (Apple handles trademark attribution separately). **Keep the Yahoo Fantasy
+attribution sentence** — that one is contractual, not a trademark courtesy, and
+Apple's separate handling does not discharge it. Apple does not render bullet
 characters distinctly, so the `•` lines still read fine as plain text.
 
 ### Keywords — 100 char limit, comma-separated, no spaces

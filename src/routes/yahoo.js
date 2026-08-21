@@ -191,7 +191,15 @@ router.get("/access-probe", requireAuth, async (req, res) => {
         await client.get(path);
         results[label] = "ok";
       } catch (e) {
-        results[label] = e.message;
+        // Surface Yahoo's own reason, not just the status. A bare 403 cannot
+        // distinguish "no Fantasy entitlement" from "your IP is blocked" from
+        // "rate limited", and those have entirely different remedies.
+        results[label] = {
+          message: e.message,
+          status: e.status ?? null,
+          wwwAuthenticate: e.wwwAuthenticate ?? null,
+          body: e.body ?? null,
+        };
       }
     }
     return res.json({ probes: results });

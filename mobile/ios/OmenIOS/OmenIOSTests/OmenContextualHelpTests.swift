@@ -131,4 +131,17 @@ final class OmenContextualHelpTests: XCTestCase {
         XCTAssertTrue(ScreenshotScenarios.isKnown("contextual-help.omen"))
         XCTAssertTrue(ScreenshotScenarios.isKnown("contextual-help.connect"))
     }
+
+    /// The Yahoo attribution wording is contractual. If someone "improves" this sentence, the
+    /// app stops satisfying the API Access and Use Agreement, so the exact string is pinned.
+    func testYahooAttributionSentenceIsTheContractualWording() {
+        XCTAssertEqual(omenYahooAttributionText, "Fantasy data provided by Yahoo Fantasy.")
+    }
+
+    /// Attribution must not claim Yahoo data while Yahoo is on hold and no Yahoo data can be
+    /// displayed. It is tied to the availability decision so it turns on with Yahoo, not before.
+    func testYahooAttributionIsHiddenWhileYahooIsOnHold() {
+        XCTAssertNotEqual(ConnectProvider.yahoo.availability, .available)
+        XCTAssertFalse(omenShowsYahooAttribution)
+    }
 }

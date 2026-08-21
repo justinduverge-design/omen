@@ -20,6 +20,8 @@ import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
+import com.slopssaloon.omen.app.feature.connect.ConnectAvailability
+import com.slopssaloon.omen.app.feature.connect.ConnectProvider
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /** Honest support states. These are supplied by the host; this screen never infers provider data. */
@@ -30,6 +32,31 @@ enum class OmenHelpSupportState {
     SubmissionUnavailable,
     ProviderRecovery,
 }
+
+/**
+ * Required Yahoo attribution sentence. Fixed wording - it is contractual, not editorial copy.
+ *
+ * The Yahoo API Access and Use Agreement (executed 2026-08-20, Docusign envelope
+ * A1D54813-9307-84ED-83EA-FC24FBE40785) requires clear attribution wherever Yahoo Fantasy
+ * Information is displayed, and for mobile applications specifically that it appear inside the
+ * app in an "About", "Legal", or similar informational section. Help + Support is that section
+ * on native; no separate Legal screen exists, and inventing one would need its own screen
+ * contract and Figma approval under the native delivery governance.
+ */
+const val OMEN_YAHOO_ATTRIBUTION_TEXT = "Fantasy data provided by Yahoo Fantasy."
+
+/**
+ * Whether the Yahoo attribution should render.
+ *
+ * Mirrors the web gate (`YAHOO_CONNECTIONS_ENABLED` in `frontend/src/lib/yahooAuth.js`): Omen
+ * currently displays no Yahoo Fantasy Information at all, because Yahoo has not granted the
+ * Fantasy Sports entitlement, so an unconditional line would state something untrue. Deriving it
+ * from `ConnectProvider.Yahoo.availability` means the attribution appears on the same recorded
+ * decision that makes Yahoo connectable again, instead of depending on someone remembering it at
+ * launch.
+ */
+fun omenShowsYahooAttribution(): Boolean =
+    ConnectProvider.Yahoo.availability is ConnectAvailability.Available
 
 /**
  * Approved M4 Help + Support surface. Feedback is intentionally not sent or queued until an
@@ -106,6 +133,16 @@ fun OmenHelpSupportScreen(
                 style = OmenTheme.typography.bodySmall.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
             )
+        }
+
+        if (omenShowsYahooAttribution()) {
+            OmenCard(modifier = Modifier.fillMaxWidth(), variant = OmenCardVariant.Outlined) {
+                Text(
+                    text = OMEN_YAHOO_ATTRIBUTION_TEXT,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+            }
         }
     }
 }
