@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:slops:valor-brain:page:v1",
+  "title": "Valor Brain page metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata_profile",
+    "page_id",
+    "page_type",
+    "layer",
+    "authority",
+    "owner",
+    "state",
+    "sources",
+    "relationships",
+    "freshness",
+    "snapshot"
+  ],
+  "properties": {
+    "metadata_profile": {
+      "const": "valor-brain/v1"
+    },
+    "page_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "page_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "layer": {
+      "enum": ["L0", "L1", "L2"]
+    },
+    "authority": {
+      "enum": ["CANONICAL", "COMPILED", "REVIEW_ONLY", "REFERENCE_ONLY"]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "task": {
+          "enum": ["READY", "IN_PROGRESS", "VERIFIED", "CLOSED"]
+        }
+      },
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "relationships": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requires", "enables", "checks_against"],
+      "properties": {
+        "requires": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "enables": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "checks_against": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewed_on", "triggers"],
+      "properties": {
+        "reviewed_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "triggers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$"
+        },
+        "compiled_by": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
