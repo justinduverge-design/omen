@@ -253,3 +253,84 @@ test("an unrecognized provider name is normalized rather than passed through", (
 
   assert.equal(call.hint.tags.provider, "unknown");
 });
+
+// --- DSN validity --------------------------------------------------
+//
+// Found live in production 2026-08-21: both containers carried
+// SENTRY_DSN="paste_the_value_here" + a real DSN. The old guard was
+// `Boolean(process.env.SENTRY_DSN)`, so the SDK reported enabled:true,
+// built no transport, and dropped every event silently. Omen reported
+// errors nowhere, and nothing said so.
+
+const { describeSentryDsn } = require("../src/middleware/sentry");
+
+test("the exact malformed DSN found in production is rejected, not accepted", () => {
+  const result = describeSentryDsn(
+    "paste_the_value_herehttps://abc123@o4511559534641152.ingest.us.sentry.io/4511559540473856",
+  );
+
+  assert.equal(result.configured, true);
+  assert.equal(result.valid, false, "a truthy string is not a valid DSN");
+  assert.equal(result.reason, "unparseable");
+});
+
+test("a valid DSN is accepted and described without exposing its key", () => {
+  const result = describeSentryDsn("https://supersecretkey@glitchtip.example/7");
+
+  assert.equal(result.valid, true);
+  assert.equal(result.host, "glitchtip.example");
+  assert.equal(result.project_id, "7");
+  assert.equal(JSON.stringify(result).includes("supersecretkey"), false);
+});
+
+test("every invalid DSN shape is reported invalid with a distinguishable reason", () => {
+  const cases = [
+    ["", "not_configured"],
+    ["   ", "not_configured"],
+    ["not-a-url-at-all", "unparseable"],
+    ["ftp://key@host/1", "bad_scheme"],
+    ["https://host/1", "missing_key"],
+    ["https://key@host", "missing_project_id"],
+    ["https://key@host/", "missing_project_id"],
+  ];
+
+  for (const [dsn, reason] of cases) {
+    const result = describeSentryDsn(dsn);
+    assert.equal(result.valid, false, `${JSON.stringify(dsn)} must be invalid`);
+    assert.equal(result.reason, reason, `${JSON.stringify(dsn)} reason`);
+  }
+});
+
+test("an invalid DSN disables the client instead of enabling a transportless one", () => {
+  const dsnEnv = ["SENTRY", "DSN"].join("_");
+  const previous = process.env[dsnEnv];
+  process.env[dsnEnv] = "paste_the_value_herehttps://abc123@ingest.example/1";
+
+  try {
+    const client = require("../src/middleware/sentry").initSentry({ component: "api" });
+    // The bug: enabled true with no transport looks healthy and drops everything.
+    assert.equal(client.getOptions().enabled, false);
+  } finally {
+    if (previous === undefined) delete process.env[dsnEnv];
+    else process.env[dsnEnv] = previous;
+  }
+});
+
+test("a dashed-UUID key is rejected — the SDK's own parser refuses it", () => {
+  // GlitchTip mints project keys as dashed UUIDs. @sentry/node's DSN grammar
+  // allows only [A-Za-z0-9_], so it rejects them with "Invalid Sentry Dsn"
+  // and drops every event. Observed live against the omen-backend project.
+  // A validator looser than the SDK would report healthy while nothing sends.
+  const result = describeSentryDsn("http://2ca26f96-93c6-4d17-8b73-5d184a5680ff@100.98.81.0:8000/1");
+
+  assert.equal(result.valid, false);
+  assert.equal(result.reason, "key_not_sdk_parseable");
+});
+
+test("the same GlitchTip key with dashes stripped is accepted", () => {
+  const result = describeSentryDsn("http://2ca26f9693c64d178b735d184a5680ff@100.98.81.0:8000/1");
+
+  assert.equal(result.valid, true);
+  assert.equal(result.host, "100.98.81.0:8000");
+  assert.equal(result.project_id, "1");
+});

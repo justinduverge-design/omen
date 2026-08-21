@@ -212,10 +212,91 @@ function scrubSentryBreadcrumb(crumb) {
   };
 }
 
+/**
+ * Describe the configured DSN without ever exposing its key.
+ *
+ * This exists because of a real, live production failure found 2026-08-21:
+ * both `omen_api` and `omen_cron` carried `SENTRY_DSN` set to the literal
+ * string `paste_the_value_here` with a real DSN glued onto the end. The
+ * old guard was `enabled: Boolean(process.env.SENTRY_DSN)` — a non-empty
+ * string, so the SDK reported `enabled: true`, built **no transport**, and
+ * dropped every event in silence. Omen reported errors nowhere at all,
+ * and nothing anywhere said so.
+ *
+ * That is the worst failure mode a monitoring tool has: a configuration
+ * mistake that looks exactly like "no errors happening". Truthiness is not
+ * validity, and a health check that only asks "is it set?" would have gone
+ * on passing this forever.
+ *
+ * Returns only host and project id — never the key, so this is safe to put
+ * in an API response and safe to log.
+ */
+function describeSentryDsn(rawDsn = process.env.SENTRY_DSN) {
+  const raw = typeof rawDsn === "string" ? rawDsn.trim() : "";
+
+  if (!raw) {
+    return { configured: false, valid: false, host: null, project_id: null, reason: "not_configured" };
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_error) {
+    // The production failure lands here: "paste_the_value_herehttps://…"
+    // has an underscore in its scheme, which is not a legal URL scheme, so
+    // it throws rather than parsing. It is still a perfectly truthy string,
+    // which is exactly why the old Boolean() guard waved it through.
+    return { configured: true, valid: false, host: null, project_id: null, reason: "unparseable" };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { configured: true, valid: false, host: null, project_id: null, reason: "bad_scheme" };
+  }
+
+  if (!parsed.username) {
+    return { configured: true, valid: false, host: parsed.host, project_id: null, reason: "missing_key" };
+  }
+
+  /**
+   * The SDK's own DSN grammar accepts only [A-Za-z0-9_] in the public key.
+   * This matters concretely: GlitchTip mints project keys as dashed UUIDs,
+   * and @sentry/node rejects those outright with "Invalid Sentry Dsn" — the
+   * dashes must be stripped. GlitchTip accepts the undashed form.
+   *
+   * Checked here because a validator looser than the SDK reintroduces the
+   * exact bug this function exists to prevent: /api/ready would report
+   * error tracking healthy while every event was being dropped.
+   */
+  if (!/^[A-Za-z0-9_]+$/.test(parsed.username)) {
+    return { configured: true, valid: false, host: parsed.host, project_id: null, reason: "key_not_sdk_parseable" };
+  }
+
+  const projectId = parsed.pathname.replace(/^\/+/, "");
+  if (!projectId) {
+    return { configured: true, valid: false, host: parsed.host, project_id: null, reason: "missing_project_id" };
+  }
+
+  return { configured: true, valid: true, host: parsed.host, project_id: projectId, reason: null };
+}
+
 function initSentry({ component }) {
+  const dsn = describeSentryDsn();
+
+  if (dsn.configured && !dsn.valid) {
+    // Boot-time, before the logger exists. Loud on purpose: the entire cost
+    // of this bug was that it made no noise.
+    console.error(
+      `[sentry] SENTRY_DSN is set but INVALID (${dsn.reason}) — error reporting is DISABLED. `
+      + "No errors will be reported by this process until it is corrected. "
+      + "Check GET /api/ready -> checks.error_tracking.",
+    );
+  }
+
   Sentry.init({
-    dsn: process.env.SENTRY_DSN || "",
-    enabled: Boolean(process.env.SENTRY_DSN),
+    dsn: dsn.valid ? process.env.SENTRY_DSN.trim() : "",
+    // Validity, not truthiness. A malformed DSN must report as disabled
+    // rather than as an enabled client that quietly drops everything.
+    enabled: dsn.valid,
     environment: process.env.NODE_ENV || "development",
     release: process.env.GITHUB_SHA || process.env.COMMIT_SHA || undefined,
     serverName: `omen-${component}`,
@@ -245,6 +326,7 @@ function drainSentry(timeoutMs = 2000) {
 
 module.exports = {
   DEMO_MODE_TAG,
+  describeSentryDsn,
   drainSentry,
   DEMO_MODE_TAG_VALUE,
   flushSentry,

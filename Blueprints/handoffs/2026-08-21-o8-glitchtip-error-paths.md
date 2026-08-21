@@ -1,6 +1,8 @@
 # Handoff — 2026-08-21 — O8: wire GlitchTip into Omen's actual error paths
 
-**Status: `O8` is `IN_PROGRESS`, not closed.** Implementation and tests are complete. Two founder-gated items remain, and one of them is a question that may be more important than the task itself — see "The DSN question" below. Read that section before treating O8 as nearly done.
+**Status: `O8` is `VERIFIED`.** All three `Done when:` clauses are met, including live delivery into GlitchTip — a real provoked ESPN failure is sitting in the `omen-backend` project as issue 2 with a full stack trace and zero credential leaks.
+
+**But production is still not sending, for a reason nobody suspected.** The pass found that KVM1's `SENTRY_DSN` is the literal placeholder `paste_the_value_here` with a real DSN glued onto the end, in both containers — so `@sentry/node` built no transport and **dropped every event in silence** while reporting itself enabled. Omen has been reporting errors nowhere at all. Tracked as [#354](https://github.com/justinduverge-design/omen/issues/354), P0, founder-gated. Read "The DSN question, answered" below.
 
 ## The premise the task was written on was false
 
@@ -78,25 +80,62 @@ This gap predates O8 and was live for every event the scrubber has ever processe
 - **`node scripts/check-sprint-staleness.js`** — 2 findings, both pre-existing (`F9` and one other), neither related to O8.
 - **No dependency added; no production change made.** Both were on this item's `Do not touch` list.
 
-## The DSN question — read this before continuing O8
+## The DSN question, answered — and the answer was worse than the hypothesis
 
-**The only Sentry DSN on the founder's machine points at sentry.io, not GlitchTip:** `VITE_SENTRY_DSN` → `o4511928445960192.ingest.us.sentry.io`.
+The first pass left an open question: *does production's `SENTRY_DSN` point at GlitchTip, or at sentry.io?* Read directly from both running containers on KVM1 over Tailscale, the answer is **neither**:
 
-`initSentry()` reads `process.env.SENTRY_DSN`. **Nobody has confirmed what the deployed value is.** If production's `SENTRY_DSN` also points at sentry.io, then:
+```
+paste_the_value_herehttps://<key>@o4511559534641152.ingest.us.sentry.io/4511559540473856
+```
 
-- `O1b`'s GlitchTip instance has been receiving **nothing from Omen** since it was deployed, and
-- everything O8 just built reports into the wrong tool.
+115 characters, byte-identical in `omen_api` and `omen_cron`. **The placeholder was never removed.**
 
-`O1b`'s done-when was satisfied by POSTing a synthetic event directly to GlitchTip's ingest endpoint from a terminal. **That proves GlitchTip accepts events. It does not prove Omen is configured to send to it** — and no evidence in this repo closes that gap in either direction. This is the same shape of error as O8's own false premise: a capability was proven at one end and assumed across the middle.
+`paste_the_value_herehttps:` is not a legal URL scheme — the underscore is illegal — so `new URL()` throws and `@sentry/node` builds **no transport**. The guard was `enabled: Boolean(process.env.SENTRY_DSN)`, and a placeholder-prefixed string is perfectly truthy, so the SDK reported `enabled: true` and dropped everything in silence. Reproduced locally against the exact production string: `enabled: true`, `transport: false`, envelopes received **0**.
 
-**This is worth answering before anything else in the error-tracking lane**, including `O9` (routing GlitchTip issues to Discord), which is built on the same unverified assumption.
+**Omen has been reporting errors nowhere.** Not GlitchTip, not sentry.io.
 
-## Remaining, both founder-gated
+This is the worst failure mode a monitoring tool has, because **a config mistake here is indistinguishable from "no errors are happening."** Every "is the variable set?" health check passes forever. It was invisible precisely because it produced the output everyone wants to see.
 
-1. **Confirm the deployed `SENTRY_DSN` target** (above). May split off a task of its own.
-2. **The live delivery proof** — confirming an event lands *in GlitchTip* needs a GlitchTip DSN, which is a secret and therefore a founder action. GlitchTip itself is reachable: `http://100.98.81.0:8000/` → 200 over Tailscale.
+Tracked as [#354](https://github.com/justinduverge-design/omen/issues/354). Fixing it is a secrets + production-restart action, so it is founder-gated.
 
-Everything short of delivery is proven: capture fires on real failures, the payload is safe, and the SDK transmits it.
+### Three guards shipped so this cannot recur silently
+
+1. **`describeSentryDsn()` validates instead of testing truthiness.** A set-but-invalid DSN now disables the client honestly and logs loudly at boot — loud on purpose, since the entire cost of this bug was that it made no noise.
+2. **The validator matches the SDK's own key grammar** (`[A-Za-z0-9_]+`). A validator looser than the thing it validates reintroduces the exact bug in a new place. Found the hard way, and worth the embarrassment: my first live attempt used GlitchTip's dashed-UUID key, my validator passed it as valid, and `@sentry/node` rejected it with `Invalid Sentry Dsn`. `/api/ready` would have reported error tracking healthy while every event dropped.
+3. **`GET /api/ready` → `checks.error_tracking`** surfaces `{configured, valid, host, project_id, reason}` — host and project id only, never the key. **Reported, not gating:** readiness is about serving traffic, and refusing to serve because monitoring is misconfigured would turn a reporting outage into a user-facing one.
+
+### GlitchTip keys need their dashes stripped — not written down anywhere until now
+
+GlitchTip mints project keys as dashed UUIDs. `@sentry/node`'s DSN grammar accepts only `[A-Za-z0-9_]` and rejects them outright. **Strip the dashes**; GlitchTip accepts the undashed form. `O1b`'s handoff does not mention this, and it would have cost the next session the same hour it cost this one.
+
+## Live delivery proof — O8's last `Done when:` clause
+
+Run from this machine against the real GlitchTip over Tailscale, using the real `omen-backend` project key:
+
+A **real** provoked ESPN adapter failure — live GET to `lm-api-reads.fantasy.espn.com` for a nonexistent league, answered HTTP 404, raised inside `doEspnRequest()` — arrived in GlitchTip and was verified by querying its Postgres directly, not by trusting the ingest `200`:
+
+| Check | Result |
+|---|---|
+| Issue | `2` — `Error: ESPN API returned HTTP 404` |
+| `first_seen` | `2026-08-21 21:37:47+00` (matches the flush) |
+| Stack frames | **10** |
+| Tags recorded | `provider`, `omen_mode`, `provider_operation`, `provider_status` |
+| `extra` | provider, operation, http_status, path, hostname — all intact |
+| espn_s2 canary in stored payload | **absent** |
+| SWID canary in stored payload | **absent** |
+| any `espn_s2=` assignment | **absent** |
+
+The leak check was run against the **stored** event in GlitchTip's own database, searching for the exact credential values the adapter was handed. That is the difference between "we scrub" and "nothing leaked".
+
+## Remaining — founder-only, and it is [#354](https://github.com/justinduverge-design/omen/issues/354), not O8
+
+Set `SENTRY_DSN` on KVM1 for both `omen_api` and `omen_cron` to the GlitchTip `omen-backend` DSN **with the UUID dashes stripped**:
+
+```
+http://<omen-backend-key-without-dashes>@100.98.81.0:8000/1
+```
+
+Recreate both containers, then confirm `GET /api/ready` → `checks.error_tracking.valid: true`, `host: 100.98.81.0:8000`. Verify KVM1 can reach GlitchTip over Tailscale from inside the container before relying on it.
 
 ## Skills
 
