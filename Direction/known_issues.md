@@ -67,6 +67,29 @@ A `league_id` equal to its own platform is treated as unusable by design, so the
 
 **The lesson is the one this file keeps re-learning:** the value was called a bug from its appearance alone, without reading the code that writes it — the same error as diagnosing a 403 from its status code without reading the body. **Do not "fix" this sentinel.** Removing it would violate the NOT NULL constraint on every pre-bind Yahoo connection.
 
+### DISPROVEN — the "prior approval attached to a deleted app" theory is wrong
+
+**Measured 2026-08-21 by credential hash.** This file and `facts-of-record.md` #11 both state that the earlier Fantasy API approval "most likely attached to the **previous app, which was deleted** — deleting it destroyed the grant". **That was always an assumption, and it is now disproven.**
+
+`YAHOO_CLIENT_ID` was SHA-256 hashed in four places and compared against the client ids of all five apps in the developer console:
+
+| Source | SHA-256 | Resolves to |
+| --- | --- | --- |
+| Deployed (`omen_api` env, live) | `b1af77a2…4daa` | **`ZcZJXm8V`** |
+| `~/.env.production` on KVM1 (**mtime 2026-06-08**) | `b1af77a2…4daa` | **`ZcZJXm8V`** |
+| `~/.env.production.backup` on KVM1 (**mtime 2026-06-08**) | `b1af77a2…4daa` | **`ZcZJXm8V`** |
+| `/opt/omen/deploy/hostinger/.env.production` | `b1af77a2…4daa` | **`ZcZJXm8V`** |
+
+**All identical.** The June 8 files carry June 8 mtimes, so that is their content from the period the repo records Yahoo as working (Phase 2.17 shipped Yahoo `lastResult` on 2026-06-27; June real-account QA).
+
+**Therefore: `ZcZJXm8V` is the same app that was deployed when Yahoo worked, and it is the app being refused now.** Nothing was deleted out from under the grant. The 2026-08-13 credential update recorded in `current_sprint.md:836` was a re-copy of the same client id or a secret-only rotation — **not** a switch to a different app.
+
+**What this changes.** The situation is not "a new app needs a first-time approval". It is **an app that previously held working Fantasy API access and lost it.** That is a restore request, not an application, and it is the first explanation consistent with *every* fact — including the one that never fit: **two approvals producing no change.** If access is being revoked or lapsing at the app level, an approval that does not address the revocation would not help. *(That last inference is a hypothesis, flagged as such — the credential lineage above is measured; the mechanism behind the loss is not.)*
+
+**Evidence grading, deliberately kept separate.** The credential lineage is **measured** (hashes, four sources, exact match). "Yahoo worked in May/June" is **from this repo's own records**, not re-measured today. Both support the conclusion; they are not the same grade of proof, and collapsing them is how the last three wrong Yahoo entries got written.
+
+**Also corrected: the method recorded for identifying the deployed app does not reproduce.** `known_issues.md` states the deployed client id "was decoded (Yahoo embeds the App ID inside the client id as base64 `ai=<AppID>`)". Attempting that decode on the live value yields **no `ai=` field**. The conclusion `ZcZJXm8V` is right, but it was reached by a route that cannot be re-walked — **use the hash comparison above instead**, which is reproducible and never exposes the credential.
+
 ### The Yahoo developer account holds five apps, not two
 
 Prior entries in this file (and `facts-of-record.md` #11) describe **two** Yahoo apps. `developer.yahoo.com/apps/` actually lists **five**, all named "Omen — The Fantasy Football Library". Three were unknown to every document in this repo:
