@@ -1,6 +1,6 @@
 # Rollback runbook
 
-**valid-as-of:** 2026-08-19 · **Task:** `O2` · **Status:** documentation half complete; the live exercise and the named owner are founder actions still outstanding.
+**valid-as-of:** 2026-08-20 · **Task:** `O2` · **Status:** documentation and immutable-tag fix applied; the founder-only live exercise remains outstanding.
 
 What to do when a deploy makes production worse. Written before it is needed, which is the only time it can be written calmly.
 
@@ -17,9 +17,9 @@ What to do when a deploy makes production worse. Written before it is needed, wh
 
 ## The rollback lever — read this before you need it
 
-> **Read the status box first:** the two-tag scheme below is **approved and prepared but not yet on `main`** — see "Status of the fix" further down. **If you are rolling back right now and the patch has not landed, use the digest fallback in step 3, not the tag path.** This section describes where the pipeline is going, and the paragraph after it describes where it still is.
+> **Live path:** the two-tag scheme below landed in PR [#347](https://github.com/justinduverge-design/omen/pull/347) / `5cf3597` on 2026-08-20. Use the immutable SHA tag for current builds. Use the digest fallback in step 3 only for builds published before immutable tags existed.
 
-Once landed, every deploy publishes **two** tags per image:
+Every deploy now publishes **two** tags per image:
 
 ```
 ghcr.io/justinduverge-design/omen:main
@@ -28,9 +28,9 @@ ghcr.io/justinduverge-design/omen:sha-<full-commit-sha>
 
 The `sha-` tag is immutable and readable straight off the commit history, so **rolling back becomes a tag change, not a digest hunt.** The prune step is time-scoped (`--filter "until=168h"`), so the previous week of images also survives on KVM1 as a local fallback.
 
-### What it looks like today, and why that matters
+### What it looked like before, and why that still matters
 
-**As of this writing the pipeline still publishes only** `:main`, overwritten on every deploy — so "redeploy the previous tag" named nothing. Worse, the deploy step ran a bare `docker image prune -f` immediately after `pull` + `up -d`, deleting the image it had just replaced. **The pipeline destroyed the only local artifact a rollback could have used, moments after creating the need for one.**
+Before PR #347, the pipeline published only `:main`, overwritten on every deploy — so "redeploy the previous tag" named nothing. Worse, the deploy step ran a bare `docker image prune -f` immediately after `pull` + `up -d`, deleting the image it had just replaced. **The pipeline destroyed the only local artifact a rollback could have used, moments after creating the need for one.**
 
 Rollback by GHCR digest still worked, but nothing recorded digests and reading them needs a `read:packages` token — a plain `gh` token returns 403. The recovery path depended on a value nobody had written down, found mid-outage through a UI.
 
@@ -89,7 +89,7 @@ docker compose -f docker-compose.prod.yml --project-name omen stop cron
 ```
 
 <details open>
-<summary><strong>Rollback by digest</strong> — <strong>the live path until the tag patch lands</strong>, and the permanent fallback for builds pushed before it</summary>
+<summary><strong>Rollback by digest</strong> — the permanent fallback for builds published before immutable SHA tags existed</summary>
 
 Needs a token with `read:packages`. A plain `gh` token returns `403` — confirmed 2026-08-19.
 
@@ -144,25 +144,6 @@ Once a build is on a phone it stays there until the user updates. Apple and Goog
 **The ordering constraint is not optional.** Fill the store URLs first (`OMEN_IOS_APP_STORE_URL`; Android derives its Play URL from the package name), confirm they resolve, **then** raise the minimum. Reversed, every blocked user gets a correct prompt attached to a dead end, with no route through the app — you will have converted a bad build into a total lockout.
 
 Both minimums currently sit at `0.1.0`, equal to the shipped version, so the gate blocks nobody. That is deliberate: the lever has to already be in users' builds before it can ever help.
-
----
-
-## ⚠️ Status of the fix — approved, prepared, NOT yet on `main`
-
-The immutable-tag and prune changes described at the top are **written and approved but not landed.** Pushing `.github/workflows/**` needs the `workflow` OAuth scope, which the authoring session's token lacked.
-
-**Until the patch lands, the `sha-` tags do not exist and the digest fallback below is the live procedure.** Read that section, not the tag one, if you need to roll back today.
-
-Apply it from a terminal with the scope:
-
-```bash
-git apply Direction/reviews/evidence/2026-08-19-o2/deploy-immutable-tags.patch
-git add .github/workflows/deploy.yml && git commit -m "feat(ops): publish immutable sha- image tags; time-scope the deploy prune"
-```
-
-Three edits: `:sha-${{ github.sha }}` alongside `:main` for both images, and `docker image prune -f` scoped to `--filter "until=168h"`.
-
-**Once landed, delete this section** and stop treating the digest path as primary. **Do not undo the change without reading "What it looked like before" at the top of this file** — the one-tag pipeline reads tidier and silently removes your ability to roll back.
 
 ---
 
