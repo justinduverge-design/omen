@@ -51,7 +51,34 @@ class YahooClient {
       headers: { Authorization: `Bearer ${this.accessToken}` },
     });
     if (res.status === 401) throw new Error("yahoo_token_expired");
-    if (!res.ok) throw new Error(`Yahoo API error: ${res.status}`);
+    if (!res.ok) {
+      /**
+       * Attach Yahoo's own explanation to the error rather than discarding it.
+       *
+       * This line previously threw the bare status code, which is why eight
+       * days of Yahoo 403 diagnosis ran on three digits and no reason. Yahoo
+       * returns a JSON (sometimes HTML) body describing *which* 403 this is,
+       * and at least four distinct failures share the status: missing Fantasy
+       * entitlement, a blocked source IP, rate limiting, and a wrong-audience
+       * token. Those have completely different remedies, and the status code
+       * cannot tell them apart.
+       *
+       * The message prefix is unchanged so existing callers and tests that
+       * match on "Yahoo API error: <status>" keep working; the detail rides
+       * along on properties for diagnostics that want it.
+       */
+      let body = "";
+      try {
+        body = (await res.text()).slice(0, 2000);
+      } catch {
+        body = "<unreadable>";
+      }
+      const err = new Error(`Yahoo API error: ${res.status}`);
+      err.status = res.status;
+      err.body = body;
+      err.wwwAuthenticate = res.headers.get("www-authenticate") || null;
+      throw err;
+    }
     return res.json();
   }
 

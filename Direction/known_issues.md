@@ -1,6 +1,99 @@
 # Omen Known Issues
 
-Last updated: 2026-08-19
+Last updated: 2026-08-21
+
+## 📄 Yahoo agreement executed, entitlement still dark — 2026-08-21
+
+**The API Access and Use Agreement is signed by both parties.** Yahoo countersigned **2026-08-20** (Dipesh Raichura, Sr Dir Product Management); founder signed 2026-08-05; **effective date 2026-08-07**. Docusign envelope `A1D54813-9307-84ED-83EA-FC24FBE40785`. Developer: Valor Ventures LLC. Territory: **US and Canada**. API Access: **Read-Only**. Developer Application named as "Omen (https://slopssaloon.com/)".
+
+**The entitlement has not switched on.** `GET /api/yahoo/access-probe` run live twice on 2026-08-21 (~16:00 and ~16:15 ET) returned **403 on all four calls**, including `/game/nfl`:
+
+```json
+{"probes":{"user_games":"Yahoo API error: 403","nfl_games":"Yahoo API error: 403",
+           "nfl_leagues":"Yahoo API error: 403","public_game_meta":"Yahoo API error: 403"}}
+```
+
+**Do not read this as a new failure.** It is the same signature as 2026-08-13, one day after countersignature — consistent with ordinary provisioning lag between Docusign completion and API entitlement. Issue [#308](https://github.com/justinduverge-design/omen/issues/308) stays open and `facts-of-record.md` #11 stays as written: **access is still refused at the entitlement level**, and that entry does not change until a probe returns 200. Recording an approval ahead of a verified call is the exact error #11 was corrected for.
+
+**Two hypotheses were eliminated in the process, both worth not re-testing.**
+
+1. **The stored OAuth token is healthy.** The probe returned HTTP **200** with a probes body, not `500 "probe setup failed"`. That means `getAuthenticatedYahooClient()` succeeded, so `token_secret_id` and `token_expires_at` are both good. **The `P1-YahooReauth` token-level branch is not in play** — no reconnect is needed, and no `YAHOO_ENABLED` flip is needed to mint a token before probing. This is a clean read of the entitlement.
+2. **The blank Homepage URL on `ZcZJXm8V` was not the cause.** Found empty during this session and filled in by the founder mid-session; the probe was re-run immediately afterward and returned the identical four 403s. A 403 on `/game/nfl` — public metadata, no user scope, no redirect — cannot be caused by app profile metadata. Filling it in was still worthwhile as approval-queue hygiene, but it is **not** a lever on this.
+
+### CONFIRMED by Yahoo's own words — the 403 is an application authorization refusal
+
+**`src/services/yahoo.js:54` threw `new Error(\`Yahoo API error: ${res.status}\`)` and dropped the response body on the floor.** Every Yahoo 403 conclusion recorded in this file and in `facts-of-record.md` #11 — including "refused at the app-entitlement level", which is written as settled — rests on three digits and no reason from Yahoo.
+
+**At least four distinct failures return 403, with entirely different remedies:**
+
+1. Fantasy Sports entitlement not granted (the standing assumption)
+2. **Source IP blocked** — Yahoo blanket-403s datacenter/VPS ranges, and Omen deploys to Hostinger
+3. Rate limiting / abuse throttle
+4. Wrong-audience or malformed token
+
+**Hypothesis 2 fits the evidence better than hypothesis 1 in one specific respect:** it explains why *two* separate approvals produced no change. An IP block is indifferent to approval state. It equally explains the blanket failure of `/game/nfl`, which has been read as the signature of an entitlement gate but is just as consistent with a network-level block.
+
+**Baseline measured 2026-08-21 from a residential IP:** unauthenticated and bogus-token calls to `/fantasy/v2/game/nfl` both return **401**, not 403, with a readable JSON reason (`oauth_problem="unable_to_determine_oauth_type"` / `"token_rejected"`). So 401 is Yahoo's healthy-path credential rejection, and the server's 403-with-a-valid-token is categorically different.
+
+**Fixed here.** `get()` now attaches `status`, `body` (first 2000 chars), and `www-authenticate` to the thrown error, and `/api/yahoo/access-probe` returns all three per call. Message prefix unchanged, so existing callers and `test/yahooAuthRoute.test.js` are unaffected; full suite 575/575.
+
+### Both competing hypotheses were tested live on 2026-08-21. Result: entitlement CONFIRMED, IP block ELIMINATED.
+
+**1. Source IP is NOT blocked — eliminated with evidence.** Over Tailscale to `omen-prod` (`srv1737978`): egress IP is **`2.25.182.1`**, and an **unauthenticated** call to `/fantasy/v2/game/nfl` returns **401** with the ordinary `oauth_problem="unable_to_determine_oauth_type"` body — byte-identical to the same call from a residential IP. Yahoo answers this server normally. No datacenter-range block, no throttle.
+
+**2. Entitlement refusal CONFIRMED — Yahoo said it in words.** A read-only diagnostic inside the running `omen_api` container acquired a live token through the normal `getAuthenticatedYahooClient()` path and called `/game/nfl` directly:
+
+```json
+{"error": {"yahoo:uri": "/fantasy/v2/game/nfl?format=json",
+           "description": "This application is not authorized to perform this action.",
+           "detail": ""}}
+```
+
+**"This application is not authorized"** is application-scoped, not user-scoped and not network-scoped. This is the first time the diagnosis rests on Yahoo's own statement rather than on inference from a status code. The eight-day-old conclusion was correct; it simply had never been verified.
+
+**The token path is fully healthy — stop suspecting it.** The stored token had expired (`token_expires_at: 2026-08-14T03:04:56Z`); the proactive refresh fired automatically mid-call, minted a fresh token, and Yahoo refused *that*. So: valid client credentials, valid fresh token, clean IP, correct app (`ZcZJXm8V`), executed agreement — and still refused at the application layer. **No code change and no founder action can move this.** Only Yahoo flipping the entitlement will.
+
+### NOT A BUG — the Yahoo `league_id` of `"yahoo"` is a deliberate sentinel
+
+**Recorded because it was briefly logged here as a bug on 2026-08-21 and retracted the same session.** A production diagnostic showed the Yahoo `platform_connections` row carrying the literal string `"yahoo"` in `league_id`, which looks like corruption. It is not.
+
+`src/services/yahooAuth.js:69` writes it on purpose and says so inline: `league_id` is **NOT NULL**, so OAuth completion stores the platform name as a placeholder until a real league is bound. `hasUsableLeagueId()` in `src/services/omenReadiness.js:3-6` rejects exactly this shape:
+
+```js
+return Boolean(leagueId) && leagueId !== connection?.platform;
+```
+
+A `league_id` equal to its own platform is treated as unusable by design, so the row can never masquerade as ready. `GET /api/yahoo/leagues` + `POST /api/yahoo/league` bind the real dotted key (`449.l.123456`), and that route validates the id against the user's actual leagues before writing — it cannot persist a bad one.
+
+**The lesson is the one this file keeps re-learning:** the value was called a bug from its appearance alone, without reading the code that writes it — the same error as diagnosing a 403 from its status code without reading the body. **Do not "fix" this sentinel.** Removing it would violate the NOT NULL constraint on every pre-bind Yahoo connection.
+
+### The Yahoo developer account holds five apps, not two
+
+Prior entries in this file (and `facts-of-record.md` #11) describe **two** Yahoo apps. `developer.yahoo.com/apps/` actually lists **five**, all named "Omen — The Fantasy Football Library". Three were unknown to every document in this repo:
+
+| App ID | Redirect URI | Client type | Fantasy Sports permission offered? |
+| --- | --- | --- | --- |
+| **`ZcZJXm8V`** | `/api/yahoo/callback` — **deployed** | Confidential | **Yes** |
+| `zj1r5hHC` | `/api/yahoo/callback` | — | No |
+| `YHFdZulX` | `/api/yahoo/callback` | — | No |
+| `qLO3I0k0` | `/api/auth/yahoo/callback` | — | No |
+| `3GnEYhVE` | `/api/auth/yahoo/callback` | Public | No |
+
+**This resolves the "will Yahoo turn on the right app?" worry in the reassuring direction.** On the four non-deployed apps the Fantasy Sports permission block is **not rendered at all** — it is not merely left unchecked. Yahoo's own console surfaces that option only on `ZcZJXm8V`, which is both the app whose client id is deployed and the app re-applied for on 2026-08-13. There is only one app Yahoo can plausibly provision, and it is the correct one.
+
+**Do not delete the four unused apps.** Deleting an app is what destroyed the previous grant (see the 2026-08-13 entry below). Tidiness here costs more than it saves.
+
+**One unrelated thing worth untangling later, not now:** `3GnEYhVE` is a **Public Client** carrying **TW Auction Read/Write**. That is the only write-scoped permission anywhere in Omen's Yahoo footprint, on an app Omen does not use, while Omen's contract is read-only. Not a live risk (no credentials deployed for it) and not touchable while an approval is pending on a sibling app.
+
+### Yahoo attribution is contractually owed and was entirely absent
+
+The Attribution clause requires three placements. As of 2026-08-21 an audit found **none of the three present** — not partially, zero.
+
+- **Web footer — NOW ADDRESSED.** `frontend/src/components/layout/Footer.jsx` gained a `YahooAttribution` line ("Fantasy data provided by Yahoo Fantasy", hyperlinked to an official Yahoo Fantasy page). It renders **conditionally on `YAHOO_CONNECTIONS_ENABLED`**, because Omen currently displays no Yahoo data and an unconditional line would be a false statement on every page, sitting beside the non-affiliation line. It lights up on the same flag flip that re-enables Yahoo. Deliberately over-inclusive after that flip (all pages, not only Yahoo-bearing ones) — over-attributing is not a breach, under-attributing is.
+- **Store listing — NOW ADDRESSED in copy.** "This application uses fantasy data provided by Yahoo Fantasy." added to `Blueprints/specs/mobile/omen-store-listing-copy-v1.md`. Note the spec previously told Apple submitters to drop "the trailing attribution line"; that instruction meant the **trademark/non-affiliation** line and has been clarified, because the Yahoo sentence must survive into the App Store description. The existing non-affiliation disclaimer is a **different clause serving the opposite purpose** and does not discharge this one.
+- **Mobile in-app — NOW ADDRESSED.** The clause requires attribution inside the app, in an "About", "Legal", or similar informational section. There is no Legal or About screen in either native app, and **creating one would need its own screen contract and Figma approval** under `omen-native-delivery-governance-v1.md` §2-§4. **Help + Support is the existing "similar informational section"**, so the attribution was added there instead — `OmenHelpSupportView.swift` and `OmenHelpSupportScreen.kt` — using existing `OmenCard` / `bodySmall` / `textSecondary` tokens, no new components and no new screen. Gated on `ConnectProvider.yahoo.availability == .available`, the native mirror of the web's `YAHOO_CONNECTIONS_ENABLED`, so it turns on with Yahoo rather than claiming Yahoo data while Yahoo is on hold. The exact sentence is pinned by a test on both platforms — it is contractual wording, and "improving" it is a breach.
+
+---
 
 ## ✅ Reconciled against GitHub — 2026-08-19
 
