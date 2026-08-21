@@ -82,16 +82,24 @@ final class OmenDecisionTests: XCTestCase {
     func testSuccessModeMustBeExplicitAndControlsTheVisibleTruthState() throws {
         let recommendation = #""recommendation": {"title": "Start A", "move": "Bench B"}"#
 
-        guard case .error = try decode("""{"state": "success", \(recommendation)}""").briefState() else {
+        guard case .error = try decode("""
+        {"state": "success", \(recommendation)}
+        """).briefState() else {
             return XCTFail("missing mode must not be inferred as live")
         }
-        guard case .mock = try decode("""{"state": "success", "mode": "mock", \(recommendation)}""").briefState() else {
+        guard case .mock = try decode("""
+        {"state": "success", "mode": "mock", \(recommendation)}
+        """).briefState() else {
             return XCTFail("mock mode must render the labeled mock state")
         }
-        guard case .demo = try decode("""{"state": "success", "mode": "demo", \(recommendation)}""").briefState() else {
+        guard case .demo = try decode("""
+        {"state": "success", "mode": "demo", \(recommendation)}
+        """).briefState() else {
             return XCTFail("demo mode must render the labeled demo state")
         }
-        guard case .error = try decode("""{"state": "success", "mode": "future_mode", \(recommendation)}""").briefState() else {
+        guard case .error = try decode("""
+        {"state": "success", "mode": "future_mode", \(recommendation)}
+        """).briefState() else {
             return XCTFail("unknown mode must fail closed")
         }
     }
