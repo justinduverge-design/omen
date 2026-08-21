@@ -369,3 +369,21 @@ All three `Done when:` clauses were met on 2026-08-20 — every recommendation s
 
 **Why this needed a separate closing pass:** the work was finished and evidenced, and the item simply never advanced from `VERIFIED` to `CLOSED`. `check-sprint-staleness.js` flagged it for two days. **The status model's terminal step is a human act by design** — the checker can prove an item's PR merged but cannot judge whether every `Done when:` clause was met — so an item that is genuinely done still sits stale until someone reads it and decides. Re-checked rather than rubber-stamped: the inventory file was confirmed to exist, and the deferred items were confirmed to sit on other tasks.
 
+## O6 — native crash reporting, and the IP-address question that held it open — closed 2026-08-21
+
+**Closure: COMPLETED.** PRs [#332](https://github.com/justinduverge-design/omen/pull/332) (Android) and [#343](https://github.com/justinduverge-design/omen/pull/343) (iOS). Evidence: `Direction/reviews/2026-08-18-o6-android-crash-reporting.md`, `Blueprints/handoffs/2026-08-18-o6-android-crash-reporting.md`.
+
+Both halves were proven live on 2026-08-19: a deliberate Android crash (`adb shell am crash`) and a deliberate iOS `NSException` each reached their Sentry project — iOS in **~2 seconds against a 60-second requirement**, with symbolicated Swift frames, not bare addresses.
+
+**This item then sat at `VERIFIED` for two days on purpose, and the reason was a good one.** The dashboard showed the iOS issue with **Users: 1** and the Android issue with **Users: 0**, while neither payload emits a `user` field — so Sentry was attributing a user at ingestion, almost certainly by storing the client IP. An IP is personal data under GDPR, and the Android half's evidence had been written as "0 users (confirming no PII attached)" — a sentence that could not honestly be written for iOS. **Identical code, different per-project settings.** Holding the task open rather than closing on the strength of the payload-level proof was correct.
+
+**Resolved 2026-08-21:** the founder enabled **Prevent Storing of IP Addresses** on the Sentry iOS, Android and React projects.
+
+**Evidence boundary, recorded rather than blurred:** the setting is founder-confirmed in the dashboard; it was **not** re-proven by a fresh crash. "The toggle is on" and "no IP is stored on the next crash" are different claims, and only the first is evidenced. Folding the empirical re-check into `F10`'s real-device matrix is cheaper than minting a task for it.
+
+**Two findings from this task worth keeping.**
+
+**1. A silent truncation that would have shipped.** The first iOS DSN write truncated to `https:` in the built `Info.plist`, because xcconfig treats `//` as a comment — and `Base.xcconfig`'s own header already warned about exactly this. **The warning existed and was walked into anyway**, because the DSN was pasted as a plain value rather than treated as a URL. Any future `Local.xcconfig` URL needs the same `$(OMEN_SLASH)` indirection, and must be verified by extracting the key from the **built** `Info.plist`, never by reading the xcconfig.
+
+**2. iOS crash coverage is partial, and the record says so.** `NSSetUncaughtExceptionHandler` fires for Objective-C exceptions only. Pure Swift runtime traps — `fatalError()`, force-unwrapped nil, index out of range — raise `SIGTRAP`/`SIGILL` and never reach it. Catching those needs signal handlers with real async-signal-safety hazards, deliberately out of scope. Android has no equivalent gap. **The deliberate-crash proof therefore had to use an `NSException` for the claim to be honest about what it demonstrates** — which is a limit on the proof, not a defect in it.
+
