@@ -111,6 +111,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/justinduverge-design/omen:main
+            ghcr.io/justinduverge-design/omen:sha-${{ github.sha }}
           cache-from: type=gha,scope=omen-api
           cache-to: type=gha,mode=max,scope=omen-api
           build-args: |
@@ -128,6 +129,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/justinduverge-design/omen-cron:main
+            ghcr.io/justinduverge-design/omen-cron:sha-${{ github.sha }}
           cache-from: type=gha,scope=omen-cron
           cache-to: type=gha,mode=max,scope=omen-cron
 
@@ -155,8 +157,13 @@ jobs:
           docker compose -f docker-compose.prod.yml --project-name omen pull api cron
           echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)'
           docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron
-          echo '==> Cleaning up dangling images'
-          docker image prune -f
+          echo '==> Cleaning up dangling images older than 7 days'
+          # Time-scoped on purpose (O2). A bare `docker image prune -f` removed the image
+          # this deploy had just replaced — deleting the only local artifact a rollback
+          # could have used, moments after creating the need for one. 168h keeps a week of
+          # previous builds on disk as a fallback while still bounding growth.
+          docker image prune -f --filter "until=168h"
+
 
       - name: Smoke test /api/health (retries up to 60s)
         run: |
