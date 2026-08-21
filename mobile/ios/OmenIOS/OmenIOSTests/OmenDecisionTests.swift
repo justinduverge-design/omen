@@ -23,6 +23,8 @@ final class OmenDecisionTests: XCTestCase {
         {
           "contract_version": "2026-05-18.omen-live.v1",
           "state": "success",
+          "mode": "live",
+          "signals": {"roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."}},
           "recommendation": {
             "type": "waiver_pickup",
             "title": "Add Jaylen Wright for Kenneth Walker III",
@@ -58,7 +60,7 @@ final class OmenDecisionTests: XCTestCase {
 
     func testNegativeDeltaKeepsItsSignAndDirection() throws {
         let envelope = try decode("""
-        {"state": "success", "recommendation": {
+        {"state": "success", "mode": "live", "recommendation": {
           "title": "Hold", "move": "Keep your current lineup.",
           "expected_value_delta": {"points": -1.5, "label": "small"}}}
         """)
@@ -75,6 +77,50 @@ final class OmenDecisionTests: XCTestCase {
         guard case .error = envelope.briefState() else {
             return XCTFail("a success with no recommendation must not render as success")
         }
+    }
+
+    func testSuccessModeMustBeExplicitAndControlsTheVisibleTruthState() throws {
+        let recommendation = #""recommendation": {"title": "Start A", "move": "Bench B"}"#
+
+        guard case .error = try decode("""
+        {"state": "success", \(recommendation)}
+        """).briefState() else {
+            return XCTFail("missing mode must not be inferred as live")
+        }
+        guard case .mock = try decode("""
+        {"state": "success", "mode": "mock", \(recommendation)}
+        """).briefState() else {
+            return XCTFail("mock mode must render the labeled mock state")
+        }
+        guard case .demo = try decode("""
+        {"state": "success", "mode": "demo", \(recommendation)}
+        """).briefState() else {
+            return XCTFail("demo mode must render the labeled demo state")
+        }
+        guard case .error = try decode("""
+        {"state": "success", "mode": "future_mode", \(recommendation)}
+        """).briefState() else {
+            return XCTFail("unknown mode must fail closed")
+        }
+    }
+
+    func testBackendSignalStatusesArePreservedInsteadOfMintingLive() throws {
+        let envelope = try decode("""
+        {
+          "state": "success",
+          "mode": "live",
+          "signals": {
+            "roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."},
+            "matchup_dvp": {"status": "stub", "source": "baseline", "message": "Matchup model unavailable."},
+            "weather": {"status": "unavailable", "source": "weather", "message": "No weather feed."}
+          },
+          "recommendation": {"title": "Start A", "move": "Bench B"}
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        XCTAssertEqual(payload.signals.map(\.source), [.stub, .live, .unavailable])
+        XCTAssertEqual(payload.signals.first?.label, "Matchup Dvp")
     }
 
     // MARK: - non-success contract states
@@ -150,7 +196,7 @@ final class OmenDecisionTests: XCTestCase {
     /// real player's name, so the alternative row is dropped and the verdict still renders.
     func testUnmappablePositionDropsTheAlternativeRatherThanGuessing() throws {
         let envelope = try decode("""
-        {"state": "success", "recommendation": {
+        {"state": "success", "mode": "live", "recommendation": {
           "title": "Start someone", "move": "Make the swap.",
           "comparison_player": {"name": "Someone", "position": "FLEX", "team": "SEA"}}}
         """)
@@ -161,7 +207,7 @@ final class OmenDecisionTests: XCTestCase {
 
     func testUnknownRiskLevelDefaultsToMediumNotLow() throws {
         let envelope = try decode("""
-        {"state": "success", "recommendation": {
+        {"state": "success", "mode": "live", "recommendation": {
           "title": "T", "move": "M", "risk": {"level": "catastrophic", "reasons": []}}}
         """)
         guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
@@ -197,7 +243,7 @@ final class OmenDecisionViewModelTests: XCTestCase {
     private var successEnvelope: OmenDecisionEnvelope {
         get throws {
             try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data("""
-            {"state": "success", "recommendation": {"title": "Start McCaffrey", "move": "Bench Walker."}}
+            {"state": "success", "mode": "live", "recommendation": {"title": "Start McCaffrey", "move": "Bench Walker."}}
             """.utf8))
         }
     }
@@ -218,8 +264,8 @@ final class OmenDecisionViewModelTests: XCTestCase {
         await viewModel.load(userID: SessionManager.demoUserID)
 
         XCTAssertFalse(repository.called, "demo must never reach the live engine")
-        guard case .mock = viewModel.briefState else {
-            return XCTFail("demo must render the labeled mock fixture")
+        guard case .demo = viewModel.briefState else {
+            return XCTFail("demo must render the labeled demo fixture")
         }
     }
 

@@ -424,6 +424,7 @@ private fun GalleryScreen() {
                 OmenDecisionBrief(state = OmenDecisionBriefState.Success(payload))
                 OmenDecisionBrief(state = OmenDecisionBriefState.Stale(payload, lastSynced = "12 minutes ago"))
                 OmenDecisionBrief(state = OmenDecisionBriefState.Mock(payload))
+                OmenDecisionBrief(state = OmenDecisionBriefState.Demo(payload))
                 OmenDecisionBrief(state = OmenDecisionBriefState.Empty("Your lineup is already optimal."))
                 OmenDecisionBrief(state = OmenDecisionBriefState.Loading)
                 OmenDecisionBrief(state = OmenDecisionBriefState.Error("The recommendation engine timed out.", onRetry = {}))

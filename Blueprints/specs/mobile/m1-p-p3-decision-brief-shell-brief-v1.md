@@ -40,7 +40,7 @@ Every DecisionBrief has:
 Any of these can be absent — the shell degrades gracefully rather than showing an empty
 section header.
 
-## 3. State surfaces (all 8 required)
+## 3. State surfaces (all required)
 
 Registry §3.2 explicitly enumerates 8 states. Each must have a distinct, honest treatment
 composed from `OmenStateSurface` + the appropriate Card variant:
@@ -53,7 +53,8 @@ composed from `OmenStateSurface` + the appropriate Card variant:
 | `error` | Backend or client-side error | `OmenStateSurface(Error, "Unable to build this recommendation", …)` with retry action |
 | `disconnected` | Dashboard status `needs_platform` | `OmenStateSurface(Disconnected, "Connect a league…", …)` with Connect CTA |
 | `stale` | Cached/expired data honest surfacing | `OmenStateSurface(Stale, "Showing your last sync", …)` |
-| `mock` | Demo/preview fixture | `OmenStateSurface(Mock, "Demo analysis", …)` — visibly labeled, per facts-of-record #7 |
+| `mock` | Development/test fixture | Preview Card with `Mock` badge and "Fixture data — not live advice." |
+| `demo` | Founder/reviewer demo fixture | Preview Card with `Demo` badge and "Sample data — not live advice." |
 | `off_season` | Dashboard status `off_season` | Copy per §4 below |
 
 The shell exposes a single sealed/enum state and a data payload — callers never mix a
@@ -103,6 +104,7 @@ sealed class OmenDecisionBriefState {
     data class Disconnected(val onConnect: (() -> Unit)?) : OmenDecisionBriefState()
     data class Stale(val payload: OmenDecisionBriefPayload, val lastSynced: String) : OmenDecisionBriefState()
     data class Mock(val payload: OmenDecisionBriefPayload) : OmenDecisionBriefState()
+    data class Demo(val payload: OmenDecisionBriefPayload) : OmenDecisionBriefState()
     object OffSeason : OmenDecisionBriefState()
 }
 
@@ -138,7 +140,7 @@ fun OmenDecisionBrief(
 
 Mirror shape: `enum OmenDecisionBriefState { case success(payload), empty(String), loading,
 error(String, (() -> Void)?), disconnected((() -> Void)?), stale(payload, String),
-mock(payload), offSeason }`. `struct OmenDecisionBrief: View` accepts `state` and an
+mock(payload), demo(payload), offSeason }`. `struct OmenDecisionBrief: View` accepts `state` and an
 optional `@ViewBuilder feedbackSlot`.
 
 ## 7. Not in Batch 3 scope

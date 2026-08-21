@@ -25,10 +25,19 @@ import org.json.JSONObject
  */
 data class OmenDecisionEnvelope(
     val state: String,
+    val mode: String? = null,
     val recommendation: Recommendation? = null,
     val recoveryMessage: String? = null,
     val explanationSummary: String? = null,
+    val signals: List<Signal> = emptyList(),
 ) {
+    data class Signal(
+        val key: String,
+        val status: String?,
+        val source: String?,
+        val message: String?,
+    )
+
     data class Recommendation(
         val title: String?,
         val move: String?,
@@ -50,10 +59,25 @@ data class OmenDecisionEnvelope(
 
             return OmenDecisionEnvelope(
                 state = state,
+                mode = root.optStringOrNull("mode"),
                 recommendation = root.optJSONObject("recommendation")?.let(::parseRecommendation),
                 recoveryMessage = root.optJSONObject("recovery")?.optStringOrNull("message"),
                 explanationSummary = root.optJSONObject("explanation")?.optStringOrNull("summary"),
+                signals = parseSignals(root.optJSONObject("signals")),
             )
+        }
+
+        private fun parseSignals(json: JSONObject?): List<Signal> {
+            if (json == null) return emptyList()
+            return json.keys().asSequence().toList().sorted().mapNotNull { key ->
+                val signal = json.optJSONObject(key) ?: return@mapNotNull null
+                Signal(
+                    key = key,
+                    status = signal.optStringOrNull("status"),
+                    source = signal.optStringOrNull("source"),
+                    message = signal.optStringOrNull("message"),
+                )
+            }
         }
 
         private fun parseRecommendation(json: JSONObject): Recommendation {
@@ -85,6 +109,8 @@ data class OmenDecisionEnvelope(
 
         private const val UNREADABLE =
             "Omen sent something this version of the app couldn't read. Updating the app may fix it."
+        private const val UNVERIFIED_MODE =
+            "Omen could not verify whether this recommendation is live. Refresh or update before acting."
 
         private fun JSONObject.optStringOrNull(key: String): String? =
             if (isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
@@ -115,8 +141,14 @@ data class OmenDecisionEnvelope(
         "success" ->
             // A success that carries nothing renderable is a contract violation. An empty
             // card would look like a broken layout, so surface an honest error instead.
-            successPayload()?.let { OmenDecisionBriefState.Success(it) }
-                ?: OmenDecisionBriefState.Error(UNREADABLE, onRetry)
+            successPayload()?.let { payload ->
+                when (mode) {
+                    "live" -> OmenDecisionBriefState.Success(payload)
+                    "mock" -> OmenDecisionBriefState.Mock(payload)
+                    "demo" -> OmenDecisionBriefState.Demo(payload)
+                    else -> OmenDecisionBriefState.Error(UNVERIFIED_MODE, onRetry)
+                }
+            } ?: OmenDecisionBriefState.Error(UNREADABLE, onRetry)
 
         "empty" -> OmenDecisionBriefState.Empty(
             explanationSummary ?: "No move clears the recommendation threshold this week.",
@@ -148,11 +180,26 @@ data class OmenDecisionEnvelope(
             riskReasons = rec.riskReasons,
             explanation = rec.explanationLines,
             metrics = metrics(rec),
-            // facts-of-record #7 — live data is labeled live. Demo never reaches this path;
-            // the view model short-circuits on the demo user id.
-            signals = listOf(OmenSignalItem("Live league data", OmenSignalSource.Live)),
+            signals = signals.map { signal ->
+                OmenSignalItem(
+                    label = signalLabel(signal.key),
+                    source = signalSource(signal.status),
+                    detail = signal.message ?: signal.source,
+                )
+            },
             alternatives = alternatives(rec),
         )
+    }
+
+    private fun signalSource(status: String?): OmenSignalSource = when (status) {
+        "live" -> OmenSignalSource.Live
+        "stub" -> OmenSignalSource.Stub
+        "mock", "demo" -> OmenSignalSource.Mock
+        else -> OmenSignalSource.Unavailable
+    }
+
+    private fun signalLabel(key: String): String = key.split('_').joinToString(" ") { word ->
+        word.replaceFirstChar { it.uppercase() }
     }
 
     private fun impactText(rec: Recommendation): String? {

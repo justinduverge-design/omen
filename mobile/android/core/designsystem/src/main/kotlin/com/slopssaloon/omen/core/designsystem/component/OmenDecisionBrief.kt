@@ -13,7 +13,7 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 /**
  * Registry §3.2 DecisionBrief shell state, per
  * `Blueprints/specs/mobile/m1-p-p3-decision-brief-shell-brief-v1.md`. One sealed hierarchy
- * for all 8 required state surfaces so callers cannot mix a Success render with a Mock
+ * for all required state surfaces so callers cannot mix a Success render with a preview
  * badge — the shell decides which surface renders.
  */
 sealed interface OmenDecisionBriefState {
@@ -24,6 +24,7 @@ sealed interface OmenDecisionBriefState {
     data class Disconnected(val onConnect: (() -> Unit)? = null) : OmenDecisionBriefState
     data class Stale(val payload: OmenDecisionBriefPayload, val lastSynced: String) : OmenDecisionBriefState
     data class Mock(val payload: OmenDecisionBriefPayload) : OmenDecisionBriefState
+    data class Demo(val payload: OmenDecisionBriefPayload) : OmenDecisionBriefState
     data object OffSeason : OmenDecisionBriefState
 }
 
@@ -67,7 +68,7 @@ fun OmenDecisionBrief(
 ) {
     // OmenStateSurface already renders its own Card. To avoid Card-in-Card double-nesting,
     // state variants that delegate to a state surface render at the top level; payload
-    // variants (Success/Stale/Mock) wrap themselves in a Card so the outer chrome is
+    // variants (Success/Stale/Mock/Demo) wrap themselves in a Card so the outer chrome is
     // consistent across all "we have advice" renders. Callers see a single visually
     // wrapped block either way.
     when (state) {
@@ -86,6 +87,15 @@ fun OmenDecisionBrief(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
                 MockBanner()
+                SuccessBody(state.payload, feedbackSlot)
+            }
+        }
+        is OmenDecisionBriefState.Demo -> OmenCard(
+            modifier = modifier.fillMaxWidth(),
+            variant = OmenCardVariant.Preview,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
+                DemoBanner()
                 SuccessBody(state.payload, feedbackSlot)
             }
         }
@@ -144,6 +154,22 @@ private fun DisconnectedBody(state: OmenDecisionBriefState.Disconnected, modifie
 
 @Composable
 private fun MockBanner() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OmenBadge(label = "Mock", tone = OmenBadgeTone.Mock)
+        Text(
+            text = "Fixture data — not live advice.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(),
+            color = OmenTheme.color.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun DemoBanner() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),

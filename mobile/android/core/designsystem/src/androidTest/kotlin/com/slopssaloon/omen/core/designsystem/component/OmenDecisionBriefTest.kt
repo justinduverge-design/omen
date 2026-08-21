@@ -128,9 +128,19 @@ class OmenDecisionBriefTest {
     }
 
     @Test
-    fun mockStateLabelsDemoDataAndRendersPayload() {
+    fun mockStateLabelsFixtureDataAndRendersPayload() {
         composeRule.setContent {
             OmenTheme { OmenDecisionBrief(state = OmenDecisionBriefState.Mock(payload)) }
+        }
+        composeRule.onNodeWithText("Mock").assertExists()
+        composeRule.onNodeWithText("Fixture data — not live advice.").assertExists()
+        composeRule.onNodeWithText("Start Christian McCaffrey").assertExists()
+    }
+
+    @Test
+    fun demoStateLabelsSampleDataAndRendersPayload() {
+        composeRule.setContent {
+            OmenTheme { OmenDecisionBrief(state = OmenDecisionBriefState.Demo(payload)) }
         }
         composeRule.onNodeWithText("Demo").assertExists()
         composeRule.onNodeWithText("Sample data — not live advice.").assertExists()

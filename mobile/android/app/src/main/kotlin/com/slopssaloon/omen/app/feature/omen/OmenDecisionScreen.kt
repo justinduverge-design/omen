@@ -59,7 +59,7 @@ fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modif
 
 /** Deterministic, explicitly mock fixture. It is never selected for a real account. */
 object OmenDecisionFixtures {
-    val demo = OmenDecisionBriefState.Mock(
+    val demo = OmenDecisionBriefState.Demo(
         OmenDecisionBriefPayload(
             verdict = "Start Christian McCaffrey",
             move = "Bench Ken Walker for the RB1 slot.",

@@ -65,7 +65,7 @@ export function summarizeTradeSnapshot(snapshot = {}) {
     confidenceLabel: formatConfidenceLabel(result.confidence),
     confidenceScore: confidenceScoreForLabel(result.confidence),
     riskLabel: riskLabelForSnapshot(snapshot),
-    dataLabel: 'Public snapshot',
+    dataLabel: 'Input-based analysis',
     expiresLabel: formatShareExpiry(snapshot.expires_at),
     sendLabel: send,
     receiveLabel: receive,

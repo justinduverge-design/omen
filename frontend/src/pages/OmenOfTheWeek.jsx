@@ -10,6 +10,7 @@ import {
   omenSignalBadgeStyle,
   omenSignalStatusMeta,
 } from '../lib/omenSignalLabels.js';
+import { recommendationDataMode } from '../lib/recommendationDataMode.js';
 
 const ESPN_RECOVERY_STATES = new Set([
   'espn_reauth_required',
@@ -477,23 +478,6 @@ function platformLabel(platform) {
   return labels[normalized] || (normalized ? normalized[0].toUpperCase() + normalized.slice(1) : '');
 }
 
-function isMockMode(data) {
-  if (data?.mode === 'mock') return true;
-  if (data?.warnings?.some((warning) => String(warning).toLowerCase().includes('mock'))) {
-    return true;
-  }
-
-  const statuses = Object.values(data?.signals || {})
-    .map((signal) => signal?.status)
-    .filter(Boolean);
-
-  return statuses.length > 0 && statuses.every((status) => status === 'mock' || status === 'stub');
-}
-
-function isDemoMode(data) {
-  return data?.mode === 'demo' || data?.is_demo === true;
-}
-
 function reasoningFromExplanation(explanation) {
   if (!explanation) return [];
 
@@ -583,14 +567,17 @@ export default function OmenOfTheWeek() {
  */
 export function OmenRecommendationView({ data, banner = null, showFeedback }) {
   const { recommendation: rec, league, platform, signals, alternatives = [] } = data;
-  const mockMode = isMockMode(data);
-  const demoMode = isDemoMode(data);
+  const dataMode = recommendationDataMode(data);
+  const mockMode = dataMode === 'mock';
+  const demoMode = dataMode === 'demo';
+  const unverifiedMode = dataMode === 'unverified';
   const privateFixtureMode = data?.fixture_key === PRIVATE_FIXTURE_KEYS.OMEN_ROSTER;
-  const livePlatformLabel = !mockMode && !demoMode && platform?.name
+  const livePlatformLabel = dataMode === 'live' && platform?.name
     ? platformLabel(platform.name)
     : '';
-  // Default: show feedback on live, suppress on mock/demo. Explicit prop wins.
-  const feedbackVisible = showFeedback != null ? showFeedback : (!mockMode && !demoMode);
+  // Feedback is a live-only ritual. Callers may suppress it, but cannot opt a preview
+  // or unverified envelope into the live feedback path.
+  const feedbackVisible = dataMode === 'live' && showFeedback !== false;
 
   return (
     <div className="space-y-6">
@@ -601,6 +588,10 @@ export function OmenRecommendationView({ data, banner = null, showFeedback }) {
           ? `${data.fixture_label} Omen roster and recommendation are mock.`
           : 'Preview Mode - mock or stub data is labeled in the signal list. Live recommendations connect to your actual roster when the season begins.'}
         />
+      )}
+
+      {unverifiedMode && (
+        <MockBanner message="Data state unverified — this recommendation is not confirmed live. Refresh or update before acting." />
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-4">

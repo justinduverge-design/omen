@@ -316,6 +316,7 @@ struct DesignSystemGalleryView: View {
                         OmenDecisionBrief(state: .success(payload))
                         OmenDecisionBrief(state: .stale(payload, lastSynced: "12 minutes ago"))
                         OmenDecisionBrief(state: .mock(payload))
+                        OmenDecisionBrief(state: .demo(payload))
                         OmenDecisionBrief(state: .empty("Your lineup is already optimal."))
                         OmenDecisionBrief(state: .loading)
                         OmenDecisionBrief(state: .error("The recommendation engine timed out.", retry: {}))
