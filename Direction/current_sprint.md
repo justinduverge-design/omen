@@ -926,7 +926,8 @@ event traceable.
 
 ### F9 — Mock / live labeling sweep
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-20 Codex — inventorying and enforcing honest recommendation-state labels across web, iOS, and Android
 - **Blocked by:** None
 - **Priority:** **P0 — trust-critical.** Mislabeled mock output presented as live advice is the one bug that costs credibility permanently.
 - **Cost:** medium
