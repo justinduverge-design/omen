@@ -2,11 +2,13 @@
 
 Last updated: 2026-08-21
 
-## ✅ RESOLVED (config half) 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
+## ✅ RESOLVED — FULLY, verified in production 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
 
 **Fixed on KVM1 the same day, with founder approval.** `/opt/omen/deploy/hostinger/.env.production` now carries the GlitchTip `omen-backend` DSN with the UUID dashes stripped; exactly one line changed, backup at `~/env.production.bak-20260821-o8-before-sentry-fix`, and a key-only diff confirmed no other assignment was touched. Both containers recreated. Verified from inside `omen_api`: `enabled: true`, **`transport: true`** (it was `false` before), and an event sent from the production container landed in GlitchTip as **issue 3**, tagged `environment: production`.
 
-**Still outstanding: production runs an image that predates PR [#353](https://github.com/justinduverge-design/omen/pull/353),** so no provider adapter reports anything yet. Proven directly rather than assumed — a real ESPN 404 was provoked inside the production container and **nothing was captured**, because the deployed `espn.js` has no `captureProviderError` call. **The pipe is open; nothing is feeding it until #353 is merged and deployed.** Do not read "GlitchTip is receiving events" as "Omen's error paths are wired in production" — that is the same two-claims-in-one conflation this issue and `O8` were both created by.
+**Code half also done — PR [#353](https://github.com/justinduverge-design/omen/pull/353) merged and deployed** (run `32530387393`). `GET /api/ready` → `checks.error_tracking` reports `valid: true`, `host: 100.98.81.0:8000`. A real ESPN 404 provoked inside the running production container grouped into GlitchTip issue 2, which now carries two events — one `development`, one **`production`**. Stored payload searched for the exact canary credentials: absent.
+
+**Worth keeping, because the intermediate state was itself instructive:** for about fifteen minutes the DSN was fixed while the deployed image still predated #353. Proven rather than assumed by provoking a real ESPN 404 in production and observing that **nothing was captured** — the pipe was open and nothing was feeding it. "GlitchTip is receiving events" and "Omen's error paths are wired in production" are two different claims, and conflating them is what created both this issue and `O8`.
 
 ### Original finding, kept for the record
 

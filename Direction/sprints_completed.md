@@ -315,3 +315,31 @@ Two items closed the same day, both surfaced by the staleness sweep rather than 
 **Two red iOS UI tests are pre-existing and were proved so rather than assumed.** `ContextualHelpAccessibilityUITests` fails two contrast assertions. Rather than reason from the diff's shape, the class was run at pre-F9 base `33fcfe6` in a clean worktree and failed identically. It belongs to F11.
 
 **What F9 does not prove.** No human VoiceOver or TalkBack pass over the new Mock/Demo/Unverified states, and no rendered screenshot of them — the Compose assertions prove the label text is in the tree, not that it is legible. O7 already demonstrated a design-token defect surviving 276 green tests. Those remain F10/F11's.
+
+## O8 — error tracking reaches production, and finds it was never on — 2026-08-21
+
+**Closure: COMPLETED.** PR [#353](https://github.com/justinduverge-design/omen/pull/353), merged and deployed (run `32530387393`). Handoff: `Blueprints/handoffs/2026-08-21-o8-glitchtip-error-paths.md`.
+
+**What O8 was:** `O1b` stood GlitchTip up and proved it accepts an error. Nothing in `src/` sent one. O8 wired provider adapter failures — Yahoo, Sleeper, ESPN — at each provider's single lowest-level HTTP chokepoint, added the API's missing `uncaughtException`/`unhandledRejection` handlers, and enforced demo isolation with two independent guards.
+
+**`Done when:` — all three clauses met.** A real provoked ESPN adapter failure (live request, genuine HTTP 404, raised inside `doEspnRequest()`) arrived in GlitchTip with a 10-frame stack trace; tests prove no credential, cookie, or PII fragment reaches the payload; tests prove demo-mode errors never reach the real project. `npm test` 591/591.
+
+**The finding that outgrew the task.** O8's Scope was written on a false premise — it claimed nothing in `src/` sent anything and told the agent to hand-roll an HTTP integration to dodge the dependency gate. `@sentry/node` had been wired since Phase 1.2. Chasing that discrepancy led to reading the deployed config, which showed **`SENTRY_DSN` set to the literal placeholder `paste_the_value_here` with a real DSN glued on**, byte-identical in `omen_api` and `omen_cron`. Not a legal URL, so the SDK built **no transport** and dropped every event while reporting `enabled: true`. **Omen had never reported a single error from production, to any tool.** Tracked and closed as [#354](https://github.com/justinduverge-design/omen/issues/354).
+
+**The before/after worth remembering:**
+
+| | Before | After |
+|---|---|---|
+| `enabled` | `true` | `true` |
+| **`transport`** | **`false`** | **`true`** |
+
+`enabled` never changed. **The field anyone would have checked was never the broken one** — which is why an "is it set?" health check would have passed forever.
+
+**Verified in production**, not inferred: `GET /api/ready` → `checks.error_tracking` reports `valid: true`, `host: 100.98.81.0:8000`; a real ESPN 404 provoked inside the running production container grouped into GlitchTip issue 2 by fingerprint, which now carries two events — one `development`, one **`production`**. The stored payload was searched for the exact canary credentials the adapter was handed: absent.
+
+**Three guards shipped so this class cannot recur silently:** the DSN is validated rather than truthiness-checked and a set-but-invalid value disables the client loudly; the validator matches the SDK's own key grammar (a validator looser than what it validates is a second bug wearing the guard's clothes — found when it passed GlitchTip's dashed-UUID key that `@sentry/node` rejected); and `GET /api/ready` surfaces error-tracking state, host and project id only, never the key.
+
+**Also recorded for the next session:** GlitchTip mints project keys as dashed UUIDs and `@sentry/node` refuses them — strip the dashes.
+
+**Not done, and deliberately out of scope:** GlitchTip issues do not reach the Discord `#slops-alerts` dispatcher. The Layer 5 alerting that has been messaging the founder polls Steward, Sentinel, and Kuma — **infrastructure health, not application errors** — and predates GlitchTip. That integration is `O9`.
+
