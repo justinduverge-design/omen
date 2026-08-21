@@ -10,6 +10,7 @@
 const axios = require("axios");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
+const { captureProviderError } = require("../middleware/providerErrors");
 
 const BASE = "https://api.sleeper.app/v1";
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
@@ -64,6 +65,18 @@ function currentSeason() {
   return String(new Date().getFullYear());
 }
 
+/**
+ * Sleeper URLs are public and carry no credentials, but they do carry
+ * league and user ids in the path. Keep the shape, drop the query string.
+ */
+function safeSleeperPath(url) {
+  try {
+    return new URL(String(url)).pathname;
+  } catch {
+    return "<unparseable>";
+  }
+}
+
 async function getJson(url, options = {}) {
   sleeperRequestBudget.take();
   try {
@@ -73,6 +86,19 @@ async function getJson(url, options = {}) {
     });
     return res.data;
   } catch (error) {
+    // O8: report before the 429 is reshaped, so the tag carries the real
+    // upstream status rather than the 503 we translate it into.
+    captureProviderError({
+      provider: "sleeper",
+      operation: "api_get",
+      error,
+      context: {
+        path: safeSleeperPath(url),
+        http_status: error?.response?.status ?? null,
+        code: error?.code ?? null,
+      },
+    });
+
     if (error?.response?.status === 429) {
       const retryAfterSeconds = Number(error.response.headers?.["retry-after"]);
       const rateError = new Error("Sleeper temporarily rate limited draft sync");

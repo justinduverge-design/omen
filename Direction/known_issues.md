@@ -2,6 +2,30 @@
 
 Last updated: 2026-08-21
 
+## ✅ RESOLVED (config half) 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
+
+**Fixed on KVM1 the same day, with founder approval.** `/opt/omen/deploy/hostinger/.env.production` now carries the GlitchTip `omen-backend` DSN with the UUID dashes stripped; exactly one line changed, backup at `~/env.production.bak-20260821-o8-before-sentry-fix`, and a key-only diff confirmed no other assignment was touched. Both containers recreated. Verified from inside `omen_api`: `enabled: true`, **`transport: true`** (it was `false` before), and an event sent from the production container landed in GlitchTip as **issue 3**, tagged `environment: production`.
+
+**Still outstanding: production runs an image that predates PR [#353](https://github.com/justinduverge-design/omen/pull/353),** so no provider adapter reports anything yet. Proven directly rather than assumed — a real ESPN 404 was provoked inside the production container and **nothing was captured**, because the deployed `espn.js` has no `captureProviderError` call. **The pipe is open; nothing is feeding it until #353 is merged and deployed.** Do not read "GlitchTip is receiving events" as "Omen's error paths are wired in production" — that is the same two-claims-in-one conflation this issue and `O8` were both created by.
+
+### Original finding, kept for the record
+
+**Both `omen_api` and `omen_cron` on KVM1 carry `SENTRY_DSN` set to the literal placeholder `paste_the_value_here` with a real DSN glued onto the end** — 115 characters, byte-identical in both containers. Read directly from the running containers over Tailscale.
+
+`paste_the_value_herehttps:` is not a legal URL scheme (the underscore is illegal), so `new URL()` throws and `@sentry/node` builds **no transport**. The guard was `enabled: Boolean(process.env.SENTRY_DSN)` and a placeholder-prefixed string is perfectly truthy, so the SDK reported `enabled: true` and **dropped every event in silence**. Reproduced locally against the exact production string: `enabled: true`, `transport: false`, envelopes received **0**.
+
+**Omen has been reporting errors nowhere** — not to GlitchTip, not to sentry.io. This is the worst failure mode a monitoring tool has: a configuration mistake that is indistinguishable from "no errors are happening", and which every "is it set?" health check passes forever.
+
+**Even corrected, that DSN targets sentry.io, not the GlitchTip instance `O1b` deployed.** `O1b` proved GlitchTip *accepts* events by POSTing to it directly from a terminal. That never proved Omen *sends* to it, and those are different claims — the same shape as `O8`'s own false Scope premise: proven at both ends, assumed across the middle.
+
+**Guard shipped in PR [#353](https://github.com/justinduverge-design/omen/pull/353):** `describeSentryDsn()` validates rather than testing truthiness, matches the SDK's own key grammar so it cannot be looser than what it validates, logs loudly at boot when set-but-invalid, and is surfaced at `GET /api/ready` → `checks.error_tracking` (host and project id only, never the key). The production string now reports `valid: false, reason: "unparseable"` and disables the client honestly.
+
+**Remaining is founder-only** (secrets + production restart): set `SENTRY_DSN` on both containers to the GlitchTip `omen-backend` DSN **with the UUID dashes stripped**, recreate them, and confirm `GET /api/ready` → `checks.error_tracking.valid: true`.
+
+### ⚠️ GlitchTip project keys are dashed UUIDs; `@sentry/node` rejects them
+
+GlitchTip mints keys as dashed UUIDs. The SDK's DSN grammar accepts only `[A-Za-z0-9_]` and rejects them outright with `Invalid Sentry Dsn`. **Strip the dashes** — GlitchTip accepts the undashed form. Confirmed live against `omen-backend`. This is not recorded in `O1b`'s handoff and would cost the next session the same hour.
+
 ## 📄 Yahoo agreement executed, entitlement still dark — 2026-08-21
 
 **The API Access and Use Agreement is signed by both parties.** Yahoo countersigned **2026-08-20** (Dipesh Raichura, Sr Dir Product Management); founder signed 2026-08-05; **effective date 2026-08-07**. Docusign envelope `A1D54813-9307-84ED-83EA-FC24FBE40785`. Developer: Valor Ventures LLC. Territory: **US and Canada**. API Access: **Read-Only**. Developer Application named as "Omen (https://slopssaloon.com/)".

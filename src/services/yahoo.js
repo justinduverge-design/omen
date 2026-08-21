@@ -17,6 +17,7 @@
  */
 
 const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("../middleware/yahooOAuth");
+const { captureProviderError } = require("../middleware/providerErrors");
 
 const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
 
@@ -77,6 +78,18 @@ class YahooClient {
       err.status = res.status;
       err.body = body;
       err.wwwAuthenticate = res.headers.get("www-authenticate") || null;
+
+      // O8: report it. The 401 above is deliberately *not* reported — it is
+      // the ordinary expired-token path the refresh handles, and it is the
+      // single highest-volume Yahoo error there is. Everything that reaches
+      // here is a condition a human has to look at.
+      captureProviderError({
+        provider: "yahoo",
+        operation: "api_get",
+        error: err,
+        context: { path: path.split("?")[0], http_status: res.status },
+      });
+
       throw err;
     }
     return res.json();

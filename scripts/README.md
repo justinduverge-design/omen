@@ -45,6 +45,7 @@ Full contract for adding one: [`checks/README.md`](checks/README.md).
 |---|---|---|
 | [`smoke-tier2-endpoints.js`](smoke-tier2-endpoints.js) | Hits the Tier-2 endpoints and reports shape/status | Yes against local or an approved target |
 | [`verify-sleeper-waiver-pool.js`](verify-sleeper-waiver-pool.js) | Proves the Sleeper waiver pool returns real, correctly-filtered players | Yes — read-only against the provider |
+| [`verify-provider-error-capture.js`](verify-provider-error-capture.js) | Proves `O8`'s error capture end to end: provokes a real ESPN adapter failure, then inspects the exact envelope the SDK transmits for credential leaks, provider tag, and a usable stack trace | Yes — one read-only GET to ESPN for a nonexistent league; sends nothing to real GlitchTip |
 | [`load-omen-routes.js`](load-omen-routes.js) | Load-tests `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. **Tracked as `O4` and has never been run.** | Only against local/staging with approval — never production |
 
 ## Data and ops — approval required

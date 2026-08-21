@@ -10,6 +10,7 @@ const {
   getMinVersionStatus,
 } = require("../services/systemContracts");
 const { getLlmBridgeStatus } = require("../services/llm");
+const { describeSentryDsn } = require("../middleware/sentry");
 const { authenticateOmenRequest } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 
@@ -43,6 +44,13 @@ router.get("/ready", async (_req, res) => {
     supabaseError = err.message;
   }
 
+  // Surfaced because a silently-invalid DSN is indistinguishable from "no
+  // errors are happening" — the failure found in production 2026-08-21.
+  // Reported, not gating: readiness is about serving traffic, and refusing
+  // to serve because monitoring is misconfigured would turn a reporting
+  // outage into a user-facing one.
+  const errorTracking = describeSentryDsn();
+
   const ready = Object.values(criticalConfig).every(Boolean) && supabaseReachable;
   return res.status(ready ? 200 : 503).json({
     contract_version: "system-ready.v1",
@@ -55,6 +63,8 @@ router.get("/ready", async (_req, res) => {
       },
       critical_config: criticalConfig,
       optional_services: optionalServices,
+      // Host and project id only — never the key.
+      error_tracking: errorTracking,
       llm: llmStatus,
     },
   });

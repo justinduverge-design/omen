@@ -18,6 +18,7 @@ const https = require("https");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
+const { captureProviderError } = require("../middleware/providerErrors");
 
 const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
 const redis = config.redisUrl
@@ -325,6 +326,26 @@ function makeEspnHeaders(espn_s2, swid, fantasyFilter) {
   };
 }
 
+/**
+ * ESPN's failing request is the one carrying espn_s2 and SWID, so this
+ * reporter takes only the hostname and the path *before* the query string,
+ * and never touches the headers, the cookie jar, or the response body.
+ * facts-of-record #6: ESPN cookie values are never logged, displayed, or
+ * echoed — anywhere, ever. That includes error reports.
+ */
+function reportEspnFailure(operation, error, hostname, path, httpStatus) {
+  captureProviderError({
+    provider: "espn",
+    operation,
+    error,
+    context: {
+      hostname,
+      path: String(path || "").split("?")[0],
+      http_status: httpStatus ?? error?.status ?? null,
+    },
+  });
+}
+
 function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilter) {
   return new Promise((resolve, reject) => {
     const req = https.request(
@@ -339,6 +360,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
           } catch {
             const err = new Error("ESPN API returned an invalid redirect");
             err.status = 502;
+            reportEspnFailure("invalid_redirect", err, hostname, path, res.statusCode);
             reject(err);
           }
           return;
@@ -352,11 +374,13 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
           if (res.statusCode === 401 || res.statusCode === 403) {
             const err = new Error("ESPN rejected the request — cookies may be invalid or expired");
             err.status = 401;
+            reportEspnFailure("auth_rejected", err, hostname, path, res.statusCode);
             return reject(err);
           }
           if (res.statusCode !== 200) {
             const err = new Error(`ESPN API returned HTTP ${res.statusCode}`);
             err.status = res.statusCode >= 500 ? 502 : res.statusCode;
+            reportEspnFailure("http_error", err, hostname, path, res.statusCode);
             return reject(err);
           }
           try {
@@ -364,6 +388,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
           } catch {
             const err = new Error("ESPN API returned non-JSON response");
             err.status = 502;
+            reportEspnFailure("malformed_response", err, hostname, path, res.statusCode);
             reject(err);
           }
         });
@@ -371,6 +396,7 @@ function doEspnRequest(hostname, path, espn_s2, swid, redirectsLeft, fantasyFilt
     );
     req.on("error", (err) => {
       err.status = 502;
+      reportEspnFailure("transport_error", err, hostname, path, null);
       reject(err);
     });
     req.end();
