@@ -926,8 +926,8 @@ event traceable.
 
 ### F9 — Mock / live labeling sweep
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-08-20 Codex — inventorying and enforcing honest recommendation-state labels across web, iOS, and Android
+- **Status:** VERIFIED 2026-08-20 — all three `Done when:` clauses met; inventory at `Direction/reviews/2026-08-20-f9-mock-live-labeling-inventory.md`. Signed iOS simulator 246/246 (`OmenDecisionTests` 14/14, Xcode 26.6, iPhone 16) and Android `:core:designsystem:connectedDebugAndroidTest` 60/60 on a `medium_phone` AVD, both new Mock/Demo label assertions executing. **Not proven:** human VoiceOver/TalkBack on the labeled states, and rendered screenshot evidence of the new Mock/Demo/Unverified treatments — both belong to F11/F10.
+- **Claim:** 2026-08-20 Codex — inventorying and enforcing honest recommendation-state labels across web, iOS, and Android; deferred cross-platform verification completed by Claude on macOS the same day
 - **Blocked by:** None
 - **Priority:** **P0 — trust-critical.** Mislabeled mock output presented as live advice is the one bug that costs credibility permanently.
 - **Cost:** medium
