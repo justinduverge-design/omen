@@ -47,6 +47,7 @@ Read in order before acting:
    reading any queue.
 1. CLAUDE.md / AGENTS.md (this folder)
 2. AGENT.md
+2a. RESOLVER.md
 3. Direction/context.md
 4. Direction/agent_inbox.md         ← pin wins over auto-populate
 5. Direction/current_sprint.md      ← lane queue if no pin

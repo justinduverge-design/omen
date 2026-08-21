@@ -1,39 +1,45 @@
 ---
-metadata_profile: valor-brain-pilot/v0
+metadata_profile: valor-brain/v1
 page_id: omen.ops.o2.rollback
 page_type: operational-state
 layer: L2
 authority: REVIEW_ONLY
-task_status: IN_PROGRESS
-change_state: APPLIED
-exercise_state: NOT_RUN
 owner: Justin Duverge
-compiled_at: 2026-08-20
-repository_commit: 5cf3597
-canonical_sources:
+state:
+  task: IN_PROGRESS
+  change: APPLIED
+  exercise: NOT_RUN
+sources:
   - Direction/current_sprint.md#o2--named-rollback-owner-and-tested-rollback-path
   - Blueprints/playbooks/rollback-runbook.md
   - .github/workflows/deploy.yml
   - Direction/reviews/evidence/2026-08-19-o2/deploy-immutable-tags.patch
-requires:
-  - O7:CLOSED
-  - deploy-immutable-tags:APPLIED
-enables:
-  - O2:VERIFIED
-  - O2:CLOSED
-checks_against:
-  - Direction/status-model.md
-  - Blueprints/done/release-done.md
-freshness_triggers:
-  - O2 status or claim changes
-  - deploy workflow or immutable-tag behavior changes
-  - rollback-runbook.md changes
-  - a live rollback exercise is attempted
+relationships:
+  requires:
+    - O7:CLOSED
+    - deploy-immutable-tags:APPLIED
+  enables:
+    - O2:VERIFIED
+    - O2:CLOSED
+  checks_against:
+    - Direction/status-model.md
+    - Blueprints/done/release-done.md
+freshness:
+  reviewed_on: 2026-08-20
+  triggers:
+    - O2 status or claim changes
+    - deploy workflow or immutable-tag behavior changes
+    - rollback-runbook.md changes
+    - a live rollback exercise is attempted
+snapshot:
+  repository: justinduverge-design/omen
+  commit: 1c60b72
+  compiled_by: Codex
 ---
 
 # Valor Brain pilot — O2 rollback readiness
 
-This is one founder-directed, review-only pilot of the proposed Valor Brain pattern. It compiles the current truth for one real Omen concept without creating a new canonical folder, registering a schema, activating a resolver, or replacing the sprint.
+This began as one founder-directed pilot and is now the first Omen page governed by the ratified `valor-brain/v1` profile. It compiles the current truth for one real Omen concept without creating a new canonical folder or replacing the sprint.
 
 The canonical task remains `O2` in `Direction/current_sprint.md`. If this page disagrees with a canonical source, the canonical source wins and this page is stale.
 
@@ -43,18 +49,18 @@ The canonical task remains `O2` in `Direction/current_sprint.md`. If this page d
 - It is not permanent doctrine, a new task queue, a runbook, or execution evidence.
 - `page_type` describes the information shape. It does not instruct agents to move all pages of that type into a new folder.
 
-## Metadata contract for this pilot
+## Metadata contract
 
-The frontmatter is intentionally narrow:
+The frontmatter follows the L0-owned `valor-brain/v1` contract:
 
-- `task_status` uses Omen's existing `READY → IN_PROGRESS → VERIFIED → CLOSED` vocabulary.
-- `change_state` describes whether the deploy fix exists in production code. It does not replace task status.
-- `exercise_state` describes whether the founder-only operational proof happened.
-- `canonical_sources` supplies provenance.
-- `requires`, `enables`, and `checks_against` make relationships searchable without pretending they are automatically enforced.
-- `freshness_triggers` names events that invalidate the compiled truth.
+- `state.task` uses Omen's existing `READY → IN_PROGRESS → VERIFIED → CLOSED` vocabulary.
+- `state.change` describes whether the deploy fix exists in repository code. It does not replace task status or prove deployment.
+- `state.exercise` describes whether the founder-only operational proof happened.
+- `sources` supplies provenance.
+- `relationships` makes dependencies searchable without pretending they are automatically enforced.
+- `freshness` names the review date and events that invalidate the compiled truth.
 
-This metadata profile applies only to this pilot. It is not a repo-wide schema.
+Only pages that explicitly opt into the profile are governed. Ordinary Omen Markdown is unchanged.
 
 ## Compiled truth
 
@@ -134,7 +140,7 @@ These definitions are local to O2. This pilot does not justify a new domain-mode
 2. **Metadata value:** demonstrated once. `change_state` advanced from `PREPARED_NOT_APPLIED` to `APPLIED` while `task_status` correctly remained `IN_PROGRESS` and `exercise_state` remained `NOT_RUN`.
 3. **Domain-modeling value:** useful as a short procedure inside the page. There is not yet evidence for a separate reusable skill.
 4. **Wayfinder value:** not demonstrated here. O2 is a short dependency chain with one founder gate, not a foggy program of unresolved decision tickets.
-5. **Automation readiness:** not ready. The fields need at least one more pilot and a validator with positive and negative fixtures before becoming authority.
+5. **Automation readiness:** limited but active. The v1 fields now have a JSON Schema, positive and negative fixtures, a duplicate-ID check, and local validation. Automatic extraction, Graphify ingestion, and mass conversion remain out of scope.
 
 ---
 
@@ -146,4 +152,5 @@ These definitions are local to O2. This pilot does not justify a new domain-mode
 - **2026-08-20:** `origin/main` remained at `e8fb09e`; the workflow still used mutable `:main` tags and unscoped image pruning.
 - **2026-08-20:** this review-only Valor Brain pilot compiled O2's state. No deployment, production rollback, sprint transition, or closure occurred.
 - **2026-08-20:** PR #347 merged as `5cf3597`. Immutable SHA tags and seven-day pruning became applied workflow truth; no deploy run was registered for the workflow-only merge, so production was not restarted.
-- **2026-08-20:** the pilot advanced only `change_state` to `APPLIED`. `task_status` stayed `IN_PROGRESS`; `exercise_state` stayed `NOT_RUN`.
+- **2026-08-20:** the pilot advanced only `state.change` to `APPLIED`. `state.task` stayed `IN_PROGRESS`; `state.exercise` stayed `NOT_RUN`.
+- **2026-08-20:** L0 ratified `valor-brain/v1`; this pilot migrated to the governed nested state, provenance, relationship, freshness, and snapshot contract. O2 itself did not advance.

@@ -9,6 +9,7 @@ You are working in the Omen product layer. Lanes are a scheduling convenience, n
 ## Read in order before pulling a task
 
 1. `AGENT.md` (backend ownership, safety rules, end-of-task report shape)
+1a. `RESOLVER.md` (file routing and optional structured-page validation)
 2. `Direction/context.md` — current operating context
 3. `Direction/agent_inbox.md` — pinned task or top-5 queue
 4. `Direction/current_sprint.md` — full lane queue

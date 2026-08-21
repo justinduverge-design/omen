@@ -71,6 +71,7 @@ This app layer still exposes the SLOPS baseline context files:
 ```text
 context.md
 DBS_INDEX.md
+RESOLVER.md
 README.md
 AGENTS.md
 CLAUDE.md
@@ -83,7 +84,7 @@ The app may have extra source, config, and test folders. Those do not replace th
 ## Read First
 
 **All work** starts with `AGENTS.md` (or `CLAUDE.md` / `AGENT.md` for the
-runtime you are), then `Direction/context.md`, `Direction/agent_inbox.md`,
+runtime you are), then `RESOLVER.md`, `Direction/context.md`, `Direction/agent_inbox.md`,
 `Direction/current_sprint.md`, `Direction/facts-of-record.md`.
 
 **Native mobile work** — the primary surface. Read the native mobile read gate in
