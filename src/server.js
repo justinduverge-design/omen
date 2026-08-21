@@ -21,7 +21,7 @@
 
 // Sentry MUST be required before any module that may throw at boot
 // (including ./config), so init errors get captured.
-const { initSentry } = require("./middleware/sentry");
+const { initSentry, drainSentry, flushSentry } = require("./middleware/sentry");
 initSentry({ component: "api" });
 
 const Sentry = require("@sentry/node");
@@ -376,11 +376,11 @@ const server = app.listen(config.port, () => {
 // --- Graceful shutdown --------------------------------------------
 // On SIGTERM (Docker stop), drain in-flight requests cleanly. Force exit
 // after 10s if anything hangs. SY0-701 4.5: orderly service teardown.
-const shutdown = (signal) => {
+const shutdown = (signal, exitCode = 0) => {
   logger.info(`${signal} received, draining...`);
   server.close(() => {
     logger.info("HTTP server closed");
-    process.exit(0);
+    process.exit(exitCode);
   });
   setTimeout(() => {
     logger.warn("Shutdown timeout; forcing exit");
@@ -389,3 +389,33 @@ const shutdown = (signal) => {
 };
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));
+
+// --- Last-resort error capture ------------------------------------
+// O8. Sentry.setupExpressErrorHandler above catches anything thrown
+// *inside a request*. It cannot see a throw from a timer, a stream,
+// or a floating promise — and those are precisely the failures that
+// leave no request to correlate against, so they are the ones worth
+// reporting most. The cron has had these handlers since Phase 1.2;
+// the API, which serves every user, did not.
+const captureFatal = (error, kind, { terminal }) => {
+  const reported = error instanceof Error ? error : new Error(`${kind}: ${String(error)}`);
+  logger.error(kind, { err: reported.message, stack: reported.stack });
+  Sentry.captureException(reported);
+  // Only the terminal path may close the client. drainSentry() flushes and
+  // leaves it usable — closing here would silently end error reporting for
+  // the life of the container after the first survivable rejection.
+  return terminal ? flushSentry() : drainSentry();
+};
+
+// An uncaught exception leaves the process in an undefined state — report
+// it, drain in-flight requests, then let the container restart. Staying up
+// on a corrupted heap serves errors to users indefinitely.
+process.on("uncaughtException", (error) => {
+  captureFatal(error, "Uncaught exception", { terminal: true }).finally(() => shutdown("uncaughtException", 1));
+});
+
+// A rejection is survivable: report it and keep serving. Node's default
+// would terminate the process, which turns one bad request into an outage.
+process.on("unhandledRejection", (reason) => {
+  captureFatal(reason, "Unhandled rejection", { terminal: false });
+});
