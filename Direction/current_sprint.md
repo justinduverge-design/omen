@@ -809,8 +809,17 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### O9 — Route GlitchTip issues through the existing Layer 5 Discord alerting
 
-- **Status:** READY
-- **Blocked by:** None. Higher-value once `O8` lands (nothing real to alert on until then), but the alert *path* itself can be built and proven with a synthetic issue now, the same way `O1b`'s own done-when was proven before any real integration existed.
+- **Status:** **CLOSED 2026-08-21.**
+- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "O9 — GlitchTip reaches the phone". All three `Done when:` clauses proven live, not in dry-run.
+- **Option chosen: (a), extend the dispatcher.** Option (b) — GlitchTip's native webhook pointed at the same Discord URL — was rejected because it would create a second alert path into one channel with different semantics, and O9's own `Done when:` requires the *same* dedup/recovery behavior as Layer 5's other signals. (b) could only satisfy that by reimplementing the noise control that already exists. Reading GlitchTip's Postgres directly mirrors how the dispatcher already reads Kuma's SQLite, so the integration added **no new secret and no new auth surface**.
+- **Evidence (live, in order):** CRITICAL alert listing three unresolved issues delivered to `#slops-alerts` and quoted back by the founder → unchanged repeat run silent (dedup) → founder resolved all three in the GlitchTip UI → exactly one `SLOPS RECOVERY` delivered and quoted back → subsequent run silent (no repeat recovery). Other signals confirmed unaffected by running each collector directly: 6 `result=` lines from Steward/Sentinel, all 4 Kuma monitors `status=1`, Pi-hole probe clean.
+- **⚠️ Two latent dispatcher defects found and fixed, both pre-dating GlitchTip and both invisible until now:**
+  1. **A multi-signal alert could never have been delivered.** The payload was built by interpolating the signature into JSON, and a multi-line signature embeds raw newlines in a JSON string — Discord answers `400`. Every alert ever proven had exactly one failing signal, so this was never exercised. **If two things had broken at once, no notification would have been sent at all** — the alerting layer failing in exactly the situation it exists for. Found because GlitchTip became the fourth source and produced the first genuinely multi-line signature. Now built with a real JSON encoder.
+  2. **State was persisted before delivery was confirmed**, so a failed send was never retried — the state file claimed "already reported" for an alert that never left the machine. This is how defect 1 stayed silent: the first failed send still recorded its signature. Delivery now happens first.
+- **Also corrected in-pass:** the install briefly set mode `0755` on a script that was `0700`. The script reads the Discord webhook secret path; restored to `0700` and recorded in `ops/command-center/README.md` as a post-deploy check.
+- **Deployed artifact is now vendored** at `ops/command-center/slops-alert-dispatcher`, verified byte-identical to `/usr/local/sbin/slops-alert-dispatcher` on the Pi. It previously existed only on a device nobody could diff.
+- **Constitution honored:** notification-only. Every added data path is read-only by construction — GlitchTip is read under a forced read-only Postgres transaction, verified by confirming an `UPDATE` is refused.
+- **Blocked by:** None.
 - **Priority:** P2
 - **Cost:** small–medium
 - **Agent-buildable:** research/configuration yes; treat with the same care as `O1b` — the actual change lives on Command Center's dispatcher, not in this repo, so the deploy step there is founder-gated the same way.

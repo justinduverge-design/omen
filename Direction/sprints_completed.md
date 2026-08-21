@@ -343,3 +343,19 @@ Two items closed the same day, both surfaced by the staleness sweep rather than 
 
 **Not done, and deliberately out of scope:** GlitchTip issues do not reach the Discord `#slops-alerts` dispatcher. The Layer 5 alerting that has been messaging the founder polls Steward, Sentinel, and Kuma — **infrastructure health, not application errors** — and predates GlitchTip. That integration is `O9`.
 
+## O9 — GlitchTip reaches the phone — 2026-08-21
+
+**Closure: COMPLETED.** The Layer 5 Discord dispatcher on Command Center now carries unresolved GlitchTip issues alongside Steward, Sentinel, Kuma and Pi-hole. Artifact vendored at `ops/command-center/slops-alert-dispatcher`, verified byte-identical to what is deployed.
+
+**Chose (a) extend the dispatcher over (b) GlitchTip's native webhook.** (b) would have put a second alert path with different semantics into one channel, and O9's `Done when:` requires the same dedup/recovery behavior as every other Layer 5 signal — (b) could only get there by reimplementing noise control that already existed. Reading GlitchTip's Postgres directly mirrors how Kuma's SQLite is already read, so **no new secret and no new auth surface**.
+
+**Proven live, in sequence, with the founder confirming each Discord message:** CRITICAL alert listing three unresolved issues → silence on the unchanged repeat → founder resolved all three in the UI → exactly one `SLOPS RECOVERY` → silence again. Other signals verified unaffected by running each collector directly.
+
+**The finding that outgrew the task — again.** Adding a fourth signal source produced the dispatcher's first genuinely multi-line signature, and it failed with Discord `400`. The payload had always been built by interpolating the signature into JSON, and raw newlines are invalid inside a JSON string. **Every alert this system had ever proven carried exactly one failing signal.** A simultaneous two-signal failure would have produced no notification at all — the alerting layer failing precisely when it mattered most, and silently, because a second defect persisted the signature *before* confirming delivery, so the failed send was never retried and the state claimed it had already been reported.
+
+Both fixed: a real JSON encoder builds the payload, and delivery now precedes persistence so a failure retries on the next run.
+
+**Generalisable, and it is the same lesson as `O8` one layer down:** monitoring and alerting fail in the shape of good news. `O8` found production reporting errors nowhere while reporting itself enabled; `O9` found the alerting path unable to deliver the multi-signal alert it exists for. **Neither was visible to any "is it configured?" check, and both were found only by exercising the real path with real content.** Every proof this fleet has recorded for Layer 5 used a single simulated failure — the noise-control semantics were genuinely proven, and the delivery mechanism was accidentally only ever tested on its easiest input.
+
+**Constitution honored:** notification-only, no remediation added. Every new data path is read-only by construction — the GlitchTip read runs in a forced read-only transaction, verified by confirming an `UPDATE` is refused.
+

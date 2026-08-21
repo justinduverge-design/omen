@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+key=/home/darthslops/.ssh/slops-alerting_ed25519
+state=/var/lib/slops-alerting/last-signature
+webhook=/etc/slops-alerting/discord-webhook-url
+# Build the payload with a real JSON encoder rather than string interpolation.
+# The old form could only ever deliver a SINGLE-LINE alert: a multi-signal
+# signature embeds raw newlines in the JSON string, which Discord rejects with
+# 400. So if two things had broken at the same time, the alert would have
+# failed and no notification would have gone out at all - the alerting system
+# failing precisely when it mattered most. Found 2026-08-21 when GlitchTip
+# became the fourth signal source and produced the first multi-line signature.
+send() {
+  printf '%s' "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
+    | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null
+}
+if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi
+mkdir -p /var/lib/slops-alerting
+bad="$({ sudo -u darthslops ssh -i "$key" -o BatchMode=yes -o StrictHostKeyChecking=yes darthslops@steward 2>/dev/null; sudo -u darthslops ssh -i "$key" -o BatchMode=yes -o StrictHostKeyChecking=yes darthslops@sentinel 2>/dev/null; } | grep '^result=' | grep -v '=HEALTHY' || true)"
+kuma="$(docker exec uptime-kuma sqlite3 -readonly -csv /app/data/kuma.db 'SELECT m.name,(SELECT h.status FROM heartbeat h WHERE h.monitor_id=m.id ORDER BY h.time DESC LIMIT 1) FROM monitor m WHERE m.active=1' | awk -F, '$2 != 1 {print $1 ": status=" $2}')"
+pihole="$(/usr/local/lib/slops-alerting/pihole-dns-probe.py 2>&1 || true)"
+# O9: unresolved GlitchTip issues. Read straight from Postgres, the same way
+# Kuma is read straight from SQLite above - no API token to provision, and the
+# transaction is forced read-only so this path cannot mutate error records.
+# Signature carries issue identity only, never the event count: a new issue
+# alerts once, a flapping issue accumulating events stays quiet, and resolving
+# every issue produces one recovery notice. Titles are error text and therefore
+# vendor-controlled, so quotes, backslashes and control characters are stripped
+# before they can reach the Discord JSON payload.
+# GlitchTip being down yields an empty result, not a false all-clear: Kuma's own
+# GlitchTip monitor covers that case through the kuma signal above.
+glitchtip="$(docker exec -e PGOPTIONS='-c default_transaction_read_only=on' glitchtip-postgres psql -U "$(docker exec glitchtip-postgres printenv POSTGRES_USER)" -d glitchtip -At -F'|' -c "SELECT i.short_id, i.title FROM issue_events_issue i JOIN issue_events_issueindex x ON x.issue_id = i.id WHERE x.status = 0 AND i.is_deleted = false ORDER BY i.short_id" 2>/dev/null | awk -F'|' '{t=$2; gsub(/[\\"]/,"",t); gsub(/[[:cntrl:]]/," ",t); if (length(t)>90) t=substr(t,1,90) "..."; print "GlitchTip #" $1 ": " t}' || true)"
+sig="$(printf '%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" | sed '/^$/d' | sort)"
+old="$(cat "$state" 2>/dev/null || true)"
+[ "$sig" = "$old" ] && exit 0
+# Deliver BEFORE persisting. The old order recorded the new signature first, so
+# a failed send was never retried - the state said "already reported" for an
+# alert that never left the machine. Under set -e a failed send exits non-zero
+# with the state untouched, and the next run retries.
+if [ -n "$sig" ]; then send "SLOPS ALERT: CRITICAL state change
+$sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
+printf '%s\n' "$sig" > "$state"
