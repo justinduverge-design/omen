@@ -17,7 +17,7 @@ SLOPS/
 Use these prompts to start new Omen work without re-explaining the whole repo:
 
 - `HOW-TO-RUN-THE-LOOP.md` - operator guide for loading one task, choosing the right lane, and closing the loop.
-- `kickoff-l2.md` - the single copy-paste L2 starter for any runtime. Layer- and
+- `kickoff.md` - the single local Omen starter for any runtime. Layer- and
   capability-named, not vendor-named: it confirms the session's actual capabilities and
   reads Runtime Policy and Active Trust Assignments before applying any authority.
   Supersedes the retired `kickoff-backend-codex.md` / `kickoff-frontend-claude.md` pair,

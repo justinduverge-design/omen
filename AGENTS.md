@@ -1,39 +1,42 @@
-# Omen — Codex Context
+# Omen — Shared Agent Context
 
-**App renamed:** Corvus → Omen (2026-06-22). The external repo, deploy path, GHCR images, and containers are now Omen. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims, redirects, legacy env fallbacks, and rollback evidence.
+This is Omen's canonical repository bootstrap for Codex and any runtime that supports `AGENTS.md`. Claude Code loads `CLAUDE.md`, which imports this file. Lanes are scheduling conveniences, not authority boundaries; confirm the session's actual capabilities and current assignment before acting.
 
-You are working in the Omen product layer. Lanes are a scheduling convenience, never an authority boundary — any runtime may be assigned any item. Confirm this session's actual capabilities and read Runtime Policy before applying any authority. See `AGENT.md` for Codex-specific ownership and safety rules.
+## Product posture
 
-**Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The native mobile pivot is active authority; the web app is secondary and new web page migrations are paused. Omen is **free indefinitely** — no Stripe, subscription, or paywall code exists. **Draft Assistant is cut from 1.0** (2026-08-05) and ships for the **2027 fantasy draft** on a Slops-built ADP. Amended 2026-08-14: a single factual "2027 fantasy draft" mention is permitted on the marketing site and in a clearly-labelled in-app "not in this version" note — never "coming soon", never a month. It stays out of **store metadata**, onboarding copy, navigation, legal copy, and the advertised tool list.
+- Omen is primarily a native mobile app: SwiftUI on iPhone and Kotlin/Jetpack Compose on Android.
+- The web app is secondary; new web-only page migrations are paused.
+- Omen is free indefinitely. Do not introduce Stripe, subscriptions, or paywalls.
+- Draft Assistant is outside Omen 1.0 and targets the 2027 fantasy draft on a Slops-built ADP. One factual "2027 fantasy draft" mention is allowed on the marketing site and in a clearly labeled in-app "not in this version" note; never say "coming soon" or name a month. Keep it out of store metadata, onboarding, navigation, legal copy, and the advertised tool list.
+- Use `Omen` in current source and copy. Keep `corvus` only for documented compatibility, redirects, legacy environment fallbacks, or rollback evidence.
 
-## Read in order before pulling a task
+## Read before pulling a task
 
-1. `AGENT.md` (backend ownership, safety rules, end-of-task report shape)
-2. `Direction/context.md` — current operating context
-3. `Direction/agent_inbox.md` — pinned task or top-5 queue
-4. `Direction/current_sprint.md` — full lane queue
-5. `Direction/facts-of-record.md` — standing constraints
-6. `Direction/known_issues.md` — open bugs
-7. `Direction/decision_log.md` — rationale + history
-8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` — the loop in one page
-9. `Blueprints/definition-of-done.md` — per-type DoD pointers
-10. `Blueprints/playbooks/omen-company-baseline.md` — baseline procedure
-11. `Blueprints/playbooks/skill-activation-runbook.md` — skill routing
-12. Latest entry in `Blueprints/handoffs/` — last session handoff
+1. `DBS_INDEX.md` — repository navigation and canonical paths
+2. `Direction/context.md`
+3. `Direction/agent_inbox.md` — a founder pin wins
+4. `Direction/current_sprint.md`
+5. `Direction/status-model.md`
+6. `Direction/facts-of-record.md`
+7. `Direction/known_issues.md`
+8. `Direction/decision_log.md`
+9. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
+10. `Blueprints/definition-of-done.md`
+11. `Blueprints/playbooks/omen-company-baseline.md`
+12. `Blueprints/playbooks/skill-activation-runbook.md`
+13. The latest relevant entry in `Blueprints/handoffs/`
 
-If a file is missing, continue and mention it.
+If a file is missing, continue safely and report the gap.
 
-## Reads on demand
+## Read on demand
 
-- `Blueprints/api-routes.md` — API contracts
-- `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
-- `test/` directory — test conventions
-- `src/` + `services/` + `routes/` — backend layout
-- `Blueprints/specs/design/component-lock-v1.md` / `team-theme-contract-v1.md` — current frontend design authority; read before any task that touches shared UI components or team theming, even from the backend lane
+- Backend/API work: `Blueprints/api-routes.md`, relevant `src/`, `services/`, `routes/`, `test/`, and contract handoffs.
+- Design/UI work: `Brand/brand-system.md`, `Blueprints/specs/page-system.md`, and the applicable component, theme, and UX design-system specs.
+- Release work: `Direction/omen-1.0-plan.md` and `Direction/release_readiness.md`.
 
 ## Native mobile read gate
 
-For any native iPhone, Android, mobile design-system, mobile onboarding, provider-connection, or mobile release task, read these before planning or code:
+Before native iPhone, Android, mobile design-system, onboarding, provider-connection, or mobile release work, read:
 
 1. `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
 2. `Blueprints/specs/mobile/omen-native-design-house-v1.md`
@@ -41,14 +44,22 @@ For any native iPhone, Android, mobile design-system, mobile onboarding, provide
 4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
 5. `Blueprints/specs/mobile/omen-native-agent-capabilities-canvas-v1.md`
 6. `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
-7. Relevant approved Figma screen/component and API/state contract
+7. The relevant approved Figma screen/component and API/state contract
 
-Do not start native feature code when any of those sources are missing or conflict. Flag the gap instead.
+Do not begin native feature code when required authority is missing or contradictory. Do not introduce React Native.
+
+## Safety boundaries
+
+- Do not expose or commit secrets, cookies, or credentials.
+- Do not wipe data or present mock data as live advice.
+- Do not change production configuration, migrations, deployment, DNS, SSL, VPS infrastructure, package files, store accounts, signing, or release metadata without the required explicit approval.
+- Do not merge branches without founder approval.
+- Treat local validation, merge, CI, deployment, canary, and live-provider proof as separate evidence stages.
 
 ## Kickoff
 
-Paste `Blueprints/prompts/kickoff-l2.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+Run `Blueprints/prompts/kickoff.md` to start an Omen session. This local entry point must continue to work in standalone clones and CI.
 
 ## Close-out
 
-Satisfy `Blueprints/definition-of-done.md`, append a row to `Blueprints/playbooks/skill-usage-ledger.md`, log decisions in `Direction/decision_log.md`, and write a dated handoff in `Blueprints/handoffs/`.
+Satisfy `Blueprints/definition-of-done.md`, update the required queue/evidence records, append the skill-usage ledger when applicable, and write a dated handoff. Report files changed, checks run, contract or handoff changes, risks or limitations, and the next recommended step.

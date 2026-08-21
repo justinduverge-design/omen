@@ -69,7 +69,7 @@ git add -A -- \
   "*.md" \
   "Corvus/" \
   ".dockerignore" \
-  "AGENT.md" "CLAUDE.md" "DBS_INDEX.md" "README.md" \
+  "AGENTS.md" "CLAUDE.md" "DBS_INDEX.md" "README.md" \
   "CURRENT_STATUS.md" "KNOWN_ISSUES.md" "RELEASE_READINESS.md" \
   "agent_handoff.md" "agent_inbox.md" "context.md" "current_sprint.md" \
   "decision_log.md" "prompt_playbook.md" "roadmap.md" \
@@ -117,7 +117,7 @@ Documentation and DBS reorganization:
 Identity rename (documentation only — source code unchanged):
 - Layer 1 identity: ssffmvp → Slops Saloon across all active .md files
 - DBS_INDEX.md: layer paths, aliases, context labels updated
-- CLAUDE.md, AGENT.md: DBS navigation updated
+- AGENTS.md, CLAUDE.md: DBS navigation updated
 - direction/context.md, Corvus/ docs: Slops Saloon canonical names
 
 Added:

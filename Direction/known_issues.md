@@ -42,7 +42,7 @@ Founder-requested pass, run after `O7` closed. Every entry was checked against `
 
 - Some historical docs may still reference retired pre-DBS paths.
 - Some archive/checkpoint files describe older launch states and should not be treated as current truth.
-- Justin may still rewrite `AGENT.md` and `CLAUDE.md`; until then, follow `AGENTS.md`, `AGENT.md`, `Direction/`, and `Blueprints/handoffs/`.
+- `AGENTS.md` is the shared canonical bootstrap and `CLAUDE.md` is its Claude adapter; follow those with current `Direction/` and `Blueprints/handoffs/` authority.
 
 ## Native Accessibility Risks — found 2026-08-15 during M6-ContextualHelp (contrast: [#340](https://github.com/justinduverge-design/omen/issues/340); fonts: [#338](https://github.com/justinduverge-design/omen/issues/338))
 
@@ -151,6 +151,6 @@ it affects every light-mode screen on Android.
 
 ## Operating Loop (added 2026-06-04)
 
-- Build loop is set up: `Direction/agent_inbox.md` (single active task) + `Blueprints/prompts/kickoff-l2.md` + `Blueprints/definition-of-done.md`. Operator steps in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
-- `agent_inbox.md` was stale (old AGENT.md/CLAUDE.md rewrite request) and is now the single active-task pointer.
+- Build loop is set up: `Direction/agent_inbox.md` (single active task) + `Blueprints/prompts/kickoff.md` + `Blueprints/definition-of-done.md`. Operator steps in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+- `agent_inbox.md` was stale (an old wrapper-rewrite request) and is now the single active-task pointer.
 - `Direction/agent_inbox.md` is the active task slot and `Direction/current_sprint.md` is queue/history. `Blueprints/handoffs/*` is the active contract bus; `Blueprints/agent_handoff.md` should be treated as historical session-log material if encountered.

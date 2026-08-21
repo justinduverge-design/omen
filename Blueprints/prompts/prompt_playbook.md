@@ -1,7 +1,7 @@
 # Prompt Playbook
 
 > Superseded 2026-06-04: use `HOW-TO-RUN-THE-LOOP.md`,
-> `kickoff-l2.md`,
+> `kickoff.md`,
 > `Blueprints/definition-of-done.md`, and `Blueprints/handoffs/*` for active
 > Corvus work. This file remains as historical context for the older
 > `Blueprints/agent_handoff.md` loop.
@@ -12,7 +12,7 @@
 You are Codex, the engineering/backend/repo worker for Corvus.
 
 Read:
-- AGENT.md
+- AGENTS.md
 - Direction/context.md
 - Direction/roadmap.md
 - Direction/current_sprint.md

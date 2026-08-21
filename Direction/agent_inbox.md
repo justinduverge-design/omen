@@ -202,7 +202,7 @@ The handoff must include:
 
 ## Do not touch unless explicitly pinned
 
-- `AGENT.md`, `CLAUDE.md`, `AGENTS.md`
+- `AGENTS.md`, `CLAUDE.md`
 - `Direction/status-model.md` — changing it without the L0 canonical source is a Truth Gate failure
 - `.env`, secrets, or credentials
 - deploy configuration or production infrastructure

@@ -393,4 +393,4 @@ Front end will build the Draft Assistant UI panel using mock data from the respo
 
 ---
 
-*DBS note: this older spec was written before the current navigation layout. Use `Direction/context.md`, `Direction/roadmap.md`, `Blueprints/handoffs/decisions.md`, `Blueprints/handoffs/backend-to-frontend.md`, `Blueprints/handoffs/frontend-to-backend.md`, `AGENT.md`,
+*DBS note: this older spec was written before the current navigation layout. Use `Direction/context.md`, `Direction/roadmap.md`, `Blueprints/handoffs/decisions.md`, `Blueprints/handoffs/backend-to-frontend.md`, `Blueprints/handoffs/frontend-to-backend.md`, `AGENTS.md`,

@@ -82,7 +82,7 @@ The app may have extra source, config, and test folders. Those do not replace th
 
 ## Read First
 
-**All work** starts with `AGENTS.md` (or `CLAUDE.md` / `AGENT.md` for the
+**All work** starts with `AGENTS.md` (imported by `CLAUDE.md` for the
 runtime you are), then `Direction/context.md`, `Direction/agent_inbox.md`,
 `Direction/current_sprint.md`, `Direction/facts-of-record.md`.
 

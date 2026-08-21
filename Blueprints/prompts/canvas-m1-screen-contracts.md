@@ -2,7 +2,7 @@
 
 **Written:** 2026-08-16 · **For:** a session picking up `M1-Screen-Trade`, `M1-Screen-League`, or `M5-Slice-E-Ledger`.
 
-This is a briefing, not a task record. The canonical records are in `Direction/current_sprint.md`. Read the native read gate in `CLAUDE.md` before any of this.
+This is a briefing, not a task record. The canonical records are in `Direction/current_sprint.md`. Read the native read gate in `AGENTS.md` before any of this.
 
 ---
 

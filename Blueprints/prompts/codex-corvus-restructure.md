@@ -21,7 +21,7 @@ inside it is redundant. This prompt:
 1. Folds `Corvus/` subfolder contents up into the repo root
 2. Creates the `slops-saloon/` division folder (outside the repo) with DBS context files
 3. Renames division-level identifiers from `slops-saloon` → `corvus` in source/config
-4. Updates CLAUDE.md and AGENT.md repo-location references
+4. Updates `CLAUDE.md` and `AGENTS.md` repo-location references
 5. Runs 175/175 tests and commits everything
 
 ---
@@ -320,7 +320,7 @@ Expected: zero matches.
 
 ---
 
-## Step 5: Update CLAUDE.md and AGENT.md
+## Step 5: Update CLAUDE.md and AGENTS.md
 
 The repo has moved. Update the path references in both files.
 
@@ -328,7 +328,7 @@ The repo has moved. Update the path references in both files.
 - `slops-saloon/` (as a repo path) → `slops-saloon/corvus/`
 - The DBS navigation section: Layer 2 is now `slops-saloon/corvus/`
 
-**In AGENT.md** — same updates as CLAUDE.md for DBS navigation.
+**In AGENTS.md** — same updates as CLAUDE.md for DBS navigation.
 
 The read-first file paths (`Direction/context.md`, `Direction/current_sprint.md`, etc.)
 do NOT need to change — they are relative paths within the repo and are still correct.
@@ -356,7 +356,7 @@ Confirm staged changes include:
 - Deleted `Corvus/` tree (all files moved or removed)
 - New/moved files under `Blueprints/`, `Direction/`, `Brand/`, `Archive/`, etc.
 - Modified `package.json`, `docker-compose.yml`, `.github/workflows/deploy.yml`
-- Modified `CLAUDE.md`, `AGENT.md`
+- Modified `CLAUDE.md`, `AGENTS.md`
 
 DO NOT stage anything under `node_modules/`, `.env*`, or `*.key`.
 
@@ -373,7 +373,7 @@ Source rename (slops-saloon → corvus):
 - package.json name: corvus
 - docker-compose.yml: corvus_api, corvus_cron, corvus_network, GHCR corvus:main
 - deploy.yml: GHCR tags + cache scopes → corvus
-- CLAUDE.md, AGENT.md: repo path updated to slops-saloon/corvus/
+- CLAUDE.md, AGENTS.md: repo path updated to slops-saloon/corvus/
 
 175/175 tests pass."
 ```
@@ -407,7 +407,7 @@ Expected:
 - [ ] `package.json` name = corvus
 - [ ] `docker-compose.yml` all slops-saloon refs → corvus
 - [ ] `deploy.yml` all slops-saloon refs → corvus
-- [ ] `CLAUDE.md` and `AGENT.md` repo path updated
+- [ ] `CLAUDE.md` and `AGENTS.md` repo path updated
 - [ ] 175/175 tests pass after changes
 - [ ] Single commit with all changes
 - [ ] Report commit hash

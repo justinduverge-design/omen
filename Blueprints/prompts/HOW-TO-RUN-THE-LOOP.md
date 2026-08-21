@@ -6,7 +6,7 @@ One short instruction per task. The folder carries the context; you approve the 
 
 - **Task slot:** `Direction/agent_inbox.md` — top-5 auto-populated by the agent + optional pin
 - **Queue:** `Direction/current_sprint.md` — full list, lanes (Frontend / Backend / Ops / Verify / Decisions / Tech debt)
-- **Kickoff:** `Blueprints/prompts/kickoff-l2.md` — one layer- and capability-named starter for every runtime. It confirms the session's actual capabilities and reads Runtime Policy before applying any authority.
+- **Kickoff:** `Blueprints/prompts/kickoff.md` — the local layer- and capability-named starter for every runtime. It confirms the session's actual capabilities and reads Runtime Policy before applying any authority.
 - **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
 - **Scripts index:** `scripts/README.md` — every operational script, what it does, and whether it is safe to run. **Check it before writing a new one**; several existing scripts were written twice because a session did not know an equivalent existed. The record-integrity checks live at `scripts/checks/` and are indexed there.

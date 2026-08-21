@@ -72,10 +72,10 @@ Layer 2 in DBS numbering; the third SLOPS layer in plain English. Parent layers:
 | What is verified vs required | `Direction/release_readiness.md` |
 | The active work queue | `Direction/current_sprint.md` |
 | Standing constraints | `Direction/facts-of-record.md` |
-| Native mobile specs | the native mobile read gate in `CLAUDE.md` |
+| Native mobile specs | the native mobile read gate in `AGENTS.md` |
 | Navigation map | `DBS_INDEX.md` |
 
-Runtime entry points: `CLAUDE.md` (Claude), `AGENT.md` (Codex), `AGENTS.md` (shared posture).
+Runtime entry points: `AGENTS.md` is the shared canonical bootstrap; `CLAUDE.md` imports it for Claude Code.
 
 ## Safety Boundary
 

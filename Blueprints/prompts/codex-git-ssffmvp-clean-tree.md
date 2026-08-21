@@ -52,7 +52,7 @@ Confirm:
 - No new unexpected files before proceeding
 
 **Expected modified (M):**
-`AGENT.md`, `Blueprints/specs/docs/spec-kit-usage.md`, `CLAUDE.md`,
+`AGENTS.md`, `Blueprints/specs/docs/spec-kit-usage.md`, `CLAUDE.md`,
 `Corvus/Direction/current_sprint.md`, `Corvus/Direction/decision_log.md`,
 `Corvus/Direction/roadmap.md`, `Direction/current_sprint.md`,
 `Direction/decision_log.md`, `Direction/context.md`, `Direction/roadmap.md`,
@@ -101,7 +101,7 @@ No `.jsx`, `.js`, `.ts`, `.yaml`, or test files.
 
 ```bash
 git add CLAUDE.md
-git add AGENT.md
+git add AGENTS.md
 git add Direction/context.md
 git add Direction/current_sprint.md
 git add Direction/decision_log.md
@@ -149,9 +149,9 @@ git commit -m "docs: 2026-05-24 doc pass, archive cleanup, and context normaliza
 Agent files:
 - CLAUDE.md: route table updated (omen row added), universal rules absorbed,
   handoff paths updated to Blueprints/handoffs/
-- AGENT.md: canonical Omen path documented, universal rules absorbed,
+- AGENTS.md: canonical Omen path documented, universal rules absorbed,
   handoff paths updated to Blueprints/handoffs/
-- Universal rules now live in CLAUDE.md and AGENT.md
+- Universal rules now live in AGENTS.md and are imported by CLAUDE.md
 
 Canonical DBS pointers:
 - Direction/context.md, Direction/current_sprint.md, Direction/decision_log.md,

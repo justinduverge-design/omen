@@ -1,4 +1,4 @@
-# Kickoff — Layer 2 (Omen product)
+# Kickoff — Omen product (Layer 2)
 
 Paste this block into any runtime to start a product-layer session. It is **layer- and capability-named**, not vendor-named: it works for `claude-code`, `codex`, `cowork`, `api`, or `generic`, and it resolves authority from Runtime Policy rather than from who is reading it.
 
@@ -46,11 +46,10 @@ Read in order before acting:
    branch, ahead/behind origin, uncommitted state, canonical paths — before
    reading any queue.
 1. CLAUDE.md / AGENTS.md (this folder)
-2. AGENT.md
-3. Direction/context.md
-4. Direction/agent_inbox.md         ← pin wins over auto-populate
-5. Direction/current_sprint.md      ← lane queue if no pin
-5b. Direction/status-model.md        ← states, Claim:/Evidence:, blocker grammar
+2. Direction/context.md
+3. Direction/agent_inbox.md         ← pin wins over auto-populate
+4. Direction/current_sprint.md      ← lane queue if no pin
+5. Direction/status-model.md        ← states, Claim:/Evidence:, blocker grammar
 6. Direction/facts-of-record.md
 7. Direction/known_issues.md
 8. Direction/decision_log.md
