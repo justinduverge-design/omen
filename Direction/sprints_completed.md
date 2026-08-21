@@ -359,3 +359,13 @@ Both fixed: a real JSON encoder builds the payload, and delivery now precedes pe
 
 **Constitution honored:** notification-only, no remediation added. Every new data path is read-only by construction — the GlitchTip read runs in a forced read-only transaction, verified by confirming an `UPDATE` is refused.
 
+## F9 — mock / live labeling sweep — closed 2026-08-21 (work completed 2026-08-20)
+
+**Closure: COMPLETED.** PR [#350](https://github.com/justinduverge-design/omen/pull/350). Evidence: `Direction/reviews/2026-08-20-f9-mock-live-labeling-inventory.md`; `Blueprints/handoffs/2026-08-20-f9-mock-live-labeling-verification.md`.
+
+All three `Done when:` clauses were met on 2026-08-20 — every recommendation surface across web, iOS and Android either shows verifiably live data or is explicitly labeled, a written inventory maps each surface to its labeling, and no path presents fallback output as live. Signed iOS simulator 246/246 (`OmenDecisionTests` 14/14, Xcode 26.6, iPhone 16) and Android `:core:designsystem:connectedDebugAndroidTest` 60/60, both new Mock/Demo label assertions executing.
+
+**Explicitly not claimed, and assigned elsewhere by their own records:** human VoiceOver/TalkBack on the labeled states, and rendered screenshot evidence of the new Mock/Demo/Unverified treatments. Those belong to `F10`/`F11` and are not F9 clauses.
+
+**Why this needed a separate closing pass:** the work was finished and evidenced, and the item simply never advanced from `VERIFIED` to `CLOSED`. `check-sprint-staleness.js` flagged it for two days. **The status model's terminal step is a human act by design** — the checker can prove an item's PR merged but cannot judge whether every `Done when:` clause was met — so an item that is genuinely done still sits stale until someone reads it and decides. Re-checked rather than rubber-stamped: the inventory file was confirmed to exist, and the deferred items were confirmed to sit on other tasks.
+
