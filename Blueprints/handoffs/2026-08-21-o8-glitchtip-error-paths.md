@@ -142,3 +142,22 @@ Recreate both containers, then confirm `GET /api/ready` → `checks.error_tracki
 - **Invoked:** core implementation; `security-privacy-evidence` (the containment tests, the allowlist design, and the scrubber fix are its output — it is what caught defect 2).
 - **Considered, not applicable:** `design-done` / `page-done` (no user-visible UI), `recommendation-done` (no recommendation logic touched), `release-done` (no deploy — production untouched), native mobile read gate (backend only).
 - **Procedure gap:** none new. The existing standing rule — *`main` is the proof* — would have prevented O8's false Scope premise had it been applied to an absence claim. Worth stating explicitly in the rule itself; noted in `current_sprint.md`.
+
+
+## Addendum — production DSN corrected 2026-08-21, founder-approved in session
+
+The founder asked for the fix to be applied rather than handed over. Done on KVM1, with the founder's explicit go-ahead for the container restart:
+
+- **Reachability checked first, from inside the container, not from the host** — `http://100.98.81.0:8000/` → 200. Host reachability would not have proven the container could route to the tailnet, and finding that out after the restart would have meant a second restart.
+- Backup at `~/env.production.bak-20260821-o8-before-sentry-fix`. **Exactly one line changed**, verified by a key-only diff showing 25 assignments before and after with no key added or removed — the file holds Supabase service keys and Yahoo secrets, so "I only meant to touch one line" is not good enough on its own.
+- Both containers recreated; the DSN value never entered a shell process listing on either machine.
+
+**The number that matters:** `client.getTransport()` was **`false`** before and is **`true`** after. `enabled` read `true` in both cases, which is precisely why this went unnoticed for so long — the field everyone would check was never the field that was broken.
+
+An event sent from inside `omen_api` arrived as GlitchTip **issue 3**, tagged `environment: production`. (Deliberate verification event; safe to resolve.)
+
+### What is still not true, stated plainly
+
+**Production runs an image that predates PR #353, so no provider adapter reports anything yet.** This was proven rather than assumed: a real ESPN 404 was provoked inside the production container and **nothing was captured**, because the deployed `espn.js` has no `captureProviderError` call.
+
+**The pipe is open; nothing is feeding it.** "GlitchTip is receiving events from production" and "Omen's error paths are wired in production" are two different claims. Merging #353 and deploying closes the gap; [#354](https://github.com/justinduverge-design/omen/issues/354) stays open until a *real* adapter failure — not a hand-sent verification event — shows up in GlitchTip from production.
