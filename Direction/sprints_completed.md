@@ -387,3 +387,28 @@ Both halves were proven live on 2026-08-19: a deliberate Android crash (`adb she
 
 **2. iOS crash coverage is partial, and the record says so.** `NSSetUncaughtExceptionHandler` fires for Objective-C exceptions only. Pure Swift runtime traps — `fatalError()`, force-unwrapped nil, index out of range — raise `SIGTRAP`/`SIGILL` and never reach it. Catching those needs signal handlers with real async-signal-safety hazards, deliberately out of scope. Android has no equivalent gap. **The deliberate-crash proof therefore had to use an `NSException` for the claim to be honest about what it demonstrates** — which is a limit on the proof, not a defect in it.
 
+
+## M4 render-evidence package — three items closed on captured, reviewed pixels — closed 2026-08-22
+
+**Closure: COMPLETED** for `M4-CC-PlatformsCompact`, `M4-CC-WaiverWatch`, and `M4-Help-Support-Implementation`. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
+
+**All three were implementation-complete and merged.** None was missing code. All three were stuck on the same gap: their `Blocked by:` lines said `AGENT_RESOLVABLE` and every one was asking for **rendered evidence that had never been captured**. This was a capture-and-verify pass, not a build pass — the only source changes are screenshot-registry entries, one screenshot-host fix, and one new accessibility test.
+
+| Item | What was owed | Evidence |
+| --- | --- | --- |
+| `M4-CC-PlatformsCompact` | Android compact-row render (connected + disconnected), assembly/scanner/connected-test result, handoff for `6466a4c` | `References/evidence/2026-08-14-cc-platforms-compact/` |
+| `M4-CC-WaiverWatch` | six registered states **rendered** on iOS — the 2026-08-12 XCTest run proved the tests pass, not that anyone looked | `References/evidence/2026-08-22-m4-waiver-watch-ios/` |
+| `M4-Help-Support-Implementation` | Android TalkBack, font-scale, compact/large-phone; plus the iOS half its `Blocked by:` line understated | `References/evidence/2026-08-22-m4-help-support-native/` |
+
+**Gates, 2026-08-22.** Backend `npm test` **593/593**. Android: `:app:assembleDebug` BUILD SUCCESSFUL, `PrimitiveEnforcementTest` **1/1**, `:core:designsystem:testDebugUnitTest` **22/22**, `:app:testDebugUnitTest` **45/45**, `:app:connectedDebugAndroidTest` **53/53**. iOS: Xcode **26.6 (17F113)**.
+
+**`main` is red on iOS, and nothing in this repo said so.** The full `xcodebuild test` fails two `ContextualHelpAccessibilityUITests` audits on "Contrast nearly passed". **Proven pre-existing rather than argued from the diff:** `f4a6ae1` was checked out into a throwaway worktree and run there, giving **256 passed / 2 failed** with the *same two* failures. This is the known `text-secondary`-on-`surface-2` contrast defect ([#340](https://github.com/justinduverge-design/omen/issues/340)) reaching a test that was green when M6 shipped.
+
+**A third failure was environmental and was proven so.** `ForcedUpdateAccessibilityUITests` failed with "Audit failed to complete in time" while an Android emulator and Gradle ran concurrently; it passes alone on an idle machine. Recorded as contention, not a defect.
+
+**Two real defects found by looking at pixels, exactly the class the type checker cannot see.**
+
+1. **Android bottom nav breaks at font scale 2.0** — "Command" wraps to "Comma / nd", "League" clips at the screen edge. App-wide, production code (`OmenAndroidApp.kt:505`), confirmed by reading it against the screenshot-mode twin. Recorded in `known_issues.md`; **still needs a GitHub issue number.**
+2. **The iOS screenshot host omitted `onOpenOmen`**, so iOS captures of the Waiver Watch `urgent` and `processed` states were silently missing the "Review Omen's waiver analysis" link that the approved composition specifies — while the Android host passed it all along. Fixed in the host; the `processed` capture was retaken and now shows the link.
+
+**One near-miss worth keeping.** Three capture attempts showed a lime-green rectangle (`#64C139`, sampled from the PNG) around the platforms strip, which reads exactly like a design-token defect. It was **TalkBack's focus indicator**, left enabled on the AVD. Two things made it stick: `settings put secure enabled_accessibility_services ""` fails with "Bad arguments" and silently leaves TalkBack on, and `accessibility_enabled` reverts to `1` on reboot while a service is listed. **Sampling the pixel proved the colour; only re-running proved the cause.** `scripts/capture-screenshot-scenario.sh` now refuses to capture unless the Omen window holds focus — which also caught a cold-boot SystemUI ANR that would otherwise have been committed as screen evidence.

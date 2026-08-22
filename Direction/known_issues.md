@@ -226,6 +226,43 @@ Evidence: `Direction/reviews/evidence/2026-08-19-o7/android-forced-update-light.
 screen; the Command Center comparison capture was taken in the same session. Worth its own item —
 it affects every light-mode screen on Android.
 
+## Native Accessibility — Android bottom navigation breaks at large font scale (found 2026-08-22, OPEN — ⚠️ NEEDS A GITHUB ISSUE, founder action)
+
+> **Why this entry is deliberately flagged by `check-sprint-staleness.js`.** The standing rule
+> from the 2026-08-19 reconciliation is that a real unresolved known issue gets a GitHub issue
+> and carries its number here. This one has no number because the session that found it ran
+> **unattended**, and opening a public issue is an outward-facing action that was not in its
+> authorized scope (which was: one PR, left open for review). The entry is kept rather than
+> dropped because the defect is real and reproduced. **Open the issue and put the number in this
+> heading** — do not resolve the checker finding by deleting the entry.
+
+At Android **font scale 2.0** (the accessibility maximum) the bottom navigation bar's labels
+overflow their items: **"Command" wraps to "Comma / nd"** and spills below its own row, and
+**"League" is clipped at the right screen edge**. The icons stay put; only the labels break.
+
+**This is app-wide, not a Help + Support defect.** It was found while capturing
+`M4-Help-Support-Implementation` font-scale evidence, but the Help + Support content itself
+reflows correctly at 2.0 — the cards grow, the text wraps, nothing clips. The break is in the
+nav that sits under every screen.
+
+**It is production code, not a screenshot-mode artifact.** `OmenBottomNav` in
+`mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt:505` and the
+screenshot-mode `FauxBottomNav` in `.../app/screenshot/ScreenshotScenarios.kt` are structurally
+identical — the same `NavigationBarItem` with `label = { Text(destination.label, style =
+OmenTheme.typography.label.toTextStyle()) }` and **no `maxLines`, `softWrap`, or `overflow`
+handling**. Verified by reading both call sites, not inferred from the capture.
+
+Evidence: `References/evidence/2026-08-22-m4-help-support-native/android-medium-phone-help-support-available-fontscale-2.0.png`
+(broken) against `...-fontscale-1.3.png` and `...-available.png` (both fine). So the failure
+appears somewhere between scale 1.3 and 2.0.
+
+**Not iOS.** The iOS tab bar was rendered at `accessibility-extra-extra-extra-large` in the same
+pass and does not exhibit it — SwiftUI's `TabView` truncates rather than overflowing.
+
+Worth its own item; it affects every screen on Android at accessibility text sizes, and
+Play's accessibility guidance and the delivery-governance accessibility gate both cover font
+scaling explicitly.
+
 ## Native Copy Risks
 
 - **[CORRECTED 2026-08-15 — this is not a defect.]** During M6 verification the Command Center

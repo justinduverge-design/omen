@@ -50,6 +50,42 @@ enum ScreenshotScenarios {
             label: "Help + Support — provider recovery",
             content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
         ),
+        // M4-CC-WaiverWatch. One scenario per registered honest state so each can be rendered
+        // and reviewed on its own. The composition is NOT re-implemented here — every entry
+        // mounts the real `OmenCommandCenterScreen` and varies only `waiverWatch`, mirroring
+        // the Android connected test that asserts the same six states.
+        //
+        // Base fixture is chosen for coherence, not convenience: `not-connected` uses the
+        // disconnected fixture because "your waiver moves need a league" beside a selected
+        // demo league would be a state the product never produces. The other five imply a
+        // usable league, so they sit on the demo-connected fixture.
+        //
+        // Waiver Watch renders below the fold on every current iPhone, so capturing these
+        // requires scrolling the screen — see `scripts/capture-screenshot-scenario.sh`.
+        "waiver-watch.pending": ScreenshotScenario(
+            label: "Waiver Watch — claim pending",
+            content: { AnyView(waiverWatch(.pending)) }
+        ),
+        "waiver-watch.processed": ScreenshotScenario(
+            label: "Waiver Watch — waivers processed",
+            content: { AnyView(waiverWatch(.processed)) }
+        ),
+        "waiver-watch.availability-unknown": ScreenshotScenario(
+            label: "Waiver Watch — availability needs confirmation",
+            content: { AnyView(waiverWatch(.availabilityUnknown)) }
+        ),
+        "waiver-watch.no-credible-move": ScreenshotScenario(
+            label: "Waiver Watch — no credible move",
+            content: { AnyView(waiverWatch(.noCredibleMove)) }
+        ),
+        "waiver-watch.not-connected": ScreenshotScenario(
+            label: "Waiver Watch — no connected league",
+            content: { AnyView(waiverWatch(.notConnected, base: OmenCommandCenterFixtures.realDisconnected)) }
+        ),
+        "waiver-watch.off-season": ScreenshotScenario(
+            label: "Waiver Watch — off-season",
+            content: { AnyView(waiverWatch(.offSeason)) }
+        ),
         // M6-ContextualHelp. The sheet body is captured directly rather than through a tap:
         // screenshot mode has no interaction, and the content is what needs proving.
         "contextual-help.command-center": ScreenshotScenario(
@@ -95,6 +131,25 @@ enum ScreenshotScenarios {
         ),
     ]
 
+    /// Rebuilds `base` with one field replaced. `OmenCommandCenterState` is a `let`-only
+    /// struct with no `copy`, so the swap is spelled out rather than mutated in place.
+    private static func waiverWatch(
+        _ state: OmenWaiverWatchState,
+        base: OmenCommandCenterState = OmenCommandCenterFixtures.demoConnected
+    ) -> some View {
+        ScreenshotScenarioHost.commandCenter(
+            OmenCommandCenterState(
+                greeting: base.greeting,
+                context: base.context,
+                platforms: base.platforms,
+                matchup: base.matchup,
+                waiverWatch: state,
+                ledger: base.ledger,
+                leaguePulse: base.leaguePulse
+            )
+        )
+    }
+
     private static func contextualHelp(_ destination: OmenHelpDestination) -> some View {
         OmenContextualHelpSheet(
             topic: OmenContextualHelpContent.topic(for: destination),
@@ -133,6 +188,12 @@ struct ScreenshotScenarioHost: View {
     var body: some View {
         ScreenshotScenarios.entries[scenarioKey]?.content()
     }
+
+    /// Mounts the real Command Center in the deterministic tab shell against an explicit
+    /// state. Used by scenarios that vary one section rather than selecting a whole fixture.
+    static func commandCenter(_ state: OmenCommandCenterState) -> some View {
+        FauxShell(commandStateOverride: state)
+    }
 }
 
 /// Faux tab shell — production `CommandCenterView` requires a real SessionManager;
@@ -140,13 +201,21 @@ struct ScreenshotScenarioHost: View {
 /// 4-tab TabView, wires the Command tab to the correct fixture per scenario key, and
 /// leaves the other tabs on their "coming next" placeholders.
 private struct FauxShell: View {
-    let scenarioKey: String
+    var scenarioKey: String = ""
+    /// Set by scenarios that supply a state directly instead of naming a whole fixture.
+    var commandStateOverride: OmenCommandCenterState?
 
     var body: some View {
         TabView {
             OmenCommandCenterScreen(
                 state: commandState,
                 onOpenAccount: {},
+                // Supplied so the Waiver Watch "Review Omen's waiver analysis" link renders.
+                // The screen hides that link when `onOpenOmen` is nil — correct product
+                // behavior, but it meant iOS captures of the `urgent` and `processed` states
+                // were silently missing an element of the approved composition that the
+                // Android host had all along. Found while capturing M4-CC-WaiverWatch.
+                onOpenOmen: {},
                 onOpenLedger: { _ in },
                 onOpenLeague: {}
             )
@@ -178,6 +247,7 @@ private struct FauxShell: View {
     }
 
     private var commandState: OmenCommandCenterState {
+        if let commandStateOverride { return commandStateOverride }
         switch scenarioKey {
         case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
         case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
