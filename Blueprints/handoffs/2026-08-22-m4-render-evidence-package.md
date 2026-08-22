@@ -130,6 +130,40 @@ The script **refuses to capture unless the Omen window holds focus.** That guard
 
 The AVD config was temporarily modified (`hw.keyboard=no`, an unsuccessful hypothesis about the green rectangle) and has been **restored to its original contents**; the backup file was removed. The emulator's TalkBack state was left as found (enabled).
 
+## PR CI: zero checks run on this PR, by configuration — and that is a gap
+
+`gh pr checks 357` reports **"no checks reported"**. That is correct-by-configuration, not a
+skipped gate, and it was confirmed by reading the trigger block of every workflow rather than
+assumed:
+
+| Workflow | Trigger | Fires here? |
+|---|---|---|
+| `pr-quality.yml` | PR, paths `src/**`, `test/**`, `evals/**`, package files, `frontend/src/**`, `client/package*` | no |
+| `ui-quality.yml` | PR, paths `frontend/src/**` | no |
+| `ai-evals.yml` | PR, paths `src/prompts/**`, `evals/**`, package files | no |
+| `dependency-health.yml` | PR, paths package files | no |
+| `ios-ci.yml` | push/PR on **`release/**`** only | no — this targets `main` |
+| `native-visual-evidence.yml` | `workflow_dispatch` only | no |
+| `deploy.yml` | push to `main` | no |
+
+This PR touches `mobile/**`, `scripts/**`, `Direction/**`, `Blueprints/**`, `References/**`, and
+`.gitignore`. None is in any filter.
+
+**Name the gap plainly: a PR that changes native Swift and Kotlin source — including a new test
+target file and a `project.pbxproj` edit — currently gets no CI at all.** That is the same shape
+as the hole `pr-quality.yml` was created to close for `src/**`, which the agent inbox describes as
+having let two production-breaking dependency PRs reach "green". The difference is that a native
+PR does not reach green; it reaches *nothing*, which reads the same in the UI.
+
+That is a deliberate cost decision for macOS runners and this pass does not reverse it. But the
+**Android** side has no such cost argument — `native-visual-evidence.yml` already runs Android
+emulators on `ubuntu-latest` precisely because it is ~10× cheaper than macOS, and
+`:app:assembleDebug` plus the primitive-enforcement scanner would be a cheap PR gate on
+`mobile/android/**`. Worth an item.
+
+**What stands in for it here:** every gate in the Verification table above was run locally on this
+branch and the counts recorded, per the DoD's "Local substitutes" rule.
+
 ## Repo relocation, noticed mid-session
 
 The working directory moved from `~/Documents/GitHub/omen` to `~/Documents/GitHub/Slops-OS/slops-saloon/omen` at ~08:46 while this session was running — the canonical L2 path from `Direction/context.md`. Same HEAD `f4a6ae1`, clean tree, same remote. Not caused by this session; recorded because a tool call failed with "working directory was deleted" and the next agent should not read that as damage.
