@@ -207,7 +207,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **✅ DONE — do not rebuild (merged as `231c9d2`):** all three original defects are fixed. `release` reads `OMEN_API_BASE_URL` from config (default `https://slopssaloon.com`), `OMEN_DEMO_MODE_ENABLED = false`, a `signingConfigs` block reads the upload keystore from `local.properties` or environment, and a shippability guard fails the build on a placeholder URL or missing signing. `mobile/android/local.properties.example` documents the keys.
 - **Blocked by:** None
 - **Evidence:** merged to `main` as `231c9d2`. Release now resolves `OMEN_API_BASE_URL` from config with a `https://slopssaloon.com` default and sets `OMEN_DEMO_MODE_ENABLED = false`; a `signingConfigs` block reads the upload keystore from `local.properties` or environment; a release shippability guard fails the build on a placeholder/blank API URL or missing signing (escape hatch `OMEN_ALLOW_UNSIGNED_RELEASE=true`). Added `mobile/android/local.properties.example`. Verified on Windows: `:app:bundleRelease` without signing fails with the guard message; `generateReleaseBuildConfig` emits the production URL and demo mode `false`; `generateDebugBuildConfig` unchanged; `:app:testDebugUnitTest` BUILD SUCCESSFUL.
-- **Remaining (founder):** generate the upload keystore with `keytool` and set the four `omen.release*` keys in `local.properties`. Never commit the `.jks` or any password. See `local.properties.example`.
+- **Founder step completed 2026-08-22:** Google Play Console accepted version code 1 into the Omen internal-testing release draft under the `DarthSlops` organization account, and the release page confirms Google Play App Signing is active. No keystore or password entered the repo or recorded evidence.
 - **Priority:** **P0 — three defects would each break the beta build**
 - **Cost:** small–medium
 - **Agent-buildable:** yes (the upload keystore itself is founder-generated and never committed)
@@ -223,10 +223,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R3 — Signing and provisioning
 
-- **Status:** IN_PROGRESS — iOS half `VERIFIED` (see `R3-BUILD-iOS`); Android half has a signed local build but has not yet uploaded through Play Console.
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED — both platforms now satisfy the signing and first-upload acceptance. iOS build 1 reached TestFlight on 2026-08-18; Google Play Console accepted Android version code 1 into an internal-testing release draft on 2026-08-22 and confirms Play App Signing is active. The Android release was not published and has no testers yet.
+- **Evidence:** `R3-BUILD-iOS` evidence above; `R3-BUILD-Android` evidence above; Google Play Console organization account `DarthSlops`, app `com.slopssaloon.omen`, internal-testing draft version code 1, observed 2026-08-22; `Direction/decision_log.md` (2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only Android-side blocker.
-- **Remaining for full closure:** Android — Play App Signing enrollment (founder click, first-upload flow) and one successful signed-AAB upload to Play Console. iOS half is fully done — see `R3-BUILD-iOS`'s own record.
+- **Unblock:** 2026-08-22 CLEARED — Google Play accepted the signed AAB and displayed version code 1 on the internal-release preview. Play App Signing is active. This closes signing/provisioning only; `R4`/`R5` and tester selection still gate publishing the internal release.
 - **Priority:** P0
 - **Cost:** small–medium
 - **Agent-buildable:** no — certificates and keys
@@ -261,11 +262,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R6 — Internal testing tracks
 
 - **Status:** READY
-- **Blocked by:** TASK-R3
 - **Blocked by:** TASK-R4
 - **Blocked by:** TASK-R5
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Unblock:** 2026-08-22 CLEARED — the founder conditionally approved opening the private internal testing tracks as soon as `R3`, `R4`, and `R5` are complete. This removes the repeat founder gate only; it does not satisfy those tasks, invite anyone early, authorize external testing, or authorize public release.
+- **Unblock:** 2026-08-22 CLEARED — `R3` completed when Google Play accepted Android version code 1 and confirmed Play App Signing; only `R4` and `R5` remain before tester selection and internal publication.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open

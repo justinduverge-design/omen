@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated
+
+- **Evidence:** under organization account `DarthSlops`, Google Play Console accepted Omen package `com.slopssaloon.omen` version code 1 into the internal-testing release flow and displayed the release preview. The console confirms releases are signed by Google Play.
+- **Warnings classified:** no testers are configured, so publishing now would make the release available to nobody. The missing deobfuscation file is expected because `release.isMinifyEnabled = false`; the native-symbol warning is diagnostic-quality follow-up, not an upload or signing rejection.
+- **Decision application:** the successful upload closes `R3` signing/provisioning. Do not press `Save and publish` yet: the founder's conditional internal-track approval still requires `R4` privacy disclosures and `R5` store-review questionnaires, and tester selection remains unfinished.
+- **Boundary:** no release was published, no tester was invited, and no keystore, password, certificate, or secret was recorded.
+
 ## 2026-08-22 — Private internal testing may open when the three store prerequisites complete
 
 - **Decision:** conditionally approve opening Omen's TestFlight internal and Google Play internal testing tracks once `R3` signing/provisioning, `R4` privacy disclosures, and `R5` store-review materials are complete.
