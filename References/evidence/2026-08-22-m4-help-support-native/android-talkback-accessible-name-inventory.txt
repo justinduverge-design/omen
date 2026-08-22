@@ -1,0 +1,15 @@
+Accessible-name inventory — help-support.available
+Source: uiautomator dump, TalkBack enabled, medium_phone API 36, 1080x2400 @420dpi
+Re-captured 2026-08-22 after the bottom-nav font-scale fix.
+
+OK   [105,1497][975,1689]        'Share feedback / Feedback sending is not available yet'
+OK   [105,1689][975,1923]        'Report a problem / Tell us what happened without private league data'
+OK   [0,2127][255,2337]          'Command'
+OK   [276,2127][530,2337]        'Omen'
+OK   [551,2127][805,2337]        'Trade'
+OK   [826,2127][1080,2337]       'League'
+
+actionable/focusable elements with no accessible name: 0
+
+Credential/provider-value scan over the whole tree:
+  hits: none

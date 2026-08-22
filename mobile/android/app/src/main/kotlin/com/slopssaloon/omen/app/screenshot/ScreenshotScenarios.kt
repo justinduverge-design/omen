@@ -17,10 +17,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
 import com.slopssaloon.omen.app.feature.help.ContextualHelpContent
 import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
@@ -87,6 +90,44 @@ object ScreenshotScenarios {
             label = "Help + Support — provider recovery",
             render = { HelpSupportInShell(OmenHelpSupportState.ProviderRecovery) },
         ),
+        // M4-CC-WaiverWatch. One scenario per registered honest state, mirroring the iOS twin
+        // key-for-key. The composition is NOT re-implemented here — every entry mounts the
+        // real OmenCommandCenterScreen and varies only `waiverWatch`, matching what
+        // `OmenCommandCenterScreenTest.everyRequiredHonestWaiverWatchStateRendersItsApprovedMessage`
+        // asserts.
+        //
+        // Base fixture is chosen for coherence: `not-connected` uses the disconnected fixture,
+        // because "your waiver moves need a league" beside a selected demo league is a state
+        // the product never produces. The other five imply a usable league.
+        "waiver-watch.pending" to ScreenshotScenario(
+            label = "Waiver Watch — claim pending",
+            render = { WaiverWatchInShell(OmenWaiverWatchState.Pending) },
+        ),
+        "waiver-watch.processed" to ScreenshotScenario(
+            label = "Waiver Watch — waivers processed",
+            render = { WaiverWatchInShell(OmenWaiverWatchState.Processed) },
+        ),
+        "waiver-watch.availability-unknown" to ScreenshotScenario(
+            label = "Waiver Watch — availability needs confirmation",
+            render = { WaiverWatchInShell(OmenWaiverWatchState.AvailabilityUnknown) },
+        ),
+        "waiver-watch.no-credible-move" to ScreenshotScenario(
+            label = "Waiver Watch — no credible move",
+            render = { WaiverWatchInShell(OmenWaiverWatchState.NoCredibleMove) },
+        ),
+        "waiver-watch.not-connected" to ScreenshotScenario(
+            label = "Waiver Watch — no connected league",
+            render = {
+                WaiverWatchInShell(
+                    OmenWaiverWatchState.NotConnected,
+                    base = OmenCommandCenterFixtures.realDisconnected,
+                )
+            },
+        ),
+        "waiver-watch.off-season" to ScreenshotScenario(
+            label = "Waiver Watch — off-season",
+            render = { WaiverWatchInShell(OmenWaiverWatchState.OffSeason) },
+        ),
         // M6-ContextualHelp. The sheet body is rendered directly rather than through a tap:
         // screenshot mode has no interaction, and the content is what needs proving.
         "contextual-help.command-center" to ScreenshotScenario(
@@ -141,6 +182,21 @@ private fun ContextualHelpBody(destination: OmenHelpDestination) {
             visible = true,
             onDismissRequest = {},
         )
+    }
+}
+
+@Composable
+private fun WaiverWatchInShell(
+    state: OmenWaiverWatchState,
+    base: OmenCommandCenterState = OmenCommandCenterFixtures.demoConnected,
+) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Command) {} },
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            OmenCommandCenterScreen(state = base.copy(waiverWatch = state))
+        }
     }
 }
 
@@ -242,7 +298,18 @@ private fun FauxBottomNav(selected: FauxNavTab, onSelect: (FauxNavTab) -> Unit) 
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
                 icon = { Icon(painter = painterResource(id = tab.iconRes), contentDescription = tab.contentDescription) },
-                label = { Text(text = tab.label, style = OmenTheme.typography.label.toTextStyle()) },
+                // Mirrors the production nav's font-scale constraint exactly. If this drifts,
+                // screenshot evidence stops representing what ships — which is the whole point
+                // of this file.
+                label = {
+                    Text(
+                        text = tab.label,
+                        style = OmenTheme.typography.label.toTextStyle(),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = OmenTheme.color.accent,
                     selectedTextColor = OmenTheme.color.accent,

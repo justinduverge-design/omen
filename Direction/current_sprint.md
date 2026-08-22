@@ -428,12 +428,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
-- **Status:** **VERIFIED 2026-08-16 — implementation merged, one done-when clause unevidenced.** Shipped as PR [#304](https://github.com/justinduverge-design/omen/pull/304) / `6466a4c` (2026-08-15). This item sat at `READY` after it merged — the fourth time this queue has advertised shipped work as pullable.
-- **Evidence:** `6466a4c` — `OmenPlatformCompactRow.swift` (+197) and `OmenPlatformCompactRow.kt` (+173) with paired tests (`OmenCommandCenterScreenTests.swift` +50, `OmenPlatformCompactRowTest.kt` +52, `OmenCommandCenterScreenTest.kt` amended), wired into both `OmenCommandCenterScreen` files; iPhone SE renders at `References/evidence/2026-08-14-cc-platforms-compact/iphone-se-command-center-demo.png` and `iphone-se-dynamic-type-xxxl.png`; visual-brief and state-contract updates in the same commit. The status-dot sub-scope was deferred to post-beta polish by PR [#305](https://github.com/justinduverge-design/omen/pull/305).
+- **Status:** **CLOSED 2026-08-22.** The last unevidenced `Done when:` clause is now evidenced: the Android render exists, the assembly/scanner/connected-test results are recorded, and `6466a4c` has a handoff. Ledgered in `Direction/sprints_completed.md`.
+- **Closure:** COMPLETED
+- **Evidence:** `References/evidence/2026-08-14-cc-platforms-compact/` — `README.md` plus `android-medium-phone-command-center-demo-connected.png` (connected **and** disconnected rows in one frame) and `android-medium-phone-command-center-disconnected.png`, on `medium_phone` API 36 at 1080×2400 @420dpi (411×914dp, Pixel-6a-class). Above-the-fold measured by column scan, not eyeballed: Omen hero card ends at y=2000 with the nav bar starting at y=2127. Strip border sampled from the rendered pixel at `#E5E5E3` = the light `border` token (`OmenColor.kt:146`). Gates on 2026-08-22: `:app:assembleDebug` BUILD SUCCESSFUL, `PrimitiveEnforcementTest` **1/1**, `:core:designsystem:testDebugUnitTest` **22/22**, `:app:testDebugUnitTest` **45/45**, `:app:connectedDebugAndroidTest` **53/53**. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
+- **Prior evidence (implementation):** `6466a4c` — `OmenPlatformCompactRow.swift` (+197) and `OmenPlatformCompactRow.kt` (+173) with paired tests (`OmenCommandCenterScreenTests.swift` +50, `OmenPlatformCompactRowTest.kt` +52, `OmenCommandCenterScreenTest.kt` amended), wired into both `OmenCommandCenterScreen` files; iPhone SE renders at `References/evidence/2026-08-14-cc-platforms-compact/iphone-se-command-center-demo.png` and `iphone-se-dynamic-type-xxxl.png`; visual-brief and state-contract updates in the same commit. The status-dot sub-scope was deferred to post-beta polish by PR [#305](https://github.com/justinduverge-design/omen/pull/305).
 - **✅ DONE — do not rebuild:** the compact row is **built, tested, and merged on both platforms** (`OmenPlatformCompactRow.swift` +197, `OmenPlatformCompactRow.kt` +173, wired into both `OmenCommandCenterScreen` files, paired tests on each). iPhone SE render evidence is committed. The status-dot sub-scope is deliberately deferred post-beta (#305). **No composition or code work is owed here.**
-- **🔨 REMAINING — evidence + record, small:** one Pixel-6a-class Android render proving the Omen card sits above the fold, a recorded `:app:assembleDebug` + primitive-scanner + connected-test result, and a handoff file for `6466a4c`. Then this closes and `B-FREEZE` loses a blocker.
-- **Unevidenced clause — do not claim it:** the `Done when:` requires the Omen card above the fold on **Pixel 6a-class Android** as well as iPhone SE. Only iPhone SE captures were committed, and PR #304 shipped **no handoff file**, so no `:app:assembleDebug` / scanner / connected-test result is recorded anywhere in the repo for this change. That is why this is `VERIFIED`, not `CLOSED`: close it by attaching the Android render and assembly evidence, not by deleting the clause.
-- **Blocked by:** AGENT_RESOLVABLE — Android compact-row render + assembly/scanner evidence, and a handoff record for `6466a4c`
+- **✅ REMAINING WORK DONE 2026-08-22:** the Pixel-6a-class Android render, the `:app:assembleDebug` + primitive-scanner + connected-test results, and the handoff for `6466a4c` all exist. `B-FREEZE` loses this blocker.
+- **Formerly-unevidenced clause — now evidenced, and closed the way the note asked.** The clause required the Omen card above the fold on **Pixel 6a-class Android** as well as iPhone SE. It was closed by attaching the Android render and assembly evidence, **not** by deleting the clause.
+- **Unblock:** 2026-08-22 CLEARED — Android compact-row render, assembly/scanner/connected-test results, and the `6466a4c` handoff all delivered.
+- **Not covered, stated rather than implied:** the disconnected row's inline `[Connect]` button does not appear in these renders. That is correct behavior — screenshot mode passes no connect handler and the row draws the button only when one exists, per the honest-state rule. The Connect/Manage paths are covered by the connected tests.
 - **Priority:** **P1 — beta blocker.** The connect flow is the first screen that matters to a new tester.
 - **Cost:** small–medium
 - **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
@@ -443,12 +446,26 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-Help-Support-Implementation — Build approved native Help + Support
 
-- **Status:** READY
-- **Blocked by:** AGENT_RESOLVABLE — complete Android TalkBack, font-scale, and compact/large-phone screenshot evidence
+- **Status:** **CLOSED 2026-08-22.** Ledgered in `Direction/sprints_completed.md`.
+- **Closure:** COMPLETED
+- **Evidence:** `References/evidence/2026-08-22-m4-help-support-native/` — `README.md` plus:
+  - **Android states** — all five (`available`, `no-account`, `offline`, `submission-unavailable`, `provider-recovery`) on `medium_phone` API 36 at 411×914dp.
+  - **Android font scale** — 1.3 and 2.0 (accessibility maximum). Help + Support content reflows cleanly at both.
+  - **Android compact phone** — 360×640dp via `wm size`/`wm density` override, reset afterwards.
+  - **Android TalkBack** — focus capture plus `android-talkback-accessible-name-inventory.txt`: **0 actionable elements without an accessible name**, and a whole-tree scan for `espn_s2`/`swid`/`cookie`/`token`/`bearer`/`password`/`secret`/`session=` returned **no hits**.
+  - **iOS** — five states on iPhone SE (3rd gen, 375×667pt compact), three on iPhone 17 Pro Max (large), plus Dynamic Type at `accessibility-extra-extra-extra-large`.
+  - **iOS VoiceOver substitute** — new `mobile/ios/OmenIOS/OmenIOSUITests/HelpSupportAccessibilityUITests.swift`, **7/7 pass**: all five states plus largest-Dynamic-Type audited with `performAccessibilityAudit()`, and both interactive rows asserted reachable and named.
+  - `xcodebuild -version` = **Xcode 26.6 (17F113)**. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
+- **Honest parity/limitation record** (the `Done when:` asks for one explicitly):
+  - **A real-device VoiceOver pass is still open.** The iOS Simulator cannot run VoiceOver — `com.apple.VoiceOverTouch` is a background-only launchd job there. The audit is the documented substitute and is not claimed as equivalent.
+  - **The Android TalkBack evidence is a static accessibility-tree check**, not a human listening pass. It proves a name exists and is well-formed, not that the announcement is useful or well-ordered.
+  - **One real defect found, and it is not this screen's.** At Android font scale 2.0 the app-wide bottom nav breaks — "Command" wraps to "Comma / nd", "League" clips at the screen edge. Confirmed production code by reading `OmenAndroidApp.kt:505` against the screenshot-mode twin. Recorded in `Direction/known_issues.md`; **still needs a GitHub issue number.**
+  - **Help Center rows are non-interactive by design** (`OmenHelpSupportScreen.kt:107-109`, `OmenListRow` with no `onClick`), which is why they are absent from the actionable-name inventory. Verified in source, not assumed.
+- **Unblock:** 2026-08-22 CLEARED — Android TalkBack, font-scale, and compact/large-phone evidence delivered, along with the iOS half the old `Blocked by:` line understated.
 - **Unblock:** 2026-08-11 REASSESSED — the iOS-CI half of this blocker is retired. As of 2026-08-11 `ios-ci.yml` no longer runs per-PR (release branches + manual dispatch only); routine iOS verification moved to the founder's Mac. **This makes the iOS half of this item Mac-required.** Run the `SUBSTITUTED` command in `Blueprints/definition-of-done.md` → "Local substitutes" and record the output. The Android half is unaffected and remains workable on Windows.
 - **Priority:** **P1 — store metadata requires a support URL**, so this is on the release path, not just the product path.
 - **Cost:** medium
-- **Current state:** implementation merged via PR #229; Android compile/scanner evidence green. This is **not** VERIFIED — the `Done when:` criteria require accessibility and visual evidence that has not been produced.
+- **Current state:** implementation merged via PR #229; the accessibility and visual evidence its `Done when:` required was produced on 2026-08-22 and is linked above. PR #229's own closeout was explicit that device evidence had not been run (`adb` unavailable on that Windows workspace) — that is the gap this closed.
 - **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
 - **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
 
@@ -486,10 +503,14 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
-- **Status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed, provider-proven, or iOS-CI-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
+- **Status:** **CLOSED 2026-08-22.** The six registered honest states are now rendered and reviewed on iOS, which is what the item was actually waiting on. Ledgered in `Direction/sprints_completed.md`.
+- **Closure:** COMPLETED
+- **Evidence:** `References/evidence/2026-08-22-m4-waiver-watch-ios/` — `README.md` plus one capture per state (`pending`, `processed`, `availability-unknown`, `no-credible-move`, `not-connected`, `off-season`) on iPhone 17 Pro Max / iOS 26.5, each showing the approved copy the Android connected test asserts. Registered as `waiver-watch.*` entries in both `ScreenshotScenarios` registries (iOS and Android twin), which vary only `waiverWatch` on the real `OmenCommandCenterScreen` — the composition itself was not touched. `xcodebuild -version` = **Xcode 26.6 (17F113)** per the local-substitute rule. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
+- **Prior status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed or provider-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
 - **✅ DONE — do not rebuild:** the approved composition (Figma node `67:2`) is **built and merged on both platforms**. SwiftUI source and XCTest registration complete; Android carries 2 connected tests, `:app:assembleDebug`, and a green primitive-enforcement scanner. The full iOS suite passes on Xcode 26.6. **No code is owed here.**
-- **🔨 REMAINING — evidence only, roughly an hour on the Mac:** capture and review the **six registered states rendering on iOS** (the passing XCTest run proves the tests pass, not that each state was visually rendered and reviewed), with the accessibility check alongside it, and record `xcodebuild -version` per the local-substitute rule. Then this closes. Do not reopen the composition.
-- **Blocked by:** AGENT_RESOLVABLE — the macOS hardware gate is gone, but this item's own six-state iOS rendering evidence has not been captured; the 2026-08-12 XCTest run proves the registered tests pass, not that every state was visually rendered and reviewed. The Figma proposal is approved (node `67:2`, "03 — Components", badge "APPROVED COMPOSITION — Justin, 2026-07-31"), so design is not the gate.
+- **✅ REMAINING WORK DONE 2026-08-22:** the six registered states were captured and reviewed on iOS, and `xcodebuild -version` is recorded. The composition was not reopened.
+- **Two limitations stated rather than buried.** (1) These scenarios are **deliberately not added to the `native-visual-evidence.yml` matrix**: Waiver Watch renders below the fold on every current iPhone, that workflow captures with no interaction, and a matrix row would upload the top of the Command Center labelled as Waiver Watch evidence. Making them CI-capturable needs a scroll anchor on `OmenCommandCenterScreen` — a change to a shipped screen, out of scope here. (2) The `calm` state has **no committed render on either platform**; `urgent` is covered by the existing `command-center.demo-connected` captures.
+- **Unblock:** 2026-08-22 CLEARED — the six-state iOS render evidence was captured and reviewed. The 2026-08-12 XCTest run proved the registered tests pass; this proves the states were rendered and looked at. Figma node `67:2` was already approved, so design was never the gate.
 - **Unblock:** 2026-08-11 ROUTED — retyped from an untyped prose blocker to `TASK-R3-BUILD-iOS`. With the Mac arriving 2026-08-12 and iOS CI no longer running per-PR, this item's remaining gap is verified by the local `xcodebuild test` substitution, not by CI.
 - **Unblock:** 2026-08-12 REASSESSED — the Mac mini and local simulator now exist, and the full Omen XCTest suite passes 108/108 on Xcode 26.6. That clears the former hardware dependency but does not manufacture the missing per-state render/accessibility evidence or exact Xcode 16.2 substitution required by the current Done authority; the remaining blocker is therefore agent-resolvable evidence work rather than `TASK-R3-BUILD-iOS`.
 - **Priority:** P1
@@ -518,8 +539,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Status:** BLOCKED
 - **Blocked by:** TASK-B2-D3-S2
 - **Blocked by:** TASK-M3A-QA
-- **Blocked by:** TASK-M4-CC-PlatformsCompact
-- **Blocked by:** TASK-M4-Help-Support-Implementation
+- **Unblock:** 2026-08-22 CLEARED — `TASK-M4-CC-PlatformsCompact` CLOSED (Android render + assembly/scanner/connected-test evidence, handoff for `6466a4c`).
+- **Unblock:** 2026-08-22 CLEARED — `TASK-M4-Help-Support-Implementation` CLOSED (TalkBack, font-scale, compact/large-phone, and iOS accessibility-audit evidence).
 - **Blocked by:** TASK-M4-Auth-Providers-v1
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Priority:** P0

@@ -44,6 +44,10 @@ mobile/android/.gradle/
 mobile/android/local.properties
 mobile/android/**/build/
 mobile/ios/**/DerivedData/
+# Repo-root derived data. `native-visual-evidence.yml` and the DoD's local iOS substitute
+# both build with `-derivedDataPath build/ios`, so a local run drops ~thousands of object
+# files here. Only `mobile/ios/**/DerivedData/` was ignored, so they were staged by `git add -A`.
+/build/
 mobile/ios/**/.swiftpm/
 mobile/ios/**/Config/Local.xcconfig
 # Xcode regenerates this self-only manifest when a project opens. Keep any future

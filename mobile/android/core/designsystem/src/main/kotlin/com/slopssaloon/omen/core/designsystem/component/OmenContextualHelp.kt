@@ -151,7 +151,13 @@ fun OmenContextualHelpSheet(
                         Text(
                             tip.label,
                             style = OmenTheme.typography.label.toTextStyle(),
-                            color = colors.accent,
+                            // `textPrimary`, not `accent` — parity with the iOS twin, and with
+                            // registry §3.1's Tooltip/Help row, which allows exactly `surface-2`
+                            // + `text-primary`. iOS measured 3.68:1 for accent on surface-2 in
+                            // dark mode, under WCAG AA's 4.5:1; the Android palette carries the
+                            // same two values, so it had the same defect. Hierarchy still reads
+                            // from the type style, which differs from the body's `bodySmall`.
+                            color = colors.textPrimary,
                         )
                         Text(
                             tip.body,

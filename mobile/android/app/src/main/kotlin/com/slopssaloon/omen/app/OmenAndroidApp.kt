@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.BuildConfig
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.auth.OmenAuthFlow
@@ -523,6 +524,20 @@ private fun OmenBottomNav(selected: NavDestination, onSelect: (NavDestination) -
                     Text(
                         text = destination.label,
                         style = OmenTheme.typography.label.toTextStyle(),
+                        // At font scale 2.0 (Android's accessibility maximum) an unconstrained
+                        // label overflows its nav item: "Command" wrapped to "Comma / nd" and
+                        // spilled below the row, and "League" was clipped at the screen edge.
+                        // Four items cannot show full labels at 2x on a phone, so the choice is
+                        // *how* it degrades — predictable ellipsis inside the item, or text
+                        // drawn outside its bounds. Found 2026-08-22 by rendering, not by any
+                        // test: nothing here is assertable without looking at the pixels.
+                        //
+                        // Meaning is preserved for screen readers regardless — Compose keeps the
+                        // full string in the semantics tree even when it is visually ellipsized,
+                        // and each item's icon carries its own contentDescription.
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

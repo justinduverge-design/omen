@@ -191,6 +191,7 @@ Founder-requested pass, run after `O7` closed. Every entry was checked against `
 These surfaced when the first `XCUIApplication.performAccessibilityAudit()` run in this repo was
 added under `OmenIOSUITests`. All three are **outside M6's scope**; none is a regression from it.
 
+- **✅ PARTLY RESOLVED 2026-08-22 — the contextual-help tip label was the half still failing, and it was worse than "nearly".** The `accent` brass on `surface-2` in **dark mode** measured **3.68:1** (`#A67C2E` on `#2C2C2E`), well under AA's 4.5:1 — not marginal. Light mode passed at 5.70:1, so this was dark-only. It surfaced as two red `ContextualHelpAccessibilityUITests` audits on `main` that nothing in this repo recorded as red. **The element was identified from the audit's own attachment** (`Element Screenshot`, a brass "Sleeper" tip label), not guessed. **Fixed by following the same registry row the earlier fix followed** — §3.1 Tooltip/Help allows exactly `surface-2` + `text-primary`, so brass on that label was an implementation deviation rather than an approved variant, and no new token or design ratification was needed. The body had already been moved to `text-primary`; the label was the half of that fix left behind. Applied to both platforms. `ContextualHelpAccessibilityUITests` now **4 passed / 0 failed**. **The token pair below is still the open, larger issue.**
 - **`text-secondary` on `surface-2` is 4.43:1 in light mode — under AA (4.5:1).** Caught by the audit
   as "Contrast nearly passed" on the new contextual-help surface, and fixed *there* by following the
   registry §3.1 Tooltip/Help row, which specifies `surface-2` + **`text-primary`**. **The token pair
@@ -225,6 +226,52 @@ bar. It was deliberately not fixed inside O7 (out of that item's scope), and it 
 Evidence: `Direction/reviews/evidence/2026-08-19-o7/android-forced-update-light.png` shows the gate
 screen; the Command Center comparison capture was taken in the same session. Worth its own item —
 it affects every light-mode screen on Android.
+
+## ✅ RESOLVED 2026-08-22 — Android bottom navigation broke at large font scale
+
+**Found and fixed the same day, so it never needed a GitHub issue.** Recorded here because the
+defect was real, shipped, and app-wide — and because the *way* it was found is the point.
+
+At Android **font scale 2.0** (the accessibility maximum) the bottom navigation bar's labels
+overflow their items: **"Command" wraps to "Comma / nd"** and spills below its own row, and
+**"League" is clipped at the right screen edge**. The icons stay put; only the labels break.
+
+**This is app-wide, not a Help + Support defect.** It was found while capturing
+`M4-Help-Support-Implementation` font-scale evidence, but the Help + Support content itself
+reflows correctly at 2.0 — the cards grow, the text wraps, nothing clips. The break is in the
+nav that sits under every screen.
+
+**It is production code, not a screenshot-mode artifact.** `OmenBottomNav` in
+`mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt:505` and the
+screenshot-mode `FauxBottomNav` in `.../app/screenshot/ScreenshotScenarios.kt` are structurally
+identical — the same `NavigationBarItem` with `label = { Text(destination.label, style =
+OmenTheme.typography.label.toTextStyle()) }` and **no `maxLines`, `softWrap`, or `overflow`
+handling**. Verified by reading both call sites, not inferred from the capture.
+
+Evidence: `References/evidence/2026-08-22-m4-help-support-native/android-medium-phone-help-support-available-fontscale-2.0.png`
+(broken) against `...-fontscale-1.3.png` and `...-available.png` (both fine). So the failure
+appears somewhere between scale 1.3 and 2.0.
+
+**Not iOS.** The iOS tab bar was rendered at `accessibility-extra-extra-extra-large` in the same
+pass and does not exhibit it — SwiftUI's `TabView` truncates rather than overflowing.
+
+### The fix
+
+`maxLines = 1`, `softWrap = false`, `overflow = TextOverflow.Ellipsis` on the nav label, applied
+to **both** `OmenBottomNav` and the screenshot-mode `FauxBottomNav` so the evidence keeps
+representing what ships.
+
+Four items cannot show full labels at 2× on a phone, so the real choice was *how it degrades*:
+predictable ellipsis inside the item, or text drawn outside its bounds. **Meaning is preserved
+for screen-reader users either way** — Compose keeps the full string in the semantics tree even
+when it is visually ellipsized, and each item's icon carries its own `contentDescription`.
+
+**Verified by re-rendering, not by a test.** `android-medium-phone-help-support-available-fontscale-2.0.png`
+now shows `Comm…` contained inside its own item and `League` no longer clipped at the screen edge.
+Nothing here is assertable without looking at the pixels, which is why it survived until someone did.
+
+Android `:app:assembleDebug` SUCCESS, `:core:designsystem:testDebugUnitTest` and
+`:app:testDebugUnitTest` green, `:app:connectedDebugAndroidTest` **53/53** after the change.
 
 ## Native Copy Risks
 
