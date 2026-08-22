@@ -561,7 +561,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S3 — Rate limits on the three hot routes
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-21 Claude — implementing per-user + per-IP limits, 429 envelope, limit-hit/reset tests, and the `api-routes.md` documentation.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** small–medium

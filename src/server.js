@@ -50,6 +50,7 @@ const {
   permissionsPolicyMiddleware,
   publicToolRateLimit,
 } = require("./middleware/security");
+const { applyHotRouteRateLimits } = require("./middleware/hotRouteLimits");
 
 const app = express();
 
@@ -91,6 +92,15 @@ app.use((req, res, next) => {
   if (req.path === "/api/health") return next();
   return generalRateLimit(req, res, next);
 });
+
+// --- Rate limit (hot routes) - per-IP + per-credential ------------
+// S3. The three routes that take the Sunday-morning load get their own
+// budgets on top of the app-wide 100/min above, because that budget is
+// shared with every other API call the SPA makes — a client could spend
+// most of it on the single most expensive route in the product without
+// tripping anything. Mounted here, ahead of the routers, so the limit is
+// paid before any provider or LLM work starts. See middleware/hotRouteLimits.js.
+applyHotRouteRateLimits(app);
 
 // --- Public system + mock contract routes ------------------------
 app.use("/api", systemRoutes);
