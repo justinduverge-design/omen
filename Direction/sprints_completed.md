@@ -439,3 +439,9 @@ Two saturation runs then did the opposite on purpose — one IP, one credential 
 **Not claimed, and listed beside what is:** no provider fan-out to Yahoo, Sleeper, or ESPN; no real LLM call; `mvp-move` ran in explicit mock mode; the stub user has no platform connections; loopback on one host with no TLS, Nginx hop, container limit, or cold start. Per O4's own Scope, **Week 1 Sunday morning is the real load test — this is the rehearsal.** The right reading is that nothing in Omen's own code is a bottleneck at beta scale, so if Sunday goes badly the cause is upstream of this measurement.
 
 Full record: `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`.
+
+## Decision closeouts — 2026-08-22
+
+| Area | Completed work | Evidence | Posture |
+| --- | --- | --- | --- |
+| M8 Android ESPN path | Founder selected the existing desktop/web ESPN connection through beta and Microsoft Edge mobile-extension feasibility as the first post-beta experiment. | `Direction/decision_log.md` (2026-08-22 Android ESPN decision); `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md` § 2026-08-22 Android decision brief | Decision complete only. No extension packaged, submitted, published, deployed, or given credential access. |

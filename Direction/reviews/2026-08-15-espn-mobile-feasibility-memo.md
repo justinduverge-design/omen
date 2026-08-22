@@ -6,6 +6,37 @@
 
 ---
 
+## 2026-08-22 Android decision brief — supersedes the memo's mobile-store assumptions
+
+### What the founder is choosing
+
+Whether Omen should fund a separate Android browser-extension port now, or keep the existing website/desktop connection path through beta. This is not a choice about whether ESPN belongs in Omen; it is only a choice about whether an Android phone must be able to perform the sensitive cookie handoff itself.
+
+### Current verified paths
+
+| Path | What is now verified | Cost and risk | Outcome if chosen |
+|---|---|---|---|
+| Firefox for Android port | Mozilla officially distributes Android extensions through `addons.mozilla.org/android`. The current Omen extension cannot be repackaged unchanged because its content-script handoff depends on `storage.session.setAccessLevel`; the safe port is direct runtime message passing so the ESPN cookie material is never written to persistent `storage.local`. | New browser-specific code, real-device HttpOnly-cookie proof before build, AMO privacy/review work, and regression maintenance. | Android users can stay on their phone, but must use Firefox and install the add-on. |
+| Edge for Android | Microsoft now has an official Android mobile-extension collection and a normal Partner Center extension review flow. The public submission instructions expose visibility and markets, but no developer-controlled mobile-eligibility switch; appearing in the mobile collection is curated and therefore not a dependable schedule commitment. | The Chromium code is the closest fit, but mobile admission and device behavior must be proven; cookie permissions and the narrow single purpose require complete privacy disclosure. | Potentially less porting, but Omen can submit without being able to promise Android availability. |
+| Keep desktop/web handoff through beta | Already published and documented. Android users connect once in desktop Chrome/Edge; the server-side connection then appears in the app. | Adds user friction and excludes phone-only users, but adds no new credential surface or browser-specific maintenance. | Preserves the current honest fallback while beta-critical League, Trade, owned-data, and auth work lands. |
+
+### Recommendation
+
+Choose the desktop/web handoff through beta, and pre-authorize a narrowly bounded Firefox feasibility spike after the beta blockers are cleared: prove on a real Android device that the extension can read the required HttpOnly ESPN cookies, then prove a one-shot direct-message handoff that never uses `storage.local` and clears all in-memory references on success, failure, and cancellation. Do not make Edge mobile the critical path: Microsoft verifies that mobile extensions exist, but its current public publishing contract does not let Omen guarantee that this extension will be selected for the mobile collection.
+
+If the founder instead chooses Android-now, use Firefox-first with those security gates. A yes unblocks the feasibility spike and, only after it passes, a separately scoped implementation/review item; it does not approve deployment, publication, credential exposure, or persistent storage. A no retains the desktop/web route and closes `M8` as a deliberate beta deferral rather than an unresolved decision.
+
+### Current primary sources
+
+- Mozilla Android installation: `https://support.mozilla.org/en-US/kb/find-and-install-add-ons-firefox-android`
+- Mozilla cookies API: `https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/cookies`
+- Mozilla access-level API: `https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/StorageArea/setAccessLevel`
+- Microsoft mobile Android collection: `https://microsoftedge.microsoft.com/addons/collections/mobile_android_extensions`
+- Microsoft publication and privacy process: `https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension`
+- Microsoft curation: `https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/add-ons-curation`
+
+---
+
 ## ⛔ SUPERSEDED — the iOS recommendation in this memo is WRONG. Read this first.
 
 **Corrected 2026-08-15, same day, on real-device evidence.**
