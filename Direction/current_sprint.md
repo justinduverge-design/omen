@@ -582,7 +582,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S3 — Rate limits on the three hot routes
 
-- **Status:** READY
+- **Status:** CLOSED
+- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main` and not deployed:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
+- **Evidence:** commit `0c1f85e` — `src/middleware/hotRouteLimits.js` (per-IP + per-credential limiters, honest 429 envelope), wired in `src/server.js` ahead of the routers; `test/hotRouteRateLimits.test.js` (14 tests: limit-hit on all three routes for both scopes, reset, anonymous-flood containment, key derivation, mount ordering); budgets and the per-credential tradeoff documented in `Blueprints/api-routes.md` § Rate Limits. Proven against a booted server, not only in unit tests: 20 × 401 then 429 on `POST /api/omen/mvp-move` with `Retry-After: 60` and `RateLimit-Policy: 20;w=60`. Mutation-checked — removing the mount turns 8 of the 14 tests red. `npm test` 607/607.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** small–medium
@@ -594,7 +596,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S4 — Confirm no provider credentials reachable in logs on error paths
 
-- **Status:** READY
+- **Status:** CLOSED
+- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main` and not deployed:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
+- **Evidence:** commit `0f546e8` — `test/providerCredentialContainment.test.js` (11 tests) provokes real Yahoo, Sleeper, and ESPN failure paths over their real transports, with the fake provider echoing the credential back in body and headers, captures actual stdout/stderr plus the client-facing envelope, and searches it for the exact canary values fed in. Each test first asserts the canary was genuinely on the wire, so a pass cannot mean the request carried nothing to leak. Two real gaps found by that method and closed in `src/middleware/sentry.js`: `authorization` was absent from the sensitive-key pattern (an axios error carries `config.headers`), and `Bearer <token>` survived the key/value rule because it stops a value at the first space. Containment is now structural — every winston line leaves through the scrubber (`src/middleware/logging.js`), and the terminal error handler moved to `src/middleware/errorEnvelope.js` so the message it echoes is scrubbed and the shipped envelope is the one under test. GlitchTip-payload half was already proven by `O8` (`test/providerErrorCapture.test.js`). Mutation-checked: reverting either scrubber turns the corresponding backstop test red. `npm test` 618/618.
+- **Known boundary:** a credential logged as a bare value with no key beside it is invisible to the text scrubber. No code path does this, and facts-of-record #6 keeps ESPN cookie values out of every emission site by construction, but the limit is recorded in the test rather than left implicit.
 - **Blocked by:** None
 - **Unblock:** 2026-08-18 CORRECTED — this item's scope previously read "...or Sentry payloads once O1 lands." That reference was always wrong: `O1` (Kuma/Beszel) never emitted Sentry-shaped payloads — that was `O1b`'s job, and `O1b` closing on 2026-08-17 proved the tool works, not that anything sends to it. `O8` is what will actually emit adapter-failure payloads. The log/error-envelope half of this item's scope is testable now regardless.
 - **Priority:** P1
@@ -778,8 +783,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### O4 — Load test the three hot routes
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main`:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
+- **Evidence:** commit `1d3f97d`; full record in `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`. Local loopback only — `scripts/local-load-stack.js` boots the real `src/server.js` against a loopback Supabase stub; no production, no staging, no provider traffic, no LLM call. **Beta (20 concurrent × 8 = 160/route):** p95 20 / 5 / 23 ms for trade / mvp-move / dashboard, 0 % error rate, 0 rate-limited. **10× (200 concurrent × 8 = 1600/route):** p95 107 / 20 / 101 ms, 0 % error rate, 0 rate-limited. Concurrency chosen against the S3 limits and off the repo, not out of the air — 8 requests/client sits under the tightest per-credential budget (`mvp-move`, 10/min), 20 is the top of the K2 beta cohort, and 200 is R6's internal-track ceiling (100 iOS + 100 Android), which is exactly 10×. Each simulated client carries its own `X-Forwarded-For` and bearer token so the limits distribute as they will in production. Two further saturation runs, one identity on purpose, confirm the S3 limiters bind at exactly their documented numbers with the documented envelope and correct `scope`, and never 5xx.
+- **Not claimed:** no provider fan-out, no real LLM call, `mvp-move` ran in explicit mock mode, the stub user has no platform connections, and the whole run is loopback on one host. Per the item's own Scope, Week 1 Sunday morning is the real load test — this is the rehearsal.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** yes, against approved local/staging targets

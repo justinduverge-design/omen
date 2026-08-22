@@ -1214,3 +1214,45 @@
 - **`O9` then found the alerting layer could not deliver the alert it exists for.** Adding GlitchTip as a fourth signal source produced the Discord dispatcher's first genuinely multi-line signature, which failed with `400` — the payload was string-interpolated into JSON, and raw newlines are invalid inside a JSON string. **Every alert this fleet had ever proven carried exactly one failing signal**, so a simultaneous two-signal failure would have sent nothing. A second defect kept that silent: state was persisted before delivery was confirmed, so the failed send recorded its signature and the next run saw no change. Two bugs, each hiding the other.
 - **The through-line, and the reason both survived so long: monitoring and alerting fail in the shape of good news.** Quiet is the success signal and the failure signal at once. Neither defect was visible to any "is it configured?" check; both surfaced only by exercising the real path with real content. **Codify two things.** First, for observability systems, acceptance requires a positive liveness proof, never a configuration check. Second, **a test that exercises one item does not test a list** — Layer 5's noise-control semantics were genuinely proven at build time, but the delivery mechanism was only ever tested on its easiest possible input, and the two were proven in the same breath.
 
+
+## 2026-08-22 — `S3` + `S4` + `O4`: the rate limit is keyed on the credential, the scrubber is a boundary, and the load number is chosen against the limit
+
+PR [#355](https://github.com/justinduverge-design/omen/pull/355) — open, unmerged, founder review pending. Nothing deployed.
+
+### The per-user rate limit is keyed on the credential, not on `sub` — and the difference is written into the contract
+
+`S3` requires a per-user limit on three routes. The limiters run **before** authentication: they are mounted ahead of the routers, and `POST /api/omen/mvp-move` authenticates inside its own handler. So there is no verified user id at the moment the decision has to be made.
+
+Decoding the JWT and keying on its `sub` claim is the obvious move and was rejected. An unverified `sub` is attacker-supplied: anyone can mint a token carrying a victim's `sub`, spend the victim's budget, and lock them out of the most important route in the product. That converts a defensive control into an availability attack on a named user.
+
+**Decision: key the user bucket on a SHA-256 digest of the presented bearer token.** An attacker cannot enter another bucket without already holding that credential, at which point they are that user for every other purpose too.
+
+**The cost is real and is documented rather than hidden.** This is *per-credential*, not *per-account*: two devices get two buckets, and a Supabase token refresh (~hourly) mints a fresh one, so a determined authenticated client can reset their own budget by refreshing. The per-IP limit is the backstop that keeps that bounded — which is the reason both limits are enforced rather than either alone. Stated in `Blueprints/api-routes.md` § Rate Limits and in the module header, because the next person to read "per-user limit" will otherwise assume it means per-account.
+
+**Corollary recorded in the same place:** the limiters stack rather than replace. `O4`'s saturation run showed that for a client using the whole app, the app-wide 100/min/IP limiter binds before `GET /api/dashboard/summary`'s own 60/min does. A route's documented budget is a ceiling, not a promise of that much throughput.
+
+### Credential containment is a boundary property now, not a call-site convention
+
+Before `S4`, "no credential in the logs" held because ~40 call sites each remembered to pass `err.message` rather than the error, and `sanitizedError(e)` rather than `e`. The convention was being followed. It is also exactly the kind of guarantee that holds until the next field is added, and whose failure mode is silence.
+
+**Decision: every winston line leaves through the shared scrubber, and the terminal error handler moved into `src/middleware/errorEnvelope.js` so the message it echoes back is scrubbed too.** Call sites still pass only what they need; this is the backstop for when one of them stops. The handler moved out of `server.js` for a second reason worth stating: a test that re-declares the envelope proves the test's copy is safe, which is not the claim `S4` has to make.
+
+**Two live gaps were found by this, and neither would have been found by reading the code.**
+
+`authorization` was absent from the sensitive-key pattern. An axios failure carries `error.config.headers` — every other key on that object was covered and this one was not. And once added, `authorization: Bearer ya29.x` *still* leaked, because the key/value rule stops a value at the first space: it redacted the word "Bearer" and published the token behind it. **The rule reported success on the exact string it was failing to protect.** `Bearer` and `Basic` now have their own rule, applied first, and deliberately not extended to `OAuth` — that challenge is scheme plus `key=value` params, already covered, and blanket-redacting it would destroy the `oauth_problem` diagnostic that made the Yahoo 403 tractable.
+
+This is the third consecutive session in which the shared scrubber was found to have a hole. `O8` found `\b` before `token` skipping `access_token=`; `O8` found JSON-quoted secrets passing through; `S4` found `authorization` and the space-terminated value. **The pattern is not that the scrubber is badly written — it is that a redaction rule only covers the shapes someone actually fed it.** Every one of these was found by provoking a real failure and searching the emitted bytes, and none by review.
+
+**A boundary is recorded rather than quietly left:** a credential logged as a bare value with no key beside it is invisible to the text scrubber. No code path does that, and facts-of-record #6 keeps ESPN cookie values out of every emission site by construction. It is written into the test so the next reader knows what the backstop does and does not cover, instead of inheriting an assumption that it covers everything.
+
+### The load-test concurrency is derived from the rate limits and from the repo
+
+`O4`'s numbers only mean something relative to `S3`, which landed the day before. Two failure modes were available and both produce a confident, useless figure: measure before the limits and you have characterised a system that no longer exists; measure after them without accounting for them and past ~20 requests/minute you are timing `express-rate-limit`.
+
+**Decision: bound requests-per-client by the tightest per-credential budget, and take concurrency off the repo rather than out of the air.** 8 requests per client sits under all three budgets (`mvp-move`'s 10/min is the binding one). 20 concurrent is the top of the K2 beta cohort — the whole cohort arriving in the same instant. 200 concurrent is R6's internal-track ceiling, 100 iOS plus 100 Android with no Beta App Review, so the 10× the item asks for lands on a real boundary.
+
+**Second decision: give every simulated client its own source IP and credential.** A generator on one machine is one IP and one credential, which is not what production load looks like — N users arrive from N networks and each spends their own budget. Collapsing the run into a single bucket would have measured the limiter and reported it as latency. Then run the opposite deliberately, one identity, as separate evidence *about the limiter* — which is how the general-limiter interaction above was found.
+
+**Third: a local load test that 401s is not a load test.** `scripts/local-load-stack.js` boots the real server against a loopback Supabase stub so `GET /api/dashboard/summary` measures the real hot path. Without it, `requireAuth` reaches the configured Supabase host on every request and the numbers are DNS and TLS timings against a third party. The stub 404s loudly on any unstubbed path, per `scripts/README.md`'s rule against false all-clears.
+
+**And the scope caveat is recorded next to the numbers, not below them.** No provider fan-out, no real LLM call, `mvp-move` in explicit mock mode, loopback on one host. `O4`'s own Scope says Week 1 Sunday morning is the real load test. The honest reading of p95 ≤ 107 ms at 0 % error is *nothing in Omen's own code is a bottleneck at beta scale* — not *Omen is fast*.

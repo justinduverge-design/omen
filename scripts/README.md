@@ -46,7 +46,22 @@ Full contract for adding one: [`checks/README.md`](checks/README.md).
 | [`smoke-tier2-endpoints.js`](smoke-tier2-endpoints.js) | Hits the Tier-2 endpoints and reports shape/status | Yes against local or an approved target |
 | [`verify-sleeper-waiver-pool.js`](verify-sleeper-waiver-pool.js) | Proves the Sleeper waiver pool returns real, correctly-filtered players | Yes — read-only against the provider |
 | [`verify-provider-error-capture.js`](verify-provider-error-capture.js) | Proves `O8`'s error capture end to end: provokes a real ESPN adapter failure, then inspects the exact envelope the SDK transmits for credential leaks, provider tag, and a usable stack trace | Yes — one read-only GET to ESPN for a nonexistent league; sends nothing to real GlitchTip |
-| [`load-omen-routes.js`](load-omen-routes.js) | Load-tests `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. **Tracked as `O4` and has never been run.** | Only against local/staging with approval — never production |
+| [`load-omen-routes.js`](load-omen-routes.js) | Load-tests `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary` at a chosen concurrency, with a distinct simulated IP and credential per client so the S3 rate limits distribute the way they will in production. `OMEN_LOAD_SATURATE=1` does the opposite on purpose and measures the limiter instead. **Refuses a non-loopback target** unless `OMEN_LOAD_ALLOW_REMOTE=1` is set deliberately | Yes — local only by default |
+| [`local-load-stack.js`](local-load-stack.js) | Boots the real `src/server.js` against a loopback Supabase stub, runs the load script against it, tears it down. Needed because `/api/dashboard/summary` 401s before doing any work without one — and would reach the configured Supabase host on every request, measuring DNS instead of Omen. Generates no provider traffic | Yes — loopback only; touches no real project |
+
+### Load testing
+
+`O4` ran 2026-08-22; evidence in `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`,
+including how the concurrency numbers were chosen against the S3 rate limits and what a local
+run does *not* prove.
+
+```bash
+OMEN_LOAD_CONCURRENCY=20 OMEN_LOAD_ITERATIONS=8 node scripts/local-load-stack.js
+```
+
+**Never against production.** Requests per client must stay at or below the tightest
+per-credential budget in `Blueprints/api-routes.md` (10/min for `mvp-move`), or the run
+measures `express-rate-limit` rather than Omen.
 
 ## Data and ops — approval required
 

@@ -3,7 +3,14 @@
 const Sentry = require("@sentry/node");
 
 const SCRUBBED = "[scrubbed]";
-const SENSITIVE_KEY_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault/i;
+/**
+ * `authorization` joined this list for S4. It was missing, and the miss was
+ * live: an axios failure carries `error.config.headers`, which is where a
+ * Sleeper or Supabase request's `Authorization` header sits. Anything that
+ * put that object into a log line or an error report published the header
+ * verbatim — every other key on it was covered, and this one was not.
+ */
+const SENSITIVE_KEY_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault|authorization/i;
 const SENSITIVE_HEADER_PATTERN = /^(cookie|set-cookie|authorization|x-api-key)$|token|secret/i;
 const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|espn_s2|vault|^(code|state)$/i;
 /**
@@ -19,7 +26,21 @@ const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|esp
  *      and O8 forwards a snippet of them by design — this is the common case
  *      here, not an edge one.
  */
-const SENSITIVE_TEXT_PATTERN = /([A-Za-z0-9_-]*(?:password|cookie|token|secret|swid|espn_s2|vault)[A-Za-z0-9_-]*)("?\s*[:=]\s*"?)([^"&\s,;}]+)/gi;
+const SENSITIVE_TEXT_PATTERN = /([A-Za-z0-9_-]*(?:password|cookie|token|secret|swid|espn_s2|vault|authorization)[A-Za-z0-9_-]*)("?\s*[:=]\s*"?)([^"&\s,;}]+)/gi;
+/**
+ * `Bearer <token>` and `Basic <token>` need their own rule, because the
+ * key/value rule above stops a value at the first space — so
+ * `authorization: Bearer ya29.secret` would have redacted the word "Bearer"
+ * and published the token that follows it. Found by S4's containment tests;
+ * the key/value rule alone reported success on the exact string it was
+ * failing to protect.
+ *
+ * Deliberately limited to these two schemes. An `OAuth` challenge header is
+ * scheme + `key=value` parameters, already covered above, and blanket-redacting
+ * it would destroy the `oauth_problem` diagnostic that made the Yahoo 403
+ * tractable in the first place.
+ */
+const AUTHORIZATION_SCHEME_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
 const ESPN_CREDENTIAL_ROUTES = Object.freeze([
   { method: "POST", path: "/api/platforms/espn/connect" },
   { method: "POST", path: "/api/auth/espn/connect" },
@@ -47,7 +68,12 @@ function isPlainObject(value) {
 
 function scrubText(value) {
   if (typeof value !== "string") return value;
-  return value.replace(SENSITIVE_TEXT_PATTERN, (_match, key, separator) => `${key}${separator}${SCRUBBED}`);
+  // Scheme first: it is the rule that can see past a space, and running it
+  // before the key/value pass means `authorization: Bearer x` loses the token
+  // rather than the word "Bearer".
+  return value
+    .replace(AUTHORIZATION_SCHEME_PATTERN, (_match, scheme) => `${scheme} ${SCRUBBED}`)
+    .replace(SENSITIVE_TEXT_PATTERN, (_match, key, separator) => `${key}${separator}${SCRUBBED}`);
 }
 
 function scrubValue(value) {

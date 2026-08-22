@@ -62,6 +62,19 @@ Handoffs in this repo have repeatedly said "implemented locally; not pushed, mer
 
 **No active claim.** `S5` closed 2026-08-18; `O7` closed 2026-08-19 (PR #337).
 
+## ✅ Done 2026-08-22 — `S3`, `S4`, and `O4` closed as one package
+
+All three are `CLOSED / COMPLETED` on PR [#355](https://github.com/justinduverge-design/omen/pull/355), which is **open, unmerged, and left that way for founder review**. Nothing is on `main` and nothing is deployed. `npm test` 618/618 locally and in CI; all three PR checks green.
+
+Item 5 of the 2026-08-19 selection below (`O4`) is therefore stale. Items 1 (`O2`) and 4 (`O3`) were not re-checked this pass — verify against `current_sprint.md` rather than trusting that line. Item 2 (`O8`) closed 2026-08-21 and item 3 (`S8`) is already struck through.
+
+**Two things from this package that change how the next one should be pulled:**
+
+- **`O4` was underspecified until `S3` existed.** A performance number means nothing without a stated admission-control policy — measure before the limits and you characterise a system that no longer exists; measure after them without accounting for them and you are timing `express-rate-limit`. Any future perf item on a rate-limited route needs its concurrency *derived* from the limits, not chosen.
+- **The shared scrubber has been found holed in three consecutive sessions**, every time by provoking a real failure and searching the emitted bytes, and never by review. `S4` found `authorization` missing outright and, once added, `Bearer <token>` still surviving because the key/value rule stops at the first space — **it matched, and reported success on the exact string it was failing to protect.** Treat "we have a scrubber" as a claim needing evidence, not a fact.
+
+Details: `Blueprints/handoffs/2026-08-22-s3-s4-o4-hot-route-hardening.md`.
+
 ## 📌 Founder pin — 2026-08-19 — `O2` (named rollback owner + tested rollback path)
 
 **Pinned by the founder. This is the next task; skip auto-populate.**
