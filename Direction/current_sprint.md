@@ -251,6 +251,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Status:** READY
 - **Blocked by:** None
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
+- **Unblock:** 2026-08-22 PARTIALLY CLEARED — the Google Play IARC content-rating questionnaire was submitted under `owner@slopssaloon.com` at 10:15 AM and reports `Completed`, with general-audience results including ESRB Everyone, PEGI 3, USK 0, and IARC 3+. This is the Google half only; Apple age-rating/gambling responses and the cross-store copy consistency check remain before R5 closes.
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only

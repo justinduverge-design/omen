@@ -1,5 +1,10 @@
 # Omen Decision Log
 
+## 2026-08-22 — Google Play content rating completed; Apple half remains
+
+- **Evidence:** Google Play Console shows the Omen IARC questionnaire `Completed`, submitted 2026-08-22 at 10:15 AM under `owner@slopssaloon.com`. Displayed ratings include ESRB Everyone, PEGI 3, USK 0, and IARC 3+.
+- **Scope:** this is partial completion of `R5`, not full closure. Apple age-rating/gambling responses and the required cross-store consistency check against Omen's no-wagering product boundary still remain.
+
 ## 2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated
 
 - **Evidence:** under organization account `DarthSlops`, Google Play Console accepted Omen package `com.slopssaloon.omen` version code 1 into the internal-testing release flow and displayed the release preview. The console confirms releases are signed by Google Play.
