@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.R
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
@@ -297,7 +298,18 @@ private fun FauxBottomNav(selected: FauxNavTab, onSelect: (FauxNavTab) -> Unit) 
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
                 icon = { Icon(painter = painterResource(id = tab.iconRes), contentDescription = tab.contentDescription) },
-                label = { Text(text = tab.label, style = OmenTheme.typography.label.toTextStyle()) },
+                // Mirrors the production nav's font-scale constraint exactly. If this drifts,
+                // screenshot evidence stops representing what ships — which is the whole point
+                // of this file.
+                label = {
+                    Text(
+                        text = tab.label,
+                        style = OmenTheme.typography.label.toTextStyle(),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = OmenTheme.color.accent,
                     selectedTextColor = OmenTheme.color.accent,

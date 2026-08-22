@@ -13,11 +13,13 @@ So this was a capture-and-verify pass. The source changes are deliberately small
 | Change | Why |
 |---|---|
 | `waiver-watch.*` entries in both `ScreenshotScenarios` registries | the six Waiver Watch states had no way to be rendered in isolation; each entry varies only `waiverWatch` on the real `OmenCommandCenterScreen` |
-| `onOpenOmen` added to the iOS screenshot host | **a real defect** — see below |
+| `onOpenOmen` added to the iOS screenshot host | **defect fix** — see below |
+| tip label `accent` → `text-primary`, both platforms | **defect fix** — WCAG AA failure in dark mode; brings the implementation back to registry §3.1 |
+| `maxLines`/`softWrap`/`overflow` on both Android navs | **defect fix** — label overflow at font scale 2.0 |
 | `HelpSupportAccessibilityUITests.swift` (new) | the documented VoiceOver substitute this item's `Done when:` requires |
 | `scripts/capture-screenshot-scenario.sh` (new) | no local capture path existed on the Mac; see "Tooling" |
 
-**No feature code was written. No screen was rewritten.**
+**No feature code was written and no screen was rewritten.** The three source fixes are all defect repairs the captures surfaced — which is the point of capturing.
 
 ## Item 1 — `M4-CC-PlatformsCompact`
 
@@ -72,21 +74,42 @@ In `References/evidence/2026-08-22-m4-help-support-native/`:
 - **The TalkBack evidence is a static tree check**, not a human listening pass. It proves a name exists and is well-formed — not that the announcement is useful or well-ordered.
 - **Help Center rows are non-interactive by design** (`OmenHelpSupportScreen.kt:107-109`, `OmenListRow` with no `onClick`), which is why they are absent from the actionable inventory. Verified in source, not assumed. Reading only the clickable node also makes the interactive rows *look* unlabeled — their names live on the merged subtree.
 
-## Two real defects found by looking at pixels
+## Three real defects found by looking at pixels — all three fixed
 
-**1. Android bottom nav breaks at font scale 2.0.** "Command" wraps to "Comma / nd" and spills below its row; "League" clips at the screen edge. **App-wide and production code** — `OmenAndroidApp.kt:505` and the screenshot-mode twin are structurally identical `NavigationBarItem`s with no `maxLines`/`softWrap`/`overflow`, verified by reading both call sites. Help + Support's own content is clean at 2.0. Recorded in `Direction/known_issues.md`; **it still needs a GitHub issue number** — not opened here because that is an outward-facing action and this session ran unattended.
+**1. Android bottom nav broke at font scale 2.0.** "Command" wrapped to "Comma / nd" and spilled below its row; "League" clipped at the screen edge. **App-wide and production code** — `OmenAndroidApp.kt:505` and the screenshot-mode twin are structurally identical `NavigationBarItem`s that set no `maxLines`/`softWrap`/`overflow`, verified by reading both call sites. Help + Support's own content was clean at 2.0 throughout.
+
+**Fixed** with `maxLines = 1` / `softWrap = false` / `overflow = Ellipsis` on both navs. Four items cannot show full labels at 2× on a phone, so the real choice was *how it degrades*: predictable ellipsis inside the item, or text drawn outside its bounds. Meaning is preserved for screen-reader users either way — the post-fix accessible-name inventory still reads the full string `'Command'`, because Compose keeps it in the semantics tree when text is visually ellipsized. Re-rendered at 2.0 to prove it.
+
+**3. `accent` on `surface-2` failed WCAG AA in dark mode — the two red iOS tests were a real defect, not just noise.** See the section below; this is the one that turned `main` from red to green.
 
 **2. The iOS screenshot host omitted `onOpenOmen`.** `OmenCommandCenterScreen` hides the Waiver Watch "Review Omen's waiver analysis" link when that handler is nil — correct product behavior — so **every iOS capture of the `urgent` and `processed` states was silently missing an element of the approved composition**, while the Android host had passed it all along. Fixed in the host; the `processed` capture was retaken and now shows the link. This is the exact failure the item existed to catch, and it was only visible because someone looked at the picture.
 
-## `main` is red on iOS, and nothing in the repo said so
+## `main` was red on iOS, nothing in the repo said so, and it is green now
 
-The full `xcodebuild test` fails two `ContextualHelpAccessibilityUITests` audits on **"Contrast nearly passed"**.
+The full `xcodebuild test` failed two `ContextualHelpAccessibilityUITests` audits on **"Contrast nearly passed"**.
 
-**Proven pre-existing rather than argued from the diff.** `f4a6ae1` was checked out into a throwaway worktree and run there: **256 passed / 2 failed**, the *same two* failures. This branch finishes at **263 / 2** — the seven new Help + Support accessibility tests, and not one new failure. That converts "unrelated to my change" — the most convenient possible belief at closing time — into a fact. This is the known `text-secondary`-on-`surface-2` defect ([#340](https://github.com/justinduverge-design/omen/issues/340)) reaching a test that was green when M6 shipped.
+**Proven pre-existing rather than argued from the diff.** `f4a6ae1` was checked out into a throwaway worktree and run there: **256 passed / 2 failed**, the *same two*. That converts "unrelated to my change" — the most convenient possible belief at closing time — into a fact.
+
+**Then it was diagnosed rather than dismissed, and it was a genuine defect.** The audit ships the failing element as an attachment, so the element was *identified* rather than guessed: a brass **"Sleeper" tip label** on the contextual-help sheet. Measured:
+
+| Pairing | Ratio | AA 4.5:1 |
+|---|---|---|
+| `accent` `#A67C2E` on `surface-2` `#2C2C2E` — **dark** | **3.68:1** | ❌ |
+| `accent` `#7A5C1E` on `surface-2` `#F5F5F4` — light | 5.70:1 | ✅ |
+
+So it was **dark-mode only, and not "nearly" anything** — 3.68 against a 4.5 bar. Apple's wording undersold it.
+
+**Fixed by following the registry rather than by inventing a token.** Registry §3.1's Tooltip/Help row allows exactly `surface-2` + `text-primary` — read directly, not taken from the known-issues paraphrase. Brass on that label was an **implementation deviation from the ratified spec**, not an approved variant, so correcting it needed no new token and no design ratification. The body text had already been moved to `text-primary` by the M6 fix; the label was the half left behind. Applied to both platforms.
+
+| Run | passed | failed |
+|---|---|---|
+| base `f4a6ae1` | 256 | **2** |
+| this branch, before the fix | 263 | **2** |
+| this branch, after the fix | **265** | **0** |
 
 **A third failure was environmental, and that was proven too.** `ForcedUpdateAccessibilityUITests` failed with "Audit failed to complete in time" while an Android emulator and Gradle ran concurrently; re-run alone on an idle machine it passes. Contention, not a defect.
 
-**The agent inbox's "All gates run and pass on `main`" line is stale for iOS.** Worth a founder decision: fix #340, or pin these two under `XCTExpectFailure` the way the Command Center audit already is.
+**Still open, and deliberately not touched:** the *other* half of [#340](https://github.com/justinduverge-design/omen/issues/340) — `text-secondary` on `surface-2` at 4.43:1 in light mode. That one is a **token-pair** problem available to every component, so fixing it means changing a core semantic colour app-wide, which is a design-ratification call rather than a spec-compliance fix. Recorded in `known_issues.md` as still open.
 
 ## The near-miss worth keeping
 
@@ -109,16 +132,16 @@ The script **refuses to capture unless the Omen window holds focus.** That guard
 
 | Gate | Result |
 |---|---|
-| Backend `npm test` | **593/593**, 0 fail |
+| Backend `npm test` | **593/593**, 0 fail (no backend file touched) |
 | Android `:app:assembleDebug` | BUILD SUCCESSFUL |
 | Android primitive-enforcement scanner | **1/1** |
 | `:core:designsystem:testDebugUnitTest` | **22/22** |
 | `:app:testDebugUnitTest` | **45/45** |
 | `:app:connectedDebugAndroidTest` | **53/53**, 0 fail |
 | iOS `HelpSupportAccessibilityUITests` | **7/7** |
-| iOS full suite (branch) | **263 passed / 2 failed / 2 expected** |
-| iOS full suite (base `f4a6ae1`, throwaway worktree) | **256 passed / 2 failed / 2 expected** — the *same two* |
-| Net effect of this branch on iOS | **+7 passing, 0 new failures** |
+| iOS full suite (branch, final) | **265 passed / 0 failed / 2 expected** ✅ |
+| iOS full suite (base `f4a6ae1`, throwaway worktree) | **256 passed / 2 failed / 2 expected** |
+| Net effect of this branch on iOS | **+9 passing, and `main`'s two red tests fixed** |
 | `xcodebuild -version` | **Xcode 26.6 (17F113)** |
 
 **On the backend baseline.** The task brief gave 618/618 as of 2026-08-22. The measured figure at `f4a6ae1` on a clean tree is **593/593, deterministic across two runs, 0 failures**. 618 does not reconcile with the repo's own trail either — the last recorded count is **587/587** (`O8`, 2026-08-21), and no commit since has touched `test/` or `src/`. Nothing regressed; the brief's number simply does not match anything in the repo. Recorded rather than quietly adopted.

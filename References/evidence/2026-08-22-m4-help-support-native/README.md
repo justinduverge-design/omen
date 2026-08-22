@@ -15,14 +15,22 @@ TalkBack/font-scale checks, compact/large-phone checks, or iOS Dynamic Type/Voic
 | File | Scale | Result |
 |---|---|---|
 | `android-medium-phone-help-support-available-fontscale-1.3.png` | 1.3 | clean |
-| `android-medium-phone-help-support-available-fontscale-2.0.png` | 2.0 (accessibility max) | **Help + Support content is clean; the bottom nav breaks** |
-| `android-medium-phone-help-support-submission-unavailable-fontscale-2.0.png` | 2.0 | same |
+| `android-medium-phone-help-support-available-fontscale-2.0.png` | 2.0 (accessibility max) | clean |
+| `android-medium-phone-help-support-submission-unavailable-fontscale-2.0.png` | 2.0 | clean |
 
-**The 2.0 break is not this screen's.** "Command" wraps to "Comma / nd" and "League" clips at the
-right edge — in `OmenBottomNav`, which sits under every Android screen. Confirmed as production
-code by reading `OmenAndroidApp.kt:505` against the screenshot-mode `FauxBottomNav`: structurally
-identical, neither sets `maxLines`/`softWrap`/`overflow`. Recorded in `Direction/known_issues.md`
-as its own app-wide item. **The Help + Support cards themselves grow, wrap, and clip nothing.**
+**These captures found a real app-wide defect, which was then fixed in the same pass.** At scale
+2.0 the bottom nav overflowed its items: "Command" wrapped to "Comma / nd" and spilled below its
+row, and "League" was clipped at the screen edge. **Not this screen's defect** — `OmenBottomNav`
+sits under every Android screen, and it was confirmed as production code by reading
+`OmenAndroidApp.kt:505` against the screenshot-mode `FauxBottomNav` (structurally identical,
+neither setting `maxLines`/`softWrap`/`overflow`). The Help + Support cards themselves grew,
+wrapped, and clipped nothing throughout.
+
+Fixed with `maxLines = 1` / `softWrap = false` / `overflow = Ellipsis` on both navs. The captures
+above are **from the post-fix build**: `Comm…` now ellipsizes inside its own item and `League`
+fits. Meaning is preserved for screen-reader users — the accessible-name inventory below, taken
+after the fix, still reads the full string `'Command'`, because Compose keeps it in the semantics
+tree even when it is visually ellipsized.
 
 ## Android — compact phone
 
@@ -72,4 +80,5 @@ open** and is not claimed anywhere in this evidence set.
 ## Environment
 
 - Xcode **26.6 (17F113)**; `medium_phone` AVD API 36; JDK 17 (Temurin 17.0.20), matching CI.
+- **Every image here was recaptured from the post-fix build**, so the committed evidence and the shipped code are the same thing.
 - All captures run in screenshot mode: no session, no auth, no network, no provider state.
