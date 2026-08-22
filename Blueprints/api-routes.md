@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-07-19
+Last updated: 2026-08-21
 
 `/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
@@ -25,7 +25,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 
 | Method | Path | Contract | Auth | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/trade/compare` | trade comparison response | No | Free Trade Analyzer entry point. |
+| `POST` | `/api/trade/compare` | trade comparison response | No | Free Trade Analyzer entry point. Rate limited — see Rate Limits. |
 | `POST` | `/api/trade/share` | `trade-share.v1` | No | Creates a 30-day public share hash from bounded Trade Analyzer input. Uses Redis in production; no auth or provider data. |
 | `GET` | `/api/trade/share/:hash` | `trade-share.v1` | No | Public read of a shared trade snapshot by UUID hash. Returns `404 trade_share_not_found` when missing/expired. |
 | `GET` | `/api/trade/share/:hash/og.svg` | trade-share public OG image | No | Server-side SVG image for crawler cards. Reads the same public snapshot and returns `image/svg+xml`; no auth/provider data. |
@@ -35,7 +35,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
 | `GET` | `/api/sleeper/draft/:draftId` | `sleeper-draft-meta.v1` | Yes | Connected-league metadata; exposes only the caller's draft slot. |
 | `GET` | `/api/sleeper/draft/:draftId/state?since=` | `sleeper-draft-state.v1` | Yes | Two-second active / 30-second low Lazy Sync; no raw manager user IDs. |
-| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. No `subscription` field — Omen is free, no billing gate. |
+| `GET` | `/api/dashboard/summary` | `dashboard-summary.v1` | Yes | App shell truth for gates, platforms, `user.favorite_team`, additive platform `lastResult` fields, and Omen `off_season` status. No `subscription` field — Omen is free, no billing gate. Rate limited — see Rate Limits. |
 | `GET` | `/api/platforms` | platform connection status | Yes | Account/connect platform state. |
 | `GET` | `/api/platforms/state` | `platform-provider-state.v1` | Yes | Additive native provider-flow state: opaque state, recovery action, and error code only; never credentials, OAuth artifacts, or Vault IDs. |
 | `POST` | `/api/platforms/sleeper/resolve` | Sleeper resolve response | Yes | Username-first league discovery. |
@@ -46,7 +46,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/yahoo/league` | `{league_id}` | Yes | Binds `leagueId` to the caller's Yahoo connection after validating it against a fresh `GET /api/yahoo/leagues` call; `400` if not one of the user's leagues, `404` if no Yahoo connection exists yet. Repairs an existing placeholder without disconnecting. |
 | `POST` | `/api/platforms/espn/connect` | ESPN connect response | Yes | Cookie-backed ESPN connect; never log cookie values. |
 | `DELETE` | `/api/platforms/:platform` | disconnect response | Yes | Disconnects `yahoo`, `sleeper`, or `espn`. |
-| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. |
+| `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. Rate limited — see Rate Limits. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
 | `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |
@@ -54,6 +54,70 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
 | `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
+
+## Rate Limits
+
+Four limiters are in play. They **stack** — a request passes through every one that matches its
+path, and the tightest applicable budget is the one that binds.
+
+| Limiter | Applies to | Budget | Source |
+| --- | --- | --- | --- |
+| General | every `/api/*` except `/api/health` | 100 / min / IP | `src/middleware/security.js` |
+| Auth | `/api/auth/*` | 20 / 10 min / IP | `src/middleware/security.js` |
+| Public tool | `/api/trade/*`, `/api/players/*`, `/api/demo/*`, `/api/waitlist/*` | 30 / min / IP | `src/middleware/security.js` |
+| **Hot route (S3)** | the three routes below | see table | `src/middleware/hotRouteLimits.js` |
+
+### Hot-route budgets — S3
+
+Added 2026-08-21. These three routes take the Sunday-morning load and are the ones a tester can
+hammer. Both limits are enforced on every request, per rolling 60-second window.
+
+| Route | Per IP | Per credential | Why these numbers |
+| --- | --- | --- | --- |
+| `POST /api/omen/mvp-move` | 20 / min | 10 / min | Heaviest request Omen serves — provider fan-out plus an LLM call. There is one real Omen per user per week; everything past that is a refresh tap. |
+| `POST /api/trade/compare` | 20 / min | 20 / min | LLM-backed and the free front door, so a session of genuine back-to-back comparisons has to fit. Sits under the 30/min public-tool limit on `/api/trade/*`, making the expensive endpoint the tighter of the two rather than a redundant duplicate. |
+| `GET /api/dashboard/summary` | 60 / min | 30 / min | Cheapest and most polled — app launch, tab focus, post-connect refresh. A household or campus NAT puts many real users behind one IP, so its per-IP number is deliberately the loosest. |
+
+**"Per credential", not "per account" — stated plainly because the difference matters.** These
+limiters run *before* authentication (they are mounted ahead of the routers, and
+`/api/omen/mvp-move` authenticates inside its own handler), so no verified user id exists at the
+point the decision is made. The user bucket is therefore keyed on a SHA-256 digest of the
+presented bearer token, not on the JWT's `sub` claim. Keying on an unverified `sub` would let
+anyone mint a token carrying a victim's `sub` and lock that victim out. The cost of the safer
+choice: two devices get two buckets, and a Supabase token refresh (~hourly) mints a fresh one.
+The per-IP limit is the backstop that keeps refresh-to-reset bounded — which is why both are
+enforced rather than either alone.
+
+Anonymous requests skip the credential bucket entirely (there is nothing to key on) and are
+covered by the per-IP limit, which never skips.
+
+### The 429 envelope
+
+```json
+{
+  "error": "Too many POST /api/omen/mvp-move requests from this network. Slow down and retry shortly.",
+  "code": "rate_limited",
+  "scope": "ip",
+  "route": "omen_mvp_move",
+  "limit": 20,
+  "window_seconds": 60,
+  "retry_after_seconds": 43
+}
+```
+
+- `scope` is `"ip"` or `"user"`, so a client sharing an office IP is not told its own account is
+  throttled.
+- `retry_after_seconds` is computed from the live window reset, and the response also carries
+  `Retry-After` plus the draft-7 `RateLimit` / `RateLimit-Policy` headers.
+- Tripping the credential bucket proves only that a bearer header was present. The envelope
+  never reveals whether the token was valid.
+
+**Storage is per-process** (`MemoryStore`, one per route+scope). Omen runs a single `omen_api`
+container, so that is the whole picture today. If the API is ever replicated, the effective limit
+multiplies by the replica count and these need a shared store.
+
+Evidence that they fire: `test/hotRouteRateLimits.test.js` drives real requests through the
+shipped middleware instances until they 429, and proves reset.
 
 ## Retired Compatibility Routes
 

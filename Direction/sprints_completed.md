@@ -387,3 +387,55 @@ Both halves were proven live on 2026-08-19: a deliberate Android crash (`adb she
 
 **2. iOS crash coverage is partial, and the record says so.** `NSSetUncaughtExceptionHandler` fires for Objective-C exceptions only. Pure Swift runtime traps — `fatalError()`, force-unwrapped nil, index out of range — raise `SIGTRAP`/`SIGILL` and never reach it. Catching those needs signal handlers with real async-signal-safety hazards, deliberately out of scope. Android has no equivalent gap. **The deliberate-crash proof therefore had to use an `NSException` for the claim to be honest about what it demonstrates** — which is a limit on the proof, not a defect in it.
 
+
+## S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number — 2026-08-22
+
+**Closure: COMPLETED for all three.** PR [#355](https://github.com/justinduverge-design/omen/pull/355) — **open, unmerged, and deliberately left that way** for founder review. Commits `0c1f85e` (S3), `0f546e8` (S4), `1d3f97d` (O4). Nothing is on `main` and nothing is deployed; this section records the work as done, not as released.
+
+`npm test` **618/618** (baseline 593 at `f4a6ae1`, +14 S3, +11 S4). `npm audit` 0 vulnerabilities. `git diff --check` clean. `npm run evals:validate` passed. `node scripts/check-sprint-staleness.js` → no findings in the checks that ran. **No dependency added; `package.json` and `package-lock.json` are byte-identical to `main`.**
+
+**Baseline correction.** The package was briefed against a 591/591 baseline. `main` at `f4a6ae1` actually runs **593/593** — higher, not lower, so nothing had regressed. Recorded as the actual rather than mapped onto the expected number.
+
+### Why the three shipped together, and in this order
+
+S3 and O4 act on the same three routes, and the order was load-bearing rather than cosmetic. Load-testing before the limits existed would have measured a system that no longer exists; load-testing after them without accounting for them measures `express-rate-limit` and reports the p95 of a 429. S4 extends a proof `O8` started the day before rather than starting fresh.
+
+### S3 — rate limits on the three hot routes
+
+`POST /api/omen/mvp-move`, `POST /api/trade/compare`, and `GET /api/dashboard/summary` shared the app-wide 100/min/IP budget with every other API call the SPA makes. A client could spend most of that budget on the single most expensive route in the product — provider fan-out plus an LLM call — without tripping anything. Each route now carries an enforced per-IP **and** per-credential limit per 60-second window (20/10, 20/20, 60/30), documented with its reasoning in `Blueprints/api-routes.md` § Rate Limits.
+
+**The decision worth re-reading later.** These limiters run *before* authentication — `/api/omen/mvp-move` authenticates inside its own handler — so no verified user id exists when the decision is made. Keying on the JWT's unverified `sub` is the obvious shortcut and is an availability hole: anyone can mint a token carrying a victim's `sub` and lock that victim out. The user bucket is keyed on a SHA-256 digest of the presented token instead. **The cost is written into the contract rather than hidden: this is per-credential, not per-account.** Two devices get two buckets and a token refresh mints a fresh one; the per-IP limit is what keeps refresh-to-reset bounded, which is why both are enforced rather than either alone.
+
+Proven by driving real requests through the shipped middleware instances until they 429, and against a booted server (20 × 401, then 429 with `Retry-After: 60` and `RateLimit-Policy: 20;w=60`). Mutation-checked — removing the mount turns 8 of the 14 tests red.
+
+### S4 — no provider credential reachable in logs or error envelopes
+
+O8 proved this for GlitchTip payloads; this extends it to stdout and the HTTP error envelope. **Two real gaps were found, and both were found by provoking failures rather than by reading the adapters:**
+
+1. **`authorization` was missing from the shared scrubber's sensitive-key pattern.** An axios failure carries `error.config.headers`, which is where an `Authorization` header sits. Anything that logged or reported that object whole published the header verbatim. Every other key on it was covered.
+2. **Even with the key added, `authorization: Bearer ya29.x` still leaked.** The key/value rule stops a value at the first space, so it redacted the word "Bearer" and published the token after it. `Bearer`/`Basic` now have their own rule, applied first. Deliberately not `OAuth` — that challenge is scheme plus `key=value` parameters, already covered, and blanket redaction would destroy the `oauth_problem` diagnostic that made the Yahoo 403 tractable.
+
+Containment moved from per-call-site convention to structural: every winston line leaves through the scrubber, and the terminal error handler moved to `src/middleware/errorEnvelope.js` so the message it echoes back is scrubbed and the shipped envelope is the one under test. Call sites still pass only what they need — this is the backstop for when one of them stops doing that.
+
+**One boundary recorded rather than left implicit:** a credential logged as a bare value with no key beside it is invisible to the text scrubber. No code path does that, and facts-of-record #6 keeps ESPN cookie values out of every emission site by construction, but the limit is now written down in the test instead of assumed away.
+
+### O4 — the load rehearsal
+
+`scripts/load-omen-routes.js` existed and had never been run. Extended rather than replaced, per `scripts/README.md`.
+
+| Run | p95 `trade/compare` | p95 `mvp-move` | p95 `dashboard/summary` | error rate | 429s |
+|---|---|---|---|---|---|
+| Beta — 20 concurrent, 160/route | 20 ms | 5 ms | 23 ms | 0 % | 0 |
+| 10× — 200 concurrent, 1600/route | 107 ms | 20 ms | 101 ms | 0 % | 0 |
+
+**The 0 rate-limited count is the number that makes the latency numbers meaningful** — it confirms no request in either run was answered by the limiter instead of by the route. Worst p95 is ~7× inside the tighter investor-demo threshold.
+
+Concurrency was chosen off the repo: 8 requests per client sits under the tightest per-credential budget (`mvp-move`, 10/min); 20 is the top of the K2 beta cohort; 200 is R6's internal-track ceiling (100 iOS + 100 Android), which lands 10× on a real boundary rather than an arbitrary multiplier. Every simulated client carries its own `X-Forwarded-For` and bearer token so the limits distribute as they will in production instead of collapsing the whole run into one bucket.
+
+Two saturation runs then did the opposite on purpose — one IP, one credential — and the limiters bound at exactly their documented numbers, with the documented envelope, correct `scope`, and no 5xx. **That surfaced something worth knowing: for a client using the whole app rather than hammering one endpoint, the app-wide 100/min/IP limiter binds before `dashboard/summary`'s own budget does.** The `api-routes.md` numbers stack rather than replace.
+
+`scripts/local-load-stack.js` is new. It boots the real `src/server.js` against a loopback Supabase stub, because without one `GET /api/dashboard/summary` 401s before doing any work — and worse, `requireAuth` would reach the configured Supabase host on every request, so the numbers would be DNS and TLS timings against a third party. The stub returns 404 loudly on any unstubbed path, so a future route change surfaces as a failure rather than as a suspiciously fast measurement.
+
+**Not claimed, and listed beside what is:** no provider fan-out to Yahoo, Sleeper, or ESPN; no real LLM call; `mvp-move` ran in explicit mock mode; the stub user has no platform connections; loopback on one host with no TLS, Nginx hop, container limit, or cold start. Per O4's own Scope, **Week 1 Sunday morning is the real load test — this is the rehearsal.** The right reading is that nothing in Omen's own code is a bottleneck at beta scale, so if Sunday goes badly the cause is upstream of this measurement.
+
+Full record: `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`.
