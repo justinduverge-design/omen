@@ -132,7 +132,7 @@ The script **refuses to capture unless the Omen window holds focus.** That guard
 
 | Gate | Result |
 |---|---|
-| Backend `npm test` | **593/593**, 0 fail (no backend file touched) |
+| Backend `npm test` | **618/618**, 0 fail on the merged tree (**593/593** at base `f4a6ae1`; +25 from PR #355, merged in) |
 | Android `:app:assembleDebug` | BUILD SUCCESSFUL |
 | Android primitive-enforcement scanner | **1/1** |
 | `:core:designsystem:testDebugUnitTest` | **22/22** |
@@ -144,7 +144,11 @@ The script **refuses to capture unless the Omen window holds focus.** That guard
 | Net effect of this branch on iOS | **+9 passing, and `main`'s two red tests fixed** |
 | `xcodebuild -version` | **Xcode 26.6 (17F113)** |
 
-**On the backend baseline.** The task brief gave 618/618 as of 2026-08-22. The measured figure at `f4a6ae1` on a clean tree is **593/593, deterministic across two runs, 0 failures**. 618 does not reconcile with the repo's own trail either — the last recorded count is **587/587** (`O8`, 2026-08-21), and no commit since has touched `test/` or `src/`. Nothing regressed; the brief's number simply does not match anything in the repo. Recorded rather than quietly adopted.
+**On the backend baseline — I was wrong about this, and the correction is worth keeping.**
+
+I recorded that the brief's **618/618** "does not reconcile with the repo's own trail", because `f4a6ae1` measured **593/593** deterministically and the last written count was 587 (`O8`). After merging `origin/main` — which had gained PR [#355](https://github.com/justinduverge-design/omen/pull/355) (S3 + S4 + O4) while this branch was in flight — the merged tree measures exactly **618/618, 0 failures**. 593 + the 25 tests #355 added = 618.
+
+**The brief was describing `main`; I was measuring my base commit, and those were the same thing only until #355 landed.** Recording the discrepancy rather than adopting the number was still the right move — it is what made this reconciliation checkable at all. But the conclusion drawn from it, "does not match anything in the repo", was wrong, and wrong in the direction of doubting a correct instruction. **A test baseline is a property of a commit, not of a date** — neither the brief nor my note said which commit it meant, and that omission is what turned a routine gap into a suspected error.
 
 **Two Android infrastructure notes**, both mine and both recoverable:
 
