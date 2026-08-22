@@ -51,6 +51,7 @@ const {
   publicToolRateLimit,
 } = require("./middleware/security");
 const { applyHotRouteRateLimits } = require("./middleware/hotRouteLimits");
+const { errorHandler } = require("./middleware/errorEnvelope");
 
 const app = express();
 
@@ -359,21 +360,9 @@ Sentry.setupExpressErrorHandler(app);
 // Logs full detail server-side; sends sanitized message to client in prod
 // so we don't leak stack traces or implementation details.
 // SY0-701 4.5: don't reveal implementation details on error.
-app.use((err, req, res, _next) => {
-  const status = err.status || 500;
-  logger.error("Unhandled error", {
-    err:    err.message,
-    stack:  err.stack,
-    path:   req.path,
-    method: req.method,
-    ip:     req.ip,
-  });
-  res.status(status).json({
-    error: config.isProd && status >= 500
-      ? "Internal server error"
-      : err.message,
-  });
-});
+// S4: lives in middleware/errorEnvelope.js so the shipped envelope is the
+// one under test, and so the message it echoes is scrubbed first.
+app.use(errorHandler);
 
 // --- Listen -------------------------------------------------------
 const server = app.listen(config.port, () => {

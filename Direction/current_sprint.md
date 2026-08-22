@@ -561,8 +561,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S3 — Rate limits on the three hot routes
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-08-21 Claude — implementing per-user + per-IP limits, 429 envelope, limit-hit/reset tests, and the `api-routes.md` documentation.
+- **Status:** VERIFIED
+- **Evidence:** commit `0c1f85e` — `src/middleware/hotRouteLimits.js` (per-IP + per-credential limiters, honest 429 envelope), wired in `src/server.js` ahead of the routers; `test/hotRouteRateLimits.test.js` (14 tests: limit-hit on all three routes for both scopes, reset, anonymous-flood containment, key derivation, mount ordering); budgets and the per-credential tradeoff documented in `Blueprints/api-routes.md` § Rate Limits. Proven against a booted server, not only in unit tests: 20 × 401 then 429 on `POST /api/omen/mvp-move` with `Retry-After: 60` and `RateLimit-Policy: 20;w=60`. Mutation-checked — removing the mount turns 8 of the 14 tests red. `npm test` 607/607.
 - **Blocked by:** None
 - **Priority:** P1
 - **Cost:** small–medium
@@ -574,7 +574,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### S4 — Confirm no provider credentials reachable in logs on error paths
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-21 Claude — extending the O8 GlitchTip-payload proof to logs and HTTP error envelopes for all three adapters.
 - **Blocked by:** None
 - **Unblock:** 2026-08-18 CORRECTED — this item's scope previously read "...or Sentry payloads once O1 lands." That reference was always wrong: `O1` (Kuma/Beszel) never emitted Sentry-shaped payloads — that was `O1b`'s job, and `O1b` closing on 2026-08-17 proved the tool works, not that anything sends to it. `O8` is what will actually emit adapter-failure payloads. The log/error-envelope half of this item's scope is testable now regardless.
 - **Priority:** P1
