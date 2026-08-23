@@ -1374,3 +1374,9 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Reasoning:** the intended testers are product users, not App Store Connect operators. External TestFlight lets them participate without granting privileged console roles and supports the real-league cohort R6 is meant to prove.
 - **Boundary:** TestFlight Internal Testing remains limited to genuine App Store Connect team members. This decision authorizes external beta setup, Beta App Review, and invitations; it does not authorize public App Store release, production-track rollout, or granting console access to beta participants.
 - **Recorded execution:** the founder submitted iOS version 0.1.0 (Build 1) to Beta App Review after saving the external group's beta information and the build-specific test instructions. App Store Connect reports `Waiting for Review`. This is a submission, not an approval; the external group has zero testers and no invitation has been sent.
+
+## 2026-08-23 — Android Build 1 is live on the internal testing track
+
+- **Founder-executed result:** Google Play version 0.1.0 (version code 1) is `Available to internal testers`; the internal track is `Active`, one founder-controlled Google account is allowlisted, and Google generated the private opt-in link.
+- **Honest boundary:** this proves rollout availability, not installation or successful app behavior. The listing still uses Google's temporary unreviewed package-name label. Missing deobfuscation and native debug-symbol files remain non-blocking diagnostics-quality warnings.
+- **R6 state:** Android's track-publication half is cleared. R6 remains open because Apple Build 1 is still waiting for Beta App Review, neither platform has installation evidence from the approved tester cohort, and the 10+ real-tester threshold has not been met.
