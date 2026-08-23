@@ -1349,3 +1349,9 @@ This is the third consecutive session in which the shared scrubber was found to 
 **Third: a local load test that 401s is not a load test.** `scripts/local-load-stack.js` boots the real server against a loopback Supabase stub so `GET /api/dashboard/summary` measures the real hot path. Without it, `requireAuth` reaches the configured Supabase host on every request and the numbers are DNS and TLS timings against a third party. The stub 404s loudly on any unstubbed path, per `scripts/README.md`'s rule against false all-clears.
 
 **And the scope caveat is recorded next to the numbers, not below them.** No provider fan-out, no real LLM call, `mvp-move` in explicit mock mode, loopback on one host. `O4`'s own Scope says Week 1 Sunday morning is the real load test. The honest reading of p95 ≤ 107 ms at 0 % error is *nothing in Omen's own code is a bottleneck at beta scale* — not *Omen is fast*.
+
+## 2026-08-23 — Google Play Data Safety and its prerequisite declarations were submitted
+
+- **Founder-submitted result:** Play Console lists Data Safety as an actioned declaration dated 2026-08-23. Its summary records three collected/shared data categories, no third-party sharing, encryption in transit, and `https://slopssaloon.com/delete-account` as both the account-deletion URL and deletion-support URL.
+- **Prerequisites completed in the same founder session:** the live Privacy Notice URL is `https://slopssaloon.com/privacy`; App access states that some functionality is restricted and directs reviewers to the pre-authentication `Try Demo` path without credentials; Target audience selects 13–15, 16–17, and 18+, with no group under 13 and no child-directed claim.
+- **Scope:** this clears only Google Play's half of `R4`. Apple privacy nutrition labels are still required before `R4` closes, and no internal-test rollout or public release was authorized by submitting these declarations.

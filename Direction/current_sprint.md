@@ -239,6 +239,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Status:** READY
 - **Blocked by:** None
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
+- **Unblock:** 2026-08-23 PARTIALLY CLEARED — the founder submitted Google Play's Data Safety declaration. Play Console now lists it among the actioned declarations, records three collected/shared data categories, confirms encryption in transit, and shows `https://slopssaloon.com/delete-account` for both account-deletion URL and deletion support. The live privacy-policy URL, sign-in-access instructions, and 13+ target-audience declaration were also completed. This is the Google half only; Apple privacy nutrition labels remain before R4 closes.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
