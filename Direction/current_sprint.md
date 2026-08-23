@@ -130,7 +130,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** READY
-- **Blocked by:** None
+- **Blocked by:** EXTERNAL — Apple Beta App Review approval for iOS version 0.1.0, Build 1; App Store Connect currently reports `Waiting for Review`.
 - **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
 - **Priority:** P1 — correctness defect in the grading loop
 - **Cost:** small
@@ -275,6 +275,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Unblock:** 2026-08-23 CLEARED — `R4` and `R5` closed after the founder submitted and verified both stores' privacy and age declarations. The 2026-08-22 conditional founder approval is now operative: private internal tester selection and internal-track publication may proceed, but external/public release remains prohibited.
 - **Unblock:** 2026-08-23 REASSESSED — Build 1 is Ready to Test and attached to `Omen Internal Beta`, but the eligible tester picker is empty. Apple limits internal testers to App Store Connect users with qualifying roles; granting console access to ordinary beta users merely to avoid Beta App Review is not authorized. Evidence: `Direction/reviews/2026-08-23-r6-testflight-tester-model.md`.
 - **Unblock:** 2026-08-23 CLEARED — the founder approved External TestFlight for the real-user iOS cohort so friends and fantasy-league participants can be invited without App Store Connect roles. The first-build Beta App Review is accepted as part of that route. This authorizes external beta setup and invitations only; it does not authorize public App Store release.
+- **Unblock:** 2026-08-23 ESCALATED — `Omen External Beta` was created, Test Information and Build 1's `What to Test` were saved, and the founder submitted iOS version 0.1.0 (Build 1) to Beta App Review. App Store Connect now reports `Waiting for Review`, with the build attached to both the internal and external groups. No external tester has been invited yet.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open

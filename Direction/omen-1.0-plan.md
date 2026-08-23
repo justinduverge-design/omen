@@ -84,16 +84,16 @@ now **the longest pole**, and most of it is calendar time no agent can compress.
 | R3 | Signing: iOS distribution cert + provisioning profile; Android upload key + Play App Signing | Justin | week 1 |
 | R4 | Apple privacy nutrition labels + Google Data Safety form | agent drafts, Justin submits | week 2 |
 | R5 | **Age rating / gambling questionnaire** — fantasy sports triggers Apple's gambling review path. You already have `2026-07-12-store-metadata-privacy-gambling-copy-audit.md`. Use it. | Justin | week 2 |
-| R6 | TestFlight internal (≤100 testers, no Beta App Review) + Play internal testing (≤100, no review) | agent + Justin | week 3 |
+| R6 | TestFlight external beta for the real-user iOS cohort (first build requires Beta App Review) + Play internal testing (≤100, no review) | agent + Justin | week 3 |
 | R7 | Store metadata scrubbed of Draft Assistant claims | agent | week 3 |
 
 **R1 is the single highest-risk unknown in this plan.** If the transfer locks
 App Store Connect, the iOS beta slips and you need to know today, not in three
 weeks. It's a ten-minute check.
 
-**Use internal testing tracks, not external.** Both platforms allow 100 testers
-with no review. That covers a 10–20 person beta and removes Apple's Beta App
-Review from the critical path entirely.
+**Use Play internal testing for Android and External TestFlight for the real-user iOS cohort.** Reserve Apple's internal testing for genuine App Store Connect team members. External TestFlight requires first-build Beta App Review but avoids granting console roles to ordinary testers. Play allows 100 internal testers
+with no review. That covers a 10–20 person beta; Apple's first-build Beta App
+Review remains the iOS cohort's external dependency.
 
 ### D. Development — finish the native lane
 

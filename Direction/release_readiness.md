@@ -103,7 +103,7 @@ QA, and the Android store path remain open.
 3. Signing: local iOS Apple Development signing and device provisioning work; iOS distribution/archive/upload and Android upload key + Play App Signing remain open.
 4. Apple privacy nutrition labels + Google Data Safety form
 5. **Age rating / gambling questionnaire** — fantasy sports triggers Apple's gambling review path. Use `Direction/reviews/2026-07-12-store-metadata-privacy-gambling-copy-audit.md`.
-6. TestFlight internal + Play internal testing tracks (≤100 testers each, **no review required** — keeps Beta App Review off the critical path)
+6. TestFlight external beta for the real-user iOS cohort (first build requires Beta App Review) + Play internal testing; reserve TestFlight internal access for genuine App Store Connect team members
 7. Store metadata scrubbed of **Draft Assistant** claims
 
 ### QA
