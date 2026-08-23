@@ -236,10 +236,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R4 — Privacy nutrition labels and Data Safety form
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED
+- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
 - **Unblock:** 2026-08-23 PARTIALLY CLEARED — the founder submitted Google Play's Data Safety declaration. Play Console now lists it among the actioned declarations, records three collected/shared data categories, confirms encryption in transit, and shows `https://slopssaloon.com/delete-account` for both account-deletion URL and deletion support. The live privacy-policy URL, sign-in-access instructions, and 13+ target-audience declaration were also completed. This is the Google half only; Apple privacy nutrition labels remain before R4 closes.
+- **Unblock:** 2026-08-23 CLEARED — Apple App Privacy was published against the shipped Privacy Notice: eight declared data types, no tracking, diagnostics not linked to identity, and the public Privacy Notice and deletion-choice URLs attached. Together with the submitted Google declaration, this satisfies both halves of R4.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -249,10 +251,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R5 — Age rating and gambling questionnaire
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED
+- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
 - **Unblock:** 2026-08-22 PARTIALLY CLEARED — the Google Play IARC content-rating questionnaire was submitted under `owner@slopssaloon.com` at 10:15 AM and reports `Completed`, with general-audience results including ESRB Everyone, PEGI 3, USK 0, and IARC 3+. This is the Google half only; Apple age-rating/gambling responses and the cross-store copy consistency check remain before R5 closes.
+- **Unblock:** 2026-08-23 CLEARED — the founder saved Apple's current seven-step age-rating questionnaire after a read-back of every answer. Bounded public trade-share is declared as UGC; social, chat, ads, mature content, violence, medical guidance, gambling, simulated gambling, contests, and loot boxes are No/None. The founder applied the 13+ override required by Omen's Terms; App Store Connect reports 13+ in 172 countries/regions, with Apple's regional equivalents elsewhere. Both stores are now complete and consistent with the standing no-wagering boundary.
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -264,11 +268,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R6 — Internal testing tracks
 
 - **Status:** READY
-- **Blocked by:** TASK-R4
-- **Blocked by:** TASK-R5
+- **Blocked by:** None
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Unblock:** 2026-08-22 CLEARED — the founder conditionally approved opening the private internal testing tracks as soon as `R3`, `R4`, and `R5` are complete. This removes the repeat founder gate only; it does not satisfy those tasks, invite anyone early, authorize external testing, or authorize public release.
 - **Unblock:** 2026-08-22 CLEARED — `R3` completed when Google Play accepted Android version code 1 and confirmed Play App Signing; only `R4` and `R5` remain before tester selection and internal publication.
+- **Unblock:** 2026-08-23 CLEARED — `R4` and `R5` closed after the founder submitted and verified both stores' privacy and age declarations. The 2026-08-22 conditional founder approval is now operative: private internal tester selection and internal-track publication may proceed, but external/public release remains prohibited.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open
