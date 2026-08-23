@@ -268,16 +268,17 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R6 — Internal testing tracks
 
 - **Status:** READY
-- **Blocked by:** None
+- **Blocked by:** FOUNDER_DECISION — choose the iOS beta access model: reserve TestFlight Internal Testing for genuine App Store Connect team members, or use External Testing (and its first-build Beta App Review) for the 10+ real-user cohort.
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Unblock:** 2026-08-22 CLEARED — the founder conditionally approved opening the private internal testing tracks as soon as `R3`, `R4`, and `R5` are complete. This removes the repeat founder gate only; it does not satisfy those tasks, invite anyone early, authorize external testing, or authorize public release.
 - **Unblock:** 2026-08-22 CLEARED — `R3` completed when Google Play accepted Android version code 1 and confirmed Play App Signing; only `R4` and `R5` remain before tester selection and internal publication.
 - **Unblock:** 2026-08-23 CLEARED — `R4` and `R5` closed after the founder submitted and verified both stores' privacy and age declarations. The 2026-08-22 conditional founder approval is now operative: private internal tester selection and internal-track publication may proceed, but external/public release remains prohibited.
+- **Unblock:** 2026-08-23 REASSESSED — Build 1 is Ready to Test and attached to `Omen Internal Beta`, but the eligible tester picker is empty. Apple limits internal testers to App Store Connect users with qualifying roles; granting console access to ordinary beta users merely to avoid Beta App Review is not authorized. Evidence: `Direction/reviews/2026-08-23-r6-testflight-tester-model.md`.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open
 - **Agent-buildable:** no
-- **Source:** use **internal** tracks, not external. TestFlight internal and Play internal testing each allow ≤100 testers with **no review**, which keeps Apple's Beta App Review off the critical path entirely.
+- **Source:** Google Play internal testing can invite testers without granting Play Console roles. On Apple, TestFlight Internal Testing is limited to App Store Connect users; reaching a general 10+ real-user cohort requires External Testing and a first-build Beta App Review unless those people are already genuine team members.
 - **Done when:** both apps are installable by invited testers on internal tracks and 10+ real testers in real leagues have access.
 - **Do not touch:** external/public tracks, or public store release, before Phase 6.
 
