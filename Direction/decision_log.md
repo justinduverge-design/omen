@@ -1380,3 +1380,10 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Founder-executed result:** Google Play version 0.1.0 (version code 1) is `Available to internal testers`; the internal track is `Active`, one founder-controlled Google account is allowlisted, and Google generated the private opt-in link.
 - **Honest boundary:** this proves rollout availability, not installation or successful app behavior. The listing still uses Google's temporary unreviewed package-name label. Missing deobfuscation and native debug-symbol files remain non-blocking diagnostics-quality warnings.
 - **R6 state:** Android's track-publication half is cleared. R6 remains open because Apple Build 1 is still waiting for Beta App Review, neither platform has installation evidence from the approved tester cohort, and the 10+ real-tester threshold has not been met.
+
+## 2026-08-23 — R6 is setup-complete, not outcome-complete
+
+- **Evidence, not a founder decision:** Apple Build 1 remains `Waiting for Review`; Google Play's internal track is active and available to allowlisted accounts. The founder does not own Android hardware, so a qualified tester's device must supply the Play opt-in and installation evidence.
+- **Status consequence:** `R6` remains `READY`, blocked by two external outcomes: Apple's review and acceptance by 10+ qualified testers from real fantasy leagues. “Almost done” is recorded as setup complete / outcomes pending rather than as a non-model status.
+- **Recruitment preparation:** `Direction/reviews/2026-08-23-r6-beta-cohort-recruitment-plan.md` defines a no-subscription, real-league-first funnel. Existing league contacts and opted-in Omen waitlist members are the preferred sources; moderated fantasy communities are overflow. Generic install exchanges do not satisfy the real-league requirement unless each tester is independently qualified.
+- **Boundary:** no invitation, public link, waitlist email, community post, or other outreach was sent or approved by this record. Outreach copy and sending remain founder-owned external communications.

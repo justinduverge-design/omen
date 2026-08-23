@@ -165,7 +165,7 @@ Nothing public until Q1–Q4 close.
 | # | Item | Timing |
 |---|---|---|
 | K1 | Landing page + store copy honest about mock vs live; **no Draft Assistant claims** | before beta |
-| K2 | 10–20 beta testers from real leagues, added to both internal tracks | beta open |
+| K2 | 10–20 beta testers from real leagues, added to the approved tracks (TestFlight external + Google Play internal) | beta open |
 | K3 | Feedback channel (Discord or in-app) | beta open |
 | K4 | Omen of the Week / `slops-explainer-cut` | after Week 1 |
 | K5 | Reddit / community push | after two stable weeks |
@@ -196,7 +196,7 @@ Q1–Q7, S1–S5, O3, O4. R4, R5, R7 in parallel.
 device matrix clean; store questionnaires submitted.
 
 ### Phase 5 — Beta open (~Aug 24)
-R6, K1–K3. 10–20 real testers on internal tracks, both platforms.
+R6, K1–K3. 10–20 real testers on the approved beta tracks, both platforms.
 **Gate:** two weeks of real usage before Week 1.
 
 ### Phase 6 — Season hardening (Sept)
