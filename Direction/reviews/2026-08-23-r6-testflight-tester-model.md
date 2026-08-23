@@ -11,4 +11,4 @@ Sources:
 
 **Consequence:** R6's original assumption that ten or more ordinary real-user testers could use Apple's internal track without review was incorrect. Granting App Store Connect roles solely to make beta users eligible would expand production-account access and is not a safe substitute for Beta App Review.
 
-**Founder decision required:** keep Apple Internal Testing limited to genuine team members and use External Testing for the real-user cohort, or identify existing/genuine team members who should receive App Store Connect access. No tester was invited and no role was granted in this session.
+**Founder decision — 2026-08-23:** use External TestFlight for the real-user cohort, including friends and fantasy-league participants, and accept first-build Beta App Review. Keep Internal Testing limited to genuine App Store Connect team members. No tester was invited and no role was granted when this evidence was recorded.

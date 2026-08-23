@@ -1367,3 +1367,9 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Evidence, not a founder decision:** Build 1 is Ready to Test and attached to `Omen Internal Beta`, but its eligible tester list is empty. Apple's documented model permits only App Store Connect users with qualifying roles to be internal testers; ordinary beta users belong on External Testing, whose first build requires TestFlight App Review.
 - **Correction:** the earlier R6 statement that a 10+ real-user cohort could use Apple's internal track with no review conflated the 100-person ceiling with eligibility. Adding beta users as console users merely to avoid review would grant account access and is not authorized.
 - **Deferred because:** the founder must choose whether Apple Internal Testing remains founder/genuine-team-only while the real-user cohort uses External Testing, or whether named people genuinely need App Store Connect roles. The decision is unblocked by that explicit choice; no tester invitation, role grant, external group, or review submission occurred.
+
+## 2026-08-23 — Use External TestFlight for Omen's real-user iOS beta
+
+- **Founder decision:** approve External TestFlight for friends, fantasy-league participants, and other real beta users. Accept the first-build Beta App Review required by Apple's external-testing route.
+- **Reasoning:** the intended testers are product users, not App Store Connect operators. External TestFlight lets them participate without granting privileged console roles and supports the real-league cohort R6 is meant to prove.
+- **Boundary:** TestFlight Internal Testing remains limited to genuine App Store Connect team members. This decision authorizes external beta setup, Beta App Review, and invitations; it does not authorize public App Store release, production-track rollout, or granting console access to beta participants.
