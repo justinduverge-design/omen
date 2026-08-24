@@ -1,5 +1,13 @@
 # Omen Decision Log
 
+## 2026-08-24 — Founder adopted Football Data Policy v1.1 custody and correction amendment
+
+- **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.1.md` as an amendment to the v1 policy. Public football facts, private account/league data, and Omen audit evidence are separate data classes with separate custody rules.
+- **User-history rule:** account-linked league context, recommendations, and grades are deleted or irreversibly de-identified through the established account-deletion process. Shared football facts and non-identifying system evidence remain only as needed to operate and explain the system.
+- **Correction rule:** a material result correction is versioned, visible in history, explained in plain language, and proactively notified when it changes the outcome or grade; Omen does not silently rewrite prior outcomes.
+- **Operating rule:** each phase names a Data Operations Owner. Failed rights, completeness, identity, formula, or validation controls stop publication automatically; no operating owner may weaken the policy unilaterally.
+- **Boundary unchanged:** these commitments still authorize no collector, timer, credential, SQL application, migration, deployment, scoring flag, or ADP work.
+
 ## 2026-08-24 — Founder adopted Omen Football Data Policy v1
 
 - **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.md` as Omen’s governing direction for football-data storage, lawful sourcing, traceability, validation, and phased production authorization.
