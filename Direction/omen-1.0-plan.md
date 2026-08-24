@@ -84,16 +84,16 @@ now **the longest pole**, and most of it is calendar time no agent can compress.
 | R3 | Signing: iOS distribution cert + provisioning profile; Android upload key + Play App Signing | Justin | week 1 |
 | R4 | Apple privacy nutrition labels + Google Data Safety form | agent drafts, Justin submits | week 2 |
 | R5 | **Age rating / gambling questionnaire** — fantasy sports triggers Apple's gambling review path. You already have `2026-07-12-store-metadata-privacy-gambling-copy-audit.md`. Use it. | Justin | week 2 |
-| R6 | TestFlight internal (≤100 testers, no Beta App Review) + Play internal testing (≤100, no review) | agent + Justin | week 3 |
+| R6 | TestFlight external beta for the real-user iOS cohort (first build requires Beta App Review) + Play internal testing (≤100, no review) | agent + Justin | week 3 |
 | R7 | Store metadata scrubbed of Draft Assistant claims | agent | week 3 |
 
 **R1 is the single highest-risk unknown in this plan.** If the transfer locks
 App Store Connect, the iOS beta slips and you need to know today, not in three
 weeks. It's a ten-minute check.
 
-**Use internal testing tracks, not external.** Both platforms allow 100 testers
-with no review. That covers a 10–20 person beta and removes Apple's Beta App
-Review from the critical path entirely.
+**Use Play internal testing for Android and External TestFlight for the real-user iOS cohort.** Reserve Apple's internal testing for genuine App Store Connect team members. External TestFlight requires first-build Beta App Review but avoids granting console roles to ordinary testers. Play allows 100 internal testers
+with no review. That covers a 10–20 person beta; Apple's first-build Beta App
+Review remains the iOS cohort's external dependency.
 
 ### D. Development — finish the native lane
 
@@ -165,7 +165,7 @@ Nothing public until Q1–Q4 close.
 | # | Item | Timing |
 |---|---|---|
 | K1 | Landing page + store copy honest about mock vs live; **no Draft Assistant claims** | before beta |
-| K2 | 10–20 beta testers from real leagues, added to both internal tracks | beta open |
+| K2 | 10–20 beta testers from real leagues, added to the approved tracks (TestFlight external + Google Play internal) | beta open |
 | K3 | Feedback channel (Discord or in-app) | beta open |
 | K4 | Omen of the Week / `slops-explainer-cut` | after Week 1 |
 | K5 | Reddit / community push | after two stable weeks |
@@ -196,7 +196,7 @@ Q1–Q7, S1–S5, O3, O4. R4, R5, R7 in parallel.
 device matrix clean; store questionnaires submitted.
 
 ### Phase 5 — Beta open (~Aug 24)
-R6, K1–K3. 10–20 real testers on internal tracks, both platforms.
+R6, K1–K3. 10–20 real testers on the approved beta tracks, both platforms.
 **Gate:** two weeks of real usage before Week 1.
 
 ### Phase 6 — Season hardening (Sept)

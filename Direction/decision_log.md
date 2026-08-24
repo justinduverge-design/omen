@@ -1,5 +1,98 @@
 # Omen Decision Log
 
+## 2026-08-22 — Google Play content rating completed; Apple half remains
+
+- **Evidence:** Google Play Console shows the Omen IARC questionnaire `Completed`, submitted 2026-08-22 at 10:15 AM under `owner@slopssaloon.com`. Displayed ratings include ESRB Everyone, PEGI 3, USK 0, and IARC 3+.
+- **Scope:** this is partial completion of `R5`, not full closure. Apple age-rating/gambling responses and the required cross-store consistency check against Omen's no-wagering product boundary still remain.
+
+## 2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated
+
+- **Evidence:** under organization account `DarthSlops`, Google Play Console accepted Omen package `com.slopssaloon.omen` version code 1 into the internal-testing release flow and displayed the release preview. The console confirms releases are signed by Google Play.
+- **Warnings classified:** no testers are configured, so publishing now would make the release available to nobody. The missing deobfuscation file is expected because `release.isMinifyEnabled = false`; the native-symbol warning is diagnostic-quality follow-up, not an upload or signing rejection.
+- **Decision application:** the successful upload closes `R3` signing/provisioning. Do not press `Save and publish` yet: the founder's conditional internal-track approval still requires `R4` privacy disclosures and `R5` store-review questionnaires, and tester selection remains unfinished.
+- **Boundary:** no release was published, no tester was invited, and no keystore, password, certificate, or secret was recorded.
+
+## 2026-08-22 — Private internal testing may open when the three store prerequisites complete
+
+- **Decision:** conditionally approve opening Omen's TestFlight internal and Google Play internal testing tracks once `R3` signing/provisioning, `R4` privacy disclosures, and `R5` store-review materials are complete.
+- **Reason:** private internal distribution is the next required beta step and keeps external review and public exposure off the critical path while real invited testers exercise the app.
+- **Boundary:** the approval is dependency-bound. It does not make any incomplete prerequisite pass, authorize an early invitation, authorize external testing, or authorize a public store release.
+- **Impact:** `R6` no longer needs another founder decision after the three named prerequisites close. Its remaining blockers are exactly `TASK-R3`, `TASK-R4`, and `TASK-R5`.
+
+## 2026-08-22 — Rollback proof is mandatory operating practice; first controlled exercise authorized
+
+- **Decision:** rollback capability and a periodically exercised rollback path are required operating controls, not optional founder approvals. Justin remains the named production executor because access and service-risk coordination are human-only responsibilities.
+- **Authorization now:** the founder authorized the first controlled exercise against a non-critical deployment using the existing rollback runbook. This session does not perform it; no deployment, rollback, secret access, or production mutation is authorized beyond that separately scheduled controlled exercise.
+- **Completion rule:** `O2` remains `IN_PROGRESS` until the prior immutable image is actually selected, health is verified, recovery time is recorded, the current image is restored, and sanitized evidence is written. Approval alone is not execution evidence.
+- **Impact:** `A4`'s rollback gate remains objective and mandatory. It clears only when `O2` completes; Tuesday scoring cannot be enabled merely because the exercise was authorized.
+
+## 2026-08-22 — Android ESPN stays desktop-assisted through beta; try Microsoft Edge mobile post-beta
+
+- **Decision:** do not add an Android ESPN credential handoff during beta. Android users continue connecting once through the existing desktop/web Chrome or Edge path; the server-side connection then remains available in the native app.
+- **Reason:** the founder chose to leave this work until post-beta while preserving ESPN as a supported provider. This avoids adding a new sensitive credential surface and browser-specific maintenance ahead of the higher-priority beta work.
+- **Post-beta direction:** try Microsoft Edge's mobile-extension route first. The first step is a bounded real-device feasibility check for the existing Chromium extension, including HttpOnly-cookie access and one-shot in-memory transfer; Microsoft mobile-store eligibility and curation must be verified rather than assumed. Firefox with direct runtime messaging remains the fallback if Edge is unavailable.
+- **Boundary:** this decision does not authorize packaging, Partner Center submission, publication, persistent credential storage, deployment, or handling real ESPN cookie values in agent-visible evidence. Those actions require their own scoped work and security evidence after the beta trigger.
+- **Impact:** `M8-EspnAndroidHelper` closes as a completed decision. `M8-EdgeAndroid-PostBeta` is recorded in the non-selectable deferred backlog and is promoted only after beta.
+
+## 2026-08-22 — The iOS passkey founder blockers were already satisfied, not awaiting approval
+
+- **Reconciliation:** the reviewed passkey implementation merged as `81878d0`, and a 2026-08-22 read-only check of `https://slopssaloon.com/.well-known/apple-app-site-association` returned HTTP 200 JSON without redirect for exactly `6RWR5G9894.com.slopssaloon.omen`. The stale 404/deploy founder blocker is removed.
+- **Existing founder evidence:** `Blueprints/handoffs/2026-08-13-native-auth-completion.md` already records a founder-observed physical-iPhone Face ID passkey path and sign-out. That is completion evidence, not a new design or security approval to request again.
+- **Still open:** the current record does not explicitly prove every exact acceptance step, particularly a fresh install and Account list/remove. `M4-Auth-Passkeys-iOS-Onramp` therefore remains `READY` with an agent-resolvable evidence-reconciliation blocker; it is not falsely closed or ratified.
+
+## 2026-08-22 — ESPN cookie expiry is not credited as credential rotation
+
+- **Finding:** ESPN does not provide Omen an OAuth-style automatic rotation path. `espn_s2` is a fragile, expiring session cookie and `SWID` may remain stable; Omen only replaces both Vault values when the user completes a fresh validated ESPN reconnect.
+- **Decision application:** passive expiry is not evidence that a possibly exposed credential was invalidated. `S2` remains open until the old ESPN session is deliberately invalidated and fresh cookies replace the Vault values, or a no-values audit explicitly clears the credentials as never exposed.
+- **Other open facts confirmed by founder:** Yahoo has not been restored, so its fresh-token/old-secret retirement step cannot run yet; the Apple `.p8` signing key has probably not been moved out of the agent-readable development path. Neither is credited complete.
+
+## 2026-08-22 — Security controls are how Omen operates, not approval requests
+
+- **Decision:** required security controls are mandatory operating practice. They are not framed as optional founder approvals merely because only the founder can access the relevant dashboard, credential, or account.
+- **Applied now:** `S1` leaked-password protection and secret-scope review, `S2` required credential containment/rotation, and `M3A-QA` auth/session/deletion/log-safety verification no longer carry `FOUNDER_APPROVAL` blockers. All remain open work until their own evidence-based `Done when:` clauses are satisfied; destructive QA uses a disposable account, never a founder identity.
+- **Rule:** founder-only access names the executor, not whether the control applies. A future exception must be a separate explicit decision that records the accepted risk, reason, duration, mitigation, and objective closure trigger; silence or inconvenience never waives a control.
+- **Reason:** password-compromise checks, least-privilege scopes, rotation after possible exposure, and log containment are baseline conditions for doing business safely, not features to accept or decline release by release.
+
+## 2026-08-22 — Tuesday scoring is conditionally approved behind six evidence gates
+
+- **Decision:** approve persistent Tuesday scoring enablement once, and only once, all six conditions are evidenced: two historical weeks replay successfully; standard, half-PPR, and PPR results match independent references; `A6-MovesScoringFormat` passes staging; a production rehearsal reads real rows and writes nothing; monitoring and failure behavior are proven; and `O2`'s rollback exercise is complete with Justin as owner.
+- **Current state:** `OMEN_CRON_SCORING_ENABLED` remains `false`. This conditional approval is not permission to enable early, skip a gate, deploy unrelated work, apply production SQL, or handle credentials outside their existing controls.
+- **Impact:** the founder blocker on `A4` is cleared and replaced by the named task/evidence dependencies. When all six are directly evidenced, the approved sequence may enable the flag, verify readiness and cron health, and preserve the rollback record without returning for the same product decision.
+
+## 2026-08-22 — Sleeper commercial-permission request sent
+
+- **Fact:** Justin sent Sleeper a request for written commercial API permission or licensing terms. No response or permission is claimed yet.
+- **Routing:** the response is an external input to `A7-OwnedFootballDataPipeline`; it may add a lawful source option but does not pause the owned-pipeline plan and does not retroactively authorize use.
+
+## 2026-08-22 — Capture scoring format on each recommendation; production remains separately gated
+
+- **Decision:** approve authoring the additive review-only `moves.scoring` migration and validating it in staging. Do not apply it to production without a later explicit founder approval based on staging evidence.
+- **Reason:** every recommendation is currently graded as PPR because its league scoring format is not persisted. Standard and half-PPR leagues therefore receive a grade calculated from points their rules do not award; the defect affects Sleeper, ESPN, and Yahoo equally and would remain wrong under the owned-data pipeline.
+- **Required behavior:** new recommendations persist their actual scoring format; Tuesday grading selects the corresponding standard, half-PPR, or PPR result; historical rows without the field retain the PPR fallback so the additive change does not break old records.
+- **Risk control:** nullable additive column, review-only SQL, staging application, verification, and a separately approved production sequence. No production migration is authorized by this entry.
+
+## 2026-08-22 — Omen will own its football-data pipeline
+
+- **Decision:** reject a paid Tuesday-scoring fallback subscription and select a Slops-owned Omen football-data pipeline. The immediate reason is cost discipline after the MacBook purchase; the strategic reason is to stop making Omen's core football intelligence contingent on vendors whose free APIs either prohibit commercial use or provide no dependable commercial grant.
+- **Operating intent:** automate lawful collection and processing on existing infrastructure. The architecture pass must compare VPS and Raspberry Pi roles, preserve immutable raw inputs, normalize identities, derive all supported scoring formats, validate against an independent reference, monitor failures, and make every weekly result replayable.
+- **Boundary:** this decision does not approve scraping any public website, deploying a collector, installing dependencies, or changing production. Publicly visible data is not automatically automation-licensed; source rights and terms are a design input, not cleanup after implementation.
+- **Future direction:** the pipeline should leave a clean path for a Slops-owned ADP corpus and broader football intelligence, but Tuesday-scoring resilience remains the first bounded delivery. ADP is not claimed or folded into the scoring acceptance criteria.
+- **Impact:** `A5` is complete because the founder made the source-strategy choice. `A7-OwnedFootballDataPipeline` now owns research, architecture, costing, historical replay, and the phased build plan; `A4` remains gated on an approved no-write dry run and later production enablement.
+
+## 2026-08-22 — The Trade contract is rejected until personalization is real end to end
+
+- **Decision:** The 2026-08-16 Trade screen proposal is not ratified. A neutral-first implementation with the personalized half deferred is not an acceptable expression of Omen's core promise.
+- **Required revision:** complete the backend and design work as one batch: `POST /api/trade/compare` must accept real league/roster context; personalized analysis must use that context rather than merely a scoring-format label; all four approved verdict states, including insufficient data, must be represented by explicit server semantics; and revised iOS and Android contracts must demonstrate the complete flow.
+- **Reason:** Omen exists to personalize recommendations. Approving a screen whose primary shippable path is generic analysis would turn the central product distinction into deferred scope while presenting the surface as complete.
+- **Impact:** native Trade implementation slice G remains blocked and the current placeholder stays. The founder gate is replaced by agent-resolvable backend + contract work; no contract is ratified by this entry.
+
+## 2026-08-22 — The League contract is rejected until it delivers the complete League experience
+
+- **Decision:** The 2026-08-16 League screen proposal is not ratified. Its primary state reduces the named matchup + standings + activity experience to standings plus an empty activity area, which is not a complete League destination.
+- **Required revision:** return with a backend-data plan and revised iOS and Android contracts that demonstrate a complete matchup view, standings, and meaningful league activity. An empty activity panel may exist as a truthful empty/error state, but not as the primary experience.
+- **Approval condition:** the founder pre-authorized ratification when the revised evidence satisfies those requirements. Until then the current native placeholder remains and implementation slice F stays blocked; the remaining work is agent-resolvable rather than waiting on another product-choice discussion.
+- **Reason:** approving the incomplete proposal would silently lower the promised product scope and turn an acknowledged data gap into the approved user experience.
+
 ## 2026-08-21 — Yahoo: eight days of diagnosis ran on a status code because the body was thrown away
 
 - **The conclusion was right and had never been verified.** `facts-of-record.md` #11 has said "refused at the app-entitlement level" since 2026-08-13. It is true — Yahoo returns `"This application is not authorized to perform this action."` But every prior assertion of it rested on `src/services/yahoo.js:54` throwing `Yahoo API error: ${res.status}` and discarding the response body. **At least four distinct failures return 403** — missing entitlement, blocked source IP, rate limiting, wrong-audience token — **with completely different remedies, and the status code cannot tell them apart.** Being right by inference for eight days is not the same as knowing, and it cost a week of "wait for Yahoo" that could have been an hour of certainty.
@@ -1256,3 +1349,41 @@ This is the third consecutive session in which the shared scrubber was found to 
 **Third: a local load test that 401s is not a load test.** `scripts/local-load-stack.js` boots the real server against a loopback Supabase stub so `GET /api/dashboard/summary` measures the real hot path. Without it, `requireAuth` reaches the configured Supabase host on every request and the numbers are DNS and TLS timings against a third party. The stub 404s loudly on any unstubbed path, per `scripts/README.md`'s rule against false all-clears.
 
 **And the scope caveat is recorded next to the numbers, not below them.** No provider fan-out, no real LLM call, `mvp-move` in explicit mock mode, loopback on one host. `O4`'s own Scope says Week 1 Sunday morning is the real load test. The honest reading of p95 ≤ 107 ms at 0 % error is *nothing in Omen's own code is a bottleneck at beta scale* — not *Omen is fast*.
+
+## 2026-08-23 — Google Play Data Safety and its prerequisite declarations were submitted
+
+- **Founder-submitted result:** Play Console lists Data Safety as an actioned declaration dated 2026-08-23. Its summary records three collected/shared data categories, no third-party sharing, encryption in transit, and `https://slopssaloon.com/delete-account` as both the account-deletion URL and deletion-support URL.
+- **Prerequisites completed in the same founder session:** the live Privacy Notice URL is `https://slopssaloon.com/privacy`; App access states that some functionality is restricted and directs reviewers to the pre-authentication `Try Demo` path without credentials; Target audience selects 13–15, 16–17, and 18+, with no group under 13 and no child-directed claim.
+- **Scope:** this clears only Google Play's half of `R4`. Apple privacy nutrition labels are still required before `R4` closes, and no internal-test rollout or public release was authorized by submitting these declarations.
+
+## 2026-08-23 — Both stores' privacy and age declarations are complete
+
+- **Apple privacy publication:** the founder published eight App Privacy data types against the shipped Privacy Notice: Email Address; Other User Content; User ID; Product Interaction; Crash Data; Performance Data; Other Diagnostic Data; and Other Data. Email, user content, user ID, product interaction, and other data are linked to identity; diagnostics are not. No type is used for tracking. `https://slopssaloon.com/privacy` is the Privacy Policy URL and `https://slopssaloon.com/delete-account` is the User Privacy Choices URL.
+- **Apple age-rating result:** every questionnaire page was read back before save. The bounded 30-day public trade-share path is declared as user-generated content; unrestricted web access, social media, messaging/chat, advertising, mature content, medical/wellness guidance, violence, real or simulated gambling, contests, and loot boxes are No/None. The founder chose the 13+ higher-rating override because Omen's Terms require users to be at least 13; App Store Connect reports 13+ in 172 countries/regions and Apple's regional equivalents elsewhere.
+- **Cross-store result and reasoning:** Google Play's Data Safety and IARC declarations were already submitted in the same founder session. The two stores now describe the same product boundaries: no ads, no tracking, no wagering, no purchases, bounded UGC only, and a 13+ product policy. `R4` and `R5` therefore close. Under the founder's 2026-08-22 conditional approval, `R6` private internal testing is now unblocked; this does not authorize an external test or public store release.
+
+## 2026-08-23 — R6's Apple internal-tester premise was incorrect; founder choice remains open
+
+- **Evidence, not a founder decision:** Build 1 is Ready to Test and attached to `Omen Internal Beta`, but its eligible tester list is empty. Apple's documented model permits only App Store Connect users with qualifying roles to be internal testers; ordinary beta users belong on External Testing, whose first build requires TestFlight App Review.
+- **Correction:** the earlier R6 statement that a 10+ real-user cohort could use Apple's internal track with no review conflated the 100-person ceiling with eligibility. Adding beta users as console users merely to avoid review would grant account access and is not authorized.
+- **Deferred because:** the founder must choose whether Apple Internal Testing remains founder/genuine-team-only while the real-user cohort uses External Testing, or whether named people genuinely need App Store Connect roles. The decision is unblocked by that explicit choice; no tester invitation, role grant, external group, or review submission occurred.
+
+## 2026-08-23 — Use External TestFlight for Omen's real-user iOS beta
+
+- **Founder decision:** approve External TestFlight for friends, fantasy-league participants, and other real beta users. Accept the first-build Beta App Review required by Apple's external-testing route.
+- **Reasoning:** the intended testers are product users, not App Store Connect operators. External TestFlight lets them participate without granting privileged console roles and supports the real-league cohort R6 is meant to prove.
+- **Boundary:** TestFlight Internal Testing remains limited to genuine App Store Connect team members. This decision authorizes external beta setup, Beta App Review, and invitations; it does not authorize public App Store release, production-track rollout, or granting console access to beta participants.
+- **Recorded execution:** the founder submitted iOS version 0.1.0 (Build 1) to Beta App Review after saving the external group's beta information and the build-specific test instructions. App Store Connect reports `Waiting for Review`. This is a submission, not an approval; the external group has zero testers and no invitation has been sent.
+
+## 2026-08-23 — Android Build 1 is live on the internal testing track
+
+- **Founder-executed result:** Google Play version 0.1.0 (version code 1) is `Available to internal testers`; the internal track is `Active`, one founder-controlled Google account is allowlisted, and Google generated the private opt-in link.
+- **Honest boundary:** this proves rollout availability, not installation or successful app behavior. The listing still uses Google's temporary unreviewed package-name label. Missing deobfuscation and native debug-symbol files remain non-blocking diagnostics-quality warnings.
+- **R6 state:** Android's track-publication half is cleared. R6 remains open because Apple Build 1 is still waiting for Beta App Review, neither platform has installation evidence from the approved tester cohort, and the 10+ real-tester threshold has not been met.
+
+## 2026-08-23 — R6 is setup-complete, not outcome-complete
+
+- **Evidence, not a founder decision:** Apple Build 1 remains `Waiting for Review`; Google Play's internal track is active and available to allowlisted accounts. The founder does not own Android hardware, so a qualified tester's device must supply the Play opt-in and installation evidence.
+- **Status consequence:** `R6` remains `READY`, blocked by two external outcomes: Apple's review and acceptance by 10+ qualified testers from real fantasy leagues. “Almost done” is recorded as setup complete / outcomes pending rather than as a non-model status.
+- **Recruitment preparation:** `Direction/reviews/2026-08-23-r6-beta-cohort-recruitment-plan.md` defines a no-subscription, real-league-first funnel. Existing league contacts and opted-in Omen waitlist members are the preferred sources; moderated fantasy communities are overflow. Generic install exchanges do not satisfy the real-league requirement unless each tester is independently qualified.
+- **Boundary:** no invitation, public link, waitlist email, community post, or other outreach was sent or approved by this record. Outreach copy and sending remain founder-owned external communications.

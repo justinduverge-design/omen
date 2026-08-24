@@ -94,10 +94,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A4 — Tuesday scoring production enablement
 
-- **Status:** BLOCKED
-- **Blocked by:** FOUNDER_APPROVAL — persistent production enablement; `OMEN_CRON_SCORING_ENABLED` remains `false`.
-- **Blocked by:** EXTERNAL — [#263](https://github.com/justinduverge-design/omen/issues/263), nflverse has not published `player_stats_2026.csv`, so pre-season scoring must defer instead of recording a failed move.
-- **Blocked by:** TASK-A5 — the fallback source decision determines what this enables against if nflverse never publishes. Typed 2026-08-11; the dependency already existed in prose but was not machine-readable.
+- **Status:** READY
+- **Blocked by:** TASK-A7-OwnedFootballDataPipeline — the founder selected the owned source strategy; production scoring must wait for its lawful source set, historical replay, monitoring, and failure behavior to be verified.
+- **Blocked by:** TASK-A6-MovesScoringFormat — the scoring-format change must pass review and staging validation so standard and half-PPR leagues are not graded as PPR.
+- **Blocked by:** TASK-O2 — the founder-approved condition requires the rollback exercise to be completed before persistent enablement.
+- **Blocked by:** AGENT_RESOLVABLE — run the no-write production rehearsal against real rows and record readiness/cron health plus independent standard, half-PPR, and PPR comparisons before enabling writes.
+- **Unblock:** 2026-08-22 CLEARED — founder conditionally approved persistent Tuesday scoring enablement once all six evidence gates pass: two historical-week replays; independent three-format comparison; A6 staging validation; real-row/no-write production rehearsal; proven monitoring/failure behavior; and completed O2 rollback exercise with Justin as owner. The flag remains `false` until every condition is evidenced; no production action is authorized before then.
+- **Unblock:** 2026-08-22 REASSESSED — `A5` is complete: founder rejected a paid fallback and selected a Slops-owned Omen football-data pipeline. The obsolete missing-`player_stats_2026.csv` premise and `TASK-A5` blocker are replaced by the actual implementation/evidence dependency, `A7-OwnedFootballDataPipeline`; the production flag remains evidence-gated.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 6 — **season gate, not a beta gate.** Do not count this against beta. The dry-run is preparable now; the flag flip waits for September.
@@ -107,8 +110,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A5 — Decide the Tuesday-scoring fallback data source
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED
+- **Evidence:** `Direction/decision_log.md` (2026-08-22 — Omen will own its football-data pipeline); `Direction/reviews/2026-08-15-a5-scoring-source-options.md` §0A
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 2 — decide now, not in September
@@ -121,11 +125,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Memo delivered 2026-08-15:** `Direction/reviews/2026-08-15-a5-scoring-source-options.md`. Two free in-class sources evaluated (Sleeper, ESPN), the fork costed against them, recommendation and trigger date recorded. **Awaiting the founder pick — the agent half of this item is discharged; the decision is not.**
 - **Founder steer amended 2026-08-15 — vendor-agnostic.** The requirement is that scoring survive any one source dying, for Sleeper, ESPN, and Yahoo users alike. The memo's key finding is that this is *source*-agnosticism, not provider-agnosticism: weekly fantasy points are a league-independent NFL fact, and the pipeline already keys on normalized player name, emits all three scoring formats, and dependency-injects `fetchNFLScores`. The seam exists; the memo proposes formalizing it as a `ScoreSource` interface with ordered fallback.
 - **Premise corrected 2026-08-15.** This item was written as "if nflverse never publishes `player_stats_2026.csv`." That file was never going to exist under that name for any season — see `A5-NflversePath` below. The real question is fallback resilience, not one missing file.
+- **Founder decision 2026-08-22:** no paid fallback subscription. Build a Slops-owned Omen football-data pipeline, automatically operated on existing infrastructure, with source rights and reliability proven before any collector is deployed. `A7-OwnedFootballDataPipeline` carries the agent-owned research and architecture work; ADP is a future consumer, not silently absorbed into Tuesday scoring.
 
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — adds a column to the deployed `moves` schema; per facts-of-record #8 an agent authors the SQL as review-only source and never applies it
+- **Blocked by:** None
+- **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
 - **Priority:** P1 — correctness defect in the grading loop
 - **Cost:** small
 - **Source:** 2026-08-15 A5 research.
@@ -133,6 +139,18 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
 - **Done when:** the league's scoring format is captured at recommendation time and persisted on the move; `scoreMove` reads it rather than defaulting; the PPR default remains only for historical rows that predate the column; review-only SQL authored in `sql/`, not applied.
 - **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production.
+
+### A7-OwnedFootballDataPipeline — Design the automated Slops-owned football-data pipeline
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — selected fallback for Tuesday scoring
+- **Cost:** medium research and architecture; implementation to be estimated from the resulting plan
+- **Source:** founder selected the owned-pipeline option on 2026-08-22 and rejected another subscription before September. Existing VPS/Pi infrastructure may automate collection, validation, preservation, and monitoring, but no source is free to scrape merely because it is publicly readable.
+- **Scope:** evaluate at least five primary or openly licensed football-stat sources for licence, ToS, coverage, correction latency, identifiers, rate limits, and automation rights; design immutable raw snapshots → normalized player/game identities → derived standard/half-PPR/PPR results → cross-source validation → Tuesday publication; compare VPS-primary/Pi-witness, Pi-primary/VPS-failover, and VPS-only operating shapes; cost build and in-season maintenance; define monitoring, replay, correction, provenance, and source-loss behavior. Identify the clean extension seam for a future Slops-owned ADP corpus without treating ADP as part of this scoring deliverable.
+- **Done when:** a source-backed architecture memo names the lawful source set, exact schedules, storage and retention, idempotency/replay rules, data-quality checks, infrastructure roles, failure and failover behavior, build estimate, weekly maintenance estimate, and a phased implementation plan; at least two historical weeks are replayed in a non-production proof and compared against an independent reference before any production collector is proposed.
+- **Do not touch:** no scraping against unclear or prohibitive terms; no production deploy, cron enablement, paid commitment, new dependency, secret, SQL, migration, or provider credential; do not represent future ADP capability as built.
+- **External outreach 2026-08-22:** founder sent Sleeper a commercial-use permission/licensing request. A response may add an approved source option, but does not block the selected owned-pipeline research or authorize current commercial API use.
 
 ## R. Store and release — critical path, founder-executed
 
@@ -189,7 +207,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **✅ DONE — do not rebuild (merged as `231c9d2`):** all three original defects are fixed. `release` reads `OMEN_API_BASE_URL` from config (default `https://slopssaloon.com`), `OMEN_DEMO_MODE_ENABLED = false`, a `signingConfigs` block reads the upload keystore from `local.properties` or environment, and a shippability guard fails the build on a placeholder URL or missing signing. `mobile/android/local.properties.example` documents the keys.
 - **Blocked by:** None
 - **Evidence:** merged to `main` as `231c9d2`. Release now resolves `OMEN_API_BASE_URL` from config with a `https://slopssaloon.com` default and sets `OMEN_DEMO_MODE_ENABLED = false`; a `signingConfigs` block reads the upload keystore from `local.properties` or environment; a release shippability guard fails the build on a placeholder/blank API URL or missing signing (escape hatch `OMEN_ALLOW_UNSIGNED_RELEASE=true`). Added `mobile/android/local.properties.example`. Verified on Windows: `:app:bundleRelease` without signing fails with the guard message; `generateReleaseBuildConfig` emits the production URL and demo mode `false`; `generateDebugBuildConfig` unchanged; `:app:testDebugUnitTest` BUILD SUCCESSFUL.
-- **Remaining (founder):** generate the upload keystore with `keytool` and set the four `omen.release*` keys in `local.properties`. Never commit the `.jks` or any password. See `local.properties.example`.
+- **Founder step completed 2026-08-22:** Google Play Console accepted version code 1 into the Omen internal-testing release draft under the `DarthSlops` organization account, and the release page confirms Google Play App Signing is active. No keystore or password entered the repo or recorded evidence.
 - **Priority:** **P0 — three defects would each break the beta build**
 - **Cost:** small–medium
 - **Agent-buildable:** yes (the upload keystore itself is founder-generated and never committed)
@@ -205,10 +223,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R3 — Signing and provisioning
 
-- **Status:** IN_PROGRESS — iOS half `VERIFIED` (see `R3-BUILD-iOS`); Android half has a signed local build but has not yet uploaded through Play Console.
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED — both platforms now satisfy the signing and first-upload acceptance. iOS build 1 reached TestFlight on 2026-08-18; Google Play Console accepted Android version code 1 into an internal-testing release draft on 2026-08-22 and confirms Play App Signing is active. The Android release was not published and has no testers yet.
+- **Evidence:** `R3-BUILD-iOS` evidence above; `R3-BUILD-Android` evidence above; Google Play Console organization account `DarthSlops`, app `com.slopssaloon.omen`, internal-testing draft version code 1, observed 2026-08-22; `Direction/decision_log.md` (2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only Android-side blocker.
-- **Remaining for full closure:** Android — Play App Signing enrollment (founder click, first-upload flow) and one successful signed-AAB upload to Play Console. iOS half is fully done — see `R3-BUILD-iOS`'s own record.
+- **Unblock:** 2026-08-22 CLEARED — Google Play accepted the signed AAB and displayed version code 1 on the internal-release preview. Play App Signing is active. This closes signing/provisioning only; `R4`/`R5` and tester selection still gate publishing the internal release.
 - **Priority:** P0
 - **Cost:** small–medium
 - **Agent-buildable:** no — certificates and keys
@@ -217,9 +236,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R4 — Privacy nutrition labels and Data Safety form
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED
+- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
+- **Unblock:** 2026-08-23 PARTIALLY CLEARED — the founder submitted Google Play's Data Safety declaration. Play Console now lists it among the actioned declarations, records three collected/shared data categories, confirms encryption in transit, and shows `https://slopssaloon.com/delete-account` for both account-deletion URL and deletion support. The live privacy-policy URL, sign-in-access instructions, and 13+ target-audience declaration were also completed. This is the Google half only; Apple privacy nutrition labels remain before R4 closes.
+- **Unblock:** 2026-08-23 CLEARED — Apple App Privacy was published against the shipped Privacy Notice: eight declared data types, no tracking, diagnostics not linked to identity, and the public Privacy Notice and deletion-choice URLs attached. Together with the submitted Google declaration, this satisfies both halves of R4.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -229,9 +251,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R5 — Age rating and gambling questionnaire
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** CLOSED
+- **Closure:** COMPLETED
+- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
 - **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
+- **Unblock:** 2026-08-22 PARTIALLY CLEARED — the Google Play IARC content-rating questionnaire was submitted under `owner@slopssaloon.com` at 10:15 AM and reports `Completed`, with general-audience results including ESRB Everyone, PEGI 3, USK 0, and IARC 3+. This is the Google half only; Apple age-rating/gambling responses and the cross-store copy consistency check remain before R5 closes.
+- **Unblock:** 2026-08-23 CLEARED — the founder saved Apple's current seven-step age-rating questionnaire after a read-back of every answer. Bounded public trade-share is declared as UGC; social, chat, ads, mature content, violence, medical guidance, gambling, simulated gambling, contests, and loot boxes are No/None. The founder applied the 13+ override required by Omen's Terms; App Store Connect reports 13+ in 172 countries/regions, with Apple's regional equivalents elsewhere. Both stores are now complete and consistent with the standing no-wagering boundary.
 - **Priority:** **P0 — store-rejection risk**
 - **Cost:** small
 - **Agent-buildable:** drafting yes; submission founder-only
@@ -242,19 +267,25 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### R6 — Internal testing tracks
 
-- **Status:** BLOCKED
-- **Blocked by:** TASK-R3
-- **Blocked by:** TASK-R4
-- **Blocked by:** TASK-R5
-- **Blocked by:** FOUNDER_APPROVAL — the Phase 4 gate must close first
+- **Status:** READY
+- **Blocked by:** EXTERNAL — Apple Beta App Review approval for iOS version 0.1.0, Build 1; App Store Connect currently reports `Waiting for Review`.
+- **Blocked by:** EXTERNAL — 10+ qualified testers from real fantasy leagues must accept beta access; at least one allowlisted tester with a compatible Android device must complete the Google Play opt-in and installation proof.
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
+- **Unblock:** 2026-08-22 CLEARED — the founder conditionally approved opening the private internal testing tracks as soon as `R3`, `R4`, and `R5` are complete. This removes the repeat founder gate only; it does not satisfy those tasks, invite anyone early, authorize external testing, or authorize public release.
+- **Unblock:** 2026-08-22 CLEARED — `R3` completed when Google Play accepted Android version code 1 and confirmed Play App Signing; only `R4` and `R5` remain before tester selection and internal publication.
+- **Unblock:** 2026-08-23 CLEARED — `R4` and `R5` closed after the founder submitted and verified both stores' privacy and age declarations. The 2026-08-22 conditional founder approval is now operative: private internal tester selection and internal-track publication may proceed, but external/public release remains prohibited.
+- **Unblock:** 2026-08-23 REASSESSED — Build 1 is Ready to Test and attached to `Omen Internal Beta`, but the eligible tester picker is empty. Apple limits internal testers to App Store Connect users with qualifying roles; granting console access to ordinary beta users merely to avoid Beta App Review is not authorized. Evidence: `Direction/reviews/2026-08-23-r6-testflight-tester-model.md`.
+- **Unblock:** 2026-08-23 CLEARED — the founder approved External TestFlight for the real-user iOS cohort so friends and fantasy-league participants can be invited without App Store Connect roles. The first-build Beta App Review is accepted as part of that route. This authorizes external beta setup and invitations only; it does not authorize public App Store release.
+- **Unblock:** 2026-08-23 ESCALATED — `Omen External Beta` was created, Test Information and Build 1's `What to Test` were saved, and the founder submitted iOS version 0.1.0 (Build 1) to Beta App Review. App Store Connect now reports `Waiting for Review`, with the build attached to both the internal and external groups. No external tester has been invited yet.
+- **Unblock:** 2026-08-23 CLEARED — Android version 0.1.0 (version code 1) was published to the Google Play internal track. Play Console reports the track `Active` and the release `Available to internal testers`; one founder-controlled Google account is allowlisted and the private opt-in link is enabled. The release remains unreviewed under Google's temporary package-name label, and installation has not yet been proven.
+- **Unblock:** 2026-08-23 REASSESSED — store-side setup is complete as far as it can proceed without outside outcomes: Apple is awaiting Beta App Review and Android is active for allowlisted testers. The founder does not own Android hardware, so Android installation evidence must come from a qualified external tester; the proposed no-subscription recruitment route is documented at `Direction/reviews/2026-08-23-r6-beta-cohort-recruitment-plan.md`. No outreach has been sent and no anonymous install-exchange user counts toward the real-league threshold merely by installing.
 - **Priority:** P0
 - **Cost:** small
 - **Phase:** 5 — this is beta open
 - **Agent-buildable:** no
-- **Source:** use **internal** tracks, not external. TestFlight internal and Play internal testing each allow ≤100 testers with **no review**, which keeps Apple's Beta App Review off the critical path entirely.
-- **Done when:** both apps are installable by invited testers on internal tracks and 10+ real testers in real leagues have access.
-- **Do not touch:** external/public tracks, or public store release, before Phase 6.
+- **Source:** use Google Play internal testing for Android. Reserve TestFlight Internal Testing for genuine App Store Connect team members; use External TestFlight, including first-build Beta App Review, for the real-user iOS cohort.
+- **Done when:** both apps are installable by invited testers on their approved beta tracks and 10+ real testers in real leagues have access.
+- **Do not touch:** public store release or production tracks before Phase 6.
 
 ### R7 — Scrub store metadata of Draft Assistant claims
 
@@ -339,9 +370,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M1-Screen-Trade — M1 screen contract: Trade builder + verdict
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — the pass is design authority; a screen contract is not self-ratifying. Agent may produce the full proposal; only the founder can approve it.
+- **Blocked by:** AGENT_RESOLVABLE — founder rejected the 2026-08-16 proposal as incomplete because the personalized experience is the product's core promise and cannot ship without real league/roster context plus server-supported four-state verdict semantics; complete the backend work and revise both platform contracts as one batch.
 - **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions (see `Direction/decision_log.md`). The verdict enum gains its fourth state **on the server** (additive `contract_version` + evaluability signal on `POST /api/trade/compare`), and **"Personalize" waits for real league context** — the personalized half of slice G stays blocked until `/compare` accepts league/roster context, and native ships no scoring-format-only Personalize affordance. Both routed to the backend lane. Ratification of the contract itself is still outstanding.
 - **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity iOS/Android frames and the golden pair **already existed** from the M1-P pass (iOS `41:130`/`41:143`/`41:176`/`41:192` + golden `38:2`; Android `41:153`/`41:166`/`41:202`/`41:218` + golden `39:2`); what was missing was §2's "01 — Principles & References" board and the "06 — QA & Evidence" record, both now written (`86:2`, `87:2`). Two open questions need a founder call before `M5` slice G — the shipped three-value verdict enum vs the approved four-label vocabulary, and "Personalize" having no backend input. Both are recorded in `Blueprints/handoffs/frontend-to-backend.md`.
+- **Unblock:** 2026-08-22 ROUTED — founder did not ratify the current contract. Return only when the server accepts real league/roster context, the personalized result is demonstrably different from neutral analysis where context matters, all four approved verdict states are server-supported, and the revised iOS/Android evidence shows the complete personalized flow.
 - **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `87:2` (QA & Evidence record); `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
 - **Priority:** P1 — **this is what blocks `M5` slice G.** The native Trade destination ships an honest "landing next" placeholder today and must keep it until this is approved.
 - **Cost:** medium
@@ -355,9 +387,10 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M1-Screen-League — M1 screen contract: League matchup + standings/activity
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — same as above; the proposal is agent work, the ratification is not.
+- **Blocked by:** AGENT_RESOLVABLE — founder rejected the 2026-08-16 proposal because its primary state delivers standings plus an empty activity area rather than the promised complete matchup, standings, and meaningful league activity experience; revise the backend-data plan and both platform contracts.
 - **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions. **The empty activity section is the v1 build target:** both Primary frames are redrawn and renamed "standings live, activity empty (v1)", and the populated composition is preserved as a labelled future state (iOS `90:2`, Android `90:8`). **Off-season uses clean omission for 1.0**; prior-season history is parked as a future backend capability. Slice F may build standings plus an empty activity section once the contract is ratified. Ratification itself is still outstanding.
 - **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity frames already existed (iOS `30:162`/`30:181`, Android `30:194`/`30:213`); the missing halves — references board and QA & Evidence record — are written (`86:2`, `88:2`). The R7 scope correction was executed **in Figma**: both M2 app-shell frames still listed a `Draft` destination and were amended with a dated note (iOS `18:7`, Android `18:20`). One open question needs a founder call: the Primary frame draws a populated "Around the League" section for which **no backend feed exists**, so either that frame or the v1 build target has to change.
+- **Unblock:** 2026-08-22 ROUTED — founder did not ratify the current contract. Ratification is pre-authorized once revised iOS and Android evidence demonstrates a complete matchup view, standings, and meaningful league activity; an empty activity panel may exist only as a genuine empty/error state, not as the primary approved experience.
 - **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `88:2` (QA & Evidence record), plus corrected `18:7` / `18:20`; `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
 - **Priority:** P1 — **this is what blocks `M5` slice F.** The native League destination ships an honest placeholder today and must keep it until this is approved.
 - **Cost:** medium
@@ -404,10 +437,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** the check flags a design item whose frames exist while its `Status:` is not `CLOSED`, is proven against the real 2026-08-16 case, stays quiet on genuinely-unstarted items, and edits nothing — closing an item stays a human judgement.
 - **Do not touch:** do not auto-close anything; do not write to Figma.
 
-### M8-EspnAndroidHelper — Decide the Android ESPN path (deferred)
+### M8-EspnAndroidHelper — Decide the Android ESPN path
 
-- **Status:** BLOCKED
-- **Blocked by:** FOUNDER_DECISION — see the memo §7.2. Not started, and deliberately not parallel to `M7`.
+- **Status:** CLOSED
+- **Closure:** COMPLETED — founder decision 2026-08-22: retain the existing desktop/web ESPN connection path through beta; after beta, try Microsoft Edge's mobile-extension route first. This closes the decision only, not an implementation, submission, publication, or security review.
+- **Evidence:** `Direction/decision_log.md` (2026-08-22 — Android ESPN stays desktop-assisted through beta; try Microsoft Edge mobile post-beta); `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md` § "2026-08-22 Android decision brief"
+- **Unblock:** 2026-08-22 CLEARED — the founder selected the beta posture and the post-beta first experiment. The active founder gate is removed; future Edge feasibility is recorded in the deferred backlog and must be promoted as a separate task after beta.
 - **Priority:** P2
 - **Why it is not a mirror of iOS:** **Firefox does not support `storage.session.setAccessLevel` on any platform** (MDN browser-compat-data). `background.js` calls it precisely so the content script can read the payload the popup staged; without it that read throws and the handoff fails silently. A Firefox port is a **code change**, not a repackage — the staging step would move to message passing or a `storage.local` write with an immediate clear, which carries its own privacy review since `storage.local` persists where `storage.session` does not. An earlier read this session called Firefox Android "the most open path"; on the API that matters it is the closed one.
 - **Edge Android** is on by default for Android 11+/Edge 123+ but uses a curated, sandboxed store. Verify Microsoft's current mobile curation policy directly before planning around it — the available sources were secondary and mixed quality.
@@ -416,12 +451,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M3A-QA — Native auth interactive real-device QA
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — founder/human credential and inbox access
+- **Blocked by:** EXTERNAL — interactive human device/inbox access and a genuinely disposable account are required for the remaining Android matrix and destructive deletion proof; no founder identity may be used as the deletion fixture
 - **Unblock:** 2026-08-12 REASSESSED — the founder supplied the physical iPhone interaction needed for one successful native Sign in with Apple ceremony: the Apple sheet appeared, authorization completed, and Omen reached authenticated state. That is valid partial evidence, not the full matrix. Email OTP, return/cancel/background/termination cases, session restore, account deletion, log safety, and the Android half remain open.
 - **Unblock:** 2026-08-13 PARTIALLY CLEARED — physical-iPhone evidence now covers Sign in with Apple, Face ID passkey registration/sign-in, Discord OAuth with PKCE return to Omen, six-digit email OTP, and persisted-session restore after force-close/reopen. Supabase custom SMTP was repaired with a Resend sending-only key scoped to `slopssaloon.com`; both signup and returning-user templates now emit `{{ .Token }}`, and Email OTP length is six digits. Xcode 26.6 passes **121 tests / 0 failures** after the callback and OTP-normalization fixes. **Status stays `READY`:** destructive account deletion was not run against a founder account, and Android email OTP/session restore/account deletion/log-safety interactive evidence remains open.
+- **Unblock:** 2026-08-22 CLEARED — the founder's mandatory-security doctrine removes the approval classification. Auth, log-safety, session, and deletion testing are required operating evidence; founder-only device/inbox access identifies the human executor, not discretion to skip the controls.
 - **Priority:** **P0 — auth is the front door**
 - **Cost:** small, human-gated
-- **Agent-buildable:** implementation and local evidence; credential/inbox/device interactions remain founder-only
+- **Agent-buildable:** implementation and sanitized evidence preparation; credential/inbox/device interactions remain human-only, and destructive proof must use a disposable account
 - **Done when:** Android Play-services AVD or real device proves Google sign-in, email OTP, session restore, account deletion, and log safety; iOS real device proves Sign in with Apple, email OTP, session restore, account deletion, and log safety.
 - **Evidence:** sanitized QA matrix; no screenshots or logs containing credentials or tokens.
 - **Do not touch:** real credentials in agent logs or screenshots.
@@ -492,13 +528,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M4-Auth-Passkeys-iOS-Onramp — Complete native iOS passkey authorization
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — merge and production-deploy the reviewed AASA route at `slopssaloon.com`; this PR does not deploy
-- **Blocked by:** FOUNDER_APPROVAL — after AASA is live, perform the Face ID passkey pair → sign out → passkey sign-in ceremony on the physical iPhone
+- **Blocked by:** AGENT_RESOLVABLE — reconcile the founder-observed Face ID ceremony against the exact remaining acceptance steps and capture any missing fresh-install plus Account list/remove evidence without credential material
+- **Unblock:** 2026-08-22 CLEARED — both founder blockers were stale. The reviewed passkey work merged as `81878d0`; the public AASA URL now serves HTTP 200 JSON without redirect for exactly `6RWR5G9894.com.slopssaloon.omen`; and `Blueprints/handoffs/2026-08-13-native-auth-completion.md` records the founder-observed physical-iPhone Face ID passkey and sign-out ceremonies. This is evidence reconciliation, not a new approval. The item remains open because the record does not explicitly prove every exact Done-when step (fresh install and Account list/remove).
 - **Priority:** **P1 — founder pin 2026-08-12.** This supersedes the earlier P2 deferral for the iOS half only.
-- **Cost:** small — implementation and local evidence are complete; external association and interactive proof remain
-- **Current state:** branch `feat/m3a-ios-apple-auth` implements the native `AuthenticationServices` provider, official Supabase first-factor passkey endpoints, account add/list/remove, one-time pairing offer, the `webcredentials:slopssaloon.com` entitlement, and an AASA artifact/explicit Express route. Xcode 26.6 (`17F113`) passes **121 tests / 0 failures**; Automatic Signing under team `6RWR5G9894` builds and installs the app on the registered iPhone with both Apple Sign In and Associated Domains in the signed entitlements. The public AASA URL still returns 404 until an approved merge/deploy.
+- **Cost:** small — implementation, public association, and the founder-observed Face ID path are complete; exact acceptance-evidence reconciliation remains
+- **Current state:** merge `81878d0` implements the native `AuthenticationServices` provider, official Supabase first-factor passkey endpoints, account add/list/remove, one-time pairing offer, the `webcredentials:slopssaloon.com` entitlement, and the AASA artifact/explicit Express route. Xcode 26.6 (`17F113`) passes **121 tests / 0 failures**; Automatic Signing under team `6RWR5G9894` builds and installs the app on the registered iPhone with both Apple Sign In and Associated Domains in the signed entitlements. On 2026-08-22 the public AASA URL returned HTTP 200, `Content-Type: application/json`, no redirect, and exactly `6RWR5G9894.com.slopssaloon.omen`; the 2026-08-13 handoff records the founder-observed Face ID passkey and sign-out ceremonies.
 - **Done when:** `https://slopssaloon.com/.well-known/apple-app-site-association` serves the exact team/bundle association as JSON without redirect; a fresh physical-device install can add a passkey, list/remove it in Account, sign out, and sign back in with Face ID; sanitized evidence records the ceremony without credential material.
-- **Evidence:** `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
+- **Evidence:** merge `81878d0`; `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `Blueprints/handoffs/2026-08-13-native-auth-completion.md`; public `https://slopssaloon.com/.well-known/apple-app-site-association` read-only check 2026-08-22; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
 - **Do not touch:** Android passkeys, Xcode Cloud, archive/TestFlight, production deployment, provider secrets, UI redesign, or Figma in this item.
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
@@ -558,7 +594,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### S1 — Final production secrets and Supabase settings review
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — founder-only access
+- **Blocked by:** None
+- **Unblock:** 2026-08-22 CLEARED — founder established that required security controls are mandatory operating practice, not optional approval gates. Founder-only dashboard access identifies the executor; it does not make leaked-password protection or secret-scope verification discretionary.
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** checklist preparation only
@@ -571,7 +608,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### S2 — Rotate credentials exposed during local branch work
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — founder-only
+- **Blocked by:** None
+- **Unblock:** 2026-08-22 CLEARED — credential containment and required rotation are mandatory release controls. Founder-only credential access is an execution boundary, not a decision about whether the control applies.
+- **Unblock:** 2026-08-22 REASSESSED — founder confirmed Yahoo access is not restored and the Apple `.p8` key has probably not been moved. ESPN cookies do not satisfy rotation merely by aging: `espn_s2` is an expiring session cookie with no Omen refresh flow, while `SWID` can remain stable; a fresh validated reconnect overwrites the existing Vault secrets, but invalidation of the old ESPN session or evidence that it was never exposed is still required.
 - **Priority:** P1
 - **Cost:** small
 - **Agent-buildable:** no
@@ -760,6 +799,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Mobile answer recorded** as the `Done when:` requires: **no rollback exists.** Halting distribution stops new installs and does not remove or downgrade an installed app. `O7`'s forced-update gate is the mitigation, with its ordering constraint stated — store URLs first, minimum second, or a bad build becomes a total lockout.
 - **Rollback owner named 2026-08-19: Justin Duverge.** Recorded in `Blueprints/playbooks/rollback-runbook.md`. Owner and sole executor are the same person — a real single point of failure on a solo product, noted rather than papered over.
 - **Remaining, founder-only:** execute the path once against a non-critical deploy. The runbook's last section gives the exact six-step shape, and notes that the number worth timing is how long the digest lookup takes when you do not already know it.
+- **Unblock:** 2026-08-22 CLEARED — the founder authorized the controlled non-critical rollback exercise and established that rollback capability plus periodic proof are mandatory operating controls, not optional approval items. Founder-only production access identifies Justin as executor; it does not create discretion to skip the drill. No exercise or deployment occurred in this decision session, so the task remains `IN_PROGRESS` until execution evidence exists.
 - **Also corrected while here:** `Blueprints/done/release-done.md` carried a ⛔ HARD-BLOCKED banner citing the GitHub Actions billing hold. That hold was retracted 2026-08-01 — it never existed — and the banner would have blocked a legitimate Release Done closure on a false premise for 18 days.
 - **Blocked by:** None
 - **Priority:** P0
@@ -768,7 +808,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Source:** A4's own `Done when:` already requires a named rollback owner. Test it before you need it.
 - **Skills:** `slops-ship`, `slops-canary`
 - **Done when:** the backend rollback path is executed once against a non-critical deploy and documented; a rollback owner is named; the mobile answer is explicitly recorded as "no rollback — O7 forced-update is the mitigation."
-- **Do not touch:** rolling back production without approval.
+- **Do not touch:** an unplanned rollback, a critical deployment, or any exercise without the named human executor, a known-good target, health checks, restore steps, and an evidence plan.
 
 ### O3 — Post-deploy canary
 
@@ -1050,6 +1090,7 @@ These are real but are **not** active tasks and carry no status. They must not d
 
 - **Draft Assistant 2027** — cut from 1.0 on 2026-08-05. Winter track: build the Slops ADP Oct–Feb, off the critical path.
 - **M4-Auth-Passkeys-Android-Onramp** (P2) — Android remains deferred; the founder promoted only the iOS half on 2026-08-12.
+- **M8-EdgeAndroid-PostBeta** — after beta, test Omen's existing Chromium extension on a real Android device and pursue Microsoft Edge mobile-extension eligibility first. The experiment must prove HttpOnly-cookie access and one-shot in-memory handoff before any submission; mobile curation is external and no publication is pre-approved. Firefox direct-message port remains the fallback if Edge is not technically viable or not admitted.
 - E1 mobile scope decision — **resolved 2026-08-05** by the both-platforms decision. E2/E3 app-store closeout is superseded by lane R.
 - G1 win-streak reward ladder UI waits on a backend win-streak contract.
 - G2 ESPN live draft Lazy Sync and G3 Yahoo live draft Lazy Sync wait on a stable provider contract and season timing.

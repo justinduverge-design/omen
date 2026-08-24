@@ -7,6 +7,30 @@
 
 ---
 
+## 0A. Superseding commercial-use correction and founder decision — 2026-08-22
+
+The 2026-08-15 recommendation below is superseded. It treated Sleeper and ESPN as viable free production fallbacks without establishing commercial-use permission. Sleeper's official API documentation now states that the free read-only API is for **non-commercial purposes** and instructs commercial users to arrange licensing; Omen's free price does not make an LLC-operated product non-commercial. ESPN's endpoints remain undocumented and provide no clear commercial automation grant. Neither may be promoted to production fallback on the evidence below.
+
+| Candidate | Licence / ToS | Cost | Coverage and latency | Production verdict |
+|---|---|---:|---|---|
+| nflverse corrected weekly stats | Repository labelled CC-BY 4.0, with the project's separate warning that underlying NFL data remains subject to its owners' terms | $0 | Standard, half-PPR, and PPR derivable; weekly publication is suitable for Tuesday grading; current primary already integrated | Keep as primary while the owned pipeline is proved; retain attribution/provenance and the underlying-rights caveat |
+| Sleeper stats | Official docs: free API is non-commercial; commercial licensing requires contact | unknown commercial quote | Technically strong and fast; exact three scoring totals; undocumented stats route adds schema risk | Reject as production fallback without a written commercial licence |
+| ESPN public endpoints | No published API licence or stable supported contract established | $0 endpoint access, rights unclear | Technically live and broad; withdrawal/schema risk high | Reject as production dependency |
+| BALLDONTLIE NFL GOAT | Current terms expressly permit lawful commercial fantasy-sports use through official interfaces | $39.99/month; 600 requests/minute | Completed weekly stats and scoring definitions; standard, half-PPR, and PPR available; 48-hour trial | Best immediately licensable independent fallback, rejected by founder on cost grounds for now |
+| FantasyPros commercial | Commercial licence and redistribution rights available | custom quote | `player-points` supports accumulated NFL fantasy points across week ranges | Viable but price-opaque and unnecessary after the owned-pipeline choice |
+
+**Owned option, costed:** approximately 30–50 engineering hours for collectors, immutable raw storage, identity normalization, scoring derivation (including kicker/DST edge cases), replay, tests, monitoring, and runbooks; 18–36 hours of routine attention across an 18-week regular season; and a 10–20-hour incident/correction reserve. Expected season-one effort is therefore **58–106 hours**, with near-zero incremental infrastructure spend if existing VPS/Pi capacity is adequate. This estimate must be refined by `A7` after source and topology research; a pipeline consuming only nflverse inputs improves operational control but does not survive total nflverse loss.
+
+**Founder decision:** choose the Slops-owned Omen pipeline now; do not add a paid subscription. Route automated collection and processing through a source-rights-first architecture pass that evaluates VPS and Raspberry Pi roles. Tuesday scoring is the first bounded consumer; future Slops-owned ADP is an extension seam, not part of this item's completion claim.
+
+**Sleeper outreach:** Justin sent a commercial-use permission/licensing request on 2026-08-22. Response pending; no permission is claimed, and the owned-pipeline work continues independently.
+
+**Trigger:** immediate. `A7-OwnedFootballDataPipeline` begins with research and non-production historical replay; no collector reaches production until its automation rights, data quality, failover, monitoring, and maintenance cost are documented and reviewed.
+
+**Primary sources rechecked 2026-08-22:** [Sleeper API introduction](https://docs.sleeper.com/) (commercial licensing boundary and rate guidance); [nflverse-data](https://github.com/nflverse/nflverse-data) and [nflverse availability schedule](https://nflreadr.nflverse.com/articles/nflverse_data_schedule.html); [BALLDONTLIE NFL API](https://nfl.balldontlie.io/) (weekly fantasy-stat coverage and $39.99 NFL GOAT tier); [BALLDONTLIE Terms](https://www.balldontlie.io/terms.html) (commercial fantasy-sports permission and third-party-rights caveat); [FantasyPros API](https://www.fantasypros.com/api-data/) (player-points coverage and custom commercial tier); [SportsDataIO developer access](https://sportsdata.io/developers) (commercial access is sales-gated; $99/month Discovery Lab is not licensed for commercial redistribution).
+
+---
+
 ## 0. Summary
 
 The premise this item was written on was wrong, and the correction is good news.
