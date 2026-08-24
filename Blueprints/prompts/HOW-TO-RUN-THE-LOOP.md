@@ -10,6 +10,7 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
 - **Scripts index:** `scripts/README.md` — every operational script, what it does, and whether it is safe to run. **Check it before writing a new one**; several existing scripts were written twice because a session did not know an equivalent existed. The record-integrity checks live at `scripts/checks/` and are indexed there.
+- **Workspace integrity:** `node scripts/check-workspace-solo.js` **at kickoff, before writing anything.** Reports other registered worktrees and any tree that is already dirty. A clean tree is the kickoff expectation; anything dirty belongs to someone else. If it reports findings, take a worktree — `git worktree add ../omen-<task> -b <branch> main`. Branch discipline alone is not enough, because `git checkout` carries uncommitted changes across branches.
 - **Record integrity:** `node scripts/check-sprint-staleness.js` before closing anything. **Read the coverage block it prints, not just the verdict** — it states what it did not inspect, and says "DID NOT RUN" instead of passing when GitHub is unreachable.
 - **Company baseline:** `Blueprints/playbooks/omen-company-baseline.md`
 - **Skill routing:** `Blueprints/playbooks/skill-activation-runbook.md`
@@ -17,8 +18,9 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Contract bus:** `Blueprints/handoffs/backend-to-frontend.md`, `frontend-to-backend.md`
 - **Memory:** `Direction/decision_log.md` + facts-of-record + session handoffs
 
-## Each task — 5 steps
+## Each task — 5 steps (plus a step 0)
 
+0. **Check you are alone in the tree** — `node scripts/check-workspace-solo.js`. More than one agent in one checkout is not a hypothetical: it happened on 2026-08-24 and mixed two workstreams into a single commit.
 1. **Paste the kickoff** for the agent you want to run (frontend-claude or backend-codex).
 2. **Agent self-pulls** — reads inbox, honors pin, otherwise selects up to 5 `Status: READY` items from the sprint across all lanes, ordered by the selection rule, and claims one.
 3. **Plan approval gate** — agent reports task / files / verification plan / selected skills and conditional-skill N/A reasons. You confirm or correct.

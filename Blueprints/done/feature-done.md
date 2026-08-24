@@ -2,7 +2,7 @@
 
 A feature is done when the user can use it end-to-end, every failure path is handled, and the feature is reachable from where users naturally land.
 
-> ⚠️ **GitHub Actions billing hold active (until ~2026-08-01).** Gates 12 and 19 have full local substitutes — run them locally and record the command, count, and date. Any gate with no local equivalent (iOS simulator CI) must be recorded as **DEFERRED-CI**, never skipped and never claimed as green. See `definition-of-done.md` § Degraded verification.
+> ✅ **Corrected 2026-08-24.** This banner previously declared a *"GitHub Actions billing hold active (until ~2026-08-01)"*. **That hold never existed** — it was retracted on 2026-08-01; CI runs and gates every PR. Still in force, for a different reason: gates 12 and 19 have full local substitutes, and any gate with no local equivalent in your session (notably iOS simulator CI, which is per-PR-retired by choice) is recorded as **DEFERRED-CI** — never skipped, never claimed as green, and never treated as a pass. See `definition-of-done.md` § Verification substitutes.
 
 ## Gates
 

@@ -41,6 +41,28 @@ STEP 0.1 — READ RUNTIME POLICY AND ACTIVE TRUST ASSIGNMENTS
     nothing at all.
   Report which tier you are operating at and why.
 
+STEP 0.2 — CONFIRM YOU ARE ALONE IN THIS WORKING TREE
+  Run: node scripts/check-workspace-solo.js
+  Read the coverage block, not just the verdict.
+
+  A clean tree is the kickoff expectation. Anything already dirty was put
+  there by someone else — an unfinished previous session, or a concurrent
+  one still typing. It is not yours to commit.
+
+  If it reports findings, take your own worktree before writing anything:
+    git worktree add ../omen-<your-task> -b <your-branch> main
+
+  Branch discipline alone does NOT protect you. `git checkout` carries
+  uncommitted changes across branches, which on 2026-08-24 is exactly how
+  two unrelated workstreams ended up in one commit and how one session's
+  files were twice moved onto a branch it had not selected.
+
+  Never run `git add -A` or `git add .` in a tree you did not start clean.
+  Stage the paths you wrote, by name.
+
+  Record the HEAD sha this session starts from. Before closing, re-run:
+    node scripts/check-workspace-solo.js --since <that-sha>
+
 Read in order before acting:
 0. Run slops-repo-inspector before planning. Establish repository truth —
    branch, ahead/behind origin, uncommitted state, canonical paths — before

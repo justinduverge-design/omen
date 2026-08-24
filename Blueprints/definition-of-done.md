@@ -16,6 +16,7 @@ Pick the Done type matching what you shipped, read that file, satisfy every gate
 | Anything touching auth, data, secrets, platform credentials | `done/security-done.md` (cross-cutting) |
 | A recommendation (Omen, Trade Analyzer, Draft Assistant) | `done/recommendation-done.md` (cross-cutting) |
 | Any user-visible UI | `done/design-done.md` (cross-cutting) |
+| A **screen/design contract** with no implementation yet (Figma + spec, no running UI) | `done/design-contract-done.md` (cross-cutting) |
 | A public-facing post / video / social / marketing artifact | `done/content-marketing-done.md` (cross-cutting, L1 work) |
 
 Run cross-cutting gates **in addition** to the primary type. A page change that adds a recommendation triggers Page Done + Recommendation Done + Design Done.
@@ -36,20 +37,28 @@ Every gate marked done must **point to evidence** — commit hash, file path, sc
 
 Skipping a gate without writing why = lying about done. Marking a gate done with stale, fabricated, or missing evidence is a hard prohibition.
 
-## Degraded verification — GitHub Actions billing hold
+## Verification substitutes — corrected 2026-08-24
 
-**Active since ~2026-07-24. Expected restore ~2026-08-01. Re-verify before assuming it has cleared.**
+> ✅ **CORRECTED 2026-08-24.** This section previously opened *"Degraded verification — GitHub Actions billing hold — Active since ~2026-07-24"*, declared the Actions allotment exhausted, called failing runs **"cosmetic"**, and stated that **Release Done is hard-blocked**. **All of that rested on a premise that was retracted on 2026-08-01 and never existed** (`Direction/agent_inbox.md` § "RETRACTED — the 'GitHub Actions billing hold' never existed"). Actions was executing the whole time; the red was two real config bugs, fixed in #250.
+>
+> `done/release-done.md` was corrected on 2026-08-19 when someone tried to pass it. **This file — the pointer every kickoff reads first — kept the false version for a further 23 days.** That is the fourth recorded instance of the same failure: *a correction written where it was discovered, not everywhere it was asserted.*
+>
+> Verified false at correction time: the three PR checks on [#364](https://github.com/justinduverge-design/omen/pull/364) ran and passed.
 
-The monthly Actions allotment is exhausted. Every workflow run fails at the billing check, not at the code — confirmed still failing `2026-07-27T16:34Z` across `Dependency Health`, `ios-ci`, `SLOPS Prompt Guard`, and `Dependency Review`.
+### What was wrong, and is now deleted
 
-### The rule
+- **"Release Done is hard-blocked."** It is not, and was not. Nothing in this file blocks a Release Done closure.
+- **"Red checks are cosmetic and merges proceed."** Branch protection genuinely is unavailable on this plan (`/branches/main/protection` → 403), so red does not *mechanically* block a merge — but **treat red as a stop.** With no branch protection the checks are the only gate there is, and "cosmetic" is precisely the word that let two production-breaking dependency PRs reach `main`.
+- **Any expectation that CI is unavailable.** Run it. `pr-quality.yml` gates every PR: backend tests + audit, frontend and client builds, and a server boot-with-SPA smoke.
 
-A gate that cites CI **may not be silently skipped.** It must be closed one of exactly two ways, and the handoff plus the ledger row must say which:
+### What is still true, and stays
+
+The **SUBSTITUTED / DEFERRED-CI grammar remains in force** — not because CI is down, but because some gates still have no per-PR CI by choice. A gate citing CI is closed one of exactly two ways, and the handoff plus the ledger row must say which:
 
 - **SUBSTITUTED** — satisfied by the named local equivalent below. Record the command, the count, and the date.
-- **DEFERRED-CI** — no local equivalent exists. Record what will be re-run after restore. The work may still merge; the *claim* may not be made.
+- **DEFERRED-CI** — no local equivalent available in this session. Record what will be re-run and where. The work may still merge; the *claim* may not be made.
 
-Writing "CI green" when no workflow has run is fabricated evidence and falls under the hard prohibition above. Writing nothing at all is the failure mode that let `done/LEDGER.md` go five days stale between 2026-07-23 and 2026-07-27.
+Writing "CI green" when no workflow ran is fabricated evidence and falls under the hard prohibition above. **And a deferral is not a pass:** `DEFERRED-CI` records that a run has not happened, never that the code would survive one. On 2026-08-20 that distinction turned out to be a hard build error in an iOS test target that had never compiled.
 
 ### Local substitutes
 
@@ -59,23 +68,15 @@ Writing "CI green" when no workflow has run is fabricated evidence and falls und
 | Frontend build clean | `npm --prefix frontend run build` | **SUBSTITUTED** — full equivalence |
 | `npm audit` clean | `npm audit --audit-level=moderate` | **SUBSTITUTED** — full equivalence |
 | Android connected tests / `:app:assembleDebug` | local Gradle against the Codex-sandbox SDK path | **SUBSTITUTED** — note the AVD lacks Play services |
-| iOS unsigned simulator CI | on the Mac: `xcodebuild test -project mobile/ios/OmenIOS/OmenIOS.xcodeproj -scheme OmenIOS -destination 'platform=iOS Simulator,name=iPhone 16'` | **SUBSTITUTED** — same target, scheme, and destination as CI. Record `xcodebuild -version` output alongside the result. On Windows this remains **DEFERRED-CI**. **Do not add `CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO`** — corrected 2026-08-19. Those flags were in this row until then, and they make four `KeychainSessionStoreTests` fail with `errSecMissingEntitlement` (-34018): Keychain access needs a keychain-access-group entitlement that only exists on a signed bundle, so disabling signing removes it. The same command without them passes all five. Those tests landed with `S5` on 2026-08-18, after this row was written. **Four red Keychain tests means you used the old command, not that anything is broken.** |
+| iOS unsigned simulator CI | on the Mac: `xcodebuild test -project mobile/ios/OmenIOS/OmenIOS.xcodeproj -scheme OmenIOS -destination 'platform=iOS Simulator,name=iPhone 16'` | **SUBSTITUTED** — same target, scheme, and destination as CI. Record `xcodebuild -version` alongside the result. On Windows this remains **DEFERRED-CI**. **Do not add `CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO`** — corrected 2026-08-19. Those flags make four `KeychainSessionStoreTests` fail with `errSecMissingEntitlement` (-34018): Keychain access needs an entitlement that only exists on a signed bundle. **Four red Keychain tests means you used the old command, not that anything is broken.** |
 | `Dependency Review` on PR | `npm audit` + manual diff read | **SUBSTITUTED**, weaker — say so |
 | `SLOPS Prompt Guard` | `npm run evals:validate` | **SUBSTITUTED** |
 
-### Merging during the hold
+**Per-PR iOS CI is retired by choice** (2026-08-11): `ios-ci.yml` triggers on `release/**` and manual dispatch only, with routine verification on the founder's Mac. "iOS CI green" is not a citable evidence line outside a release branch.
 
-Red checks are **not** a merge gate on this repo. Branch protection is unavailable on the current GitHub plan (`/branches/main/protection` returns 403 "Upgrade to GitHub Pro"), so failing runs are cosmetic and merges proceed. PR #214 merged this way at `2026-07-27T01:37Z`.
+### Merged is not released
 
-This means a red PR merged during the hold carries **no implied verification**. The ledger row must carry the local evidence instead, or the DEFERRED-CI note.
-
-### Release Done is hard-blocked
-
-`done/release-done.md` cannot be satisfied during the hold — gate 4 requires the deploy workflow to return success, and no workflow can run. **No Release Done closure may be recorded until Actions is restored.** Work merged to `main` during the hold is merged, not released, and must never be described as live or deployed.
-
-### On restore
-
-Run a sweep before the first new closure: re-trigger the workflows for every open PR and every DEFERRED-CI ledger row, and convert each deferral to a real result or a defect. Track it as one task, not per-PR cleanup.
+Work merged to `main` is **merged, not released**, and must never be described as live or deployed without `done/release-done.md` gate 4 evidence. This was always true and is not part of the retraction.
 
 ## Record integrity — before any closure
 

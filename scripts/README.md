@@ -5,6 +5,33 @@ Every operational script in the repo, what it is for, and whether it is safe to 
 **Read this before writing a new script.** Several of these were written because an earlier
 session did not know an equivalent already existed.
 
+## Workspace integrity — run this at kickoff, before writing anything
+
+| Script | What it does | Safe to run? |
+|---|---|---|
+| [`check-workspace-solo.js`](check-workspace-solo.js) | Answers "am I the only agent in this working tree?" Reports other registered worktrees, any path already dirty at kickoff, and optional HEAD drift mid-session. **Never edits anything.** | Yes — read-only |
+
+```bash
+node scripts/check-workspace-solo.js                 # full report + coverage
+node scripts/check-workspace-solo.js --json          # machine-readable
+node scripts/check-workspace-solo.js --since <sha>   # did the branch move under me?
+```
+
+**A clean tree is the kickoff expectation.** Anything dirty when you arrive was put there by
+someone else — an unfinished previous session, or a concurrent one still typing. On
+2026-08-24 two sessions ran in one checkout: the working branch changed underneath one of
+them twice, and a single commit captured two unrelated workstreams because both were dirty
+and `git add` swept the lot.
+
+If it reports findings, take your own worktree before writing:
+
+```bash
+git worktree add ../omen-<your-task> -b <your-branch> main
+```
+
+**Branch discipline alone does not protect you** — `git checkout` carries uncommitted changes
+across branches, which is precisely how the two workstreams got mixed.
+
 ## Record integrity — run these before closing anything
 
 | Script | What it does | Safe to run? |
