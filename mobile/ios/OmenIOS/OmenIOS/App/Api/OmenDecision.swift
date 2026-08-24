@@ -194,7 +194,10 @@ extension OmenDecisionEnvelope {
     }
 
     private static func signalLabel(_ key: String) -> String {
-        key.split(separator: "_")
+        if key == "exact_espn_scoring_unavailable" {
+            return "Exact ESPN scoring unavailable"
+        }
+        return key.split(separator: "_")
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
             .joined(separator: " ")
     }

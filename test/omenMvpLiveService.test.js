@@ -731,6 +731,12 @@ test("buildLiveOmenMvpMoveForUser maps ESPN lineup swap into live omen_mvp_move 
   assert.equal(result.body.recommendation.type, "start_sit");
   assertSuccessRecommendation(result.body.recommendation);
   assert.equal(result.body.signals.roster.source, "espn_roster");
+  assert.deepEqual(result.body.signals.exact_espn_scoring_unavailable, {
+    status: "unavailable",
+    used: false,
+    source: "provider_restricted",
+    message: "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation.",
+  });
   Object.values(result.body.signals).forEach(assertSignal);
   assert.deepEqual(state.vaultCalls, ["espnSecret", "swidSecret"]);
   assert.equal(state.espnCalls[0].opts.teamId, "7");

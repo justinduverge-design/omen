@@ -16,6 +16,7 @@ Give both native clients one safe, honest API/state boundary for connection and 
 - `pending_live_engine` means an active connection exists but lacks the provider-specific context needed for a safe live attempt. It is not a generic provider failure.
 - `off_season` supersedes `ready` only after usable context exists. `needs_platform` applies when there is no active connection.
 - Provider state and errors are opaque and safe. Responses, logs, tests, screenshots, and handoffs must never contain OAuth tokens, provider cookies, Vault secret identifiers, or raw provider error text.
+- Every successful ESPN recommendation includes the existing `signals.exact_espn_scoring_unavailable` item with `status: "unavailable"`. Its label is **Exact ESPN scoring unavailable**; its server-owned detail says that Omen may recognize some settings but cannot yet verify every scoring rule and final ESPN result. iOS, Android, and web render it through the existing SignalList. This is a capability disclosure, not a connection-recovery state.
 
 ## F2 — Omen Readiness Truth
 

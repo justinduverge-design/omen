@@ -375,7 +375,19 @@ function signal(status, used, source, message) {
   return { status, used, source, message };
 }
 
-function buildSignals({ connected = true, useMockData = false } = {}) {
+function exactEspnScoringSignal(platform) {
+  if (normalizePlatform(platform) !== "espn") return {};
+  return {
+    exact_espn_scoring_unavailable: signal(
+      "unavailable",
+      false,
+      "provider_restricted",
+      "Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result for this league. Any point-based guidance is not an exact final-score calculation."
+    ),
+  };
+}
+
+function buildSignals({ connected = true, useMockData = false, platform = "yahoo" } = {}) {
   const liveOrMock = useMockData ? "mock" : "live";
   const weatherStatus = useMockData
     ? "mock"
@@ -434,6 +446,7 @@ function buildSignals({ connected = true, useMockData = false } = {}) {
       "ollama_gemma_or_template",
       "Plain-English explanation is templated until Gemma is wired for this route."
     ),
+    ...exactEspnScoringSignal(platform),
   };
 }
 
@@ -463,7 +476,7 @@ function baseEnvelope(body = {}, state = "success") {
       id: body.team_id || "mock-team-1",
       name: "Mock Omen Team",
     },
-    signals: buildSignals({ connected: true, useMockData: explicitMock }),
+    signals: buildSignals({ connected: true, useMockData: explicitMock, platform }),
     recommendation: null,
     alternatives: [],
     warnings: [],
@@ -1107,6 +1120,7 @@ function buildLiveMvpSignals({ connectedPlatforms = [], platform = "yahoo" } = {
       "platform_connections",
       `${connectedPlatforms.length} active platform connection(s) considered.`
     ),
+    ...exactEspnScoringSignal(platform),
   };
 }
 
