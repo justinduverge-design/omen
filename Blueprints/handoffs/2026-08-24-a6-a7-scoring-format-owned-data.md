@@ -3,12 +3,12 @@
 **Date:** 2026-08-24  
 **Agent:** Codex  
 **Branch:** `codex/a6-a7-football-data`  
-**PR:** [#365](https://github.com/justinduverge-design/omen/pull/365) — open and deliberately unmerged for founder review  
+**PR:** [#365](https://github.com/justinduverge-design/omen/pull/365) — open and deliberately unmerged. On 2026-08-24 the founder re-scoped the scoring requirement to full league-rule extraction; do not merge the three-format partial correction as a final solution.
 **Deployed:** no. No SQL was applied, no collector or timer was enabled, and no production state or credential was touched.
 
 ## Outcome
 
-The pre-approved package was completed in the required order. A6 is locally implementation-verified; A7 is research/architecture-verified. Neither is deployed or closed as production behavior.
+The pre-approved package completed the original, narrower work in the required order. On 2026-08-24, the founder correctly identified that its three-format limit was insufficient and re-scoped both A6 and A7 to a Full League Scoring Contract. The original A6/A7 evidence remains useful but neither item is closed, deployed, or eligible to be presented as league-exact behavior.
 
 - `A6-MovesScoringFormat` now captures the connected league's scoring format when a recommendation is generated, persists it on the move, and grades against that persisted contract. Only null or absent historical rows fall back to PPR.
 - `A7-OwnedFootballDataPipeline` now has a source-backed, rights-first architecture and operating plan. Its lawful no-subscription source set is the explicitly allowlisted CC BY 4.0 nflverse release families; no unlicensed fallback is implied.
@@ -91,6 +91,10 @@ The input SHA-256 was `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6a
 - provider adapters and roster services under `src/providers/` and `src/services/`
 - `sql/2026-08-24_a6_moves_scoring_format_review.sql`
 - `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
+
+## Superseding founder direction
+
+The partial A6 implementation uses a reception-point label only; it does not calculate every material league rule. The founder requires complete provider rule extraction and exact-result reconciliation before Omen claims league accuracy. A forthcoming Full League Scoring Contract must define the canonical rules model, every supported provider mapping, the event coverage, manual-adjustment behavior, reconciliation and correction rules, and acceptance evidence. This handoff is historical evidence, not permission to merge or deploy the partial code.
 
 ## Explicit non-claims
 

@@ -1,5 +1,13 @@
 # Omen Decision Log
 
+## 2026-08-24 — Omen requires a full league scoring contract, not a three-format label
+
+- **Founder direction:** Omen’s purpose requires full extraction and calculation of each supported league’s material scoring rules. Standard/Half PPR/PPR reception labels are not the final product promise.
+- **Finding:** the A6 partial correction captures only the reception-point dimension (0, 0.5, or 1) and grades using base `rec_std`, `rec_half`, and `rec_ppr` totals. It does not yet reproduce configurable passing values, bonuses, fumbles, kicker, DST, or provider-specific/manual adjustments. It is locally verified evidence of the initial defect repair, not a mergeable claim of league accuracy.
+- **Decision application:** hold the current A6 PR unmerged and do not apply its SQL. Before implementation resumes, author a Full League Scoring Contract covering complete provider-settings snapshots, a canonical rules DSL, event/stat coverage, provider mappings, ruleset versioning, exact-result reconciliation, corrections, manual adjustments, privacy/retention, and acceptance proof for Sleeper, ESPN, and Yahoo.
+- **Honesty rule:** Omen may say a grade is league-exact only if it captured every material rule and reconciled the named ruleset/version to the authorized provider’s final result. Otherwise it is explicitly a non-exact Omen evaluation or unavailable; it is never silently approximated.
+- **Boundary:** this is a product and architecture direction only. It authorizes no collector, timer, provider credential, paid source, SQL application, migration, deployment, or production scoring.
+
 ## 2026-08-24 — Founder adopted Football Data Policy v1.1 custody and correction amendment
 
 - **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.1.md` as an amendment to the v1 policy. Public football facts, private account/league data, and Omen audit evidence are separate data classes with separate custody rules.
