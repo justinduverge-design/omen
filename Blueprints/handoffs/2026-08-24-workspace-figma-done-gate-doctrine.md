@@ -1,6 +1,8 @@
 # Handoff — 2026-08-24 — Workspace, Figma-absence, and Done-gate doctrine
 
-**Branch:** `chore/workspace-solo-and-figma-absence` off `main`. **Not merged.** Deliberately separate from [#364](https://github.com/justinduverge-design/omen/pull/364) so that PR stays a pure contract review.
+**Branch:** `chore/workspace-solo-and-figma-absence` off `main`. Deliberately separate from [#364](https://github.com/justinduverge-design/omen/pull/364) so that PR stayed a pure contract review.
+
+**Updated 2026-08-24, later same session — MERGED.** Merged at founder instruction as PR [#366](https://github.com/justinduverge-design/omen/pull/366) (`e4ac8e3`), after #364. Three record-file conflicts (`LEDGER.md`, `skill-usage-ledger.md`, `decision_log.md`) were resolved by keeping **both** entries; `current_sprint.md` auto-merged. The deploy run completed `success`. `design-contract-done.md` is on `main` but remains an **unratified proposal**.
 
 Closes the three flags raised at the end of the `M1-Screen-League` / `M1-Screen-Trade` revision, plus one false gate found while closing them.
 

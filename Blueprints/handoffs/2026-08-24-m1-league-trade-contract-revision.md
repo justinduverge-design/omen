@@ -1,6 +1,11 @@
 # Handoff — 2026-08-24 — M1-Screen-League + M1-Screen-Trade (revised contracts)
 
-**Branch:** `feat/m1-trade-contract-revision` — 3 commits on `main`. **Not merged. Not deployed. Neither contract is ratified.**
+**Branch:** `feat/m1-trade-contract-revision` — 3 commits.
+**Updated 2026-08-24, later same session — MERGED AND DEPLOYED.** Merged at founder instruction as PR [#364](https://github.com/justinduverge-design/omen/pull/364) (`0694a03`). `deploy.yml` runs on push to `main`, so the merge shipped the backend to production; the Hostinger KVM1 run completed `success` (quality + build + deploy). Verified live against `https://slopssaloon.com/api/trade/compare`: `contract_version: trade-compare.v2`, `verdict_state: close_needs_context` on the neutral case, `insufficient_data` with correct counts on a missing projection, and `unavailable_reason: unauthenticated` returning **200** rather than 401.
+
+**Still NOT ratified.** Merging is not ratification: both sprint items remain `VERIFIED` (not `CLOSED`), every Figma frame keeps its `REVISED PROPOSAL — AWAITING FOUNDER APPROVAL` badge, and `M5` slices F and G stay blocked. The personalized path is inert in production until a client sends `league_context` with a session, which none does yet.
+
+*This paragraph exists because the line above it originally read "Not merged. Not deployed." and was true for about twenty minutes. `Direction/current_sprint.md` records the same failure on 2026-08-16 — a record that still said "Not pushed, merged, or deployed" after the work had merged.*
 **Figma writes are live** in `mWjrAKPi4JSIP5lAmGAtB3` (Figma has no unpushed state). Every new frame is badged `REVISED PROPOSAL — AWAITING FOUNDER APPROVAL — 2026-08-24`.
 
 Both 2026-08-16 contracts were rejected on 2026-08-22. This package answers both rejections. `M5` slices F and G stay blocked.
