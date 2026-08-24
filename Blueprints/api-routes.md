@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-08-21
+Last updated: 2026-08-24
 
 `/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
@@ -25,7 +25,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 
 | Method | Path | Contract | Auth | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/trade/compare` | trade comparison response | No | Free Trade Analyzer entry point. Rate limited — see Rate Limits. |
+| `POST` | `/api/trade/compare` | `trade-compare.v2` | Optional | Free Trade Analyzer entry point; still public and still neutral by default. Sending `league_context` **and** a bearer token opts into personalized analysis — see **Trade compare v2** below. Rate limited — see Rate Limits. |
 | `POST` | `/api/trade/share` | `trade-share.v1` | No | Creates a 30-day public share hash from bounded Trade Analyzer input. Uses Redis in production; no auth or provider data. |
 | `GET` | `/api/trade/share/:hash` | `trade-share.v1` | No | Public read of a shared trade snapshot by UUID hash. Returns `404 trade_share_not_found` when missing/expired. |
 | `GET` | `/api/trade/share/:hash/og.svg` | trade-share public OG image | No | Server-side SVG image for crawler cards. Reads the same public snapshot and returns `image/svg+xml`; no auth/provider data. |
@@ -54,6 +54,62 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
 | `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
+
+## Trade compare v2 — additive, 2026-08-24
+
+`POST /api/trade/compare` gained real league personalization and explicit server semantics for all four approved verdict states. **Every change is additive.** v1 consumers — the web Trade Analyzer and `trade-share.v1` snapshots — read the same fields they always did and behave identically.
+
+### Request
+
+```jsonc
+{
+  "send":    [ { "name": "...", "position": "RB", "projected_points": 13 } ],
+  "receive": [ { "name": "...", "position": "WR", "projected_points": 14 } ],
+  "scoring_format": "ppr",              // neutral path only; ignored when personalized
+  "league_context": {                    // OPTIONAL — opts into personalization
+    "platform":  "sleeper",              // optional: yahoo | sleeper | espn
+    "league_id": "123456"                // optional: pick among several connections
+  }
+}
+```
+
+`league_context` is a **request** for personalization, never the data itself. A client may name which connected league to use; it may never supply the roster, scoring rules, or league settings. Those are read server-side from the caller's own stored connection.
+
+### Added response fields
+
+| Field | Meaning |
+| --- | --- |
+| `contract_version` | `"trade-compare.v2"` |
+| `verdict_state` | The four approved labels: `favors_you`, `close_needs_context`, `you_give_up_too_much`, `insufficient_data`. **This is the only field carrying the fourth state.** |
+| `evaluability` | `{ status, reason, missing_projection_count, total_player_count }`. `status` is `evaluable` or `insufficient_data`. |
+| `analysis_context` | `{ mode, platform, league_id, league_name, applied[], unavailable_reason }`. `mode` is `neutral` or `personalized`. |
+
+`verdict` is **unchanged** and still emits `accept` / `decline` / `neutral`. Clients that understand v2 read `verdict_state`; clients that do not keep working. When `evaluability.status` is `insufficient_data`, `verdict_state` is `insufficient_data` while `verdict` retains its previously-computed value — v2 clients must prefer `verdict_state`.
+
+### What "personalized" actually changes
+
+Personalization is not a scoring-format label. Three real inputs move the numbers:
+
+1. **Scoring format** read from the provider's own settings, not from the client's `scoring_format`.
+2. **Roster construction** — a league starting three WRs drains the WR pool deeper than one starting two, so the replacement baseline drops and every WR gains value. Bounded to ±35%.
+3. **The caller's own positional depth** — an incoming RB is worth less to a manager already deep at RB.
+
+These are expressed as the `league_scarcity_weights` rows `compareTrade()` already consumed, so the comparison engine itself is unchanged.
+
+### Honest fallback
+
+Personalization never silently pretends. Each of these returns **200 with neutral analysis** and a named `analysis_context.unavailable_reason`:
+
+| Reason | When |
+| --- | --- |
+| `unauthenticated` | `league_context` sent without a valid bearer token. Trade stays free and public — this is a downgrade, not a `401`. |
+| `no_connected_league` | No usable connection for this caller. |
+| `provider_unsupported` | The connection is ESPN or Yahoo. ESPN carries the data but needs its own credential path and provider proof; **Yahoo is refused at the app-entitlement level** (facts-of-record #11, issue [#308](https://github.com/justinduverge-design/omen/issues/308)) and is never offered as a personalization source. |
+| `league_context_unavailable` | The provider read failed. |
+
+Only **Sleeper** resolves a personalized context today.
+
+Validation: a `league_context` that is not an object, names an unknown platform, or carries an over-long `league_id` returns `400`.
 
 ## Rate Limits
 
