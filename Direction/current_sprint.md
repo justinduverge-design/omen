@@ -95,7 +95,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A4 — Tuesday scoring production enablement
 
 - **Status:** READY
-- **Blocked by:** TASK-A7-OwnedFootballDataPipeline — the founder selected the owned source strategy; production scoring must wait for its lawful source set, historical replay, monitoring, and failure behavior to be verified.
+- **Blocked by:** TASK-A7B-OwnedFootballDataPipelineImplementation — the A7 design is verified; production scoring still waits for separately approved implementation, staging proof, monitoring, and failure behavior.
 - **Blocked by:** TASK-A6-MovesScoringFormat — the scoring-format change must pass review and staging validation so standard and half-PPR leagues are not graded as PPR.
 - **Blocked by:** TASK-O2 — the founder-approved condition requires the rollback exercise to be completed before persistent enablement.
 - **Blocked by:** AGENT_RESOLVABLE — run the no-write production rehearsal against real rows and record readiness/cron health plus independent standard, half-PPR, and PPR comparisons before enabling writes.
@@ -130,21 +130,22 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** IN_PROGRESS
-- **Claim:** Codex, 2026-08-24 — implementing the founder-approved A6 package first on `codex/a6-a7-football-data`; SQL remains review-only and will not be applied anywhere.
-- **Blocked by:** None
+- **Claim:** 2026-08-24 Codex — replacing the insufficient three-format premise with the founder-approved, full-league Scoring Contract on `codex/full-league-scoring-contract`; all SQL remains review-only and will not be applied anywhere.
+- **Blocked by:** AGENT_RESOLVABLE — complete the provider-neutral contract engine, rule/event coverage matrix, capture path, reconciliation, and non-production fixture/replay evidence.
+- **Blocked by:** EXTERNAL — each provider needs an affirmative rights/entitlement path before Omen may capture and retain its complete private rule snapshot or final outcome; ESPN is provider-restricted unless it grants express permission.
 - **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
 - **Priority:** P1 — correctness defect in the grading loop
 - **Cost:** small
 - **Source:** 2026-08-15 A5 research.
 - **What is wrong:** `fetchPendingMoves` selects without `scoring`, carrying the in-source note "`scoring` is not present in the deployed moves schema. scoreMove already defaults an absent format to PPR." So **every** move is graded as PPR. A standard or half-PPR league's recommendation is graded against points its league does not award. `nflverseScoresFromCsv` already computes `rec_std`, `rec_half`, and `rec_ppr` — all three are produced and two are discarded.
 - **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
-- **Done when:** the league's scoring format is captured at recommendation time and persisted on the move; `scoreMove` reads it rather than defaulting; the PPR default remains only for historical rows that predate the column; review-only SQL authored in `sql/`, not applied.
-- **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production.
+- **Done when:** every recommendation names an immutable provider-rule snapshot and versioned canonical Scoring Contract; Omen calculates every supported material rule from lawful event facts; coverage is explicit for every rule; provider-final reconciliation distinguishes `exact`, `provider_adjusted`, `provider_restricted`, `unsupported`, `ambiguous`, `mismatch`, and `pending`; a league-exact result fails closed when any material rule or adjustment cannot be reproduced; historical rows without the new contract preserve the PPR fallback; review-only SQL is authored in `sql/`, never applied.
+- **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production; silently treating the reception-only format as a full scoring contract; expanding ESPN extraction or reconciliation without a lawful provider path.
 
 ### A7-OwnedFootballDataPipeline — Design the automated Slops-owned football-data pipeline
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** VERIFIED
+- **Evidence:** `Direction/reviews/2026-08-24-a7-source-rights-research.md`; `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`; two-week 2025 replay evidence recorded in the architecture memo.
 - **Priority:** P0 — selected fallback for Tuesday scoring
 - **Cost:** medium research and architecture; implementation to be estimated from the resulting plan
 - **Source:** founder selected the owned-pipeline option on 2026-08-22 and rejected another subscription before September. Existing VPS/Pi infrastructure may automate collection, validation, preservation, and monitoring, but no source is free to scrape merely because it is publicly readable.
@@ -152,6 +153,16 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** a source-backed architecture memo names the lawful source set, exact schedules, storage and retention, idempotency/replay rules, data-quality checks, infrastructure roles, failure and failover behavior, build estimate, weekly maintenance estimate, and a phased implementation plan; at least two historical weeks are replayed in a non-production proof and compared against an independent reference before any production collector is proposed.
 - **Do not touch:** no scraping against unclear or prohibitive terms; no production deploy, cron enablement, paid commitment, new dependency, secret, SQL, migration, or provider credential; do not represent future ADP capability as built.
 - **External outreach 2026-08-22:** founder sent Sleeper a commercial-use permission/licensing request. A response may add an approved source option, but does not block the selected owned-pipeline research or authorize current commercial API use.
+
+### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — authorize the first non-production collector/build slice after reviewing A7’s lawful-source architecture and storage/operating plan.
+- **Priority:** P0 — production dependency for A4 after A6
+- **Cost:** large (62–92 hour build estimate, then 0.5–1.0 hour/week normal maintenance)
+- **Source:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
+- **Done when:** an approved, lawful source is collected into immutable snapshots; normal identities and versioned offensive/kicker/DST facts pass replay/independent-reference validation; staging proves correction, source-loss, schema-drift, KVM1 recovery, and Pi-witness behavior; A4’s separate no-write rehearsal passes.
+- **Do not touch:** collector, cron, storage, provider credential, SQL, dependency, or production change until the scoped implementation approval; do not add a source whose automation/retention rights are unclear; do not claim ADP.
 
 ## R. Store and release — critical path, founder-executed
 

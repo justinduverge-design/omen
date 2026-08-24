@@ -1,5 +1,13 @@
 # Omen Decision Log
 
+## 2026-08-24 — Full league scoring is a versioned contract, not a PPR label
+
+- **Decision:** Omen’s only path to the phrase `league-exact` is an immutable provider-rule snapshot, a versioned canonical scoring contract, lawful versioned event facts, and provider-final reconciliation. A reception-only label is useful legacy evidence but is not a full football scoring contract.
+- **Result states:** only `exact` earns the exact label. `provider_adjusted` preserves the provider’s valid result without accusing a commissioner; `provider_restricted`, `unsupported`, `ambiguous`, `mismatch`, and `pending` fail closed and carry their own honest state.
+- **Provider rights:** nflverse’s CC BY release allowlist is the only admitted automated event source. Sleeper is non-commercial pending written scope; Yahoo needs its entitlement and terms/attribution confirmation; ESPN is provider-restricted without express permission; paid lawful sources remain excluded by the founder’s no-paid-fallback decision.
+- **A6 consequence:** the review-only additive SQL proposes the immutable contract references. It is not applied. A new recommendation marked `scoring_contract_required` is refused by the legacy scorer rather than silently falling back to PPR; only a historical row with no marker retains that fallback. The full capture/reconciliation path remains incomplete and blocked.
+- **A7 consequence:** the research/architecture task is VERIFIED. `A7B-OwnedFootballDataPipelineImplementation` is the explicit founder-gated successor, so A4 remains blocked until implementation and staging proof—not merely a memo—exist.
+
 ## 2026-08-24 — ESPN disclosure describes the full scoring-contract limit
 
 - **Decision:** every ESPN recommendation carries the existing SignalList state **Exact ESPN scoring unavailable**.
