@@ -34,6 +34,7 @@ const SIGNAL_KEY_LABELS = {
   matchup_dvp: 'Matchup DvP',
   waivers: 'Waiver context',
   llm_reasoning: 'Plain-English reasoning',
+  exact_espn_scoring_unavailable: 'Exact ESPN scoring unavailable',
 };
 
 function normalizeSignalStatus(status) {

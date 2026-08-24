@@ -135,6 +135,19 @@ test("POST /api/omen/mvp-move returns success response envelope", async () => {
   Object.values(res.body.signals).forEach(assertSignal);
 });
 
+test("POST /api/omen/mvp-move labels every ESPN recommendation as exact-scoring unavailable", async () => {
+  const res = await postMvpMove(baseRequest({ platform: "espn" }));
+
+  assert.equal(res.status, 200);
+  assertEnvelope(res.body, "success");
+  assert.deepEqual(res.body.signals.exact_espn_scoring_unavailable, {
+    status: "unavailable",
+    used: false,
+    source: "provider_restricted",
+    message: "Omen can still offer guidance from the information available, but cannot verify this recommendation against your final ESPN league score. ESPN does not currently provide Omen a supported way to perform that verification.",
+  });
+});
+
 test("POST /api/omen/mvp-move requires auth for non-mock live requests", async () => {
   const res = await postMvpMove({
     platform: "sleeper",

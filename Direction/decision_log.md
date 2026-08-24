@@ -6,6 +6,7 @@
 - **Required product state:** **Exact ESPN scoring unavailable** — “Omen can still offer guidance from the information available, but it cannot verify this recommendation against your final ESPN league score. ESPN does not currently provide Omen a supported way to perform that verification.”
 - **Tone boundary:** the explanation is plain and neutral. It does not blame the user, accuse ESPN or a commissioner of wrongdoing, or imply that an estimate is an exact ESPN score.
 - **Boundary unchanged:** this does not authorize expanded ESPN access, cookie handling, scraping, a credential, collector, timer, SQL application, migration, deployment, or production scoring action.
+- **Implementation record:** the canonical recommendation envelope now carries the server-owned unavailable signal `exact_espn_scoring_unavailable` for ESPN recommendations; existing web/iOS/Android SignalList mappings preserve the approved label and wording. This is not a deployment or proof of exact ESPN scoring.
 
 ## 2026-08-24 — Founder adopted Football Data Policy v1.3: Omen’s opinion cannot be bought
 

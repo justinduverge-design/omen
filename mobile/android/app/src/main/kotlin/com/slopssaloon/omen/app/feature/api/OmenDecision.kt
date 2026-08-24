@@ -198,8 +198,11 @@ data class OmenDecisionEnvelope(
         else -> OmenSignalSource.Unavailable
     }
 
-    private fun signalLabel(key: String): String = key.split('_').joinToString(" ") { word ->
-        word.replaceFirstChar { it.uppercase() }
+    private fun signalLabel(key: String): String = when (key) {
+        "exact_espn_scoring_unavailable" -> "Exact ESPN scoring unavailable"
+        else -> key.split('_').joinToString(" ") { word ->
+            word.replaceFirstChar { it.uppercase() }
+        }
     }
 
     private fun impactText(rec: Recommendation): String? {

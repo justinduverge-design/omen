@@ -122,6 +122,7 @@ class OmenDecisionTest {
               "state": "success",
               "mode": "live",
               "signals": {
+                "exact_espn_scoring_unavailable": {"status": "unavailable", "source": "provider_restricted", "message": "Omen cannot verify this recommendation against your final ESPN league score."},
                 "roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."},
                 "matchup_dvp": {"status": "stub", "source": "baseline", "message": "Matchup model unavailable."},
                 "weather": {"status": "unavailable", "source": "weather", "message": "No weather feed."}
@@ -132,10 +133,16 @@ class OmenDecisionTest {
         ).briefState() as OmenDecisionBriefState.Success
 
         assertEquals(
-            listOf(OmenSignalSource.Stub, OmenSignalSource.Live, OmenSignalSource.Unavailable),
+            listOf(
+                OmenSignalSource.Unavailable,
+                OmenSignalSource.Stub,
+                OmenSignalSource.Live,
+                OmenSignalSource.Unavailable,
+            ),
             state.payload.signals.map { it.source },
         )
-        assertEquals("Matchup Dvp", state.payload.signals.first().label)
+        assertEquals("Exact ESPN scoring unavailable", state.payload.signals[0].label)
+        assertEquals("Matchup Dvp", state.payload.signals[1].label)
     }
 
     @Test
