@@ -73,7 +73,7 @@ The input SHA-256 was `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6a
 | `npm run evals:validate` | passed — 3 prompts, 2 cases |
 | `git diff --check` | clean |
 | `node scripts/check-sprint-staleness.js` | no findings in the checks that ran; coverage block read in full |
-| PR checks | pending on the final PR head; do not merge until green |
+| PR checks | all green on #365: backend tests/audit; frontend + client builds; server boot with SPA present |
 
 ## Queue impact and remaining gates
 
