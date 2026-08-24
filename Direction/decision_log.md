@@ -1,5 +1,11 @@
 # Omen Decision Log
 
+## 2026-08-24 — ESPN disclosure describes the full scoring-contract limit
+
+- **Decision:** every ESPN recommendation carries the existing SignalList state **Exact ESPN scoring unavailable**.
+- **Meaning:** Omen may recognize some league settings, but cannot yet verify every scoring rule and final ESPN result. A reception setting alone is not presented as a full football scoring contract.
+- **Boundary:** no expanded ESPN access, scraping, credential, collector, SQL, migration, deployment, or production scoring action is authorized.
+
 ## 2026-08-24 — Merging shipped it to production, and `scripts/**` got its first CI gate
 
 - **Merging `main` deploys. That is worth stating plainly, because every record written an hour earlier said "not deployed."** `deploy.yml` is `on: push: branches: [main]`, so merging [#364](https://github.com/justinduverge-design/omen/pull/364) and [#366](https://github.com/justinduverge-design/omen/pull/366) at founder instruction shipped `trade-compare.v2` to Hostinger KVM1. Both runs completed `success` (quality + build + deploy). Verified live rather than assumed: `https://slopssaloon.com/api/trade/compare` returns `contract_version: trade-compare.v2`, `close_needs_context` on the neutral case, `insufficient_data` with correct counts on a missing projection, and `unauthenticated` degrading to **200** neutral rather than 401.

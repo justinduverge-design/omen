@@ -110,6 +110,7 @@ final class OmenDecisionTests: XCTestCase {
           "state": "success",
           "mode": "live",
           "signals": {
+            "exact_espn_scoring_unavailable": {"status": "unavailable", "source": "provider_restricted", "message": "Omen cannot verify every scoring rule and final ESPN result."},
             "roster": {"status": "live", "source": "sleeper_roster", "message": "Roster imported."},
             "matchup_dvp": {"status": "stub", "source": "baseline", "message": "Matchup model unavailable."},
             "weather": {"status": "unavailable", "source": "weather", "message": "No weather feed."}
@@ -119,8 +120,8 @@ final class OmenDecisionTests: XCTestCase {
         """)
 
         guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
-        XCTAssertEqual(payload.signals.map(\.source), [.stub, .live, .unavailable])
-        XCTAssertEqual(payload.signals.first?.label, "Matchup Dvp")
+        XCTAssertEqual(payload.signals.map(\.source), [.unavailable, .stub, .live, .unavailable])
+        XCTAssertEqual(payload.signals.first?.label, "Exact ESPN scoring unavailable")
     }
 
     // MARK: - non-success contract states

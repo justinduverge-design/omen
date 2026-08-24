@@ -46,6 +46,7 @@ test('omen signal label helpers keep data-source tokens and readable names', () 
   assert.equal(formatOmenSignalKey('travel_home_away'), 'Home/away context');
   assert.equal(formatOmenSignalKey('game_time_tv'), 'Kickoff window');
   assert.equal(formatOmenSignalKey('roster'), 'Roster');
+  assert.equal(formatOmenSignalKey('exact_espn_scoring_unavailable'), 'Exact ESPN scoring unavailable');
 
   const liveStyle = omenSignalBadgeStyle('live');
   assert.match(liveStyle.color, /--color-data-live/);
