@@ -1387,3 +1387,10 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Status consequence:** `R6` remains `READY`, blocked by two external outcomes: Apple's review and acceptance by 10+ qualified testers from real fantasy leagues. “Almost done” is recorded as setup complete / outcomes pending rather than as a non-model status.
 - **Recruitment preparation:** `Direction/reviews/2026-08-23-r6-beta-cohort-recruitment-plan.md` defines a no-subscription, real-league-first funnel. Existing league contacts and opted-in Omen waitlist members are the preferred sources; moderated fantasy communities are overflow. Generic install exchanges do not satisfy the real-league requirement unless each tester is independently qualified.
 - **Boundary:** no invitation, public link, waitlist email, community post, or other outreach was sent or approved by this record. Outreach copy and sending remain founder-owned external communications.
+
+## 2026-08-23 — Approve the prepared beta-recruitment copy as launch-ready
+
+- **Founder decision:** approve the direct-contact message, waitlist email, moderator-permission request, post-install feedback prompt, iPhone installation note, and Android recruitment/installation notes prepared in GitHub issues [#358](https://github.com/justinduverge-design/omen/issues/358), [#359](https://github.com/justinduverge-design/omen/issues/359), and [#360](https://github.com/justinduverge-design/omen/issues/360).
+- **Reasoning:** preparation should be complete while the store work is fresh so Apple approval triggers execution rather than another planning session.
+- **Impact:** copy review is cleared in advance. The Apple issue remains gated on Beta App Review approval, `R6` remains open until 10+ qualified real-league testers have access and both platforms have installation evidence, and the private tester roster remains outside GitHub.
+- **Boundary:** this approval makes the recorded copy ready to use; it does not send any message now, publish either store publicly, expose a private invitation link, add a tester, or waive the qualification and privacy checks in the issues.
