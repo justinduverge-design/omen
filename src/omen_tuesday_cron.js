@@ -188,9 +188,9 @@ async function fetchPendingMoves(supabase, now = new Date()) {
   const { data: moves, error } = await supabase
     .from("moves")
     // The scoring-contract fields arrive only with the reviewed A6 schema. The
-    // deployment order is mandatory: approval -> staging schema -> verification
-    // -> production schema -> code. Until that sequence completes, this branch
-    // is not eligible to run against a live database.
+    // scoring-enable order is mandatory: approval -> staging schema -> verification
+    // -> production schema -> scoring enablement. Until then this code must not
+    // run Tuesday scoring against a live database.
     .select("id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at")
     .eq("outcome", "pending")
     .eq("followed", true)
