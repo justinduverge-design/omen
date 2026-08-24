@@ -129,7 +129,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** Codex, 2026-08-24 — implementing the founder-approved A6 package first on `codex/a6-a7-football-data`; SQL remains review-only and will not be applied anywhere.
 - **Blocked by:** None
 - **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
 - **Priority:** P1 — correctness defect in the grading loop
@@ -370,7 +371,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M1-Screen-Trade — M1 screen contract: Trade builder + verdict
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-24 Claude (Claude Code, Opus 5) — revising the rejected 2026-08-16 contract as one backend + design batch: real league/roster context on `POST /api/trade/compare`, server-supported four-state verdict semantics, and revised iOS and Android screen contracts.
 - **Blocked by:** AGENT_RESOLVABLE — founder rejected the 2026-08-16 proposal as incomplete because the personalized experience is the product's core promise and cannot ship without real league/roster context plus server-supported four-state verdict semantics; complete the backend work and revise both platform contracts as one batch.
 - **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions (see `Direction/decision_log.md`). The verdict enum gains its fourth state **on the server** (additive `contract_version` + evaluability signal on `POST /api/trade/compare`), and **"Personalize" waits for real league context** — the personalized half of slice G stays blocked until `/compare` accepts league/roster context, and native ships no scoring-format-only Personalize affordance. Both routed to the backend lane. Ratification of the contract itself is still outstanding.
 - **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity iOS/Android frames and the golden pair **already existed** from the M1-P pass (iOS `41:130`/`41:143`/`41:176`/`41:192` + golden `38:2`; Android `41:153`/`41:166`/`41:202`/`41:218` + golden `39:2`); what was missing was §2's "01 — Principles & References" board and the "06 — QA & Evidence" record, both now written (`86:2`, `87:2`). Two open questions need a founder call before `M5` slice G — the shipped three-value verdict enum vs the approved four-label vocabulary, and "Personalize" having no backend input. Both are recorded in `Blueprints/handoffs/frontend-to-backend.md`.
@@ -387,7 +389,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### M1-Screen-League — M1 screen contract: League matchup + standings/activity
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-08-24 Claude (Claude Code, Opus 5) — revising the rejected 2026-08-16 contract: backend-data plan for a complete matchup + standings + meaningful league activity experience, plus revised iOS and Android screen contracts.
 - **Blocked by:** AGENT_RESOLVABLE — founder rejected the 2026-08-16 proposal because its primary state delivers standings plus an empty activity area rather than the promised complete matchup, standings, and meaningful league activity experience; revise the backend-data plan and both platform contracts.
 - **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions. **The empty activity section is the v1 build target:** both Primary frames are redrawn and renamed "standings live, activity empty (v1)", and the populated composition is preserved as a labelled future state (iOS `90:2`, Android `90:8`). **Off-season uses clean omission for 1.0**; prior-season history is parked as a future backend capability. Slice F may build standings plus an empty activity section once the contract is ratified. Ratification itself is still outstanding.
 - **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity frames already existed (iOS `30:162`/`30:181`, Android `30:194`/`30:213`); the missing halves — references board and QA & Evidence record — are written (`86:2`, `88:2`). The R7 scope correction was executed **in Figma**: both M2 app-shell frames still listed a `Draft` destination and were amended with a dated note (iOS `18:7`, Android `18:20`). One open question needs a founder call: the Primary frame draws a populated "Around the League" section for which **no backend feed exists**, so either that frame or the v1 build target has to change.
