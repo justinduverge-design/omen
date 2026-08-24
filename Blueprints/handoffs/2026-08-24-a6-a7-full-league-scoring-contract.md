@@ -18,7 +18,7 @@
 
 - `src/services/scoringContract.js` has the canonical vocabulary/operations and reports unsupported coverage rather than treating an unknown rule as zero points.
 - `src/omen_tuesday_cron.js` now selects the proposed contract fields and refuses a post-A6 row marked `scoring_contract_required`; it does **not** use its old PPR fallback for that row. An unmarked historical row retains the established PPR fallback.
-- **Deployment sequencing is mandatory:** founder approval → staging schema application → staging verification → production schema application → code deployment. Until that sequence is separately approved and evidenced, this branch must not be merged/deployed.
+- **Scoring-enable sequencing is mandatory:** founder approval → staging schema application → staging verification → production schema application → scoring enablement. The code may deploy while Tuesday scoring remains disabled; it must not execute scoring against a live database until that sequence is separately approved and evidenced.
 
 ## Verification
 
