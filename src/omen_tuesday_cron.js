@@ -15,6 +15,7 @@ initSentry({ component: "cron" });
 const Sentry = require("@sentry/node");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis } = require("@upstash/redis");
+const { normalizeScoringFormat, storedScoringFormat } = require("./services/scoringFormat");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
@@ -79,10 +80,12 @@ function normalizeName(name = "") {
 }
 
 function scoreFromStats(stats = {}, scoring = "PPR") {
+  const format = normalizeScoringFormat(scoring);
+  if (!format) throw new Error(`Unsupported persisted scoring format: ${scoring}`);
   const rushing = stats.rush || 0;
   const passing = stats.pass || 0;
-  if (scoring === "Half PPR") return rushing + passing + (stats.rec_half || 0);
-  if (scoring === "Standard") return rushing + passing + (stats.rec_std || 0);
+  if (format === "half_ppr") return rushing + passing + (stats.rec_half || 0);
+  if (format === "standard") return rushing + passing + (stats.rec_std || 0);
   return rushing + passing + (stats.rec_ppr || 0);
 }
 
@@ -187,9 +190,7 @@ async function fetchPendingMoves(supabase, now = new Date()) {
 
   const { data: moves, error } = await supabase
     .from("moves")
-    // `scoring` is not present in the deployed moves schema. scoreMove already
-    // defaults an absent format to PPR, which is the historical moves default.
-    .select("id, week_num, season, headline, confidence, target_player, outcome, followed, created_at")
+    .select("id, week_num, season, headline, confidence, target_player, scoring, outcome, followed, created_at")
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
@@ -273,7 +274,13 @@ function scoreMove(move, playerScores) {
   }
 
   const stats = playerScores[playerKey];
-  const actual = scoreFromStats(stats, move.scoring);
+  // Only null/absent values are historical. Any non-null unrecognized value
+  // fails closed instead of silently grading the move as PPR.
+  const scoring = move.scoring == null
+    ? "ppr"
+    : normalizeScoringFormat(move.scoring);
+  if (!scoring) throw new Error(`Unsupported persisted scoring format: ${move.scoring}`);
+  const actual = scoreFromStats(stats, scoring);
   const confidence = Number(move.confidence) || 50;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;
@@ -298,7 +305,7 @@ function scoreMove(move, playerScores) {
   return {
     outcome,
     eff: Math.max(0, Math.min(100, Math.round(eff))),
-    result: `${stats.name || target} scored ${actual.toFixed(1)} fantasy points (${move.scoring || "PPR"}).`,
+    result: `${stats.name || target} scored ${actual.toFixed(1)} fantasy points (${storedScoringFormat(scoring)}).`,
   };
 }
 

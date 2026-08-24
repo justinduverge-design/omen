@@ -163,6 +163,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
     dvpLookups: [],
     liveUserIds: [],
     liveRequests: [],
+    persistedMoves: [],
   };
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -204,6 +205,14 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
         getDvpContext: async (lookup) => {
           state.dvpLookups.push(lookup);
           return dvp;
+        },
+      };
+    }
+    if (request === "../services/moves" && parent?.filename === routePath) {
+      return {
+        persistLiveRecommendation: async (_supabase, userId, response) => {
+          state.persistedMoves.push({ userId, response });
+          return "move-1";
         },
       };
     }
@@ -274,6 +283,9 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+  assert.equal(state.persistedMoves.length, 1);
+  assert.equal(state.persistedMoves[0].userId, "user-1");
+  assert.equal(state.persistedMoves[0].response.league.scoring_format, "ppr");
 });
 
 test("POST /api/omen/mvp-move does not enrich availability-only waiver advice with matchup DvP", async () => {

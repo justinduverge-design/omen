@@ -85,6 +85,7 @@ function fixtures() {
     league: {
       league_id: "league-1",
       season: "2026",
+      scoring_settings: { rec: 0.5 },
       roster_positions: ["QB", "SUPER_FLEX", "FLEX", "BN", "IR"],
     },
     users: [
@@ -171,6 +172,7 @@ test("buildNormalizedRoster returns starters, bench, and IR in normalized shape"
   assert.equal(roster.league_key, "league-1");
   assert.equal(roster.team_key, "7");
   assert.equal(roster.source, "sleeper");
+  assert.equal(roster.scoring_format, "half_ppr");
   assert.equal(roster.slots.starters.length, 3);
   assert.equal(roster.slots.bench.length, 1);
   assert.equal(roster.slots.ir.length, 1);

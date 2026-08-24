@@ -111,7 +111,7 @@ create table if not exists public.moves (
   target_player text,
   vorp_score    numeric,
   followed      boolean,
-  scoring       text default 'PPR',
+  scoring       text,
   platform      text,
   league_id     text,
   eff           integer,

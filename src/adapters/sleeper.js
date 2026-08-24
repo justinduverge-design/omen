@@ -11,6 +11,7 @@ const axios = require("axios");
 const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { captureProviderError } = require("../middleware/providerErrors");
+const { scoringFormatFromReceptionPoints } = require("../services/scoringFormat");
 
 const BASE = "https://api.sleeper.app/v1";
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
@@ -602,6 +603,7 @@ async function buildNormalizedRoster(leagueId, username, week, opts = {}) {
     week: Number(week),
     league_key: String(leagueId),
     team_key: String(rosterInfo.roster_id),
+    scoring_format: scoringFormatFromReceptionPoints(league?.scoring_settings?.rec),
     slots,
     source: "sleeper",
   };

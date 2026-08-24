@@ -16,6 +16,7 @@ const {
 } = require("../services/omen");
 const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
+const { persistLiveRecommendation } = require("../services/moves");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -288,11 +289,12 @@ async function liveOmenResult(req) {
 
   try {
     if (isOffSeason()) {
-      return offSeasonMvpResponse();
+      return { ...offSeasonMvpResponse(), userId: user.id };
     }
-    return await buildLiveOmenMvpMoveForUser(user.id, {
+    const result = await buildLiveOmenMvpMoveForUser(user.id, {
       contextId: req.body?.context_id,
     });
+    return { ...result, userId: user.id };
   } catch (e) {
     return {
       status: 500,
@@ -368,6 +370,18 @@ router.post("/mvp-move", async (req, res) => {
       await enrichWithLlm(result.body, req.body || {}, { defaultEnabled: false });
     } catch {
       // LLM explanation is an enhancement only. Keep deterministic response.
+    }
+    try {
+      await persistLiveRecommendation(supabase, result.userId, result.body);
+    } catch {
+      result.status = 500;
+      result.body.state = "error";
+      result.body.recommendation = null;
+      result.body.error = {
+        code: "omen_move_persistence_failed",
+        message: "Omen could not safely record this recommendation for later scoring.",
+        retryable: true,
+      };
     }
     return res.status(result.status).json(result.body);
   }

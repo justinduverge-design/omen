@@ -134,11 +134,19 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
       const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
+      if (!parsed.scoring_format && typeof yahoo.getLeagueScoringFormat === "function") {
+        parsed.scoring_format = await yahoo.getLeagueScoringFormat(leagueKey);
+      }
       return { ...parsed, source: "cache" };
     }
   }
 
-  const teamKey = await yahoo.getMyTeamKey(leagueKey);
+  const [scoringFormat, teamKey] = await Promise.all([
+    typeof yahoo.getLeagueScoringFormat === "function"
+      ? yahoo.getLeagueScoringFormat(leagueKey)
+      : Promise.resolve(null),
+    yahoo.getMyTeamKey(leagueKey),
+  ]);
   if (!teamKey) {
     throw Object.assign(new Error("No Yahoo team found in this league"), { status: 404 });
   }
@@ -148,6 +156,7 @@ async function fetchAndNormalizeRoster(yahoo, leagueKey, week, cacheKey) {
   const normalized    = normalizeYahooRoster(raw, effectiveWeek);
   normalized.team_key  = teamKey;
   normalized.league_key = leagueKey;
+  normalized.scoring_format = scoringFormat;
 
   if (cacheKey && redis) {
     await redis.set(cacheKey, JSON.stringify(normalized), { ex: ROSTER_TTL_S }).catch(() => {});

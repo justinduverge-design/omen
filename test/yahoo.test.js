@@ -96,3 +96,22 @@ test("getUserLeagues propagates a real fetch/auth failure instead of swallowing 
 
   await assert.rejects(() => client.getUserLeagues(), /yahoo_token_expired/);
 });
+
+test("getLeagueScoringFormat joins Yahoo's Receptions category to its modifier", async () => {
+  const client = new YahooClient("token");
+  client.get = async (path) => {
+    assert.equal(path, "/league/449.l.123/settings");
+    return {
+      fantasy_content: {
+        league: [{}, {
+          settings: [{
+            stat_categories: { stats: [{ stat: { stat_id: "10", name: "Receptions" } }] },
+            stat_modifiers: { stats: [{ stat: { stat_id: "10", value: "0.5" } }] },
+          }],
+        }],
+      },
+    };
+  };
+
+  assert.equal(await client.getLeagueScoringFormat("449.l.123"), "half_ppr");
+});

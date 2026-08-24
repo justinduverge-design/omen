@@ -36,7 +36,11 @@ function loadEspnAdapterWithTeams(teams, opts = {}) {
           requests.push(options);
           const response = typeof opts.responseForRequest === "function"
             ? opts.responseForRequest(options, requests.length - 1)
-            : { teams, schedule: opts.schedule };
+            : {
+                teams,
+                schedule: opts.schedule,
+                settings: { scoringSettings: { scoringItems: [{ statId: 53, points: 1 }] } },
+              };
           const body = JSON.stringify(response);
           const req = new EventEmitter();
           req.end = () => {
@@ -161,9 +165,22 @@ test("buildNormalizedRoster returns starters, bench, and IR in normalized shape"
   assert.equal(roster.league_key, "12345");
   assert.equal(roster.team_key, "9");
   assert.equal(roster.source, "espn");
+  assert.equal(roster.scoring_format, "ppr");
   assert.equal(roster.slots.starters.length, 1);
   assert.equal(roster.slots.bench.length, 1);
   assert.equal(roster.slots.ir.length, 1);
+});
+
+test("espnScoringFormat maps the reception modifier without treating custom scoring as PPR", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = (points) => ({
+    settings: { scoringSettings: { scoringItems: [{ statId: 53, points }] } },
+  });
+
+  assert.equal(adapter.espnScoringFormat(data(0)), "standard");
+  assert.equal(adapter.espnScoringFormat(data(0.5)), "half_ppr");
+  assert.equal(adapter.espnScoringFormat(data(1)), "ppr");
+  assert.equal(adapter.espnScoringFormat(data(0.75)), null);
 });
 
 test("waiverPoolFromEspnData keeps only unrostered waiver candidates with projected stats", () => {

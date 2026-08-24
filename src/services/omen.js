@@ -18,6 +18,7 @@ const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { findTradeCandidate } = require("./tradeLineup");
 const { compareTrade } = require("./tradeValue");
+const { normalizeScoringFormat } = require("./scoringFormat");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
@@ -363,11 +364,6 @@ function normalizePlatform(platform) {
   return String(platform || "yahoo").trim().toLowerCase();
 }
 
-function normalizeScoringFormat(scoringFormat) {
-  const value = String(scoringFormat || "ppr").trim().toLowerCase();
-  return ["ppr", "half_ppr", "standard"].includes(value) ? value : "ppr";
-}
-
 function signal(status, used, source, message) {
   if (!VALID_SIGNAL_STATUSES.has(status)) {
     throw new Error(`Invalid signal status: ${status}`);
@@ -457,7 +453,7 @@ function baseEnvelope(body = {}, state = "success") {
       name: "Mock Omen League",
       season: Number.isInteger(Number(body.season)) ? Number(body.season) : new Date().getFullYear(),
       week: Number.isInteger(Number(body.week)) ? Number(body.week) : 1,
-      scoring_format: normalizeScoringFormat(body.scoring_format),
+      scoring_format: normalizeScoringFormat(body.scoring_format, "ppr"),
     },
     team: {
       id: body.team_id || "mock-team-1",
@@ -706,6 +702,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
     teamId: roster.team_key || null,
     season: new Date().getFullYear(),
     week: roster.week || null,
+    scoringFormat: roster.scoring_format ?? null,
     state: "empty",
   });
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
@@ -741,6 +738,7 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
     teamId: roster?.team_key || null,
     season: new Date().getFullYear(),
     week: roster?.week || null,
+    scoringFormat: roster?.scoring_format ?? null,
     state: "empty",
   });
   response.signals = buildLiveMvpSignals({ connectedPlatforms, platform });
@@ -787,6 +785,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
     teamId: roster.team_key || null,
     season: new Date().getFullYear(),
     week: roster.week || null,
+    scoringFormat: roster.scoring_format ?? null,
     state: "success",
   });
 
@@ -1129,6 +1128,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     teamId: roster.team_key || null,
     season: new Date().getFullYear(),
     week: roster.week || null,
+    scoringFormat: roster.scoring_format ?? null,
     state: "success",
   });
 
@@ -1183,6 +1183,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
     teamId: roster.team_key || null,
     season: new Date().getFullYear(),
     week: roster.week || null,
+    scoringFormat: roster.scoring_format ?? null,
     state: "success",
   });
 
@@ -1272,6 +1273,7 @@ function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatform
     teamId: roster.team_key || null,
     season: new Date().getFullYear(),
     week: roster.week || null,
+    scoringFormat: roster.scoring_format ?? null,
     state: "success",
   });
 

@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
+const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring, scoreMove } = require("../src/omen_tuesday_cron");
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
@@ -70,7 +70,48 @@ test("fetchPendingMoves requests only the fields Tuesday scoring consumes", asyn
   }, new Date("2026-08-02T12:00:00.000Z"));
 
   assert.deepEqual(moves, []);
-  assert.equal(requestedColumns, "id, week_num, season, headline, confidence, target_player, outcome, followed, created_at");
+  assert.equal(requestedColumns, "id, week_num, season, headline, confidence, target_player, scoring, outcome, followed, created_at");
+});
+
+test("scoreMove grades standard, half-PPR, and PPR recommendations against distinct totals", () => {
+  const playerScores = {
+    format_receiver: {
+      name: "Format Receiver",
+      rec_std: 10,
+      rec_half: 13,
+      rec_ppr: 16,
+    },
+  };
+  const base = { target_player: "Format Receiver", confidence: 80 };
+
+  const standard = scoreMove({ ...base, scoring: "Standard" }, playerScores);
+  const half = scoreMove({ ...base, scoring: "Half PPR" }, playerScores);
+  const ppr = scoreMove({ ...base, scoring: "PPR" }, playerScores);
+
+  assert.deepEqual(
+    [standard.outcome, half.outcome, ppr.outcome],
+    ["loss", "win", "win"],
+  );
+  assert.deepEqual([standard.eff, half.eff, ppr.eff], [15, 65, 75]);
+  assert.match(standard.result, /10\.0 fantasy points \(Standard\)/);
+  assert.match(half.result, /13\.0 fantasy points \(Half PPR\)/);
+  assert.match(ppr.result, /16\.0 fantasy points \(PPR\)/);
+});
+
+test("scoreMove reserves PPR fallback for historical rows with no scoring value", () => {
+  const result = scoreMove(
+    { target_player: "Historical Receiver", confidence: 60 },
+    { historical_receiver: { name: "Historical Receiver", rec_std: 10, rec_half: 13, rec_ppr: 16 } },
+  );
+
+  assert.match(result.result, /16\.0 fantasy points \(PPR\)/);
+  assert.throws(
+    () => scoreMove(
+      { target_player: "Historical Receiver", confidence: 60, scoring: "custom" },
+      { historical_receiver: { name: "Historical Receiver", rec_std: 10, rec_half: 13, rec_ppr: 16 } },
+    ),
+    /Unsupported persisted scoring format/,
+  );
 });
 
 test("fetchNFLScores reads the public nflverse season CSV without a provider key", async () => {

@@ -18,6 +18,7 @@
 
 const { getYahooAuthUrl, exchangeYahooCode, refreshYahooToken } = require("../middleware/yahooOAuth");
 const { captureProviderError } = require("../middleware/providerErrors");
+const { scoringFormatFromReceptionPoints } = require("./scoringFormat");
 
 const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
 
@@ -168,6 +169,25 @@ class YahooClient {
       season: Number(entry("season")) || null,
       week: Number(entry("current_week")) || null,
     };
+  }
+
+  async getLeagueScoringFormat(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}/settings`);
+    const settings = d?.fantasy_content?.league?.[1]?.settings?.[0]
+      || d?.fantasy_content?.league?.[1]?.settings
+      || {};
+    const categories = settings?.stat_categories?.stats || [];
+    const modifiers = settings?.stat_modifiers?.stats || [];
+    const categoryRows = Array.isArray(categories) ? categories : Object.values(categories);
+    const modifierRows = Array.isArray(modifiers) ? modifiers : Object.values(modifiers);
+    const receptions = categoryRows
+      .map((row) => row?.stat || row)
+      .find((stat) => String(stat?.name || stat?.display_name || "").trim().toLowerCase() === "receptions");
+    if (!receptions) return null;
+    const modifier = modifierRows
+      .map((row) => row?.stat || row)
+      .find((stat) => String(stat?.stat_id) === String(receptions.stat_id));
+    return scoringFormatFromReceptionPoints(modifier?.value ?? modifier?.points);
   }
 
   /** Roster for a team at a given week. Returns raw Yahoo response. */

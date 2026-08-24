@@ -129,7 +129,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Claim:** Codex, 2026-08-24 — implementing the founder-approved A6 package first on `codex/a6-a7-football-data`; SQL remains review-only and will not be applied anywhere.
+- **Evidence:** 2026-08-24 — pre-change `npm test` was 618/618; post-change `npm test` is 626/626. Provider adapters now carry actual reception scoring, live success envelopes fail closed on absent/custom formats, generation upserts the move with `Standard`/`Half PPR`/`PPR`, Tuesday scoring selects and consumes that value, and null/absent historical rows alone fall back to PPR. Review-only nullable SQL is authored at `sql/2026-08-24_a6_moves_scoring_format_review.sql`; it was not applied.
 - **Blocked by:** None
 - **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
 - **Priority:** P1 — correctness defect in the grading loop

@@ -19,6 +19,7 @@ const { Redis } = require("@upstash/redis");
 const config = require("../config");
 const { logger } = require("../middleware/logging");
 const { captureProviderError } = require("../middleware/providerErrors");
+const { scoringFormatFromReceptionPoints } = require("../services/scoringFormat");
 
 const LAST_RESULT_TTL_S = 21600; // 6h - a completed week's matchup result never changes
 const redis = config.redisUrl
@@ -541,14 +542,22 @@ function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
     week: scoringPeriodId,
     league_key: String(leagueId),
     team_key: String(team.id || team.teamId || ""),
+    scoring_format: espnScoringFormat(data),
     slots,
     source: "espn",
   };
 }
 
+function espnScoringFormat(data) {
+  const items = data?.settings?.scoringSettings?.scoringItems;
+  const values = Array.isArray(items) ? items : Object.values(items || {});
+  const reception = values.find((item) => Number(item?.statId ?? item?.stat_id) === 53);
+  return scoringFormatFromReceptionPoints(reception?.points ?? reception?.value);
+}
+
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster", "mSettings"], scoringPeriodId, opts);
   return rosterFromEspnData(data, leagueId, swid, week, opts);
 }
 
@@ -644,6 +653,7 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
+  espnScoringFormat,
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   verifyLeagueAccess,
