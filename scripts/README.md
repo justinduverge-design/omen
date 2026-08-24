@@ -69,7 +69,8 @@ measures `express-rate-limit` rather than Omen.
 |---|---|---|
 | [`email-waitlist-backfill.js`](email-waitlist-backfill.js) | Backfills waitlist email records. **Writes data.** | **No** — founder approval per run |
 | [`oracle-https-setup.sh`](oracle-https-setup.sh) | Historical Oracle HTTPS setup. **The hosting lane is Hostinger KVM1**, so this is reference only | **No** — infrastructure, and describes a retired lane |
-| [`preview-android.sh`](preview-android.sh) | Builds/installs the Android app to a connected device or emulator | Yes — local only |
+| [`preview-android.sh`](preview-android.sh) | Builds/installs the Android app to a connected device or emulator. **Windows-only as written** — it hardcodes `emulator.exe` / `adb.exe` and an `AppData` SDK path, so it does not run on the founder's Mac, which has been the native verification host since 2026-08-11 | Yes — local only, on Windows |
+| [`capture-screenshot-scenario.sh`](capture-screenshot-scenario.sh) | Captures one `ScreenshotScenarios` entry to a PNG on iOS or Android — the on-a-Mac equivalent of `.github/workflows/native-visual-evidence.yml`, which is `workflow_dispatch`-only and uploads to Actions rather than producing a committable file. Takes an optional Android font scale or iOS content-size category. **Refuses to capture unless the Omen window holds focus**, so a cold-boot SystemUI ANR or a TalkBack focus ring cannot be silently committed as screen evidence | Yes — local only |
 
 ## Not in this directory, but part of the same toolkit
 

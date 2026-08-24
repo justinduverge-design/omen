@@ -113,7 +113,17 @@ struct OmenContextualHelpSheet: View {
                             VStack(alignment: .leading, spacing: OmenSpacing.inputToHint) {
                                 Text(tip.label)
                                     .omenTextStyle(OmenTypography.label)
-                                    .foregroundStyle(OmenColor.accent)
+                                    // `text-primary`, not `accent` — registry §3.1's Tooltip/Help
+                                    // row allows exactly `surface-2` + `text-primary`, and brass
+                                    // here was an implementation deviation, not an approved
+                                    // variant. It also failed WCAG AA in dark mode: measured
+                                    // 3.68:1 for accent `#A67C2E` on surface-2 `#2C2C2E`
+                                    // (light mode passed at 5.70:1, so this was dark-only).
+                                    // The body below already followed the registry; the label
+                                    // was the half of that earlier fix that got left behind.
+                                    // Hierarchy still reads: `OmenTypography.label` differs from
+                                    // the body's `bodySmall` in size and weight, not just colour.
+                                    .foregroundStyle(OmenColor.textPrimary)
                                 Text(tip.body)
                                     .omenTextStyle(OmenTypography.bodySmall)
                                     .foregroundStyle(OmenColor.textPrimary)
