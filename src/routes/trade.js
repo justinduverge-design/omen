@@ -12,10 +12,31 @@ const {
 } = require("../services/tradeShareStore");
 const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
+const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
+const { authenticateOmenRequest, getActivePlatformConnections } = require("../services/omen");
+const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { logger } = require("../middleware/logging");
+const sleeperAdapter = require("../adapters/sleeper");
 
 const MAX_PLAYERS_PER_SIDE = 10;
 const MAX_SHARE_PAYLOAD_BYTES = 16 * 1024;
 const TRADE_SHARE_CONTRACT = "trade-share.v1";
+// Additive. v1 consumers (web Trade Analyzer, trade-share.v1 snapshots) keep
+// reading `verdict`; v2 clients read `verdict_state`, which is the only field
+// carrying the four approved verdict labels.
+const TRADE_COMPARE_CONTRACT = "trade-compare.v2";
+const VALID_CONTEXT_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
+const MAX_LEAGUE_ID_LENGTH = 64;
+
+// Approved verdict vocabulary (visual briefs §9.2). The shipped three-value
+// enum maps onto the first three; the fourth is reachable only through the
+// evaluability signal and never by inference on the client.
+const VERDICT_STATE_BY_VERDICT = Object.freeze({
+  accept: "favors_you",
+  decline: "you_give_up_too_much",
+  neutral: "close_needs_context",
+});
+const VERDICT_STATE_INSUFFICIENT = "insufficient_data";
 const VALID_SCORING_FORMATS = new Set(["ppr", "half_ppr", "standard"]);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SENSITIVE_FIELD_RE = /(cookie|espn_s2|swid|token|secret|authorization|password)/i;
@@ -66,6 +87,118 @@ function validateTradePayload(body = {}) {
   if (receiveError) return receiveError;
 
   return null;
+}
+
+/**
+ * `league_context` is a request for personalization, not the data itself.
+ * The client may name which connected league to use; it may never supply the
+ * roster, scoring rules, or settings — those are read server-side from the
+ * user's own stored connection.
+ */
+function validateLeagueContext(body = {}) {
+  const context = body.league_context;
+  if (context == null) return null;
+  if (!isPlainObject(context)) {
+    return "league_context must be an object";
+  }
+  if (
+    context.platform != null
+    && !VALID_CONTEXT_PLATFORMS.has(String(context.platform).toLowerCase())
+  ) {
+    return "league_context.platform must be one of yahoo, sleeper, espn";
+  }
+  if (context.league_id != null && String(context.league_id).length > MAX_LEAGUE_ID_LENGTH) {
+    return "league_context.league_id is too long";
+  }
+  return null;
+}
+
+/**
+ * Can Omen responsibly evaluate this offer at all?
+ *
+ * Visual briefs §9.4: "Incomplete player data — name incomplete input; do not
+ * force verdict." A missing projection means one side's value is unknown, so
+ * the comparison is reported as non-evaluable rather than dressed up as a
+ * verdict. Derived from the same missing_projection_count the engine already
+ * emits, per the founder decision of 2026-08-16.
+ */
+function evaluabilityFor(result) {
+  const missing = Number(result?.send?.missing_projection_count || 0)
+    + Number(result?.receive?.missing_projection_count || 0);
+  const total = Number(result?.send?.player_count || 0)
+    + Number(result?.receive?.player_count || 0);
+
+  if (!total) {
+    return {
+      status: "insufficient_data",
+      reason: "no_players",
+      missing_projection_count: 0,
+      total_player_count: 0,
+    };
+  }
+  if (missing > 0) {
+    return {
+      status: "insufficient_data",
+      reason: "missing_projections",
+      missing_projection_count: missing,
+      total_player_count: total,
+    };
+  }
+  return {
+    status: "evaluable",
+    reason: null,
+    missing_projection_count: 0,
+    total_player_count: total,
+  };
+}
+
+function verdictStateFor(result, evaluability) {
+  if (evaluability.status === "insufficient_data") return VERDICT_STATE_INSUFFICIENT;
+  return VERDICT_STATE_BY_VERDICT[result?.verdict] || "close_needs_context";
+}
+
+function neutralAnalysisContext(reason = null) {
+  return {
+    mode: "neutral",
+    platform: null,
+    league_id: null,
+    league_name: null,
+    applied: [],
+    unavailable_reason: reason,
+  };
+}
+
+/**
+ * Default personalization resolver: reads the caller's own connections and
+ * the provider's league settings. Injected in tests so the maths is provable
+ * without a network call.
+ */
+async function defaultLeagueContextResolver({ userId, platform, leagueId }) {
+  return resolveTradeLeagueContext({
+    userId,
+    platform,
+    leagueId,
+    deps: {
+      getConnections: getActivePlatformConnections,
+      fetchSleeperLeague: (id) => sleeperAdapter.fetchSleeperLeague(id),
+      buildSleeperRoster: async (id, username, league) => {
+        const context = getCurrentNflWeekContext();
+        const normalized = await sleeperAdapter.buildNormalizedRoster(
+          id,
+          username,
+          context.week,
+          { season: league?.season || context.season }
+        );
+        const slots = normalized?.slots || {};
+        return [
+          ...(slots.starters || []),
+          ...(slots.bench || []),
+          ...(slots.ir || []),
+        ];
+      },
+      logger,
+    },
+  });
 }
 
 function jsonByteLength(value) {
@@ -171,6 +304,8 @@ function createTradeRouter({
   now = () => new Date(),
   tradePulseBuilder = buildLiveAdpResponse,
   tradePulseRedisClient = tradePulseRedis,
+  authenticate = authenticateOmenRequest,
+  leagueContextResolver = defaultLeagueContextResolver,
 } = {}) {
   const router = express.Router();
 
@@ -196,20 +331,82 @@ function createTradeRouter({
     }
   });
 
+  /**
+   * Resolve personalization, or explain in one word why it could not happen.
+   *
+   * Failure is never fatal here: visual briefs §8.3 requires that an
+   * unverifiable league quietly retains neutral analysis rather than erroring,
+   * and §9.1 requires the screen to say which one it is.
+   */
+  async function resolveAnalysisContext(req) {
+    const requested = req.body.league_context;
+    if (requested == null) return { analysis: neutralAnalysisContext(), scoringConfig: {} };
+
+    let user = null;
+    try {
+      user = await authenticate(req.headers.authorization);
+    } catch {
+      // Trade stays free and public; asking for personalization without a
+      // session is a downgrade to neutral, not a 401.
+      return { analysis: neutralAnalysisContext("unauthenticated"), scoringConfig: {} };
+    }
+
+    const resolved = await leagueContextResolver({
+      userId: user.id,
+      platform: requested.platform == null ? null : String(requested.platform).toLowerCase(),
+      leagueId: requested.league_id == null ? null : String(requested.league_id),
+    });
+
+    if (resolved?.status !== "personalized") {
+      return {
+        analysis: neutralAnalysisContext(resolved?.reason || "league_context_unavailable"),
+        scoringConfig: {},
+      };
+    }
+
+    return {
+      analysis: {
+        mode: "personalized",
+        platform: resolved.platform || null,
+        league_id: resolved.league_id || null,
+        league_name: resolved.league_name || null,
+        applied: Array.isArray(resolved.applied) ? resolved.applied : [],
+        unavailable_reason: null,
+      },
+      scoringConfig: resolved.scoringConfig || {},
+    };
+  }
+
   router.post("/compare", async (req, res, next) => {
     try {
       const validationError = validateTradePayload(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });
       }
+      const contextError = validateLeagueContext(req.body);
+      if (contextError) {
+        return res.status(400).json({ error: contextError });
+      }
 
-      const scoring_format = req.body.scoring_format || "ppr";
+      const { analysis, scoringConfig } = await resolveAnalysisContext(req);
+      // A personalized run derives its scoring format from the provider's own
+      // settings; the client-supplied label only governs the neutral path.
+      const scoring_format = analysis.mode === "personalized"
+        ? scoringConfig.scoring_format
+        : (req.body.scoring_format || "ppr");
+
       const result = compareTrade({
         send: req.body.send,
         receive: req.body.receive,
       }, {
         scoringFormat: scoring_format,
-      });
+      }, scoringConfig);
+
+      const evaluability = evaluabilityFor(result);
+      result.contract_version = TRADE_COMPARE_CONTRACT;
+      result.evaluability = evaluability;
+      result.verdict_state = verdictStateFor(result, evaluability);
+      result.analysis_context = analysis;
 
       result.explanation = await llm.explainTrade({
         send:      req.body.send,
@@ -300,3 +497,7 @@ module.exports = router;
 module.exports.createTradeRouter = createTradeRouter;
 module.exports.validateTradeSharePayload = validateTradeSharePayload;
 module.exports.validateTradePayload = validateTradePayload;
+module.exports.validateLeagueContext = validateLeagueContext;
+module.exports.evaluabilityFor = evaluabilityFor;
+module.exports.verdictStateFor = verdictStateFor;
+module.exports.TRADE_COMPARE_CONTRACT = TRADE_COMPARE_CONTRACT;
