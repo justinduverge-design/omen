@@ -187,9 +187,11 @@ async function fetchPendingMoves(supabase, now = new Date()) {
 
   const { data: moves, error } = await supabase
     .from("moves")
-    // `scoring` is not present in the deployed moves schema. scoreMove already
-    // defaults an absent format to PPR, which is the historical moves default.
-    .select("id, week_num, season, headline, confidence, target_player, outcome, followed, created_at")
+    // The scoring-contract fields arrive only with the reviewed A6 schema. The
+    // deployment order is mandatory: approval -> staging schema -> verification
+    // -> production schema -> code. Until that sequence completes, this branch
+    // is not eligible to run against a live database.
+    .select("id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at")
     .eq("outcome", "pending")
     .eq("followed", true)
     .lt("created_at", cutoff)
@@ -260,6 +262,9 @@ async function fetchNFLScores({
 }
 
 function scoreMove(move, playerScores) {
+  if (move.scoring_contract_required === true) {
+    throw new Error("Full scoring contract is required for this recommendation; do not grade it with a legacy PPR fallback");
+  }
   const keys = Object.keys(playerScores);
   const target = move.target_player || move.headline || "";
   const playerKey = findBestMatch(target, keys);
@@ -273,7 +278,10 @@ function scoreMove(move, playerScores) {
   }
 
   const stats = playerScores[playerKey];
-  const actual = scoreFromStats(stats, move.scoring);
+  // Only a row predating A6 lacks scoring_contract_required. Its historical
+  // fallback is PPR. A new recommendation must set scoring_contract_required
+  // and is refused above until the full evaluator and lawful event data exist.
+  const actual = scoreFromStats(stats, move.scoring || "PPR");
   const confidence = Number(move.confidence) || 50;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;

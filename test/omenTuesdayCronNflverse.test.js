@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring } = require("../src/omen_tuesday_cron");
+const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring, scoreMove } = require("../src/omen_tuesday_cron");
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
@@ -70,7 +70,29 @@ test("fetchPendingMoves requests only the fields Tuesday scoring consumes", asyn
   }, new Date("2026-08-02T12:00:00.000Z"));
 
   assert.deepEqual(moves, []);
-  assert.equal(requestedColumns, "id, week_num, season, headline, confidence, target_player, outcome, followed, created_at");
+  assert.equal(requestedColumns, "id, week_num, season, headline, confidence, target_player, scoring, scoring_contract, scoring_contract_required, scoring_coverage_state, outcome, followed, created_at");
+});
+
+test("legacy rows grade standard, half-PPR, and PPR differently while a row without the new contract marker retains PPR", () => {
+  const scores = {
+    contract_receiver: { name: "Contract Receiver", rec_std: 6, rec_half: 9, rec_ppr: 12 },
+  };
+
+  assert.match(scoreMove({ target_player: "Contract Receiver", scoring: "Standard" }, scores).result, /6\.0 fantasy points \(Standard\)/);
+  assert.match(scoreMove({ target_player: "Contract Receiver", scoring: "Half PPR" }, scores).result, /9\.0 fantasy points \(Half PPR\)/);
+  assert.match(scoreMove({ target_player: "Contract Receiver", scoring: "PPR" }, scores).result, /12\.0 fantasy points \(PPR\)/);
+  assert.match(scoreMove({ target_player: "Contract Receiver" }, scores).result, /12\.0 fantasy points \(PPR\)/);
+});
+
+test("a post-A6 recommendation fails closed when its full scoring contract cannot be evaluated", () => {
+  assert.throws(
+    () => scoreMove({
+      target_player: "Contract Receiver",
+      scoring_contract_required: true,
+      scoring_coverage_state: "unsupported",
+    }, { contract_receiver: { name: "Contract Receiver", rec_std: 6, rec_half: 9, rec_ppr: 12 } }),
+    /Full scoring contract is required/,
+  );
 });
 
 test("fetchNFLScores reads the public nflverse season CSV without a provider key", async () => {
