@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-24 — Founder adopted Football Data Policy v1.3: Omen’s opinion cannot be bought
+
+- **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.3.md`. Omen’s recommendations, rankings, explanations, confidence, outcome evaluations, and product language must remain independent of advertisers, affiliates, providers, leagues, players, partners, commercial arrangements, and internal revenue targets.
+- **User relationship:** Omen is decision support, not a coercive authority or an autonomous actor. It explains reasoning and uncertainty; the user remains the decision-maker.
+- **Commercial boundary:** any future commercial material must be visibly identified and structurally separate from the recommendation system. It cannot influence recommendation generation, ranking, explanation, confidence, or evaluation.
+- **Boundary unchanged:** this authorizes no commercial relationship, collector, timer, credential, SQL application, migration, deployment, or production scoring action.
+
 ## 2026-08-24 — Founder adopted Football Data Policy v1.2: evaluate Omen fairly, never with hindsight
 
 - **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.2.md`. A recommendation is a recorded decision with its own context, alternatives, horizon, and evidence—not merely a player name with later points attached.
