@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-24 — Founder adopted Football Data Policy v1.2: evaluate Omen fairly, never with hindsight
+
+- **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.2.md`. A recommendation is a recorded decision with its own context, alternatives, horizon, and evidence—not merely a player name with later points attached.
+- **Truth separation:** factual provider outcome, Omen decision quality, user follow-through, and user impact are separate facts. Omen does not convert a user’s independent choice into an Omen win/loss, and it does not judge an earlier call with information it learned later.
+- **Product language:** use outcome-verified, outperformed-defined-alternative, not-followed/counterfactual, provider-adjusted, and not-evaluable states rather than an unqualified win/loss.
+- **Boundary unchanged:** this is a governing product/data contract only. It authorizes no collector, timer, credential, SQL application, migration, deployment, scoring flag, or ADP work.
+
 ## 2026-08-24 — Omen requires a full league scoring contract, not a three-format label
 
 - **Founder direction:** Omen’s purpose requires full extraction and calculation of each supported league’s material scoring rules. Standard/Half PPR/PPR reception labels are not the final product promise.
