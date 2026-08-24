@@ -50,6 +50,14 @@ Use `slops-design-system-pack`, `slops-taste`, and `slops-ux-copy` as applicable
 
 Start at `00 — Start Here` in the Figma file. Propose a new pattern on `03 — Components` before using it in an iOS or Android screen. Screen pages are `04 — iOS Screens` and `05 — Android Screens`.
 
+**Reading Figma: an empty listing is not evidence of absence.** Figma pages load lazily, and the cheap reads lie before a page is loaded. On 2026-08-24, `get_metadata` with no `nodeId` returned **one** page for a file holding **seven**, and `page.children.length` returned **0** for pages holding **27** frames. Both would have supported a confident, wrong conclusion that approved contracts had never been drawn — and this repo has a documented history of contracts claimed but not written, which makes that conclusion *feel* plausible.
+
+Before concluding that a frame, page, or component does not exist:
+
+1. Probe the **specific node id** — `get_metadata` with that `nodeId`, or `getNodeByIdAsync` after `await setCurrentPageAsync(page)`.
+2. Treat a missing page in a listing, or a zero `children.length`, as **unknown**, never as absent.
+3. If you are about to report that prior work was never done, probe first. A cheap probe beats a plausible inference — the same rule the 2026-08-21 Yahoo `403`-without-a-body lesson produced.
+
 When the execution environment exposes them, use:
 - `figma-use` for controlled canvas changes;
 - `figma-swiftui` for iOS/SwiftUI ↔ Figma translation;

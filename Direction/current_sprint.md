@@ -435,8 +435,27 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Agent-buildable:** yes, in full
 - **Source:** `scripts/check-sprint-staleness.js` matches sprint keys against merged **PR titles**, so it can only ever see the code lane. On 2026-08-16 the queue offered `M1-Screen-Trade` and `M1-Screen-League` as work to be done when every frame they asked for already existed in Figma — the **eighth** recorded instance of this pattern and the first the script structurally could not catch, on the same day the script was written to end it.
 - **Scope:** for any sprint item whose evidence is a Figma node rather than a PR, assert the named frames are **absent** before the item is presented as pullable. The node ids are already recorded in each item's `Evidence:` line, so the check can read them from `current_sprint.md` and query the file. Keep the existing signal-quality discipline: report a hit as a finding only when it is unambiguous, and exit 0 with an explicit "this is NOT an all-clear" when Figma access is unavailable.
-- **Done when:** the check flags a design item whose frames exist while its `Status:` is not `CLOSED`, is proven against the real 2026-08-16 case, stays quiet on genuinely-unstarted items, and edits nothing — closing an item stays a human judgement.
+- **⚠️ Amended 2026-08-24 — the obvious way to check absence returns a FALSE POSITIVE.** Figma pages load lazily, and two separate reads lie about it before a page is loaded: `get_metadata` with no `nodeId` returned **one** page for a file that has **seven**, and `page.children.length` reported **0** for pages holding **27** frames. A checker that infers "this frame does not exist" from either would confidently report existing, approved work as missing — the exact false finding this item exists to prevent, inverted. **Absence may only be concluded from a direct probe of the specific node id** (`get_metadata` with that `nodeId`, or `getNodeByIdAsync` after `setCurrentPageAsync`). Evidence: during the 2026-08-24 `M1-Screen-League`/`M1-Screen-Trade` revision, the page listing supported a confident conclusion that node `86:2` was never written; probing `86:2` directly returned a fully populated references board.
+- **Done when:** the check flags a design item whose frames exist while its `Status:` is not `CLOSED`; **concludes absence only from a direct per-node probe, never from a page listing or a `children.length` read**, and carries a test or fixture proving it does not report a lazily-unloaded page as empty; is proven against the real 2026-08-16 case; stays quiet on genuinely-unstarted items; and edits nothing — closing an item stays a human judgement.
 - **Do not touch:** do not auto-close anything; do not write to Figma.
+
+### M11-M1ContractProviderProof — Prove the M1 contract claims against real provider data
+
+- **Status:** BLOCKED
+- **Blocked by:** FOUNDER — needs a real connected Sleeper league and a real connected ESPN league (credentials are founder-only), **and** ratification of `M1-Screen-League` / `M1-Screen-Trade` first. If either contract is rejected again the proof target changes, so running this before ratification risks proving the wrong thing.
+- **Unblock:** ratify the two contracts, then make a Sleeper and an ESPN league available for a read-only proof session.
+- **Priority:** P2 — nothing in beta depends on it, but every capability claim in both contracts is currently fixture-proven only, and `Blueprints/specs/mobile/m1-league-screen-data-plan-v1.md` §1 marks four rows ⚠️ unverified on purpose.
+- **Cost:** small
+- **Agent-buildable:** yes once the leagues exist; the founder supplies access, the agent runs the reads and records evidence.
+- **Source:** the 2026-08-24 contract revision ([#364](https://github.com/justinduverge-design/omen/pull/364)). Both halves were deliberately shipped with their unproven edges named rather than smoothed over.
+- **Scope — exactly five claims, no more:**
+  1. **ESPN per-side projection shape** — the data plan asserts ESPN returns projected totals in the same `mMatchup` view. Inferred from surrounding usage, never parsed anywhere in `src/`.
+  2. **Sleeper deadline field** — trade deadline / playoff start on the league settings object.
+  3. **ESPN deadline field** — same, on ESPN league settings.
+  4. **Trade personalization against a real Sleeper league** — `src/services/tradeLeagueContext.js` currently resolves real settings only in tests. Confirm `roster_positions`, `scoring_settings.rec`, and `total_rosters` arrive in the expected shape from a live league.
+  5. **The neutral-vs-personalized difference on real data** — the verdict flip is proven on deterministic fixtures; observe it once on a real roster.
+- **Done when:** each of the five carries a live, sanitized evidence line (shape confirmed or corrected, dated, provider named); `m1-league-screen-data-plan-v1.md` §1 has no remaining ⚠️ row that is merely inferred; **any claim that fails is degraded in the contract to the section it affects rather than the screen** (§2.5 gate 5 — no global parity claim from one provider); and no league name, roster, manager identity, cookie, or token value appears in the evidence.
+- **Do not touch:** no ESPN cookie or Yahoo token value in any artifact (facts-of-record #6); no write to any provider; no production action. **Yahoo is out of scope** — its API is refused at the app-entitlement level (facts-of-record #11, issue [#308](https://github.com/justinduverge-design/omen/issues/308)) and no proof is possible until that clears.
 
 ### M8-EspnAndroidHelper — Decide the Android ESPN path
 
