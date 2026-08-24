@@ -1,5 +1,20 @@
 # Omen Decision Log
 
+## 2026-08-24 — A6 records the league scoring contract; only historical nulls retain PPR fallback
+
+- **Decision applied:** each newly generated Omen recommendation must carry a canonical `Standard`, `Half PPR`, or `PPR` value derived from the connected league at recommendation time, and the persisted move is the grading source of truth.
+- **Failure rule:** a new recommendation with absent, custom, or unrecognized reception scoring fails closed rather than being silently labelled PPR. Only a null or absent value on a historical row predating the column uses the compatibility PPR fallback.
+- **Schema boundary:** `sql/2026-08-24_a6_moves_scoring_format_review.sql` is nullable, additive, carries no default and performs no backfill. It was authored for review and was not applied. Code must not deploy ahead of the separately gated approval → staging application → verification → production-approval sequence.
+- **Evidence:** provider-format capture, move persistence, three distinct scoring-format grades, and the historical fallback are covered by the 626/626 local suite. `A6-MovesScoringFormat` advances to `VERIFIED`, not `CLOSED` or deployed.
+
+## 2026-08-24 — A7 lawful source set is nflverse-allowlisted; KVM primary and Pi witness
+
+- **Source decision:** under the founder's free/no-new-subscription constraint, the lawful automated set is limited to explicitly allowlisted CC BY 4.0 nflverse release families needed for weekly scoring: play-by-play, player/team weekly stats, schedules, and player/roster identity data. A release being hosted by nflverse is not by itself sufficient; upstream families with separate or restrictive rights remain excluded.
+- **Rejected for automated scoring:** ESPN's terms prohibit the required commercial automated extraction; Sleeper lacks commercial permission unless its pending licensing request succeeds; BALLDONTLIE, FantasyPros, and SportsDataIO require paid or separately negotiated commercial rights for the needed use. None is an emergency fallback.
+- **Operating shape:** KVM1 is the proposed fetch/normalize/derive/publish primary; Command Center Raspberry Pi is the provider-diverse manifest/raw witness. Pi Zero nodes are monitoring-only. Loss of the sole rights-cleared source fails closed on the last validated publication rather than switching to an unlicensed source.
+- **Boundary:** this is a research and architecture decision only. No collector, scheduler, deployment, dependency, credential, SQL, migration, or production change is authorized. The future ADP seam is documented but no ADP corpus or capability is claimed.
+- **Evidence:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md` evaluates six first-party source/terms records and specifies schedules, retention, replay, validation, failure behavior, infrastructure, estimates, and phases. Non-production replays of 2025 Weeks 1 and 17 produced zero Standard or PPR formula-reference mismatches; source independence remains an explicit future gate.
+
 ## 2026-08-22 — Google Play content rating completed; Apple half remains
 
 - **Evidence:** Google Play Console shows the Omen IARC questionnaire `Completed`, submitted 2026-08-22 at 10:15 AM under `owner@slopssaloon.com`. Displayed ratings include ESRB Everyone, PEGI 3, USK 0, and IARC 3+.

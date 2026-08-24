@@ -95,7 +95,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A4 — Tuesday scoring production enablement
 
 - **Status:** READY
-- **Blocked by:** TASK-A7-OwnedFootballDataPipeline — the founder selected the owned source strategy; production scoring must wait for its lawful source set, historical replay, monitoring, and failure behavior to be verified.
+- **Unblock:** 2026-08-24 A7 DESIGN/REPLAY CLEARED — `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md` names the rights-cleared source set, exact architecture and operating policy, and records two clean historical-week replays. Runtime build/deploy was explicitly outside A7; A4's own no-write rehearsal, monitoring/failure proof, and founder production gate still apply.
 - **Blocked by:** TASK-A6-MovesScoringFormat — the scoring-format change must pass review and staging validation so standard and half-PPR leagues are not graded as PPR.
 - **Blocked by:** TASK-O2 — the founder-approved condition requires the rollback exercise to be completed before persistent enablement.
 - **Blocked by:** AGENT_RESOLVABLE — run the no-write production rehearsal against real rows and record readiness/cron health plus independent standard, half-PPR, and PPR comparisons before enabling writes.
@@ -144,7 +144,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A7-OwnedFootballDataPipeline — Design the automated Slops-owned football-data pipeline
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Claim:** Codex, 2026-08-24 — researching and designing the founder-selected Slops-owned pipeline after completing A6; architecture/evidence only, with every A7 no-build/no-deploy/no-credential gate preserved.
+- **Evidence:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md` — six-source first-party rights matrix; nflverse-only lawful automated set under the no-subscription constraint; immutable raw → normalized GSIS/game identities → versioned Standard/Half PPR/PPR → independent calculation/reference validation → publication design; exact schedule/retention/idempotency/replay/DQ/topology/failure/cost/phases; non-production 2025 Week 1 (1,072 rows) and Week 17 (1,063 rows) replay with zero Standard/PPR reference mismatches. No collector, timer, deploy, dependency, credential, SQL, migration, or production change.
 - **Blocked by:** None
 - **Priority:** P0 — selected fallback for Tuesday scoring
 - **Cost:** medium research and architecture; implementation to be estimated from the resulting plan
