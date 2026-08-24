@@ -3,7 +3,7 @@
 **Date:** 2026-08-24  
 **Agent:** Codex  
 **Branch:** `codex/a6-a7-football-data`  
-**PR:** pending at handoff authoring; open unmerged PR to be recorded after publication  
+**PR:** [#365](https://github.com/justinduverge-design/omen/pull/365) — open and deliberately unmerged for founder review  
 **Deployed:** no. No SQL was applied, no collector or timer was enabled, and no production state or credential was touched.
 
 ## Outcome
@@ -69,8 +69,11 @@ The input SHA-256 was `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6a
 | Three-format behavior | Standard, Half PPR, and PPR produce distinct grades; historical null/absent rows fall back to PPR |
 | SQL application | **Not run** |
 | A7 runtime mutation | **None** — no collector, cron, dependency, secret, credential, SQL, migration, deploy, or production change |
-| Final audit/evals/diff/staleness | pending at handoff authoring; replace before publication |
-| PR checks | pending at handoff authoring; replace before publication |
+| `npm audit --audit-level=moderate` | 0 vulnerabilities |
+| `npm run evals:validate` | passed — 3 prompts, 2 cases |
+| `git diff --check` | clean |
+| `node scripts/check-sprint-staleness.js` | no findings in the checks that ran; coverage block read in full |
+| PR checks | pending on the final PR head; do not merge until green |
 
 ## Queue impact and remaining gates
 
@@ -92,3 +95,5 @@ The input SHA-256 was `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6a
 ## Explicit non-claims
 
 No merge, deployment, migration application, production validation, provider credential use, collector, scheduled job, independent-provider match, or ADP capability is claimed by this handoff.
+
+The staleness checker does not validate whether a `Done when:` clause was genuinely met, prose contradictions without issue-number linkage, or code outside `Direction/` and `Blueprints/handoffs/`. Its clean result is governance-record evidence only; the test/audit/diff results above carry the code evidence.
