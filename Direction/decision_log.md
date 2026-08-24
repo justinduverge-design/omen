@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-24 — Founder adopted Omen Football Data Policy v1
+
+- **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.md` as Omen’s governing direction for football-data storage, lawful sourcing, traceability, validation, and phased production authorization.
+- **Meaning:** Omen values lawful, explainable, and replayable data over speed or an unverified fallback. A grade must trace from recommendation-time league rules through an approved data version and named formula version to an auditable outcome.
+- **Boundary unchanged:** policy adoption does not authorize a collector, timer, credential, paid source, scraping, SQL application, migration, deployment, production flag, or ADP work. Existing A4 and A6 gates remain in force.
+- **Next governance question:** before a collector is proposed, extend the policy with explicit data classification/custody, correction communication, and accountable operating-owner rules. These are amendments to discuss, not implied approvals.
+
 ## 2026-08-24 — A6 records the league scoring contract; only historical nulls retain PPR fallback
 
 - **Decision applied:** each newly generated Omen recommendation must carry a canonical `Standard`, `Half PPR`, or `PPR` value derived from the connected league at recommendation time, and the persisted move is the grading source of truth.

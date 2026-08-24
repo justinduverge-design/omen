@@ -1,7 +1,7 @@
 # Omen Football Data Policy v1
 
 **Audience:** Founder and product leadership
-**Status:** Draft for founder adoption
+**Status:** Adopted by founder — 2026-08-24
 **Date:** 2026-08-24
 **Purpose:** establish the decisions that must guide Omen football data before technical collection or production scoring is authorized.
 
@@ -109,4 +109,4 @@ Before Omen moves from design into operation, the founder should receive one sho
 
 ## Adoption record
 
-Founder adoption should be recorded in `Direction/decision_log.md` with the date, any approved exceptions, and the owner of the next scoped phase. No exception is implied by silence.
+Founder approved this policy on 2026-08-24. Adoption establishes the governance direction only; it does not authorize any action listed in section 6. Any exception must be explicit, dated, scoped, and recorded in `Direction/decision_log.md`.
