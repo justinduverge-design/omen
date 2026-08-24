@@ -105,7 +105,7 @@ Each normalized rule contains:
 | `operator` | multiplier, fixed award/deduction, threshold/bonus, cap, or override |
 | `value` | points or calculation parameter |
 | `source_rule_ref` | exact provider setting(s) that produced the rule |
-| `coverage_state` | `supported`, `provider_adjusted`, `unsupported`, or `ambiguous` |
+| `coverage_state` | `supported`, `provider_adjusted`, `unsupported`, `ambiguous`, or `provider_restricted` |
 
 The initial vocabulary must inventory every rule exposed by each supported provider. It cannot treat an unknown key as zero, ignore it, or relabel it as a nearby rule.
 
@@ -137,12 +137,13 @@ The engine compares Omen-calculated and provider-final outcomes under the same r
 |---|---|
 | `exact` | all material rules supported; calculated and provider final agree within documented precision |
 | `provider_adjusted` | final provider outcome includes/exposes a manual or provider adjustment Omen did not independently derive |
+| `provider_restricted` | the provider does not currently supply Omen a supported lawful path for exact settings/outcome verification |
 | `unsupported` | a material rule/event cannot be faithfully calculated |
 | `ambiguous` | provider rule or identity cannot be interpreted uniquely |
 | `mismatch` | calculation and provider final conflict without a disclosed adjustment |
 | `pending` | result or finality is not yet available |
 
-Only `exact` earns the phrase **league-exact**. `provider_adjusted` is a final, valid league outcome with its own visible label. `unsupported`, `ambiguous`, `mismatch`, and `pending` are not approximated.
+Only `exact` earns the phrase **league-exact**. `provider_adjusted` is a final, valid league outcome with its own visible label. `provider_restricted` is shown to the user as the provider-capability explanation required by Policy v1.4. `unsupported`, `ambiguous`, `mismatch`, and `pending` are not approximated.
 
 ## Provider research and rights gates
 
@@ -150,7 +151,7 @@ Only `exact` earns the phrase **league-exact**. `provider_adjusted` is a final, 
 |---|---|---|---|
 | Sleeper | Official league endpoint returns `scoring_settings`; matchup records expose calculated `points` and `custom_points` for commissioner overrides. [Official docs](https://docs.sleeper.com/) | Strong technical fit for full settings snapshot and adjustment-aware reconciliation. | Prior A7 research found commercial use requires written permission/licensing. Do not automate this contract in production until that permission explicitly covers settings retrieval, storage, calculation, and reconciliation. |
 | Yahoo | Official Fantasy Sports API states league statistics, scoring modifiers, and rules are configurable and relevant only in the league context; it documents OAuth access to private user data. [Official guide](https://developer.yahoo.com/fantasysports/guide/) | Strong intended API model. Build must extract the complete settings resource—not only Receptions—and meet required Yahoo attribution. | Confirm current developer terms cover commercial retention, derived calculation, and reconciliation; use only user-authorized OAuth access and required attribution. No unreviewed use is assumed. |
-| ESPN | Existing adapter technically reads a subset of `mSettings`, but Disney’s terms limit use to personal/noncommercial and prohibit automated access/copying without express written permission. [Terms](https://disneytermsofuse.com/english/) | Technically possible is not sufficient. | **Blocked.** Do not expand ESPN extraction or reconciliation without express written permission or an official commercial interface whose terms cover this use. Existing user cookies do not resolve this rights issue. |
+| ESPN | Existing adapter technically reads a subset of `mSettings`, but Disney’s terms limit use to personal/noncommercial and prohibit automated access/copying without express written permission. [Terms](https://disneytermsofuse.com/english/) | Technically possible is not sufficient. | **Provider-restricted.** Do not expand ESPN extraction or reconciliation without express written permission or an official commercial interface whose terms cover this use. Existing user cookies do not resolve this rights issue. Every ESPN recommendation must surface Policy v1.4’s exact-scoring-unavailable state. |
 
 These provider settings are not alternatives to the lawful NFL event source. They are private, user-authorized configuration/outcome evidence and require their own provider-specific rights review.
 
@@ -166,7 +167,7 @@ These provider settings are not alternatives to the lawful NFL event source. The
 1. A fixture inventory captures every scoring-rule key and rule family exposed by each intended provider.
 2. Every provider rule maps to a canonical rule, an explicit `unsupported` state, or a rights block—never an unrecorded fallback.
 3. Canonical calculation tests cover each event/rule family, threshold boundary, negative value, and multi-rule interaction.
-4. User-authorized non-production proof compares full weekly results for representative leagues against final provider outcomes, with zero unexplained mismatches before `exact` is claimed.
+4. User-authorized non-production proof compares full weekly results for representative leagues against final provider outcomes, with zero unexplained mismatches before `exact` is claimed; provider-restricted states receive their required user explanation instead.
 5. Known manual adjustments produce `provider_adjusted`, preserve the provider result, and never accuse or imply misconduct by the commissioner.
 6. Source correction, rules-change, missing-event, identity ambiguity, provider timeout, and account deletion drills pass without fabricating a grade or leaking private configuration.
 7. Legal review confirms the specific per-provider settings/outcome use, storage, attribution, and automation path before any production collection.

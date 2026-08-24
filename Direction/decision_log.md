@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-24 — Founder adopted Football Data Policy v1.4: honest ESPN exact-scoring availability
+
+- **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.4.md`. Until a supported lawful ESPN path exists, every ESPN recommendation must say that Omen can offer guidance but cannot verify the recommendation against the user’s final ESPN league score.
+- **Required product state:** **Exact ESPN scoring unavailable** — “Omen can still offer guidance from the information available, but it cannot verify this recommendation against your final ESPN league score. ESPN does not currently provide Omen a supported way to perform that verification.”
+- **Tone boundary:** the explanation is plain and neutral. It does not blame the user, accuse ESPN or a commissioner of wrongdoing, or imply that an estimate is an exact ESPN score.
+- **Boundary unchanged:** this does not authorize expanded ESPN access, cookie handling, scraping, a credential, collector, timer, SQL application, migration, deployment, or production scoring action.
+
 ## 2026-08-24 — Founder adopted Football Data Policy v1.3: Omen’s opinion cannot be bought
 
 - **Decision:** adopt `Direction/policies/omen-football-data-policy-v1.3.md`. Omen’s recommendations, rankings, explanations, confidence, outcome evaluations, and product language must remain independent of advertisers, affiliates, providers, leagues, players, partners, commercial arrangements, and internal revenue targets.
