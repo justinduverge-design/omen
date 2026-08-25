@@ -90,7 +90,22 @@ OMEN_LOAD_CONCURRENCY=20 OMEN_LOAD_ITERATIONS=8 node scripts/local-load-stack.js
 per-credential budget in `Blueprints/api-routes.md` (10/min for `mvp-move`), or the run
 measures `express-rate-limit` rather than Omen.
 
-## Data and ops — approval required
+## Data and ops
+
+### Football-data Phase 1 — local and non-production only
+
+| Script | What it does | Safe to run? |
+|---|---|---|
+| [`football-data.js`](football-data.js) | Captures the fixed, rights-reviewed nflverse `stats_player` release into a content-addressed local raw vault and immutable observation manifest, or replays one exact manifest with hash/schema/rights verification. Requires explicit local paths; refuses `/var/lib/omen-football-data`, arbitrary source URLs, unsupported datasets, `latest` aliases, publication, and files over 64 MiB. | Yes — local artifact writes and bounded public release reads only; no credentials, database, timer, production path, or promotion behavior |
+
+```bash
+node scripts/football-data.js capture --dataset stats_player --season 2025 --root /tmp/omen-football-vault
+node scripts/football-data.js replay --root /tmp/omen-football-vault --manifest /tmp/omen-football-vault/manifests/nflverse-data/stats_player/2025/<exact-snapshot-id>.json --out /tmp/omen-football-replays
+```
+
+This is A7B Phase 1 evidence, not a production collector. Each identical retrieval creates a new observation manifest but reuses the same immutable SHA-256-addressed raw object. Replay copies verified bytes into a new run directory and always records `promoted: false`.
+
+### Approval-required writers and infrastructure scripts
 
 | Script | What it does | Safe to run? |
 |---|---|---|

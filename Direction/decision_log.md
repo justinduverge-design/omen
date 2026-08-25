@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-24 — A7B begins with a local immutable vault, not a production collector
+
+- **Decision:** the founder approved only A7B Phase 1 under `ATA-20260824-01`: fixed nflverse `stats_player` capture into SHA-256-addressed raw evidence plus one immutable observation manifest per retrieval, and replay from one exact manifest. The command has no arbitrary URL, `latest`, provider credential, timer, production root, database, publication, scoring, or ADP mode.
+- **Measured proof:** a real ephemeral capture reproduced the A7 research artifact exactly — 8,656,387 bytes, SHA-256 `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6ad4bcfc2`. A repeat retrieval reused the raw object and produced a separate manifest; exact replay re-hashed it and recorded `promoted: false`.
+- **Safety result:** source host/release/rights are fixed, bodies are capped at 64 MiB, production-root and escaping-directory-symlink writes are refused, and replay checks manifest self-consistency, rights, source, schema, length, and raw hash before output. Code review found no P0/P1.
+- **Boundary:** A7B remains open. Identity normalization, offensive/kicker/DST facts, row-level quality, independent scoring reference, staging, correction/source-loss drills, KVM1 recovery, Pi witness, A4 rehearsal, scheduling, and production all remain unbuilt or separately gated. The task returns to `FOUNDER_APPROVAL` before Phase 2 rather than carrying Phase 1 authority forward.
+
 ## 2026-08-24 — Full league scoring is a versioned contract, not a PPR label
 
 - **Decision:** Omen’s only path to the phrase `league-exact` is an immutable provider-rule snapshot, a versioned canonical scoring contract, lawful versioned event facts, and provider-final reconciliation. A reception-only label is useful legacy evidence but is not a full football scoring contract.

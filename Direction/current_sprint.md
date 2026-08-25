@@ -157,7 +157,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — authorize the first non-production collector/build slice after reviewing A7’s lawful-source architecture and storage/operating plan.
+- **Blocked by:** FOUNDER_APPROVAL — authorize Phase 2 normalization and scoring acceptance as a separately bounded slice; Phase 1 does not grant staging, infrastructure, timer, database, publication, or production authority.
+- **Unblock:** 2026-08-24 CLEARED — founder explicitly approved the first non-production collector/build slice and its bounded full-executor assignment; production, timers, storage provisioning, database, SQL, dependency, credential, deployment, scoring enablement, and ADP work remain excluded.
+- **Evidence:** Phase 1 local raw vault and exact-manifest replay are complete on `codex/a7b-football-data`: `Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`; `Direction/reviews/2026-08-24-a7b-phase1-code-review.md`. A real ephemeral 2025 capture reproduced A7's exact 8,656,387-byte SHA-256 and replayed with `promoted: false`. This is progress evidence, not overall A7B verification.
 - **Priority:** P0 — production dependency for A4 after A6
 - **Cost:** large (62–92 hour build estimate, then 0.5–1.0 hour/week normal maintenance)
 - **Source:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
