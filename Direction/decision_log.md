@@ -1449,3 +1449,8 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Reasoning:** preparation should be complete while the store work is fresh so Apple approval triggers execution rather than another planning session.
 - **Impact:** copy review is cleared in advance. The Apple issue remains gated on Beta App Review approval, `R6` remains open until 10+ qualified real-league testers have access and both platforms have installation evidence, and the private tester roster remains outside GitHub.
 - **Boundary:** this approval makes the recorded copy ready to use; it does not send any message now, publish either store publicly, expose a private invitation link, add a tester, or waive the qualification and privacy checks in the issues.
+## 2026-08-25 — A7B Phase 3 proves roles locally before touching live hosts
+
+- **Decision:** implement Phase 3 as four explicit, disjoint local role roots: KVM1-primary model, Command Center Pi witness model, immutable backup, and fresh KVM1 recovery model. This proves contracts and failure behavior without turning role names into authority to mutate either host.
+- **Failure policy:** exact witness mismatch quarantines; witness outage, stale source, or low disk holds; source loss remains pending with no fallback; schema drift quarantines; corrections retain exact scope/rulesets, cite `supersedes`, and enumerate changed subjects. Recovery requires exact backup bytes plus a matching witness observation.
+- **Boundary:** every receipt remains publication/promoted false. No SSH, service, timer, database, dependency, credential, deploy, production scoring, or live alert delivery occurred. A7B returns to READY before production-readiness/A4 rehearsal or exact-host provisioning.
