@@ -1,5 +1,19 @@
 # Omen Decision Log
 
+## 2026-08-25 — A7B Phase 2 uses exact three-manifest facts and explicit baseline rules
+
+- **Decision:** the founder approved the bounded A7B Phase 2 slice under `ATA-20260825-01`. Omen now normalizes exact nflverse `stats_player`, `stats_team`, and `schedules` manifests into canonical game/GSIS/franchise-season identities and versioned offensive, kicker, and DST facts. The source bundle SHA-256 is part of every derived result key.
+- **Rules:** `omen-fantasy-v1` retains nflfastR Standard/PPR equivalence and derives Half PPR; `omen-kicker-v1` awards PAT 1 and made field goals 3/4/5/6 by 0–39/40–49/50–59/60+; `omen-dst-v1` awards sacks 1, takeaways/blocks/safeties 2, touchdowns 6, and explicit final-score points-allowed tiers. These are versioned Omen baselines, not a claim of league-exact provider scoring.
+- **Measured proof:** an exact 2025 replay across Weeks 1, 7, 14, and 17 accepted 61 completed games, 4,140 offensive facts, 122 kicker facts, and 122 DST facts. Offensive publisher mismatches, kicker/team aggregate mismatches, duplicates, unresolved identities, and impossible values were all zero; independent recomputation of all three rulesets passed. Four anonymous source rows contained only team penalties and zero scoring values, so they were explicitly excluded; the same shape with any scoreable value fails closed.
+- **Boundary:** both the artifact and receipt state `publication.authorized: false` and `promoted: false`. Staging, correction/source-loss/schema-drift drills, KVM1 recovery, Pi witness, storage/timers/databases, A4 rehearsal, deployment, production scoring, and ADP remain unbuilt or separately founder-gated.
+
+## 2026-08-24 — A7B begins with a local immutable vault, not a production collector
+
+- **Decision:** the founder approved only A7B Phase 1 under `ATA-20260824-01`: fixed nflverse `stats_player` capture into SHA-256-addressed raw evidence plus one immutable observation manifest per retrieval, and replay from one exact manifest. The command has no arbitrary URL, `latest`, provider credential, timer, production root, database, publication, scoring, or ADP mode.
+- **Measured proof:** a real ephemeral capture reproduced the A7 research artifact exactly — 8,656,387 bytes, SHA-256 `e5e0615b3d96a3eaebfaee91e55afb4a4e7fe0caf057454177bcd7d6ad4bcfc2`. A repeat retrieval reused the raw object and produced a separate manifest; exact replay re-hashed it and recorded `promoted: false`.
+- **Safety result:** source host/release/rights are fixed, bodies are capped at 64 MiB, production-root and escaping-directory-symlink writes are refused, and replay checks manifest self-consistency, rights, source, schema, length, and raw hash before output. Code review found no P0/P1.
+- **Boundary:** A7B remains open. Identity normalization, offensive/kicker/DST facts, row-level quality, independent scoring reference, staging, correction/source-loss drills, KVM1 recovery, Pi witness, A4 rehearsal, scheduling, and production all remain unbuilt or separately gated. The task returns to `FOUNDER_APPROVAL` before Phase 2 rather than carrying Phase 1 authority forward.
+
 ## 2026-08-24 — Full league scoring is a versioned contract, not a PPR label
 
 - **Decision:** Omen’s only path to the phrase `league-exact` is an immutable provider-rule snapshot, a versioned canonical scoring contract, lawful versioned event facts, and provider-final reconciliation. A reception-only label is useful legacy evidence but is not a full football scoring contract.
@@ -1435,3 +1449,8 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Reasoning:** preparation should be complete while the store work is fresh so Apple approval triggers execution rather than another planning session.
 - **Impact:** copy review is cleared in advance. The Apple issue remains gated on Beta App Review approval, `R6` remains open until 10+ qualified real-league testers have access and both platforms have installation evidence, and the private tester roster remains outside GitHub.
 - **Boundary:** this approval makes the recorded copy ready to use; it does not send any message now, publish either store publicly, expose a private invitation link, add a tester, or waive the qualification and privacy checks in the issues.
+## 2026-08-25 — A7B Phase 3 proves roles locally before touching live hosts
+
+- **Decision:** implement Phase 3 as four explicit, disjoint local role roots: KVM1-primary model, Command Center Pi witness model, immutable backup, and fresh KVM1 recovery model. This proves contracts and failure behavior without turning role names into authority to mutate either host.
+- **Failure policy:** exact witness mismatch quarantines; witness outage, stale source, or low disk holds; source loss remains pending with no fallback; schema drift quarantines; corrections retain exact scope/rulesets, cite `supersedes`, and enumerate changed subjects. Recovery requires exact backup bytes plus a matching witness observation.
+- **Boundary:** every receipt remains publication/promoted false. No SSH, service, timer, database, dependency, credential, deploy, production scoring, or live alert delivery occurred. A7B returns to READY before production-readiness/A4 rehearsal or exact-host provisioning.

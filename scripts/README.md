@@ -90,7 +90,32 @@ OMEN_LOAD_CONCURRENCY=20 OMEN_LOAD_ITERATIONS=8 node scripts/local-load-stack.js
 per-credential budget in `Blueprints/api-routes.md` (10/min for `mvp-move`), or the run
 measures `express-rate-limit` rather than Omen.
 
-## Data and ops — approval required
+## Data and ops
+
+### Football-data Phases 1–3 — local and non-production only
+
+| Script | What it does | Safe to run? |
+|---|---|---|
+| [`football-data.js`](football-data.js) | Captures fixed, rights-reviewed nflverse `stats_player`, `stats_team`, and `schedules` releases; replays one exact manifest; or builds a four-or-more-week normalization/scoring acceptance artifact from one exact manifest for each dataset. Requires explicit local paths; refuses `/var/lib/omen-football-data`, arbitrary source URLs, unsupported datasets, `latest` aliases, publication, and files over 64 MiB. | Yes — local artifact writes and bounded public release reads only; no credentials, database, timer, production path, or promotion behavior |
+| [`validate-football-acceptance.js`](validate-football-acceptance.js) | Read-only independent recomputation of offensive, kicker, and DST results from one exact Phase 2 acceptance artifact, including receipt-hash binding and non-publication checks. | Yes — reads only the two explicit local files and writes its summary to stdout |
+| [`football-data-staging.js`](football-data-staging.js) | Stages one receipt-bound Phase 2 artifact into explicit disjoint local primary/witness/backup roles, runs labeled synthetic failure drills, or recovers exact backup bytes into a fresh local primary after witness verification. | Yes — local evidence only; refuses unsafe/overlapping roots and never publishes, deploys, schedules, contacts a remote host, or writes a database |
+
+```bash
+node scripts/football-data.js capture --dataset stats_player --season 2025 --root /tmp/omen-football-vault
+node scripts/football-data.js capture --dataset stats_team --season 2025 --root /tmp/omen-football-vault
+node scripts/football-data.js capture --dataset schedules --season 2025 --root /tmp/omen-football-vault
+node scripts/football-data.js replay --root /tmp/omen-football-vault --manifest /tmp/omen-football-vault/manifests/nflverse-data/stats_player/2025/<exact-snapshot-id>.json --out /tmp/omen-football-replays
+node scripts/football-data.js accept --root /tmp/omen-football-vault --player-manifest <exact-player-manifest> --team-manifest <exact-team-manifest> --schedule-manifest <exact-schedule-manifest> --season 2025 --weeks 1,7,14,17 --out /tmp/omen-football-acceptance
+node scripts/validate-football-acceptance.js --acceptance /tmp/omen-football-acceptance/<run-id>/acceptance.json --receipt /tmp/omen-football-acceptance/<run-id>/receipt.json
+node scripts/football-data-staging.js stage --acceptance <exact-acceptance> --receipt <exact-receipt> --primary-root /tmp/omen-stage/primary --witness-root /tmp/omen-stage/witness --backup-root /tmp/omen-stage/backup
+node scripts/football-data-staging.js drill --acceptance <exact-acceptance>
+node scripts/football-data-staging.js recover --hash <exact-sha256> --backup-root /tmp/omen-stage/backup --recovery-root /tmp/omen-stage/recovered --witness-observation <exact-witness-observation>
+```
+
+This is A7B local evidence, not a production collector or scoring publisher. Each identical retrieval creates a new observation manifest but reuses the same immutable SHA-256-addressed raw object. Raw replay and scoring acceptance always record `promoted: false`; scoring acceptance also records `publication.authorized: false`. The exact Phase 2 contract is `Blueprints/specs/football-data/omen-football-scoring-acceptance-v1.md`.
+The Phase 3 role/recovery contract is `Blueprints/specs/football-data/omen-football-staging-shadow-v1.md`; the operator procedure is `Blueprints/playbooks/football-data-staging-shadow-runbook.md`. Role names model future KVM1/Pi responsibilities but do not prove or mutate those hosts.
+
+### Approval-required writers and infrastructure scripts
 
 | Script | What it does | Safe to run? |
 |---|---|---|

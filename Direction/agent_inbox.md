@@ -3,6 +3,10 @@
 **Refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection below re-derived from what is actually open. Handoffs are pointers, not standalone proof; `main` is the proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
+## ✅ Founder-directed A7B Phase 3 slice — complete 2026-08-25
+
+**Result:** The local staging-shadow, deterministic failure matrix, immutable backup, exact-hash witness, correction candidate, health alerts, and fresh-primary recovery proof are complete. Evidence: `Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md`. A7B returns to READY for a separately approved production-readiness/A4 no-write rehearsal; no remote host, service, timer, database, credential, publication, deployment, production scoring, or ADP state changed.
+
 ## Historical founder pin — 2026-08-12 native iOS authorization closeout (superseded 2026-08-13)
 
 The iOS passkey half is promoted from the deferred backlog as `M4-Auth-Passkeys-iOS-Onramp`. Local implementation is complete on `feat/m3a-ios-apple-auth`: native AuthenticationServices ceremonies, official Supabase first-factor passkey transport, account add/list/remove, pairing offer, Sign in with Apple entitlement/tests, Associated Domains entitlement, and the exact AASA artifact/route. Xcode 26.6 passes 121 tests with 0 failures; Automatic Signing builds and installs on the paired iPhone under team `6RWR5G9894`.
