@@ -21,6 +21,16 @@ const CSV = [
   "00-0030279,Keenan Allen,2025,1,REG,12.8,19.8",
 ].join("\n");
 
+const TEAM_CSV = [
+  "season,week,team,season_type,game_id,opponent_team,def_sacks,def_interceptions,fumble_recovery_opp,fg_made,pat_made",
+  "2025,1,ARI,REG,2025_01_ARI_NO,NO,1,0,0,2,2",
+].join("\n");
+
+const SCHEDULE_CSV = [
+  "game_id,season,game_type,week,gameday,away_team,away_score,home_team,home_score,old_game_id,gsis,pfr,pff,espn",
+  "2025_01_ARI_NO,2025,REG,1,2025-09-07,ARI,20,NO,13,old,gsis,pfr,pff,espn",
+].join("\n");
+
 function response(body = CSV, options = {}) {
   return new Response(body, {
     status: options.status || 200,
@@ -99,6 +109,43 @@ test("capture canonicalizes the season before constructing the fixed release ide
   assert.match(requestedUrl, /stats_player_week_2025\.csv$/);
   assert.doesNotMatch(requestedUrl, /02025/);
   assert.equal(captured.manifest.season_coverage.season, 2025);
+});
+
+test("Phase 2 admits only the reviewed team and schedule release identities", async (t) => {
+  const root = await tempRoot(t);
+  const instants = [
+    new Date("2026-08-24T12:00:00.000Z"),
+    new Date("2026-08-24T12:00:01.000Z"),
+    new Date("2026-08-24T12:05:00.000Z"),
+    new Date("2026-08-24T12:05:01.000Z"),
+  ];
+  const urls = [];
+  const team = await captureSnapshot({
+    dataset: "stats_team",
+    season: 2025,
+    root,
+    fetchImpl: async (url) => {
+      urls.push(url);
+      return response(TEAM_CSV);
+    },
+    now: () => instants.shift(),
+  });
+  const schedules = await captureSnapshot({
+    dataset: "schedules",
+    season: 2025,
+    root,
+    fetchImpl: async (url) => {
+      urls.push(url);
+      return response(SCHEDULE_CSV);
+    },
+    now: () => instants.shift(),
+  });
+
+  assert.match(urls[0], /releases\/download\/stats_team\/stats_team_week_2025\.csv$/);
+  assert.match(urls[1], /releases\/download\/schedules\/games\.csv$/);
+  assert.equal(team.manifest.release.tag, "stats_team");
+  assert.equal(schedules.manifest.release.tag, "schedules");
+  assert.equal(schedules.manifest.season_coverage.season, 2025);
 });
 
 test("capture fails closed on an unpublished release without writing vault artifacts", async (t) => {

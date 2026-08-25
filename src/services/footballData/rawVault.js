@@ -42,6 +42,79 @@ const SOURCE_CONTRACTS = Object.freeze({
       attribution: "Data sourced from nflverse-data under CC BY 4.0.",
     }),
   }),
+  stats_team: Object.freeze({
+    source: "nflverse-data",
+    dataset: "stats_team",
+    releaseTag: "stats_team",
+    assetName: (season) => `stats_team_week_${season}.csv`,
+    sourceUrl: (season) =>
+      `https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_${season}.csv`,
+    extension: ".csv",
+    acceptedContentTypes: Object.freeze([
+      "text/csv",
+      "application/csv",
+      "application/octet-stream",
+      "text/plain",
+    ]),
+    requiredColumns: Object.freeze([
+      "season",
+      "week",
+      "team",
+      "season_type",
+      "game_id",
+      "opponent_team",
+      "def_sacks",
+      "def_interceptions",
+      "fumble_recovery_opp",
+      "fg_made",
+      "pat_made",
+    ]),
+    rights: Object.freeze({
+      license: "CC BY 4.0",
+      license_url: "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      terms_url: "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      rights_review_date: "2026-08-24",
+      attribution: "Data sourced from nflverse-data under CC BY 4.0.",
+    }),
+  }),
+  schedules: Object.freeze({
+    source: "nflverse-data",
+    dataset: "schedules",
+    releaseTag: "schedules",
+    assetName: () => "games.csv",
+    sourceUrl: () =>
+      "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+    extension: ".csv",
+    acceptedContentTypes: Object.freeze([
+      "text/csv",
+      "application/csv",
+      "application/octet-stream",
+      "text/plain",
+    ]),
+    requiredColumns: Object.freeze([
+      "game_id",
+      "season",
+      "game_type",
+      "week",
+      "gameday",
+      "away_team",
+      "away_score",
+      "home_team",
+      "home_score",
+      "old_game_id",
+      "gsis",
+      "pfr",
+      "pff",
+      "espn",
+    ]),
+    rights: Object.freeze({
+      license: "CC BY 4.0",
+      license_url: "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      terms_url: "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      rights_review_date: "2026-08-24",
+      attribution: "Data sourced from nflverse-data under CC BY 4.0.",
+    }),
+  }),
 });
 
 class FootballDataError extends Error {
@@ -79,7 +152,7 @@ function sourceContract(dataset, season) {
   if (!contract) {
     fail(
       "SOURCE_NOT_ALLOWLISTED",
-      `dataset ${String(dataset || "(missing)")} is not enabled for the Phase 1 collector`,
+      `dataset ${String(dataset || "(missing)")} is not enabled for the local collector`,
     );
   }
   const normalizedSeason = normalizeSeason(season);
@@ -122,7 +195,7 @@ function assertLocalVaultRoot(root) {
     resolved === PRODUCTION_ROOT ||
     (relativeToProduction && !relativeToProduction.startsWith("..") && !path.isAbsolute(relativeToProduction))
   ) {
-    fail("PRODUCTION_ROOT_REFUSED", "the Phase 1 command refuses the production football-data root");
+    fail("PRODUCTION_ROOT_REFUSED", "the local command refuses the production football-data root");
   }
   return resolved;
 }
@@ -228,7 +301,7 @@ function inspectCsvSchema(bytes, contract) {
 async function readBodyLimited(response, maxBytes = MAX_SNAPSHOT_BYTES) {
   const declaredLength = Number(headerValue(response.headers, "content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte Phase 1 limit`);
+    fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte local collector limit`);
   }
 
   if (response.body && typeof response.body[Symbol.asyncIterator] === "function") {
@@ -239,7 +312,7 @@ async function readBodyLimited(response, maxBytes = MAX_SNAPSHOT_BYTES) {
       total += bytes.length;
       if (total > maxBytes) {
         if (typeof response.body.cancel === "function") await response.body.cancel().catch(() => {});
-        fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte Phase 1 limit`);
+        fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte local collector limit`);
       }
       chunks.push(bytes);
     }
@@ -251,7 +324,7 @@ async function readBodyLimited(response, maxBytes = MAX_SNAPSHOT_BYTES) {
   }
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > maxBytes) {
-    fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte Phase 1 limit`);
+    fail("SNAPSHOT_TOO_LARGE", `snapshot exceeds the ${maxBytes}-byte local collector limit`);
   }
   return bytes;
 }
@@ -298,7 +371,7 @@ async function fetchWithTimeout(fetchImpl, url, timeoutMs) {
       signal: controller.signal,
       headers: {
         accept: "text/csv,application/octet-stream;q=0.9",
-        "user-agent": "OmenFootballDataCollector/1.0 (non-production Phase 1)",
+        "user-agent": "OmenFootballDataCollector/1.0 (local non-production)",
       },
       redirect: "follow",
     });
@@ -427,7 +500,7 @@ function validateManifest(manifest) {
   }
   const contract = sourceContract(manifest.dataset, manifest?.season_coverage?.season);
   if (manifest.source !== contract.source || manifest.source_url !== contract.sourceUrl) {
-    fail("INVALID_MANIFEST", "manifest source does not match the Phase 1 allowlist");
+    fail("INVALID_MANIFEST", "manifest source does not match the reviewed allowlist");
   }
   if (manifest.release?.tag !== contract.releaseTag || manifest.release?.asset !== contract.assetName) {
     fail("INVALID_MANIFEST", "manifest release identity does not match the allowlist");
@@ -439,7 +512,7 @@ function validateManifest(manifest) {
     fail("INVALID_MANIFEST", "manifest raw byte length is invalid");
   }
   if (manifest.raw.byte_length > MAX_SNAPSHOT_BYTES) {
-    fail("INVALID_MANIFEST", "manifest raw byte length exceeds the Phase 1 limit");
+    fail("INVALID_MANIFEST", "manifest raw byte length exceeds the local collector limit");
   }
   const expectedRawPath = path.posix.join(
     "raw",
@@ -487,14 +560,13 @@ function validateManifest(manifest) {
   return contract;
 }
 
-async function replaySnapshot({ root, manifestPath, outputRoot, now = () => new Date() } = {}) {
+async function readExactSnapshot({ root, manifestPath, expectedDataset = null } = {}) {
   const vaultRoot = await prepareLocalRoot(root);
-  const selectedReplayRoot = assertLocalVaultRoot(outputRoot);
   if (typeof manifestPath !== "string" || !manifestPath.trim()) {
-    fail("EXACT_MANIFEST_REQUIRED", "replay requires one exact manifest path");
+    fail("EXACT_MANIFEST_REQUIRED", "one exact manifest path is required");
   }
-  if (/latest/i.test(path.basename(manifestPath))) {
-    fail("LATEST_FORBIDDEN", "replay refuses latest aliases; provide one exact manifest path");
+  if (String(manifestPath).split(/[\\/]+/).some((segment) => /latest/i.test(segment))) {
+    fail("LATEST_FORBIDDEN", "latest aliases are forbidden; provide one exact manifest path");
   }
   const selectedManifestPath = assertPathInside(
     vaultRoot,
@@ -514,6 +586,9 @@ async function replaySnapshot({ root, manifestPath, outputRoot, now = () => new 
     fail("INVALID_MANIFEST", "manifest is not valid JSON", { cause: error });
   }
   const contract = validateManifest(manifest);
+  if (expectedDataset && contract.dataset !== expectedDataset) {
+    fail("MANIFEST_DATASET_MISMATCH", `expected ${expectedDataset}, received ${contract.dataset}`);
+  }
   const selectedRawPath = resolveVaultPath(vaultRoot, manifest.raw.path, "raw.path");
   const rawPath = assertPathInside(vaultRoot, await fs.realpath(selectedRawPath), "raw.path");
   const rawBytes = await fs.readFile(rawPath);
@@ -525,7 +600,32 @@ async function replaySnapshot({ root, manifestPath, outputRoot, now = () => new 
     fail("SCHEMA_FINGERPRINT_MISMATCH", "raw schema fingerprint does not match the exact manifest");
   }
 
-  const manifestHash = sha256(manifestBytes);
+  return {
+    contract,
+    exactManifestPath,
+    manifest,
+    manifestBytes,
+    manifestHash: sha256(manifestBytes),
+    rawBytes,
+    rawPath,
+    schema,
+    vaultRoot,
+  };
+}
+
+async function replaySnapshot({ root, manifestPath, outputRoot, now = () => new Date() } = {}) {
+  const selectedReplayRoot = assertLocalVaultRoot(outputRoot);
+  const exact = await readExactSnapshot({ root, manifestPath });
+  const {
+    contract,
+    exactManifestPath,
+    manifest,
+    manifestHash,
+    rawBytes,
+    schema,
+    vaultRoot,
+  } = exact;
+
   const replayedAt = toIso(now(), "replay time");
   const runId = `${manifestTime(replayedAt)}-${manifestHash.slice(0, 16)}`;
   const replayRoot = await prepareLocalRoot(selectedReplayRoot);
@@ -573,5 +673,6 @@ module.exports = {
   assertLocalVaultRoot,
   assertRightsReviewCurrent,
   captureSnapshot,
+  readExactSnapshot,
   replaySnapshot,
 };

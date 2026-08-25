@@ -157,14 +157,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
 
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — authorize Phase 2 normalization and scoring acceptance as a separately bounded slice; Phase 1 does not grant staging, infrastructure, timer, database, publication, or production authority.
+- **Blocked by:** FOUNDER_APPROVAL — authorize Phase 3 staging shadow as a separately bounded slice; Phase 2 does not grant storage provisioning, staging runner, infrastructure, timer, database, Pi witness, publication, deployment, or production authority.
+- **Unblock:** 2026-08-25 CLEARED — founder explicitly approved Phase 2 normalization and scoring acceptance: canonical game/player/team identities, versioned offensive/kicker/DST facts, at least four varied historical replay weeks, and hard quality gates. Staging, infrastructure, timers, databases, SQL, publication, credentials, deployment, production, scoring enablement, and ADP remain excluded.
 - **Unblock:** 2026-08-24 CLEARED — founder explicitly approved the first non-production collector/build slice and its bounded full-executor assignment; production, timers, storage provisioning, database, SQL, dependency, credential, deployment, scoring enablement, and ADP work remain excluded.
-- **Evidence:** Phase 1 local raw vault and exact-manifest replay are complete on `codex/a7b-football-data`: `Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`; `Direction/reviews/2026-08-24-a7b-phase1-code-review.md`. A real ephemeral 2025 capture reproduced A7's exact 8,656,387-byte SHA-256 and replayed with `promoted: false`. This is progress evidence, not overall A7B verification.
+- **Evidence:** Phase 1 local raw vault is complete (`Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`). Phase 2 canonical normalization and versioned offensive/kicker/DST acceptance are complete (`Blueprints/handoffs/2026-08-25-a7b-phase2-scoring-acceptance.md`; `Direction/reviews/2026-08-25-a7b-phase2-code-review.md`). Exact 2025 Weeks 1/7/14/17 replay accepted 61 completed games, 4,140 offensive facts, 122 kicker facts, and 122 DST facts with zero reference/recomputation mismatches; both artifacts remain non-promoted. This is progress evidence, not overall A7B verification.
 - **Priority:** P0 — production dependency for A4 after A6
 - **Cost:** large (62–92 hour build estimate, then 0.5–1.0 hour/week normal maintenance)
 - **Source:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
 - **Done when:** an approved, lawful source is collected into immutable snapshots; normal identities and versioned offensive/kicker/DST facts pass replay/independent-reference validation; staging proves correction, source-loss, schema-drift, KVM1 recovery, and Pi-witness behavior; A4’s separate no-write rehearsal passes.
-- **Do not touch:** collector, cron, storage, provider credential, SQL, dependency, or production change until the scoped implementation approval; do not add a source whose automation/retention rights are unclear; do not claim ADP.
+- **Do not touch:** no staging runner/storage, infrastructure, cron/timer, database, SQL, provider credential, dependency, publication, deployment, or production change until separately approved; do not add a source whose automation/retention rights are unclear; do not claim ADP.
 
 ## R. Store and release — critical path, founder-executed
 

@@ -6,13 +6,16 @@ const {
   captureSnapshot,
   replaySnapshot,
 } = require("../src/services/footballData/rawVault");
+const { runScoringAcceptance } = require("../src/services/footballData/scoringAcceptance");
 
 const USAGE = `Usage:
-  node scripts/football-data.js capture --dataset stats_player --season <year> --root <local-path>
+  node scripts/football-data.js capture --dataset <stats_player|stats_team|schedules> --season <year> --root <local-path>
   node scripts/football-data.js replay --root <local-path> --manifest <exact-manifest-path> --out <local-path>
+  node scripts/football-data.js accept --root <local-path> --player-manifest <exact-path> --team-manifest <exact-path> --schedule-manifest <exact-path> --season <year> --weeks <w1,w2,w3,w4...> --out <local-path>
 
-Phase 1 is local and non-production only. It has no scheduler, credentials,
-database, publication, production-root, or "latest" replay mode.`;
+The collector and Phase 2 acceptance replay are local and non-production only.
+They have no scheduler, credentials, database, publication, production-root, or
+"latest" replay mode.`;
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -79,6 +82,33 @@ async function main(argv = process.argv.slice(2)) {
       raw_sha256: result.receipt.raw_sha256,
       promoted: false,
       receipt_path: result.receiptPath,
+    }, null, 2)}\n`);
+    return;
+  }
+
+  if (options.command === "accept") {
+    requireOnly(
+      options,
+      ["root", "player-manifest", "team-manifest", "schedule-manifest", "season", "weeks", "out"],
+      ["command", "root", "player-manifest", "team-manifest", "schedule-manifest", "season", "weeks", "out"],
+    );
+    const result = await runScoringAcceptance({
+      root: path.resolve(options.root),
+      playerManifestPath: options["player-manifest"],
+      teamManifestPath: options["team-manifest"],
+      scheduleManifestPath: options["schedule-manifest"],
+      season: options.season,
+      weeks: options.weeks.split(","),
+      outputRoot: path.resolve(options.out),
+    });
+    process.stdout.write(`${JSON.stringify({
+      status: result.receipt.quality.status,
+      scope: result.receipt.scope,
+      source_bundle_hash: result.receipt.source_bundle_hash,
+      acceptance_sha256: result.receipt.acceptance_sha256,
+      promoted: false,
+      receipt_path: result.receiptPath,
+      acceptance_path: result.acceptancePath,
     }, null, 2)}\n`);
     return;
   }

@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-25 — A7B Phase 2 uses exact three-manifest facts and explicit baseline rules
+
+- **Decision:** the founder approved the bounded A7B Phase 2 slice under `ATA-20260825-01`. Omen now normalizes exact nflverse `stats_player`, `stats_team`, and `schedules` manifests into canonical game/GSIS/franchise-season identities and versioned offensive, kicker, and DST facts. The source bundle SHA-256 is part of every derived result key.
+- **Rules:** `omen-fantasy-v1` retains nflfastR Standard/PPR equivalence and derives Half PPR; `omen-kicker-v1` awards PAT 1 and made field goals 3/4/5/6 by 0–39/40–49/50–59/60+; `omen-dst-v1` awards sacks 1, takeaways/blocks/safeties 2, touchdowns 6, and explicit final-score points-allowed tiers. These are versioned Omen baselines, not a claim of league-exact provider scoring.
+- **Measured proof:** an exact 2025 replay across Weeks 1, 7, 14, and 17 accepted 61 completed games, 4,140 offensive facts, 122 kicker facts, and 122 DST facts. Offensive publisher mismatches, kicker/team aggregate mismatches, duplicates, unresolved identities, and impossible values were all zero; independent recomputation of all three rulesets passed. Four anonymous source rows contained only team penalties and zero scoring values, so they were explicitly excluded; the same shape with any scoreable value fails closed.
+- **Boundary:** both the artifact and receipt state `publication.authorized: false` and `promoted: false`. Staging, correction/source-loss/schema-drift drills, KVM1 recovery, Pi witness, storage/timers/databases, A4 rehearsal, deployment, production scoring, and ADP remain unbuilt or separately founder-gated.
+
 ## 2026-08-24 — A7B begins with a local immutable vault, not a production collector
 
 - **Decision:** the founder approved only A7B Phase 1 under `ATA-20260824-01`: fixed nflverse `stats_player` capture into SHA-256-addressed raw evidence plus one immutable observation manifest per retrieval, and replay from one exact manifest. The command has no arbitrary URL, `latest`, provider credential, timer, production root, database, publication, scoring, or ADP mode.
