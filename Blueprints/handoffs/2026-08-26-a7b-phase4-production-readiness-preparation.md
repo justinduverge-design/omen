@@ -3,8 +3,8 @@
 **Date:** 2026-08-26  
 **Base:** `origin/main` `2cd999961008dcc9c1c7a3f3133c5421be665d8d`  
 **Branch:** `codex/a7b-phase4-production-readiness`  
-**State:** local preparation complete; first remote mutation awaits explicit
-founder approval
+**State:** local preparation complete; approved first remote mutation completed
+on Command Center and blocked before mutation on KVM1 by interactive sudo
 
 ## Delivered locally
 
@@ -31,8 +31,17 @@ runner.
 
 Command Center `command-center` is reachable: Debian 13/aarch64, about 105 GiB
 free, Python 3.13.5, curl and SHA-256 available, alert dispatcher timer active,
-and Tailscale reachability to KVM1 proven. Its witness root does not exist. Node
-is absent, so the proposed witness uses Python's standard library only.
+and Tailscale reachability to KVM1 proven. On 2026-08-26, after explicit
+approval, the `omen-football` system group/user and empty
+`/var/lib/omen-football-witness` root were created. The root is owned by
+`omen-football:omen-football` with mode `0750`; the account uses
+`/usr/sbin/nologin`. Node is absent, so the proposed witness uses Python's
+standard library only.
+
+The matching approved KVM1 batch did not mutate the host: its first `sudo`
+request required an interactive password and exited before `groupadd`. A
+read-only follow-up confirmed the group, user, and data root remain absent. No
+password was requested, read, or transmitted.
 
 ## Fail-closed assessment
 
@@ -56,11 +65,11 @@ production scoring authorization all remain false.
 
 ## Next gated step
 
-The first proposed remote change is limited to dedicated service identities and
-empty state roots on both hosts. It installs no code or dependency, handles no
-secret, starts no service, enables no timer, performs no collection, and makes
-no database, publication, or scoring change. Execute it only after explicit
-approval of the exact commands presented in the active task.
+The first remote change was explicitly approved. Its Command Center half is
+complete; its KVM1 half requires founder-assisted interactive sudo or a separate
+approved access method. It installs no code or dependency, starts no service,
+enables no timer, performs no collection, and makes no database, publication,
+or scoring change.
 
 After that batch, continue locally with reviewed digest-pinned runner and
 standard-library witness artifacts before presenting a separate installation
@@ -68,7 +77,8 @@ and disabled-unit approval request.
 
 ## Nonclaims
 
-No remote host was mutated. No service or timer was installed, enabled, or
+Only the approved Command Center system identity and empty witness root were
+created. KVM1 was not mutated. No service or timer was installed, enabled, or
 started. No backup, correction, recovery, or A4 production read occurred. No
 deployment, merge, publication, scoring run, provider change, database write,
 SQL write, credential handling, ADP functionality, paid source, or
