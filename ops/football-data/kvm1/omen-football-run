@@ -4,7 +4,7 @@ set -eu
 image_file=/etc/omen-football/image-digest
 image="$(cat "$image_file")"
 
-printf '%s\n' "$image" | grep -Eq '@sha256:[a-f0-9]{64}$' || {
+printf '%s\n' "$image" | grep -Eq '^(sha256:[a-f0-9]{64}|[^[:space:]@]+@sha256:[a-f0-9]{64})$' || {
   printf '%s\n' 'omen-football-run: image must be pinned by sha256 digest' >&2
   exit 64
 }
