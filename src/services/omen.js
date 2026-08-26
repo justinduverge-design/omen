@@ -13,6 +13,11 @@ const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
+const {
+  SELECTION_COLUMN,
+  orderBySelection,
+  readConnectionsWithSelection,
+} = require("./activeSelection");
 const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -272,17 +277,12 @@ async function authenticateOmenRequest(authHeader) {
 }
 
 async function getActivePlatformConnections(userId) {
-  const { data, error } = await supabase
-    .from("platform_connections")
-    .select("id,platform,league_id,platform_username,is_active,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id")
-    .eq("user_id", userId)
-    .eq("is_active", true);
-
-  if (error) {
-    throw new Error(`platform_connections lookup failed: ${error.message}`);
-  }
-
-  return Array.isArray(data) ? data : [];
+  const { rows } = await readConnectionsWithSelection(
+    supabase,
+    userId,
+    "id,platform,league_id,platform_username,is_active,token_secret_id,espn_secret_id,swid_secret_id,espn_team_id"
+  );
+  return Array.isArray(rows) ? rows : [];
 }
 
 
@@ -1399,11 +1399,16 @@ async function buildRosterForConnection(userId, connection, week, { yahooClient 
  * in turn so one dead provider cannot block a user with a healthy league.
  */
 function pickLiveMvpConnections(connections = []) {
+  // The user's switcher choice (visual briefs §10.3) comes first when one is
+  // persisted; otherwise this is exactly the previous deterministic order.
+  const ordered = orderBySelection(connections);
   return [
-    selectUsableSleeperMvpConnection(connections),
-    selectUsableEspnMvpConnection(connections),
-    selectUsableYahooMvpConnection(connections),
-  ].filter(Boolean);
+    selectUsableSleeperMvpConnection(ordered),
+    selectUsableEspnMvpConnection(ordered),
+    selectUsableYahooMvpConnection(ordered),
+  ]
+    .filter(Boolean)
+    .sort((a, b) => Number(Boolean(b[SELECTION_COLUMN])) - Number(Boolean(a[SELECTION_COLUMN])));
 }
 
 function pickLiveMvpConnection(connections = []) {

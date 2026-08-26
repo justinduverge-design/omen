@@ -246,6 +246,14 @@ try {
   logger.error("League router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/leagues (provider-neutral switcher directory) ---
+try {
+  const leaguesRoutes = require("./routes/leagues");
+  app.use("/api/leagues", leaguesRoutes);
+} catch (e) {
+  logger.error("Leagues router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
