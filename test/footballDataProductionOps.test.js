@@ -31,6 +31,9 @@ test("the local CLI still refuses the host production root while the production 
   });
   assert.throws(() => parseArgs(["capture-set", "--root", "/tmp/elsewhere"]), /unsupported option --root/);
   assert.throws(() => parseArgs(["capture-set", "--season", "latest"]), /season/);
+  assert.deepEqual(parseArgs(["publish", "--acceptance-sha256", "a".repeat(64), "--witness-observation", "phase3-observation"]), {
+    command: "publish", "acceptance-sha256": "a".repeat(64), "witness-observation": "phase3-observation",
+  });
 });
 
 test("production failures map to all seven payload-free alert families without carrying messages", () => {

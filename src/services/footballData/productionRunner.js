@@ -402,7 +402,9 @@ async function publishAcceptance({
     .catch((error) => (error.code === "ENOENT" ? "" : Promise.reject(error)));
   if (control !== "enabled\n") throw new Error("publication is disabled");
   const observationId = String(witnessObservation || "");
-  if (!/^[0-9TZ]{16,40}-[a-f0-9]{16}$/.test(observationId)) throw new Error("witness observation id is invalid");
+  if (observationId !== "phase3-observation" && !/^[0-9TZ]{16,40}-[a-f0-9]{16}$/.test(observationId)) {
+    throw new Error("witness observation id is invalid");
+  }
   const observation = JSON.parse(await fs.readFile(
     inside(selectedRoot, path.join(selectedRoot, "witness", `${observationId}.json`), "witness observation"),
     "utf8",

@@ -6,12 +6,12 @@ control="$root/control/publication-enabled"
 [ -f "$control" ] || exit 0
 [ "$(cat "$control")" = enabled ] || exit 65
 
-observation="$(find "$root/witness" -maxdepth 1 -type f -name '*-5c4cbc0568ce85a9.json' -printf '%f\n' | sort | tail -1)"
-[ -n "$observation" ] || {
+observation=phase3-observation
+[ -f "$root/witness/$observation.json" ] || {
   printf '%s\n' 'publication decision: exact witness observation is absent' >&2
   exit 1
 }
 
 exec /usr/local/sbin/omen-football-run publish \
   --acceptance-sha256 5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea \
-  --witness-observation "${observation%.json}"
+  --witness-observation "$observation"
