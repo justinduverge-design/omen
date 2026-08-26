@@ -1,5 +1,12 @@
 # Omen Decision Log
 
+## 2026-08-26 — A7B Phase 4 proved backup/recovery but remains fail-closed before A4 and publication
+
+- **Decision:** production collection, validation, witness, alert, and encrypted backup infrastructure may operate independently of publication and scoring. A KVM1 snapshot (`a37d7779361dabdf689f5a2402d9dcefb047eba570eff42806d8c9ab7f09e860`) was restored into a new dedicated root, verified against the exact Phase 3 acceptance hash, and admitted to a fresh recovery root only after a matching Command Center Phase 3 attestation.
+- **Correction result:** a real upstream schedule-object hash changed, but the exact approved 2025 scope produced zero changed subjects. The correction engine returned `no_change`; no artificial correction candidate, supersession, publication, or scoring action is permitted.
+- **A4 result:** one qualifying pending production row exists, but the reviewed scorer's read fails because `moves.scoring` is absent. This establishes a genuine A6 schema prerequisite for the required Standard/Half-PPR/PPR comparison. No agent applied SQL or altered the production schema; doing so remains a separately gated Justin action.
+- **Boundary:** publication marker absent; publication-decision timers disabled; persistent production scoring remains disabled. The readiness evaluator is blocked by `correction_rehearsal_unproven` and `a4_no_write_missing` only.
+
 ## 2026-08-25 — A7B Phase 2 uses exact three-manifest facts and explicit baseline rules
 
 - **Decision:** the founder approved the bounded A7B Phase 2 slice under `ATA-20260825-01`. Omen now normalizes exact nflverse `stats_player`, `stats_team`, and `schedules` manifests into canonical game/GSIS/franchise-season identities and versioned offensive, kicker, and DST facts. The source bundle SHA-256 is part of every derived result key.
