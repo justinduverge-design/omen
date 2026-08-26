@@ -1,6 +1,6 @@
 {
   "schema": "omen-football-production-readiness-input.v1",
-  "inspected_at_utc": "2026-08-26T23:20:00.000Z",
+  "inspected_at_utc": "2026-08-26T23:22:00.000Z",
   "phase3": {
     "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
     "exact_manifest": true,
@@ -56,9 +56,18 @@
     "correction": {
       "status": "no_change",
       "previous_source_bundle_hash": "93343b47cc4205e27f8bfd531d3d9dd5fa2ebf5fa69cc68c926da480dfcfd72e",
-      "current_source_bundle_hash": "cc95a0ada13ff8427f9c7e4d0d23ac011e5ba9034b860d7f21626f91bc42c312",
+      "current_source_bundle_hash": "a017e16e8d3bafcbb0adad0d8a7c3d55c9589430ccb7ad2ccedba7f749b5f164",
+      "current_acceptance_sha256": "9ffb4430d4f1d27d71d94ec56961acda0781e1ed67a14d14ae6577eb091ed320",
+      "current_schedule_raw_sha256": "0b5478ae77b4c9919f2639f3682bbd313b98ace10d3829eaff8181279f55c421",
       "changed_subjects": 0,
       "publication_authorized": false
+    },
+    "latest_live_capture": {
+      "batch_id": "20260826T232127269Z-3b39f09a0cee37f1",
+      "validation": "pass",
+      "state": "pass",
+      "publication_authorized": false,
+      "production_scoring_authorized": false
     },
     "alerts": {"status": "pass", "delivery_and_recovery_count": 7, "payload_free": true}
   },
