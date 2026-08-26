@@ -29,6 +29,14 @@
 - **Safety result:** source host/release/rights are fixed, bodies are capped at 64 MiB, production-root and escaping-directory-symlink writes are refused, and replay checks manifest self-consistency, rights, source, schema, length, and raw hash before output. Code review found no P0/P1.
 - **Boundary:** A7B remains open. Identity normalization, offensive/kicker/DST facts, row-level quality, independent scoring reference, staging, correction/source-loss drills, KVM1 recovery, Pi witness, A4 rehearsal, scheduling, and production all remain unbuilt or separately gated. The task returns to `FOUNDER_APPROVAL` before Phase 2 rather than carrying Phase 1 authority forward.
 
+## 2026-08-24 — Infisical is a maintained founder-side secrets mirror, not a dead integration
+
+- **Correction, from the founder directly:** an earlier entry below ("KVM1 deploy operating mode locked," 2026-06-15-era) says not to return to Infisical on KVM1 "without a new decision" and a separate entry lists `INFISICAL_TOKEN` among "dead GitHub secrets to delete." Read together with `README.md`'s stale Infisical/Oracle-VPS description, that made Infisical look fully retired. It isn't. Justin has been **manually keeping an Infisical project up to date himself** every time a new key or secret is created — it functions as his personal secrets-of-record vault, separate from the app's actual runtime path.
+- **What's still true:** the running app does not read from Infisical. Production secrets are injected into KVM1 via the hand-managed `deploy/hostinger/.env.production` file (confirmed by direct inspection of `.github/workflows/deploy.yml`, which never references Infisical), not via any live Infisical integration.
+- **What's not true anymore:** treating Infisical itself as dead, or its presence as something to unwind. It is an intentional, currently-maintained backup — good practice, not drift.
+- **Action arising from this:** `INFISICAL_TOKEN` in **GitHub Actions secrets specifically** is still worth removing — no current workflow reads it (checked directly), so an unused secret with vault-level read access sitting in CI is pure attack surface with no operational payoff. This does **not** mean touching the Infisical account/project itself, which Justin is keeping intentionally.
+- **Open, founder-only:** confirm `INFISICAL_TOKEN` is deleted from GitHub (Settings → Secrets and variables → Actions), and separately confirm access to the Infisical project itself (2FA, membership) is as tight as befits something that now mirrors every production secret.
+
 ## 2026-08-24 — Full league scoring is a versioned contract, not a PPR label
 
 - **Decision:** Omen’s only path to the phrase `league-exact` is an immutable provider-rule snapshot, a versioned canonical scoring contract, lawful versioned event facts, and provider-final reconciliation. A reception-only label is useful legacy evidence but is not a full football scoring contract.
