@@ -211,4 +211,6 @@ test("the dispatcher gives football alerts independent delivery-before-state and
   const exercises = fs.readFileSync(path.join(__dirname, "..", "ops", "football-data", "command-center", "omen-football-alert-exercises"), "utf8");
   for (const code of REQUIRED_ALERT_CODES) assert.match(exercises, new RegExp(`\\b${code}\\b`));
   assert.ok(exercises.indexOf("slops-alert-dispatcher") < exercises.indexOf("football-last-signature"));
+  assert.match(exercises, /test -z "\$\(cat \/var\/lib\/slops-alerting\/football-last-signature\)"/);
+  assert.doesNotMatch(exercises, /test ! -s \/var\/lib\/slops-alerting\/football-last-signature/);
 });

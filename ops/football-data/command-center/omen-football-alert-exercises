@@ -22,7 +22,7 @@ for code in job_failure source_loss schema_drift stale_data disk_low witness_mis
   sudo -n -u omen-football /usr/local/libexec/omen-football-witness \
     exercise --code "$code" --state clear >/dev/null
   /usr/local/sbin/slops-alert-dispatcher
-  test ! -s /var/lib/slops-alerting/football-last-signature
+  test -z "$(cat /var/lib/slops-alerting/football-last-signature)"
   completed="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf '%s|%s|%s\n' "$code" "$started" "$completed" >> "$result_file"
   sleep 2
