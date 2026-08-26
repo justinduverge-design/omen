@@ -2,6 +2,7 @@
 set -eu
 key=/home/darthslops/.ssh/slops-alerting_ed25519
 state=/var/lib/slops-alerting/last-signature
+football_state=/var/lib/slops-alerting/football-last-signature
 webhook=/etc/slops-alerting/discord-webhook-url
 # Build the payload with a real JSON encoder rather than string interpolation.
 # The old form could only ever deliver a SINGLE-LINE alert: a multi-signal
@@ -38,7 +39,17 @@ try:
  for row in sorted(rows,key=lambda r:r["code"]): print("Omen football: %s severity=%s"%(row["code"],row.get("severity","high")))
 except Exception:
  print("Omen football: witness_outage severity=high")' /var/lib/omen-football-witness/signals.json)"
-sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$football" | sed '/^$/d' | sort)"
+football_old="$(cat "$football_state" 2>/dev/null || true)"
+if [ "$football" != "$football_old" ]; then
+  if [ -n "$football" ]; then
+    send "SLOPS ALERT: Omen football-data state change
+$football"
+  elif [ -n "$football_old" ]; then
+    send 'SLOPS RECOVERY: Omen football-data alert conditions are healthy again.'
+  fi
+  printf '%s\n' "$football" > "$football_state"
+fi
+sig="$(printf '%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" | sed '/^$/d' | sort)"
 old="$(cat "$state" 2>/dev/null || true)"
 [ "$sig" = "$old" ] && exit 0
 # Deliver BEFORE persisting. The old order recorded the new signature first, so

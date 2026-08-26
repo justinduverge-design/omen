@@ -200,3 +200,12 @@ test("the witness compares all exact dataset hashes and fails closed on mismatch
   assert.equal(outage.status, 3, outage.stderr);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "signals.json"), "utf8")).conditions, [{ code: "witness_outage", severity: "high" }]);
 });
+
+test("the dispatcher gives football alerts independent delivery-before-state and one recovery", () => {
+  const dispatcher = fs.readFileSync(path.join(__dirname, "..", "ops", "command-center", "slops-alert-dispatcher"), "utf8");
+  assert.match(dispatcher, /football_state=\/var\/lib\/slops-alerting\/football-last-signature/);
+  assert.match(dispatcher, /SLOPS RECOVERY: Omen football-data alert conditions are healthy again/);
+  const footballBlock = dispatcher.slice(dispatcher.indexOf('if [ "$football" != "$football_old" ]'), dispatcher.indexOf('sig="$(printf'));
+  assert.ok(footballBlock.indexOf("send ") < footballBlock.indexOf("football_state\""));
+  assert.doesNotMatch(dispatcher.match(/sig="\$\(printf[^\n]+/)?.[0] || "", /football/);
+});
