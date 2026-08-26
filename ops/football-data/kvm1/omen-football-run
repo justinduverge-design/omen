@@ -17,7 +17,7 @@ esac
 
 extra_mounts=
 if [ "${1:-}" = recover-phase3 ]; then
-  extra_mounts='--volume /var/lib/omen-football-restore-source/var/lib/omen-football-data:/backup:ro --volume /var/lib/omen-football-recovery:/recovery:rw'
+  extra_mounts='--volume /var/lib/omen-football-restore-source:/backup:ro --volume /var/lib/omen-football-recovery:/recovery:rw'
 fi
 
 uid="$(id -u omen-football)"

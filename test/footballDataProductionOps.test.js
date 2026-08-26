@@ -148,7 +148,7 @@ test("the runner wrapper pins an image digest and applies every required Docker 
   assert.match(wrapper, /--read-only/);
   assert.match(wrapper, /--cpus 1\.0/);
   assert.match(wrapper, /\/var\/lib\/omen-football-data:\/state:rw/);
-  assert.match(wrapper, /\/var\/lib\/omen-football-restore-source\/var\/lib\/omen-football-data:\/backup:ro/);
+  assert.match(wrapper, /\/var\/lib\/omen-football-restore-source:\/backup:ro/);
   assert.doesNotMatch(wrapper, /\.env|env-file/);
 });
 
