@@ -1,5 +1,11 @@
 # Omen Decision Log
 
+## 2026-08-26 — A7B Phase 4 live A4 passed, but authentic correction proof remains required
+
+- **Founder-authorized production compatibility change:** after a rollback-only preflight, applied `sql/2026-08-26_a6_scoring_contract_production.sql` using the existing KVM1 backup connection. It added the missing scoring-contract columns that the deployed cron reads; it did not rewrite rows or alter policies, functions, triggers, publication, or persistent scoring state.
+- **A4 result:** the process-scoped runner forced `OMEN_CRON_DRY_RUN=true`, bound the exact Phase 3 acceptance hash, read one real pending row, and recorded zero attempted/completed writes with Standard, Half-PPR, PPR, and independent-reference comparisons passing. API, cron, and installed Phase 4 schedules were healthy.
+- **Hard boundary:** the observed upstream provenance revision had zero changed accepted subjects. The production-readiness specification requires a changed-subject candidate with `supersedes`; no synthetic correction is allowed. Keep publication and scoring disabled and retain the final evaluator's correction blockers until an authentic upstream change can be replayed in an isolated root.
+
 ## 2026-08-26 — A7B Phase 4 proved backup/recovery but remains fail-closed before A4 and publication
 
 - **Decision:** production collection, validation, witness, alert, and encrypted backup infrastructure may operate independently of publication and scoring. A KVM1 snapshot (`a37d7779361dabdf689f5a2402d9dcefb047eba570eff42806d8c9ab7f09e860`) was restored into a new dedicated root, verified against the exact Phase 3 acceptance hash, and admitted to a fresh recovery root only after a matching Command Center Phase 3 attestation.

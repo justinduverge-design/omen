@@ -1,6 +1,6 @@
 {
   "schema": "omen-football-production-readiness-input.v1",
-  "inspected_at_utc": "2026-08-26T23:00:00.000Z",
+  "inspected_at_utc": "2026-08-26T23:20:00.000Z",
   "phase3": {
     "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
     "exact_manifest": true,
@@ -62,11 +62,31 @@
     },
     "alerts": {"status": "pass", "delivery_and_recovery_count": 7, "payload_free": true}
   },
-  "a4": null,
+  "a4": {
+    "schema": "omen-football-a4-no-write.v1",
+    "mode": "no-write",
+    "dry_run": true,
+    "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
+    "exact_manifest": true,
+    "real_rows_read": 1,
+    "archived_would_be": 0,
+    "writes_attempted": 0,
+    "writes_completed": 0,
+    "standard_comparison": "pass",
+    "half_ppr_comparison": "pass",
+    "ppr_comparison": "pass",
+    "independent_reference": "pass",
+    "readiness": "healthy",
+    "cron_health": "healthy",
+    "correction_rehearsal": "no_change",
+    "recovery_rehearsal": "pass",
+    "publication_authorized": false,
+    "persistent_production_scoring_enabled": false
+  },
   "a4_preflight": {
     "qualifying_pending_rows": 1,
-    "official_read_status": "blocked",
-    "blocked_by": "moves.scoring column is absent",
+    "official_read_status": "completed",
+    "migration": "sql/2026-08-26_a6_scoring_contract_production.sql",
     "writes_attempted": 0,
     "writes_completed": 0,
     "persistent_production_scoring_enabled": false,
