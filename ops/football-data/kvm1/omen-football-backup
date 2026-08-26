@@ -1,0 +1,98 @@
+#!/bin/sh
+set -eu
+umask 077
+
+EXPECTED_HOST=srv1737978
+BACKUP_USER=omen-backup-client
+BACKUP_HOME=/var/lib/omen-backup-client
+STATE_ROOT=/var/lib/omen-football-data
+STATUS_ROOT=/var/lib/omen-football-backup-status
+COMMISSIONED_BACKUP=/opt/omen-backup/bin/backup-supabase.sh
+RESTIC_PASSWORD_FILE=$BACKUP_HOME/restic-password
+ACCEPTANCE_SHA256=5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea
+RESTIC_JSON=/run/omen-football-backup-restic.json
+
+[ "$(hostname)" = "$EXPECTED_HOST" ] || {
+  echo "omen-football-backup: wrong host" >&2
+  exit 69
+}
+[ "$(id -u)" -eq 0 ] || {
+  echo "omen-football-backup: root orchestration is required" >&2
+  exit 77
+}
+[ -d "$STATE_ROOT/evidence/$ACCEPTANCE_SHA256" ] || {
+  echo "omen-football-backup: exact acceptance evidence is absent" >&2
+  exit 66
+}
+[ -r "$COMMISSIONED_BACKUP" ] && [ -r "$RESTIC_PASSWORD_FILE" ] || {
+  echo "omen-football-backup: commissioned Restic configuration is unavailable" >&2
+  exit 78
+}
+id -nG "$BACKUP_USER" | tr ' ' '\n' | grep -Fxq omen-football || {
+  echo "omen-football-backup: backup identity lacks read-only football group access" >&2
+  exit 77
+}
+
+restic_repository="$(sed -n 's/^RESTIC_REPOSITORY="\([^"]*\)"$/\1/p' "$COMMISSIONED_BACKUP")"
+[ -n "$restic_repository" ] && [ "$(printf '%s\n' "$restic_repository" | wc -l)" -eq 1 ] || {
+  echo "omen-football-backup: commissioned repository assignment is invalid" >&2
+  exit 78
+}
+
+rm -f "$RESTIC_JSON"
+trap 'rm -f "$RESTIC_JSON"' EXIT HUP INT TERM
+
+runuser \
+  -u "$BACKUP_USER" \
+  -- \
+  env \
+    HOME="$BACKUP_HOME" \
+    RESTIC_REPOSITORY="$restic_repository" \
+    RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
+  sh -c '
+    set -eu
+    cd "$1"
+    exec restic backup \
+      --json \
+      --no-cache \
+      --tag omen-football-phase4 \
+      --tag "acceptance-$2" \
+      .
+  ' sh "$STATE_ROOT" "$ACCEPTANCE_SHA256" \
+  > "$RESTIC_JSON"
+
+snapshot_id="$(python3 - "$RESTIC_JSON" <<'PY'
+import json
+import sys
+
+snapshot_id = None
+with open(sys.argv[1], "r", encoding="utf-8") as handle:
+    for line in handle:
+        record = json.loads(line)
+        if record.get("message_type") == "summary":
+            snapshot_id = record.get("snapshot_id")
+if not snapshot_id:
+    raise SystemExit(2)
+print(snapshot_id)
+PY
+)"
+
+printf '%s\n' "$snapshot_id" | grep -Eq '^[a-fA-F0-9]{64}$' || {
+  echo "omen-football-backup: Restic returned an invalid snapshot ID" >&2
+  exit 1
+}
+
+mkdir -p "$STATUS_ROOT"
+status_tmp="$(mktemp "$STATUS_ROOT/.last-success.XXXXXX")"
+{
+  printf 'SCHEMA=omen-football-backup-status.v1\n'
+  printf 'RESULT=SUCCESS\n'
+  printf 'COMPLETED_UTC=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  printf 'SNAPSHOT_ID=%s\n' "$snapshot_id"
+  printf 'ACCEPTANCE_SHA256=%s\n' "$ACCEPTANCE_SHA256"
+} > "$status_tmp"
+chmod 0640 "$status_tmp"
+chown root:omen-football "$status_tmp"
+mv -f "$status_tmp" "$STATUS_ROOT/last-success.env"
+
+printf 'omen-football-backup: snapshot %s completed\n' "$snapshot_id"

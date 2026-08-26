@@ -1,0 +1,53 @@
+#!/bin/sh
+set -eu
+umask 077
+
+EXPECTED_HOST=srv1737978
+BACKUP_USER=omen-backup-client
+BACKUP_HOME=/var/lib/omen-backup-client
+RESTORE_ROOT=/var/lib/omen-football-restore-source
+COMMISSIONED_BACKUP=/opt/omen-backup/bin/backup-supabase.sh
+RESTIC_PASSWORD_FILE=$BACKUP_HOME/restic-password
+
+[ "$(hostname)" = "$EXPECTED_HOST" ] || {
+  echo "omen-football-restore: wrong host" >&2
+  exit 69
+}
+[ "$(id -u)" -eq 0 ] || {
+  echo "omen-football-restore: root orchestration is required" >&2
+  exit 77
+}
+[ -d "$RESTORE_ROOT" ] || {
+  echo "omen-football-restore: founder must pre-create the dedicated restore target" >&2
+  exit 66
+}
+[ -z "$(find "$RESTORE_ROOT" -mindepth 1 -maxdepth 1 -print -quit)" ] || {
+  echo "omen-football-restore: fresh restore target must start empty" >&2
+  exit 65
+}
+
+snapshot_id="${1:-}"
+printf '%s\n' "$snapshot_id" | grep -Eq '^[a-fA-F0-9]{64}$' || {
+  echo "omen-football-restore: an exact 64-character snapshot ID is required" >&2
+  exit 64
+}
+restic_repository="$(sed -n 's/^RESTIC_REPOSITORY="\([^"]*\)"$/\1/p' "$COMMISSIONED_BACKUP")"
+[ -n "$restic_repository" ] || {
+  echo "omen-football-restore: commissioned repository assignment is invalid" >&2
+  exit 78
+}
+
+runuser \
+  -u "$BACKUP_USER" \
+  -- \
+  env \
+    HOME="$BACKUP_HOME" \
+    RESTIC_REPOSITORY="$restic_repository" \
+    RESTIC_PASSWORD_FILE="$RESTIC_PASSWORD_FILE" \
+  restic restore \
+    "$snapshot_id" \
+    --target "$RESTORE_ROOT" \
+    --no-cache \
+    --verify
+
+printf 'omen-football-restore: snapshot %s verified\n' "$snapshot_id"

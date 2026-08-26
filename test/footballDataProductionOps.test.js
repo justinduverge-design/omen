@@ -228,3 +228,25 @@ test("publication decision schedules exist but fail closed behind an exact contr
   assert.match(tuesday, /OnCalendar=Tue \*-\*-\* 06:00:00 America\/New_York/);
   assert.match(thursday, /OnCalendar=Thu \*-\*-\* 06:00:00 America\/New_York/);
 });
+
+test("football backup reuses the commissioned repository and restores only into an empty fresh root", () => {
+  const root = path.join(__dirname, "..", "ops", "football-data", "kvm1");
+  const backup = fs.readFileSync(path.join(root, "omen-football-backup"), "utf8");
+  const restore = fs.readFileSync(path.join(root, "omen-football-restore"), "utf8");
+  const service = fs.readFileSync(path.join(root, "omen-football-backup.service"), "utf8");
+  const timer = fs.readFileSync(path.join(root, "omen-football-backup.timer"), "utf8");
+
+  assert.match(backup, /\/opt\/omen-backup\/bin\/backup-supabase\.sh/);
+  assert.match(backup, /runuser[\s\\]+-u[\s\\]+"\$BACKUP_USER"/);
+  assert.match(backup, /--tag omen-football-phase4/);
+  assert.match(backup, /--tag "acceptance-\$2"/);
+  assert.match(backup, /sh "\$STATE_ROOT" "\$ACCEPTANCE_SHA256"/);
+  assert.match(backup, /cd "\$1"/);
+  assert.match(backup, /restic backup[\s\\]+--json/);
+  assert.doesNotMatch(backup, /RESTIC_REPOSITORY="(?:rest|s3|rclone|ssh):[^$]/);
+  assert.match(restore, /fresh restore target must start empty/);
+  assert.match(restore, /restic restore/);
+  assert.match(restore, /--verify/);
+  assert.match(service, /ExecStart=\/usr\/local\/sbin\/omen-football-backup/);
+  assert.match(timer, /OnCalendar=Tue \*-\*-\* 07:45:00 America\/New_York/);
+});

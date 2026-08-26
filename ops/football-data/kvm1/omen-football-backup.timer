@@ -1,0 +1,11 @@
+[Unit]
+Description=Omen football-data post-validation encrypted backup schedule
+
+[Timer]
+OnCalendar=Tue *-*-* 07:45:00 America/New_York
+Persistent=true
+RandomizedDelaySec=5m
+Unit=omen-football-backup.service
+
+[Install]
+WantedBy=timers.target
