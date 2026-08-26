@@ -1,6 +1,6 @@
 {
   "schema": "omen-football-production-readiness-input.v1",
-  "inspected_at_utc": "2026-08-26T16:20:00.000Z",
+  "inspected_at_utc": "2026-08-26T16:33:00.000Z",
   "phase3": {
     "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
     "exact_manifest": true,
@@ -31,7 +31,11 @@
       "available_bytes": 37580963840,
       "data_root": {
         "path": "/var/lib/omen-football-data",
-        "exists": false
+        "exists": true,
+        "mode": "0750",
+        "owner": "omen-football",
+        "group": "omen-football",
+        "empty": true
       },
       "services": {
         "docker": "active",
@@ -44,7 +48,10 @@
         "host_node": "absent",
         "docker": "29.6.2",
         "omen_cron_configured_user": "root",
-        "omen_cron_image_digest": "sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c"
+        "omen_cron_image_digest": "sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c",
+        "phase4_service_identity": "omen-football",
+        "phase4_service_shell": "/usr/sbin/nologin",
+        "admin_sudo_noninteractive": true
       }
     },
     "witness": {

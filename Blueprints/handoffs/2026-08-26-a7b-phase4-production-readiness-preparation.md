@@ -38,10 +38,13 @@ approval, the `omen-football` system group/user and empty
 `/usr/sbin/nologin`. Node is absent, so the proposed witness uses Python's
 standard library only.
 
-The matching approved KVM1 batch did not mutate the host: its first `sudo`
-request required an interactive password and exited before `groupadd`. A
-read-only follow-up confirmed the group, user, and data root remain absent. No
-password was requested, read, or transmitted.
+The matching approved KVM1 batch initially stopped before mutation because
+`sudo` required an interactive password. The founder installed and validated a
+root-owned `0440` sudoers drop-in for the existing `justin` administrator. An
+independent read-only check proved the file parses and `sudo -n` succeeds. The
+approved batch then created the `omen-football` non-login system identity and
+empty `/var/lib/omen-football-data`, owned by that identity with mode `0750`.
+No password was requested, read, stored, or transmitted by the agent.
 
 ## Fail-closed assessment
 
@@ -65,11 +68,9 @@ production scoring authorization all remain false.
 
 ## Next gated step
 
-The first remote change was explicitly approved. Its Command Center half is
-complete; its KVM1 half requires founder-assisted interactive sudo or a separate
-approved access method. It installs no code or dependency, starts no service,
-enables no timer, performs no collection, and makes no database, publication,
-or scoring change.
+The first remote change was explicitly approved and is complete on both hosts.
+It installed no code or dependency, started no service, enabled no timer,
+performed no collection, and made no database, publication, or scoring change.
 
 After that batch, continue locally with reviewed digest-pinned runner and
 standard-library witness artifacts before presenting a separate installation
@@ -77,9 +78,10 @@ and disabled-unit approval request.
 
 ## Nonclaims
 
-Only the approved Command Center system identity and empty witness root were
-created. KVM1 was not mutated. No service or timer was installed, enabled, or
-started. No backup, correction, recovery, or A4 production read occurred. No
-deployment, merge, publication, scoring run, provider change, database write,
-SQL write, credential handling, ADP functionality, paid source, or
-rights-unclear source occurred.
+Only the approved system identities and empty roots were created on KVM1 and
+Command Center. The founder separately installed the validated KVM1 sudoers
+drop-in. No service or timer was installed, enabled, or started. No backup,
+correction, recovery, or A4 production read occurred. No deployment, merge,
+publication, scoring run, provider change, database write, SQL write, agent-side
+credential handling, ADP functionality, paid source, or rights-unclear source
+occurred.
