@@ -101,6 +101,7 @@ test("Phase 4 assessment preserves the exact Phase 3 artifact and all non-activa
   assert.equal(result.acceptance_sha256, ACCEPTANCE_SHA256);
   assert.deepEqual(result.phases.map((phase) => phase.name), PHASE_NAMES);
   assert.deepEqual(result.alerts.required, REQUIRED_ALERT_CODES);
+  assert.ok(result.schedules.every((schedule) => schedule.active === true));
   assert.equal(result.gates.remote_host_mutation_authorized, false);
   assert.equal(result.gates.collection_activation_authorized, false);
   assert.equal(result.gates.publication_authorized, false);
@@ -215,6 +216,7 @@ test("unproven provisioning, alert delivery, schedules, supervision, backup, cor
     "backup_rehearsal_unproven",
   ]);
   assert.equal(result.alerts.live_delivery_proven, false);
+  assert.ok(result.schedules.every((schedule) => schedule.active === false));
   assert.equal(result.gates.publication_authorized, false);
   assert.equal(result.gates.production_scoring_authorized, false);
 });

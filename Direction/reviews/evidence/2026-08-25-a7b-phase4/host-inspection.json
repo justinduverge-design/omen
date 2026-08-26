@@ -1,18 +1,10 @@
 {
   "schema": "omen-football-production-readiness-input.v1",
-  "inspected_at_utc": "2026-08-26T16:33:00.000Z",
+  "inspected_at_utc": "2026-08-26T23:00:00.000Z",
   "phase3": {
     "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
     "exact_manifest": true,
-    "failure_scenarios": [
-      "source_loss",
-      "schema_drift",
-      "witness_mismatch",
-      "witness_unavailable",
-      "source_stale",
-      "disk_low",
-      "correction_candidate"
-    ],
+    "failure_scenarios": ["source_loss", "schema_drift", "witness_mismatch", "witness_unavailable", "source_stale", "disk_low", "correction_candidate"],
     "publication_authorized": false,
     "promoted": false,
     "recovery": {
@@ -28,31 +20,10 @@
       "os": "Ubuntu",
       "os_version": "24.04",
       "system_state": "running",
-      "available_bytes": 37580963840,
-      "data_root": {
-        "path": "/var/lib/omen-football-data",
-        "exists": true,
-        "mode": "0750",
-        "owner": "omen-football",
-        "group": "omen-football",
-        "empty": true
-      },
-      "services": {
-        "docker": "active",
-        "nginx": "active",
-        "omen_api": "healthy",
-        "omen_cron": "running",
-        "omen_supabase_backup_timer": "active"
-      },
-      "runtime": {
-        "host_node": "absent",
-        "docker": "29.6.2",
-        "omen_cron_configured_user": "root",
-        "omen_cron_image_digest": "sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c",
-        "phase4_service_identity": "omen-football",
-        "phase4_service_shell": "/usr/sbin/nologin",
-        "admin_sudo_noninteractive": true
-      }
+      "available_bytes": 37298450432,
+      "data_root": {"path": "/var/lib/omen-football-data", "exists": true, "mode": "0750", "owner": "omen-football", "group": "omen-football", "empty": false},
+      "services": {"docker": "active", "omen_api": "healthy", "omen_cron": "running", "omen_football_backup": "success"},
+      "runtime": {"docker": "29.6.2", "omen_cron_image_digest": "sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c", "phase4_service_identity": "omen-football", "admin_sudo_noninteractive": true}
     },
     "witness": {
       "reachable": true,
@@ -60,47 +31,45 @@
       "os": "Debian GNU/Linux",
       "os_version": "13",
       "system_state": "running",
-      "available_bytes": 112742891520,
-      "data_root": {
-        "path": "/var/lib/omen-football-witness",
-        "exists": true,
-        "mode": "0750",
-        "owner": "omen-football",
-        "group": "omen-football",
-        "empty": true
-      },
-      "services": {
-        "docker": "active",
-        "slops_alert_dispatcher_timer": "active",
-        "slops_alert_dispatcher_last_result": "success"
-      },
-      "runtime": {
-        "python": "3.13.5",
-        "curl": "8.14.1",
-        "sha256sum": "9.7",
-        "node": "absent"
-      },
-      "kvm1_tailnet_ping": "pass"
+      "available_bytes": 112330174464,
+      "data_root": {"path": "/var/lib/omen-football-witness", "exists": true, "mode": "0750", "owner": "omen-football", "group": "omen-football", "empty": false},
+      "services": {"omen_football_witness": "active", "omen_football_witness_monitor": "success", "slops_alert_dispatcher_timer": "active"},
+      "runtime": {"python": "3.13.5", "node": "absent"}
     }
   },
-  "alert_codes": [
-    "job_failure",
-    "source_loss",
-    "schema_drift",
-    "stale_data",
-    "disk_low",
-    "witness_mismatch",
-    "witness_outage"
-  ],
+  "alert_codes": ["job_failure", "source_loss", "schema_drift", "stale_data", "disk_low", "witness_mismatch", "witness_outage"],
   "infrastructure": {
-    "kvm1_provisioned": false,
-    "witness_provisioned": false,
-    "live_alert_delivery": "not_run",
-    "schedules_active": false,
-    "service_supervision": "not_run",
-    "backup_rehearsal": "not_run",
-    "correction_rehearsal": "not_run",
-    "recovery_rehearsal": "not_run"
+    "kvm1_provisioned": true,
+    "witness_provisioned": true,
+    "live_alert_delivery": "pass",
+    "schedules_active": true,
+    "service_supervision": "pass",
+    "backup_rehearsal": "pass",
+    "correction_rehearsal": "no_change",
+    "recovery_rehearsal": "pass"
   },
-  "a4": null
+  "rehearsal_evidence": {
+    "backup_snapshot_id": "a37d7779361dabdf689f5a2402d9dcefb047eba570eff42806d8c9ab7f09e860",
+    "backup_tags": ["omen-football-phase4", "acceptance-5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea"],
+    "recovery_receipt": "omen-football-production-recovery.v1",
+    "phase3_witness_attestation": "match",
+    "correction": {
+      "status": "no_change",
+      "previous_source_bundle_hash": "93343b47cc4205e27f8bfd531d3d9dd5fa2ebf5fa69cc68c926da480dfcfd72e",
+      "current_source_bundle_hash": "cc95a0ada13ff8427f9c7e4d0d23ac011e5ba9034b860d7f21626f91bc42c312",
+      "changed_subjects": 0,
+      "publication_authorized": false
+    },
+    "alerts": {"status": "pass", "delivery_and_recovery_count": 7, "payload_free": true}
+  },
+  "a4": null,
+  "a4_preflight": {
+    "qualifying_pending_rows": 1,
+    "official_read_status": "blocked",
+    "blocked_by": "moves.scoring column is absent",
+    "writes_attempted": 0,
+    "writes_completed": 0,
+    "persistent_production_scoring_enabled": false,
+    "publication_authorized": false
+  }
 }

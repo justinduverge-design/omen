@@ -268,7 +268,10 @@ function buildProductionReadinessAssessment({
     acceptance_sha256: phase3?.acceptance_sha256 || null,
     exact_manifest_required: true,
     source_set: ["nflverse-data:stats_player", "nflverse-data:stats_team", "nflverse-data:schedules"],
-    schedules: SCHEDULES.map((schedule) => ({ ...schedule, active: false })),
+    schedules: SCHEDULES.map((schedule) => ({
+      ...schedule,
+      active: infrastructure?.schedules_active === true,
+    })),
     alerts: {
       required: [...REQUIRED_ALERT_CODES],
       declared: unique(alertCodes),
