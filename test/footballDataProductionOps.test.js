@@ -214,3 +214,17 @@ test("the dispatcher gives football alerts independent delivery-before-state and
   assert.match(exercises, /test -z "\$\(cat \/var\/lib\/slops-alerting\/football-last-signature\)"/);
   assert.doesNotMatch(exercises, /test ! -s \/var\/lib\/slops-alerting\/football-last-signature/);
 });
+
+test("publication decision schedules exist but fail closed behind an exact control and witness", () => {
+  const root = path.join(__dirname, "..", "ops", "football-data", "kvm1");
+  const helper = fs.readFileSync(path.join(root, "omen-football-publication-decision"), "utf8");
+  const service = fs.readFileSync(path.join(root, "omen-football-publication-decision.service"), "utf8");
+  const tuesday = fs.readFileSync(path.join(root, "omen-football-tuesday-publication-decision.timer"), "utf8");
+  const thursday = fs.readFileSync(path.join(root, "omen-football-thursday-correction-decision.timer"), "utf8");
+  assert.match(helper, /control\/publication-enabled/);
+  assert.match(helper, /5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea/);
+  assert.match(helper, /exact witness observation is absent/);
+  assert.match(service, /ConditionPathExists=\/var\/lib\/omen-football-data\/control\/publication-enabled/);
+  assert.match(tuesday, /OnCalendar=Tue \*-\*-\* 06:00:00 America\/New_York/);
+  assert.match(thursday, /OnCalendar=Thu \*-\*-\* 06:00:00 America\/New_York/);
+});

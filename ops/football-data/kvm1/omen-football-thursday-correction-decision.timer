@@ -1,0 +1,11 @@
+[Unit]
+Description=Condition-gated Thursday Omen football-data correction decision
+
+[Timer]
+OnCalendar=Thu *-*-* 06:00:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-publication-decision.service
+
+[Install]
+WantedBy=timers.target
