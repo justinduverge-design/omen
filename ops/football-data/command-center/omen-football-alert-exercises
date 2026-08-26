@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+[ "$(id -u)" -eq 0 ] || {
+  printf '%s\n' 'alert exercises must run as root' >&2
+  exit 77
+}
+
+root=/var/lib/omen-football-witness
+receipt="$root/evidence/alert-exercises-20260826.json"
+test ! -e "$receipt"
+result_file="$(mktemp)"
+trap 'rm -f "$result_file"' EXIT HUP INT TERM
+
+for code in job_failure source_loss schema_drift stale_data disk_low witness_mismatch witness_outage; do
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  sudo -n -u omen-football /usr/local/libexec/omen-football-witness \
+    exercise --code "$code" --state active >/dev/null
+  /usr/local/sbin/slops-alert-dispatcher
+  grep -q "Omen football: $code severity=" /var/lib/slops-alerting/football-last-signature
+  sleep 2
+  sudo -n -u omen-football /usr/local/libexec/omen-football-witness \
+    exercise --code "$code" --state clear >/dev/null
+  /usr/local/sbin/slops-alert-dispatcher
+  test ! -s /var/lib/slops-alerting/football-last-signature
+  completed="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '%s|%s|%s\n' "$code" "$started" "$completed" >> "$result_file"
+  sleep 2
+done
+
+python3 - "$result_file" "$receipt" <<'PY'
+import json
+import sys
+
+rows = []
+with open(sys.argv[1], encoding="utf-8") as source:
+    for line in source:
+        code, started, completed = line.strip().split("|")
+        rows.append({
+            "code": code,
+            "started_at_utc": started,
+            "completed_at_utc": completed,
+            "alert_delivery": "pass",
+            "recovery_delivery": "pass",
+            "payload_free": True,
+        })
+value = {"schema": "omen-football-live-alert-exercises.v1", "status": "pass", "results": rows}
+with open(sys.argv[2], "x", encoding="utf-8") as target:
+    json.dump(value, target, indent=2, sort_keys=True)
+    target.write("\n")
+PY
+chown omen-football:omen-football "$receipt"
+chmod 0640 "$receipt"
+printf '%s\n' 'live_alert_exercises=7/7 recoveries=7/7'

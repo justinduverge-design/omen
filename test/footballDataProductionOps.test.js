@@ -208,4 +208,7 @@ test("the dispatcher gives football alerts independent delivery-before-state and
   const footballBlock = dispatcher.slice(dispatcher.indexOf('if [ "$football" != "$football_old" ]'), dispatcher.indexOf('sig="$(printf'));
   assert.ok(footballBlock.indexOf("send ") < footballBlock.indexOf("football_state\""));
   assert.doesNotMatch(dispatcher.match(/sig="\$\(printf[^\n]+/)?.[0] || "", /football/);
+  const exercises = fs.readFileSync(path.join(__dirname, "..", "ops", "football-data", "command-center", "omen-football-alert-exercises"), "utf8");
+  for (const code of REQUIRED_ALERT_CODES) assert.match(exercises, new RegExp(`\\b${code}\\b`));
+  assert.ok(exercises.indexOf("slops-alert-dispatcher") < exercises.indexOf("football-last-signature"));
 });
