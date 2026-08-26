@@ -53,6 +53,25 @@ test("isDryRun is true only for the explicit no-write flag", () => {
   assert.equal(isDryRun({}), false);
 });
 
+test("the A6 production compatibility migration adds every cron-read scoring field without rewriting rows", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const sql = fs.readFileSync(path.join(__dirname, "..", "sql", "2026-08-26_a6_scoring_contract_production.sql"), "utf8");
+  for (const column of [
+    "scoring text",
+    "scoring_contract jsonb",
+    "scoring_contract_hash text",
+    "scoring_contract_version text",
+    "scoring_contract_required boolean",
+    "scoring_coverage_state text",
+    "provider_rule_snapshot_hash text",
+    "provider_final_outcome jsonb",
+    "reconciliation_state text",
+  ]) assert.match(sql, new RegExp(`add column if not exists ${column}`));
+  assert.match(sql, /alter column scoring drop default/);
+  assert.doesNotMatch(sql, /\b(update|delete|insert)\b/i);
+});
+
 test("fetchPendingMoves requests only the fields Tuesday scoring consumes", async () => {
   let requestedColumns = null;
   const query = {
