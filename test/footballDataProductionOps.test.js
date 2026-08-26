@@ -248,5 +248,7 @@ test("football backup reuses the commissioned repository and restores only into 
   assert.match(restore, /restic restore/);
   assert.match(restore, /--verify/);
   assert.match(service, /ExecStart=\/usr\/local\/sbin\/omen-football-backup/);
+  assert.match(service, /NoNewPrivileges=no/);
+  assert.match(service, /CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID/);
   assert.match(timer, /OnCalendar=Tue \*-\*-\* 07:45:00 America\/New_York/);
 });
