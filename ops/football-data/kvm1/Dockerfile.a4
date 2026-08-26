@@ -1,0 +1,8 @@
+FROM ghcr.io/justinduverge-design/omen-cron:main@sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c
+
+WORKDIR /app
+COPY src/omen_tuesday_cron.js ./src/omen_tuesday_cron.js
+COPY src/services/footballData ./src/services/footballData
+COPY scripts/football-data-a4-no-write.js ./scripts/football-data-a4-no-write.js
+
+ENTRYPOINT ["node", "/app/scripts/football-data-a4-no-write.js"]

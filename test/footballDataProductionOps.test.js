@@ -273,3 +273,16 @@ test("football backup reuses the commissioned repository and restores only into 
   assert.match(service, /CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID/);
   assert.match(timer, /OnCalendar=Tue \*-\*-\* 07:45:00 America\/New_York/);
 });
+
+test("the A4 runner is process-scoped, exact-artifact-bound, and refuses every Supabase update", () => {
+  const runner = fs.readFileSync(path.join(__dirname, "..", "scripts", "football-data-a4-no-write.js"), "utf8");
+  const image = fs.readFileSync(path.join(__dirname, "..", "ops", "football-data", "kvm1", "Dockerfile.a4"), "utf8");
+  assert.match(runner, /OMEN_CRON_DRY_RUN=true/);
+  assert.match(runner, /A4 no-write guard refused Supabase update/);
+  assert.match(runner, /validateAcceptanceArtifact/);
+  assert.match(runner, /fetchPendingMoves/);
+  assert.match(runner, /archiveNotExecutedMoves/);
+  assert.match(runner, /writes_attempted: writes\.attempted/);
+  assert.match(image, /@sha256:[a-f0-9]{64}/);
+  assert.match(image, /football-data-a4-no-write\.js/);
+});
