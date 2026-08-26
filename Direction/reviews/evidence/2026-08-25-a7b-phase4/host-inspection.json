@@ -1,6 +1,6 @@
 {
   "schema": "omen-football-production-readiness-input.v1",
-  "inspected_at_utc": "2026-08-26T23:22:00.000Z",
+  "inspected_at_utc": "2026-08-26T23:30:00.000Z",
   "phase3": {
     "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
     "exact_manifest": true,
@@ -45,7 +45,20 @@
     "schedules_active": true,
     "service_supervision": "pass",
     "backup_rehearsal": "pass",
-    "correction_rehearsal": "no_change",
+    "correction_rehearsal": "pass",
+    "correction_rehearsal_mode": "controlled_fixture_not_upstream",
+    "controlled_correction": {
+      "schema": "omen-football-controlled-correction-rehearsal.v1",
+      "mode": "controlled_fixture_not_upstream",
+      "status": "correction_candidate",
+      "supersedes": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
+      "changed_subject_count": 1,
+      "database_writes_attempted": 0,
+      "database_writes_completed": 0,
+      "publication_authorized": false,
+      "production_scoring_authorized": false,
+      "promoted": false
+    },
     "recovery_rehearsal": "pass"
   },
   "rehearsal_evidence": {
@@ -54,12 +67,13 @@
     "recovery_receipt": "omen-football-production-recovery.v1",
     "phase3_witness_attestation": "match",
     "correction": {
-      "status": "no_change",
+      "status": "controlled_fixture_pass",
       "previous_source_bundle_hash": "93343b47cc4205e27f8bfd531d3d9dd5fa2ebf5fa69cc68c926da480dfcfd72e",
       "current_source_bundle_hash": "a017e16e8d3bafcbb0adad0d8a7c3d55c9589430ccb7ad2ccedba7f749b5f164",
       "current_acceptance_sha256": "9ffb4430d4f1d27d71d94ec56961acda0781e1ed67a14d14ae6577eb091ed320",
       "current_schedule_raw_sha256": "0b5478ae77b4c9919f2639f3682bbd313b98ace10d3829eaff8181279f55c421",
-      "changed_subjects": 0,
+      "changed_subjects": 1,
+      "mode": "controlled_fixture_not_upstream",
       "publication_authorized": false
     },
     "latest_live_capture": {
@@ -87,7 +101,7 @@
     "independent_reference": "pass",
     "readiness": "healthy",
     "cron_health": "healthy",
-    "correction_rehearsal": "no_change",
+    "correction_rehearsal": "pass",
     "recovery_rehearsal": "pass",
     "publication_authorized": false,
     "persistent_production_scoring_enabled": false
@@ -100,5 +114,22 @@
     "writes_completed": 0,
     "persistent_production_scoring_enabled": false,
     "publication_authorized": false
+  },
+  "final_readiness": {
+    "status": "ready_for_founder_approval",
+    "blockers": [],
+    "controlled_correction_fixture": "pass"
+  },
+  "activation": {
+    "publication": {
+      "status": "active",
+      "receipt_schema": "omen-football-publication.v1",
+      "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
+      "witness_observation_id": "phase3-observation"
+    },
+    "production_scoring": {
+      "status": "active",
+      "cron_running": true
+    }
   }
 }

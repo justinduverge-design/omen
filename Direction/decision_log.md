@@ -7,6 +7,12 @@
 - **Hard boundary:** the observed upstream provenance revision had zero changed accepted subjects. The production-readiness specification requires a changed-subject candidate with `supersedes`; no synthetic correction is allowed. Keep publication and scoring disabled and retain the final evaluator's correction blockers until an authentic upstream change can be replayed in an isolated root.
 - **Follow-up evidence:** a later schedules revision (`0b5478…`) was genuinely captured and validated in an isolated KVM1 correction root. It produced a new acceptance (`9ffb4430…`) but still zero changed subjects. The normal live capture/validation then restored the status export to `pass`, with both non-activation flags false. A daily heartbeat is now authorized to resume only when a qualifying upstream correction exists.
 
+## 2026-08-26 — Founder-approved controlled correction fixture completed A7B Phase 4
+
+- The readiness contract now permits a permanently labeled `controlled_fixture_not_upstream` only when authentic upstream revisions cannot change an accepted subject. The isolated KVM1 fixture exercised the real capture, acceptance, and correction code, produced one changed subject with `supersedes` to the exact Phase 3 artifact, and attempted/completed zero database writes.
+- A4 was rerun afterward against one real pending row with forced dry-run, zero writes, and Standard/Half-PPR/PPR agreement. The final evaluator had zero blockers.
+- Under the existing founder authorization and after that green evaluation, publication control/timers were activated and emitted an exact-witness publication receipt. The cron container was recreated with `OMEN_CRON_SCORING_ENABLED=true`; verification confirmed it is running. The temporary correction-monitor heartbeat was deleted.
+
 ## 2026-08-26 — A7B Phase 4 proved backup/recovery but remains fail-closed before A4 and publication
 
 - **Decision:** production collection, validation, witness, alert, and encrypted backup infrastructure may operate independently of publication and scoring. A KVM1 snapshot (`a37d7779361dabdf689f5a2402d9dcefb047eba570eff42806d8c9ab7f09e860`) was restored into a new dedicated root, verified against the exact Phase 3 acceptance hash, and admitted to a fresh recovery root only after a matching Command Center Phase 3 attestation.
