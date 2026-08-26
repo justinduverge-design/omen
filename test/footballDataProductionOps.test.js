@@ -148,6 +148,7 @@ test("the runner wrapper pins an image digest and applies every required Docker 
   assert.match(wrapper, /--read-only/);
   assert.match(wrapper, /--cpus 1\.0/);
   assert.match(wrapper, /\/var\/lib\/omen-football-data:\/state:rw/);
+  assert.match(wrapper, /\/var\/lib\/omen-football-restore-source\/var\/lib\/omen-football-data:\/backup:ro/);
   assert.doesNotMatch(wrapper, /\.env|env-file/);
 });
 
@@ -247,6 +248,8 @@ test("football backup reuses the commissioned repository and restores only into 
   assert.match(restore, /fresh restore target must start empty/);
   assert.match(restore, /restic restore/);
   assert.match(restore, /--verify/);
+  assert.match(restore, /sha256sum --check --status/);
+  assert.match(restore, /chown -R omen-football:omen-football/);
   assert.match(service, /ExecStart=\/usr\/local\/sbin\/omen-football-backup/);
   assert.match(service, /NoNewPrivileges=no/);
   assert.match(service, /CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETGID CAP_SETUID/);
