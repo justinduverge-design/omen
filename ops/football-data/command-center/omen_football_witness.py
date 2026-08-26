@@ -18,6 +18,7 @@ from urllib.request import Request, urlopen
 
 
 PRODUCTION_ROOT = Path("/var/lib/omen-football-witness")
+PHASE3_ACCEPTANCE_SHA256 = "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea"
 ALERT_SEVERITY = {
     "job_failure": "high",
     "source_loss": "high",
@@ -266,6 +267,34 @@ def compare_status(
     return observation, 0 if not conditions else 2
 
 
+def attest_phase3(root: Path, acceptance_path: Path, receipt_path: Path, now: datetime) -> tuple[dict, int]:
+    conditions = []
+    observed_hash = None
+    try:
+        acceptance_bytes = acceptance_path.read_bytes()
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        observed_hash = hashlib.sha256(acceptance_bytes).hexdigest()
+        if observed_hash != PHASE3_ACCEPTANCE_SHA256:
+            conditions.append({"code": "witness_mismatch", "severity": "critical"})
+        if receipt.get("schema") != "omen-football-scoring-replay.v1" or receipt.get("acceptance_sha256") != observed_hash:
+            conditions.append({"code": "witness_mismatch", "severity": "critical"})
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        conditions.append({"code": "witness_outage", "severity": "high"})
+
+    write_signals(root, conditions)
+    observation = {
+        "schema": "omen-football-witness-observation.v1",
+        "observed_at_utc": now.isoformat().replace("+00:00", "Z"),
+        "status": "match" if not conditions else ("mismatch" if observed_hash else "unavailable"),
+        "expected_hash": PHASE3_ACCEPTANCE_SHA256,
+        "observed_hash": observed_hash,
+        "attestation": "phase3_acceptance",
+        "publication_authorized": False,
+    }
+    atomic_json(root / "observations" / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{PHASE3_ACCEPTANCE_SHA256[:16]}.json", observation)
+    return observation, 0 if not conditions else 2
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     subparsers = result.add_subparsers(dest="command", required=True)
@@ -283,6 +312,11 @@ def parser() -> argparse.ArgumentParser:
     capture.add_argument("--root", type=Path, default=PRODUCTION_ROOT)
     capture.add_argument("--season", type=int, default=datetime.now(timezone.utc).year)
     capture.add_argument("--now")
+    attest = subparsers.add_parser("attest-phase3")
+    attest.add_argument("--root", type=Path, default=PRODUCTION_ROOT)
+    attest.add_argument("--acceptance-file", type=Path, required=True)
+    attest.add_argument("--receipt-file", type=Path, required=True)
+    attest.add_argument("--now")
     return result
 
 
@@ -308,6 +342,16 @@ def main() -> int:
         status = capture_all(options.root.resolve(), options.season, now)
         print(json.dumps(status, sort_keys=True))
         return 0
+    if options.command == "attest-phase3":
+        now = parse_time(options.now) if options.now else datetime.now(timezone.utc)
+        observation, result = attest_phase3(
+            options.root.resolve(),
+            options.acceptance_file.resolve(),
+            options.receipt_file.resolve(),
+            now,
+        )
+        print(json.dumps(observation, sort_keys=True))
+        return result
     raise AssertionError("unreachable")
 
 

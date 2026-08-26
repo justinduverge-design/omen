@@ -202,6 +202,24 @@ test("the witness compares all exact dataset hashes and fails closed on mismatch
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "signals.json"), "utf8")).conditions, [{ code: "witness_outage", severity: "high" }]);
 });
 
+test("the witness phase-3 attestation fails closed without exact acceptance bytes", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "omen-football-witness-phase3-"));
+  const script = path.join(__dirname, "..", "ops", "football-data", "command-center", "omen_football_witness.py");
+  const acceptance = path.join(root, "acceptance.json");
+  const receipt = path.join(root, "receipt.json");
+  fs.writeFileSync(acceptance, "not the immutable acceptance\n");
+  fs.writeFileSync(receipt, `${JSON.stringify({ schema: "omen-football-scoring-replay.v1", acceptance_sha256: "0".repeat(64) })}\n`);
+  const run = spawnSync("python3", [script, "attest-phase3", "--root", root, "--acceptance-file", acceptance, "--receipt-file", receipt, "--now", "2026-08-26T18:20:00.000Z"], { encoding: "utf8" });
+  assert.equal(run.status, 2, run.stderr);
+  const observation = JSON.parse(run.stdout);
+  assert.deepEqual({ status: observation.status, expected: observation.expected_hash, observed: observation.observed_hash }, {
+    status: "mismatch",
+    expected: "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
+    observed: require("node:crypto").createHash("sha256").update("not the immutable acceptance\n").digest("hex"),
+  });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "signals.json"), "utf8")).conditions, [{ code: "witness_mismatch", severity: "critical" }]);
+});
+
 test("the dispatcher gives football alerts independent delivery-before-state and one recovery", () => {
   const dispatcher = fs.readFileSync(path.join(__dirname, "..", "ops", "command-center", "slops-alert-dispatcher"), "utf8");
   assert.match(dispatcher, /football_state=\/var\/lib\/slops-alerting\/football-last-signature/);
