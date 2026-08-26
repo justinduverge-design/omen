@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Omen independent witness after Tuesday validation
+
+[Timer]
+OnCalendar=Tue *-*-* 05:45:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-witness-capture.service
+
+[Install]
+WantedBy=timers.target

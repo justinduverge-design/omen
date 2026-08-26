@@ -1,0 +1,11 @@
+[Unit]
+Description=Second bounded Omen football-data Tuesday retry
+
+[Timer]
+OnCalendar=Tue *-*-* 06:45:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-retry.service
+
+[Install]
+WantedBy=timers.target

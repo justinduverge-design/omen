@@ -1,0 +1,26 @@
+[Unit]
+Description=Validate pending exact Omen football-data capture batches
+After=docker.service omen-football-capture.service
+Requires=docker.service
+OnFailure=omen-football-failure@%n.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/libexec/omen-football-validate-pending
+TimeoutStartSec=30min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/omen-football-data /run/docker.sock
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

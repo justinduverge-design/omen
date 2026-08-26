@@ -1,0 +1,12 @@
+[Unit]
+Description=Monitor KVM1 Omen football-data status every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+AccuracySec=30s
+Unit=omen-football-witness-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+root=/var/lib/omen-football-data
+found=false
+for batch in "$root"/batches/*.json; do
+  [ -f "$batch" ] || continue
+  batch_id="$(basename "$batch" .json)"
+  [ -f "$root/validations/$batch_id.json" ] && continue
+  found=true
+  /usr/local/sbin/omen-football-run validate-batch --batch-id "$batch_id"
+done
+$found || printf '%s\n' 'omen-football: no unvalidated exact batches'

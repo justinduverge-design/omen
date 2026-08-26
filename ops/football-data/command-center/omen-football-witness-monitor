@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+root=/var/lib/omen-football-witness
+if ! /usr/local/libexec/omen-football-kvm1-status; then
+  exec /usr/local/libexec/omen-football-witness exercise --code witness_outage --state active
+fi
+result=0
+/usr/local/libexec/omen-football-witness compare --status-file "$root/remote/kvm1-status.json" || result=$?
+case "$result" in
+  0|2|3) exit 0 ;;
+  *) exit "$result" ;;
+esac

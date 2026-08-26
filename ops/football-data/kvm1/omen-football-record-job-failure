@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+umask 027
+root=/var/lib/omen-football-data
+case "${1:-}" in
+  omen-football-*.service) unit=$1 ;;
+  *) unit=omen-football-unknown.service ;;
+esac
+generated="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+for target in "$root/status/current.json" "$root/exports/status.json"; do
+  directory="$(dirname "$target")"
+  mkdir -p "$directory"
+  temporary="$(mktemp "$directory/.job-failure.XXXXXX")"
+  printf '{\n  "schema": "omen-football-production-status.v1",\n  "generated_at_utc": "%s",\n  "job": "%s",\n  "state": "failed",\n  "batch_id": null,\n  "datasets": {},\n  "alerts": [{"code": "job_failure", "severity": "high"}],\n  "publication_authorized": false,\n  "production_scoring_authorized": false\n}\n' "$generated" "$unit" > "$temporary"
+  chmod 0640 "$temporary"
+  mv "$temporary" "$target"
+done

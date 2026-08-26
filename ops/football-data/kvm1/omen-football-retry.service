@@ -1,0 +1,23 @@
+[Unit]
+Description=Retry Omen football-data only after source loss
+After=docker.service
+Requires=docker.service
+OnFailure=omen-football-failure@%n.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/libexec/omen-football-retry-source
+TimeoutStartSec=20min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/omen-football-data /run/docker.sock
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027

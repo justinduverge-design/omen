@@ -1,0 +1,11 @@
+[Unit]
+Description=Omen football-data post-MNF capture
+
+[Timer]
+OnCalendar=Tue *-*-* 05:15:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-capture.service
+
+[Install]
+WantedBy=timers.target

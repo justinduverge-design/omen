@@ -363,7 +363,7 @@ function manifestTime(iso) {
   return iso.replace(/[-:.]/g, "");
 }
 
-async function fetchWithTimeout(fetchImpl, url, timeoutMs) {
+async function fetchWithTimeout(fetchImpl, url, timeoutMs, userAgent) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -371,7 +371,7 @@ async function fetchWithTimeout(fetchImpl, url, timeoutMs) {
       signal: controller.signal,
       headers: {
         accept: "text/csv,application/octet-stream;q=0.9",
-        "user-agent": "OmenFootballDataCollector/1.0 (local non-production)",
+        "user-agent": userAgent,
       },
       redirect: "follow",
     });
@@ -391,6 +391,7 @@ async function captureSnapshot({
   now = () => new Date(),
   timeoutMs = 30_000,
   parentSnapshot = null,
+  userAgent = "OmenFootballDataCollector/1.0 (local non-production)",
 } = {}) {
   const selectedRoot = assertLocalVaultRoot(root);
   const contract = sourceContract(dataset, season);
@@ -405,7 +406,7 @@ async function captureSnapshot({
     rightsReviewDate: contract.rights.rights_review_date,
   });
 
-  const response = await fetchWithTimeout(fetchImpl, contract.sourceUrl, timeoutMs);
+  const response = await fetchWithTimeout(fetchImpl, contract.sourceUrl, timeoutMs, userAgent);
   const status = Number(response?.status);
   if (status === 404) {
     fail("SOURCE_DEFERRED", `${contract.assetName} is not published`);

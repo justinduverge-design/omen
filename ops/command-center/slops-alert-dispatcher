@@ -30,7 +30,15 @@ pihole="$(/usr/local/lib/slops-alerting/pihole-dns-probe.py 2>&1 || true)"
 # GlitchTip being down yields an empty result, not a false all-clear: Kuma's own
 # GlitchTip monitor covers that case through the kuma signal above.
 glitchtip="$(docker exec -e PGOPTIONS='-c default_transaction_read_only=on' glitchtip-postgres psql -U "$(docker exec glitchtip-postgres printenv POSTGRES_USER)" -d glitchtip -At -F'|' -c "SELECT i.short_id, i.title FROM issue_events_issue i JOIN issue_events_issueindex x ON x.issue_id = i.id WHERE x.status = 0 AND i.is_deleted = false ORDER BY i.short_id" 2>/dev/null | awk -F'|' '{t=$2; gsub(/[\\"]/,"",t); gsub(/[[:cntrl:]]/," ",t); if (length(t)>90) t=substr(t,1,90) "..."; print "GlitchTip #" $1 ": " t}' || true)"
-sig="$(printf '%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" | sed '/^$/d' | sort)"
+football="$(python3 -c 'import json,sys
+allowed={"job_failure","source_loss","schema_drift","stale_data","disk_low","witness_mismatch","witness_outage"}
+try:
+ data=json.load(open(sys.argv[1],encoding="utf-8")); rows=data.get("conditions",[])
+ if data.get("schema")!="omen-football-alert-signals.v1" or any(r.get("code") not in allowed for r in rows): raise ValueError()
+ for row in sorted(rows,key=lambda r:r["code"]): print("Omen football: %s severity=%s"%(row["code"],row.get("severity","high")))
+except Exception:
+ print("Omen football: witness_outage severity=high")' /var/lib/omen-football-witness/signals.json)"
+sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$football" | sed '/^$/d' | sort)"
 old="$(cat "$state" 2>/dev/null || true)"
 [ "$sig" = "$old" ] && exit 0
 # Deliver BEFORE persisting. The old order recorded the new signature first, so

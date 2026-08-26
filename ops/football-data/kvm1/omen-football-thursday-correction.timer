@@ -1,0 +1,11 @@
+[Unit]
+Description=Omen football-data Thursday correction capture
+
+[Timer]
+OnCalendar=Thu *-*-* 05:15:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-capture.service
+
+[Install]
+WantedBy=timers.target

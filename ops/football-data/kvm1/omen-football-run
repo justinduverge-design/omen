@@ -1,0 +1,39 @@
+#!/bin/sh
+set -eu
+
+image_file=/etc/omen-football/image-digest
+image="$(cat "$image_file")"
+
+printf '%s\n' "$image" | grep -Eq '@sha256:[a-f0-9]{64}$' || {
+  printf '%s\n' 'omen-football-run: image must be pinned by sha256 digest' >&2
+  exit 64
+}
+
+case "${1:-}" in
+  capture-set) network=bridge ;;
+  validate-batch|status|import-phase3|recover-phase3|publish) network=none ;;
+  *) printf '%s\n' 'omen-football-run: unsupported command' >&2; exit 64 ;;
+esac
+
+extra_mounts=
+if [ "${1:-}" = recover-phase3 ]; then
+  extra_mounts='--volume /var/lib/omen-football-restore-source:/backup:ro --volume /var/lib/omen-football-recovery:/recovery:rw'
+fi
+
+uid="$(id -u omen-football)"
+gid="$(id -g omen-football)"
+
+exec docker run --rm \
+  --name "omen-football-${1}-$$" \
+  --user "$uid:$gid" \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --read-only \
+  --network "$network" \
+  --pids-limit 128 \
+  --memory 1536m \
+  --cpus 1.5 \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --volume /var/lib/omen-football-data:/state:rw \
+  $extra_mounts \
+  "$image" "$@"

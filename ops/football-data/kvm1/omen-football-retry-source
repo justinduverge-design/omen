@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+status=/var/lib/omen-football-data/exports/status.json
+[ -f "$status" ] || exit 0
+grep -Eq '"code"[[:space:]]*:[[:space:]]*"source_loss"' "$status" || exit 0
+exec /usr/local/sbin/omen-football-run capture-set

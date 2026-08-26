@@ -1,0 +1,27 @@
+[Unit]
+Description=Omen independent football-data witness capture
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=omen-football
+Group=omen-football
+ExecStart=/usr/local/libexec/omen-football-witness capture
+ExecStartPost=/usr/local/libexec/omen-football-witness-monitor
+TimeoutStartSec=20min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/omen-football-witness
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

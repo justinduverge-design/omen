@@ -1,0 +1,11 @@
+[Unit]
+Description=Normalize and validate Omen football-data without publication
+
+[Timer]
+OnCalendar=Tue *-*-* 05:30:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-validate.service
+
+[Install]
+WantedBy=timers.target

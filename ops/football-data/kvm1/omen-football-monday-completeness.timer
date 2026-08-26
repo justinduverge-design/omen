@@ -1,0 +1,11 @@
+[Unit]
+Description=Validate Sunday completeness without publication
+
+[Timer]
+OnCalendar=Mon *-*-* 05:30:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=omen-football-validate.service
+
+[Install]
+WantedBy=timers.target
