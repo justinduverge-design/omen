@@ -1,0 +1,95 @@
+{
+  "schema": "omen-football-production-readiness-input.v1",
+  "inspected_at_utc": "2026-08-25T22:33:17.000Z",
+  "phase3": {
+    "acceptance_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea",
+    "exact_manifest": true,
+    "failure_scenarios": [
+      "source_loss",
+      "schema_drift",
+      "witness_mismatch",
+      "witness_unavailable",
+      "source_stale",
+      "disk_low",
+      "correction_candidate"
+    ],
+    "publication_authorized": false,
+    "promoted": false,
+    "recovery": {
+      "status": "recovered",
+      "witness_status": "match",
+      "recovered_sha256": "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea"
+    }
+  },
+  "hosts": {
+    "kvm1": {
+      "reachable": true,
+      "hostname": "srv1737978",
+      "os": "Ubuntu",
+      "os_version": "24.04",
+      "system_state": "running",
+      "available_bytes": 37580963840,
+      "data_root": {
+        "path": "/var/lib/omen-football-data",
+        "exists": false
+      },
+      "services": {
+        "docker": "active",
+        "nginx": "active",
+        "omen_api": "healthy",
+        "omen_cron": "running",
+        "omen_supabase_backup_timer": "active"
+      },
+      "runtime": {
+        "host_node": "absent",
+        "docker": "29.6.2",
+        "omen_cron_configured_user": "root",
+        "omen_cron_image_digest": "sha256:6d47f7a43d42727582e2b7a74ba1faeffcb638b5e12efbfd48eeff6be26cfb4c"
+      }
+    },
+    "witness": {
+      "reachable": true,
+      "hostname": "command-center",
+      "os": "Debian GNU/Linux",
+      "os_version": "13",
+      "system_state": "running",
+      "available_bytes": 112742891520,
+      "data_root": {
+        "path": "/var/lib/omen-football-witness",
+        "exists": false
+      },
+      "services": {
+        "docker": "active",
+        "slops_alert_dispatcher_timer": "active",
+        "slops_alert_dispatcher_last_result": "success"
+      },
+      "runtime": {
+        "python": "3.13.5",
+        "curl": "8.14.1",
+        "sha256sum": "9.7",
+        "node": "absent"
+      },
+      "kvm1_tailnet_ping": "pass"
+    }
+  },
+  "alert_codes": [
+    "job_failure",
+    "source_loss",
+    "schema_drift",
+    "stale_data",
+    "disk_low",
+    "witness_mismatch",
+    "witness_outage"
+  ],
+  "infrastructure": {
+    "kvm1_provisioned": false,
+    "witness_provisioned": false,
+    "live_alert_delivery": "not_run",
+    "schedules_active": false,
+    "service_supervision": "not_run",
+    "backup_rehearsal": "not_run",
+    "correction_rehearsal": "not_run",
+    "recovery_rehearsal": "not_run"
+  },
+  "a4": null
+}

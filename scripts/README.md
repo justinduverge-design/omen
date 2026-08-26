@@ -99,6 +99,7 @@ measures `express-rate-limit` rather than Omen.
 | [`football-data.js`](football-data.js) | Captures fixed, rights-reviewed nflverse `stats_player`, `stats_team`, and `schedules` releases; replays one exact manifest; or builds a four-or-more-week normalization/scoring acceptance artifact from one exact manifest for each dataset. Requires explicit local paths; refuses `/var/lib/omen-football-data`, arbitrary source URLs, unsupported datasets, `latest` aliases, publication, and files over 64 MiB. | Yes — local artifact writes and bounded public release reads only; no credentials, database, timer, production path, or promotion behavior |
 | [`validate-football-acceptance.js`](validate-football-acceptance.js) | Read-only independent recomputation of offensive, kicker, and DST results from one exact Phase 2 acceptance artifact, including receipt-hash binding and non-publication checks. | Yes — reads only the two explicit local files and writes its summary to stdout |
 | [`football-data-staging.js`](football-data-staging.js) | Stages one receipt-bound Phase 2 artifact into explicit disjoint local primary/witness/backup roles, runs labeled synthetic failure drills, or recovers exact backup bytes into a fresh local primary after witness verification. | Yes — local evidence only; refuses unsafe/overlapping roots and never publishes, deploys, schedules, contacts a remote host, or writes a database |
+| [`football-data-readiness.js`](football-data-readiness.js) | Evaluates one sanitized Phase 4 host/infrastructure/A4 evidence document against the exact Phase 3 hash, required roles, seven live alert classes, explicit schedules, correction/recovery proofs, and non-activation gates. | Yes — reads one explicit local JSON file and writes the fail-closed assessment to stdout; never contacts a host, reads a secret, installs a service, activates a timer, publishes, or scores |
 
 ```bash
 node scripts/football-data.js capture --dataset stats_player --season 2025 --root /tmp/omen-football-vault
@@ -110,10 +111,12 @@ node scripts/validate-football-acceptance.js --acceptance /tmp/omen-football-acc
 node scripts/football-data-staging.js stage --acceptance <exact-acceptance> --receipt <exact-receipt> --primary-root /tmp/omen-stage/primary --witness-root /tmp/omen-stage/witness --backup-root /tmp/omen-stage/backup
 node scripts/football-data-staging.js drill --acceptance <exact-acceptance>
 node scripts/football-data-staging.js recover --hash <exact-sha256> --backup-root /tmp/omen-stage/backup --recovery-root /tmp/omen-stage/recovered --witness-observation <exact-witness-observation>
+node scripts/football-data-readiness.js assess --evidence Direction/reviews/evidence/2026-08-25-a7b-phase4/host-inspection.json
 ```
 
 This is A7B local evidence, not a production collector or scoring publisher. Each identical retrieval creates a new observation manifest but reuses the same immutable SHA-256-addressed raw object. Raw replay and scoring acceptance always record `promoted: false`; scoring acceptance also records `publication.authorized: false`. The exact Phase 2 contract is `Blueprints/specs/football-data/omen-football-scoring-acceptance-v1.md`.
 The Phase 3 role/recovery contract is `Blueprints/specs/football-data/omen-football-staging-shadow-v1.md`; the operator procedure is `Blueprints/playbooks/football-data-staging-shadow-runbook.md`. Role names model future KVM1/Pi responsibilities but do not prove or mutate those hosts.
+The Phase 4 readiness contract is `Blueprints/specs/football-data/omen-football-production-readiness-v1.md`. A blocked assessment is expected until exact-host provisioning, live alert delivery, schedules/supervision, backup/correction/recovery, and A4 no-write evidence all pass. The assessment never authorizes activation.
 
 ### Approval-required writers and infrastructure scripts
 
