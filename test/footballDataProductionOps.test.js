@@ -15,6 +15,7 @@ const {
   captureProductionSet,
   classifyProductionFailure,
   parseArgs,
+  recordProductionFailure,
   validateProductionBatch,
 } = require("../src/services/footballData/productionRunner");
 
@@ -49,6 +50,21 @@ test("production failures map to all seven payload-free alert families without c
       severity: expected === "witness_mismatch" || expected === "schema_drift" ? "critical" : "high",
     });
   }
+});
+
+test("a failed production job retains both job-failure and its specific fail-closed cause", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "omen-football-failure-test-"));
+  const status = await recordProductionFailure({
+    stateRoot: root,
+    command: "capture-set",
+    error: { code: "SOURCE_UNAVAILABLE", message: "private upstream detail" },
+    now: () => new Date("2026-08-26T18:00:00.000Z"),
+  });
+  assert.deepEqual(status.alerts, [
+    { code: "job_failure", severity: "high" },
+    { code: "source_loss", severity: "high" },
+  ]);
+  assert.equal(JSON.stringify(status).includes("private upstream detail"), false);
 });
 
 test("the KVM1 status export contains hashes and state only", () => {

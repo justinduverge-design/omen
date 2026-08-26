@@ -446,11 +446,13 @@ async function recordProductionFailure({
   now = () => new Date(),
 } = {}) {
   const alert = classifyProductionFailure(error);
+  const alerts = [{ code: "job_failure", severity: "high" }];
+  if (alert.code !== "job_failure") alerts.push(alert);
   const status = buildPayloadFreeStatus({
     generatedAt: now().toISOString(),
     job: String(command || "job-failure").replace(/[^a-z0-9-]/g, "-").slice(0, 64),
     state: alert.code === "source_loss" ? "pending" : "failed",
-    alerts: [alert],
+    alerts,
   });
   await Promise.all([
     writeMutableJson(path.resolve(stateRoot), "status/current.json", status),

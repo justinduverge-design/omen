@@ -2,6 +2,9 @@
 set -eu
 umask 027
 root=/var/lib/omen-football-data
+if [ -f "$root/exports/status.json" ] && grep -Eq '"code"[[:space:]]*:[[:space:]]*"job_failure"' "$root/exports/status.json"; then
+  exit 0
+fi
 case "${1:-}" in
   omen-football-*.service) unit=$1 ;;
   *) unit=omen-football-unknown.service ;;
