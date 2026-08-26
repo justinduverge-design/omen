@@ -221,6 +221,35 @@ test("unproven provisioning, alert delivery, schedules, supervision, backup, cor
   assert.equal(result.gates.production_scoring_authorized, false);
 });
 
+test("a controlled correction fixture is accepted only with explicit non-upstream and no-write evidence", () => {
+  const infrastructure = infrastructureEvidence({
+    correction_rehearsal_mode: "controlled_fixture_not_upstream",
+    controlled_correction: {
+      schema: "omen-football-controlled-correction-rehearsal.v1",
+      mode: "controlled_fixture_not_upstream",
+      status: "correction_candidate",
+      supersedes: ACCEPTANCE_SHA256,
+      changed_subject_count: 1,
+      database_writes_attempted: 0,
+      database_writes_completed: 0,
+      publication_authorized: false,
+      production_scoring_authorized: false,
+      promoted: false,
+    },
+  });
+  const passed = buildProductionReadinessAssessment({
+    phase3: phase3Evidence(), hosts: hostEvidence(), infrastructure, a4: a4Evidence(), alertCodes: REQUIRED_ALERT_CODES,
+  });
+  assert.equal(passed.status, "ready_for_founder_approval");
+
+  const blocked = buildProductionReadinessAssessment({
+    phase3: phase3Evidence(), hosts: hostEvidence(),
+    infrastructure: { ...infrastructure, controlled_correction: { ...infrastructure.controlled_correction, changed_subject_count: 0 } },
+    a4: a4Evidence(), alertCodes: REQUIRED_ALERT_CODES,
+  });
+  assert.ok(blocked.blockers.some((entry) => entry.code === "controlled_correction_fixture_invalid"));
+});
+
 test("the readiness CLI accepts one sanitized evidence file and rejects ambiguous arguments", () => {
   assert.deepEqual(parseArgs(["assess", "--evidence", "evidence.json"]), {
     command: "assess",

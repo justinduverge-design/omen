@@ -115,10 +115,17 @@ then activated only after a separate approval.
 
 ## 6. Correction and recovery rehearsal
 
-The real-host rehearsal must prove:
+The real-host rehearsal must prove either an authentic upstream correction or a
+founder-approved controlled correction fixture. A controlled fixture is allowed
+only when an authentic upstream revision cannot change an accepted subject. Its
+receipt must be permanently labeled `controlled_fixture_not_upstream`; it is
+rehearsal evidence, never a claim about nflverse data.
 
-- a changed upstream hash creates a new immutable snapshot and correction
-  candidate with `supersedes` and changed subjects;
+In both cases, the rehearsal must prove:
+
+- a new immutable snapshot and correction candidate with `supersedes` and one
+  or more changed subjects; a controlled fixture must also prove zero attempted
+  and completed database writes;
 - schema drift quarantines without overwriting the prior accepted artifact;
 - backup contains the exact primary evidence hash;
 - a fresh KVM1 recovery root starts empty and receives exact backup bytes only
@@ -127,7 +134,9 @@ The real-host rehearsal must prove:
   `5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea`;
 - publication and scoring remain false throughout.
 
-The rehearsal uses isolated roots and no SQL or database writes.
+The rehearsal uses isolated roots and no SQL or database writes. A controlled
+fixture has no production credentials or network path and must leave
+publication and production scoring false throughout.
 
 ## 7. A4 no-write acceptance
 
@@ -173,4 +182,3 @@ node scripts/football-data-readiness.js assess \
 The sanitized input schema contains no credential values. The expected initial
 result is `blocked` because provisioning, live alert delivery, schedules,
 backup/correction/recovery, and A4 have not run.
-

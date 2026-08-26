@@ -238,6 +238,27 @@ function inspectInfrastructure(evidence, blockers) {
   for (const [passed, code, message] of checks) {
     if (!passed) blockers.push(blocker(code, message));
   }
+  if (evidence?.correction_rehearsal_mode === "controlled_fixture_not_upstream") {
+    const fixture = evidence.controlled_correction;
+    const validFixture = fixture?.schema === "omen-football-controlled-correction-rehearsal.v1"
+      && fixture?.mode === "controlled_fixture_not_upstream"
+      && fixture?.status === "correction_candidate"
+      && typeof fixture?.supersedes === "string"
+      && /^[a-f0-9]{64}$/.test(fixture.supersedes)
+      && Number.isInteger(fixture?.changed_subject_count)
+      && fixture.changed_subject_count > 0
+      && fixture.database_writes_attempted === 0
+      && fixture.database_writes_completed === 0
+      && fixture.publication_authorized === false
+      && fixture.production_scoring_authorized === false
+      && fixture.promoted === false;
+    if (!validFixture) {
+      blockers.push(blocker(
+        "controlled_correction_fixture_invalid",
+        "Controlled correction evidence must be labeled, nonzero-subject, superseding, no-write, and non-activating",
+      ));
+    }
+  }
 }
 
 function buildProductionReadinessAssessment({
