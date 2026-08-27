@@ -8,6 +8,10 @@ const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { isOffSeason } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
 const {
+  pendingMetadata,
+  resolveScoringPersistenceMetadata,
+} = require("../services/scoringSnapshotResolver");
+const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
   buildOmenMvpMoveResponse,
@@ -114,17 +118,52 @@ function scoringCoverageState(response = {}) {
   return response.platform?.name === "espn" ? "provider_restricted" : "pending";
 }
 
-function scoringPersistenceMetadata(response = {}) {
-  const coverageState = scoringCoverageState(response);
+/**
+ * A6 — derive the league's real scoring contract rather than recording "pending"
+ * for everyone.
+ *
+ * This used to hardcode `contract_version`, `contract_hash` and
+ * `provider_rule_snapshot_hash` to null and take the format from whatever the
+ * response happened to carry. It now goes through
+ * `resolveScoringPersistenceMetadata`, which derives the contract from the
+ * provider's own settings, hashes it, and reports an honest coverage state.
+ *
+ * Two properties this function must keep:
+ *
+ *   - **It cannot throw.** persistLiveRecommendation() refuses to issue a
+ *     recommendation when persistence fails, so an exception here would cost the
+ *     user their recommendation rather than just some metadata. The resolver
+ *     never rejects, and this wrapper adds a belt-and-braces catch.
+ *   - **The rule body stays unretained** until a provider's rights path is
+ *     evidenced — see RETAIN_RULE_BODY in the resolver. The hash still pins
+ *     exactly which rules produced the row, so provenance survives.
+ */
+/**
+ * The subset of scoring metadata that belongs in the public envelope. Frozen to
+ * the fields `2026-05-18.omen-live.v1` already carried, so deriving more
+ * internally never silently widens the API.
+ */
+function publicScoringView(scoring = {}) {
   return {
-    format: response.league?.scoring_format || null,
-    contract_required: true,
-    contract_version: null,
-    contract_hash: null,
-    provider_rule_snapshot_hash: null,
-    coverage_state: coverageState,
-    reconciliation_state: "pending",
+    format: scoring.format ?? null,
+    contract_required: scoring.contract_required === true,
+    contract_version: scoring.contract_version ?? null,
+    contract_hash: scoring.contract_hash ?? null,
+    provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash ?? null,
+    coverage_state: scoring.coverage_state ?? "pending",
+    reconciliation_state: scoring.reconciliation_state ?? "pending",
   };
+}
+
+async function scoringPersistenceMetadata(response = {}) {
+  try {
+    return await resolveScoringPersistenceMetadata({
+      platform: response.platform?.name || null,
+      leagueId: response.league?.id || null,
+    });
+  } catch {
+    return pendingMetadata("Scoring contract derivation failed unexpectedly.");
+  }
 }
 
 async function persistLiveRecommendation(user, response) {
@@ -136,8 +175,12 @@ async function persistLiveRecommendation(user, response) {
     throw new Error("live recommendation persistence failed: missing league season/week");
   }
 
-  const scoring = scoringPersistenceMetadata(response);
-  response.recommendation.scoring = scoring;
+  const scoring = await scoringPersistenceMetadata(response);
+  // The public envelope keeps exactly the shape #372 defined. The resolver's
+  // internal fields — the derived rule body, the retention flag, the failure
+  // reason — are persistence concerns and must not widen the public contract.
+  // The rule body in particular must never leave the server this way.
+  response.recommendation.scoring = publicScoringView(scoring);
   await ensureAppUser(user);
 
   const recommendation = response.recommendation;
@@ -154,10 +197,10 @@ async function persistLiveRecommendation(user, response) {
         ? Number(recommendation.confidence.score)
         : null,
       target_player: recommendation.primary_player?.name || null,
-      scoring: legacyScoringLabel(scoring.format),
+      scoring: scoring.legacy_label ?? legacyScoringLabel(scoring.format),
       platform: response.platform?.name || null,
       league_id: response.league?.id || null,
-      scoring_contract: null,
+      scoring_contract: scoring.contract ?? null,
       scoring_contract_hash: scoring.contract_hash,
       scoring_contract_version: scoring.contract_version,
       scoring_contract_required: scoring.contract_required,
