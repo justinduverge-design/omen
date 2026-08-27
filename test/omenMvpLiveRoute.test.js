@@ -153,7 +153,7 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null } = {}) {
+function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null, missingColumns = null } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
@@ -172,12 +172,23 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
       return {
         upsert(payload, options) {
           state.moveUpserts.push({ payload, options });
+          // `missingColumns` reproduces the real production schema, which has every A6
+          // scoring column but no `platform` and no `league_id`. PostgREST reports that as
+          // a message naming the column, exactly as reproduced here.
+          const offending = (missingColumns || []).find((column) => Object.hasOwn(payload, column));
           return {
             select() {
               return {
-                maybeSingle: async () => persistenceError
-                  ? { data: null, error: { message: persistenceError } }
-                  : { data: { id: "move-live-1" }, error: null },
+                maybeSingle: async () => {
+                  if (persistenceError) return { data: null, error: { message: persistenceError } };
+                  if (offending) {
+                    return {
+                      data: null,
+                      error: { code: "PGRST204", message: `column moves.${offending} does not exist` },
+                    };
+                  }
+                  return { data: { id: "move-live-1" }, error: null };
+                },
               };
             },
           };
@@ -468,4 +479,46 @@ test("POST /api/omen/mvp-move allows explicit live LLM opt-in", async () => {
   assert.equal(res.body.recommendation.explanation.summary, "Live Gemma says this is the move.");
   assert.equal(state.llmPayloads.length, 1);
   assert.equal(state.llmPayloads[0].state, "success");
+});
+
+test("a recommendation still issues when the schema lacks platform and league_id", async () => {
+  // Found live on 2026-08-27: production `moves` has every A6 scoring column but neither
+  // `platform` nor `league_id`, while this route's upsert named both. Because the route
+  // deliberately refuses to issue advice it cannot persist, the first real request would
+  // have received an error instead of a recommendation. It had not fired only because no
+  // request had reached the endpoint in 48 hours.
+  const { app, state } = buildApp({ missingColumns: ["platform", "league_id"] });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.state, "success");
+  assert.ok(res.body.recommendation, "the recommendation must still be issued");
+
+  // Retried once per absent column, then succeeded without them.
+  assert.equal(state.moveUpserts.length, 3);
+  assert.equal(Object.hasOwn(state.moveUpserts[0].payload, "platform"), true);
+  assert.equal(Object.hasOwn(state.moveUpserts[2].payload, "platform"), false);
+  assert.equal(Object.hasOwn(state.moveUpserts[2].payload, "league_id"), false);
+
+  // The scoring metadata — the part that must never be silently dropped — survives.
+  const stored = state.moveUpserts[2].payload;
+  assert.equal(stored.scoring_contract_required, true);
+  assert.ok(stored.scoring_coverage_state);
+  assert.ok(stored.scoring_contract_version);
+});
+
+test("a missing column that is NOT optional still fails closed", async () => {
+  // The tolerance is bounded on purpose. A recommendation whose scoring metadata could not
+  // be stored must not be issued — that is the fail-closed behaviour #372 added, and this
+  // fix must not widen it into 'drop whatever the database rejects'.
+  const { app } = buildApp({ persistenceError: "column moves.scoring_coverage_state does not exist" });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
+  });
+
+  assert.notEqual(res.status, 200);
 });
