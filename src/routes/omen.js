@@ -4,6 +4,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { logger } = require("../middleware/logging");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { isOffSeason } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
@@ -166,6 +167,72 @@ async function scoringPersistenceMetadata(response = {}) {
   }
 }
 
+/**
+ * Columns this write path uses that the production `moves` table may not have.
+ *
+ * Found live on 2026-08-27: production has every A6 scoring column but **no `platform` and
+ * no `league_id`**. The upsert named both, so every live recommendation's persistence would
+ * have failed — and because this route deliberately refuses to issue advice it cannot
+ * persist, `POST /api/omen/mvp-move` would have returned an error to the first real user
+ * instead of a recommendation. It had not fired only because no request had reached the
+ * endpoint in 48 hours.
+ *
+ * The additive migration that would add them is the gated founder sequence, so the write is
+ * made tolerant instead — the same shape as `moves.js`'s detail-column fallback and the
+ * Tuesday cron's `reconciliation_state` fallback. Dropping a column is reported, never
+ * silent: an absent `platform` costs the Ledger detail its provider label, which is a real
+ * if minor loss and should be visible in the logs rather than inferred later.
+ */
+const OPTIONAL_MOVE_COLUMNS = Object.freeze(["platform", "league_id"]);
+
+function namesMissingColumn(error, column) {
+  const message = error?.message || "";
+  return new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message)
+    || (error?.code === "PGRST204" && message.includes(column));
+}
+
+/**
+ * Upsert a move, retrying without any column the schema does not have.
+ *
+ * Retries are bounded by OPTIONAL_MOVE_COLUMNS: a missing column that is NOT optional still
+ * fails loudly, because a recommendation whose scoring metadata could not be stored must not
+ * be issued. That is the whole point of the fail-closed behavior this preserves.
+ */
+async function upsertMoveTolerantly(payload) {
+  const attempt = (row) => supabase
+    .from("moves")
+    .upsert(row, { onConflict: "user_id,week_num,season" })
+    .select("id")
+    .maybeSingle();
+
+  let row = { ...payload };
+  const dropped = [];
+
+  for (let i = 0; i <= OPTIONAL_MOVE_COLUMNS.length; i += 1) {
+    // A fresh object per attempt, so each attempt's real shape is observable rather than
+    // every observer seeing one mutated reference.
+    const result = await attempt({ ...row });
+    if (!result.error) {
+      if (dropped.length) {
+        logger.warn("moves row stored without optional columns absent from the schema", {
+          dropped: dropped.join(","),
+        });
+      }
+      return result;
+    }
+
+    const missing = OPTIONAL_MOVE_COLUMNS
+      .filter((column) => Object.hasOwn(row, column))
+      .find((column) => namesMissingColumn(result.error, column));
+    if (!missing) return result;
+
+    delete row[missing];
+    dropped.push(missing);
+  }
+
+  return attempt({ ...row });
+}
+
 async function persistLiveRecommendation(user, response) {
   if (response?.state !== "success" || !response.recommendation) return null;
 
@@ -184,9 +251,7 @@ async function persistLiveRecommendation(user, response) {
   await ensureAppUser(user);
 
   const recommendation = response.recommendation;
-  const { data, error } = await supabase
-    .from("moves")
-    .upsert({
+  const { data, error } = await upsertMoveTolerantly({
       user_id: user.id,
       week_num: week,
       season,
@@ -208,9 +273,7 @@ async function persistLiveRecommendation(user, response) {
       provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash,
       provider_final_outcome: null,
       reconciliation_state: scoring.reconciliation_state,
-    }, { onConflict: "user_id,week_num,season" })
-    .select("id")
-    .maybeSingle();
+  });
 
   if (error) throw new Error(`live recommendation persistence failed: ${error.message}`);
   if (!data?.id) throw new Error("live recommendation persistence failed: missing move id");
