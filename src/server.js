@@ -246,6 +246,22 @@ try {
   logger.error("League router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/leagues (provider-neutral switcher directory) ---
+try {
+  const leaguesRoutes = require("./routes/leagues");
+  app.use("/api/leagues", leaguesRoutes);
+} catch (e) {
+  logger.error("Leagues router failed to load", { err: e.message, stack: e.stack });
+}
+
+// --- Mount /api/waivers (provider-neutral Waiver Analysis) -------
+try {
+  const waiversRoutes = require("./routes/waivers");
+  app.use("/api/waivers", waiversRoutes);
+} catch (e) {
+  logger.error("Waivers router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
@@ -258,6 +274,9 @@ try {
 try {
   const startSitRoutes = require("./routes/startSit");
   app.use("/api/start-sit", startSitRoutes);
+  // Authenticated §5 detail surface, kept out of the public comparator's module
+  // so that route stays loadable without Supabase config.
+  app.use("/api/start-sit", require("./routes/startSitDetail"));
 } catch (e) {
   logger.error("Start/Sit router failed to load", { err: e.message, stack: e.stack });
 }

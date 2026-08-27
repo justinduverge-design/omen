@@ -15,6 +15,10 @@ initSentry({ component: "cron" });
 const Sentry = require("@sentry/node");
 const { createClient } = require("@supabase/supabase-js");
 const { Redis } = require("@upstash/redis");
+const {
+  RECONCILIATION_STATES,
+  reconcileMoveScoring,
+} = require("./services/scoringReconciliation");
 
 const REQUIRED_SCORING_ENV = Object.freeze([
   "SUPABASE_URL",
@@ -261,10 +265,43 @@ async function fetchNFLScores({
   return playerScores;
 }
 
-function scoreMove(move, playerScores) {
-  if (move.scoring_contract_required === true) {
-    throw new Error("Full scoring contract is required for this recommendation; do not grade it with a legacy PPR fallback");
+/**
+ * A6. A recommendation that carries a full contract is graded BY that contract,
+ * not by the legacy three-label fallback.
+ *
+ * This used to throw outright. Throwing was correct as a fail-closed stop-gap —
+ * grading a contract row as PPR is the defect — but it left the contract engine
+ * orphaned: `calculateContractScore` had no production caller. It is now wired
+ * through reconciliation, which returns one of the seven named states rather
+ * than an exception, so a row that cannot be graded is *deferred and recorded*
+ * instead of failing the whole run.
+ *
+ * The current Tuesday source (nflverse `player_stats`) publishes aggregate
+ * fantasy points, not the per-event facts a contract prices, so in practice this
+ * reconciles to `unsupported` with the missing facts named. That is the honest
+ * answer, and it is the seam the owned football-data pipeline plugs into. It is
+ * deliberately NOT worked around by scoring a missing fact as zero.
+ */
+function scoreMoveByContract(move, stats) {
+  const reconciliation = reconcileMoveScoring({
+    contract: move.scoring_contract || null,
+    snapshotCoverageState: move.scoring_coverage_state || null,
+    facts: stats?.event_facts || null,
+    providerFinalPoints: move.provider_final_points ?? null,
+  });
+
+  if (reconciliation.state !== RECONCILIATION_STATES.EXACT) {
+    return {
+      deferred: true,
+      reconciliation_state: reconciliation.state,
+      reason: reconciliation.reason,
+    };
   }
+
+  return { deferred: false, points: reconciliation.omen_points, reconciliation_state: reconciliation.state };
+}
+
+function scoreMove(move, playerScores) {
   const keys = Object.keys(playerScores);
   const target = move.target_player || move.headline || "";
   const playerKey = findBestMatch(target, keys);
@@ -278,10 +315,30 @@ function scoreMove(move, playerScores) {
   }
 
   const stats = playerScores[playerKey];
-  // Only a row predating A6 lacks scoring_contract_required. Its historical
-  // fallback is PPR. A new recommendation must set scoring_contract_required
-  // and is refused above until the full evaluator and lawful event data exist.
-  const actual = scoreFromStats(stats, move.scoring || "PPR");
+
+  // A contract-required row must never reach the legacy fallback. If its
+  // contract cannot be reconciled, the row is deferred with its state recorded,
+  // not graded against points the league does not award.
+  let actual;
+  let scoringLabel;
+  if (move.scoring_contract_required === true) {
+    const graded = scoreMoveByContract(move, stats);
+    if (graded.deferred) {
+      return {
+        outcome: "pending",
+        eff: null,
+        reconciliation_state: graded.reconciliation_state,
+        result: `Not graded: ${graded.reason}`,
+      };
+    }
+    actual = graded.points;
+    scoringLabel = "this league's scoring contract";
+  } else {
+    // Only a row predating A6 lacks scoring_contract_required. Its historical
+    // fallback stays PPR, which is the documented behavior for those rows.
+    actual = scoreFromStats(stats, move.scoring || "PPR");
+    scoringLabel = move.scoring || "PPR";
+  }
   const confidence = Number(move.confidence) || 50;
   const projectedBaseline = 12.5;
   const ratio = actual / projectedBaseline;
@@ -306,20 +363,41 @@ function scoreMove(move, playerScores) {
   return {
     outcome,
     eff: Math.max(0, Math.min(100, Math.round(eff))),
-    result: `${stats.name || target} scored ${actual.toFixed(1)} fantasy points (${move.scoring || "PPR"}).`,
+    reconciliation_state: move.scoring_contract_required === true ? RECONCILIATION_STATES.EXACT : null,
+    result: `${stats.name || target} scored ${actual.toFixed(1)} fantasy points (${scoringLabel}).`,
   };
 }
 
+/**
+ * A deferred contract row is recorded, not closed: `scored_at` stays null so the
+ * next run picks it up again once lawful event facts exist. Stamping it would
+ * silently retire a recommendation that was never actually graded.
+ */
+function scoredMovePatch(score) {
+  const deferred = score.outcome === "pending";
+  const patch = {
+    outcome: score.outcome,
+    eff: score.eff,
+    result: score.result,
+    scored_at: deferred ? null : new Date().toISOString(),
+  };
+  if (score.reconciliation_state != null) patch.reconciliation_state = score.reconciliation_state;
+  return patch;
+}
+
 async function saveScoredMove(supabase, moveId, score) {
-  const { error } = await supabase
-    .from("moves")
-    .update({
-      outcome: score.outcome,
-      eff: score.eff,
-      result: score.result,
-      scored_at: new Date().toISOString(),
-    })
-    .eq("id", moveId);
+  const patch = scoredMovePatch(score);
+
+  let { error } = await supabase.from("moves").update(patch).eq("id", moveId);
+
+  // `reconciliation_state` arrives with the reviewed A6 schema, and applying it
+  // is the gated founder sequence. Until then, save without it rather than
+  // failing the run.
+  if (error && Object.hasOwn(patch, "reconciliation_state")
+    && /reconciliation_state/.test(error.message || "")) {
+    const { reconciliation_state: _dropped, ...withoutState } = patch;
+    ({ error } = await supabase.from("moves").update(withoutState).eq("id", moveId));
+  }
 
   if (error) throw new Error(`Move ${moveId} update failed: ${error.message}`);
 }
@@ -440,4 +518,6 @@ module.exports = {
   runScoring,
   scoreFromStats,
   scoreMove,
+  scoreMoveByContract,
+  scoredMovePatch,
 };

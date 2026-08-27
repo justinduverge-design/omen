@@ -1,6 +1,7 @@
 # Omen Release Readiness
 
-Last updated: **2026-08-12** (first local Mac/Xcode signed-device bring-up).
+Last updated: **2026-08-26** (§"Not Deployed / Not Merged" reconciled to empty).
+Previous update was 2026-08-12 (first local Mac/Xcode signed-device bring-up).
 Previous full reconciliation was 2026-08-05.
 
 **Product shape:** Omen is a **mobile app** (iPhone SwiftUI + Android
@@ -41,7 +42,7 @@ QA, and the Android store path remain open.
 - GHCR image: `ghcr.io/justinduverge-design/omen:main`
 
 ### Quality gates
-- **Backend tests: 506/506 green** (`npm test`, 2026-08-02, recorded in PR #272), plus focused B2-D 84/84. Was 391/391 on 2026-07-19.
+- **Backend tests: 813/813 green** on `feat/m9-backend-gap-closure` (`npm test`, 2026-08-27, rebased onto `main` after PR #372). `main` itself is 713/713. Was 712/712 at the start of that session, 506/506 on 2026-08-02 (PR #272), 391/391 on 2026-07-19.
 - PRs gated by `pr-quality.yml` (#253)
 - The "Actions billing hold" was a **misdiagnosis** — two config bugs, both fixed in #250 (2026-08-01). **Superseded 2026-08-11:** `ios-ci.yml` no longer runs per-PR by choice, not by failure — it triggers on `release/**` and manual dispatch only, with routine iOS verification moved to the founder's local Mac. See `Blueprints/definition-of-done.md` → "Local substitutes".
 - `npm audit --omit=dev --audit-level=moderate`: **0 production vulnerabilities**
@@ -85,12 +86,79 @@ QA, and the Android store path remain open.
 
 ---
 
+## ✅ Deploy pipeline — BROKEN 2026-08-26, FIXED 2026-08-27
+
+**`main` has not reached production since 2026-08-25 22:23.** The last two pushes
+to `main` both failed to deploy with the identical error:
+
+```
+open /opt/omen/deploy/hostinger/.env.production: permission denied
+```
+
+- run `33024028806` (2026-08-26 23:37, `docs(football-data): record phase4 activation`) — FAILED
+- run `33027042406` (2026-08-27 00:30, `fix: hold unsafe grading and close A7B evidence` #372) — FAILED
+
+**Production itself is UP and healthy** — `/api/health`, `/api/ready`,
+`/api/version` all 200, `status: "ready"`. The old container is still serving. So
+this is not an outage; it is a **silent staleness**: every merge since 2026-08-25
+is on `main` and is *not* running.
+
+**Cause is on the host, not in the code.** The `docker compose pull` step
+succeeds, so the self-hosted runner can read the directory and the compose file.
+Only `.env.production` is unreadable to it, which is what a tightened
+`chmod`/`chown` on that one file looks like. The break window
+(2026-08-25 22:23 → 2026-08-26 23:37) is exactly the A7B Phase 3/4 host-hardening
+window — `9e780b0 fix(football-data): bound backup service privileges`,
+`c8597e0 docs(football-data): record kvm1 identity provisioning`,
+`319723f docs(football-data): record witness root provisioning`. **Not proven** —
+no agent in this session has host access, and confirming it requires reading the
+file's mode and owner on KVM1.
+
+**RESOLVED 2026-08-27 by PR #373** (`fix(deploy): read protected production env on
+recreate`). Deploy run `33028395352` succeeded, API and cron are on the new
+images, health/readiness and public-route canaries pass. The fix kept the file
+protected rather than widening its permissions.
+
+**The residual gap this exposed is still open:** `GET /api/version` returns
+`git_sha: null`, so there is still no way to ask production which commit it is
+serving. Two deploys failed silently for ~25 hours and the only way to establish
+what was actually running was archaeology through Actions logs. Populating
+`git_sha` turns that into one query. Not yet queued.
+
+---
+
 ## Not Deployed / Not Merged
 
-- ESPN connect input normalization for pasted cookie fragments and full ESPN league URLs (no cookies logged or echoed)
-- SPA cache header fix for `index.html`
-- `GET /api/version`, Tier 2 smoke cleanup mode, API route reference, League Standings error envelope polish
-- B2-D3-S Sleeper live trade — `READY_FOR_REVIEW`
+**Empty as of 2026-08-26 (`B2-D3-S2`) — but see the deploy break above:
+"merged" and "running in production" have been different things since
+2026-08-25.**
+
+Every item this section listed was already on `main`, most of it since early
+June. The list was stale, not the work. Verified item by item against `main`
+rather than trusted from this file:
+
+| Item | Where it is on `main` | Landed |
+|---|---|---|
+| ESPN connect input normalization (cookie fragments + full league URLs) | `normalizeSwidCookie` / `normalizeEspnLeagueId` in `src/routes/platforms.js` | `2520fff`, 2026-06-04 |
+| SPA `index.html` cache header fix | `src/middleware/spaCache.js` | `ab80d7f`, 2026-06-03 |
+| `GET /api/version` | `src/routes/system.js:73`, contract `system-version.v1` | `ab80d7f`, 2026-06-03 |
+| Tier 2 smoke cleanup mode | `OMEN_TIER2_CLEANUP` in `scripts/smoke-tier2-endpoints.js` | `ab80d7f`, 2026-06-03 |
+| API route reference | `Blueprints/api-routes.md` | present, updated 2026-08-26 |
+| League Standings error envelope polish | `league-standings-error.v1` in `src/routes/league.js` | `ab80d7f`, 2026-06-03 |
+| B2-D3-S Sleeper live trade | closed 2026-08-02, PR #259 `521268b` | see `Direction/sprints_completed.md` |
+
+`git merge-base --is-ancestor` confirms both anchor commits are on `main`. Zero
+PRs are open.
+
+**Deployed, not merely merged.** `deploy.yml` runs on push to `main`, and a live
+`GET https://slopssaloon.com/api/version` on 2026-08-26 returned
+`{"contract_version":"system-version.v1","service":"omen-api","node_env":"production"}`
+— one of the six items answering from production. Nothing in this list needs a
+deploy.
+
+**This section was wrong for roughly twelve weeks**, and `B-FREEZE` was blocked
+on it the whole time. It is the same failure the agent inbox records repeatedly:
+a status line asserting work does not exist when `main` says otherwise.
 
 ---
 

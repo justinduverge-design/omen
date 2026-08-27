@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_KEY ||= "test-service-key";
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring, scoreMove } = require("../src/omen_tuesday_cron");
+const { fetchNFLScores, fetchPendingMoves, isDeferredScores, isDryRun, nflverseScoresFromCsv, runScoring, scoreMove, scoredMovePatch } = require("../src/omen_tuesday_cron");
 
 test("nflverseScoresFromCsv maps one stored season/week into all scoring formats", () => {
   const scores = nflverseScoresFromCsv([
@@ -104,14 +104,90 @@ test("legacy rows grade standard, half-PPR, and PPR differently while a row with
 });
 
 test("a post-A6 recommendation fails closed when its full scoring contract cannot be evaluated", () => {
-  assert.throws(
-    () => scoreMove({
-      target_player: "Contract Receiver",
-      scoring_contract_required: true,
-      scoring_coverage_state: "unsupported",
-    }, { contract_receiver: { name: "Contract Receiver", rec_std: 6, rec_half: 9, rec_ppr: 12 } }),
-    /Full scoring contract is required/,
-  );
+  // This used to assert a thrown error. Throwing failed closed but also failed
+  // the whole run and left the contract engine with no production caller. The
+  // requirement is unchanged and now checked more precisely: the row must not be
+  // graded, must not borrow the PPR fallback, and must carry a named state.
+  const stats = { contract_receiver: { name: "Contract Receiver", rec_std: 6, rec_half: 9, rec_ppr: 12 } };
+  const score = scoreMove({
+    target_player: "Contract Receiver",
+    scoring_contract_required: true,
+    scoring_coverage_state: "unsupported",
+  }, stats);
+
+  assert.equal(score.outcome, "pending");
+  assert.equal(score.eff, null);
+  assert.equal(score.reconciliation_state, "pending");
+  assert.equal(/12\.0|9\.0|6\.0|PPR/.test(score.result), false);
+  assert.match(score.result, /^Not graded: /);
+});
+
+test("a deferred contract row is not stamped scored_at, so a later run can still grade it", () => {
+  const deferred = scoredMovePatch({ outcome: "pending", eff: null, result: "Not graded: x", reconciliation_state: "unsupported" });
+  const graded = scoredMovePatch({ outcome: "win", eff: 70, result: "ok", reconciliation_state: "exact" });
+
+  assert.equal(deferred.scored_at, null);
+  assert.equal(deferred.reconciliation_state, "unsupported");
+  assert.ok(graded.scored_at);
+});
+
+test("a contract-required row is graded by its own contract, never by the PPR fallback", () => {
+  // Half-PPR contract: 6 receptions at 0.5, plus 60 receiving yards at 0.1.
+  const contract = {
+    ruleset_version: "omen-scoring-contract-v1",
+    coverage_state: "supported",
+    rules: [
+      { event_key: "receiving_receptions", operator: "per_event", value: 0.5 },
+      { event_key: "receiving_yards", operator: "per_event", value: 0.1 },
+    ],
+  };
+  const stats = {
+    contract_receiver: {
+      name: "Contract Receiver",
+      rec_std: 6, rec_half: 9, rec_ppr: 12,
+      event_facts: { receiving_receptions: 6, receiving_yards: 60 },
+    },
+  };
+
+  const score = scoreMove({
+    target_player: "Contract Receiver",
+    scoring_contract_required: true,
+    scoring_coverage_state: "supported",
+    scoring_contract: contract,
+    provider_final_points: 9,
+  }, stats);
+
+  assert.equal(score.reconciliation_state, "exact");
+  assert.match(score.result, /9\.0 fantasy points \(this league's scoring contract\)/);
+  // Crucially: the PPR fallback for this same stat line would have been 12.0.
+  assert.equal(score.result.includes("12.0"), false);
+});
+
+test("a missing event fact is never scored as zero", () => {
+  const contract = {
+    ruleset_version: "omen-scoring-contract-v1",
+    coverage_state: "supported",
+    rules: [
+      { event_key: "receiving_receptions", operator: "per_event", value: 0.5 },
+      { event_key: "receiving_yards", operator: "per_event", value: 0.1 },
+    ],
+  };
+  const score = scoreMove({
+    target_player: "Contract Receiver",
+    scoring_contract_required: true,
+    scoring_coverage_state: "supported",
+    scoring_contract: contract,
+    provider_final_points: 9,
+  }, {
+    contract_receiver: {
+      name: "Contract Receiver", rec_ppr: 12,
+      event_facts: { receiving_receptions: 6 },
+    },
+  });
+
+  assert.equal(score.outcome, "pending");
+  assert.equal(score.reconciliation_state, "unsupported");
+  assert.match(score.result, /receiving_yards|missing lawful event facts/);
 });
 
 test("fetchNFLScores reads the public nflverse season CSV without a provider key", async () => {

@@ -20,6 +20,10 @@ const VALID_PLATFORMS = new Set(["yahoo", "sleeper", "espn"]);
 // candidate is tried before the request is allowed to fail, so one dead provider
 // can never take down a user who has a healthy connection elsewhere.
 const PLATFORM_ORDER = ["espn", "sleeper", "yahoo"];
+const {
+  SELECTION_COLUMN,
+  readConnectionsWithSelection,
+} = require("../services/activeSelection");
 const ERROR_COPY = Object.freeze({
   invalid_platform: {
     error: "Invalid platform",
@@ -69,9 +73,13 @@ function selectConnections(rows, { platform, leagueId }) {
     .filter(connectionUsable)
     .filter((row) => !platform || row.platform === platform)
     .filter((row) => !leagueId || String(row.league_id) === String(leagueId))
-    .sort((a, b) => (
-      PLATFORM_ORDER.indexOf(a.platform) - PLATFORM_ORDER.indexOf(b.platform)
-    ));
+    .sort((a, b) => {
+      // The user's switcher choice (visual briefs §10.3) wins; PLATFORM_ORDER
+      // stays the tie-break for everyone who has not chosen one.
+      const selected = Number(Boolean(b?.[SELECTION_COLUMN])) - Number(Boolean(a?.[SELECTION_COLUMN]));
+      if (selected !== 0) return selected;
+      return PLATFORM_ORDER.indexOf(a.platform) - PLATFORM_ORDER.indexOf(b.platform);
+    });
 }
 
 function selectConnection(rows, options) {
@@ -79,14 +87,12 @@ function selectConnection(rows, options) {
 }
 
 async function getConnectionRows(userId) {
-  const { data, error } = await supabase
-    .from("platform_connections")
-    .select("platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id,espn_team_id")
-    .eq("user_id", userId)
-    .eq("is_active", true);
-
-  if (error) throw new Error(`platform_connections lookup failed: ${error.message}`);
-  return data || [];
+  const { rows } = await readConnectionsWithSelection(
+    supabase,
+    userId,
+    "platform,is_active,league_id,platform_username,platform_user_id,token_secret_id,refresh_secret_id,espn_secret_id,swid_secret_id,espn_team_id"
+  );
+  return rows;
 }
 
 function baseEnvelope(connection, context, extra = {}) {

@@ -130,8 +130,28 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** BLOCKED
-- **Claim:** 2026-08-26 Codex — fail-closed recommendation-persistence containment is implemented on `codex/a7b-closure-reconciliation`; full provider-rule capture/reconciliation remains externally blocked.
-- **Evidence:** 2026-08-26 safety repair on `codex/a7b-closure-reconciliation` / PR #372 makes the server persist every issued live recommendation, marks feedback-only rows `scoring_contract_required=true`, refuses to issue a recommendation when persistence fails, and leaves uncaptured live scoring format `null` instead of inventing PPR. Focused 56/56, full backend 713/713, and all three PR checks passed. This is fail-closed containment, not full A6 completion, and is not production behavior until merged/deployed.
+- **Claim:** 2026-08-24 Codex — replacing the insufficient three-format premise with the founder-approved, full-league Scoring Contract on `codex/full-league-scoring-contract`.
+- **Claim:** 2026-08-26 Codex — fail-closed recommendation-persistence containment, merged as PR #372.
+- **Claim:** 2026-08-26 Claude — provider rule derivation and reconciliation on `feat/m9-backend-gap-closure` (PR #371, open).
+- **Evidence (Codex, #372, on `main`):** the server persists every issued live recommendation (`persistLiveRecommendation`, `src/routes/omen.js:130`), marks feedback-only rows `scoring_contract_required=true`, refuses to issue a recommendation when persistence fails, and leaves uncaptured live scoring format `null` instead of inventing PPR. Focused 56/56, backend 713/713.
+- **Evidence (Claude, #371, not merged):** `src/services/scoringRuleSnapshot.js` (provider-neutral derivation + order-independent hashing), `src/services/scoringReconciliation.js` (all seven states, failing closed), `scoreMove` wired to grade a contract-required row **by its contract** instead of throwing, `test/scoringRuleSnapshot.test.js` (23). `npm test` 812/812 pre-rebase.
+- **The two halves fit together, and neither is complete alone.** #372 built the **write path** and persists `scoring_contract: null` with the metadata beside it. #371 builds the **derivation** that produces the contract body that column wants. Wiring `deriveScoringSnapshot()` into `scoringPersistenceMetadata()` is the next concrete step and is agent-resolvable.
+- **Premise correction 2026-08-26 (Claude):** this item's `What is wrong:` line — "`fetchPendingMoves` selects without `scoring`, so **every** move is graded as PPR" — was **already false on `main`** when read. `src/omen_tuesday_cron.js:194` selects `scoring`. The real remaining defect was narrower: **the contract engine was orphaned** — `calculateContractScore` had no production caller and `scoreMove` *threw* on a contract row rather than evaluating it. Grep `main` before trusting a Scope line, including one asserting a defect still exists.
+- **Retracted 2026-08-26:** an earlier line on this branch listed the capture path as `AGENT_RESOLVABLE — nothing writes scoring_contract at recommendation time`. That was true when written and was closed by #372 hours later. Verified against `main` before retracting, not taken from the PR description.
+- **Engineering-status reconciliation 2026-08-27.** The parallel session's A6 read lists six engineering-ready items. Checked against code rather than against either session's description — **three are already built, two are partial, one is deploy-blocked:**
+
+| Item | State | Where |
+|---|---|---|
+| Canonical contract serialization + hashing | **DONE** | `scoringRuleSnapshot.js` `canonicalize`/`hashOf`, order-independent, tested (PR #371, open) |
+| Lawful event-fact evaluator | **DONE, and predates both sessions** | `calculateContractScore` in `scoringContract.js`, landed `bdb8fdc` 2026-08-24. It was **orphaned** — no production caller — until #371 wired it through reconciliation |
+| Reconciliation states | **DONE** | `scoringReconciliation.js`, all seven, with a test asserting every one is reachable (PR #371, open) |
+| Rule coverage matrix | **PARTIAL** | the *mechanism* exists (`EVENT_KEYS`, `SLEEPER_EVENT_MAP`, unmapped-non-zero → `ambiguous`); the **written per-provider matrix does not** |
+| Fixture / replay matrix | **PARTIAL** | 23 fixture tests including three-format divergence; **no multi-week replay matrix** |
+| Production new-row proof | **BLOCKED** | needs a working deploy — see the deploy break |
+
+  **Consequence for sequencing:** "implement the provider-neutral contract/evaluator core" is not a build step any more. It is a **merge** step, and it is cheaper and earlier than the parallel session's sequence places it.
+
+- **Blocked by:** DATA — the current Tuesday source (nflverse `player_stats`) publishes aggregate fantasy points, not the per-event facts a contract prices, so a contract row reconciles to `unsupported` with its missing facts named. This is the seam `A7B` plugs into and is deliberately **not** worked around by scoring a missing fact as zero.
 - **Blocked by:** EXTERNAL — each provider needs an affirmative rights/entitlement path before Omen may capture and retain its complete private rule snapshot or final outcome; ESPN is provider-restricted unless it grants express permission.
 - **Unblock:** 2026-08-26 CLEARED for existing columns only — after explicit founder authorization and rollback preflight, the exact additive compatibility migration was applied to production with no row rewrite. This does not authorize any future SQL.
 - **Priority:** P1 — correctness defect in the grading loop
@@ -139,6 +159,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Source:** 2026-08-15 A5 research.
 - **What is wrong:** `fetchPendingMoves` selects without `scoring`, carrying the in-source note "`scoring` is not present in the deployed moves schema. scoreMove already defaults an absent format to PPR." So **every** move is graded as PPR. A standard or half-PPR league's recommendation is graded against points its league does not award. `nflverseScoresFromCsv` already computes `rec_std`, `rec_half`, and `rec_ppr` — all three are produced and two are discarded.
 - **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
+- **⚠️ PROPOSED ACCEPTANCE AMENDMENT — 2026-08-27, awaiting founder ratification.** The `Done when:` below requires *every* recommendation to name an immutable provider-rule snapshot. **That is unsatisfiable for a legally restricted provider**, and an item whose acceptance cannot be met is not a high bar — it is an item that can never close, which pressures whoever is holding it toward fabricating a snapshot to satisfy the sentence. Proposed replacement for the first clause:
+
+  > every recommendation names either (a) an immutable provider-rule snapshot and versioned canonical Scoring Contract, or (b) an immutable, hashed **restriction attestation** naming the provider, the coverage state, and the reason no lawful snapshot exists — never a fabricated or partial snapshot presented as complete;
+
+  **The code already behaves this way**, which is why this is a wording fix rather than a build. `deriveScoringSnapshot({platform:"espn"})` returns `coverage_state: "provider_restricted"`, an explicit reason, `rules: []`, and a hash — an attestation, not a snapshot — and `reconcileMoveScoring` refuses `exact` for it regardless of the numbers. The acceptance sentence is the only part out of step. Raised by the parallel session 2026-08-27; **not applied to the clause below until the founder ratifies it.**
 - **Done when:** every recommendation names an immutable provider-rule snapshot and versioned canonical Scoring Contract; Omen calculates every supported material rule from lawful event facts; coverage is explicit for every rule; provider-final reconciliation distinguishes `exact`, `provider_adjusted`, `provider_restricted`, `unsupported`, `ambiguous`, `mismatch`, and `pending`; a league-exact result fails closed when any material rule or adjustment cannot be reproduced; historical rows without the new contract preserve the PPR fallback; the additive schema and its application evidence are recorded.
 - **Do not touch:** any additional staging/production SQL without a new exact founder authorization; silently treating the reception-only format as a full scoring contract; expanding ESPN extraction or reconciliation without a lawful provider path.
 
@@ -440,6 +465,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### M9-NativeScreenBacklog — Mint delivery items for the four approved-but-unbuilt screens
 
 - **Status:** READY
+- **Backend dependency answered 2026-08-26:** `Direction/reviews/2026-08-26-m9-screen-backend-dependency-audit.md` audited all four against the live API. **All four had a real backend gap; none needed zero work.** All four backends are now built on `feat/m9-backend-gap-closure` (see `M9-BE-Switcher`, `M9-BE-WaiverAnalysis`, `M9-BE-StartSitDetail`, `M9-BE-LedgerDetail` below). Minting the four *screen* delivery items remains this item's own scope and is still a planning act.
 - **Blocked by:** None
 - **Priority:** P2 — planning, not build. It exists because the gap is currently invisible: these screens are designed, approved, and nowhere in the queue.
 - **Cost:** small
@@ -447,6 +473,55 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Source:** the 2026-08-16 screen-contract audit. Native ships four surfaces — Command Center, Omen, Connect, Help. `M5-Native-API-Client` covers slices A–G and stops. **Four approved screen contracts have no delivery item anywhere:** Waiver Analysis (visual briefs §6), Start/Sit detail (§5), the Ledger **detail** screen (§7 — slice E wired only the Command Center *preview*), and the team/league switcher sheet (§10.2). The switcher is the load-bearing one: `M5` slice C fills the context strip, and §10.1 makes that strip the control that switches every personalized surface — today it has nothing to open.
 - **Done when:** each of the four carries a canonical task record with key, priority, `Done when:`, `Blocked by:`, and a stated backend dependency (or none), ordered against the beta-minimum; and any that is deliberately post-1.0 says so with a reason rather than being left unqueued.
 - **Do not touch:** no implementation. This is a planning act.
+
+### M9-BE-Switcher — Backend for the team/league switcher sheet
+
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-26 Claude — `feat/m9-backend-gap-closure`.
+- **Blocked by:** FOUNDER — PR merge and deploy.
+- **Priority:** P1 — §10.1 makes the context strip the control for every personalized surface, and `M5` slice C already ships the strip with nothing to open.
+- **Cost:** small
+- **Evidence:** `GET /api/leagues` → `league-directory.v1`, `POST /api/leagues/active` → `league-active-selection.v1`, `src/services/activeSelection.js`, `test/leaguesDirectoryRoute.test.js` (21). Contracts in `Blueprints/api-routes.md`.
+- **Finding:** before this, three surfaces resolved "which league is active" three different ways — `omen.js` sleeper→espn→yahoo, `league.js` espn→sleeper→yahoo, `optimizer.js` Yahoo-only by `updated_at` — and none of them was the user's choice. All now use one resolver; behavior is unchanged for a user who has not chosen.
+- **Done when:** merged and deployed; a real switch is observed changing the surface a personalized route returns.
+- **Do not touch:** applying `sql/2026-08-26_league_selection_review.sql` — gated founder sequence.
+
+### M9-BE-WaiverAnalysis — Backend for Waiver Analysis (§6)
+
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-26 Claude — `feat/m9-backend-gap-closure`.
+- **Blocked by:** FOUNDER — PR merge and deploy.
+- **Priority:** P1
+- **Cost:** small
+- **Evidence:** `GET /api/waivers/analysis` → `waiver-analysis.v1`, `src/services/waiverAnalysis.js`, `test/waiverAnalysisRoute.test.js` (22), proven separately against each provider's own adapter.
+- **Finding:** `GET /api/optimizer/waivers` and `/waiver` are **Yahoo-only** — both call `getAuthenticatedYahooClient()` unconditionally — and Yahoo is entitlement-refused (facts-of-record #11). `fetchEspnWaiverPool` was reachable only through `POST /api/omen/mvp-move`, as one MVP move. Sleeper the same. No provider could serve §6.
+- **Done when:** merged and deployed; proven once against a real drafted league per provider.
+- **Do not touch:** FAAB, waiver priority, or claim probability — forbidden by §6.2 until the league's waiver system is verified.
+
+### M9-BE-StartSitDetail — Backend for Start/Sit detail (§5)
+
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-26 Claude — `feat/m9-backend-gap-closure`.
+- **Blocked by:** FOUNDER — PR merge and deploy.
+- **Priority:** P1
+- **Cost:** small
+- **Evidence:** `GET /api/start-sit/detail` → `start-sit-detail.v1`, `src/services/startSitDetail.js`, `test/startSitDetailRoute.test.js` (19).
+- **Finding:** `POST /api/start-sit` exists and works, but is a stateless, **unauthenticated**, caller-supplied two-player comparator that never touches a provider. It is a different feature from §5, not an incomplete one — it cannot reach league context, kickoff times, scoring format, or the user's roster for any provider.
+- **Done when:** merged and deployed; proven once against a real roster.
+- **Do not touch:** the public `POST /api/start-sit` comparator; the detail route is a separate router so that one stays loadable without Supabase config.
+
+### M9-BE-LedgerDetail — Backend for the Ledger detail screen (§7)
+
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-26 Claude — `feat/m9-backend-gap-closure`.
+- **Blocked by:** FOUNDER — PR merge and deploy.
+- **Priority:** P2 — the Command Center preview (`M5` slice E) already ships; this is the drill-in.
+- **Cost:** small
+- **Evidence:** `GET /api/moves/:id` → `move-detail.v1`, `test/moveDetailRoute.test.js` (12).
+- **Finding:** `GET /api/moves` is a list and `normalizeMove()` projects ten fields; there was no per-move route at all. The stored `outcome` column literally holds `win`/`loss`, which §7.3 forbids surfacing — it is now translated into measured language and a test greps the response for the raw values.
+- **Open, and larger than this item:** §7 calls the snapshot **immutable**, but `moves` rows are only ever created by the feedback upsert (`src/routes/omen.js:339`) — the recommendation is never persisted at issue time. Until a recommendation-write path exists, the "snapshot" is assembled from whatever the feedback row happens to carry. Shared with `A6`'s capture-path blocker.
+- **Done when:** merged and deployed; a real Ledger row renders every §7.5 state the data can reach.
+- **Do not touch:** inventing a `superseded` state from a single row.
 
 ### M10-DesignLaneStaleness — Extend the staleness check to design work
 
@@ -602,8 +677,11 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### B2-D3-S2 — Merge and deploy the prepared-not-deployed set
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** READY_FOR_REVIEW
+- **Claim:** 2026-08-26 Claude — agent half complete on `feat/m9-backend-gap-closure`; the deploy action remains founder-gated and was not performed.
+- **Evidence:** `Direction/release_readiness.md` §"Not Deployed / Not Merged" is now **empty**, with per-item commit evidence. **Every item was already on `main`, most since 2026-06-03/04** — the section was stale by roughly twelve weeks, not the work outstanding. `GET https://slopssaloon.com/api/version` answered live from production on 2026-08-26, so one of the six was demonstrably deployed, not merely merged. B2-D3-S closed 2026-08-02 (PR #259). Zero PRs open. Founder deploy note: `Direction/reviews/2026-08-26-b2d3s2-deploy-note.md`.
+- **Correction arising:** this item's own Scope line asserted six pieces of work were undeployed when `main` said otherwise, and `B-FREEZE` was blocked on it the entire time. Same failure mode the agent inbox records repeatedly, in the same direction: a status line trusted over `main`.
+- **Blocked by:** FOUNDER — the deploy action and the PR merge. The original deploy step has nothing to carry; what is waiting is this session's new backend work.
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** merge preparation yes; the deploy action is founder-gated
@@ -636,13 +714,15 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### S1 — Final production secrets and Supabase settings review
 
 - **Status:** READY
-- **Blocked by:** None
 - **Unblock:** 2026-08-22 CLEARED — founder established that required security controls are mandatory operating practice, not optional approval gates. Founder-only dashboard access identifies the executor; it does not make leaked-password protection or secret-scope verification discretionary.
 - **Priority:** P0
 - **Cost:** small
 - **Agent-buildable:** checklist preparation only
-- **Scope:** final pre-beta pass over production secrets and Supabase settings. Includes the A3 carry-over: **leaked-password protection is disabled in Supabase Auth** (one-toggle fix).
+- **Scope:** final pre-beta pass over production secrets and Supabase settings. Includes the A3 carry-over: **leaked-password protection is disabled in Supabase Auth** (one-toggle fix). **New finding 2026-08-24:** enabling it requires the Supabase **Pro** plan — it is not available on the current plan tier.
 - **Unblock:** 2026-08-11 REASSESSED — founder reports partial progress: additional authentication providers enrolled and further Supabase configuration completed. **Recorded, not credited.** The named acceptance criterion here is leaked-password protection plus a per-secret presence-and-scope pass, and neither has been evidenced. Confirm the specific toggle and produce the secret inventory before this moves.
+- **Unblock:** 2026-08-24 PARTIAL PROGRESS — Claude-prepared checklist walked with the founder. Git secret-hygiene check done and clean (`git ls-files | grep ^\.env` shows only `.env.example`; nothing else tracked). Two real findings along the way: (1) `README.md`'s "Secrets: Infisical" description is stale — production secrets actually live in a hand-managed `deploy/hostinger/.env.production` on KVM1, confirmed by reading `deploy.yml` directly; Infisical is the founder's separately maintained secrets mirror, not the live path. (2) `INFISICAL_TOKEN` is still present in GitHub Actions secrets and unused by any current workflow — flagged for the founder to delete. Both corrections logged in `Direction/decision_log.md` (2026-08-24 entries).
+- **Blocked by:** FOUNDER_APPROVAL — leaked-password protection requires upgrading the Supabase plan (Pro); founder has not decided whether to upgrade.
+- **Unblock:** 2026-08-24 DEFERRED — the per-secret presence-and-scope pass (the KVM1 `.env.production` check) could not be completed this session: the founder's Hostinger browser-terminal did not open. No SSH-key setup exists yet as a fallback. Resume via either (a) retry the Hostinger panel's browser terminal, or (b) set up a normal SSH client connection to KVM1 if the browser terminal keeps failing. Not blocking anything else in the sprint.
 - **Skills:** `security-privacy-evidence`
 - **Done when:** every production secret is confirmed present, correctly scoped, and unexposed; leaked-password protection is enabled; findings are recorded without values.
 - **Do not touch:** secret values in logs, agent output, or evidence files.
@@ -657,7 +737,8 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Cost:** small
 - **Agent-buildable:** no
 - **Source:** ESPN adapter work ran against local branches with provider access. Rotate anything that could have been captured in a local log, shell history, or branch artifact before real testers arrive.
-- **Unblock:** 2026-08-11 REASSESSED — no rotation evidence exists on `main`. Founder-reported Supabase configuration work is **not** rotation and does not satisfy this item. **Newly in scope:** P1-YahooReauth will mint a fresh Yahoo token, which discharges the Yahoo portion of this item if the old `token_secret_id` is retired rather than left orphaned — sequence S2's Yahoo half after that item and record it. Also still open from the 2026-07-30 preservation pass: the Apple `.p8` signing key sitting under `C:\Users\JDuve\dev` inherits `CodexSandboxUsers:(I)(RX)` read access and should be relocated outside any agent-reachable path.
+- **Unblock:** 2026-08-11 REASSESSED — no rotation evidence exists on `main`. Founder-reported Supabase configuration work is **not** rotation and does not satisfy this item. **Newly in scope:** P1-YahooReauth will mint a fresh Yahoo token, which discharges the Yahoo portion of this item if the old `token_secret_id` is retired rather than left orphaned — sequence S2's Yahoo half after that item and record it.
+- **Unblock:** 2026-08-24 PARTIAL — **ESPN half done.** Founder ran a fresh validated ESPN reconnect, overwriting the prior Vault-stored `espn_s2`/`SWID` values. **Apple `.p8` half deferred, not done:** the key still sits under `C:\Users\JDuve\dev` (Windows), inheriting `CodexSandboxUsers:(I)(RX)` read access. Moving it requires the founder to be physically at that Windows machine — Claude's device bridge this session only reaches the founder's Mac, not Windows, so this step could not be walked through live. Exact relocation steps (find the `*.p8` file, cut, paste into a password manager's file storage or any folder never shared with an agent tool, confirm the old path is empty) were given to the founder in-session and are simple enough to re-request whenever he's next on that machine. **Yahoo half still blocked** — entitlement not restored (facts-of-record #11).
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
 
