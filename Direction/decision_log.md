@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-08-27 — Founder decision: Omen is operated as a non-commercial app
+
+- **Decision (Justin):** Omen is treated as a standard free sports-information utility and **not** a commercial app, on the basis that no money is involved at any point — no billing, no subscription, no paywall, no ads. This is the working posture for provider API terms, including Sleeper's "free to use for non-commercial purposes".
+- **Outreach state at the time of the decision:** the founder emailed **Sleeper, Yahoo and ESPN**. **None has responded**, and there is no other channel to any of them. The decision is made in the absence of a reply, not against one.
+- **The agent argued the other side and the founder decided anyway.** Recorded so the reasoning survives rather than looking unconsidered later: "non-commercial" in API terms is commonly read as "not by or for a business" rather than "no money changed hands"; Omen ships on two app stores under **Valor Ventures LLC**; and Sleeper offering a licensing path at all suggests it is aimed at entities of exactly this kind. The founder has heard that and accepts the risk.
+- **What this does NOT rest on:** it is not a legal opinion, no counsel has reviewed it, and no provider has confirmed it. It is an **accepted business risk** and must be described that way downstream, never as a settled fact.
+- **Scope of the exposure, so it is not understated:** if the reading is wrong it is not one database column. **Thirteen source files call the Sleeper adapter on the production serving path.** The risk was always the integration, never the retention.
+- **Separate, and on much firmer ground: player names and statistics.** *C.B.C. Distribution v. MLB Advanced Media*, 505 F.3d 818 (8th Cir. 2007), cert. denied 2008, held a fantasy operator's unlicensed use of player names and statistics protected by the First Amendment against right-of-publicity claims — the same fact pattern. **That precedent does not travel to provider contract terms.** Names taken from public NFL statistics sit on that ground; names taken *through Sleeper's API* remain governed by Sleeper's terms regardless. This is among the strongest arguments for owning the data pipeline: it removes the contract dependency rather than arguing about it.
+- **Revisit trigger:** any provider reply, any move to charge users or run ads, or any counsel review. Any of those supersedes this entry.
+
 ## 2026-08-26 — Unsafe grading is held; A7B closes while A6 remains fail-closed and incomplete
 
 - **Production safety decision:** a read-only aggregate found one real pending/followed `moves` row with every A6 scoring field null and zero post-migration rows. Source inspection supplied the decisive proof: live recommendation generation wrote no move, feedback created/updated only user-answer fields, and Tuesday scoring treated any row without `scoring_contract_required=true` as historical and defaulted missing format to PPR. Standard and Half-PPR users could therefore be graded under rules their league did not award.
