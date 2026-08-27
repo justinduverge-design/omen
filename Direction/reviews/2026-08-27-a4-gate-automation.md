@@ -34,10 +34,27 @@ Messages it can send:
 - `TUESDAY SCORING ENABLED automatically - all gates passed`
 - `checker_unavailable` / `state_unreadable` / `state_stale` — the fault cases
 
-## Auto-enable: available, off, and reversible
+## Auto-enable: ARMED 2026-08-27, and reversible
 
-`/etc/omen-a4/auto-enable` containing `enabled` turns it on. **It is not set.** Until it is,
-the runner reports and nothing else.
+`/etc/omen-a4/auto-enable` contains `enabled`. **It is set** — founder-directed 2026-08-27.
+
+**To disarm at any time, on KVM1:**
+
+```sh
+sudo rm /etc/omen-a4/auto-enable        # back to report-only, takes effect on the next run
+```
+
+**If it enables and you want it off again:**
+
+```sh
+sudo sed -i 's/^OMEN_CRON_SCORING_ENABLED=true/OMEN_CRON_SCORING_ENABLED=false/' \
+  /opt/omen/deploy/hostinger/.env.production
+cd /opt/omen/deploy/hostinger && sudo docker compose \
+  -f docker-compose.prod.yml --project-name omen up -d --no-build cron
+```
+
+Every auto-enable writes a timestamped `.env.production.bak-a4-autoenable-*` beside the
+original first, so the prior state is always recoverable byte-for-byte.
 
 With it set, on the first day every gate passes, KVM1 backs up `.env.production`, flips
 `OMEN_CRON_SCORING_ENABLED` to `true`, recreates **only** the cron service, and Discord says
@@ -68,6 +85,15 @@ evidence is observed, and the observation is the automated part.
 - Discord `--test` delivered; a full dispatcher run with real signals did not regress.
 - A simulated all-green state **fired the Discord alert**, then real state was restored and
   the signature returned to empty.
+- **Arming verified:** with the control file set and gates still red, the runner ran and
+  changed nothing — flag stayed `false`, cron container untouched. The safe path is the one
+  actually exercised, not the assumed one.
+- **Enable path proven in a sandbox** before arming: flag flips `false`→`true`, unrelated
+  env lines survive, the operation is idempotent, and the timestamped backup is written.
+  (The first check reported "backup exists: 0" — a test artifact, `ls` without `-a` on a
+  dotfile. Re-checked with `ls -a`: the backup is real and its contents correct. Worth
+  recording because "the backup didn't happen" would have been the wrong conclusion from a
+  correct-looking command.)
 - Dispatcher state machine exercised for all seven cases including garbage, wrong schema,
   and a 3-day-stale file. Every fault case fails closed to a visible alert.
 
