@@ -78,12 +78,12 @@ In this order. Each is a single call.
 4. `GET /api/leagues` with your bearer token. Expect your Sleeper leagues listed,
    ESPN showing `discovery: "bound_only"`, and
    `selection_persistence: "provider_binding_only"`.
-5. `GET /api/waivers/analysis` and `GET /api/start-sit/detail`. **Updated
-   2026-08-27:** the season floor is now cleared — production
-   `GET /api/system/current-week` reports season 2026, week 1, `regular`
-   (facts-of-record #10, amended by the other session). So these should return
-   **real analysis**, not `off_season`. If either returns `off_season`, that is
-   now a defect rather than the expected August answer.
+5. `GET /api/waivers/analysis` and `GET /api/start-sit/detail`. **Corrected 2026-08-27:**
+   an earlier revision of this note said the season floor was cleared and that these should
+   return real analysis. **That was wrong**, and it came from the same clamped
+   `current-week` reading that produced the false amendment to facts-of-record #10. It is
+   the off-season until **2026-09-05**, so `state: "off_season"` is the **correct** answer
+   and is not a defect. Re-check these once the season opens.
 
 **Rollback:** the change is additive, so reverting the merge commit is sufficient
 and loses nothing but the new routes. No data is written by any of them except
