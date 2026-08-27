@@ -95,6 +95,48 @@ the tab.
 been done. The Discord alerting from `O9` already exists and works. Wiring "deploy
 failed" into it is small and agent-buildable.
 
+### Step 2.5 — Reconciled A6 sequence (supersedes Step 3 below)
+
+The parallel session proposed: **deploy → containment row → amend language →
+implement core → add providers.** That is the right shape and the right first
+step. One correction, checked against code rather than against either session's
+description:
+
+**"Implement the provider-neutral contract/evaluator core" is not a build step.
+It is a merge step.** Three of its six engineering items already exist:
+
+- canonical serialization + hashing — built, PR #371
+- reconciliation states, all seven — built, PR #371
+- lawful event-fact evaluator — built **2026-08-24** (`bdb8fdc`), before either
+  session. It was *orphaned* — no production caller — which is why it reads as
+  missing. #371 wires it in.
+
+Genuinely still open: the **written** per-provider coverage matrix, a
+**multi-week replay** matrix, and the production new-row proof (deploy-blocked).
+
+So the sequence becomes:
+
+1. **Fix the deploy** (Step 1). Unchanged, still first, still founder-only.
+2. **Merge #371.** Moves from step 4 to step 2 — the core is already written and
+   green; leaving it open is what makes it look unbuilt.
+3. **Wire the two halves.** One call: `deriveScoringSnapshot()` inside
+   `scoringPersistenceMetadata()`, so #372's write path stops storing
+   `scoring_contract: null` and stores the body #371 derives. Small,
+   agent-buildable.
+4. **Capture the production containment row.** Needs 1–3 to be live first.
+5. **Ratify the restricted-provider acceptance amendment** — drafted in
+   `current_sprint.md` under A6, marked as awaiting founder ratification. This is
+   a **wording fix, not a build**: the code already emits a hashed restriction
+   attestation for ESPN rather than a fabricated snapshot, and reconciliation
+   already refuses `exact` for it. It can be ratified in parallel with anything
+   above; nothing waits on it.
+6. **Write the coverage matrix and the replay matrix.** The two genuine partials.
+7. **Add providers as lawful access clears** — Sleeper permission pending, Yahoo
+   entitlement still 403, ESPN stays restricted.
+
+**Tuesday scoring re-enablement is unchanged and still gated** on full applicable
+A6 proof plus the `O2` rollback drill.
+
 ### Step 3 — Finish A6 by joining the two halves
 
 PR #372 (merged) built the **write path**: every issued recommendation is now
