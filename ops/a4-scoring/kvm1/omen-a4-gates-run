@@ -1,0 +1,73 @@
+#!/bin/sh
+# Evaluate A4's Tuesday-scoring enablement gates and publish the result.
+#
+# Runs the repo's checker inside omen_api, where the Supabase credentials and the scoring
+# flag already live, and writes a small validated JSON state file for the Command Center
+# alert dispatcher to read. Mirrors the football-data witness pattern exactly: KVM1
+# produces state, the Pi observes and alerts.
+#
+# ENABLEMENT IS GATED BY AN EXPLICIT CONTROL FILE, the same shape A7B uses for
+# publication. Without /etc/omen-a4/auto-enable containing "enabled", this script only ever
+# reports. That file is the founder's switch, not this script's decision.
+set -eu
+
+state_dir=/var/lib/omen-a4-gates
+control=/etc/omen-a4/auto-enable
+compose=/opt/omen/deploy/hostinger/docker-compose.prod.yml
+env_file=/opt/omen/deploy/hostinger/.env.production
+checker=/opt/omen/a4/check-a4-scoring-gates.js
+
+mkdir -p "$state_dir"
+tmp="$(mktemp "$state_dir/.state.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+
+# The checker is copied into the container per run rather than baked into the image, so a
+# gate change ships by updating this host path and does not require an application rebuild.
+# It must land in /app, not /tmp: Node resolves node_modules by walking up from the script,
+# and @supabase/supabase-js lives at /app/node_modules. A copy in /tmp silently fails to
+# resolve it, which is how the first install produced checker_unavailable.
+docker cp "$checker" omen_api:/app/a4gates.js >/dev/null 2>&1 || true
+
+raw="$(docker exec omen_api node /app/a4gates.js --json 2>/dev/null || true)"
+ok="$(printf '%s' "$raw" | python3 -c 'import json,sys
+try: print("true" if json.load(sys.stdin).get("ok") is True else "false")
+except Exception: print("false")' 2>/dev/null || echo false)"
+
+# Fail closed. An unparseable result is never treated as "ready"; it is reported as a
+# checker fault so the absence of a green light is itself visible.
+if [ -z "$raw" ]; then
+  printf '%s\n' '{"schema":"omen-a4-gate-state.v1","status":"checker_unavailable","ready":false,"enabled_now":false}' > "$tmp"
+  chmod 0644 "$tmp"; mv "$tmp" "$state_dir/state.json"; trap - EXIT HUP INT TERM; exit 0
+fi
+
+enabled_now=false
+action=none
+
+if [ "$ok" = true ]; then
+  if [ "$(cat "$control" 2>/dev/null || true)" = "enabled" ]; then
+    current="$(grep -E '^OMEN_CRON_SCORING_ENABLED=' "$env_file" 2>/dev/null | cut -d= -f2 || true)"
+    if [ "$current" = false ]; then
+      # Reversible by design: the rollback path was exercised 2026-08-27 with 3s recovery,
+      # and only the cron service is recreated, so the API is never interrupted.
+      cp "$env_file" "$env_file.bak-a4-autoenable-$(date -u +%Y%m%d%H%M%S)"
+      sed -i 's/^OMEN_CRON_SCORING_ENABLED=false/OMEN_CRON_SCORING_ENABLED=true/' "$env_file"
+      docker compose -f "$compose" --project-name omen up -d --no-build cron >/dev/null 2>&1
+      enabled_now=true; action=enabled
+    else
+      action=already_on
+    fi
+  else
+    action=awaiting_control_file
+  fi
+fi
+
+printf '%s' "$raw" | python3 -c 'import json,sys
+data=json.load(sys.stdin)
+out={"schema":"omen-a4-gate-state.v1","status":"checked","ready":bool(data.get("ok")),
+     "enabled_now":sys.argv[1]=="true","action":sys.argv[2],
+     "failing":[g["id"] for g in data.get("gates",[]) if g.get("status") in ("FAIL","UNKNOWN")]}
+print(json.dumps(out))' "$enabled_now" "$action" > "$tmp"
+
+chmod 0644 "$tmp"
+mv "$tmp" "$state_dir/state.json"
+trap - EXIT HUP INT TERM

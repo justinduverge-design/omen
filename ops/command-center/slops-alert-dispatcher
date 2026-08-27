@@ -3,6 +3,7 @@ set -eu
 key=/home/darthslops/.ssh/slops-alerting_ed25519
 state=/var/lib/slops-alerting/last-signature
 football_state=/var/lib/slops-alerting/football-last-signature
+a4_state=/var/lib/slops-alerting/a4-gates-last-signature
 webhook=/etc/slops-alerting/discord-webhook-url
 # Build the payload with a real JSON encoder rather than string interpolation.
 # The old form could only ever deliver a SINGLE-LINE alert: a multi-signal
@@ -48,6 +49,34 @@ $football"
     send 'SLOPS RECOVERY: Omen football-data alert conditions are healthy again.'
   fi
   printf '%s\n' "$football" > "$football_state"
+fi
+# A4 Tuesday-scoring gates. Unlike every other signal here, GREEN is the newsworthy state:
+# this reports when scoring becomes enablable, and when it has actually been enabled. A
+# stale or unparseable file is reported as a checker fault rather than silently treated as
+# "not ready", so the absence of a green light is never mistaken for a working check.
+a4="$(python3 -c 'import json,sys,os,time
+path=sys.argv[1]
+try:
+ age=time.time()-os.path.getmtime(path)
+ data=json.load(open(path,encoding="utf-8"))
+ if data.get("schema")!="omen-a4-gate-state.v1": raise ValueError()
+ if age>172800: print("Omen A4 gates: state_stale severity=medium")
+ elif data.get("enabled_now") is True: print("Omen A4 gates: TUESDAY SCORING ENABLED automatically - all gates passed")
+ elif data.get("ready") is True and data.get("action")=="awaiting_control_file":
+  print("Omen A4 gates: ALL GATES PASS - scoring is ready to enable (auto-enable control file not set)")
+ elif data.get("ready") is True: print("Omen A4 gates: ALL GATES PASS")
+ elif data.get("status")=="checker_unavailable": print("Omen A4 gates: checker_unavailable severity=medium")
+except Exception:
+ print("Omen A4 gates: state_unreadable severity=medium")' /var/lib/omen-a4-gates/state.json)"
+a4_old="$(cat "$a4_state" 2>/dev/null || true)"
+if [ "$a4" != "$a4_old" ]; then
+  if [ -n "$a4" ]; then
+    send "SLOPS ALERT: Omen A4 scoring-gate state change
+$a4"
+  elif [ -n "$a4_old" ]; then
+    send 'SLOPS RECOVERY: Omen A4 scoring-gate state is back to nothing notable.'
+  fi
+  printf '%s\n' "$a4" > "$a4_state"
 fi
 sig="$(printf '%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" | sed '/^$/d' | sort)"
 old="$(cat "$state" 2>/dev/null || true)"
