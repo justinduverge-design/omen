@@ -42,7 +42,7 @@ QA, and the Android store path remain open.
 - GHCR image: `ghcr.io/justinduverge-design/omen:main`
 
 ### Quality gates
-- **Backend tests: 812/812 green** (`npm test`, 2026-08-26). Was 712/712 at the start of that session, 506/506 on 2026-08-02 (PR #272), 391/391 on 2026-07-19.
+- **Backend tests: 813/813 green** on `feat/m9-backend-gap-closure` (`npm test`, 2026-08-27, rebased onto `main` after PR #372). `main` itself is 713/713. Was 712/712 at the start of that session, 506/506 on 2026-08-02 (PR #272), 391/391 on 2026-07-19.
 - PRs gated by `pr-quality.yml` (#253)
 - The "Actions billing hold" was a **misdiagnosis** — two config bugs, both fixed in #250 (2026-08-01). **Superseded 2026-08-11:** `ios-ci.yml` no longer runs per-PR by choice, not by failure — it triggers on `release/**` and manual dispatch only, with routine iOS verification moved to the founder's local Mac. See `Blueprints/definition-of-done.md` → "Local substitutes".
 - `npm audit --omit=dev --audit-level=moderate`: **0 production vulnerabilities**
@@ -86,9 +86,43 @@ QA, and the Android store path remain open.
 
 ---
 
+## ⛔ Deploy pipeline is BROKEN — 2026-08-27
+
+**`main` has not reached production since 2026-08-25 22:23.** The last two pushes
+to `main` both failed to deploy with the identical error:
+
+```
+open /opt/omen/deploy/hostinger/.env.production: permission denied
+```
+
+- run `33024028806` (2026-08-26 23:37, `docs(football-data): record phase4 activation`) — FAILED
+- run `33027042406` (2026-08-27 00:30, `fix: hold unsafe grading and close A7B evidence` #372) — FAILED
+
+**Production itself is UP and healthy** — `/api/health`, `/api/ready`,
+`/api/version` all 200, `status: "ready"`. The old container is still serving. So
+this is not an outage; it is a **silent staleness**: every merge since 2026-08-25
+is on `main` and is *not* running.
+
+**Cause is on the host, not in the code.** The `docker compose pull` step
+succeeds, so the self-hosted runner can read the directory and the compose file.
+Only `.env.production` is unreadable to it, which is what a tightened
+`chmod`/`chown` on that one file looks like. The break window
+(2026-08-25 22:23 → 2026-08-26 23:37) is exactly the A7B Phase 3/4 host-hardening
+window — `9e780b0 fix(football-data): bound backup service privileges`,
+`c8597e0 docs(football-data): record kvm1 identity provisioning`,
+`319723f docs(football-data): record witness root provisioning`. **Not proven** —
+no agent in this session has host access, and confirming it requires reading the
+file's mode and owner on KVM1.
+
+**Founder-only to fix.** See `Direction/reviews/2026-08-27-recovery-plan.md`.
+
+---
+
 ## Not Deployed / Not Merged
 
-**Empty — reconciled 2026-08-26 (`B2-D3-S2`).**
+**Empty as of 2026-08-26 (`B2-D3-S2`) — but see the deploy break above:
+"merged" and "running in production" have been different things since
+2026-08-25.**
 
 Every item this section listed was already on `main`, most of it since early
 June. The list was stale, not the work. Verified item by item against `main`
