@@ -15,9 +15,11 @@ struct CommandCenterView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
     @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
+    @StateObject private var leagueSwitcherViewModel: LeagueSwitcherViewModel
     private let connectRepository: ConnectRepository
     @State private var showAccountSheet: Bool = false
     @State private var showConnectSheet: Bool = false
+    @State private var showSwitcherSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
 
     init(
@@ -28,7 +30,8 @@ struct CommandCenterView: View {
         leagueRepository: LeagueRepository,
         movesRepository: MovesRepository,
         omenDecisionRepository: OmenDecisionRepository,
-        connectRepository: ConnectRepository
+        connectRepository: ConnectRepository,
+        leagueDirectoryRepository: LeagueDirectoryRepository
     ) {
         self.connectRepository = connectRepository
         self.userID = userID
@@ -42,6 +45,10 @@ struct CommandCenterView: View {
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
             repository: omenDecisionRepository,
+            sessionManager: sessionManager
+        ))
+        _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
+            repository: leagueDirectoryRepository,
             sessionManager: sessionManager
         ))
     }
@@ -72,6 +79,11 @@ struct CommandCenterView: View {
                 } else {
                     OmenCommandCenterScreen(
                         state: commandCenterViewModel.commandCenterState,
+                        // Passing this is what makes the strip's "Switch" control render
+                        // at all — `OmenContextStrip` hides it when `onSwitch` is nil,
+                        // which is why a user with a connected league previously had no
+                        // way to choose it.
+                        onSwitchContext: { showSwitcherSheet = true },
                         onOpenAccount: { showAccountSheet = true },
                         onConnect: { showConnectSheet = true },
                         onOpenOmen: { selectedTab = .omen },
@@ -116,6 +128,31 @@ struct CommandCenterView: View {
             .background(OmenColor.bg)
             .tabItem { Label("League", systemImage: "person.3.fill") }
             .tag(CommandCenterTab.league)
+        }
+        .sheet(isPresented: $showSwitcherSheet) {
+            OmenLeagueSwitcherSheet(
+                viewModel: leagueSwitcherViewModel,
+                onSelected: { _ in
+                    // §10.3: apply the new context atomically across the personalized
+                    // surfaces. The server names them in `refresh`; the shell reload is
+                    // what actually re-reads them, so the sheet closes only after the
+                    // switch succeeded — a failed switch leaves it open with its reason.
+                    showSwitcherSheet = false
+                    Task {
+                        await commandCenterViewModel.load(userID: userID)
+                        await omenDecisionViewModel.load(userID: userID)
+                    }
+                },
+                onConnectAnother: {
+                    showSwitcherSheet = false
+                    showConnectSheet = true
+                },
+                onManageConnections: {
+                    showSwitcherSheet = false
+                    showAccountSheet = true
+                },
+                onDismiss: { showSwitcherSheet = false }
+            )
         }
         .sheet(isPresented: $showConnectSheet) {
             NavigationStack {
