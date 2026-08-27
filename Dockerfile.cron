@@ -52,6 +52,16 @@ RUN touch /var/log/omen_cron.log \
 
 ENV NODE_ENV=production
 
+# Build provenance, same rationale as Dockerfile. The cron container has no HTTP
+# surface to report from, but `docker inspect` and its log lines can name the
+# commit, which is what the 2026-08-26 silent-deploy incident needed.
+ARG GIT_SHA
+ARG BUILD_ID
+ARG IMAGE_TAG
+ENV GITHUB_SHA=$GIT_SHA
+ENV BUILD_ID=$BUILD_ID
+ENV IMAGE_TAG=$IMAGE_TAG
+
 # ── ENTRYPOINT ───────────────────────────────────────────────────
 # tini handles signals cleanly (SIGTERM on docker stop)
 # crond -f -d 8 runs in foreground with debug level 8
