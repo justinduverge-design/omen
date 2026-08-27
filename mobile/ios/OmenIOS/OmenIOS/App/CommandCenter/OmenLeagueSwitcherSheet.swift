@@ -29,24 +29,21 @@ struct OmenLeagueSwitcherSheet: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        // OmenModalSheet is the design system's own sheet chrome, and it is what the Android
+        // mirror uses. An earlier revision used a NavigationStack toolbar item instead; the
+        // captured screenshot showed iOS 26 squeezing the Done control into a circular glass
+        // button that clipped its label to a vertical "D o n e". Only a rendered capture
+        // caught that — every test passed.
+        ScrollView {
+            OmenModalSheet(title: "Switch Team & League") {
                 VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                     content
                     secondaryActions
                 }
-                .padding(OmenSpacing.step16)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
-            .navigationTitle("Switch Team & League")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    OmenButton(title: "Done", action: onDismiss, variant: .link, size: .sm)
-                }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
         .task { await viewModel.load() }
     }
 
@@ -180,9 +177,12 @@ struct OmenLeagueSwitcherSheet: View {
     }
 
     private var secondaryActions: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             OmenButton(title: "Connect another league", action: onConnectAnother, variant: .link, size: .sm)
             OmenButton(title: "Manage connected leagues", action: onManageConnections, variant: .link, size: .sm)
+            // Explicit dismiss as well as the sheet's native swipe: a drag gesture is not an
+            // accessible affordance on its own.
+            OmenButton(title: "Done", action: onDismiss, variant: .secondary, size: .md)
         }
     }
 
