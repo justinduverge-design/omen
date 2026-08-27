@@ -139,8 +139,8 @@ QA, and the Android store path remain open.
 
 ## Season Gates (not beta gates)
 
-- **A4 Tuesday scoring** — `OMEN_CRON_SCORING_ENABLED` stays `false`. Blocked on founder approval **and** on nflverse publishing `player_stats_2026.csv` ([#263](https://github.com/justinduverge-design/omen/issues/263)). Dry-run now; flip in September.
-- **Fallback data source for Tuesday scoring** — if nflverse does not publish, the feature that closes Omen's loop has no data. Identify a fallback before September.
+- **A4 Tuesday scoring** — production is on a founder-authorized safety hold with both scoring flags `false`. The A7B real-row/no-write rehearsal passed, but re-enablement is blocked by A6's undeployed recommendation-persistence repair/new-row proof and the skipped O2 rollback drill.
+- **Owned scoring data source** — A7B is CLOSED/COMPLETED: lawful immutable nflverse pipeline, canonical facts, independent witness, failure behavior, backup/recovery, and the real-row/no-write rehearsal are evidenced. The correction fixture is permanently labeled `controlled_fixture_not_upstream`; no authentic changed-subject upstream correction has been observed.
 - NFL Week 1 (~2026-09-10) is the real load test.
 
 ---

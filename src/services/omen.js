@@ -493,7 +493,7 @@ function liveBaseEnvelope({
   teamName = null,
   season = new Date().getFullYear(),
   week = null,
-  scoringFormat = "ppr",
+  scoringFormat = null,
   state = "success",
 } = {}) {
   return {
@@ -513,7 +513,10 @@ function liveBaseEnvelope({
       name: leagueName,
       season,
       week,
-      scoring_format: normalizeScoringFormat(scoringFormat),
+      // Live provider scoring is unknown until a lawful, complete provider-rule
+      // snapshot is captured. Defaulting this field to PPR mislabels standard
+      // and half-PPR leagues and can make the grading worker score them wrong.
+      scoring_format: scoringFormat == null ? null : normalizeScoringFormat(scoringFormat),
     },
     team: {
       id: teamId,

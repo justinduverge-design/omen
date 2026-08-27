@@ -103,6 +103,77 @@ function parseFeedbackPayload(body = {}) {
   };
 }
 
+function legacyScoringLabel(format) {
+  if (format === "standard") return "Standard";
+  if (format === "half_ppr") return "Half PPR";
+  if (format === "ppr") return "PPR";
+  return null;
+}
+
+function scoringCoverageState(response = {}) {
+  return response.platform?.name === "espn" ? "provider_restricted" : "pending";
+}
+
+function scoringPersistenceMetadata(response = {}) {
+  const coverageState = scoringCoverageState(response);
+  return {
+    format: response.league?.scoring_format || null,
+    contract_required: true,
+    contract_version: null,
+    contract_hash: null,
+    provider_rule_snapshot_hash: null,
+    coverage_state: coverageState,
+    reconciliation_state: "pending",
+  };
+}
+
+async function persistLiveRecommendation(user, response) {
+  if (response?.state !== "success" || !response.recommendation) return null;
+
+  const week = parseRequiredPositiveInteger(response.league?.week);
+  const season = parseRequiredPositiveInteger(response.league?.season);
+  if (!week || !season) {
+    throw new Error("live recommendation persistence failed: missing league season/week");
+  }
+
+  const scoring = scoringPersistenceMetadata(response);
+  response.recommendation.scoring = scoring;
+  await ensureAppUser(user);
+
+  const recommendation = response.recommendation;
+  const { data, error } = await supabase
+    .from("moves")
+    .upsert({
+      user_id: user.id,
+      week_num: week,
+      season,
+      move_type: recommendation.type || null,
+      headline: recommendation.title || null,
+      reasoning: recommendation.explanation?.summary || null,
+      confidence: Number.isFinite(Number(recommendation.confidence?.score))
+        ? Number(recommendation.confidence.score)
+        : null,
+      target_player: recommendation.primary_player?.name || null,
+      scoring: legacyScoringLabel(scoring.format),
+      platform: response.platform?.name || null,
+      league_id: response.league?.id || null,
+      scoring_contract: null,
+      scoring_contract_hash: scoring.contract_hash,
+      scoring_contract_version: scoring.contract_version,
+      scoring_contract_required: scoring.contract_required,
+      scoring_coverage_state: scoring.coverage_state,
+      provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash,
+      provider_final_outcome: null,
+      reconciliation_state: scoring.reconciliation_state,
+    }, { onConflict: "user_id,week_num,season" })
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(`live recommendation persistence failed: ${error.message}`);
+  if (!data?.id) throw new Error("live recommendation persistence failed: missing move id");
+  return data.id;
+}
+
 function isValidExplanation(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   for (const field of ["summary", "why_it_matters", "risk", "confidence"]) {
@@ -288,11 +359,12 @@ async function liveOmenResult(req) {
 
   try {
     if (isOffSeason()) {
-      return offSeasonMvpResponse();
+      return { ...offSeasonMvpResponse(), authenticatedUser: user };
     }
-    return await buildLiveOmenMvpMoveForUser(user.id, {
+    const result = await buildLiveOmenMvpMoveForUser(user.id, {
       contextId: req.body?.context_id,
     });
+    return { ...result, authenticatedUser: user };
   } catch (e) {
     return {
       status: 500,
@@ -343,6 +415,10 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
         followed,
         user_stars: stars,
         user_note: note,
+        // A feedback-only/direct client must never create a row that the A6
+        // worker can mistake for historical PPR data. The live recommendation
+        // path fills the rest of the contract provenance server-side.
+        scoring_contract_required: true,
       }, { onConflict: "user_id,week_num,season" })
       .select("id")
       .maybeSingle();
@@ -368,6 +444,20 @@ router.post("/mvp-move", async (req, res) => {
       await enrichWithLlm(result.body, req.body || {}, { defaultEnabled: false });
     } catch {
       // LLM explanation is an enhancement only. Keep deterministic response.
+    }
+    try {
+      await persistLiveRecommendation(result.authenticatedUser, result.body);
+    } catch {
+      return res.status(503).json({
+        ...result.body,
+        state: "error",
+        recommendation: null,
+        error: {
+          code: "omen_recommendation_persistence_failed",
+          message: "Omen could not safely record this recommendation, so no move was issued.",
+          retryable: true,
+        },
+      });
     }
     return res.status(result.status).json(result.body);
   }

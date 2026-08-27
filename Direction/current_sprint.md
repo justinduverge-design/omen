@@ -86,7 +86,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Queue reconciled 2026-08-16.** 23 finished items moved to `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16". This file now carries active work only.
 - **No provider is proven with a real connected account.** This is the top beta risk.
 - **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
-- Tuesday scoring remains disabled until the no-write production dry-run passes and Justin approves the production flag change.
+- Tuesday scoring is on the founder-authorized A6 safety hold. The running `omen_cron` has both scoring flags `false`; re-enable only after the A6 persistence repair/new-row proof and O2.
 
 # Active queue
 
@@ -94,18 +94,18 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A4 — Tuesday scoring production enablement
 
-- **Status:** READY
-- **Blocked by:** TASK-A7B-OwnedFootballDataPipelineImplementation — the A7 design is verified; production scoring still waits for separately approved implementation, staging proof, monitoring, and failure behavior.
-- **Blocked by:** TASK-A6-MovesScoringFormat — the scoring-format change must pass review and staging validation so standard and half-PPR leagues are not graded as PPR.
+- **Status:** BLOCKED
 - **Blocked by:** TASK-O2 — the founder-approved condition requires the rollback exercise to be completed before persistent enablement.
-- **Blocked by:** AGENT_RESOLVABLE — run the no-write production rehearsal against real rows and record readiness/cron health plus independent standard, half-PPR, and PPR comparisons before enabling writes.
+- **Blocked by:** TASK-A6 — deploy the fail-closed recommendation-persistence repair and prove newly generated production rows carry their contract-required/coverage metadata before scoring can be re-enabled.
 - **Unblock:** 2026-08-22 CLEARED — founder conditionally approved persistent Tuesday scoring enablement once all six evidence gates pass: two historical-week replays; independent three-format comparison; A6 staging validation; real-row/no-write production rehearsal; proven monitoring/failure behavior; and completed O2 rollback exercise with Justin as owner. The flag remains `false` until every condition is evidenced; no production action is authorized before then.
 - **Unblock:** 2026-08-22 REASSESSED — `A5` is complete: founder rejected a paid fallback and selected a Slops-owned Omen football-data pipeline. The obsolete missing-`player_stats_2026.csv` premise and `TASK-A5` blocker are replaced by the actual implementation/evidence dependency, `A7-OwnedFootballDataPipeline`; the production flag remains evidence-gated.
+- **Unblock:** 2026-08-26 CLEARED — A7B implementation, immutable source/acceptance evidence, staging failure behavior, KVM1 recovery, Command Center witness, live monitoring, and A4's real-row/no-write three-format rehearsal all passed. The additive scoring-contract columns are present in production.
+- **Unblock:** 2026-08-26 REASSESSED — enablement outran O2 and exposed A6's missing recommendation persistence. With founder authorization, production was placed on a cron-only safety hold: both scoring flags are now `false`, the root env has backup `.env.production.bak-20260826-a6-scoring-hold`, and `omen_cron` was recreated healthy. The API and database were untouched by the hold.
 - **Priority:** P0
 - **Cost:** small
-- **Phase:** 6 — **season gate, not a beta gate.** Do not count this against beta. The dry-run is preparable now; the flag flip waits for September.
-- **Agent-buildable:** dry-run preparation and verification only; the env flip is gated
-- **Done when:** dry-run validates real rows without writes; production flag is explicitly approved and changed; readiness and cron health pass; rollback owner is named.
+- **Phase:** 6 — **season gate, not a beta gate.** Do not count this against beta. Scoring remains held until A6 production-row proof and O2 are complete.
+- **Agent-buildable:** verification and record reconciliation only; production env cleanup and the rollback exercise are founder-executed
+- **Done when:** dry-run validates real rows without writes; production flag is explicitly approved and changed; readiness and cron health pass; rollback owner is named; and the founder-approved O2 rollback exercise is executed and evidenced.
 - **Do not touch:** the production flag before approval; never log provider credentials or raw user data.
 
 ### A5 — Decide the Tuesday-scoring fallback data source
@@ -129,18 +129,18 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-08-24 Codex — replacing the insufficient three-format premise with the founder-approved, full-league Scoring Contract on `codex/full-league-scoring-contract`; all SQL remains review-only and will not be applied anywhere.
-- **Blocked by:** AGENT_RESOLVABLE — complete the provider-neutral contract engine, rule/event coverage matrix, capture path, reconciliation, and non-production fixture/replay evidence.
+- **Status:** BLOCKED
+- **Claim:** 2026-08-26 Codex — fail-closed recommendation-persistence containment is implemented on `codex/a7b-closure-reconciliation`; full provider-rule capture/reconciliation remains externally blocked.
+- **Evidence:** 2026-08-26 safety repair on `codex/a7b-closure-reconciliation` / PR #372 makes the server persist every issued live recommendation, marks feedback-only rows `scoring_contract_required=true`, refuses to issue a recommendation when persistence fails, and leaves uncaptured live scoring format `null` instead of inventing PPR. Focused 56/56, full backend 713/713, and all three PR checks passed. This is fail-closed containment, not full A6 completion, and is not production behavior until merged/deployed.
 - **Blocked by:** EXTERNAL — each provider needs an affirmative rights/entitlement path before Omen may capture and retain its complete private rule snapshot or final outcome; ESPN is provider-restricted unless it grants express permission.
-- **Unblock:** 2026-08-22 CLEARED — founder approved authoring the additive review-only migration and validating it in staging. Production application remains a separate explicit founder gate; this decision does not authorize applying SQL to production.
+- **Unblock:** 2026-08-26 CLEARED for existing columns only — after explicit founder authorization and rollback preflight, the exact additive compatibility migration was applied to production with no row rewrite. This does not authorize any future SQL.
 - **Priority:** P1 — correctness defect in the grading loop
 - **Cost:** small
 - **Source:** 2026-08-15 A5 research.
 - **What is wrong:** `fetchPendingMoves` selects without `scoring`, carrying the in-source note "`scoring` is not present in the deployed moves schema. scoreMove already defaults an absent format to PPR." So **every** move is graded as PPR. A standard or half-PPR league's recommendation is graded against points its league does not award. `nflverseScoresFromCsv` already computes `rec_std`, `rec_half`, and `rec_ppr` — all three are produced and two are discarded.
 - **Why it belongs to the vendor-agnostic ask:** this is the one genuinely *per-league* dimension of scoring. It is not fixed by adding data sources, and it affects Sleeper, ESPN, and Yahoo users identically.
-- **Done when:** every recommendation names an immutable provider-rule snapshot and versioned canonical Scoring Contract; Omen calculates every supported material rule from lawful event facts; coverage is explicit for every rule; provider-final reconciliation distinguishes `exact`, `provider_adjusted`, `provider_restricted`, `unsupported`, `ambiguous`, `mismatch`, and `pending`; a league-exact result fails closed when any material rule or adjustment cannot be reproduced; historical rows without the new contract preserve the PPR fallback; review-only SQL is authored in `sql/`, never applied.
-- **Do not touch:** applying SQL to staging or production — that is the gated founder sequence, in order: approval → staging → verification → production; silently treating the reception-only format as a full scoring contract; expanding ESPN extraction or reconciliation without a lawful provider path.
+- **Done when:** every recommendation names an immutable provider-rule snapshot and versioned canonical Scoring Contract; Omen calculates every supported material rule from lawful event facts; coverage is explicit for every rule; provider-final reconciliation distinguishes `exact`, `provider_adjusted`, `provider_restricted`, `unsupported`, `ambiguous`, `mismatch`, and `pending`; a league-exact result fails closed when any material rule or adjustment cannot be reproduced; historical rows without the new contract preserve the PPR fallback; the additive schema and its application evidence are recorded.
+- **Do not touch:** any additional staging/production SQL without a new exact founder authorization; silently treating the reception-only format as a full scoring contract; expanding ESPN extraction or reconciliation without a lawful provider path.
 
 ### A7-OwnedFootballDataPipeline — Design the automated Slops-owned football-data pipeline
 
@@ -156,12 +156,12 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 ### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
 
-- **Status:** READY
-- **Blocked by:** Founder approval for the next production-readiness/A4 no-write rehearsal slice and any exact-host infrastructure work.
+- **Status:** CLOSED
+- **Closure:** COMPLETED — advanced through VERIFIED after every `Done when:` clause was rechecked, then ledgered closed on 2026-08-26.
+- **Evidence:** Phase 1 immutable raw vault (`Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`); Phase 2 canonical identities/versioned offensive, kicker, and DST facts plus independent four-week replay (`Blueprints/handoffs/2026-08-25-a7b-phase2-scoring-acceptance.md`); Phase 3 correction/source-loss/schema-drift/KVM1-recovery/witness proofs (`Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md`); Phase 4 exact-host collection, alerting, backup/recovery, Command Center witness, and real-row/no-write A4 rehearsal (`Blueprints/handoffs/2026-08-26-a7b-phase4-production-readiness-execution.md`). No authentic upstream revision changed an accepted subject; correction evidence is permanently labeled `controlled_fixture_not_upstream`.
 - **Unblock:** 2026-08-25 CLEARED — founder explicitly approved Phase 3. This assignment implements separate local KVM1-primary and Pi-witness roles plus correction, source-loss, schema-drift, recovery, mismatch/unavailability, freshness, disk, and alert proofs. Actual remote-host mutation/service installation, production, publication, timers, databases, SQL, credentials, deployment, scoring enablement, and ADP remain excluded.
 - **Unblock:** 2026-08-25 CLEARED — founder explicitly approved Phase 2 normalization and scoring acceptance: canonical game/player/team identities, versioned offensive/kicker/DST facts, at least four varied historical replay weeks, and hard quality gates. Staging, infrastructure, timers, databases, SQL, publication, credentials, deployment, production, scoring enablement, and ADP remain excluded.
 - **Unblock:** 2026-08-24 CLEARED — founder explicitly approved the first non-production collector/build slice and its bounded full-executor assignment; production, timers, storage provisioning, database, SQL, dependency, credential, deployment, scoring enablement, and ADP work remain excluded.
-- **Evidence:** Phase 1 local raw vault is complete (`Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`). Phase 2 canonical normalization/scoring acceptance is complete (`Blueprints/handoffs/2026-08-25-a7b-phase2-scoring-acceptance.md`). Phase 3 local staging shadow is complete (`Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md`; `Direction/reviews/2026-08-25-a7b-phase3-code-review.md`): exact 2025 Weeks 1/7/14/17 artifact staged and recovered byte-for-byte, seven failure scenarios passed, focused 9/9 and full backend 688/688. All artifacts remain non-promoted. This is progress evidence, not overall A7B verification or live-host proof.
 - **Priority:** P0 — production dependency for A4 after A6
 - **Cost:** large (62–92 hour build estimate, then 0.5–1.0 hour/week normal maintenance)
 - **Source:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
@@ -1020,21 +1020,18 @@ event traceable.
 
 **Phase 4.** F6–F9 are the beta gate. **F6 and F9 decide whether beta succeeds.**
 
-> **Season-start floor (verified 2026-08-11).** `GET /api/dashboard/summary` currently returns
-> `omen_of_the_week: "off_season"` — correct behavior for August, produced by `isOffSeason()` in
-> `src/services/nflSchedule.js`. Every F-lane item whose acceptance includes *Omen recommendations*
-> therefore **cannot fully pass until the 2026 regular season opens.** The non-Omen halves (connect,
-> session restore, reauth, standings, trade candidates, labeling) are testable now and should be run
-> now. Do not record an F-item as VERIFIED on the strength of its non-Omen half alone — split the
-> evidence and say which half was proven.
+> **Season-start floor cleared 2026-08-26.** Production `GET /api/system/current-week` reports
+> season 2026, week 1, `season_type: "regular"`. The earlier August `off_season` result was correct
+> when recorded but is no longer a blocker. F6-F8 still require their real-account/native evidence;
+> the open season makes that evidence runnable rather than automatically satisfied.
 
 ### F6 — Real-account QA: ESPN
 
-- **Status:** READY
-- **Blocked by:** 2026 NFL regular season has not opened. `GET /api/dashboard/summary` returns `omen_of_the_week: "off_season"` via `isOffSeason()` in `src/services/nflSchedule.js` — correct behavior, not a defect (facts-of-record #10). The scope's *Omen recommendations* clause therefore cannot pass yet, on any account, by anyone.
-- **Unblock:** the 2026 regular season opening. **Nothing a founder or an agent can do before then.**
+- **Status:** BLOCKED
+- **Blocked by:** FOUNDER_DEVICE — execute the sanitized real-account ESPN matrix on both iOS and Android without exposing cookie names or values. The season floor is cleared; credentials/device execution, not season state, is the remaining gate.
+- **Unblock:** 2026-08-26 CLEARED — production reports the 2026 regular season open at Week 1. The former season floor is stale; the full ESPN matrix is now runnable.
 - **Corrected 2026-08-19.** This line previously read `Blocked by: None`, which made a season-floored P0 read as immediately pullable — and it was surfaced as a candidate by the staleness sweep for exactly that reason. The connect/recovery/waiver/drafted-league halves *are* workable now and can be matrixed ahead of time; only the Omen-recommendation half is floored. Split the evidence and state which half was proven, per facts-of-record #10.
-- **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate; Omen-half acceptance still waits on season start.
+- **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate.
 - **Priority:** **P0 — highest risk item in the plan**
 - **Cost:** medium
 - **Agent-buildable:** preparation and matrix only
