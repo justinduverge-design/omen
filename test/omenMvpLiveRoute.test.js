@@ -153,7 +153,7 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null } = {}) {
+function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null, missingColumns = null } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
@@ -172,12 +172,23 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
       return {
         upsert(payload, options) {
           state.moveUpserts.push({ payload, options });
+          // `missingColumns` reproduces the real production schema, which has every A6
+          // scoring column but no `platform` and no `league_id`. PostgREST reports that as
+          // a message naming the column, exactly as reproduced here.
+          const offending = (missingColumns || []).find((column) => Object.hasOwn(payload, column));
           return {
             select() {
               return {
-                maybeSingle: async () => persistenceError
-                  ? { data: null, error: { message: persistenceError } }
-                  : { data: { id: "move-live-1" }, error: null },
+                maybeSingle: async () => {
+                  if (persistenceError) return { data: null, error: { message: persistenceError } };
+                  if (offending) {
+                    return {
+                      data: null,
+                      error: { code: "PGRST204", message: `column moves.${offending} does not exist` },
+                    };
+                  }
+                  return { data: { id: "move-live-1" }, error: null };
+                },
               };
             },
           };
@@ -317,25 +328,36 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
       reasoning: "Start Bench Breakout.",
       confidence: 82,
       target_player: "Bench Breakout",
-      scoring: "PPR",
+      // A6 step 2: this asserted `scoring: "PPR"` for a Yahoo league whose rules
+      // have never been read — Yahoo's API is refused at the entitlement level.
+      // The label came from the envelope's own default, not from the league, so
+      // the write path was persisting a fabricated scoring format: the exact
+      // defect A6 exists to remove, surviving one layer down. It is now null.
+      scoring: null,
       platform: "yahoo",
       league_id: "414.l.12345",
+      // The rule body stays unretained until a provider's rights path is
+      // evidenced (RETAIN_RULE_BODY). The hashes still pin which contract
+      // version and which rule set produced the row, so provenance survives.
       scoring_contract: null,
-      scoring_contract_hash: null,
-      scoring_contract_version: null,
+      scoring_contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
+      scoring_contract_version: "omen-scoring-contract-v1",
       scoring_contract_required: true,
       scoring_coverage_state: "pending",
-      provider_rule_snapshot_hash: null,
+      provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
       provider_final_outcome: null,
       reconciliation_state: "pending",
     },
   }]);
+  // The public envelope keeps exactly the seven fields #372 defined. Deriving
+  // more internally must never widen the API, and the derived rule body must
+  // never appear here.
   assert.deepEqual(res.body.recommendation.scoring, {
-    format: "ppr",
+    format: null,
     contract_required: true,
-    contract_version: null,
-    contract_hash: null,
-    provider_rule_snapshot_hash: null,
+    contract_version: "omen-scoring-contract-v1",
+    contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
+    provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
     coverage_state: "pending",
     reconciliation_state: "pending",
   });
@@ -457,4 +479,46 @@ test("POST /api/omen/mvp-move allows explicit live LLM opt-in", async () => {
   assert.equal(res.body.recommendation.explanation.summary, "Live Gemma says this is the move.");
   assert.equal(state.llmPayloads.length, 1);
   assert.equal(state.llmPayloads[0].state, "success");
+});
+
+test("a recommendation still issues when the schema lacks platform and league_id", async () => {
+  // Found live on 2026-08-27: production `moves` has every A6 scoring column but neither
+  // `platform` nor `league_id`, while this route's upsert named both. Because the route
+  // deliberately refuses to issue advice it cannot persist, the first real request would
+  // have received an error instead of a recommendation. It had not fired only because no
+  // request had reached the endpoint in 48 hours.
+  const { app, state } = buildApp({ missingColumns: ["platform", "league_id"] });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.state, "success");
+  assert.ok(res.body.recommendation, "the recommendation must still be issued");
+
+  // Retried once per absent column, then succeeded without them.
+  assert.equal(state.moveUpserts.length, 3);
+  assert.equal(Object.hasOwn(state.moveUpserts[0].payload, "platform"), true);
+  assert.equal(Object.hasOwn(state.moveUpserts[2].payload, "platform"), false);
+  assert.equal(Object.hasOwn(state.moveUpserts[2].payload, "league_id"), false);
+
+  // The scoring metadata — the part that must never be silently dropped — survives.
+  const stored = state.moveUpserts[2].payload;
+  assert.equal(stored.scoring_contract_required, true);
+  assert.ok(stored.scoring_coverage_state);
+  assert.ok(stored.scoring_contract_version);
+});
+
+test("a missing column that is NOT optional still fails closed", async () => {
+  // The tolerance is bounded on purpose. A recommendation whose scoring metadata could not
+  // be stored must not be issued — that is the fail-closed behaviour #372 added, and this
+  // fix must not widen it into 'drop whatever the database rejects'.
+  const { app } = buildApp({ persistenceError: "column moves.scoring_coverage_state does not exist" });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
+  });
+
+  assert.notEqual(res.status, 200);
 });

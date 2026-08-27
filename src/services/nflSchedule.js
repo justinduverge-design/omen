@@ -41,13 +41,34 @@ function getSeasonWeekInfo(now = new Date()) {
   };
 }
 
+/**
+ * Season/week context for callers that need a usable week number.
+ *
+ * `week` is CLAMPED to 1-18. During the off-season `raw_week` is zero or negative and this
+ * still reports `week: 1`, which is deliberate — downstream callers need a valid week — but
+ * it is actively misleading on its own, and it has already caused real harm:
+ *
+ *   On 2026-08-27 a session read `GET /api/system/current-week` reporting
+ *   `{season: 2026, week: 1, season_type: "regular"}` nine days BEFORE kickoff and recorded
+ *   in facts-of-record #10 that "the 2026 floor is cleared; F6-F8 are no longer
+ *   season-blocked". That was false. `isOffSeason()` was correct the whole time; the
+ *   clamped week made the off-season look like Week 1.
+ *
+ * `is_off_season` is therefore returned alongside, so no caller has to infer seasonality
+ * from a clamped number. **`is_off_season` is the authority; `week` is a usable default.**
+ */
 function getCurrentNflWeekContext(now = new Date()) {
-  const { season, week, season_type: seasonType } = getSeasonWeekInfo(now);
+  const { season, week, season_type: seasonType, raw_week: rawWeek } = getSeasonWeekInfo(now);
 
   return {
     season,
     week,
     season_type: seasonType,
+    // Additive. `season_type` still reads "regular" before kickoff because it is derived
+    // from the same clamp; correcting that is a contract change and is flagged rather than
+    // made silently here.
+    is_off_season: rawWeek < 1 || rawWeek > 18,
+    raw_week: rawWeek,
   };
 }
 

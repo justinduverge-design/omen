@@ -83,12 +83,40 @@ describe("nflSchedule.getGameInfo", () => {
 });
 
 describe("nflSchedule.getCurrentNflWeekContext", () => {
-  it("returns upcoming season week 1 during offseason", () => {
-    assert.deepEqual(getCurrentNflWeekContext(new Date("2026-05-26T12:00:00Z")), {
+  it("clamps to week 1 during the offseason but SAYS it is the offseason", () => {
+    // This test previously asserted only `{season, week: 1, season_type: "regular"}` — and
+    // passed, under the name "returns upcoming season week 1 during offseason". It encoded
+    // the trap: a caller reading that object sees Week 1 of a regular season. On 2026-08-27
+    // exactly that reading was written into facts-of-record #10 as "the season floor is
+    // cleared", nine days before kickoff.
+    //
+    // The clamp stays — downstream callers need a usable week — but `is_off_season` now
+    // travels with it, and it is the authority.
+    const context = getCurrentNflWeekContext(new Date("2026-05-26T12:00:00Z"));
+
+    assert.deepEqual(context, {
       season: 2026,
       week: 1,
       season_type: "regular",
+      is_off_season: true,
+      raw_week: -14,
     });
+    assert.equal(context.is_off_season, isOffSeason(new Date("2026-05-26T12:00:00Z")));
+  });
+
+  it("agrees with isOffSeason at every boundary", () => {
+    // The two disagreeing is the defect class. Assert they cannot.
+    for (const iso of [
+      "2026-05-26T12:00:00Z", "2026-08-27T12:00:00Z", "2026-09-04T12:00:00Z",
+      "2026-09-05T12:00:00Z", "2026-09-15T12:00:00Z", "2027-01-20T12:00:00Z",
+    ]) {
+      const when = new Date(iso);
+      assert.equal(
+        getCurrentNflWeekContext(when).is_off_season,
+        isOffSeason(when),
+        `disagreement at ${iso}`
+      );
+    }
   });
 
   it("returns the prior season during January playoff window", () => {
@@ -96,6 +124,8 @@ describe("nflSchedule.getCurrentNflWeekContext", () => {
       season: 2026,
       week: 18,
       season_type: "postseason",
+      is_off_season: true,
+      raw_week: 20,
     });
   });
 });

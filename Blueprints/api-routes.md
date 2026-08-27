@@ -1,6 +1,6 @@
 # Omen API Route Reference
 
-Last updated: 2026-08-24
+Last updated: 2026-08-26
 
 `/api/stripe/*` (prices, checkout, portal, webhook) removed 2026-07-12 — Omen ships free indefinitely, Stripe is not used on this product (see decision log). `/api/optimizer/*` and `/api/omen/mvp-move` are no longer gated by a subscription check.
 
@@ -49,6 +49,11 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/omen/mvp-move` | `2026-05-18.omen-live.v1` | Yes for live | Canonical Omen / MVP Move path. Live UI sends `{}` after dashboard status `ready`; mock mode is explicit and never an automatic live fallback. Every ESPN recommendation includes an unavailable `exact_espn_scoring_unavailable` signal: Omen may recognize some settings, but cannot yet verify every scoring rule and final ESPN result. A live success is issued only after the server persists its move metadata and post-A6 fail-closed scoring state; persistence failure returns `503 omen_recommendation_persistence_failed` with no recommendation. Unknown live provider scoring stays `null`, never an invented PPR default. Authenticated direct live POST returns `state: "off_season"` before live generation when the shared NFL calendar is outside weeks 1-18. Rate limited — see Rate Limits. |
 | `POST` | `/api/omen/feedback` | feedback response | Yes | Idempotent by user + season + week. A direct/older client that creates the row marks it `scoring_contract_required=true`, so Tuesday scoring cannot mistake it for pre-A6 historical PPR data. |
 | `GET` | `/api/moves` | `moves-history.v1` | Yes | Move History / Hall of Records. |
+| `GET` | `/api/moves/:id` | `move-detail.v1` | Yes | Ledger **detail** — the receipt for one Omen call (visual briefs §7). Immutable snapshot, evidence-at-the-time categorised into `league_context` / `player_game_fact` / `model_input` / `omen_inference` / `limitation`, user action **only when safely known**, and the observed outcome in measured language. The stored `outcome` column holds `win`/`loss`; it is translated and never surfaced raw. `issued_at` carries an explicit `issued_at_timezone`. A row that pre-dates A6 scoring capture names the PPR fallback as a limitation. Error envelope `move-detail-error.v1` (`invalid_move_id` 400, `move_not_found` 404). The `user_id` filter is applied in the query. |
+| `GET` | `/api/leagues` | `league-directory.v1` | Yes | **Team/league switcher directory** (visual briefs §10.2). Grouped by platform in a stable order (`sleeper`, `espn`, `yahoo`), alphabetical by league within a platform. Per-platform `connection_state` (`connected` / `reconnect_required` / `not_connected`) and `discovery`: `full` for Sleeper and Yahoo, **`bound_only` for ESPN**, which exposes no league list to Omen. `active` is the league Omen will actually use. `selection_persistence` is `explicit` once the reviewed selection column is applied and `provider_binding_only` until then — see Active-league selection below. A per-platform failure degrades that group only and leaves the others listed. |
+| `POST` | `/api/leagues/active` | `league-active-selection.v1` | Yes | Sets the active league. Body `{platform, league_id, team_id?}`. The league is verified against the user's own provider account before binding (Sleeper and Yahoo by discovery; ESPN against the bound league, its only verifiable claim). Returns `refresh: ["command_center","omen","league","waiver_watch","ledger"]` — the surfaces §10.3 requires the caller to re-read. Error envelope `league-directory-error.v1`: `invalid_platform`/`league_id_required` 400, `platform_not_connected` 404, `league_not_in_account` 400, `league_verification_unavailable` 502 (retryable, and deliberately distinct from a bad league). |
+| `GET` | `/api/waivers/analysis` | `waiver-analysis.v1` | Yes | **Waiver Analysis** (visual briefs §6) for Sleeper, ESPN, and Yahoo. Best move, the starter it displaces, the recommended drop and its stated cost, and up to three alternatives with a tradeoff sentence each. `state` is one of `confirmed_opportunity`, `availability_unknown`, `no_low_cost_drop`, `no_credible_move`, `engine_limitation`, `off_season`. Optional `week` (1-18). **Never returns FAAB amount, waiver priority, or claim probability** (§6.2). A `null` projection stays unknown and never becomes zero, so an unprojected free agent is never recommended — Yahoo's pool carries no projections at all and says so in `limitations`. A `deadline` is emitted only when availability was confirmed. Error envelope `waiver-analysis-error.v1`. |
+| `GET` | `/api/start-sit/detail` | `start-sit-detail.v1` | Yes | **Start/Sit detail** (visual briefs §5) for Sleeper, ESPN, and Yahoo. Opens on the caller's highest-priority *unresolved* lineup decision; optional `slot` switches slots and optional `week` (1-18). Evidence is categorised per §5.2 and each entry carries its own `kind` (`verified` / `projection` / `model` / `inference` / `limitation`), so a projection is never rendered as a fact. `state` is one of `clear_decision`, `close_decision`, `player_unavailable`, `incomplete_data`, `no_decision`, `off_season`. An unverified scoring format is stated as a limitation, **never assumed to be PPR**. Error envelope `start-sit-detail-error.v1`. Distinct from `POST /api/start-sit`, which is the public caller-supplied comparator. |
 | `GET` | `/api/user/export` | `user-export.v1` | Yes | Safe user data export. Excludes raw OAuth tokens, ESPN cookies, and Vault secret ids. |
 | `POST` | `/api/user/consent` | `user-consent.v1` | Yes | Upserts a consent record for the authenticated user. |
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
@@ -174,6 +179,24 @@ multiplies by the replica count and these need a shared store.
 
 Evidence that they fire: `test/hotRouteRateLimits.test.js` drives real requests through the
 shipped middleware instances until they 429, and proves reset.
+
+## Active-league selection — additive, 2026-08-26
+
+`platform_connections` holds one row per `(user_id, platform)` with a single `league_id`, and no column recording which provider the user chose. Before `GET /api/leagues` existed, three surfaces answered "which league is active" three different ways, none of them the user's choice:
+
+- `src/services/omen.js` ordered `sleeper` → `espn` → `yahoo`
+- `src/routes/league.js` ordered `espn` → `sleeper` → `yahoo`
+- `src/routes/optimizer.js` resolved Yahoo only, by `updated_at`
+
+`src/services/activeSelection.js` is now the single resolver, and `omen.js`, `league.js`, `waivers.js`, and `start-sit/detail` all use it. Behavior is unchanged for a user who has not chosen: the previous deterministic order remains the tie-break.
+
+**Persistence is honest, not assumed.** An explicit cross-provider choice needs a column. `sql/2026-08-26_league_selection_review.sql` is authored **review-only and is not applied** — applying SQL is the gated founder sequence (facts-of-record #8). Until it is applied:
+
+- `selection_persistence` reports `provider_binding_only`;
+- `POST /api/leagues/active` still binds the league *within* its provider, which is real and useful;
+- nothing claims a cross-provider choice persisted that did not.
+
+Once applied, `selection_persistence` reports `explicit` with no code change — the routes detect the column at runtime and fall back rather than failing.
 
 ## Retired Compatibility Routes
 

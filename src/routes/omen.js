@@ -4,9 +4,14 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
+const { logger } = require("../middleware/logging");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
 const { isOffSeason } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
+const {
+  pendingMetadata,
+  resolveScoringPersistenceMetadata,
+} = require("../services/scoringSnapshotResolver");
 const {
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
@@ -114,17 +119,118 @@ function scoringCoverageState(response = {}) {
   return response.platform?.name === "espn" ? "provider_restricted" : "pending";
 }
 
-function scoringPersistenceMetadata(response = {}) {
-  const coverageState = scoringCoverageState(response);
+/**
+ * A6 — derive the league's real scoring contract rather than recording "pending"
+ * for everyone.
+ *
+ * This used to hardcode `contract_version`, `contract_hash` and
+ * `provider_rule_snapshot_hash` to null and take the format from whatever the
+ * response happened to carry. It now goes through
+ * `resolveScoringPersistenceMetadata`, which derives the contract from the
+ * provider's own settings, hashes it, and reports an honest coverage state.
+ *
+ * Two properties this function must keep:
+ *
+ *   - **It cannot throw.** persistLiveRecommendation() refuses to issue a
+ *     recommendation when persistence fails, so an exception here would cost the
+ *     user their recommendation rather than just some metadata. The resolver
+ *     never rejects, and this wrapper adds a belt-and-braces catch.
+ *   - **The rule body stays unretained** until a provider's rights path is
+ *     evidenced — see RETAIN_RULE_BODY in the resolver. The hash still pins
+ *     exactly which rules produced the row, so provenance survives.
+ */
+/**
+ * The subset of scoring metadata that belongs in the public envelope. Frozen to
+ * the fields `2026-05-18.omen-live.v1` already carried, so deriving more
+ * internally never silently widens the API.
+ */
+function publicScoringView(scoring = {}) {
   return {
-    format: response.league?.scoring_format || null,
-    contract_required: true,
-    contract_version: null,
-    contract_hash: null,
-    provider_rule_snapshot_hash: null,
-    coverage_state: coverageState,
-    reconciliation_state: "pending",
+    format: scoring.format ?? null,
+    contract_required: scoring.contract_required === true,
+    contract_version: scoring.contract_version ?? null,
+    contract_hash: scoring.contract_hash ?? null,
+    provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash ?? null,
+    coverage_state: scoring.coverage_state ?? "pending",
+    reconciliation_state: scoring.reconciliation_state ?? "pending",
   };
+}
+
+async function scoringPersistenceMetadata(response = {}) {
+  try {
+    return await resolveScoringPersistenceMetadata({
+      platform: response.platform?.name || null,
+      leagueId: response.league?.id || null,
+    });
+  } catch {
+    return pendingMetadata("Scoring contract derivation failed unexpectedly.");
+  }
+}
+
+/**
+ * Columns this write path uses that the production `moves` table may not have.
+ *
+ * Found live on 2026-08-27: production has every A6 scoring column but **no `platform` and
+ * no `league_id`**. The upsert named both, so every live recommendation's persistence would
+ * have failed — and because this route deliberately refuses to issue advice it cannot
+ * persist, `POST /api/omen/mvp-move` would have returned an error to the first real user
+ * instead of a recommendation. It had not fired only because no request had reached the
+ * endpoint in 48 hours.
+ *
+ * The additive migration that would add them is the gated founder sequence, so the write is
+ * made tolerant instead — the same shape as `moves.js`'s detail-column fallback and the
+ * Tuesday cron's `reconciliation_state` fallback. Dropping a column is reported, never
+ * silent: an absent `platform` costs the Ledger detail its provider label, which is a real
+ * if minor loss and should be visible in the logs rather than inferred later.
+ */
+const OPTIONAL_MOVE_COLUMNS = Object.freeze(["platform", "league_id"]);
+
+function namesMissingColumn(error, column) {
+  const message = error?.message || "";
+  return new RegExp(`column [^ ]*\\b${column}\\b|'${column}' column`, "i").test(message)
+    || (error?.code === "PGRST204" && message.includes(column));
+}
+
+/**
+ * Upsert a move, retrying without any column the schema does not have.
+ *
+ * Retries are bounded by OPTIONAL_MOVE_COLUMNS: a missing column that is NOT optional still
+ * fails loudly, because a recommendation whose scoring metadata could not be stored must not
+ * be issued. That is the whole point of the fail-closed behavior this preserves.
+ */
+async function upsertMoveTolerantly(payload) {
+  const attempt = (row) => supabase
+    .from("moves")
+    .upsert(row, { onConflict: "user_id,week_num,season" })
+    .select("id")
+    .maybeSingle();
+
+  let row = { ...payload };
+  const dropped = [];
+
+  for (let i = 0; i <= OPTIONAL_MOVE_COLUMNS.length; i += 1) {
+    // A fresh object per attempt, so each attempt's real shape is observable rather than
+    // every observer seeing one mutated reference.
+    const result = await attempt({ ...row });
+    if (!result.error) {
+      if (dropped.length) {
+        logger.warn("moves row stored without optional columns absent from the schema", {
+          dropped: dropped.join(","),
+        });
+      }
+      return result;
+    }
+
+    const missing = OPTIONAL_MOVE_COLUMNS
+      .filter((column) => Object.hasOwn(row, column))
+      .find((column) => namesMissingColumn(result.error, column));
+    if (!missing) return result;
+
+    delete row[missing];
+    dropped.push(missing);
+  }
+
+  return attempt({ ...row });
 }
 
 async function persistLiveRecommendation(user, response) {
@@ -136,14 +242,16 @@ async function persistLiveRecommendation(user, response) {
     throw new Error("live recommendation persistence failed: missing league season/week");
   }
 
-  const scoring = scoringPersistenceMetadata(response);
-  response.recommendation.scoring = scoring;
+  const scoring = await scoringPersistenceMetadata(response);
+  // The public envelope keeps exactly the shape #372 defined. The resolver's
+  // internal fields — the derived rule body, the retention flag, the failure
+  // reason — are persistence concerns and must not widen the public contract.
+  // The rule body in particular must never leave the server this way.
+  response.recommendation.scoring = publicScoringView(scoring);
   await ensureAppUser(user);
 
   const recommendation = response.recommendation;
-  const { data, error } = await supabase
-    .from("moves")
-    .upsert({
+  const { data, error } = await upsertMoveTolerantly({
       user_id: user.id,
       week_num: week,
       season,
@@ -154,10 +262,10 @@ async function persistLiveRecommendation(user, response) {
         ? Number(recommendation.confidence.score)
         : null,
       target_player: recommendation.primary_player?.name || null,
-      scoring: legacyScoringLabel(scoring.format),
+      scoring: scoring.legacy_label ?? legacyScoringLabel(scoring.format),
       platform: response.platform?.name || null,
       league_id: response.league?.id || null,
-      scoring_contract: null,
+      scoring_contract: scoring.contract ?? null,
       scoring_contract_hash: scoring.contract_hash,
       scoring_contract_version: scoring.contract_version,
       scoring_contract_required: scoring.contract_required,
@@ -165,9 +273,7 @@ async function persistLiveRecommendation(user, response) {
       provider_rule_snapshot_hash: scoring.provider_rule_snapshot_hash,
       provider_final_outcome: null,
       reconciliation_state: scoring.reconciliation_state,
-    }, { onConflict: "user_id,week_num,season" })
-    .select("id")
-    .maybeSingle();
+  });
 
   if (error) throw new Error(`live recommendation persistence failed: ${error.message}`);
   if (!data?.id) throw new Error("live recommendation persistence failed: missing move id");

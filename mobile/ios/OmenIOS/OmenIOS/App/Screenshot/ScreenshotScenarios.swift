@@ -30,6 +30,21 @@ enum ScreenshotScenarios {
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected")) }
         ),
+        // §10.2 switcher. Rendered against a deterministic in-app stub rather than a live
+        // account, so the states are capturable without credentials — including the ones a
+        // real account would rarely show on demand (an unreadable directory, an empty one).
+        "league-switcher.loaded": ScreenshotScenario(
+            label: "League switcher — leagues across platforms",
+            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .loaded)) }
+        ),
+        "league-switcher.empty": ScreenshotScenario(
+            label: "League switcher — nothing connected",
+            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .empty)) }
+        ),
+        "league-switcher.failed": ScreenshotScenario(
+            label: "League switcher — directory unreadable",
+            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .failed)) }
+        ),
         "help-support.available": ScreenshotScenario(
             label: "Help + Support — available",
             content: { AnyView(OmenHelpSupportView(contextDescription: "Need help with your current Omen flow? Start with a topic below.")) }
@@ -260,5 +275,77 @@ private struct FauxShell: View {
         case "omen.demo": return OmenDecisionFixtures.demo
         default: return OmenDecisionFixtures.realDisconnected
         }
+    }
+}
+
+/// Screenshot host for the §10.2 switcher. The sheet itself takes a view model, so this
+/// supplies one backed by `StubLeagueDirectoryRepository` and renders the sheet's body
+/// inline rather than as a presented sheet — a modal presentation does not appear in a
+/// `simctl io screenshot` of the host window.
+struct LeagueSwitcherScreenshotHost: View {
+    enum Kind { case loaded, empty, failed }
+    let kind: Kind
+
+    @StateObject private var viewModel: LeagueSwitcherViewModel
+
+    init(kind: Kind) {
+        self.kind = kind
+        let result: Result<LeagueDirectory, OmenApiError>
+        switch kind {
+        case .loaded: result = .success(LeagueSwitcherScreenshotHost.sampleDirectory())
+        case .empty: result = .success(LeagueSwitcherScreenshotHost.emptyDirectory())
+        case .failed: result = .failure(.network)
+        }
+        _viewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
+            repository: StubLeagueDirectoryRepository(directory: result),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
+                )),
+                nowEpochSeconds: { 0 }
+            )
+        ))
+    }
+
+    var body: some View {
+        OmenLeagueSwitcherSheet(
+            viewModel: viewModel,
+            onSelected: { _ in },
+            onConnectAnother: {},
+            onManageConnections: {},
+            onDismiss: {}
+        )
+    }
+
+    private static func decode(_ json: String) -> LeagueDirectory {
+        // Force-unwrapped deliberately: this is screenshot-only fixture data that ships with
+        // the app, and a malformed fixture should fail loudly in a capture run rather than
+        // render an empty screen that looks like a real empty state.
+        try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
+    }
+
+    private static func sampleDirectory() -> LeagueDirectory {
+        decode("""
+        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
+         "active":{"platform":"sleeper","league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans"},
+         "platforms":[
+          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
+            {"league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans","is_active":true},
+            {"league_id":"L-fam","league_name":"Family League","season":2026,"scoring_format":"ppr","team_id":"5","team_name":"Titans Too","is_active":false}]},
+          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":"ESPN does not expose a league list to Omen, so only the connected league is shown.","leagues":[
+            {"league_id":"884411","league_name":null,"season":2026,"scoring_format":null,"team_id":"9","team_name":"Sunday Scaries","is_active":false}]},
+          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
+        """)
+    }
+
+    private static func emptyDirectory() -> LeagueDirectory {
+        decode("""
+        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
+         "active":null,
+         "platforms":[
+          {"platform":"sleeper","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
+          {"platform":"espn","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
+          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
+        """)
     }
 }

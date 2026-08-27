@@ -1,5 +1,7 @@
 package com.slopssaloon.omen.app.feature.api
 
+import org.json.JSONObject
+
 /**
  * M5-Native-API-Client slices B and C — repository seams, mirroring `AccountRepository`.
  *
@@ -90,4 +92,62 @@ class StubMovesRepository(
     private val result: OmenApiResult<MovesHistory>,
 ) : MovesRepository {
     override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> = result
+}
+
+// --- Team/league switcher (visual briefs §10.2) -------------------------------
+//
+// Kept separate from DashboardRepository and LeagueRepository for the reason already
+// recorded on those two: they have different cost and failure profiles. The directory
+// makes live provider calls to enumerate leagues, so a slow provider must not be able to
+// hold up the shell.
+
+interface LeagueDirectoryRepository {
+    suspend fun fetchDirectory(accessToken: String): OmenApiResult<LeagueDirectory>
+    suspend fun selectLeague(
+        accessToken: String,
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+    ): OmenApiResult<LeagueSelectionResult>
+}
+
+class ApiLeagueDirectoryRepository(private val client: OmenApiClient) : LeagueDirectoryRepository {
+    override suspend fun fetchDirectory(accessToken: String): OmenApiResult<LeagueDirectory> =
+        client.get("api/leagues", accessToken, LeagueDirectory::parse)
+
+    override suspend fun selectLeague(
+        accessToken: String,
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+    ): OmenApiResult<LeagueSelectionResult> {
+        val body = JSONObject().apply {
+            put("platform", platform)
+            put("league_id", leagueId)
+            // Sent only when known. An explicit null would be indistinguishable from
+            // "clear the team", and the server treats an absent key as "leave it alone".
+            if (!teamId.isNullOrEmpty()) put("team_id", teamId)
+        }
+        return client.post("api/leagues/active", accessToken, body.toString(), LeagueSelectionResult::parse)
+    }
+}
+
+class StubLeagueDirectoryRepository(
+    private val directory: OmenApiResult<LeagueDirectory>,
+    private val selection: OmenApiResult<LeagueSelectionResult> = OmenApiResult.Failure(OmenApiError.Network),
+) : LeagueDirectoryRepository {
+    /** Records what the sheet actually asked for, so a test can assert the request, not just the UI. */
+    val calls = mutableListOf<Triple<String, String, String?>>()
+
+    override suspend fun fetchDirectory(accessToken: String): OmenApiResult<LeagueDirectory> = directory
+
+    override suspend fun selectLeague(
+        accessToken: String,
+        platform: String,
+        leagueId: String,
+        teamId: String?,
+    ): OmenApiResult<LeagueSelectionResult> {
+        calls += Triple(platform, leagueId, teamId)
+        return selection
+    }
 }

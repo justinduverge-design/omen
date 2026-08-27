@@ -83,6 +83,24 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 ENV NODE_ENV=production
 
+# Build provenance, baked into the image rather than set in host config.
+#
+# src/routes/system.js has always read these and returned them from
+# GET /api/version. Nothing ever set them, so git_sha/build_id/image_tag have
+# reported null in production since the route shipped. On 2026-08-26 two deploys
+# failed silently for ~25 hours and establishing which commit production was
+# actually serving took archaeology through Actions logs, because there was no
+# way to ask the running service.
+#
+# Deliberately baked at build time: an image that cannot be separated from its
+# commit cannot lie about which commit it is.
+ARG GIT_SHA
+ARG BUILD_ID
+ARG IMAGE_TAG
+ENV GITHUB_SHA=$GIT_SHA
+ENV BUILD_ID=$BUILD_ID
+ENV IMAGE_TAG=$IMAGE_TAG
+
 USER ssffmvp
 
 EXPOSE 3000

@@ -57,6 +57,9 @@ import com.slopssaloon.omen.core.auth.SupabaseAuthRepository
 import com.slopssaloon.omen.core.auth.SupabaseOAuthProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
+import com.slopssaloon.omen.app.feature.api.ApiLeagueDirectoryRepository
+import com.slopssaloon.omen.app.feature.api.LeagueSwitcherViewModel
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueSwitcherSheet
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
 import com.slopssaloon.omen.app.feature.api.ApiMovesRepository
@@ -145,6 +148,15 @@ fun OmenAndroidApp() {
         )
     }
 
+    // Visual briefs §10.2. Its own view model for the same reason the decision one has its
+    // own: enumerating leagues makes live provider calls and must not block the shell.
+    val leagueSwitcherViewModel = remember {
+        LeagueSwitcherViewModel(
+            repository = ApiLeagueDirectoryRepository(OmenApiClient(env.apiBaseUrl)),
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
+
     // M5 slice D. Its own view model rather than a field on the Command Center one: the live
     // engine call is slower and independently failable, so the Omen destination owns its own
     // loading state instead of blocking the shell.
@@ -188,6 +200,7 @@ fun OmenAndroidApp() {
     var deleteMessage by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
+    var showSwitcherSheet by remember { mutableStateOf(false) }
     var showHelpSupportSheet by remember { mutableStateOf(false) }
 
     fun dispatch(event: AuthEvent) {
@@ -410,9 +423,40 @@ fun OmenAndroidApp() {
                             omenDecisionViewModel = omenDecisionViewModel,
                             onConnect = { showConnectSheet = true },
                             onOpenAccount = { showAccountSheet = true },
+                            onSwitchContext = { showSwitcherSheet = true },
                             onOpenOmen = { selectedDestination = NavDestination.Omen },
                             onOpenLeague = { selectedDestination = NavDestination.League },
                         )
+                    }
+                    OmenLeagueSwitcherSheet(
+                        visible = showSwitcherSheet,
+                        viewModel = leagueSwitcherViewModel,
+                        onSelectLeague = { platform, leagueId, teamId ->
+                            scope.launch {
+                                // §10.3: apply the new context atomically across the
+                                // personalized surfaces — but only when the switch actually
+                                // took. A null return means it did not, and re-reading for
+                                // the old context would present it as new.
+                                val refresh = leagueSwitcherViewModel.select(platform, leagueId, teamId)
+                                if (refresh != null) {
+                                    showSwitcherSheet = false
+                                    commandCenterViewModel.load(s.userId)
+                                    omenDecisionViewModel.load(s.userId)
+                                }
+                            }
+                        },
+                        onConnectAnother = {
+                            showSwitcherSheet = false
+                            showConnectSheet = true
+                        },
+                        onManageConnections = {
+                            showSwitcherSheet = false
+                            showAccountSheet = true
+                        },
+                        onDismiss = { showSwitcherSheet = false },
+                    )
+                    LaunchedEffect(showSwitcherSheet) {
+                        if (showSwitcherSheet) leagueSwitcherViewModel.load()
                     }
                     OmenModalSheet(
                         visible = showConnectSheet,
@@ -562,6 +606,7 @@ private fun SignedInDestination(
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
     onOpenLeague: () -> Unit,
+    onSwitchContext: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     when (destination) {
@@ -590,6 +635,10 @@ private fun SignedInDestination(
             } else {
                 OmenCommandCenterScreen(
                     state = commandCenterViewModel.commandCenterState,
+                    // Passing this is what makes the strip's switch affordance render at
+                    // all — OmenContextStrip hides it when onSwitch is null, which is why a
+                    // user with a connected league previously had no way to choose it.
+                    onSwitchContext = onSwitchContext,
                     onConnect = onConnect,
                     onOpenAccount = onOpenAccount,
                     onOpenOmen = onOpenOmen,
