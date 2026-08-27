@@ -274,6 +274,9 @@ try {
 try {
   const startSitRoutes = require("./routes/startSit");
   app.use("/api/start-sit", startSitRoutes);
+  // Authenticated §5 detail surface, kept out of the public comparator's module
+  // so that route stays loadable without Supabase config.
+  app.use("/api/start-sit", require("./routes/startSitDetail"));
 } catch (e) {
   logger.error("Start/Sit router failed to load", { err: e.message, stack: e.stack });
 }
