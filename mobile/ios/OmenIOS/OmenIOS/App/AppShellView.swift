@@ -88,6 +88,9 @@ struct AppShellView: View {
                     ),
                     connectRepository: ApiConnectRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
+                    leagueDirectoryRepository: ApiLeagueDirectoryRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
                     )
                 )
                 }
