@@ -160,7 +160,7 @@ jobs:
                echo '==> Pulling GHCR images built by this workflow' && \
                docker compose -f docker-compose.prod.yml --project-name omen pull api cron && \
                echo '==> Recreating API and cron containers (env_file: .env.production stays on KVM1)' && \
-               docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron && \
+               sudo docker compose -f docker-compose.prod.yml --project-name omen up -d --no-build api cron && \
                echo '==> Cleaning up dangling images' && \
                docker image prune -f"
 

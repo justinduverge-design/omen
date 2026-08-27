@@ -58,6 +58,24 @@ test("deploy workflow runs a public-route visual smoke for logo regressions", ()
   assert.match(workflow, /grep -Fq "omen-horizontal-lockup-transparent\.png"/);
 });
 
+test("deploy workflows use sudo only when Compose must read the root-owned production env", () => {
+  const workflows = [
+    read(".github", "workflows", "deploy.yml"),
+    read(".github", "workflows", "deploy-kvm1-tailscale-fallback.yml"),
+  ];
+
+  for (const workflow of workflows) {
+    assert.match(
+      workflow,
+      /sudo docker compose -f docker-compose\.prod\.yml --project-name omen up -d --no-build api cron/,
+    );
+    assert.doesNotMatch(
+      workflow,
+      /sudo docker compose -f docker-compose\.prod\.yml --project-name omen pull api cron/,
+    );
+  }
+});
+
 test("Docker builds use npm ci without Yarn-only lockfile flags", () => {
   const dockerfiles = [read("Dockerfile"), read("Dockerfile.cron")];
 
