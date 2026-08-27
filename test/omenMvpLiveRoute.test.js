@@ -317,25 +317,36 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
       reasoning: "Start Bench Breakout.",
       confidence: 82,
       target_player: "Bench Breakout",
-      scoring: "PPR",
+      // A6 step 2: this asserted `scoring: "PPR"` for a Yahoo league whose rules
+      // have never been read — Yahoo's API is refused at the entitlement level.
+      // The label came from the envelope's own default, not from the league, so
+      // the write path was persisting a fabricated scoring format: the exact
+      // defect A6 exists to remove, surviving one layer down. It is now null.
+      scoring: null,
       platform: "yahoo",
       league_id: "414.l.12345",
+      // The rule body stays unretained until a provider's rights path is
+      // evidenced (RETAIN_RULE_BODY). The hashes still pin which contract
+      // version and which rule set produced the row, so provenance survives.
       scoring_contract: null,
-      scoring_contract_hash: null,
-      scoring_contract_version: null,
+      scoring_contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
+      scoring_contract_version: "omen-scoring-contract-v1",
       scoring_contract_required: true,
       scoring_coverage_state: "pending",
-      provider_rule_snapshot_hash: null,
+      provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
       provider_final_outcome: null,
       reconciliation_state: "pending",
     },
   }]);
+  // The public envelope keeps exactly the seven fields #372 defined. Deriving
+  // more internally must never widen the API, and the derived rule body must
+  // never appear here.
   assert.deepEqual(res.body.recommendation.scoring, {
-    format: "ppr",
+    format: null,
     contract_required: true,
-    contract_version: null,
-    contract_hash: null,
-    provider_rule_snapshot_hash: null,
+    contract_version: "omen-scoring-contract-v1",
+    contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
+    provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
     coverage_state: "pending",
     reconciliation_state: "pending",
   });

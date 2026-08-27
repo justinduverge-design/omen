@@ -14,8 +14,8 @@
 | # | Move | Who | Size |
 |---|---|---|---|
 | 1 | Merge PR #371 | founder | one click |
-| 2 | Wire `deriveScoringSnapshot()` into `scoringPersistenceMetadata()` so #372 stops writing `scoring_contract: null` | agent | ~1 call + tests |
-| 3 | Capture one real production row and read it back | agent, after 1–2 deploy | small |
+| 2 | ✅ **DONE** — wired via `scoringSnapshotResolver.js`; contract version + hashes now derived. Rule **body** stays gated on provider retention rights (`RETAIN_RULE_BODY`, all `false`) — one founder call away | agent | done |
+| 3 | Merge #371 (now carries steps 2 as well), then capture one real production row and read it back | founder, then agent | small |
 
 Then, in any order and none blocking the others: ratify the restricted-provider acceptance amendment (wording, drafted); write the per-provider coverage matrix; add a multi-week replay matrix; populate `git_sha` in `/api/version`.
 
