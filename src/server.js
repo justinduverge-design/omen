@@ -254,6 +254,14 @@ try {
   logger.error("Leagues router failed to load", { err: e.message, stack: e.stack });
 }
 
+// --- Mount /api/waivers (provider-neutral Waiver Analysis) -------
+try {
+  const waiversRoutes = require("./routes/waivers");
+  app.use("/api/waivers", waiversRoutes);
+} catch (e) {
+  logger.error("Waivers router failed to load", { err: e.message, stack: e.stack });
+}
+
 // --- Mount /api/optimizer (Pro-gated lineup + waiver routes) ----
 try {
   const optimizerRoutes = require("./routes/optimizer");
