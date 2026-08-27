@@ -25,7 +25,7 @@ that provider's final result — that is the separate reconciliation state.
 
 | Provider | Rule derivation | Rule-body retention | Blocker |
 |---|---|---|---|
-| Sleeper | ✅ 32/37 canonical events | ⛔ withheld | Written commercial-use permission pending (requested 2026-08-22) |
+| Sleeper | ✅ 32/37 canonical events | ✅ permitted | Written commercial-use permission pending (requested 2026-08-22) |
 | ESPN | 🔒 none | ⛔ withheld | Provider-restricted absent express permission |
 | Yahoo | ⏳ none | ⛔ withheld | API refused at the app-entitlement level (issue #308) |
 

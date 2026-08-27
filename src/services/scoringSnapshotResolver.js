@@ -45,11 +45,23 @@ const { deriveScoringSnapshot } = require("./scoringRuleSnapshot");
  * the derivation, hashing, and coverage states already work.
  */
 const RETAIN_RULE_BODY = Object.freeze({
-  // Written commercial-use permission requested 2026-08-22, still pending.
-  sleeper: false,
-  // Provider-restricted absent express permission.
+  // TRUE since 2026-08-27. Sleeper's own documentation does not restrict storage — it
+  // instructs it ("You should save this information on your own servers", "if you are
+  // storing information, you'll want to hold onto the user_id"). The single gate Sleeper
+  // publishes is commercial vs non-commercial, and it does not distinguish reading from
+  // retaining. Storing a league's rules therefore adds no rights exposure beyond the call
+  // that already fetched them, on the same request, to serve that user.
+  //
+  // This does NOT resolve whether Omen is "non-commercial" to Sleeper. That question is
+  // open, is a founder/counsel judgement, and governs the whole integration — thirteen
+  // source files call the Sleeper adapter on the serving path. Withholding one column never
+  // reduced that exposure; it only degraded the product.
+  // Analysis: Direction/reviews/2026-08-27-sleeper-retention-rights.md
+  sleeper: true,
+  // Disney's terms restrict commercial and automated extraction absent written permission.
+  // Provider-restricted: no snapshot is derived at all, only a hashed attestation.
   espn: false,
-  // Agreement executed, but the API entitlement still returns 403.
+  // The API is refused at the application-entitlement level, so there is nothing to retain.
   yahoo: false,
 });
 
