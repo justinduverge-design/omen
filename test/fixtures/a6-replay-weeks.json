@@ -1,0 +1,33 @@
+{
+  "note": "A6 replay fixtures. Deterministic, hand-authored event facts for four scoring periods, chosen to match the weeks A7B replays (2025 W1/W7/W14/W17) so the two can be compared later. No provider data and no real player identity - these are archetypes, not records. provider_final is computed from the standard published formulas so a mismatch means Omen's contract engine disagrees with the rules, not that the fixture is guessy.",
+  "weeks": [
+    { "season": 2025, "week": 1, "players": [
+      { "archetype": "WR-volume",
+        "facts": { "receiving_receptions": 9, "receiving_yards": 104, "receiving_touchdowns": 1, "fumbles_lost": 0 },
+        "provider_final": { "standard": 16.4, "half_ppr": 20.9, "ppr": 25.4 } },
+      { "archetype": "RB-goalline",
+        "facts": { "rushing_yards": 62, "rushing_touchdowns": 2, "receiving_receptions": 1, "receiving_yards": 4, "receiving_touchdowns": 0, "fumbles_lost": 0 },
+        "provider_final": { "standard": 18.6, "half_ppr": 19.1, "ppr": 19.6 } } ] },
+    { "season": 2025, "week": 7, "players": [
+      { "archetype": "QB-passer",
+        "facts": { "passing_yards": 312, "passing_touchdowns": 3, "passing_interceptions": 1, "rushing_yards": 11, "rushing_touchdowns": 0, "fumbles_lost": 0 },
+        "provider_final": { "standard": 23.58, "half_ppr": 23.58, "ppr": 23.58 } },
+      { "archetype": "WR-zero-catch",
+        "facts": { "receiving_receptions": 0, "receiving_yards": 0, "receiving_touchdowns": 0, "fumbles_lost": 0 },
+        "provider_final": { "standard": 0, "half_ppr": 0, "ppr": 0 } } ] },
+    { "season": 2025, "week": 14, "players": [
+      { "archetype": "WR-fumble",
+        "facts": { "receiving_receptions": 6, "receiving_yards": 71, "receiving_touchdowns": 0, "fumbles_lost": 1 },
+        "provider_final": { "standard": 5.1, "half_ppr": 8.1, "ppr": 11.1 } },
+      { "archetype": "RB-reception-heavy",
+        "facts": { "rushing_yards": 28, "rushing_touchdowns": 0, "receiving_receptions": 8, "receiving_yards": 66, "receiving_touchdowns": 1, "fumbles_lost": 0 },
+        "provider_final": { "standard": 15.4, "half_ppr": 19.4, "ppr": 23.4 } } ] },
+    { "season": 2025, "week": 17, "players": [
+      { "archetype": "WR-longscore",
+        "facts": { "receiving_receptions": 3, "receiving_yards": 118, "receiving_touchdowns": 2, "fumbles_lost": 0 },
+        "provider_final": { "standard": 23.8, "half_ppr": 25.3, "ppr": 26.8 } },
+      { "archetype": "QB-bad-day",
+        "facts": { "passing_yards": 154, "passing_touchdowns": 0, "passing_interceptions": 3, "rushing_yards": 3, "rushing_touchdowns": 0, "fumbles_lost": 1 },
+        "provider_final": { "standard": -1.54, "half_ppr": -1.54, "ppr": -1.54 } } ] }
+  ]
+}

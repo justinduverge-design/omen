@@ -1,0 +1,11 @@
+[Unit]
+Description=Pull Omen A4 scoring-gate state from KVM1
+
+[Timer]
+# Shortly after KVM1 evaluates, so the dispatcher sees fresh state on its next run.
+OnCalendar=*-*-* 09:55:00
+RandomizedDelaySec=180
+Persistent=true
+
+[Install]
+WantedBy=timers.target
