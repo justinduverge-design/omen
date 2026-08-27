@@ -86,7 +86,7 @@ QA, and the Android store path remain open.
 
 ---
 
-## ⛔ Deploy pipeline is BROKEN — 2026-08-27
+## ✅ Deploy pipeline — BROKEN 2026-08-26, FIXED 2026-08-27
 
 **`main` has not reached production since 2026-08-25 22:23.** The last two pushes
 to `main` both failed to deploy with the identical error:
@@ -114,7 +114,16 @@ window — `9e780b0 fix(football-data): bound backup service privileges`,
 no agent in this session has host access, and confirming it requires reading the
 file's mode and owner on KVM1.
 
-**Founder-only to fix.** See `Direction/reviews/2026-08-27-recovery-plan.md`.
+**RESOLVED 2026-08-27 by PR #373** (`fix(deploy): read protected production env on
+recreate`). Deploy run `33028395352` succeeded, API and cron are on the new
+images, health/readiness and public-route canaries pass. The fix kept the file
+protected rather than widening its permissions.
+
+**The residual gap this exposed is still open:** `GET /api/version` returns
+`git_sha: null`, so there is still no way to ask production which commit it is
+serving. Two deploys failed silently for ~25 hours and the only way to establish
+what was actually running was archaeology through Actions logs. Populating
+`git_sha` turns that into one query. Not yet queued.
 
 ---
 

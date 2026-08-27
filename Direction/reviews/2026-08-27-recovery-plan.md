@@ -1,5 +1,29 @@
 # Recovery plan — 2026-08-27
 
+## Where we are, in six lines
+
+1. **Production is healthy and deploys work again.** #373 fixed the broken deploy; the last run succeeded and the containers are on new images.
+2. **A6 is safely contained in production.** #372 made the server persist every issued recommendation and refuse to issue one it cannot persist. Both scoring flags stay `false`.
+3. **The provider-neutral contract and evaluator core is already written.** It is PR #371 — open, green, `814/814`, conflict-free. It is not a thing left to build.
+4. **The next action is one merge and one small wiring change**, not a build phase.
+5. **Everything after that is either a document or a permission**, and the permissions are not ours to grant.
+6. **Tuesday scoring stays off** until full A6 proof plus the `O2` rollback drill.
+
+## The next three moves, in order
+
+| # | Move | Who | Size |
+|---|---|---|---|
+| 1 | Merge PR #371 | founder | one click |
+| 2 | Wire `deriveScoringSnapshot()` into `scoringPersistenceMetadata()` so #372 stops writing `scoring_contract: null` | agent | ~1 call + tests |
+| 3 | Capture one real production row and read it back | agent, after 1–2 deploy | small |
+
+Then, in any order and none blocking the others: ratify the restricted-provider acceptance amendment (wording, drafted); write the per-provider coverage matrix; add a multi-week replay matrix; populate `git_sha` in `/api/version`.
+
+**Blocked on other people, not on us:** Sleeper written permission, Yahoo entitlement (still 403), ESPN (stays restricted by design).
+
+---
+
+
 Written after the founder reported "the app seems broken and things built months
 ago weren't built." Both halves of that are worth separating, because one is true
 and urgent and the other is not true.
@@ -61,10 +85,17 @@ pessimistic direction, and four approved designs were never queued.
 
 ## Part 3 — The plan, in order
 
-### Step 1 — Fix the deploy. Founder-only. Do this first.
+### Step 1 — Fix the deploy. ✅ DONE 2026-08-27 (PR #373).
 
 Nothing else matters until `main` can reach production again, because until then
 every merge is invisible.
+
+**Done.** #373 changed the workflow to read the protected env on recreate rather
+than widening the file's permissions — the right shape of fix. Deploy run
+`33028395352` succeeded; API and cron are on new images; health, readiness and
+public-route canaries pass; both scoring flags remain `false`.
+
+Original diagnosis, kept for the record:
 
 On KVM1:
 
