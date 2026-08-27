@@ -65,20 +65,32 @@ test("a league Omen cannot fully reproduce is ambiguous and gets no format label
 
 // --- Rights gate ------------------------------------------------------------
 
-test("the rule body is withheld for every provider while retention rights are pending", async () => {
-  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: false, espn: false, yahoo: false });
+test("Sleeper retains the rule body; ESPN and Yahoo do not", async () => {
+  // Sleeper's own docs do not restrict storage — they instruct it. The single gate they
+  // publish is commercial vs non-commercial, which does not distinguish reading from
+  // retaining, so storing a league's rules adds no exposure beyond the call that already
+  // fetched them. See Direction/reviews/2026-08-27-sleeper-retention-rights.md.
+  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: false, yahoo: false });
 
-  const meta = await resolveScoringPersistenceMetadata({
+  const sleeper = await resolveScoringPersistenceMetadata({
     platform: "sleeper", leagueId: "L1", deps: sleeperDeps({ scoring_settings: HALF_PPR }),
   });
 
-  assert.equal(meta.contract, null, "the rule body must not be retained");
-  assert.equal(meta.retention_withheld, true, "and withholding it must be visible, not silent");
-  // The hash still pins exactly which rules produced the row.
+  assert.ok(sleeper.contract, "the derived rule body is retained");
+  assert.equal(sleeper.retention_withheld, false);
+  // The hash still pins exactly which rules produced the row, body or no body.
   assert.equal(
-    meta.provider_rule_snapshot_hash,
+    sleeper.provider_rule_snapshot_hash,
     deriveScoringSnapshot({ platform: "sleeper", leagueSettings: HALF_PPR }).provider_rule_snapshot_hash
   );
+});
+
+test("a restricted provider retains nothing, and its attestation carries no rules", async () => {
+  for (const platform of ["espn", "yahoo"]) {
+    const meta = await resolveScoringPersistenceMetadata({ platform, leagueId: "1" });
+    assert.equal(meta.contract, null, `${platform} must not retain a rule body`);
+    assert.equal(meta.format, null);
+  }
 });
 
 // --- ESPN and Yahoo: rights and entitlement facts, not data facts -----------
