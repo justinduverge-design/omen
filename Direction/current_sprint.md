@@ -164,6 +164,13 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
   **Consequence for sequencing:** "implement the provider-neutral contract/evaluator core" is not a build step any more. It is a **merge** step, and it is cheaper and earlier than the parallel session's sequence places it.
 
+- **✅ DATA blocker substantially cleared 2026-08-27 — the facts already existed.** `src/services/footballDataFacts.js` maps A7B's published fact rows onto A6's canonical event vocabulary. **A7B was already collecting what A6 needed** — including `receptions`, the column the entire PPR question turns on, plus kicker distance bands and team-defence rows. The gap was never data acquisition; it was two names for the same thing.
+  - **Proven end to end:** a real A7B-shaped row scores **16.4 / 20.9 / 25.4** under standard / half-PPR / PPR and reconciles `exact` against its own league's total.
+  - **Coverage: 25 of 37 canonical events.** The 12 gaps are named with reasons — `defense_points_allowed` (derivable from A7B's schedule scores, not yet wired), `defense_yards_allowed` and the ten IDP events (not collected). A league scoring any of them cannot reach `exact` and is told which fact is missing.
+  - **Three safety rules, all tested:** an absent column is missing rather than zero; a summed fact is unknown if *any* component is unknown; a key A7B cannot supply is never guessed at.
+  - **A7B untouched** — the dependency points one way, and `git diff` against `src/services/footballData/` and `ops/` is empty.
+  - **The DATA blocker below is superseded for ordinary offensive and kicker leagues.** It still stands for IDP and points/yards-allowed leagues, and A7B's own production gates are unchanged.
+
 - **Blocked by:** DATA — the current Tuesday source (nflverse `player_stats`) publishes aggregate fantasy points, not the per-event facts a contract prices, so a contract row reconciles to `unsupported` with its missing facts named. This is the seam `A7B` plugs into and is deliberately **not** worked around by scoring a missing fact as zero.
 - **Blocked by:** EXTERNAL — each provider needs an affirmative rights/entitlement path before Omen may capture and retain its complete private rule snapshot or final outcome; ESPN is provider-restricted unless it grants express permission.
 - **Unblock:** 2026-08-26 CLEARED for existing columns only — after explicit founder authorization and rollback preflight, the exact additive compatibility migration was applied to production with no row rewrite. This does not authorize any future SQL.
