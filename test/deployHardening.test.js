@@ -84,3 +84,40 @@ test("Docker builds use npm ci without Yarn-only lockfile flags", () => {
     assert.doesNotMatch(dockerfile, /--frozen-lockfile/);
   }
 });
+
+test("both images bake build provenance so a running container can name its commit", () => {
+  // GET /api/version has always read GITHUB_SHA / BUILD_ID / IMAGE_TAG and has
+  // always returned null for all three, because nothing set them. On 2026-08-26
+  // two deploys failed silently for ~25 hours and working out which commit
+  // production was actually serving took archaeology through Actions logs.
+  //
+  // This asserts the whole chain, not just one end of it. The route reading an
+  // env var nobody sets is exactly the failure being fixed, so a test that only
+  // checked the route would have passed throughout.
+  for (const dockerfile of ["Dockerfile", "Dockerfile.cron"]) {
+    const contents = read(dockerfile);
+    for (const arg of ["ARG GIT_SHA", "ARG BUILD_ID", "ARG IMAGE_TAG"]) {
+      assert.ok(contents.includes(arg), `${dockerfile} must declare ${arg}`);
+    }
+    assert.ok(contents.includes("ENV GITHUB_SHA=$GIT_SHA"), `${dockerfile} must export GITHUB_SHA`);
+    assert.ok(contents.includes("ENV BUILD_ID=$BUILD_ID"), `${dockerfile} must export BUILD_ID`);
+    assert.ok(contents.includes("ENV IMAGE_TAG=$IMAGE_TAG"), `${dockerfile} must export IMAGE_TAG`);
+  }
+
+  const workflow = read(".github", "workflows", "deploy.yml");
+  // Both images, not just the API one — the cron container is where a silent
+  // stale deploy is hardest to notice.
+  assert.equal(
+    (workflow.match(/GIT_SHA=\$\{\{ github\.sha \}\}/g) || []).length, 2,
+    "both image builds must receive GIT_SHA"
+  );
+  assert.equal(
+    (workflow.match(/BUILD_ID=\$\{\{ github\.run_id \}\}/g) || []).length, 2,
+    "both image builds must receive BUILD_ID"
+  );
+
+  // And the route must still be reading the name the Dockerfile exports.
+  const versionRoute = read("src", "routes", "system.js");
+  assert.ok(versionRoute.includes("process.env.GITHUB_SHA"), "the version route must read GITHUB_SHA");
+  assert.ok(versionRoute.includes("process.env.IMAGE_TAG"), "the version route must read IMAGE_TAG");
+});
