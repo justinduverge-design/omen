@@ -3,6 +3,7 @@
 **Date:** 2026-08-26  
 **Branch:** `codex/a7b-closure-reconciliation`  
 **Base:** `dba6076`  
+**PR:** [#372](https://github.com/justinduverge-design/omen/pull/372) — open, unmerged, first check run 3/3 green
 **State:** A7B CLOSED/COMPLETED; A6 BLOCKED; A4 BLOCKED; production scoring held
 
 ## Outcome
@@ -40,6 +41,7 @@ This is containment, not completion. Full A6 still requires lawful immutable pro
 - Baseline: backend 712/712 before the repair.
 - RED: focused tests failed for missing post-A6 marker, missing recommendation persistence, and unknown-live-format PPR default.
 - GREEN: focused feedback/live-route/live-service/Tuesday-scoring tests 56/56; full backend 713/713; moderate audit 0 vulnerabilities; `git diff --check` clean; sprint staleness 0 findings after F6 was correctly retyped to founder/device-blocked.
+- GitHub PR quality: Backend tests, Frontend tests, and Server boot smoke all passed on #372.
 - Code review: `Direction/reviews/2026-08-26-a6-safety-a7b-closure-code-review.md`.
 - No dependency or lockfile change.
 
@@ -53,4 +55,4 @@ This is containment, not completion. Full A6 still requires lawful immutable pro
 
 ## Skills and boundaries
 
-Used `run-slops-saloon` for the Omen read/authority/evidence loop. Browser/screenshot QA was N/A because no UI changed. No provider-access expansion, schema change, SQL, database write, dependency, application deploy, merge, or production API restart occurred in this closure pass.
+Used `run-slops-saloon` for the Omen read/authority/evidence loop. Browser/screenshot QA was N/A because no UI changed. No provider-access expansion, schema change, SQL, database write, dependency, application deploy, merge, or production API restart occurred in this closure pass. PR #372 is deliberately left open for founder review.
