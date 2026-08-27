@@ -78,13 +78,48 @@ test("an unmapped rule worth zero points does not make the contract ambiguous", 
   assert.equal(snapshot.coverage_state, "supported");
 });
 
-test("banded field goals become range rules on made yardage", () => {
-  const { rules } = deriveSleeperRules({ fgm_0_19: 3, fgm_40_49: 4, fgm_50p: 5 });
-  const bands = rules.filter((rule) => rule.event_key === "field_goals_made");
+test("banded field goals become per-band COUNT rules, not a yardage range", () => {
+  // This previously asserted `range_event` rules keyed on `field_goals_made`, treating the
+  // fact as the yardage of one kick. That model was silently wrong while still reporting
+  // `supported`: a kicker who made two field goals supplies `field_goals_made: 2`, which
+  // fell in the 0-19 band and scored as a 2-yard kick.
+  const { rules } = deriveSleeperRules({ fgm_0_19: 3, fgm_20_29: 3, fgm_30_39: 3, fgm_40_49: 4, fgm_50p: 5 });
+  const bands = rules.filter((rule) => rule.event_key.startsWith("field_goals_made"));
 
-  assert.equal(bands.length, 3);
-  assert.deepEqual(bands.map((b) => [b.min, b.max, b.value]), [[0, 19, 3], [40, 49, 4], [50, 99, 5]]);
-  assert.ok(bands.every((b) => b.operator === "range_event"));
+  assert.deepEqual(
+    bands.map((b) => [b.event_key, b.operator, b.value]),
+    [
+      ["field_goals_made_0_39", "per_event", 3],
+      ["field_goals_made_40_49", "per_event", 4],
+      ["field_goals_made_50_plus", "per_event", 5],
+    ]
+  );
+});
+
+test("two made field goals score twice, not once as a two-yard kick", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "sleeper",
+    leagueSettings: { fgm_0_19: 3, fgm_20_29: 3, fgm_30_39: 3, fgm_40_49: 4, fgm_50p: 5, rec: 0 },
+  });
+  const points = calculateContractScore(snapshot.contract, {
+    field_goals_made_0_39: 2, field_goals_made_40_49: 0, field_goals_made_50_plus: 0,
+    receiving_receptions: 0,
+  }).points;
+
+  assert.equal(points, 6);
+});
+
+test("sub-bands that disagree inside one canonical band make the league ambiguous", () => {
+  // Sleeper publishes five bands; the canonical vocabulary has three. A league paying 3 for
+  // 0-19 but 5 for 30-39 cannot be expressed, and picking one of the two values would be a
+  // confident wrong answer.
+  const snapshot = deriveScoringSnapshot({
+    platform: "sleeper",
+    leagueSettings: { fgm_0_19: 3, fgm_30_39: 5, rec: 0 },
+  });
+
+  assert.equal(snapshot.coverage_state, "ambiguous");
+  assert.deepEqual(snapshot.unmapped_rules, ["field_goals_made_0_39"]);
 });
 
 test("Sleeper settings that carry no scoring weight do not make every league ambiguous", () => {

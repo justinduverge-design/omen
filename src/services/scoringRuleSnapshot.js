@@ -63,13 +63,26 @@ const SLEEPER_EVENT_MAP = Object.freeze({
   idp_safe: { event_key: "idp_safeties", operator: "per_event" },
 });
 
-/** Distance-banded field goals map to range rules on made-yardage bands. */
+/**
+ * Distance-banded field goals, mapped onto the canonical **count-per-band** event keys.
+ *
+ * An earlier revision mapped these onto `field_goals_made` with a `range_event` operator,
+ * treating the fact as the *yardage of one kick*. That was silently wrong in a way that
+ * still reported `coverage_state: "supported"`: a kicker who made two field goals supplies
+ * `field_goals_made: 2`, which fell inside the 0-19 band and scored as a 2-yard kick. A
+ * confident, plausible, wrong number claiming league-exact capability — the exact failure
+ * A6 exists to remove. Found by building the replay matrix, not by review.
+ *
+ * Sleeper publishes five bands; the canonical vocabulary has three. Two Sleeper bands that
+ * collapse onto one canonical key must agree, or the league is `ambiguous` — see
+ * `fieldGoalRules`.
+ */
 const SLEEPER_FG_BANDS = Object.freeze({
-  fgm_0_19: { min: 0, max: 19 },
-  fgm_20_29: { min: 20, max: 29 },
-  fgm_30_39: { min: 30, max: 39 },
-  fgm_40_49: { min: 40, max: 49 },
-  fgm_50p: { min: 50, max: 99 },
+  fgm_0_19: "field_goals_made_0_39",
+  fgm_20_29: "field_goals_made_0_39",
+  fgm_30_39: "field_goals_made_0_39",
+  fgm_40_49: "field_goals_made_40_49",
+  fgm_50p: "field_goals_made_50_plus",
 });
 
 /**
@@ -107,9 +120,46 @@ function sortRules(rules) {
     || (a.min ?? 0) - (b.min ?? 0));
 }
 
+/**
+ * Resolve a league's field-goal bands into canonical count rules.
+ *
+ * Returns `{ rules, unreproducible }`. `unreproducible` names any canonical band whose
+ * Sleeper sub-bands disagree — for example a league paying 3 for 0-19 but 5 for 30-39,
+ * both of which land in canonical `field_goals_made_0_39`. Omen cannot express that, and
+ * the honest answer is `ambiguous` rather than picking one of the two values.
+ */
+function fieldGoalRules(bands) {
+  const byCanonical = new Map();
+  for (const [providerKey, value] of Object.entries(bands)) {
+    const canonical = SLEEPER_FG_BANDS[providerKey];
+    if (!byCanonical.has(canonical)) byCanonical.set(canonical, new Set());
+    byCanonical.get(canonical).add(value);
+  }
+
+  const rules = [];
+  const unreproducible = [];
+  for (const [canonical, values] of byCanonical) {
+    if (values.size > 1) {
+      unreproducible.push(canonical);
+      continue;
+    }
+    const [value] = values;
+    // A zero-valued band is a real league decision and is kept, for the same reason a
+    // zero-valued reception rule is: standard scoring is literally `rec: 0`.
+    rules.push({ event_key: canonical, operator: "per_event", value });
+  }
+
+  // Deliberately NOT collapsed to a single `field_goals_made` rule when every band pays the
+  // same. Collapsing would change which fact key the contract requires — banded counts
+  // versus a total count — so a league's rules staying flat or going tiered would silently
+  // change the shape of the facts needed to grade it. One model, always: counts per band.
+  return { rules, unreproducible };
+}
+
 function deriveSleeperRules(settings) {
   const rules = [];
   const unmapped = [];
+  const fieldGoalBands = {};
 
   for (const [key, rawValue] of Object.entries(settings || {})) {
     const value = finite(rawValue);
@@ -119,11 +169,10 @@ function deriveSleeperRules(settings) {
     }
     if (SLEEPER_IGNORED_KEYS.has(key)) continue;
 
-    const band = SLEEPER_FG_BANDS[key];
-    if (band) {
-      if (value !== 0) {
-        rules.push({ event_key: "field_goals_made", operator: "range_event", value, min: band.min, max: band.max });
-      }
+    if (SLEEPER_FG_BANDS[key]) {
+      // Collected and resolved together below: whether a set of bands is reproducible
+      // depends on the whole set, not on any one band.
+      fieldGoalBands[key] = value;
       continue;
     }
 
@@ -138,6 +187,12 @@ function deriveSleeperRules(settings) {
     // A points-allowed tier, a yardage bonus, a return-yard rule, or anything
     // Sleeper adds later. Only a non-zero one changes a score.
     if (value !== 0) unmapped.push(key);
+  }
+
+  if (Object.keys(fieldGoalBands).length) {
+    const fg = fieldGoalRules(fieldGoalBands);
+    rules.push(...fg.rules);
+    unmapped.push(...fg.unreproducible);
   }
 
   return { rules: sortRules(rules), unmapped: [...new Set(unmapped)].sort() };
