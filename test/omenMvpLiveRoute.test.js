@@ -153,19 +153,50 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null } = {}) {
+function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
   const state = {
     authHeaders: [],
+    appUsers: [],
     llmPayloads: [],
     dvpLookups: [],
     liveUserIds: [],
     liveRequests: [],
+    moveUpserts: [],
+  };
+  const fakeSupabase = {
+    from(table) {
+      if (table !== "moves") throw new Error(`unexpected table ${table}`);
+      return {
+        upsert(payload, options) {
+          state.moveUpserts.push({ payload, options });
+          return {
+            select() {
+              return {
+                maybeSingle: async () => persistenceError
+                  ? { data: null, error: { message: persistenceError } }
+                  : { data: { id: "move-live-1" }, error: null },
+              };
+            },
+          };
+        },
+      };
+    },
   };
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === "@supabase/supabase-js" && parent?.filename === routePath) {
+      return { createClient: () => fakeSupabase };
+    }
+    if (request === "../services/appUser" && parent?.filename === routePath) {
+      return {
+        ensureAppUser: async (authUser) => {
+          state.appUsers.push(authUser);
+        },
+      };
+    }
     if (request === "../services/omen" && parent?.filename === routePath) {
       return {
         authenticateOmenRequest: async (authHeader) => {
@@ -274,6 +305,58 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
   assert.equal(res.body.platform.name, "yahoo");
   assert.equal(res.body.recommendation.type, "start_sit");
   assert.deepEqual(state.liveUserIds, ["user-1"]);
+  assert.deepEqual(state.appUsers, [{ id: "user-1" }]);
+  assert.deepEqual(state.moveUpserts, [{
+    options: { onConflict: "user_id,week_num,season" },
+    payload: {
+      user_id: "user-1",
+      week_num: 8,
+      season: 2026,
+      move_type: "start_sit",
+      headline: "Start Bench Breakout over Starter Wideout",
+      reasoning: "Start Bench Breakout.",
+      confidence: 82,
+      target_player: "Bench Breakout",
+      scoring: "PPR",
+      platform: "yahoo",
+      league_id: "414.l.12345",
+      scoring_contract: null,
+      scoring_contract_hash: null,
+      scoring_contract_version: null,
+      scoring_contract_required: true,
+      scoring_coverage_state: "pending",
+      provider_rule_snapshot_hash: null,
+      provider_final_outcome: null,
+      reconciliation_state: "pending",
+    },
+  }]);
+  assert.deepEqual(res.body.recommendation.scoring, {
+    format: "ppr",
+    contract_required: true,
+    contract_version: null,
+    contract_hash: null,
+    provider_rule_snapshot_hash: null,
+    coverage_state: "pending",
+    reconciliation_state: "pending",
+  });
+});
+
+test("POST /api/omen/mvp-move suppresses advice when its move row cannot be persisted", async () => {
+  const { app } = buildApp({ persistenceError: "database unavailable" });
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: false, matchup_dvp: false } },
+  });
+
+  assert.equal(res.status, 503);
+  assert.equal(res.body.state, "error");
+  assert.equal(res.body.recommendation, null);
+  assert.deepEqual(res.body.error, {
+    code: "omen_recommendation_persistence_failed",
+    message: "Omen could not safely record this recommendation, so no move was issued.",
+    retryable: true,
+  });
+  assert.doesNotMatch(JSON.stringify(res.body), /database unavailable/);
 });
 
 test("POST /api/omen/mvp-move does not enrich availability-only waiver advice with matchup DvP", async () => {
@@ -313,6 +396,7 @@ test("POST /api/omen/mvp-move returns the selected-context ESPN waiver envelope"
   assert.equal(res.body.recommendation.type, "waiver_pickup");
   assert.equal(res.body.recommendation.expected_value_delta.points, 13.2);
   assert.equal(res.body.signals.waivers.source, "espn_available_players");
+  assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "provider_restricted");
   assert.deepEqual(state.liveRequests, [{
     userId: "user-1",
     options: { contextId: "context-espn-waiver" },

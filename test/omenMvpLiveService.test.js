@@ -367,6 +367,7 @@ test("buildLiveOmenMvpMoveForUser maps Sleeper lineup swap into live omen_mvp_mo
     }],
   });
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
+  assert.equal(result.body.league.scoring_format, null, "an uncaptured provider format must not default to PPR");
 
   assert.equal(result.status, 200);
   assertLiveEnvelope(result.body, "success");

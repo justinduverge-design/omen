@@ -52,8 +52,13 @@ Layer 2 in DBS numbering; the third SLOPS layer in plain English. Parent layers:
 - Legal, privacy routes (`/api/user`), and in-app account deletion are shipped.
   Account deletion is an Apple App Store requirement, already satisfied.
 - Supabase auth providers enabled: Email, Google, Apple, Discord, Passkeys.
-- Tuesday scoring is **disabled** (`OMEN_CRON_SCORING_ENABLED=false`), blocked on
-  founder approval and on nflverse publishing `player_stats_2026.csv`.
+- Tuesday scoring is on an explicit **safety hold** (`OMEN_CRON_SCORING_ENABLED=false`
+  and `CORVUS_CRON_SCORING_ENABLED=false`, verified in the recreated `omen_cron`
+  container 2026-08-26). The hold followed proof that live recommendation and
+  feedback writes omitted the post-A6 contract marker and could grade Standard or
+  Half-PPR leagues through the historical PPR fallback. Keep scoring disabled until
+  the A6 persistence repair is merged/deployed and new production rows prove the
+  marker/coverage fields; A4 also still owes O2's rollback exercise.
 
 ## Scope Decisions — 2026-08-05
 

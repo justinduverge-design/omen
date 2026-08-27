@@ -156,6 +156,7 @@ test("POST /api/omen/feedback records a new move feedback row", async () => {
     followed: true,
     user_stars: 4,
     user_note: "Changed lineup last minute, worked out",
+    scoring_contract_required: true,
   });
   assert.deepEqual(state.appUsers, [{ id: "user-1", email: "user@example.com" }]);
   assert.equal(state.upserts[0].options.onConflict, "user_id,week_num,season");
@@ -201,6 +202,7 @@ test("POST /api/omen/feedback is idempotent for the same week and season", async
     followed: false,
     user_stars: 2,
     user_note: "Corrected later",
+    scoring_contract_required: true,
   });
 });
 

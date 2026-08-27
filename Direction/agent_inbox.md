@@ -106,7 +106,7 @@ Ran after `O7` merged (#337). Results in `Direction/known_issues.md` § "Reconci
 
 **Before closing anything, run `node scripts/check-sprint-staleness.js`.**
 
-**Founder-gated, not selectable:** `A4`, `A5` (decision, trigger 2026-09-01), `A6` (schema approval), `R2-Android` (Google review), `R3`–`R6`, `M3A-QA`, `M4-Auth-Passkeys-iOS-Onramp`, `B2-D3-S2` deploy step, `M1-Screen-Trade` / `M1-Screen-League` (proposals delivered 2026-08-16, ratification pending). **External:** `P1-YahooReauth` → `F7`. **Season-floored:** `F6`, `F7`, `F8` cannot pass their Omen halves until the 2026 regular season opens.
+**Founder-gated, not selectable:** `A4` remains blocked on A6 production proof and the unexecuted `O2` rollback drill; `F6` needs the real-account ESPN matrix on both founder-controlled native devices; `R2-Android` (Google review), `R3`–`R6`, `M3A-QA`, `M4-Auth-Passkeys-iOS-Onramp`, `B2-D3-S2` deploy step, `M1-Screen-Trade` / `M1-Screen-League` (proposals delivered 2026-08-16, ratification pending). **External:** `P1-YahooReauth` → `F7`. **Season floor cleared 2026-08-26:** F6-F8 are runnable; none is automatically verified.
 
 ## Planning intake — pending planning-pass
 
@@ -173,7 +173,7 @@ Native design-system work (M0a/M0b/M0c, M1-F, M1-P P2/P3/P4, M2, M3, M3-A, M4 CC
 ## Current blockers and gates
 
 - **GitHub Actions billing** — see the standing constraint above.
-- **Tuesday scoring:** production flag stays false until an approved no-write dry-run and explicit production-change approval.
+- **Tuesday scoring:** production is on the founder-authorized A6 safety hold with both scoring flags `false`; only `omen_cron` was recreated. A4 remains open until the A6 persistence repair is merged/deployed and proven on new rows and O2 is executed. A7B itself is CLOSED/COMPLETED.
 - **Production Supabase Stripe cleanup:** source SQL exists; production schema mutation is a separately gated Justin action.
 - **M4-CC-LedgerPreview / M4-CC-PlatformsCompact:** Figma-first §3.2 proposals are approved (nodes `72:2` / `73:2`); use their current sprint records for execution scope. **M4-CC-WaiverWatch** is merged as PR #271; its former macOS hardware blocker is cleared, while its own six-state iOS render/accessibility evidence remains agent-resolvable.
 - **M4-CC-LeaguePulse:** needs both a founder-approved visual brief §1.6 and a Figma pass.

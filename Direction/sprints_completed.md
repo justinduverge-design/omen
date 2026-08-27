@@ -470,3 +470,16 @@ Full record: `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`.
 2. **The iOS screenshot host omitted `onOpenOmen`**, so iOS captures of the Waiver Watch `urgent` and `processed` states were silently missing the "Review Omen's waiver analysis" link that the approved composition specifies — while the Android host passed it all along. Fixed in the host; the `processed` capture was retaken and now shows the link.
 
 **One near-miss worth keeping.** Three capture attempts showed a lime-green rectangle (`#64C139`, sampled from the PNG) around the platforms strip, which reads exactly like a design-token defect. It was **TalkBack's focus indicator**, left enabled on the AVD. Two things made it stick: `settings put secure enabled_accessibility_services ""` fails with "Bad arguments" and silently leaves TalkBack on, and `accessibility_enabled` reverts to `1` on reboot while a service is listed. **Sampling the pixel proved the colour; only re-running proved the cause.** `scripts/capture-screenshot-scenario.sh` now refuses to capture unless the Omen window holds focus — which also caught a cold-boot SystemUI ANR that would otherwise have been committed as screen evidence.
+
+## A7B — owned football-data pipeline implementation — closed 2026-08-26
+
+**Closure: COMPLETED.** A7B advanced from READY to VERIFIED after each `Done when:` clause was rechecked, then to CLOSED after this ledger entry was written.
+
+| Clause | Evidence | Verdict |
+| --- | --- | --- |
+| Approved lawful source → immutable snapshots | Fixed CC BY nflverse release identities, SHA-256 raw objects, immutable observation manifests, exact replay; `Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md` | PASS |
+| Canonical identities + versioned offensive/kicker/DST facts + replay/independent reference | Exact `stats_player`/`stats_team`/`schedules` manifests; 2025 Weeks 1/7/14/17; independent recomputation; `Blueprints/handoffs/2026-08-25-a7b-phase2-scoring-acceptance.md` | PASS |
+| Correction, source loss, schema drift, KVM1 recovery, independent witness | Local staging matrix plus exact backup/fresh-root recovery and witness mismatch/outage behavior; `Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md` | PASS |
+| Exact-host operation + A4 separate no-write rehearsal | KVM1 primary, Command Center witness, seven alert paths, backup/restore, publication receipt, and one real pending production row compared in Standard/Half-PPR/PPR with zero attempted/completed writes; `Blueprints/handoffs/2026-08-26-a7b-phase4-production-readiness-execution.md` | PASS |
+
+Correction truth is deliberately bounded: two authentic upstream schedule revisions changed zero accepted subjects. The only changed-subject correction exercise is permanently labeled `controlled_fixture_not_upstream`; it is valid path/failure evidence and is not represented as an observed upstream correction. A7B closure does not close A4 or A6. Tuesday scoring is held with both flags `false` after the separate A6 persistence defect was found.

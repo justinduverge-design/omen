@@ -32,7 +32,7 @@ public Ollama/OpenClaw address.
 | `OPENWEATHER_API_KEY` | Optional OpenWeather key for weather-aware Omen signals. | OpenWeather | Yes |
 | `RESEND_API_KEY` | Optional transactional email key for waitlist email. | Resend | Yes |
 | `ANTHROPIC_API_KEY` | Optional Anthropic key read by config/legacy surfaces. | App | Yes |
-| `OMEN_CRON_SCORING_ENABLED` | Enables real Tuesday scoring when set to `true`. Keep false until approved. Legacy `CORVUS_CRON_SCORING_ENABLED` is still accepted as a fallback. | App | No |
+| `OMEN_CRON_SCORING_ENABLED` | Enables real Tuesday scoring only when set to `true`; production is `false` under the 2026-08-26 A6 safety hold. The compatibility fallback `CORVUS_CRON_SCORING_ENABLED` is also `false`. Re-enable only after the persistence repair/new-row proof and O2 rollback drill. | App | No |
 | `OMEN_CRON_DRY_RUN` | Runs Tuesday scoring without writes when set to `true`. | App | No |
 | `SPORTRADAR_API_KEY` | Legacy/deferred scoring provider key; not required by current nflverse scoring path. | Sports data | Yes |
 | `PROMPT_HOT_RELOAD` | Optional local prompt-loader hot reload flag. | App | No |
