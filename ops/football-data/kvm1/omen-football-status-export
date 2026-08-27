@@ -1,4 +1,10 @@
 #!/bin/sh
 set -eu
-[ "${SSH_ORIGINAL_COMMAND:-status}" = status ] || exit 64
-exec cat /var/lib/omen-football-data/exports/status.json
+# Two read-only subcommands over one restricted channel. A4 gate state reuses this key,
+# user and known-hosts entry rather than provisioning a second SSH identity for one small
+# JSON file — less new surface, and the channel is already forced-command and read-only.
+case "${SSH_ORIGINAL_COMMAND:-status}" in
+  status)   exec cat /var/lib/omen-football-data/exports/status.json ;;
+  a4-gates) exec cat /var/lib/omen-a4-gates/state.json ;;
+  *)        exit 64 ;;
+esac

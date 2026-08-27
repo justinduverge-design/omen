@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily Omen A4 scoring-gate evaluation
+
+[Timer]
+# Daily, mid-morning UTC. Deliberately not Tuesday-only: the gates can go green on the
+# first day a real recommendation lands, which is whenever the founder opens the app.
+OnCalendar=*-*-* 09:40:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

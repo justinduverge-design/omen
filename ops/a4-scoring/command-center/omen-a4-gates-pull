@@ -1,0 +1,20 @@
+#!/bin/sh
+# Pull Omen A4 gate state from KVM1 over the existing read-only forced-command channel.
+# Mirrors omen-football-kvm1-status exactly, including the atomic temp-then-move.
+set -eu
+root=/var/lib/omen-football-witness
+out=/var/lib/omen-a4-gates
+mkdir -p "$out"
+temporary="$(mktemp "$out/.a4-gates.XXXXXX")"
+trap 'rm -f "$temporary"' EXIT HUP INT TERM
+ssh -F /dev/null \
+  -i "$root/ssh/id_ed25519" \
+  -o BatchMode=yes \
+  -o ConnectTimeout=10 \
+  -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile="$root/ssh/known_hosts" \
+  omen-football-status@srv1737978 a4-gates > "$temporary"
+chmod 0644 "$temporary"
+mv "$temporary" "$out/state.json"
+trap - EXIT HUP INT TERM
