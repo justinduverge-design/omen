@@ -67,7 +67,9 @@ a **shared selection resolver** as well as the two routes.
 **Schema constraint, stated plainly.** `platform_connections` holds one row per
 `(user_id, platform)` with a single `league_id`. It has no column for "which provider is
 selected". Persisting an explicit cross-provider choice needs a column, and applying SQL
-is the gated founder sequence (facts-of-record #8). Handled below by authoring review-only
+is the gated founder sequence (facts-of-record #8 — note it was amended 2026-08-26 to
+record one specific founder-authorized application, which grants no further SQL
+authority). Handled below by authoring review-only
 SQL and degrading honestly at runtime, never by pretending the choice persisted.
 
 ---
