@@ -28,6 +28,30 @@ Last updated: 2026-08-21
 
 GlitchTip mints keys as dashed UUIDs. The SDK's DSN grammar accepts only `[A-Za-z0-9_]` and rejects them outright with `Invalid Sentry Dsn`. **Strip the dashes** — GlitchTip accepts the undashed form. Confirmed live against `omen-backend`. This is not recorded in `O1b`'s handoff and would cost the next session the same hour.
 
+## 🐛 Yahoo league binding was broken the whole time — found 2026-08-28 (FIXED)
+
+**The entitlement landing exposed a defect that had been sitting behind it.** With Yahoo answering again, the first real `POST /api/yahoo/league` bind was **refused**: `getUserLeagues()` returned `[]` while the same raw call returned two leagues. The route validates the requested id against that list, so **every bind attempt failed** with `"leagueId is not one of your Yahoo leagues"` and the connection could never leave the pre-bind `league_id: "yahoo"` sentinel. Connected forever, usable never.
+
+**Root cause: Yahoo serialises entities in two shapes, and the parsers accepted only one.** Measured against live traffic 2026-08-28 — not assumed:
+
+| Endpoint | `[0]` shape | Parser | Was |
+|---|---|---|---|
+| `/league/{key}` | **flat object** | `getLeagueMetadata`, `getCurrentWeek` | broken |
+| `/users;use_login=1/games;game_keys=nfl/leagues` | **flat object** | `getUserLeagues` | broken |
+| `/users;…/leagues;league_keys={key}/teams` | **array** of single-key objects | `getMyTeamKey` | correct |
+
+All three broken parsers did some form of `if (!Array.isArray(x)) return <empty>`. Fixed with a single shared `yahooAttrReader()` in `src/services/yahoo.js` that accepts either shape. `getMyTeamKey()` was correct but routed through the reader anyway so it cannot break if Yahoo flattens it later.
+
+**Three things about how this was found are worth keeping.**
+
+1. **The unit test passed throughout, because its fixture encoded the bug.** `test/yahoo.test.js` built `league[0]` as an array — the shape the parser expected — rather than the shape Yahoo sends. A fixture written from the implementation tests that the implementation is itself. **Fixtures for provider responses must come from captured traffic.** New fixtures are captured from real 2026-08-28 responses, and both shapes are now covered so neither can regress.
+2. **Two of the three parsers had no direct unit coverage at all.** `getLeagueMetadata()` and `getCurrentWeek()` were exercised only through mocks in route tests, which is how one wrong assumption survived across three methods.
+3. **Everything here degrades silently by design.** These parsers return `{}` / `null` / `[]` rather than throwing, so a partial Yahoo outage degrades gracefully. The cost is that a *wrong* parser is indistinguishable from an *empty* provider: nothing logged, nothing alerted, no Sentry event. The 403 era hid this completely — every call failed earlier, so the parsers never ran on real data. **When a provider comes back after an outage, re-verify the parse layer, not just the connection.**
+
+**Also recorded: the first fix named the wrong endpoints.** The initial commit fixed `getUserLeagues()` and asserted in a code comment that `/league/{key}` used the array shape. That was an assumption, and it was wrong. Measuring all three endpoints — instead of fixing the one that failed — is what surfaced the other two broken parsers. The correction is in the code comments and in `decision_log.md` (2026-08-28).
+
+---
+
 ## ✅ Yahoo entitlement is LIVE — 2026-08-28 (RESOLVED)
 
 **Yahoo granted Fantasy Sports API access for app `ZcZJXm8V`.** Verified by a read-only probe run from inside the production `omen_api` container at ~17:21 ET on 2026-08-28, through the normal `getAuthenticatedYahooClient()` path:
