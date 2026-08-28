@@ -95,7 +95,6 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### A4 — Tuesday scoring production enablement
 
 - **Status:** BLOCKED
-- **Blocked by:** TASK-O2 — the founder-approved condition requires the rollback exercise to be completed before persistent enablement.
 - **Blocked by:** TASK-A6 — deploy the fail-closed recommendation-persistence repair and prove newly generated production rows carry their contract-required/coverage metadata before scoring can be re-enabled.
 - **Mechanical gate checker added 2026-08-27.** `node scripts/check-a4-scoring-gates.js` verifies enablement readiness against the live system: season actually open (read from `is_off_season`, never the clamped week), O2 drill evidence, a real post-repair `moves` row for this season, that row's metadata being complete rather than `pending`, and the flag's current state. `--json` for alerting; exit 0 only when every gate passes.
   - **It automates the check, not the decision.** A date-triggered flip would enable scoring whether or not the evidence existed. The gate is not "is it September" — it is "did a real recommendation land with correct scoring metadata", and those came apart three times this week. The script prints the exact enable command and **never edits production env or recreates a container itself**; a test asserts it has no `child_process` or write calls.
@@ -106,6 +105,7 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Unblock:** 2026-08-22 CLEARED — founder conditionally approved persistent Tuesday scoring enablement once all six evidence gates pass: two historical-week replays; independent three-format comparison; A6 staging validation; real-row/no-write production rehearsal; proven monitoring/failure behavior; and completed O2 rollback exercise with Justin as owner. The flag remains `false` until every condition is evidenced; no production action is authorized before then.
 - **Unblock:** 2026-08-22 REASSESSED — `A5` is complete: founder rejected a paid fallback and selected a Slops-owned Omen football-data pipeline. The obsolete missing-`player_stats_2026.csv` premise and `TASK-A5` blocker are replaced by the actual implementation/evidence dependency, `A7-OwnedFootballDataPipeline`; the production flag remains evidence-gated.
 - **Unblock:** 2026-08-26 CLEARED — A7B implementation, immutable source/acceptance evidence, staging failure behavior, KVM1 recovery, Command Center witness, live monitoring, and A4's real-row/no-write three-format rehearsal all passed. The additive scoring-contract columns are present in production.
+- **Unblock:** 2026-08-28 CLEARED — the `TASK-O2` blocker is retired as satisfied. The founder-approved rollback exercise was executed against real production on 2026-08-27 (`Direction/reviews/2026-08-27-o2-rollback-drill.md`, 3s recovery both directions) with the owner declared standing in facts-of-record #15 — recorded in this item's own gate-6 note since that date while the blocker line was left standing. **`TASK-A6` remains, and the other five evidence gates are untouched.** This retires a stale line; it does not authorize flipping `OMEN_CRON_SCORING_ENABLED`.
 - **Unblock:** 2026-08-26 REASSESSED — enablement outran O2 and exposed A6's missing recommendation persistence. With founder authorization, production was placed on a cron-only safety hold: both scoring flags are now `false`, the root env has backup `.env.production.bak-20260826-a6-scoring-hold`, and `omen_cron` was recreated healthy. The API and database were untouched by the hold.
 - **Priority:** P0
 - **Cost:** small
@@ -335,8 +335,9 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 ### R6 — Internal testing tracks
 
 - **Status:** READY
-- **Blocked by:** EXTERNAL — Apple Beta App Review approval for iOS version 0.1.0, Build 1; App Store Connect currently reports `Waiting for Review`.
+- **Blocked by:** FOUNDER — iOS external testing is approved and has **zero** testers and no public link; inviting the cohort (or creating the public link) is a founder console action.
 - **Blocked by:** EXTERNAL — 10+ qualified testers from real fantasy leagues must accept beta access; at least one allowlisted tester with a compatible Android device must complete the Google Play opt-in and installation proof.
+- **Unblock:** 2026-08-28 CLEARED — **Apple Beta App Review APPROVED.** The `Waiting for Review` blocker is retired. Verified live in App Store Connect with the founder present: iOS Build 1 of version 0.1.0 reports status **`Approved`**, expiring in 81 days, attached to both `Omen Internal Beta` and `Omen External Beta`. Apple no longer holds anything here. **What is left is not Apple.** `Omen External Beta` shows **0 testers** and no public link created; invites, installs, sessions and crashes are all `–`. The approved recruitment copy (2026-08-23) can go out now. Do not read the empty metrics as a review problem.
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Unblock:** 2026-08-22 CLEARED — the founder conditionally approved opening the private internal testing tracks as soon as `R3`, `R4`, and `R5` are complete. This removes the repeat founder gate only; it does not satisfy those tasks, invite anyone early, authorize external testing, or authorize public release.
 - **Unblock:** 2026-08-22 CLEARED — `R3` completed when Google Play accepted Android version code 1 and confirmed Play App Signing; only `R4` and `R5` remain before tester selection and internal publication.
@@ -1147,8 +1148,9 @@ event traceable.
 ### F6 — Real-account QA: ESPN
 
 - **Status:** BLOCKED
-- **Blocked by:** FOUNDER_DEVICE — execute the sanitized real-account ESPN matrix on both iOS and Android without exposing cookie names or values. The season floor is cleared; credentials/device execution, not season state, is the remaining gate.
-- **Unblock:** 2026-08-26 CLEARED — production reports the 2026 regular season open at Week 1. The former season floor is stale; the full ESPN matrix is now runnable.
+- **Blocked by:** FOUNDER_DEVICE — execute the sanitized real-account ESPN matrix on both iOS and Android without exposing cookie names or values. Credentials and device execution are the remaining gate for the non-Omen flows; the Omen-recommendation flows are additionally season-gated until 2026-09-05.
+- **Unblock:** 2026-08-26 CLEARED — ~~production reports the 2026 regular season open at Week 1. The former season floor is stale; the full ESPN matrix is now runnable.~~ **WITHDRAWN — see below. Do not act on this entry.**
+- **Unblock:** 2026-08-28 REASSESSED — the 2026-08-26 entry above is **false and is withdrawn**. It read a clamped week as a fact about the world: `getCurrentNflWeekContext()` floors `week` at 1 and derives `season_type` from the same clamp, so it reported `week: 1, season_type: "regular"` while `raw_week` was `-1` and `isOffSeason()` was `true` the whole time. `facts-of-record.md` #10 withdrew the identical claim on 2026-08-27; this item's copy was missed. Re-verified live 2026-08-28: `GET /api/system/current-week` returns `is_off_season: true`, `raw_week: -1`. **The season floor stands and clears 2026-09-05.** `is_off_season` is the authority; never read `week` or `season_type` as evidence the season started.
 - **Corrected 2026-08-19.** This line previously read `Blocked by: None`, which made a season-floored P0 read as immediately pullable — and it was surfaced as a candidate by the staleness sweep for exactly that reason. The connect/recovery/waiver/drafted-league halves *are* workable now and can be matrixed ahead of time; only the Omen-recommendation half is floored. Split the evidence and state which half was proven, per facts-of-record #10.
 - **Unblock:** 2026-08-11 CLEARED — real ESPN account connected and drafted; league *Las Vegas Pro Head to Head Points PPR*. `GET /api/platforms` confirms `espn: connected, 1 league` (verified live, 2026-08-11). Credentials are no longer the gate.
 - **Priority:** **P0 — highest risk item in the plan**
@@ -1162,7 +1164,8 @@ event traceable.
 ### F7 — Real-account QA: Yahoo
 
 - **Status:** READY
-- **Blocked by:** TASK-P1-YahooReauth
+- **Blocked by:** None
+- **Unblock:** 2026-08-28 CLEARED — `TASK-P1-YahooReauth` is done. Yahoo granted the Fantasy Sports API entitlement for app `ZcZJXm8V`; `YAHOO_ENABLED=true` on `omen_api` and `omen_cron`, `YAHOO_CONNECTIONS_ENABLED = true` in the frontend, both founder leagues bound (`470.l.1255365`, `470.l.1358570`) with metadata, `current_week`, team key and a 15-player roster returning on the deployed image. Evidence: `Blueprints/handoffs/2026-08-28-yahoo-entitlement-live-and-league-binding-fix.md`. **The Omen-recommendation half of this matrix still cannot pass before kickoff 2026-09-05** (facts-of-record #10); the connect/session/standings halves are runnable now.
 - **Unblock:** 2026-08-11 REASSESSED — the old `FOUNDER_APPROVAL — real account credentials` typing was wrong in both directions. A real Yahoo account with a drafted league exists, and `GET /api/platforms` reports `yahoo: connected, 1 league`. But `/api/dashboard/summary` returns `waiver_wire: "needs_platform"`, which is only reachable when `hasUsableYahooToken()` fails — so the connection row is live while the **OAuth token is expired or its `token_secret_id` is missing**. This is a token problem, not a credentials problem and not a re-integration. Retyped to depend on P1-YahooReauth.
 - **Priority:** P0
 - **Cost:** medium
