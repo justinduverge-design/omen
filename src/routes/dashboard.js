@@ -5,7 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
-const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { getOmenReadiness, isOmenReadyConnection } = require("../services/omenReadiness");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
@@ -268,7 +268,7 @@ router.get("/summary", requireAuth, async (req, res, next) => {
         // Assistant is cut from 1.0 and must not appear in the advertised tool
         // list (facts-of-record #9). Restore this line for 2027 alongside
         // DRAFT_ASSISTANT_ENABLED; see `config.draftAssistant`.
-        omen_of_the_week: buildOmenTool({ rows, offSeason: isOffSeason() }),
+        omen_of_the_week: buildOmenTool({ rows, offSeason: suppressLiveFootballData() }),
         start_sit: { available: true, mode: "free", status: "ready" },
         trade_analyzer: { available: true, mode: "free", status: "ready" },
         waiver_wire: buildWaiverTool({ rows }),

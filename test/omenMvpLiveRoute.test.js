@@ -250,7 +250,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
       };
     }
     if (request === "../services/nflSchedule" && parent?.filename === routePath) {
-      return { isOffSeason: () => offSeason };
+      return { isOffSeason: () => offSeason, suppressLiveFootballData: () => offSeason };
     }
     return originalLoad.call(this, request, parent, isMain);
   };

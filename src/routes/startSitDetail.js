@@ -26,7 +26,7 @@ const { requireAuth } = require("../middleware/auth");
 const rosterSvc = require("../services/roster");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
-const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildStartSitDetail } = require("../services/startSitDetail");
@@ -154,7 +154,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       season: context.season,
       scoringFormat: loaded.scoringFormat,
       slot: req.query.slot ? String(req.query.slot) : null,
-      offSeason: isOffSeason(),
+      offSeason: suppressLiveFootballData(),
     }));
   } catch (e) {
     logger.error("Start/Sit detail failed", { err: e.message });

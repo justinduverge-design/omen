@@ -18,7 +18,7 @@ const {
   orderBySelection,
   readConnectionsWithSelection,
 } = require("./activeSelection");
-const { getCurrentNflWeekContext, isOffSeason } = require("./nflSchedule");
+const { getCurrentNflWeekContext, suppressLiveFootballData } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { findTradeCandidate } = require("./tradeLineup");
@@ -1502,7 +1502,7 @@ function espnRecoveryFromError(connection, err) {
 }
 
 async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
-  if (isOffSeason()) return offSeasonMvpResponse();
+  if (suppressLiveFootballData()) return offSeasonMvpResponse();
 
   const connections = await getActivePlatformConnections(userId);
   if (!connections.length) return platformDisconnectedMvpResponse();
