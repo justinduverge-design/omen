@@ -88,29 +88,65 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
 - Tuesday scoring is on the founder-authorized A6 safety hold. The running `omen_cron` has both scoring flags `false`; re-enable only after the A6 persistence repair/new-row proof and O2.
 
-## Build order — founder decision 2026-08-28
+## Execution plan — batches and order (founder decision 2026-08-28)
 
-**Screens first, then paint.** Founder framing: *"build the walls, build the rooms, paint it."* This
-ordering is a founder call, not a technical dependency chain — it overrides bare priority numbers
-where the two disagree. Do not pull a later step while an earlier one is unstarted.
+**Screens first, then paint.** Founder framing: *"build the walls, build the rooms, paint it."* The
+lanes below the fold (`A.`, `R.`, `M.`, …) are a **filing structure, not an execution order**. This
+section is the execution order. It is a founder call and **overrides bare priority numbers where the
+two disagree**.
 
-| # | Step | Holder | Gate |
-| :-- | :--- | :--- | :--- |
-| 1 | `M11A` — prove the provider claims against real Sleeper / ESPN (Yahoo as bonus) | agent | none — standing read access confirmed |
-| 2 | `M1-Screen-Trade` + `M1-Screen-League` ratification, **informed by step 1** | founder | step 1 |
-| 3 | `M5` slices **F** and **G** — build the two real screens | agent | step 2 |
-| 4 | `M11B` — reconcile the proof back into the ratified contracts | agent | steps 2-3 |
-| 5 | `M12-BrandFonts` — the paint pass | agent | step 3 |
-| 6 | Promotional capture and TestFlight invitations | founder | steps 3 + 5 |
+Items are grouped by **what they require**, not by lane, because the binding constraint is founder
+attention, not task count. Five separate items needing one deploy approval is one sitting.
 
-**Why step 1 moved in front of ratification.** The founder asked to know the screens will actually do
-what they are meant to do *before* approving them. Every capability claim in both contracts is
-fixture-proven only today. Step 1 is the only thing that answers that question, and it is
-design-independent, so it cannot prove the wrong thing.
+### The six ordering rules that actually matter
 
-**`R6` TestFlight invitations are not blocked by this table.** Apple approved iOS Build 1 and the
-external group is empty; the founder may invite at any time. Step 6 reflects his stated preference to
-have footage ready first, not a technical gate — a decision he can reverse without asking anyone.
+1. **`O3` before Batch 1.** The post-deploy canary should exist *before* the biggest deploy in the
+   queue, not after it.
+2. **`M11A` before ratification.** Provider evidence is an input to the approval, not a follow-up.
+3. **`M12-BrandFonts` before `F11`.** `known_issues.md` names the font landing as the trigger for
+   re-examining the Dynamic Type audit finding. Running the accessibility pass on system fallbacks
+   means running it twice.
+4. **`M5` slices F/G before `F10`/`F11` and before Batch 6.** Do not audit layout, accessibility, or
+   real-device behaviour on placeholder screens.
+5. **Batch 6 after Batch 5.** Otherwise the founder runs the full device matrix twice — once on
+   placeholders in the wrong typefaces, once on the real thing.
+6. **`M4-Auth-Passkeys-iOS-Onramp` before Batch 6.** It closes the remaining iOS passkey acceptance
+   evidence, and `M3A-QA` in Batch 6 is the auth matrix. Running the matrix first means running the
+   passkey half of it again.
+
+### Batches
+
+| # | Batch | Holder | Contents | Gate |
+| :-- | :--- | :--- | :--- | :--- |
+| 0 | **Canary first** | agent | `O3` | none |
+| 1 | **One deploy sitting** — five built PRs, one approval, one deploy, then run the canary | founder | `B2-D3-S2` (P0), `M9-BE-Switcher`, `M9-BE-WaiverAnalysis`, `M9-BE-StartSitDetail`, `M9-BE-LedgerDetail` | Batch 0 |
+| 2 | **Provider proof** | agent | `M11A` | none — standing read access confirmed |
+| 3 | **One reading sitting** — decisions, no device | founder | `M1-Screen-Trade`, `M1-Screen-League` (informed by Batch 2), `S1` spend decision, `M9-NativeScreenBacklog` priority, `M1-QA-EvidenceGate` ratification | Batch 2 for the two screens |
+| 4 | **Build the two real screens** | agent | `M5` slices F + G, then `M11B` | Batch 3 |
+| 5 | **Paint, then polish — strictly in this order** | agent | `M12-BrandFonts`, then `F11`, then the `F10` automated sweep | Batch 4 |
+| 6 | **One device session** — every real-account and real-device matrix at once | founder, agent-prepped | `M3A-QA`, `F6`, `F7`, `F8`, `F10` real-device confirmation | Batch 5; Omen-recommendation halves also need kickoff 2026-09-05 |
+| 7 | **Machine-access chores** — independent, any time | founder | `S2` (Apple `.p8`, Windows machine), `S6` (KVM2 takedown) | none — parallel-safe |
+| 8 | **Agent cleanup** — parallel-safe, no gate | agent | `M4-Auth-Passkeys-iOS-Onramp`, `S7`, `M10-DesignLaneStaleness`, and the drafting halves of `M1-QA-EvidenceGate` and `M9-NativeScreenBacklog` | none |
+| 9 | **Closure paperwork** — done work missing only its evidence line | agent | `A7-OwnedFootballDataPipeline`, `S5`, `R2-Android`, `R3-BUILD-Android` | none |
+| 10 | **Season-gated — nothing before 2026-09-05** | mixed | `A4`, `A6-MovesScoringFormat`, and the Omen halves of `F6`/`F7`/`F8` | kickoff |
+| 11 | **Launch** | founder | `F5` walkthrough, promotional capture, `R6` invitations, `B-FREEZE` | Batches 5 + 6 |
+
+### Notes on specific batches
+
+- **Batch 1 is the highest-leverage founder sitting in the queue.** Five items are `READY_FOR_REVIEW`
+  with `Blocked by: FOUNDER — PR merge and deploy`. They are built and tested; the only thing between
+  them and done is one approval. **`READY_FOR_REVIEW` is not a state in `Direction/status-model.md`**
+  (lifecycle is `READY → IN_PROGRESS → VERIFIED → CLOSED`), so the inbox selection mechanic — which
+  selects on `Status: READY` — **cannot see these five at all.** Flagged, not silently rewritten:
+  changing them is a status-model question, not a queue edit.
+- **Batch 7 is deliberately unsequenced.** Neither item shares a file, a machine, or a dependency
+  with anything else. They can be done in any gap and should not wait behind the main line.
+- **`R6` invitations are not blocked by this table.** Apple approved iOS Build 1 and the external
+  group is empty; the founder may invite whenever he chooses. Placing them in Batch 11 reflects his
+  stated preference to launch with footage he can sell — a preference he can reverse without asking
+  anyone, not a technical gate.
+- **`O1c`** (product analytics) stays deferred to post-beta and is in no batch.
+
 
 # Active queue
 
@@ -119,7 +155,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 ### A4 — Tuesday scoring production enablement
 
 - **Status:** BLOCKED
-- **Blocked by:** TASK-A6 — deploy the fail-closed recommendation-persistence repair and prove newly generated production rows carry their contract-required/coverage metadata before scoring can be re-enabled.
+- **Blocked by:** TASK-A6-MovesScoringFormat — deploy the fail-closed recommendation-persistence repair and prove newly generated production rows carry their contract-required/coverage metadata before scoring can be re-enabled.
 - **Mechanical gate checker added 2026-08-27.** `node scripts/check-a4-scoring-gates.js` verifies enablement readiness against the live system: season actually open (read from `is_off_season`, never the clamped week), O2 drill evidence, a real post-repair `moves` row for this season, that row's metadata being complete rather than `pending`, and the flag's current state. `--json` for alerting; exit 0 only when every gate passes.
   - **It automates the check, not the decision.** A date-triggered flip would enable scoring whether or not the evidence existed. The gate is not "is it September" — it is "did a real recommendation land with correct scoring metadata", and those came apart three times this week. The script prints the exact enable command and **never edits production env or recreates a container itself**; a test asserts it has no `child_process` or write calls.
   - **A gate it cannot observe is `UNKNOWN`, never a pass.** Run inside the production container there is no repo checkout, so the drill-evidence gate reports `UNKNOWN` rather than falsely claiming the drill did not happen.
@@ -220,6 +256,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 ### A7-OwnedFootballDataPipeline — Design the automated Slops-owned football-data pipeline
 
 - **Status:** VERIFIED
+- **Blocked by:** None — the memo is delivered; what remains is closure with its evidence line.
 - **Evidence:** `Direction/reviews/2026-08-24-a7-source-rights-research.md`; `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`; two-week 2025 replay evidence recorded in the architecture memo.
 - **Priority:** P0 — selected fallback for Tuesday scoring
 - **Cost:** medium research and architecture; implementation to be estimated from the resulting plan
@@ -577,7 +614,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 ### M12-BrandFonts — Ship the locked Omen typefaces in both native apps
 
 - **Status:** READY
-- **Blocked by:** TASK-M5-Native-API-Client — **founder sequencing, not a technical dependency.** Decided 2026-08-28: *"build the walls, build the rooms, paint it."* Screens land first; type is the paint pass. Nothing in this item technically requires `M5` — if the sequencing is ever revisited, this line is the only thing holding it.
+- **Blocked by:** TASK-M5-Native-API-Client — **specifically slices F and G, which are not built.** `M5` reads `VERIFIED` for slices A-E only and is deliberately **not** `CLOSED`; do not treat its status as satisfying this blocker. **Founder sequencing, not a technical dependency.** Decided 2026-08-28: *"build the walls, build the rooms, paint it."* Screens land first; type is the paint pass. Nothing in this item technically requires `M5` — if the sequencing is ever revisited, this line is the only thing holding it.
 - **Priority:** P1 — **a prerequisite for any promotional footage.** Raised from invisible: until 2026-08-28 this defect existed only in `Direction/known_issues.md` and issue [#338](https://github.com/justinduverge-design/omen/issues/338) and was in **no** queue, which is exactly the failure `M10` exists to catch.
 - **Cost:** small
 - **Agent-buildable:** yes, in full. Both families are SIL Open Font License, so this is download-and-commit, not a purchase. The founder authorized acquisition on 2026-08-28, which satisfies the "separately approved asset/source decision" the M2 build brief §7 deferred this to.
@@ -621,8 +658,8 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 ### M11B-M1ContractReconciliation — Reconcile the proof into the ratified M1 contracts
 
 - **Status:** BLOCKED
-- **Blocked by:** TASK-M1-Screen-League — the design-dependent half must not run before ratification.
-- **Blocked by:** TASK-M1-Screen-Trade — same.
+- **Blocked by:** TASK-M1-Screen-League — **founder ratification, which `VERIFIED` does not represent.** That item is `VERIFIED` as a *proposal*; the gate is approval, and it is not `CLOSED`. Do not read its status as satisfying this blocker.
+- **Blocked by:** TASK-M1-Screen-Trade — same, and ratification here is explicitly **not** pre-authorized.
 - **Blocked by:** TASK-M11A-ProviderShapeProof — there is nothing to reconcile until the shape evidence exists.
 - **Unblock:** 2026-08-28 REASSESSED — split out of `M11`. **The original reasoning holds for this half and is unchanged:** claim 5 and every reconciliation back into the data plan depend on which contract wins, so running them before ratification risks proving the wrong thing.
 - **Priority:** P2 — nothing in beta depends on it.
@@ -776,7 +813,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 - **Blocked by:** TASK-M3A-QA
 - **Unblock:** 2026-08-22 CLEARED — `TASK-M4-CC-PlatformsCompact` CLOSED (Android render + assembly/scanner/connected-test evidence, handoff for `6466a4c`).
 - **Unblock:** 2026-08-22 CLEARED — `TASK-M4-Help-Support-Implementation` CLOSED (TalkBack, font-scale, compact/large-phone, and iOS accessibility-audit evidence).
-- **Blocked by:** TASK-M4-Auth-Providers-v1
+- **Unblock:** 2026-08-28 CLEARED — `TASK-M4-Auth-Providers-v1` retired as satisfied; that task is `CLOSED`. Discord OAuth shipped on both platforms (#198). `TASK-B2-D3-S2` and `TASK-M3A-QA` remain.
 - **Unblock:** 2026-08-11 ROUTED — split from a single untyped comma list into typed, machine-readable lines per `Direction/status-model.md`. No dependency was added or removed.
 - **Priority:** P0
 - **Cost:** trivial
@@ -818,6 +855,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 - **Source:** ESPN adapter work ran against local branches with provider access. Rotate anything that could have been captured in a local log, shell history, or branch artifact before real testers arrive.
 - **Unblock:** 2026-08-11 REASSESSED — no rotation evidence exists on `main`. Founder-reported Supabase configuration work is **not** rotation and does not satisfy this item. **Newly in scope:** P1-YahooReauth will mint a fresh Yahoo token, which discharges the Yahoo portion of this item if the old `token_secret_id` is retired rather than left orphaned — sequence S2's Yahoo half after that item and record it.
 - **Unblock:** 2026-08-24 PARTIAL — **ESPN half done.** Founder ran a fresh validated ESPN reconnect, overwriting the prior Vault-stored `espn_s2`/`SWID` values. **Apple `.p8` half deferred, not done:** the key still sits under `C:\Users\JDuve\dev` (Windows), inheriting `CodexSandboxUsers:(I)(RX)` read access. Moving it requires the founder to be physically at that Windows machine — Claude's device bridge this session only reaches the founder's Mac, not Windows, so this step could not be walked through live. Exact relocation steps (find the `*.p8` file, cut, paste into a password manager's file storage or any folder never shared with an agent tool, confirm the old path is empty) were given to the founder in-session and are simple enough to re-request whenever he's next on that machine. **Yahoo half still blocked** — entitlement not restored (facts-of-record #11).
+- **Unblock:** 2026-08-28 REASSESSED — **the Yahoo half is now dischargeable.** The 2026-08-24 entry above recorded it blocked on an entitlement that was not restored; Yahoo granted access on 2026-08-28 and a fresh token was minted and accepted mid-call (`P1-YahooReauth`). Per the 2026-08-11 entry, that discharges the Yahoo portion **only if the old `token_secret_id` is retired rather than left orphaned** — that retirement is not yet evidenced and is the remaining Yahoo work. **The Apple `.p8` half is unchanged and still needs the founder at the Windows machine.**
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
 
@@ -906,6 +944,7 @@ have footage ready first, not a technical gate — a decision he can reverse wit
 ### S5 — Mobile token storage review
 
 - **Status:** **VERIFIED 2026-08-18.**
+- **Blocked by:** None — verified on both platforms; what remains is closure with its evidence line.
 - **Claim:** Claude, 2026-08-18 — released on verification.
 - **Evidence:** `Direction/reviews/2026-08-18-s5-mobile-token-storage-review.md`; `Blueprints/handoffs/2026-08-18-s5-mobile-token-storage-review.md`. **Storage was already compliant on both platforms — no plaintext token storage found, no source fix required.** iOS uses Keychain Services (`kSecClassGenericPassword`, `AfterFirstUnlockThisDeviceOnly`); Android encrypts with an AndroidKeyStore-backed AES-256/GCM key before ciphertext touches `SharedPreferences`. The actual gap was test coverage: neither store had a direct test before this pass. Added `KeychainSessionStoreTests.swift` (5 tests) and `AndroidKeystoreSessionStoreTest.kt` (5 tests, new `androidTest` source set on `core/session`), both exercising the real secure-storage APIs with a regression guard proving tokens never surface in plaintext prefs. iOS full suite 229/231 passed (1 pre-existing pinned `XCTExpectFailure`, 1 flaky UI test in an unrelated subsystem — confirmed passing on isolated retry; baseline 226 + 5 new = 231 exactly). Android: new tests 5/5 on `medium_phone` API 36 connected instrumentation, `:app:assembleDebug` and the existing `SessionManagerTest` (6/6) both green.
 - **Priority:** **P0 — new threat model.** A leaked provider token on a stolen phone is not the same risk as a web session.
@@ -1129,7 +1168,7 @@ event traceable.
   - **The probe stays for now.** The instruction below says to delete `GET /api/yahoo/access-probe` once green. Deliberately not done in this session: it is the only cheap re-check for an entitlement Yahoo granted by review and can withdraw by review, it is `requireAuth`-gated and read-only, and the eight-day diagnosis it ended was expensive precisely because no such surface existed. Delete it when Yahoo has been stably live long enough to stop suspecting it.
   - **Original status text follows, superseded.** ~~BLOCKED — EXTERNAL (retyped 2026-08-14).~~ This sat at READY long after everything readable had been read. Every hypothesis this item was written to test has been tested and eliminated (see the superseding finding below); what remains is a Fantasy Sports API entitlement that only Yahoo can grant. **The founder re-applied for access on app `ZcZJXm8V` on 2026-08-13.** Nothing in this item is agent-buildable, and it should not be pulled into a session as work — it is a waiting item, not a queued one.
 - **Blocked by:** **Yahoo's approval queue**, not the founder and not the code. No amount of local work advances it.
-- **Product posture set 2026-08-14 — paused, not cancelled.** Starting a *new* Yahoo connection is disabled behind `YAHOO_ENABLED` (default false) because the OAuth handshake still succeeds and writes a `connected` row that can never serve data. Yahoo stays visible in the UI labelled "On hold"; existing rows stay disconnectable. See `Direction/decision_log.md` (2026-08-14) and issue [#308](https://github.com/justinduverge-design/omen/issues/308), the standing tracker carrying the re-check and re-enable steps. **Do not delete Yahoo code, tests, or fixtures as dead** — they are what makes re-enabling a flag flip.
+- **Product posture set 2026-08-14 — SUPERSEDED 2026-08-28, retained for provenance. Do not act on this bullet:** Yahoo is enabled in production and connections are open. ~~Starting a *new* Yahoo connection is disabled behind `YAHOO_ENABLED` (default false)~~ because the OAuth handshake still succeeds and writes a `connected` row that can never serve data. Yahoo stays visible in the UI labelled "On hold"; existing rows stay disconnectable. See `Direction/decision_log.md` (2026-08-14) and issue [#308](https://github.com/justinduverge-design/omen/issues/308), the standing tracker carrying the re-check and re-enable steps. **Do not delete Yahoo code, tests, or fixtures as dead** — they are what makes re-enabling a flag flip.
 - **How to re-check (cheap, ~30 seconds):** sign in to Omen and hit `GET /api/yahoo/access-probe` (`src/routes/yahoo.js`, still deployed from PR [#296](https://github.com/justinduverge-design/omen/pull/296); deliberately **not** gated by `YAHOO_ENABLED` so it keeps working while Yahoo is paused). It runs four Yahoo calls of increasing specificity. **Any 200 means the entitlement landed**; four 403s means it has not. Do not re-derive the diagnosis from scratch — the probe is the whole test.
 - **When the probe goes green — the whole re-enable procedure:** set `YAHOO_ENABLED=true` on **both** `omen_api` and `omen_cron`, redeploy, and flip `YAHOO_CONNECTIONS_ENABLED` to `true` in `frontend/src/lib/yahooAuth.js`. Then delete the probe and move this item to VERIFIED. Nothing else is required — this is the "plug and play" the founder expects, and `test/platforms.test.js` proves the flag restores availability.
 - **Delete the probe** once a green result is recorded; it was added as temporary diagnostic surface.
