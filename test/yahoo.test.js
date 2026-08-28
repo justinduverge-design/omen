@@ -150,3 +150,82 @@ test("getUserLeagues propagates a real fetch/auth failure instead of swallowing 
 
   await assert.rejects(() => client.getUserLeagues(), /yahoo_token_expired/);
 });
+
+/**
+ * `/league/{key}` — captured live 2026-08-28 (470.l.1255365), trimmed to the
+ * fields the parsers read. league[0] is a FLAT OBJECT here, not the array of
+ * single-key objects the parsers used to require.
+ *
+ * Both `getLeagueMetadata()` and `getCurrentWeek()` had zero direct coverage
+ * before this, which is how one wrong shape assumption survived across three
+ * methods. They degrade silently by design ({} and null), so nothing upstream
+ * raised a signal — a bound league simply served no metadata.
+ */
+function leagueFlatResponse() {
+  return {
+    fantasy_content: {
+      league: [{
+        league_key: "470.l.1255365",
+        league_id: "1255365",
+        name: "Yahoo H2H-Pts 1255365",
+        season: "2026",
+        current_week: 1,
+        num_teams: 10,
+        scoring_type: "head",
+      }],
+    },
+  };
+}
+
+test("getLeagueMetadata reads the flat-object shape /league/{key} really returns", async () => {
+  const client = new YahooClient("token");
+  client.get = async (path) => {
+    assert.equal(path, "/league/470.l.1255365");
+    return leagueFlatResponse();
+  };
+
+  assert.deepEqual(await client.getLeagueMetadata("470.l.1255365"), {
+    league_id: "470.l.1255365",
+    league_name: "Yahoo H2H-Pts 1255365",
+    season: 2026,
+    week: 1,
+  });
+});
+
+test("getCurrentWeek reads the flat-object shape /league/{key} really returns", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => leagueFlatResponse();
+  assert.equal(await client.getCurrentWeek("470.l.1255365"), 1);
+});
+
+test("getLeagueMetadata and getCurrentWeek still read the array-of-single-key-objects shape", async () => {
+  // The other serialisation Yahoo uses. Kept so the reader cannot regress to
+  // handling only whichever shape was fixed most recently.
+  const arrayShape = {
+    fantasy_content: {
+      league: [[
+        { league_key: "470.l.1358570" },
+        { name: "Fantasy Madness" },
+        { season: "2026" },
+        { current_week: 3 },
+      ]],
+    },
+  };
+  const client = new YahooClient("token");
+  client.get = async () => arrayShape;
+
+  assert.deepEqual(await client.getLeagueMetadata("470.l.1358570"), {
+    league_id: "470.l.1358570",
+    league_name: "Fantasy Madness",
+    season: 2026,
+    week: 3,
+  });
+  assert.equal(await client.getCurrentWeek("470.l.1358570"), 3);
+});
+
+test("getLeagueMetadata returns {} and getCurrentWeek null on a malformed response", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => ({ fantasy_content: {} });
+  assert.deepEqual(await client.getLeagueMetadata("470.l.1"), {});
+  assert.equal(await client.getCurrentWeek("470.l.1"), null);
+});

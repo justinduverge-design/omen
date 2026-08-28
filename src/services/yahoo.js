@@ -21,6 +21,42 @@ const { captureProviderError } = require("../middleware/providerErrors");
 
 const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
 
+/**
+ * Read attributes off a Yahoo entity, whichever of its TWO serialisations
+ * Yahoo used. Both shapes are real and the choice is per-endpoint, so the
+ * only safe move is to accept either.
+ *
+ * Measured against live traffic 2026-08-28:
+ *
+ *   FLAT OBJECT  { league_key: "470.l.1255365", current_week: 1, … }
+ *     - /league/{key}                                    -> league[0]
+ *     - /users;use_login=1/games;game_keys=nfl/leagues   -> league[0]
+ *
+ *   ARRAY of single-key objects  [ {team_key}, {team_id}, {name}, … ]
+ *     - /users;…/leagues;league_keys={key}/teams         -> team[0]
+ *
+ * Returns a `key => value | null` reader, or null if there is nothing to read.
+ *
+ * Why this exists: three parsers here independently did
+ * `if (!Array.isArray(x)) return {}` and so returned empty for every
+ * flat-object endpoint — silently, because every one of them is written to
+ * degrade rather than throw. `getUserLeagues()` returning [] meant no Yahoo
+ * league could ever be bound; `getLeagueMetadata()`/`getCurrentWeek()`
+ * returning {}/null meant a bound league served no metadata. All three were
+ * found on 2026-08-28, the first day the entitlement allowed these calls to
+ * run for real.
+ *
+ * The unit tests passed throughout, because their fixtures were hand-built
+ * from the assumed array shape. Fixtures for anything Yahoo returns must come
+ * from captured traffic, not from what the parser expects.
+ */
+function yahooAttrReader(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return Array.isArray(raw)
+    ? key => raw.find(x => x?.[key])?.[key] ?? null
+    : key => raw[key] ?? null;
+}
+
 class YahooClient {
   constructor(accessToken) {
     this.accessToken = accessToken;
@@ -105,8 +141,10 @@ class YahooClient {
     const lg  = u?.[1]?.games?.[0]?.game?.[1]?.leagues?.[0]?.league;
     const tm  = lg?.[1]?.teams?.[0]?.team?.[0];
     if (!tm) return null;
-    const keyEntry = Array.isArray(tm) ? tm.find(x => x?.team_key) : null;
-    return keyEntry?.team_key || null;
+    // team[0] is the ARRAY shape here (confirmed live 2026-08-28); the reader
+    // handles both so this cannot break if Yahoo flattens it later.
+    const entry = yahooAttrReader(tm);
+    return entry?.("team_key") || null;
   }
 
   /**
@@ -130,36 +168,8 @@ class YahooClient {
       if (!leaguesContainer) continue;
 
       for (const leagueEntry of Object.values(leaguesContainer).filter(l => l?.league)) {
-        /**
-         * Yahoo serialises league attributes in TWO different shapes, and this
-         * endpoint uses the one this parser used to reject.
-         *
-         *   /users;use_login=1/games/leagues  ->  league[0] is a FLAT OBJECT
-         *       league: [ { league_key: "470.l.1358570", name: "…", … } ]
-         *
-         *   /league/{key}                     ->  league[0] is an ARRAY of
-         *       single-key objects: [ {league_key}, {name}, {season}, … ]
-         *
-         * This function previously did `if (!Array.isArray(attrs)) continue;`,
-         * so every league from this endpoint was silently skipped and the
-         * method returned []. `POST /api/yahoo/league` validates the requested
-         * id against this list, so an empty list means *every* bind attempt
-         * fails with "leagueId is not one of your Yahoo leagues" — the league
-         * can never be bound and the connection is stuck on the pre-bind
-         * `league_id: "yahoo"` sentinel forever.
-         *
-         * Caught 2026-08-28, the first time this path could actually run
-         * against Yahoo after the entitlement was granted. The unit test that
-         * covered it passed throughout, because its fixture was written from
-         * the assumed array shape rather than from a captured response — so
-         * the test encoded the bug instead of catching it. Both shapes are
-         * now handled and both are covered by fixtures taken from real traffic.
-         */
-        const raw = leagueEntry.league?.[0];
-        if (!raw || typeof raw !== "object") continue;
-        const entry = Array.isArray(raw)
-          ? key => raw.find(x => x?.[key])?.[key] ?? null
-          : key => raw[key] ?? null;
+        const entry = yahooAttrReader(leagueEntry.league?.[0]);
+        if (!entry) continue;
         const leagueKey = entry("league_key");
         if (!leagueKey) continue;
         leagues.push({
@@ -175,20 +185,15 @@ class YahooClient {
   /** Get the current league week (used when /roster?week= isn't passed). */
   async getCurrentWeek(leagueKey) {
     const d = await this.get(`/league/${leagueKey}`);
-    const meta = d?.fantasy_content?.league?.[0];
-    if (Array.isArray(meta)) {
-      const wEntry = meta.find(x => x?.current_week);
-      if (wEntry?.current_week) return parseInt(wEntry.current_week, 10);
-    }
-    return null;
+    const entry = yahooAttrReader(d?.fantasy_content?.league?.[0]);
+    const week = entry?.("current_week");
+    return week ? parseInt(week, 10) : null;
   }
 
   async getLeagueMetadata(leagueKey) {
     const d = await this.get(`/league/${leagueKey}`);
-    const meta = d?.fantasy_content?.league?.[0];
-    if (!Array.isArray(meta)) return {};
-
-    const entry = (key) => meta.find(x => x?.[key])?.[key] || null;
+    const entry = yahooAttrReader(d?.fantasy_content?.league?.[0]);
+    if (!entry) return {};
     return {
       league_id: leagueKey,
       league_name: entry("name"),
