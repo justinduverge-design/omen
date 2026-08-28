@@ -52,16 +52,23 @@ const config = {
   // --- Yahoo OAuth ----------------------------------------------
   //
   // `enabled` gates the *entry point* only — starting a new Yahoo connection.
-  // Every Yahoo code path (OAuth round-trip, league binding, roster, waiver
-  // fallback) is built, merged, and tested; what is missing is Yahoo's own
-  // Fantasy Sports API entitlement for app ZcZJXm8V, which is a review queue
-  // outside this codebase. Until it lands, the handshake still succeeds and
-  // writes a `connected` row while every Fantasy call returns 403 — so the
-  // connection reads as working and serves nothing. Fail closed instead.
   //
-  // When Yahoo grants the entitlement: set YAHOO_ENABLED=true on both
-  // omen_api and omen_cron and redeploy. Nothing else needs to change.
-  // Re-check with `GET /api/yahoo/access-probe` (any 200 = granted).
+  // ENTITLEMENT GRANTED 2026-08-28. Yahoo turned on Fantasy Sports API access
+  // for app ZcZJXm8V; a live probe from inside the production container
+  // returned 200 on `/game/nfl` and `/users;use_login=1/games`, where every
+  // call had returned 403 "This application is not authorized to perform this
+  // action." since 2026-08-13. `YAHOO_ENABLED=true` is set on omen_api and
+  // omen_cron as of the same day.
+  //
+  // The flag itself stays, and still defaults to **false**: this was a review
+  // decision Yahoo made once and can make again, and the failure mode it
+  // guards against is nasty — the OAuth handshake keeps succeeding and writes
+  // a `connected` row while every Fantasy call 403s, so the connection reads
+  // as working and serves nothing. Fail closed if it is ever unset.
+  //
+  // To re-check at any time: `GET /api/yahoo/access-probe` (any 200 = granted;
+  // four 403s = revoked). To pause again: YAHOO_ENABLED=false here AND
+  // YAHOO_CONNECTIONS_ENABLED=false in frontend/src/lib/yahooAuth.js.
   yahoo: {
     clientId:     process.env.YAHOO_CLIENT_ID,
     clientSecret: process.env.YAHOO_CLIENT_SECRET,
