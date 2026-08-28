@@ -130,9 +130,36 @@ class YahooClient {
       if (!leaguesContainer) continue;
 
       for (const leagueEntry of Object.values(leaguesContainer).filter(l => l?.league)) {
-        const attrs = leagueEntry.league?.[0];
-        if (!Array.isArray(attrs)) continue;
-        const entry = key => attrs.find(x => x?.[key])?.[key] ?? null;
+        /**
+         * Yahoo serialises league attributes in TWO different shapes, and this
+         * endpoint uses the one this parser used to reject.
+         *
+         *   /users;use_login=1/games/leagues  ->  league[0] is a FLAT OBJECT
+         *       league: [ { league_key: "470.l.1358570", name: "…", … } ]
+         *
+         *   /league/{key}                     ->  league[0] is an ARRAY of
+         *       single-key objects: [ {league_key}, {name}, {season}, … ]
+         *
+         * This function previously did `if (!Array.isArray(attrs)) continue;`,
+         * so every league from this endpoint was silently skipped and the
+         * method returned []. `POST /api/yahoo/league` validates the requested
+         * id against this list, so an empty list means *every* bind attempt
+         * fails with "leagueId is not one of your Yahoo leagues" — the league
+         * can never be bound and the connection is stuck on the pre-bind
+         * `league_id: "yahoo"` sentinel forever.
+         *
+         * Caught 2026-08-28, the first time this path could actually run
+         * against Yahoo after the entitlement was granted. The unit test that
+         * covered it passed throughout, because its fixture was written from
+         * the assumed array shape rather than from a captured response — so
+         * the test encoded the bug instead of catching it. Both shapes are
+         * now handled and both are covered by fixtures taken from real traffic.
+         */
+        const raw = leagueEntry.league?.[0];
+        if (!raw || typeof raw !== "object") continue;
+        const entry = Array.isArray(raw)
+          ? key => raw.find(x => x?.[key])?.[key] ?? null
+          : key => raw[key] ?? null;
         const leagueKey = entry("league_key");
         if (!leagueKey) continue;
         leagues.push({
