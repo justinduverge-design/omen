@@ -84,9 +84,33 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - Native test baseline: iOS **188** (Xcode 26.6, iPhone 17 Pro sim), Android **50** connected instrumentation on API 36, both after `M6-ContextualHelp` (#312).
 - Native: Discord OAuth merged both platforms (#198). A signed-in native user can connect a Sleeper league and see real league state (#309, #310).
 - **Queue reconciled 2026-08-16.** 23 finished items moved to `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16". This file now carries active work only.
-- **No provider is proven with a real connected account.** This is the top beta risk.
+- **Provider proof — partially cleared 2026-08-28.** ~~No provider is proven with a real connected account.~~ **Yahoo now is:** entitlement live, two founder leagues bound, metadata / `current_week` / team key / a 15-player roster all returning on the deployed image (`P1-YahooReauth`). **Sleeper and ESPN remain unproven against a real connected account, and that is still the top beta risk** — `M11A` is the item that closes it.
 - **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
 - Tuesday scoring is on the founder-authorized A6 safety hold. The running `omen_cron` has both scoring flags `false`; re-enable only after the A6 persistence repair/new-row proof and O2.
+
+## Build order — founder decision 2026-08-28
+
+**Screens first, then paint.** Founder framing: *"build the walls, build the rooms, paint it."* This
+ordering is a founder call, not a technical dependency chain — it overrides bare priority numbers
+where the two disagree. Do not pull a later step while an earlier one is unstarted.
+
+| # | Step | Holder | Gate |
+| :-- | :--- | :--- | :--- |
+| 1 | `M11A` — prove the provider claims against real Sleeper / ESPN (Yahoo as bonus) | agent | none — standing read access confirmed |
+| 2 | `M1-Screen-Trade` + `M1-Screen-League` ratification, **informed by step 1** | founder | step 1 |
+| 3 | `M5` slices **F** and **G** — build the two real screens | agent | step 2 |
+| 4 | `M11B` — reconcile the proof back into the ratified contracts | agent | steps 2-3 |
+| 5 | `M12-BrandFonts` — the paint pass | agent | step 3 |
+| 6 | Promotional capture and TestFlight invitations | founder | steps 3 + 5 |
+
+**Why step 1 moved in front of ratification.** The founder asked to know the screens will actually do
+what they are meant to do *before* approving them. Every capability claim in both contracts is
+fixture-proven only today. Step 1 is the only thing that answers that question, and it is
+design-independent, so it cannot prove the wrong thing.
+
+**`R6` TestFlight invitations are not blocked by this table.** Apple approved iOS Build 1 and the
+external group is empty; the founder may invite at any time. Step 6 reflects his stated preference to
+have footage ready first, not a technical gate — a decision he can reverse without asking anyone.
 
 # Active queue
 
@@ -550,6 +574,19 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** merged and deployed; a real Ledger row renders every §7.5 state the data can reach.
 - **Do not touch:** inventing a `superseded` state from a single row.
 
+### M12-BrandFonts — Ship the locked Omen typefaces in both native apps
+
+- **Status:** READY
+- **Blocked by:** TASK-M5-Native-API-Client — **founder sequencing, not a technical dependency.** Decided 2026-08-28: *"build the walls, build the rooms, paint it."* Screens land first; type is the paint pass. Nothing in this item technically requires `M5` — if the sequencing is ever revisited, this line is the only thing holding it.
+- **Priority:** P1 — **a prerequisite for any promotional footage.** Raised from invisible: until 2026-08-28 this defect existed only in `Direction/known_issues.md` and issue [#338](https://github.com/justinduverge-design/omen/issues/338) and was in **no** queue, which is exactly the failure `M10` exists to catch.
+- **Cost:** small
+- **Agent-buildable:** yes, in full. Both families are SIL Open Font License, so this is download-and-commit, not a purchase. The founder authorized acquisition on 2026-08-28, which satisfies the "separately approved asset/source decision" the M2 build brief §7 deferred this to.
+- **What is wrong:** `Alegreya Sans`, `Alegreya` and `DM Mono` are the locked brand families and **there are no font files in this repo** — no `.ttf`, `.otf`, or `.woff*` anywhere. Both platforms silently resolve to system stand-ins: iOS `.default`/`.serif`/`.monospaced` (SF Pro / **New York** / SF Mono), Android `SansSerif`/`Serif`/`Monospace`. The sans-heading / serif-body contrast visible in the product is the intended *shape* of the three-role system rendered in the wrong typefaces.
+- **Why it is P1 now:** the founder intends to record promotional video of the UI for social media and beta recruitment. Every frame shot before this lands is off-brand and has to be reshot. That is what moved this from a deferred nicety to a gate on the marketing work.
+- **The swap seam already exists:** `OmenFontDesign` (iOS) and `OmenFontFamilies` (Android) are the only places a family is named. Do not widen that seam.
+- **Done when:** the three families are committed under an OFL-compliant path with their licence files intact; both platforms register and resolve them (iOS via the app bundle, Android via resource fonts); `OmenFontDesign` / `OmenFontFamilies` resolve to the real families with the existing system stack retained as fallback; a test on each platform asserts the resolved family is **not** the system default; and a screenshot on each platform evidences the change.
+- **Do not touch:** do not rename or add type roles; do not alter the type scale; do not widen the naming seam beyond the two existing files. **Landing this is the stated trigger for revisiting the Dynamic Type audit finding** in `known_issues.md` — re-raise it, do not silently fold it in here.
+
 ### M10-DesignLaneStaleness — Extend the staleness check to design work
 
 - **Status:** READY
@@ -563,23 +600,38 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 - **Done when:** the check flags a design item whose frames exist while its `Status:` is not `CLOSED`; **concludes absence only from a direct per-node probe, never from a page listing or a `children.length` read**, and carries a test or fixture proving it does not report a lazily-unloaded page as empty; is proven against the real 2026-08-16 case; stays quiet on genuinely-unstarted items; and edits nothing — closing an item stays a human judgement.
 - **Do not touch:** do not auto-close anything; do not write to Figma.
 
-### M11-M1ContractProviderProof — Prove the M1 contract claims against real provider data
+### M11A-ProviderShapeProof — Prove the provider claims against real connected leagues
 
-- **Status:** BLOCKED
-- **Blocked by:** FOUNDER — needs a real connected Sleeper league and a real connected ESPN league (credentials are founder-only), **and** ratification of `M1-Screen-League` / `M1-Screen-Trade` first. If either contract is rejected again the proof target changes, so running this before ratification risks proving the wrong thing.
-- **Unblock:** ratify the two contracts, then make a Sleeper and an ESPN league available for a read-only proof session.
-- **Priority:** P2 — nothing in beta depends on it, but every capability claim in both contracts is currently fixture-proven only, and `Blueprints/specs/mobile/m1-league-screen-data-plan-v1.md` §1 marks four rows ⚠️ unverified on purpose.
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-08-28 REASSESSED — **split out of `M11`, whose single FOUNDER blocker conflated two different questions.** Claims 1-4 ask whether a provider *returns a field at all*. That is a fact about the provider: it does not change if a screen contract is rejected and redrawn, so the "risks proving the wrong thing" argument never applied to it. The founder confirmed standing read access to his own connected Omen accounts, so no per-session credential handover is required — reads run through the authenticated Omen API against his existing `platform_connections`, never against raw provider credentials.
+- **Priority:** **P1 — this is an input to the ratification the founder is holding.** He asked to know the screens will do what they are meant to do before approving them; this is the only evidence that answers it. Every capability claim in both M1 contracts is fixture-proven only today, and `Blueprints/specs/mobile/m1-league-screen-data-plan-v1.md` §1 marks four rows ⚠️ unverified on purpose.
 - **Cost:** small
-- **Agent-buildable:** yes once the leagues exist; the founder supplies access, the agent runs the reads and records evidence.
+- **Agent-buildable:** yes, in full. Read-only, through the Omen API.
 - **Source:** the 2026-08-24 contract revision ([#364](https://github.com/justinduverge-design/omen/pull/364)). Both halves were deliberately shipped with their unproven edges named rather than smoothed over.
-- **Scope — exactly five claims, no more:**
+- **Scope — exactly four claims, no more:**
   1. **ESPN per-side projection shape** — the data plan asserts ESPN returns projected totals in the same `mMatchup` view. Inferred from surrounding usage, never parsed anywhere in `src/`.
   2. **Sleeper deadline field** — trade deadline / playoff start on the league settings object.
   3. **ESPN deadline field** — same, on ESPN league settings.
-  4. **Trade personalization against a real Sleeper league** — `src/services/tradeLeagueContext.js` currently resolves real settings only in tests. Confirm `roster_positions`, `scoring_settings.rec`, and `total_rosters` arrive in the expected shape from a live league.
-  5. **The neutral-vs-personalized difference on real data** — the verdict flip is proven on deterministic fixtures; observe it once on a real roster.
-- **Done when:** each of the five carries a live, sanitized evidence line (shape confirmed or corrected, dated, provider named); `m1-league-screen-data-plan-v1.md` §1 has no remaining ⚠️ row that is merely inferred; **any claim that fails is degraded in the contract to the section it affects rather than the screen** (§2.5 gate 5 — no global parity claim from one provider); and no league name, roster, manager identity, cookie, or token value appears in the evidence.
-- **Do not touch:** no ESPN cookie or Yahoo token value in any artifact (facts-of-record #6); no write to any provider; no production action. **Yahoo is out of scope** — its API is refused at the app-entitlement level (facts-of-record #11, issue [#308](https://github.com/justinduverge-design/omen/issues/308)) and no proof is possible until that clears.
+  4. **Trade personalization inputs against a real Sleeper league** — `src/services/tradeLeagueContext.js` currently resolves real settings only in tests. Confirm `roster_positions`, `scoring_settings.rec`, and `total_rosters` arrive in the expected shape from a live league.
+- **Yahoo is in scope as a bonus provider** where a claim has a Yahoo analogue — its entitlement is live and two founder leagues are bound (`P1-YahooReauth`). It does **not** substitute for the ESPN or Sleeper proof.
+- **Done when:** each of the four carries a live, sanitized evidence line (shape confirmed **or corrected**, dated, provider named); a claim that fails is reported as a finding against the contract rather than quietly worked around; and no league name, roster, manager identity, cookie, or token value appears in the evidence.
+- **Do not touch:** no ESPN cookie or Yahoo token value in any artifact (facts-of-record #6); no write to any provider; no production action; **no edit to `m1-league-screen-data-plan-v1.md` — that reconciliation is `M11B` and waits for ratification.**
+
+### M11B-M1ContractReconciliation — Reconcile the proof into the ratified M1 contracts
+
+- **Status:** BLOCKED
+- **Blocked by:** TASK-M1-Screen-League — the design-dependent half must not run before ratification.
+- **Blocked by:** TASK-M1-Screen-Trade — same.
+- **Blocked by:** TASK-M11A-ProviderShapeProof — there is nothing to reconcile until the shape evidence exists.
+- **Unblock:** 2026-08-28 REASSESSED — split out of `M11`. **The original reasoning holds for this half and is unchanged:** claim 5 and every reconciliation back into the data plan depend on which contract wins, so running them before ratification risks proving the wrong thing.
+- **Priority:** P2 — nothing in beta depends on it.
+- **Cost:** small
+- **Agent-buildable:** yes once the contracts are ratified and `M11A` has landed.
+- **Scope:**
+  5. **The neutral-vs-personalized difference on real data** — the verdict flip is proven on deterministic fixtures; observe it once on a real roster, as presented by the ratified contract.
+- **Done when:** `m1-league-screen-data-plan-v1.md` §1 has no remaining ⚠️ row that is merely inferred; **any claim that failed in `M11A` is degraded in the contract to the section it affects rather than the screen** (§2.5 gate 5 — no global parity claim from one provider); and no league name, roster, manager identity, cookie, or token value appears in the evidence.
+- **Do not touch:** no provider credential value in any artifact; no write to any provider; no production action.
 
 ### M8-EspnAndroidHelper — Decide the Android ESPN path
 
