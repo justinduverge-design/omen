@@ -15,6 +15,60 @@ function leagueAttrs({ leagueKey, name, season }) {
   ]];
 }
 
+/**
+ * Captured from real Yahoo traffic on 2026-08-28 (owner@slopssaloon.com,
+ * two 2026 NFL leagues), trimmed to the fields the parser reads.
+ *
+ * This is the shape `/users;use_login=1/games;game_keys=nfl/leagues` actually
+ * returns: league[0] is a FLAT OBJECT. `leagueAttrs()` below builds the OTHER
+ * shape (an array of single-key objects), which is what `/league/{key}`
+ * returns. The parser rejected this one outright and returned [], which made
+ * every `POST /api/yahoo/league` bind fail. Do not "simplify" these two
+ * fixtures into one — they are different on purpose, because Yahoo is.
+ */
+function leagueAttrsFlat({ leagueKey, name, season }) {
+  return [{ league_key: leagueKey, league_id: leagueKey.split(".").pop(), name, season: String(season) }];
+}
+
+test("getUserLeagues parses the flat-object league shape this endpoint really returns", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => ({
+    fantasy_content: {
+      users: {
+        0: {
+          user: [
+            { guid: "user-guid" },
+            {
+              games: {
+                0: {
+                  game: [
+                    { game_key: "470" },
+                    {
+                      leagues: {
+                        0: { league: leagueAttrsFlat({ leagueKey: "470.l.1255365", name: "Yahoo H2H-Pts 1255365", season: 2026 }) },
+                        1: { league: leagueAttrsFlat({ leagueKey: "470.l.1358570", name: "Fantasy Madness", season: 2026 }) },
+                        count: 2,
+                      },
+                    },
+                  ],
+                },
+                count: 1,
+              },
+            },
+          ],
+        },
+        count: 1,
+      },
+    },
+  });
+
+  const leagues = await client.getUserLeagues();
+  assert.deepEqual(leagues, [
+    { league_id: "470.l.1255365", name: "Yahoo H2H-Pts 1255365", season: 2026 },
+    { league_id: "470.l.1358570", name: "Fantasy Madness", season: 2026 },
+  ]);
+});
+
 test("getUserLeagues returns each league's league_key aliased as league_id", async () => {
   const client = new YahooClient("token");
   client.get = async (path) => {
