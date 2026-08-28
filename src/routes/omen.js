@@ -6,7 +6,7 @@ const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
 const { LIVE_CONTRACT_VERSION } = require("../services/systemContracts");
-const { isOffSeason } = require("../services/nflSchedule");
+const { suppressLiveFootballData } = require("../services/nflSchedule");
 const { ensureAppUser } = require("../services/appUser");
 const {
   pendingMetadata,
@@ -464,7 +464,7 @@ async function liveOmenResult(req) {
   }
 
   try {
-    if (isOffSeason()) {
+    if (suppressLiveFootballData()) {
       return { ...offSeasonMvpResponse(), authenticatedUser: user };
     }
     const result = await buildLiveOmenMvpMoveForUser(user.id, {

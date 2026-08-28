@@ -191,6 +191,10 @@ function loadRouter(options = {}) {
         return {
           getCurrentNflWeekContext: () => ({ season: 2026, week: 7, season_type: "regular" }),
           isOffSeason: () => options.offSeason || false,
+          // The six user-facing gates now call suppressLiveFootballData(). Mirroring the
+          // same flag keeps these cases testing the suppressed path, which is what
+          // OMEN_WEEK1_PREVIEW=false restores in production.
+          suppressLiveFootballData: () => options.offSeason || false,
         };
       }
       if (request === "../services/yahooAuth") {

@@ -5,7 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
-const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -213,7 +213,7 @@ router.get("/standings", requireAuth, async (req, res, next) => {
       return res.status(result.status).json(result.body);
     }
 
-    if (isOffSeason()) {
+    if (suppressLiveFootballData()) {
       return res.json(baseEnvelope(candidates[0], context));
     }
 

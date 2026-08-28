@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { describe, it, before, beforeEach, after } = require("node:test");
+const { describe, it, before, beforeEach, afterEach, after } = require("node:test");
 
 let _mockResponse = null;
 let _mockFetch = null;
@@ -21,6 +21,8 @@ const {
   getGameInfo,
   getCurrentNflWeekContext,
   isOffSeason,
+  suppressLiveFootballData,
+  week1PreviewEnabled,
   __clearCache,
 } = require("../src/services/nflSchedule");
 
@@ -141,5 +143,50 @@ describe("nflSchedule.isOffSeason", () => {
 
   it("returns true after the regular season window closes", () => {
     assert.equal(isOffSeason(new Date("2027-01-20T12:00:00Z")), true);
+  });
+});
+
+describe("nflSchedule.suppressLiveFootballData — the Week-1 preview kill switch", () => {
+  const OFF = new Date("2026-08-28T12:00:00Z"); // real off-season: raw_week -1
+  const IN  = new Date("2026-09-10T12:00:00Z"); // real regular season
+  let prior;
+  beforeEach(() => { prior = process.env.OMEN_WEEK1_PREVIEW; });
+  afterEach(() => {
+    if (prior === undefined) delete process.env.OMEN_WEEK1_PREVIEW;
+    else process.env.OMEN_WEEK1_PREVIEW = prior;
+  });
+
+  it("is on by default, so the off-season no longer suppresses live data", () => {
+    delete process.env.OMEN_WEEK1_PREVIEW;
+    assert.equal(isOffSeason(OFF), true, "precondition: this date is genuinely off-season");
+    assert.equal(week1PreviewEnabled(), true);
+    assert.equal(suppressLiveFootballData(OFF), false);
+  });
+
+  it("OMEN_WEEK1_PREVIEW=false restores the previous off-season suppression", () => {
+    process.env.OMEN_WEEK1_PREVIEW = "false";
+    assert.equal(week1PreviewEnabled(), false);
+    assert.equal(suppressLiveFootballData(OFF), true, "kill switch must restore suppression");
+  });
+
+  it("never suppresses during the regular season, switch either way", () => {
+    delete process.env.OMEN_WEEK1_PREVIEW;
+    assert.equal(suppressLiveFootballData(IN), false);
+    process.env.OMEN_WEEK1_PREVIEW = "false";
+    assert.equal(suppressLiveFootballData(IN), false);
+  });
+
+  it("only the exact string \"false\" disables it — no accidental truthiness", () => {
+    for (const v of ["0", "no", "FALSE", "", "true"]) {
+      process.env.OMEN_WEEK1_PREVIEW = v;
+      assert.equal(week1PreviewEnabled(), true, `${JSON.stringify(v)} must not disable the preview`);
+    }
+  });
+
+  it("leaves isOffSeason itself untouched — it is still the honest season answer", () => {
+    process.env.OMEN_WEEK1_PREVIEW = "false";
+    assert.equal(isOffSeason(OFF), true);
+    delete process.env.OMEN_WEEK1_PREVIEW;
+    assert.equal(isOffSeason(OFF), true);
   });
 });

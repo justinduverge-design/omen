@@ -21,7 +21,7 @@ const { logger } = require("../middleware/logging");
 const { requireAuth } = require("../middleware/auth");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
-const { getCurrentNflWeekContext, isOffSeason } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildWaiverAnalysis } = require("../services/waiverAnalysis");
@@ -207,7 +207,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       scoringFormat: loaded.scoringFormat,
       availabilityConfirmed: loaded.availabilityConfirmed,
       deadline: null,
-      offSeason: isOffSeason(),
+      offSeason: suppressLiveFootballData(),
     });
 
     return res.json({ ...analysis, limitations: loaded.limitations });

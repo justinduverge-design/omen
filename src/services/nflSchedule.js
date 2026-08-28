@@ -77,6 +77,39 @@ function isOffSeason(now = new Date()) {
   return rawWeek < 1 || rawWeek > 18;
 }
 
+/**
+ * Week-1 preview switch.
+ *
+ * `isOffSeason()` was used as a single gate on six surfaces, and it was too
+ * blunt: it suppressed **real provider data** — league standings, drafted
+ * rosters, connected-league identity — alongside the recommendations it was
+ * actually meant to hold back. Measured 2026-08-28 against real connected
+ * leagues, all three providers return complete standings before kickoff
+ * (Yahoo 10 teams, Sleeper 8, ESPN 12, every team 0-0), and the Omen engine
+ * produces a genuine start/sit recommendation from a drafted Sleeper roster.
+ * None of that needed to be hidden.
+ *
+ * The honest states survive: a pre-draft league still returns `empty` with
+ * "Omen resumes for this league once the draft is complete", because that
+ * comes from the provider's own draft status, not from this gate.
+ *
+ * `OMEN_WEEK1_PREVIEW=false` restores the previous behaviour on every surface
+ * at once, by environment variable, with no redeploy. That is the kill switch.
+ */
+function week1PreviewEnabled() {
+  return process.env.OMEN_WEEK1_PREVIEW !== "false";
+}
+
+/**
+ * True when a surface should withhold live football data. Prefer this over
+ * `isOffSeason()` at any user-facing surface. `isOffSeason()` remains the
+ * honest answer to "has the season started" and must keep being used wherever
+ * that is the actual question.
+ */
+function suppressLiveFootballData(now = new Date()) {
+  return isOffSeason(now) && !week1PreviewEnabled();
+}
+
 function _logger() {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
     return { info() {}, warn() {} };
@@ -251,4 +284,11 @@ function __clearCache() {
   _cache.clear();
 }
 
-module.exports = { getGameInfo, getCurrentNflWeekContext, isOffSeason, __clearCache };
+module.exports = {
+  getGameInfo,
+  getCurrentNflWeekContext,
+  isOffSeason,
+  week1PreviewEnabled,
+  suppressLiveFootballData,
+  __clearCache,
+};

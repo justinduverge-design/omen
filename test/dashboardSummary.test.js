@@ -94,6 +94,10 @@ function loadDashboardRouter({
           season_type: "regular",
         },
         isOffSeason: () => offSeason,
+        // The six user-facing gates now call suppressLiveFootballData(). Mirroring the
+        // same flag keeps these cases testing the suppressed path, which is what
+        // OMEN_WEEK1_PREVIEW=false restores in production.
+        suppressLiveFootballData: () => offSeason,
       };
     }
     if (request === "../services/yahooAuth" && parent?.filename === routePath) {

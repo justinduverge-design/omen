@@ -624,6 +624,18 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Done when:** the three families are committed under an OFL-compliant path with their licence files intact; both platforms register and resolve them (iOS via the app bundle, Android via resource fonts); `OmenFontDesign` / `OmenFontFamilies` resolve to the real families with the existing system stack retained as fallback; a test on each platform asserts the resolved family is **not** the system default; and a screenshot on each platform evidences the change.
 - **Do not touch:** do not rename or add type roles; do not alter the type scale; do not widen the naming seam beyond the two existing files. **Landing this is the stated trigger for revisiting the Dynamic Type audit finding** in `known_issues.md` — re-raise it, do not silently fold it in here.
 
+### M13-LeagueTeamIdentity — Name the league and team on the Omen recommendation
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — **founder-flagged 2026-08-28**, found while proving the engine against real leagues.
+- **Cost:** small
+- **Agent-buildable:** yes, in full — but **the wording is a founder call**, per his note that this is "something I can weigh in on".
+- **What is wrong:** the live Omen envelope returns a complete, correct recommendation with `league.name: null` and `team.name: null`. Measured against a real drafted Sleeper league: the user is told to start Terry McLaurin over Luther Burden without being told **which league or which team** that applies to. For a user with three connected leagues — the founder has Yahoo, Sleeper and ESPN — that is genuinely ambiguous, not merely unpolished.
+- **Also null in the same envelope:** `scoring_format` (that is the `A6-MovesScoringFormat` defect surfacing at the contract edge, not a separate bug — do not "fix" it here) and `opponent_team` (no 2026 schedule published yet; expect it to populate at kickoff).
+- **Done when:** the envelope carries the provider's own league name and the user's own team name wherever the provider supplies them; a provider that genuinely does not supply one degrades to a named, honest fallback rather than an invented string; and the founder has approved how it reads on screen.
+- **Do not touch:** do not synthesize a league or team name from an id; do not widen the contract to carry a third identity field without a contract change.
+
 ### M10-DesignLaneStaleness — Extend the staleness check to design work
 
 - **Status:** READY
