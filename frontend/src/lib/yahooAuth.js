@@ -1,19 +1,23 @@
 import { apiFetch } from './api.js';
 
 /**
- * Yahoo connections are paused while Yahoo reviews Omen's Fantasy Sports API
- * entitlement for app ZcZJXm8V. This is deliberately a build-time constant
- * rather than a fetched flag: it is the last line of defence, so it must hold
- * even on a screen that never loaded platform status.
+ * Yahoo connections are ENABLED as of 2026-08-28. Yahoo granted the Fantasy
+ * Sports API entitlement for app ZcZJXm8V; a live probe from inside the
+ * production container returned 200 on both `/game/nfl` (public game metadata)
+ * and `/users;use_login=1/games` (user-scoped), where every call had returned
+ * 403 "This application is not authorized to perform this action." since
+ * 2026-08-13. `YAHOO_ENABLED=true` was set on omen_api and omen_cron the same
+ * day, so the server gate is open too.
  *
- * The server is the real gate (`config.yahoo.enabled` / `YAHOO_ENABLED`); this
- * stops the UI from sending a request it knows will 503, and stops a Connect
- * button from appearing in a state that looks functional.
+ * This stays a build-time constant rather than a fetched flag: it is the last
+ * line of defence, so it must hold even on a screen that never loaded platform
+ * status. The server is the real gate (`config.yahoo.enabled` / `YAHOO_ENABLED`).
  *
- * To re-enable: flip YAHOO_ENABLED=true on the API, then set this to true.
- * Every Yahoo code path below is intact and tested — nothing else changes.
+ * To pause Yahoo again: set this to false AND set YAHOO_ENABLED=false on the
+ * API, in that order. Both halves are required — either one alone leaves a
+ * path that looks functional and is not.
  */
-export const YAHOO_CONNECTIONS_ENABLED = false;
+export const YAHOO_CONNECTIONS_ENABLED = true;
 
 /** Short, user-facing reason. Keep it factual — no date we cannot hold. */
 export const YAHOO_UNAVAILABLE_MESSAGE =
