@@ -21,6 +21,8 @@ struct CommandCenterView: View {
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
+    @StateObject private var leagueViewModel: LeagueViewModel
+    @StateObject private var tradeViewModel: TradeViewModel
 
     init(
         userID: String,
@@ -31,7 +33,8 @@ struct CommandCenterView: View {
         movesRepository: MovesRepository,
         omenDecisionRepository: OmenDecisionRepository,
         connectRepository: ConnectRepository,
-        leagueDirectoryRepository: LeagueDirectoryRepository
+        leagueDirectoryRepository: LeagueDirectoryRepository,
+        tradeRepository: TradeRepository
     ) {
         self.connectRepository = connectRepository
         self.userID = userID
@@ -45,6 +48,14 @@ struct CommandCenterView: View {
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
             repository: omenDecisionRepository,
+            sessionManager: sessionManager
+        ))
+        _tradeViewModel = StateObject(wrappedValue: TradeViewModel(
+            repository: tradeRepository,
+            sessionManager: sessionManager
+        ))
+        _leagueViewModel = StateObject(wrappedValue: LeagueViewModel(
+            repository: leagueRepository,
             sessionManager: sessionManager
         ))
         _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
@@ -107,25 +118,33 @@ struct CommandCenterView: View {
             .tabItem { Label("Omen", systemImage: "bolt.fill") }
             .tag(CommandCenterTab.omen)
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "Trade is landing next",
-                message: "Trade Analyzer arrives here. It is free and open on the Omen website today."
+            // M5 slice G: the Trade destination now renders `trade-compare.v2`.
+            OmenTradeScreen(
+                state: tradeViewModel.viewState,
+                offer: tradeViewModel.offer,
+                onAdd: { name, side in tradeViewModel.add(name, to: side) },
+                onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
+                onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
             )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
+            // The league to personalize against comes from the SAME `league-overview.v1` read
+            // the League destination uses. Trade never discovers a league on its own, so the
+            // two screens can never disagree about which league the user is in.
+            .onChange(of: leagueViewModel.viewState) { _, newValue in
+                guard case .loaded(let overview) = newValue else { return }
+                tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
+            }
             .tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
             .tag(CommandCenterTab.trade)
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "League is landing next",
-                message: "Roster, matchup, and standings for your connected league arrive here."
+            // M5 slice F: the League destination now renders `league-overview.v1`. It
+            // replaced an honest "landing next" placeholder, which was correct while the
+            // screen contract was unratified and is no longer.
+            OmenLeagueScreen(
+                state: leagueViewModel.viewState,
+                onRetry: { Task { await leagueViewModel.reload() } },
+                onConnect: { showConnectSheet = true }
             )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
+            .task { await leagueViewModel.load(userID: userID) }
             .tabItem { Label("League", systemImage: "person.3.fill") }
             .tag(CommandCenterTab.league)
         }
@@ -141,6 +160,7 @@ struct CommandCenterView: View {
                     Task {
                         await commandCenterViewModel.load(userID: userID)
                         await omenDecisionViewModel.load(userID: userID)
+                        await leagueViewModel.load(userID: userID)
                     }
                 },
                 onConnectAnother: {

@@ -120,4 +120,38 @@ final class DashboardSummaryTests: XCTestCase {
         guard case .noMatchup(let reason) = state.matchup else { return XCTFail("expected noMatchup") }
         XCTAssertTrue(reason.contains("isn't usable yet"))
     }
+
+    /// Regression: `.unavailable` was rendered through `OmenStateSurface(kind: .loading, …)`,
+    /// which draws a `ProgressView`. Every healthy league hit it, so the section spun forever
+    /// and read as "standings takes forever to load" when nothing was in flight at all.
+    ///
+    /// These assert the two states stay distinct. `.loading` is the only one that may spin.
+    func testLeaguePulseLoadingAndUnavailableAreDistinctStates() throws {
+        let ready = OmenCommandCenterState.from(summary: try decode(omen: "ready", waiver: "ready", sleeperConnected: true))
+        if case .loading = ready.leaguePulse {} else {
+            XCTFail("a ready league expects a standings answer — that is pending, not unavailable.")
+        }
+
+        let noPlatform = OmenCommandCenterState.from(summary: try decode(omen: "needs_platform", waiver: "needs_platform"))
+        if case .notConnected = noPlatform.leaguePulse {} else {
+            XCTFail("no platform must stay notConnected, not pending on a request never made.")
+        }
+    }
+
+    /// A supplied pulse always wins over the shell-derived default, so a resolved standings
+    /// read can never be overwritten by "still loading".
+    func testSuppliedLeaguePulseOverridesShellDefault() throws {
+        let resolved = OmenCommandCenterState.from(
+            summary: try decode(omen: "ready", waiver: "ready", sleeperConnected: true),
+            leaguePulse: .available(position: "3rd of 12 · 6-1", cutLine: nil, activity: nil)
+        )
+        guard case let .available(position, cutLine, activity) = resolved.leaguePulse else {
+            return XCTFail("a resolved standings answer must survive the shell default.")
+        }
+        XCTAssertEqual(position, "3rd of 12 · 6-1")
+        // Neither is derivable from `league-standings.v1`; both must stay absent rather than
+        // being filled with a plausible-sounding sentence.
+        XCTAssertNil(cutLine)
+        XCTAssertNil(activity)
+    }
 }

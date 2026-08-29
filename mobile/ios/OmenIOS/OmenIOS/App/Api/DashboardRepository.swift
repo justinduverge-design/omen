@@ -39,6 +39,11 @@ struct StubDashboardRepository: DashboardRepository {
 /// them apart stops a slow or failing provider from being able to hold up the shell.
 protocol LeagueRepository {
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError>
+
+    /// `league-overview.v1`. Supersedes `fetchStandings` for callers that need the matchup and
+    /// activity sections too. `fetchStandings` stays because the Command Center context strip
+    /// consumes that narrower contract and must not be disturbed.
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError>
 }
 
 struct ApiLeagueRepository: LeagueRepository {
@@ -51,10 +56,19 @@ struct ApiLeagueRepository: LeagueRepository {
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
         await client.get("api/league/standings", accessToken: accessToken, as: LeagueStandings.self)
     }
+
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+        await client.get("api/league/overview", accessToken: accessToken, as: LeagueOverview.self)
+    }
 }
 
 struct StubLeagueRepository: LeagueRepository {
     let result: Result<LeagueStandings, OmenApiError>
+    var overviewResult: Result<LeagueOverview, OmenApiError>?
+
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+        overviewResult ?? .failure(.network)
+    }
 
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
         result
@@ -123,6 +137,40 @@ struct StubMovesRepository: MovesRepository {
     let result: Result<MovesHistory, OmenApiError>
 
     func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+        result
+    }
+}
+
+// MARK: - Slice G — trade compare
+
+/// `POST /api/trade/compare`. Separate from the league repositories because this route is
+/// **free and public** — it has a different auth posture from everything else here, and a
+/// signed-out caller still gets a real (neutral) answer.
+protocol TradeRepository {
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError>
+}
+
+struct ApiTradeRepository: TradeRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
+        await client.post(
+            "api/trade/compare",
+            optionalAccessToken: accessToken,
+            body: offer.requestBody,
+            as: TradeCompare.self
+        )
+    }
+}
+
+struct StubTradeRepository: TradeRepository {
+    let result: Result<TradeCompare, OmenApiError>
+
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
         result
     }
 }

@@ -28,6 +28,16 @@ final class CommandCenterViewModel: ObservableObject {
     /// shell-derived default" — the same never-regress rule slice C uses for the context strip.
     @Published private(set) var ledger: OmenLedgerPreviewState?
 
+    /// Slice C, second consumer. `nil` keeps the shell-derived default, which is `.loading`
+    /// while a standings answer is still expected. Set from the same `league-standings.v1`
+    /// payload that fills the context strip — no extra request.
+    @Published private(set) var leaguePulse: OmenLeaguePulseState?
+
+    /// The real Matchup Hero. `nil` keeps the shell-derived `.noMatchup`, which is what every
+    /// connected user used to see unconditionally — the hero's populated cases existed but had
+    /// no real-data path at all.
+    @Published private(set) var matchup: OmenMatchupHeroState?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
@@ -57,7 +67,7 @@ final class CommandCenterViewModel: ObservableObject {
         case .demo:
             return OmenCommandCenterFixtures.demoConnected
         case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger)
+            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup)
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
@@ -84,21 +94,31 @@ final class CommandCenterViewModel: ObservableObject {
         viewState = .loading
         context = nil
         ledger = nil
+        leaguePulse = nil
+        matchup = nil
         switch await repository.fetchSummary(accessToken: accessToken) {
         case .success(let summary):
             viewState = .loaded(summary)
-            // Slice C runs only after the shell is renderable, and only when the shell says
-            // a provider is actually connected — asking a disconnected user's provider for
-            // standings is a guaranteed round-trip to an error.
-            if summary.platforms.anyConnected {
+            // Both follow-ups run only after the shell is renderable, and they run
+            // CONCURRENTLY. They hit different routes, neither reads the
+            // other's result, and running them in sequence made the Command Center three
+            // serial round trips deep — the standings call is a live provider read and the
+            // slowest of the three, so it was holding the Ledger behind it for no reason.
+            async let contextTask: Void = {
+                // Slice C runs only when the shell says a provider is actually connected —
+                // asking a disconnected user's provider for standings is a guaranteed
+                // round-trip to an error.
+                guard summary.platforms.anyConnected else { return }
                 await loadContext(accessToken: accessToken)
-            }
-            // Slice E. Skipped entirely when the shell says no usable platform: that user's
-            // Ledger is `.notConnected` by definition, and "no entries yet" would be a weaker,
-            // slightly wrong answer bought with a pointless round trip.
-            if summary.tools.omenOfTheWeek.status != .needsPlatform {
+            }()
+            async let ledgerTask: Void = {
+                // Slice E. Skipped entirely when the shell says no usable platform: that
+                // user's Ledger is `.notConnected` by definition, and "no entries yet" would
+                // be a weaker, slightly wrong answer bought with a pointless round trip.
+                guard summary.tools.omenOfTheWeek.status != .needsPlatform else { return }
                 await loadLedger(accessToken: accessToken)
-            }
+            }()
+            _ = await (contextTask, ledgerTask)
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             viewState = .failed(error)
@@ -110,11 +130,24 @@ final class CommandCenterViewModel: ObservableObject {
     /// Every failure path here is deliberately silent to the user: the shell is already on
     /// screen and correct, and a provider hiccup must not turn a working Command Center into
     /// an error screen. A failed or empty standings call simply leaves the strip unfilled.
+    /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
+    /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
+    /// other two sections were hardwired to states no connected user could escape.
     private func loadContext(accessToken: String) async {
-        guard case .success(let standings) = await leagueRepository.fetchStandings(accessToken: accessToken) else {
+        guard case .success(let overview) = await leagueRepository.fetchOverview(accessToken: accessToken) else {
+            // The shell-derived default is `.loading`, which would spin forever if left
+            // alone — the original defect in a different costume. A failed read resolves to
+            // an explicit resting state.
+            leaguePulse = .unavailable
             return
         }
-        context = standings.contextStrip
+        context = overview.contextStrip
+        // `nil` from either mapping means "this payload cannot honestly support the section".
+        // League Pulse resolves to `.unavailable` so it always settles; the Matchup Hero stays
+        // `nil` so the shell's honest `.noMatchup` reason survives rather than being replaced
+        // by a blank hero.
+        leaguePulse = overview.leaguePulse ?? .unavailable
+        matchup = overview.matchupHero
     }
 
     /// Fills the Ledger section from `moves-history.v1`.

@@ -81,8 +81,8 @@ final class OmenCommandCenterScreenTests: XCTestCase {
 
         if case let .available(position, cutLine, activity) = state.leaguePulse {
             XCTAssertTrue(position.lowercased().contains("demo"))
-            XCTAssertTrue(cutLine.lowercased().contains("demo"))
-            XCTAssertTrue(activity.lowercased().contains("no demo league activity feed"))
+            XCTAssertEqual(cutLine?.lowercased().contains("demo"), true)
+            XCTAssertEqual(activity?.lowercased().contains("no demo league activity feed"), true)
         } else {
             XCTFail("demo fixture must exercise the approved League Pulse composition.")
         }
@@ -95,13 +95,18 @@ final class OmenCommandCenterScreenTests: XCTestCase {
         if case .notConnected = OmenCommandCenterFixtures.realDisconnected.leaguePulse {} else {
             XCTFail("realDisconnected League Pulse must require a connected league.")
         }
-        if case .empty = OmenCommandCenterFixtures.realLoading.ledger {} else {
-            XCTFail("realLoading Ledger should be an honest empty state.")
+        // Corrected 2026-08-29. This test previously asserted `.empty` and `.unavailable` on
+        // the LOADING fixture — it encoded the defect it should have caught. A screen whose
+        // shell request is still in flight has not yet established that the Ledger is empty or
+        // that standings are unavailable; both are positive claims, and neither is earned yet.
+        if case .loading = OmenCommandCenterFixtures.realLoading.ledger {} else {
+            XCTFail("realLoading Ledger must be pending, not a claim that the user has no history.")
         }
-        if case .unavailable = OmenCommandCenterFixtures.realLoading.leaguePulse {} else {
-            XCTFail("realLoading League Pulse must not display a stale rank.")
+        if case .loading = OmenCommandCenterFixtures.realLoading.leaguePulse {} else {
+            XCTFail("realLoading League Pulse must be pending, not a claim that standings failed.")
         }
     }
+
 
     func testWaiverWatchRegistersEveryApprovedState() {
         let opportunity = OmenWaiverOpportunity(

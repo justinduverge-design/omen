@@ -58,6 +58,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/user/consent` | `user-consent.v1` | Yes | Upserts a consent record for the authenticated user. |
 | `DELETE` | `/api/user/delete` | `user-delete.v1` | Yes | Requires exact `confirmation: "DELETE MY OMEN DATA"`. Deletes Omen-side rows and attempts Vault secret cleanup; does not delete provider-held data. |
 | `GET` | `/api/league/standings` | `league-standings.v1` | Yes | Canonical standings for Yahoo, Sleeper, ESPN. Returns `200` with `standings: []` during the shared off-season window. Error envelope is `league-standings-error.v1`. |
+| `GET` | `/api/league/overview` | `league-overview.v1` | Yes | **Additive; `/standings` is unchanged.** League destination payload: `matchup`, `standings`, `activity`. Every section carries its own explicit `status` and **fails independently** — a dead matchup read returns `status: "unavailable"` beside live standings. `activity` ships `status: "empty"` with `unavailable_families: ["transactions"]`: v1 derives no activity signals, and that slot is the seam the waiver/trade work fills without a contract change. `playoff_picture.cut_line_note` stays `null` with `settings_known: false` until a provider path reads playoff settings. Reuses `league-standings-error.v1` verbatim. Yahoo returns standings with `matchup.status: "unavailable"` (`provider_unsupported`). |
 | `PATCH` | `/api/account/preferences` | preference response | Yes | Persists `favorite_team`. |
 
 ## Trade compare v2 — additive, 2026-08-24

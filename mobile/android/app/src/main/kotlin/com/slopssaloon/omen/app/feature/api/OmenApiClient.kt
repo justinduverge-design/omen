@@ -45,7 +45,7 @@ sealed interface OmenApiResult<out T> {
  * failure. Keeps the fakes in tests readable without a MockWebServer dependency.
  */
 fun interface OmenHttpFetcher {
-    suspend fun fetch(url: String, method: String, accessToken: String, body: String?): Pair<Int, String>?
+    suspend fun fetch(url: String, method: String, accessToken: String?, body: String?): Pair<Int, String>?
 }
 
 class OkHttpFetcher(
@@ -58,15 +58,20 @@ class OkHttpFetcher(
     override suspend fun fetch(
         url: String,
         method: String,
-        accessToken: String,
+        accessToken: String?,
         body: String?,
     ): Pair<Int, String>? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(url)
             .addHeader("Accept", "application/json")
-            // The bearer is set here and nowhere else. It is never logged, never placed in a
-            // URL, and never included in an error value — OmenApiError carries a status only.
-            .addHeader("Authorization", "Bearer $accessToken")
+            .apply {
+                // The bearer is set here and nowhere else. It is never logged, never placed in
+                // a URL, and never included in an error value — OmenApiError carries a status
+                // only. Omitted entirely when absent: `POST /api/trade/compare` is free and
+                // public and answers an unauthenticated caller with a 200 neutral result, and
+                // `Authorization: Bearer ` with an empty value is a malformed header.
+                if (!accessToken.isNullOrEmpty()) addHeader("Authorization", "Bearer $accessToken")
+            }
             .apply {
                 if (method == "POST") post((body ?: "{}").toRequestBody(jsonMedia)) else get()
             }
@@ -104,10 +109,21 @@ class OmenApiClient(
         decode: (String) -> T?,
     ): OmenApiResult<T> = send(path, "POST", accessToken, body, decode)
 
+    /**
+     * POST where the token is genuinely optional — see the header note in [OkHttpFetcher].
+     * iOS mirror: `post(_:optionalAccessToken:body:as:)`.
+     */
+    suspend fun <T> postOptionalAuth(
+        path: String,
+        accessToken: String?,
+        body: String = "{}",
+        decode: (String) -> T?,
+    ): OmenApiResult<T> = send(path, "POST", accessToken, body, decode)
+
     private suspend fun <T> send(
         path: String,
         method: String,
-        accessToken: String,
+        accessToken: String?,
         body: String?,
         decode: (String) -> T?,
     ): OmenApiResult<T> {

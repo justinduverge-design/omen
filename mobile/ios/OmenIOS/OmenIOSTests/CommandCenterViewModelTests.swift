@@ -132,11 +132,47 @@ extension CommandCenterViewModelTests {
         """.utf8))
     }
 
+    /// The Command Center reads `league-overview.v1` — one call that fills the context strip,
+    /// League Pulse, and the Matchup Hero. `matchup` defaults to a live game so the hero path
+    /// is exercised; pass `matchupStatus: "no_matchup"` for the bye case.
+    private func overview(
+        currentUser: Bool = true,
+        matchupStatus: String = "live"
+    ) throws -> LeagueOverview {
+        try JSONDecoder().decode(LeagueOverview.self, from: Data("""
+        {
+          "contract_version": "league-overview.v1",
+          "platform": "sleeper",
+          "league_id": "1",
+          "league_name": "Slops Dynasty",
+          "season": 2026, "week": 8,
+          "matchup": {
+            "status": "\(matchupStatus)",
+            "you": {"team_id":"7","team_name":"Team Slops","record":"6-2","points":88.4,"projected":null},
+            "opponent": {"team_id":"3","team_name":"Top Dogs","record":"7-1","points":91.1,"projected":null},
+            "unavailable_reason": null
+          },
+          "standings": {
+            "status": "available",
+            "playoff_picture": {"rank":3,"team_count":12,"line":"3rd of 12","cut_line_note":null,"settings_known":false},
+            "teams": [{"team_name":"Team Slops","is_current_user":\(currentUser),"rank":3,"wins":6,"losses":2}]
+          },
+          "activity": {"status":"empty","unavailable_families":["transactions"],"items":[]}
+        }
+        """.utf8))
+    }
+
+    private func leagueStub(
+        overview overviewResult: Result<LeagueOverview, OmenApiError>
+    ) -> StubLeagueRepository {
+        StubLeagueRepository(result: .failure(.network), overviewResult: overviewResult)
+    }
+
     /// Slice C upgrades the strip in place after the shell is already renderable.
     func testStandingsUpgradesTheContextStripAfterTheShellLoads() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try connectedSummary())),
-            leagueRepository: StubLeagueRepository(result: .success(try standings())),
+            leagueRepository: leagueStub(overview: .success(try overview())),
             movesRepository: StubMovesRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: "t")
         )
@@ -155,7 +191,7 @@ extension CommandCenterViewModelTests {
     func testStandingsFailureLeavesTheShellLoadedAndTheStripEmpty() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try connectedSummary())),
-            leagueRepository: StubLeagueRepository(result: .failure(.server(status: 502))),
+            leagueRepository: leagueStub(overview: .failure(.server(status: 502))),
             movesRepository: StubMovesRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: "t")
         )
@@ -178,6 +214,10 @@ extension CommandCenterViewModelTests {
                 calls += 1
                 return .failure(.network)
             }
+            func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+                calls += 1
+                return .failure(.network)
+            }
         }
         let league = CountingLeagueRepository()
         let viewModel = CommandCenterViewModel(
@@ -195,7 +235,7 @@ extension CommandCenterViewModelTests {
     func testStandingsWithoutTheUsersTeamLeavesTheStripEmpty() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try connectedSummary())),
-            leagueRepository: StubLeagueRepository(result: .success(try standings(currentUser: false))),
+            leagueRepository: leagueStub(overview: .success(try overview(currentUser: false))),
             movesRepository: StubMovesRepository(result: .failure(.network)),
             sessionManager: makeSessionManager(withToken: "t")
         )

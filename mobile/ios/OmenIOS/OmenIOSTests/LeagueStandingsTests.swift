@@ -97,4 +97,59 @@ final class LeagueStandingsTests: XCTestCase {
         XCTAssertEqual(standings.standings.first?.isCurrentUser, false)
         XCTAssertNil(standings.contextStrip)
     }
+
+    /// The whole point of the League Pulse repair: this payload was already being fetched for
+    /// the context strip, and the rank it carries was discarded while the section reported
+    /// "Standings temporarily unavailable" to every healthy league.
+    func testLeaguePulseIsDerivedFromStandingsAlreadyFetched() throws {
+        let json = Data("""
+        {
+          "contract_version": "league-standings.v1",
+          "platform": "sleeper",
+          "league_name": "Dynasty Dogs",
+          "standings": [
+            { "team_name": "A", "is_current_user": false, "rank": 1, "wins": 7, "losses": 0 },
+            { "team_name": "B", "is_current_user": false, "rank": 2, "wins": 6, "losses": 1 },
+            { "team_name": "Mine", "is_current_user": true, "rank": 3, "wins": 6, "losses": 1 }
+          ]
+        }
+        """.utf8)
+        let standings = try JSONDecoder().decode(LeagueStandings.self, from: json)
+
+        guard case let .available(position, cutLine, activity) = standings.leaguePulse else {
+            return XCTFail("a payload naming the caller's rank must produce a pulse.")
+        }
+        XCTAssertEqual(position, "3rd of 3 · 6-1")
+        // `league-standings.v1` carries no playoff settings and no transaction feed.
+        XCTAssertNil(cutLine)
+        XCTAssertNil(activity)
+    }
+
+    /// Absence must stay absence. Each of these is a real shape this route returns.
+    func testLeaguePulseRefusesToInventARank() throws {
+        let cases: [(String, String)] = [
+            ("[]", "off-season returns an empty array — facts-of-record #10"),
+            (#"[{"team_name":"A","is_current_user":false,"rank":1}]"#, "no row is the caller's"),
+            (#"[{"team_name":"Mine","is_current_user":true}]"#, "the caller's row carries no rank")
+        ]
+        for (rows, why) in cases {
+            let json = Data("""
+            {"contract_version":"league-standings.v1","platform":"sleeper","league_name":"L","standings":\(rows)}
+            """.utf8)
+            let standings = try JSONDecoder().decode(LeagueStandings.self, from: json)
+            XCTAssertNil(standings.leaguePulse, "must not invent a pulse when \(why).")
+        }
+    }
+
+    /// A 12-team league is exactly where the naive last-digit ordinal rule breaks.
+    func testOrdinalHandlesTheTeenException() {
+        XCTAssertEqual(LeagueStandings.ordinal(1), "1st")
+        XCTAssertEqual(LeagueStandings.ordinal(2), "2nd")
+        XCTAssertEqual(LeagueStandings.ordinal(3), "3rd")
+        XCTAssertEqual(LeagueStandings.ordinal(4), "4th")
+        XCTAssertEqual(LeagueStandings.ordinal(11), "11th")
+        XCTAssertEqual(LeagueStandings.ordinal(12), "12th")
+        XCTAssertEqual(LeagueStandings.ordinal(13), "13th")
+        XCTAssertEqual(LeagueStandings.ordinal(21), "21st")
+    }
 }

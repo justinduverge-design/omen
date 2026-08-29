@@ -79,4 +79,39 @@ struct LeagueStandings: Decodable, Equatable {
 
         return .selected(platform: platform, leagueName: leagueName, teamName: teamName)
     }
+
+    /// League Pulse, derived from the standings this response already carries.
+    ///
+    /// This exists because League Pulse used to be derived from `dashboard-summary.v1`'s tool
+    /// status alone, which returned `.unavailable` for every healthy league — while this
+    /// payload, already fetched for the context strip, carried the rank and team count the
+    /// section needed. The data was in hand and discarded.
+    ///
+    /// Returns `nil` for "leave the caller's current state alone", matching `contextStrip`.
+    /// The cut line and activity stay `nil` on purpose: `league-standings.v1` carries no
+    /// playoff settings and no transaction feed, so neither can be stated without inventing.
+    var leaguePulse: OmenLeaguePulseState? {
+        guard !standings.isEmpty else { return nil }
+        guard let rank = currentUserTeam?.rank, rank > 0 else { return nil }
+
+        var position = "\(Self.ordinal(rank)) of \(standings.count)"
+        if let team = currentUserTeam, let wins = team.wins, let losses = team.losses {
+            position += " · \(wins)-\(losses)"
+        }
+        return .available(position: position, cutLine: nil, activity: nil)
+    }
+
+    /// English ordinal. Handles the 11/12/13 exception, which the naive last-digit rule gets
+    /// wrong — a 12-team league is exactly where that bug would show.
+    static func ordinal(_ n: Int) -> String {
+        let suffix: String
+        switch (n % 100, n % 10) {
+        case (11, _), (12, _), (13, _): suffix = "th"
+        case (_, 1): suffix = "st"
+        case (_, 2): suffix = "nd"
+        case (_, 3): suffix = "rd"
+        default: suffix = "th"
+        }
+        return "\(n)\(suffix)"
+    }
 }

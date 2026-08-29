@@ -396,9 +396,14 @@ private fun LeaguePulse(state: OmenLeaguePulseState, onOpenLeague: (() -> Unit)?
             is OmenLeaguePulseState.Available -> OmenCard(variant = OmenCardVariant.Outlined) {
                 Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
                     Text(state.position, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
-                    Text(state.cutLine, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
-                    Text("Around the League", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
-                    Text(state.activity, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    // Omitted rather than guessed when the payload cannot support them.
+                    state.cutLine?.let {
+                        Text(it, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    }
+                    state.activity?.let {
+                        Text("Around the League", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
+                        Text(it, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                    }
                 }
             }
             is OmenLeaguePulseState.OffSeason -> OmenStateSurface(
@@ -406,10 +411,15 @@ private fun LeaguePulse(state: OmenLeaguePulseState, onOpenLeague: (() -> Unit)?
                 title = "Off-season league context",
                 message = state.summary,
             )
-            OmenLeaguePulseState.Unavailable -> OmenStateSurface(
+            OmenLeaguePulseState.Loading -> OmenStateSurface(
                 kind = OmenStateSurfaceKind.Loading,
-                title = "Standings temporarily unavailable",
-                message = "Omen is not showing a stale rank. Try again when your league refreshes.",
+                title = "Reading your league standings",
+                message = "This one comes from your provider, so it lands a moment after the rest.",
+            )
+            OmenLeaguePulseState.Unavailable -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Empty,
+                title = "Standings didn't come back",
+                message = "Omen won't show a stale rank. Pull to refresh, or try again when your league updates.",
             )
             OmenLeaguePulseState.NotConnected -> OmenStateSurface(
                 kind = OmenStateSurfaceKind.Disconnected,
@@ -472,8 +482,26 @@ data class OmenLedgerEntry(
 }
 
 sealed interface OmenLeaguePulseState {
-    data class Available(val position: String, val cutLine: String, val activity: String) : OmenLeaguePulseState
+    /**
+     * [cutLine] and [activity] are nullable on purpose: `league-standings.v1` carries no playoff
+     * settings and no transaction feed, so neither can be stated without inventing one.
+     */
+    data class Available(
+        val position: String,
+        val cutLine: String? = null,
+        val activity: String? = null,
+    ) : OmenLeaguePulseState
     data class OffSeason(val summary: String) : OmenLeaguePulseState
+
+    /**
+     * The standings request is genuinely in flight. This is the ONLY League Pulse state that may
+     * render a spinner. It exists because [Unavailable] used to be drawn with
+     * `OmenStateSurfaceKind.Loading`, which put a progress indicator on a resting state — the
+     * section spun forever on every healthy league.
+     */
+    data object Loading : OmenLeaguePulseState
+
+    /** We asked and got no usable answer. A resting state, not a pending one. */
     data object Unavailable : OmenLeaguePulseState
     data object NotConnected : OmenLeaguePulseState
 }
@@ -587,7 +615,7 @@ object OmenCommandCenterFixtures {
         greeting = "Restoring your session…",
         context = OmenContextStripState.Empty,
         matchup = OmenMatchupHeroState.NoMatchup(reason = "Loading…"),
-        ledger = OmenLedgerPreviewState.Empty,
-        leaguePulse = OmenLeaguePulseState.Unavailable,
+        ledger = OmenLedgerPreviewState.Loading,
+        leaguePulse = OmenLeaguePulseState.Loading,
     )
 }

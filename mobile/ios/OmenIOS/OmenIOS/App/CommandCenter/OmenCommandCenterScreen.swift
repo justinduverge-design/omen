@@ -309,15 +309,25 @@ struct OmenCommandCenterScreen: View {
                 OmenCard(variant: .outlined) {
                     VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                         Text(position).omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
-                        Text(cutLine).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
-                        Text("Around the League").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
-                        Text(activity).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
+                        // `league-standings.v1` carries no playoff settings, so the cut line is
+                        // omitted rather than guessed. Same for activity: there is no transaction
+                        // feed yet, and an invented line here would be the exact fabrication the
+                        // honest-state registry exists to prevent.
+                        if let cutLine {
+                            Text(cutLine).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                        }
+                        if let activity {
+                            Text("Around the League").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
+                            Text(activity).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
+                        }
                     }
                 }
             case let .offSeason(summary):
                 OmenStateSurface(kind: .empty, title: "Off-season league context", message: summary)
+            case .loading:
+                OmenStateSurface(kind: .loading, title: "Reading your league standings", message: "This one comes from your provider, so it lands a moment after the rest.")
             case .unavailable:
-                OmenStateSurface(kind: .loading, title: "Standings temporarily unavailable", message: "Omen is not showing a stale rank. Try again when your league refreshes.")
+                OmenStateSurface(kind: .empty, title: "Standings didn't come back", message: "Omen won't show a stale rank. Pull to refresh, or try again when your league updates.")
             case .notConnected:
                 OmenStateSurface(kind: .disconnected, title: "League Pulse needs a league", message: "Connect a league to see verified standings. League activity stays empty until a real feed exists.")
             }
@@ -397,8 +407,14 @@ struct OmenLedgerEntry: Identifiable {
 }
 
 enum OmenLeaguePulseState {
-    case available(position: String, cutLine: String, activity: String)
+    case available(position: String, cutLine: String?, activity: String?)
     case offSeason(summary: String)
+    /// The standings request is genuinely in flight. This is the ONLY League Pulse case that
+    /// may render a spinner. It exists because `.unavailable` used to be drawn with
+    /// `kind: .loading`, which put a `ProgressView` on a resting state — the section spun
+    /// forever on every healthy league and read to the founder as "takes forever to load".
+    case loading
+    /// We asked and got no usable answer. A resting state, not a pending one.
     case unavailable
     case notConnected
 }
@@ -496,8 +512,8 @@ enum OmenCommandCenterFixtures {
         greeting: "Restoring your session…",
         context: .empty,
         matchup: .noMatchup(reason: "Loading…"),
-        ledger: .empty,
-        leaguePulse: .unavailable
+        ledger: .loading,
+        leaguePulse: .loading
     )
 }
 

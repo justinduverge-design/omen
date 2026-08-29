@@ -102,7 +102,9 @@ extension OmenCommandCenterState {
     static func from(
         summary: DashboardSummary,
         context: OmenContextStripState? = nil,
-        ledger: OmenLedgerPreviewState? = nil
+        ledger: OmenLedgerPreviewState? = nil,
+        leaguePulse: OmenLeaguePulseState? = nil,
+        matchup: OmenMatchupHeroState? = nil
     ) -> OmenCommandCenterState {
         let omenStatus = summary.tools.omenOfTheWeek.status
         let connected = summary.platforms.anyConnected
@@ -110,10 +112,11 @@ extension OmenCommandCenterState {
         return OmenCommandCenterState(
             greeting: greeting(for: omenStatus),
             context: context ?? .empty,
-            matchup: .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
+            // A real matchup always wins. The shell can only ever say why there isn't one.
+            matchup: matchup ?? .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
             waiverWatch: waiverWatch(for: summary.tools.waiverWire.status, season: omenStatus),
             ledger: ledger ?? (omenStatus == .needsPlatform ? .notConnected : .empty),
-            leaguePulse: leaguePulse(for: omenStatus)
+            leaguePulse: leaguePulse ?? Self.leaguePulse(for: omenStatus)
         )
     }
 
@@ -174,10 +177,18 @@ extension OmenCommandCenterState {
         }
     }
 
+    /// Shell-derived fallback only. A supplied `leaguePulse` always wins, because
+    /// `league-standings.v1` is the only source that actually knows the user's rank —
+    /// this function can never do better than "a standings answer is expected".
+    ///
+    /// `.ready` / `.pendingLiveEngine` return `.loading`, NOT `.unavailable`: the shell says a
+    /// usable league exists, so a standings request is genuinely in flight and the section is
+    /// pending, not resting. Returning `.unavailable` here is what made a healthy league
+    /// report "Standings temporarily unavailable" permanently.
     private static func leaguePulse(for status: DashboardSummary.ToolStatus) -> OmenLeaguePulseState {
         switch status {
         case .ready, .pendingLiveEngine:
-            return .unavailable
+            return .loading
         case .needsPlatform, .unknown:
             return .notConnected
         case .offSeason:

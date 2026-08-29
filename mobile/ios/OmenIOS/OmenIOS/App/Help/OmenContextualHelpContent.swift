@@ -21,11 +21,15 @@ import Foundation
 /// Provider sentences are kept in step with `ConnectFlow.swift` deliberately: help that drifts
 /// from the connect screen is worse than no help.
 ///
-/// Trade and League are absent on purpose. Both still render "landing next" placeholders in
-/// `CommandCenterView`; a help affordance there would explain a feature that does not exist.
+/// Trade and League gained topics on 2026-08-29, when `M5` slices F and G replaced their
+/// "landing next" placeholders with the real screens. Their tips name the two things a user
+/// most often misreads: that a verdict can honestly be "no verdict", and that a section going
+/// quiet is not the whole league failing.
 enum OmenHelpDestination: String, CaseIterable {
     case commandCenter
     case omen
+    case trade
+    case league
     case connect
     case account
 }
@@ -79,6 +83,46 @@ enum OmenContextualHelpContent {
                         label: "Where it comes from",
                         body: "Every brief lists its sources and marks anything that isn't live league data."
                     ),
+                ]
+            )
+
+        case .trade:
+            return OmenHelpTopic(
+                title: "Trade",
+                summary: "Put both sides of an offer in and Omen tells you who it favours — or says plainly that it can't tell.",
+                tips: [
+                    OmenHelpTip(
+                        label: "Four answers, not three",
+                        body: "Omen can say an offer favours you, costs you too much, is too close to call, or that it doesn't have enough to judge. The last one is a real answer, not an error."
+                    ),
+                    OmenHelpTip(
+                        label: "Missing projections",
+                        body: "If Omen has no projection for a player, it says so and stops. It won't force a verdict on half the picture."
+                    ),
+                    OmenHelpTip(
+                        label: "Your league or standard scoring",
+                        body: "With a connected league, Omen uses that league's scoring and your roster. Without one, it uses standard scoring and labels the result that way."
+                    )
+                ]
+            )
+
+        case .league:
+            return OmenHelpTopic(
+                title: "League",
+                summary: "Your matchup, the standings, and anything worth flagging around the league.",
+                tips: [
+                    OmenHelpTip(
+                        label: "Sections stand alone",
+                        body: "Each section loads from your provider on its own. One going quiet doesn't mean the rest is wrong — Omen names which part is missing."
+                    ),
+                    OmenHelpTip(
+                        label: "Standings order is your league's",
+                        body: "Omen never re-ranks a league. The order here is exactly what your provider reports."
+                    ),
+                    OmenHelpTip(
+                        label: "Playoff position, not prediction",
+                        body: "Omen shows where you actually sit. It doesn't publish playoff odds."
+                    )
                 ]
             )
 

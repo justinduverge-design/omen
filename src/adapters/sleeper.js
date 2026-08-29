@@ -398,6 +398,65 @@ function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
   });
 }
 
+
+/**
+ * The matchup this week's rows describe, as `league-overview.v1` states it.
+ *
+ * `lastResultFromMatchups()` above reads exactly this data and reduces it to a single "W" or
+ * "L" letter. The opponent's identity and both point totals were being read and discarded on
+ * every call. This keeps them.
+ *
+ * Team names come from the standings rows the caller already fetched, so this adds no request.
+ * Nothing here is inferred beyond `status`, whose derivation is documented on each branch.
+ */
+function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [], isPastWeek = false }) {
+  const rows = Array.isArray(matchups) ? matchups : [];
+  const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
+  if (!mine?.matchup_id) return { status: "no_matchup", you: null, opponent: null };
+
+  const opponent = rows.find((row) =>
+    String(row?.matchup_id) === String(mine.matchup_id)
+    && String(row?.roster_id) !== String(rosterId)
+  );
+  // A matchup id with no second side is a bye, not a provider failure.
+  if (!opponent) return { status: "no_matchup", you: null, opponent: null };
+
+  const side = (row) => {
+    const teamId = row?.roster_id == null ? null : String(row.roster_id);
+    const standingsRow = standings.find((team) => String(team?.team_id) === teamId) || null;
+    const points = Number(row?.points);
+    return {
+      team_id: teamId,
+      team_name: standingsRow?.team_name || null,
+      record: standingsRow && standingsRow.wins != null && standingsRow.losses != null
+        ? `${standingsRow.wins}-${standingsRow.losses}`
+        : null,
+      points: Number.isFinite(points) ? points : null,
+      // Sleeper's matchup rows carry no projection. Null, never a guess.
+      projected: null,
+    };
+  };
+
+  const you = side(mine);
+  const them = side(opponent);
+
+  // Sleeper has no explicit game-state field, so status is derived. Both branches are
+  // checkable against the payload rather than against the calendar alone:
+  //   - no points scored on either side  -> nobody has played, so pregame
+  //   - the requested week is behind the current week -> the week is closed, so final
+  // Anything else is in progress. A week that is over but scored 0-0 reads as pregame,
+  // which is the safer wrong answer: it claims nothing about who won.
+  const noPointsYet = (you.points ?? 0) === 0 && (them.points ?? 0) === 0;
+  const status = noPointsYet ? "pregame" : isPastWeek ? "final" : "live";
+
+  return {
+    status,
+    you,
+    opponent: them,
+    game_id: `${leagueId}:${week}:${mine.matchup_id}`,
+  };
+}
+
 async function fetchSleeperLastResult({ leagueId, userId, week, season } = {}) {
   void season;
   if (!leagueId || !userId || !week) return normalizeLastResult();
@@ -666,4 +725,5 @@ module.exports = {
   fetchSleeperDraftPicks,
   buildNormalizedRoster,
   lastResultFromMatchups,
+  matchupFromMatchups,
 };
