@@ -95,6 +95,7 @@ data class DashboardSummary(
 fun DashboardSummary.toCommandCenterState(
     context: OmenContextStripState? = null,
     ledger: OmenLedgerPreviewState? = null,
+    leaguePulse: OmenLeaguePulseState? = null,
 ): OmenCommandCenterState = OmenCommandCenterState(
     greeting = greetingFor(omenStatus),
     context = context ?: OmenContextStripState.Empty,
@@ -110,7 +111,9 @@ fun DashboardSummary.toCommandCenterState(
     } else {
         OmenLedgerPreviewState.Empty
     },
-    leaguePulse = leaguePulseFor(omenStatus),
+    // Same never-regress rule as [context] and [ledger]: a supplied value always wins,
+    // because `league-standings.v1` is the only source that knows the user's actual rank.
+    leaguePulse = leaguePulse ?: leaguePulseFor(omenStatus),
 )
 
 private fun greetingFor(status: DashboardSummary.ToolStatus): String = when (status) {
@@ -165,10 +168,16 @@ private fun waiverWatchFor(
     }
 }
 
+/**
+ * Shell-derived fallback only. Ready/PendingLiveEngine return [OmenLeaguePulseState.Loading], NOT
+ * Unavailable: the shell says a usable league exists, so a standings request is genuinely in
+ * flight. Returning Unavailable here is what made every healthy league report "Standings
+ * temporarily unavailable" permanently.
+ */
 private fun leaguePulseFor(status: DashboardSummary.ToolStatus): OmenLeaguePulseState =
     when (status) {
         DashboardSummary.ToolStatus.Ready,
-        DashboardSummary.ToolStatus.PendingLiveEngine -> OmenLeaguePulseState.Unavailable
+        DashboardSummary.ToolStatus.PendingLiveEngine -> OmenLeaguePulseState.Loading
         DashboardSummary.ToolStatus.NeedsPlatform,
         DashboardSummary.ToolStatus.Unknown -> OmenLeaguePulseState.NotConnected
         DashboardSummary.ToolStatus.OffSeason ->

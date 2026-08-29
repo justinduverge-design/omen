@@ -5,9 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.session.SessionManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /**
  * M5-Native-API-Client slices B and C — drives the Command Center from real shell truth.
@@ -56,6 +59,14 @@ class CommandCenterViewModel(
         private set
 
     /**
+     * Slice C, second consumer. Null keeps the shell-derived default, which is Loading while a
+     * standings answer is still expected. Set from the same `league-standings.v1` payload that
+     * fills the context strip — no extra request.
+     */
+    var leaguePulse: OmenLeaguePulseState? by mutableStateOf(null)
+        private set
+
+    /**
      * The Command Center state to render.
      *
      * Slice C overlays the verified context strip when — and only when — standings has produced
@@ -66,7 +77,7 @@ class CommandCenterViewModel(
         get() = when (val state = viewState) {
             is ViewState.Loading -> OmenCommandCenterFixtures.realLoading
             is ViewState.Demo -> OmenCommandCenterFixtures.demoConnected
-            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger)
+            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger, leaguePulse)
             is ViewState.Failed -> OmenCommandCenterFixtures.realDisconnected
         }
 
@@ -92,19 +103,34 @@ class CommandCenterViewModel(
         viewState = ViewState.Loading
         context = null
         ledger = null
+        leaguePulse = null
 
         when (val result = repository.fetchSummary(accessToken)) {
             is OmenApiResult.Success -> {
                 viewState = ViewState.Loaded(result.value)
-                // Slice C runs only after the shell is renderable, and only when the shell says
-                // a provider is actually connected — asking a disconnected user's provider for
-                // standings is a guaranteed round-trip to an error.
-                if (result.value.platforms.anyConnected) loadContext(accessToken)
-                // Slice E. Skipped entirely when the shell says no usable platform: that user's
-                // Ledger is NotConnected by definition, and "no entries yet" would be a weaker,
-                // slightly wrong answer bought with a pointless round trip.
-                if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
-                    loadLedger(accessToken)
+                // Both follow-ups run only after the shell is renderable, and they run
+                // CONCURRENTLY. They hit different routes and neither reads the other's result;
+                // running them in sequence made the Command Center three serial round trips
+                // deep, with the slowest (a live provider standings read) holding the Ledger
+                // behind it for no reason.
+                coroutineScope {
+                    val contextJob = async {
+                        // Slice C runs only when the shell says a provider is actually
+                        // connected — asking a disconnected user's provider for standings is a
+                        // guaranteed round-trip to an error.
+                        if (result.value.platforms.anyConnected) loadContext(accessToken)
+                    }
+                    val ledgerJob = async {
+                        // Slice E. Skipped entirely when the shell says no usable platform: that
+                        // user's Ledger is NotConnected by definition, and "no entries yet"
+                        // would be a weaker, slightly wrong answer bought with a pointless
+                        // round trip.
+                        if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
+                            loadLedger(accessToken)
+                        }
+                    }
+                    contextJob.await()
+                    ledgerJob.await()
                 }
             }
             is OmenApiResult.Failure -> {
@@ -122,7 +148,13 @@ class CommandCenterViewModel(
      * screen. A failed or empty standings call simply leaves the strip unfilled.
      */
     private suspend fun loadContext(accessToken: String) {
-        context = leagueRepository.fetchStandings(accessToken).successOrNull()?.contextStrip
+        val standings = leagueRepository.fetchStandings(accessToken).successOrNull()
+        context = standings?.contextStrip
+        // The shell-derived default is Loading, which would spin forever if left alone — the
+        // original defect in a different costume. A failed read, or a payload that cannot
+        // honestly support a pulse, resolves to an explicit resting state so the section always
+        // settles.
+        leaguePulse = standings?.leaguePulse ?: OmenLeaguePulseState.Unavailable
     }
 
     /**

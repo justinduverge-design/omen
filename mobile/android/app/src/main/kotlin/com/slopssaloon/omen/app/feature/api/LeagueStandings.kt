@@ -1,5 +1,6 @@
 package com.slopssaloon.omen.app.feature.api
 
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import org.json.JSONObject
@@ -26,6 +27,8 @@ data class LeagueStandings(
         val teamName: String?,
         val isCurrentUser: Boolean,
         val rank: Int?,
+        val wins: Int? = null,
+        val losses: Int? = null,
     )
 
     /** The caller's own team, if the provider identified one. */
@@ -63,7 +66,50 @@ data class LeagueStandings(
             )
         }
 
+    /**
+     * League Pulse, derived from the standings this response already carries.
+     *
+     * League Pulse used to come from `dashboard-summary.v1`'s tool status alone, which returned
+     * Unavailable for every healthy league — while this payload, already fetched for the context
+     * strip, carried the rank and team count the section needed. The data was in hand and
+     * discarded.
+     *
+     * Returns null for "leave the caller's current state alone", matching [contextStrip]. Cut line
+     * and activity stay null on purpose: this contract carries no playoff settings and no
+     * transaction feed, so neither can be stated without inventing one.
+     */
+    val leaguePulse: OmenLeaguePulseState?
+        get() {
+            if (standings.isEmpty()) return null
+            val team = currentUserTeam ?: return null
+            val rank = team.rank?.takeIf { it > 0 } ?: return null
+
+            val record = if (team.wins != null && team.losses != null) {
+                " · ${team.wins}-${team.losses}"
+            } else {
+                ""
+            }
+            return OmenLeaguePulseState.Available(
+                position = "${ordinal(rank)} of ${standings.size}$record",
+            )
+        }
+
     companion object {
+        /**
+         * English ordinal. Handles the 11/12/13 exception, which the naive last-digit rule gets
+         * wrong — a 12-team league is exactly where that bug would show.
+         */
+        fun ordinal(n: Int): String {
+            val suffix = when {
+                n % 100 in 11..13 -> "th"
+                n % 10 == 1 -> "st"
+                n % 10 == 2 -> "nd"
+                n % 10 == 3 -> "rd"
+                else -> "th"
+            }
+            return "$n$suffix"
+        }
+
         fun parse(json: String): LeagueStandings? = runCatching {
             val root = JSONObject(json)
             val rows = root.optJSONArray("standings")
@@ -76,6 +122,8 @@ data class LeagueStandings(
                             // A missing flag means "not known to be mine", never "mine".
                             isCurrentUser = row.optBoolean("is_current_user", false),
                             rank = if (row.has("rank")) row.optInt("rank") else null,
+                            wins = if (row.has("wins")) row.optInt("wins") else null,
+                            losses = if (row.has("losses")) row.optInt("losses") else null,
                         ),
                     )
                 }
