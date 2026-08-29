@@ -106,19 +106,44 @@ final class DraftClaimAbsenceTests: XCTestCase {
         }
     }
 
-    /// The League placeholder is the specific sentence R7 was opened for, so its
-    /// approved replacement is pinned by value rather than left to the rules above.
-    func testLeaguePlaceholderUsesTheApprovedCopy() throws {
+    /// R7: the app-shell contract once defined the League destination as carrying a
+    /// "seasonal Draft entry". Draft is cut from 1.0 and the whole draft path is dark, so
+    /// **this screen must not offer one**.
+    ///
+    /// This used to pin the League *placeholder* sentence by value. The placeholder is gone —
+    /// `M5` slice F replaced it with the real screen — so pinning that string would now assert
+    /// only that the screen had not shipped. The invariant R7 actually cares about is asserted
+    /// against the real screen instead, where it can still fail for a real reason.
+    func testLeagueDestinationOffersNoDraftEntry() throws {
+        let root = try repoAppSourcesRoot()
+
+        for relative in ["Auth/CommandCenterView.swift", "CommandCenter/OmenLeagueScreen.swift"] {
+            let text = try String(
+                contentsOf: root.appendingPathComponent(relative),
+                encoding: .utf8
+            )
+            let body = Self.strippingComments(from: text).lowercased()
+            XCTAssertFalse(
+                body.contains("draft"),
+                "\(relative): the League destination must not offer a Draft entry — Draft is cut from 1.0."
+            )
+        }
+    }
+
+    /// The real screen has to actually be mounted. Without this, deleting the screen and
+    /// leaving a blank tab would pass every other assertion in this file.
+    func testLeagueDestinationRendersTheRealScreen() throws {
         let root = try repoAppSourcesRoot()
         let text = try String(
             contentsOf: root.appendingPathComponent("Auth/CommandCenterView.swift"),
             encoding: .utf8
         )
+        let body = Self.strippingComments(from: text)
 
-        XCTAssertTrue(
-            Self.strippingComments(from: text)
-                .contains("Roster, matchup, and standings for your connected league arrive here."),
-            "the approved League placeholder copy is missing"
+        XCTAssertTrue(body.contains("OmenLeagueScreen("), "the League tab must render the real screen")
+        XCTAssertFalse(
+            body.contains("League is landing next"),
+            "the League placeholder must not survive alongside the real screen"
         )
     }
 

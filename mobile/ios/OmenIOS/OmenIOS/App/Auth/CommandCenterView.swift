@@ -21,6 +21,7 @@ struct CommandCenterView: View {
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
     @State private var selectedTab: CommandCenterTab = .command
+    @StateObject private var leagueViewModel: LeagueViewModel
 
     init(
         userID: String,
@@ -45,6 +46,10 @@ struct CommandCenterView: View {
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
             repository: omenDecisionRepository,
+            sessionManager: sessionManager
+        ))
+        _leagueViewModel = StateObject(wrappedValue: LeagueViewModel(
+            repository: leagueRepository,
             sessionManager: sessionManager
         ))
         _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
@@ -118,14 +123,15 @@ struct CommandCenterView: View {
             .tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
             .tag(CommandCenterTab.trade)
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "League is landing next",
-                message: "Roster, matchup, and standings for your connected league arrive here."
+            // M5 slice F: the League destination now renders `league-overview.v1`. It
+            // replaced an honest "landing next" placeholder, which was correct while the
+            // screen contract was unratified and is no longer.
+            OmenLeagueScreen(
+                state: leagueViewModel.viewState,
+                onRetry: { Task { await leagueViewModel.reload() } },
+                onConnect: { showConnectSheet = true }
             )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
+            .task { await leagueViewModel.load(userID: userID) }
             .tabItem { Label("League", systemImage: "person.3.fill") }
             .tag(CommandCenterTab.league)
         }
@@ -141,6 +147,7 @@ struct CommandCenterView: View {
                     Task {
                         await commandCenterViewModel.load(userID: userID)
                         await omenDecisionViewModel.load(userID: userID)
+                        await leagueViewModel.load(userID: userID)
                     }
                 },
                 onConnectAnother: {
