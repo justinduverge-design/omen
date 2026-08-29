@@ -39,6 +39,11 @@ struct StubDashboardRepository: DashboardRepository {
 /// them apart stops a slow or failing provider from being able to hold up the shell.
 protocol LeagueRepository {
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError>
+
+    /// `league-overview.v1`. Supersedes `fetchStandings` for callers that need the matchup and
+    /// activity sections too. `fetchStandings` stays because the Command Center context strip
+    /// consumes that narrower contract and must not be disturbed.
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError>
 }
 
 struct ApiLeagueRepository: LeagueRepository {
@@ -51,10 +56,19 @@ struct ApiLeagueRepository: LeagueRepository {
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
         await client.get("api/league/standings", accessToken: accessToken, as: LeagueStandings.self)
     }
+
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+        await client.get("api/league/overview", accessToken: accessToken, as: LeagueOverview.self)
+    }
 }
 
 struct StubLeagueRepository: LeagueRepository {
     let result: Result<LeagueStandings, OmenApiError>
+    var overviewResult: Result<LeagueOverview, OmenApiError>?
+
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+        overviewResult ?? .failure(.network)
+    }
 
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
         result

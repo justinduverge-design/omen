@@ -33,6 +33,11 @@ final class CommandCenterViewModel: ObservableObject {
     /// payload that fills the context strip — no extra request.
     @Published private(set) var leaguePulse: OmenLeaguePulseState?
 
+    /// The real Matchup Hero. `nil` keeps the shell-derived `.noMatchup`, which is what every
+    /// connected user used to see unconditionally — the hero's populated cases existed but had
+    /// no real-data path at all.
+    @Published private(set) var matchup: OmenMatchupHeroState?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
@@ -62,7 +67,7 @@ final class CommandCenterViewModel: ObservableObject {
         case .demo:
             return OmenCommandCenterFixtures.demoConnected
         case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse)
+            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup)
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
@@ -90,6 +95,7 @@ final class CommandCenterViewModel: ObservableObject {
         context = nil
         ledger = nil
         leaguePulse = nil
+        matchup = nil
         switch await repository.fetchSummary(accessToken: accessToken) {
         case .success(let summary):
             viewState = .loaded(summary)
@@ -124,19 +130,24 @@ final class CommandCenterViewModel: ObservableObject {
     /// Every failure path here is deliberately silent to the user: the shell is already on
     /// screen and correct, and a provider hiccup must not turn a working Command Center into
     /// an error screen. A failed or empty standings call simply leaves the strip unfilled.
+    /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
+    /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
+    /// other two sections were hardwired to states no connected user could escape.
     private func loadContext(accessToken: String) async {
-        guard case .success(let standings) = await leagueRepository.fetchStandings(accessToken: accessToken) else {
+        guard case .success(let overview) = await leagueRepository.fetchOverview(accessToken: accessToken) else {
             // The shell-derived default is `.loading`, which would spin forever if left
             // alone — the original defect in a different costume. A failed read resolves to
             // an explicit resting state.
             leaguePulse = .unavailable
             return
         }
-        context = standings.contextStrip
-        // `nil` means the payload could not honestly support a pulse (no rank, or an
-        // off-season empty array). That resolves to `.unavailable` rather than staying
-        // `.loading`, so the section always settles.
-        leaguePulse = standings.leaguePulse ?? .unavailable
+        context = overview.contextStrip
+        // `nil` from either mapping means "this payload cannot honestly support the section".
+        // League Pulse resolves to `.unavailable` so it always settles; the Matchup Hero stays
+        // `nil` so the shell's honest `.noMatchup` reason survives rather than being replaced
+        // by a blank hero.
+        leaguePulse = overview.leaguePulse ?? .unavailable
+        matchup = overview.matchupHero
     }
 
     /// Fills the Ledger section from `moves-history.v1`.
