@@ -1,5 +1,34 @@
 # Omen Decision Log
 
+## 2026-08-29 — Provider proof carried as a liability until after the audit
+
+- **Decision: `M11A-ProviderShapeProof` is deliberately deferred until after the audit** and
+  carried as a named liability. The founder was told it is `READY`, `Blocked by: None`,
+  agent-buildable in full, read-only, cost `small` — that it needs no founder hour and could be
+  run immediately — and chose to defer it anyway so the audit runs against the apps as they
+  stand. Recorded in `Blueprints/playbooks/debt-preflight-v1.md` register items #1 and #3,
+  reclassified NO-GO → MEL.
+- **This is a deferral, not a waiver, and the distinction is load-bearing.** The audit runs
+  *before* the beta opens, so "defer past the audit" and "clear before invitations" are
+  compatible. Proposed abort class 2 — *no provider path unproven against a real connected
+  account* — **binds unchanged at the invitation gate.** Anyone reading "carried as a liability"
+  as "no longer required" is reading it wrong.
+- **The weakness in it, stated rather than smoothed over.** `debt-preflight-v1.md`'s own rule is
+  that *a MEL item without a date is a NO-GO item that has not admitted it yet*. "After the
+  audit" is a trigger, and the audit has no date. These are therefore the two weakest entries in
+  the register until the audit is scheduled — scheduling it is what converts them from a promise
+  into a plan. The date is the founder's to set and was not set here.
+- **Related carry, same day:** the League and Trade screens (`M5` slices F and G) merged and
+  deployed to production ahead of this proof, on the founder's reasoning that both apps will be
+  under active change throughout the audit. Every provider path in them is fixture-proven only.
+  They are live and unproven today; no beta tester has been invited to them.
+- **Why this is recorded at decision-log weight rather than left in a playbook.** The repo's
+  recurring failure is a correction written where it was discovered and nowhere it was asserted
+  — named three times in this log already. `current_sprint.md` carries `M11A` as **P1, "an input
+  to the ratification the founder is holding."** That framing is now historical: the
+  ratification happened on 2026-08-29 without it. The sprint item's priority line should be
+  re-read against this entry rather than trusted on its own.
+
 ## 2026-08-29 — `M1-Screen-Trade` ratified; Command Center sections authorized for real data
 
 - **Decision: `M1-Screen-Trade` is RATIFIED.** The founder ratified the revised Trade builder + verdict contract on 2026-08-29, unblocking `M5` slice G. This was the one M1 item whose `Blocked by:` line explicitly read "founder ratification, which is **not** pre-authorized for this item" — a deliberate carve-out from the 2026-08-22 pre-authorization granted to `M1-Screen-League`. The 2026-08-24 revision (PR #364 / `0694a03`) satisfied all four stated conditions: `POST /api/trade/compare` accepts real `league_context`, the personalized result is demonstrably different from neutral where context matters, all four verdict states carry server semantics, and the revised iOS/Android evidence shows the complete personalized flow.
