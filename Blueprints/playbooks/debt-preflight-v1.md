@@ -141,9 +141,9 @@ argument for anything moving out of NO-GO.
 
 | # | Item | Proposed | Condition / note |
 |---|---|---|---|
-| 1 | **Provider proof (§2.5 gate 5)** unproven on both new screens; ESPN + Sleeper never exercised against a real connected account | **NO-GO** | Abort class 2. Agent-runnable today — see 0.4. Highest value per hour in the queue. |
+| 1 | **Provider proof (§2.5 gate 5)** unproven on both new screens; ESPN + Sleeper never exercised against a real connected account | **MEL** | **Founder decision 2026-08-29: carried as a liability, deliberately deferred until after the audit.** Condition: **must clear before beta invitations** — abort class 2 still binds at that gate, and this is a deferral, not a waiver. Owner: founder. Repair interval: **date required** — see the note below. |
 | 2 | **Waiver Watch** hardwired to "availability needs confirmation" for every ready league | **MEL** | Condition: **hide the section** for beta. Repair: after Week 1, with the transactions integration. Shipping a permanent shrug is a claim we cannot support. |
-| 3 | **Data-plan ⚠️ rows** — ESPN projection shape, deadline field both providers — inferred, never measured | **NO-GO** | Folds into #1. Each wrong assumption is baked into a shipped contract. |
+| 3 | **Data-plan ⚠️ rows** — ESPN projection shape, deadline field both providers — inferred, never measured | **MEL** | Folds into #1 and moves with it. Each wrong assumption is baked into a shipped contract. |
 | 4 | **Brand fonts absent**; both apps render in system fallbacks | **MEL** | Condition: no promotional capture, and no accessibility pass, before `M12` lands. Otherwise both are done twice. |
 | 5 | **Command Center contrast** findings, pre-existing | **MEL** | Condition: sequenced after #4. Must be closed or **accepted in writing** — not carried silently a third time. |
 | 6 | **App-wide Dynamic Type** findings, pre-existing | **MEL** | Same condition as #5. |
@@ -156,9 +156,32 @@ argument for anything moving out of NO-GO.
 | 13 | **Tuesday scoring on the A6 safety hold**; both cron flags `false` | **DEFERRED** | Correctly held. Five of six A6 gates untouched. Not a beta concern — a Week 2 one. |
 | 14 | **No branch protection** on the repo (plan limitation, 403) | **DEFERRED** | Review trigger: any red check merged to `main`. The checks are all that stand in for it. |
 
-**Weight and balance on this load:** four NO-GO items, of which #1 and #3 are the same work and
-#12 is hours. That is a payload the twelve days can carry — **provided #1 is scheduled first and
-not behind a founder gate it does not need.**
+**Weight and balance on this load:** one NO-GO item (#12, hours) after the 2026-08-29
+reclassification, and thirteen carried. That is a light payload for twelve days — but the
+lightness is borrowed, not earned: #1 and #3 moved because they were **deferred**, not because
+they were **done**, and they come due before invitations.
+
+### The 2026-08-29 carry, recorded plainly
+
+The founder chose to carry #1 and #3 past the audit rather than clear them first. Two things
+about that decision are worth stating so nobody later reads them wrong.
+
+**It does not conflict with abort class 2.** The audit runs *before* the beta opens, so
+deferring provider proof past the audit and still clearing it before invitations are two
+compatible facts. **This is a deferral, not a waiver.** Abort class 2 binds unchanged at the
+invitation gate.
+
+**It is the one MEL item in the register whose repair interval is a trigger rather than a
+date.** "After the audit" is an event, and the audit has no date yet. By this document's own
+rule — *a MEL item without a date is a NO-GO item that has not admitted it yet* — #1 and #3 are
+the register's weakest entries until the audit is scheduled. **Scheduling the audit is what
+converts them from a promise into a plan.** Flagged, not corrected: the date is the founder's to
+set.
+
+**Also carried knowingly:** the League and Trade screens shipped to production on 2026-08-29
+ahead of this proof. The founder accepted that at merge time, on the reasoning that both apps
+will be under active change throughout the audit anyway. The screens are live and unproven
+*today*; no beta tester has been invited to them yet.
 
 ---
 

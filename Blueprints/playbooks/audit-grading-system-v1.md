@@ -224,7 +224,7 @@ active change during the audit anyway.
 
 Recording it here so it is a decision with a name on it, not a gap someone discovers later:
 
-- Provider proof (§2.5 gate 5) outstanding on both new screens.
+- Provider proof (§2.5 gate 5) outstanding on both new screens. **Deferred until after the audit by founder decision 2026-08-29** — `debt-preflight-v1.md` register #1/#3. Deferral, not waiver: abort class 2 still binds at the invitation gate.
 - Waiver Watch still hardwired.
 - Command Center contrast + app-wide Dynamic Type findings, pre-existing.
 - `ContextualHelpAccessibilityUITests.testCommandCenterHelpAffordanceIsLabeledAndOpensIts
