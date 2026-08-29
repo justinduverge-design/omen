@@ -12,6 +12,9 @@ import Foundation
 struct LeagueOverview: Decodable, Equatable {
     let contractVersion: String
     let platform: String
+    /// Carried so Trade can personalize against the same league this screen is showing,
+    /// rather than discovering one of its own and disagreeing with League on screen.
+    let leagueId: String?
     let leagueName: String?
     let season: Int?
     let week: Int?
@@ -22,6 +25,7 @@ struct LeagueOverview: Decodable, Equatable {
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case platform
+        case leagueId = "league_id"
         case leagueName = "league_name"
         case season, week, matchup, standings, activity
     }

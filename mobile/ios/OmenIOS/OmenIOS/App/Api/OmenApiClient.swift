@@ -59,18 +59,37 @@ struct OmenApiClient {
         body: [String: Any] = [:],
         as type: T.Type
     ) async -> Result<T, OmenApiError> {
-        let encoded = try? JSONSerialization.data(withJSONObject: body)
-        return await send(makeRequest(path: path, method: "POST", accessToken: accessToken, body: encoded), as: type)
+        await post(path, optionalAccessToken: accessToken, body: body, as: type)
     }
 
-    private func makeRequest(path: String, method: String, accessToken: String, body: Data?) -> URLRequest {
+    /// POST where the token is genuinely optional.
+    ///
+    /// `POST /api/trade/compare` is free and public: an unauthenticated caller gets a **200**
+    /// with a neutral answer, not a 401. Sending `Authorization: Bearer ` with an empty value
+    /// would be a malformed header, so the field is omitted entirely when there is no token.
+    func post<T: Decodable>(
+        _ path: String,
+        optionalAccessToken: String?,
+        body: [String: Any] = [:],
+        as type: T.Type
+    ) async -> Result<T, OmenApiError> {
+        let encoded = try? JSONSerialization.data(withJSONObject: body)
+        return await send(
+            makeRequest(path: path, method: "POST", accessToken: optionalAccessToken, body: encoded),
+            as: type
+        )
+    }
+
+    private func makeRequest(path: String, method: String, accessToken: String?, body: Data?) -> URLRequest {
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = method
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         // The bearer is set here and nowhere else. It is never logged, never placed in a
         // URL, and never included in an error value — `OmenApiError` carries a status only.
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        if let accessToken, !accessToken.isEmpty {
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = body

@@ -140,3 +140,37 @@ struct StubMovesRepository: MovesRepository {
         result
     }
 }
+
+// MARK: - Slice G — trade compare
+
+/// `POST /api/trade/compare`. Separate from the league repositories because this route is
+/// **free and public** — it has a different auth posture from everything else here, and a
+/// signed-out caller still gets a real (neutral) answer.
+protocol TradeRepository {
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError>
+}
+
+struct ApiTradeRepository: TradeRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
+        await client.post(
+            "api/trade/compare",
+            optionalAccessToken: accessToken,
+            body: offer.requestBody,
+            as: TradeCompare.self
+        )
+    }
+}
+
+struct StubTradeRepository: TradeRepository {
+    let result: Result<TradeCompare, OmenApiError>
+
+    func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {
+        result
+    }
+}
