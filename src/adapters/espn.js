@@ -618,6 +618,75 @@ function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, s
   return normalizeLastResult();
 }
 
+
+/**
+ * The matchup this week's schedule describes, as `league-overview.v1` states it.
+ *
+ * `lastResultFromEspnSchedule()` above already resolves `mine`, `opponent`, both point totals,
+ * and ESPN's own `winner` field — then returns a single "W"/"L" letter and drops the rest.
+ * This keeps them.
+ *
+ * Team names come from the standings rows the caller already fetched, so this adds no request.
+ */
+function matchupFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, schedule, standings = [] }) {
+  const games = Array.isArray(schedule) ? schedule : [];
+  const targetTeamId = requestedTeamId == null ? null : String(requestedTeamId);
+  if (!targetTeamId) {
+    // Without a team id we cannot tell which side is the caller's. That is a missing input,
+    // not a provider failure, and it must not be reported as "no matchup".
+    return { status: "unavailable", you: null, opponent: null, unavailable_reason: "team_unknown" };
+  }
+
+  for (const game of games) {
+    const scoringPeriod = Number(game?.matchupPeriodId ?? game?.scoringPeriodId);
+    if (Number.isFinite(Number(week)) && Number.isFinite(scoringPeriod) && scoringPeriod !== Number(week)) {
+      continue;
+    }
+
+    const home = game?.home || null;
+    const away = game?.away || null;
+    const homeId = espnMatchupTeamId(home);
+    const awayId = espnMatchupTeamId(away);
+    if (!homeId || !awayId) continue;
+
+    const mine = homeId === targetTeamId ? home : awayId === targetTeamId ? away : null;
+    if (!mine) continue;
+    const opponent = mine === home ? away : home;
+
+    const side = (entry) => {
+      const id = espnMatchupTeamId(entry);
+      const standingsRow = standings.find((team) => String(team?.team_id) === String(id)) || null;
+      return {
+        team_id: id,
+        team_name: standingsRow?.team_name || null,
+        record: standingsRow && standingsRow.wins != null && standingsRow.losses != null
+          ? `${standingsRow.wins}-${standingsRow.losses}`
+          : null,
+        points: espnMatchupPoints(entry),
+        // ESPN can carry projections in other views; this one does not. Null, never a guess.
+        projected: null,
+      };
+    };
+
+    // ESPN states the winner explicitly, so `final` here is read, not inferred.
+    const winner = game?.winner;
+    const decided = winner === "HOME" || winner === "AWAY";
+    const you = side(mine);
+    const them = side(opponent);
+    const noPointsYet = (you.points ?? 0) === 0 && (them.points ?? 0) === 0;
+
+    return {
+      status: decided ? "final" : noPointsYet ? "pregame" : "live",
+      you,
+      opponent: them,
+      game_id: game?.id ? String(game.id) : `${leagueId}:${week}:${homeId}:${awayId}`,
+    };
+  }
+
+  // The schedule was readable and contains no game for this team this week — a bye.
+  return { status: "no_matchup", you: null, opponent: null };
+}
+
 async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
 
@@ -641,13 +710,34 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
   return result;
 }
 
+
+/**
+ * One `mMatchup` read, kept whole. Deliberately NOT cached: `fetchEspnLastResult` caches a
+ * completed week's W/L letter for six hours, which is safe because that never changes. A live
+ * matchup's points change every few minutes, so serving them from that cache would show stale
+ * scores during the games this section exists to cover.
+ */
+async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup"], scoringPeriodId, opts);
+  return matchupFromEspnSchedule({
+    leagueId,
+    week: scoringPeriodId,
+    teamId: opts.teamId,
+    schedule: data?.schedule,
+    standings: opts.standings || [],
+  });
+}
+
 module.exports = {
   buildLeagueStandings,
   buildNormalizedRoster,
   fetchEspnWaiverPool,
   fetchEspnLastResult,
+  fetchEspnMatchup,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
+  matchupFromEspnSchedule,
   standingsFromEspnData,
   teamFromEspnData,
   rosterFromEspnData,
