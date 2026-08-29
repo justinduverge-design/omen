@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
+import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.session.SessionManager
@@ -67,6 +68,14 @@ class CommandCenterViewModel(
         private set
 
     /**
+     * The real Matchup Hero. Null keeps the shell-derived NoMatchup, which is what every
+     * connected user used to see unconditionally — the hero's populated states existed but had
+     * no real-data path at all.
+     */
+    var matchup: OmenMatchupHeroState? by mutableStateOf(null)
+        private set
+
+    /**
      * The Command Center state to render.
      *
      * Slice C overlays the verified context strip when — and only when — standings has produced
@@ -77,7 +86,7 @@ class CommandCenterViewModel(
         get() = when (val state = viewState) {
             is ViewState.Loading -> OmenCommandCenterFixtures.realLoading
             is ViewState.Demo -> OmenCommandCenterFixtures.demoConnected
-            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger, leaguePulse)
+            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger, leaguePulse, matchup)
             is ViewState.Failed -> OmenCommandCenterFixtures.realDisconnected
         }
 
@@ -104,6 +113,7 @@ class CommandCenterViewModel(
         context = null
         ledger = null
         leaguePulse = null
+        matchup = null
 
         when (val result = repository.fetchSummary(accessToken)) {
             is OmenApiResult.Success -> {
@@ -147,14 +157,21 @@ class CommandCenterViewModel(
      * and correct, and a provider hiccup must not turn a working Command Center into an error
      * screen. A failed or empty standings call simply leaves the strip unfilled.
      */
+    /**
+     * One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
+     * Hero. It replaced a `league-standings.v1` read that filled only the strip while the other
+     * two sections were hardwired to states no connected user could escape.
+     */
     private suspend fun loadContext(accessToken: String) {
-        val standings = leagueRepository.fetchStandings(accessToken).successOrNull()
-        context = standings?.contextStrip
+        val overview = leagueRepository.fetchOverview(accessToken).successOrNull()
+        context = overview?.contextStrip
         // The shell-derived default is Loading, which would spin forever if left alone — the
         // original defect in a different costume. A failed read, or a payload that cannot
         // honestly support a pulse, resolves to an explicit resting state so the section always
-        // settles.
-        leaguePulse = standings?.leaguePulse ?: OmenLeaguePulseState.Unavailable
+        // settles. The hero stays null so the shell's honest NoMatchup reason survives rather
+        // than being replaced by a blank hero.
+        leaguePulse = overview?.leaguePulse ?: OmenLeaguePulseState.Unavailable
+        matchup = overview?.matchupHero
     }
 
     /**

@@ -94,7 +94,8 @@ final class OmenContextualHelpTests: XCTestCase {
     // MARK: - Contract shape
 
     func testEveryShippedDestinationHasATopic() {
-        XCTAssertEqual(OmenHelpDestination.allCases.count, 4)
+        // Six since 2026-08-29: Trade and League gained topics when their screens shipped.
+        XCTAssertEqual(OmenHelpDestination.allCases.count, 6)
         for destination in OmenHelpDestination.allCases {
             let topic = OmenContextualHelpContent.topic(for: destination)
             XCTAssertFalse(topic.title.isEmpty, "\(destination) has no title")
@@ -103,11 +104,13 @@ final class OmenContextualHelpTests: XCTestCase {
         }
     }
 
-    func testTradeAndLeagueHaveNoTopicWhileTheyAreStillPlaceholders() {
-        // Deliberate omission, not an oversight: both destinations render "landing next"
-        // state surfaces. Delete this test when those screens ship, and add their topics.
-        XCTAssertFalse(OmenHelpDestination.allCases.contains { $0.rawValue == "trade" })
-        XCTAssertFalse(OmenHelpDestination.allCases.contains { $0.rawValue == "league" })
+    func testTradeAndLeagueHaveTopicsNowThatTheirScreensShip() {
+        // This asserted their ABSENCE, with the note "delete this test when those screens ship,
+        // and add their topics." `M5` slices F and G shipped on 2026-08-29, so the assertion is
+        // inverted rather than deleted — a destination with a real screen and no help is the
+        // gap this now guards against.
+        XCTAssertTrue(OmenHelpDestination.allCases.contains { $0.rawValue == "trade" })
+        XCTAssertTrue(OmenHelpDestination.allCases.contains { $0.rawValue == "league" })
     }
 
     func testNoTopicExceedsTheShortExplanationCap() {

@@ -96,10 +96,12 @@ fun DashboardSummary.toCommandCenterState(
     context: OmenContextStripState? = null,
     ledger: OmenLedgerPreviewState? = null,
     leaguePulse: OmenLeaguePulseState? = null,
+    matchup: OmenMatchupHeroState? = null,
 ): OmenCommandCenterState = OmenCommandCenterState(
     greeting = greetingFor(omenStatus),
     context = context ?: OmenContextStripState.Empty,
-    matchup = OmenMatchupHeroState.NoMatchup(
+    // A real matchup always wins. The shell can only ever say why there isn't one.
+    matchup = matchup ?: OmenMatchupHeroState.NoMatchup(
         reason = matchupReasonFor(omenStatus, platforms.anyConnected),
     ),
     waiverWatch = waiverWatchFor(waiverStatus, omenStatus),

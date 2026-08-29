@@ -15,6 +15,13 @@ interface DashboardRepository {
 
 interface LeagueRepository {
     suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings>
+
+    /**
+     * `league-overview.v1`. Supersedes [fetchStandings] for callers that need the matchup and
+     * activity sections too. [fetchStandings] stays because the Command Center context strip
+     * consumed that narrower contract and it must not be disturbed.
+     */
+    suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview>
 }
 
 class ApiDashboardRepository(private val client: OmenApiClient) : DashboardRepository {
@@ -25,6 +32,9 @@ class ApiDashboardRepository(private val client: OmenApiClient) : DashboardRepos
 class ApiLeagueRepository(private val client: OmenApiClient) : LeagueRepository {
     override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> =
         client.get("api/league/standings", accessToken, LeagueStandings::parse)
+
+    override suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview> =
+        client.get("api/league/overview", accessToken, LeagueOverview::parse)
 }
 
 /**
@@ -40,8 +50,45 @@ class StubDashboardRepository(
 
 class StubLeagueRepository(
     private val result: OmenApiResult<LeagueStandings>,
+    private val overviewResult: OmenApiResult<LeagueOverview> =
+        OmenApiResult.Failure(OmenApiError.Network),
 ) : LeagueRepository {
     override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> = result
+
+    override suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview> =
+        overviewResult
+}
+
+/**
+ * Slice G — `POST /api/trade/compare`.
+ *
+ * Separate from the league repositories because this route is **free and public**: it has a
+ * different auth posture from everything else here, and a signed-out caller still gets a real
+ * (neutral) answer rather than a 401.
+ */
+interface TradeRepository {
+    suspend fun compare(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeCompare>
+}
+
+class ApiTradeRepository(private val client: OmenApiClient) : TradeRepository {
+    override suspend fun compare(
+        offer: TradeOffer,
+        accessToken: String?,
+    ): OmenApiResult<TradeCompare> = client.postOptionalAuth(
+        "api/trade/compare",
+        accessToken,
+        offer.requestBody(),
+        TradeCompare::parse,
+    )
+}
+
+class StubTradeRepository(
+    private val result: OmenApiResult<TradeCompare>,
+) : TradeRepository {
+    override suspend fun compare(
+        offer: TradeOffer,
+        accessToken: String?,
+    ): OmenApiResult<TradeCompare> = result
 }
 
 /**

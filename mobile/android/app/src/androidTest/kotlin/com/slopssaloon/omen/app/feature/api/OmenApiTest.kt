@@ -39,7 +39,9 @@ class OmenApiTest {
         override suspend fun fetch(
             url: String,
             method: String,
-            accessToken: String,
+            // Nullable since slice G: `/api/trade/compare` is free and public, so the
+            // Authorization header is omitted rather than sent empty.
+            accessToken: String?,
             body: String?,
         ): Pair<Int, String>? {
             this.url = url

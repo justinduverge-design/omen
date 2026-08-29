@@ -34,6 +34,8 @@ import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OmenDeleteAccountScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
@@ -62,6 +64,9 @@ import com.slopssaloon.omen.app.feature.api.LeagueSwitcherViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueSwitcherSheet
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
+import com.slopssaloon.omen.app.feature.api.ApiTradeRepository
+import com.slopssaloon.omen.app.feature.api.LeagueViewModel
+import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.api.ApiMovesRepository
 import com.slopssaloon.omen.app.feature.api.ApiOmenDecisionRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
@@ -163,6 +168,26 @@ fun OmenAndroidApp() {
     val omenDecisionViewModel = remember {
         OmenDecisionViewModel(
             repository = ApiOmenDecisionRepository(OmenApiClient(env.apiBaseUrl)),
+            sessionManager = sessionManager,
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
+
+    // M5 slice F. Own view model, matching the Omen destination: `league-overview.v1` makes a
+    // live provider call and must not block the shell.
+    val leagueViewModel = remember {
+        LeagueViewModel(
+            repository = ApiLeagueRepository(OmenApiClient(env.apiBaseUrl)),
+            sessionManager = sessionManager,
+            accessTokenProvider = { store.load()?.accessToken },
+        )
+    }
+
+    // M5 slice G. `/api/trade/compare` is free and public, so this one tolerates a null token
+    // and still returns a real (neutral) answer.
+    val tradeViewModel = remember {
+        TradeViewModel(
+            repository = ApiTradeRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
             accessTokenProvider = { store.load()?.accessToken },
         )
@@ -421,6 +446,8 @@ fun OmenAndroidApp() {
                             userId = s.userId,
                             commandCenterViewModel = commandCenterViewModel,
                             omenDecisionViewModel = omenDecisionViewModel,
+                            leagueViewModel = leagueViewModel,
+                            tradeViewModel = tradeViewModel,
                             onConnect = { showConnectSheet = true },
                             onOpenAccount = { showAccountSheet = true },
                             onSwitchContext = { showSwitcherSheet = true },
@@ -602,6 +629,8 @@ private fun SignedInDestination(
     userId: String,
     commandCenterViewModel: CommandCenterViewModel,
     omenDecisionViewModel: OmenDecisionViewModel,
+    leagueViewModel: LeagueViewModel,
+    tradeViewModel: TradeViewModel,
     onConnect: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
@@ -661,18 +690,35 @@ private fun SignedInDestination(
                 ),
             )
         }
-        NavDestination.Trade -> OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "Trade is landing next",
-            message = "Trade Analyzer arrives here. It is free and open on the Omen website today.",
-            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-        )
-        NavDestination.League -> OmenStateSurface(
-            kind = OmenStateSurfaceKind.Empty,
-            title = "League is landing next",
-            message = "Roster, matchup, and standings for your connected league arrive here.",
-            modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-        )
+        // M5 slice G: the Trade destination now renders `trade-compare.v2`.
+        NavDestination.Trade -> {
+            // The league Trade personalizes against comes from the SAME `league-overview.v1`
+            // read the League destination uses, so the two screens can never disagree about
+            // which league the user is in.
+            val leagueState = leagueViewModel.viewState
+            LaunchedEffect(leagueState) {
+                val loaded = leagueState as? LeagueViewModel.ViewState.Loaded
+                tradeViewModel.useLeague(loaded?.overview?.platform, loaded?.overview?.leagueId)
+            }
+            OmenTradeScreen(
+                state = tradeViewModel.viewState,
+                offer = tradeViewModel.offer,
+                onAdd = { name, side -> tradeViewModel.add(name, side) },
+                onRemove = { index, side -> tradeViewModel.remove(index, side) },
+                onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+            )
+        }
+        // M5 slice F: the League destination now renders `league-overview.v1`. It replaced an
+        // honest "landing next" placeholder, which was correct while the screen contract was
+        // unratified and is no longer.
+        NavDestination.League -> {
+            LaunchedEffect(userId) { leagueViewModel.load(userId) }
+            OmenLeagueScreen(
+                state = leagueViewModel.viewState,
+                onRetry = { scope.launch { leagueViewModel.reload() } },
+                onConnect = onConnect,
+            )
+        }
     }
 }
 

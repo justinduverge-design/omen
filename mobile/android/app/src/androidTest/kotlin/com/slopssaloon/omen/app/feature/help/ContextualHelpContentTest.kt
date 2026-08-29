@@ -83,7 +83,8 @@ class ContextualHelpContentTest {
 
     @Test
     fun everyShippedDestinationHasATopic() {
-        assertEquals(4, OmenHelpDestination.entries.size)
+        // Six since 2026-08-29: Trade and League gained topics when their screens shipped.
+        assertEquals(6, OmenHelpDestination.entries.size)
         OmenHelpDestination.entries.forEach { destination ->
             val topic = ContextualHelpContent.topic(destination)
             assertTrue("$destination has no title", topic.title.isNotBlank())
@@ -93,12 +94,14 @@ class ContextualHelpContentTest {
     }
 
     @Test
-    fun tradeAndLeagueHaveNoTopicWhileTheyAreStillPlaceholders() {
-        // Deliberate omission, not an oversight: both destinations render "landing next"
-        // state surfaces. Delete this test when those screens ship, and add their topics.
+    fun tradeAndLeagueHaveTopicsNowThatTheirScreensShip() {
+        // This test used to assert their ABSENCE, with the note "delete this test when those
+        // screens ship, and add their topics." `M5` slices F and G shipped on 2026-08-29, so
+        // the assertion is inverted rather than deleted — a destination with a real screen and
+        // no help is the gap this now guards against.
         val names = OmenHelpDestination.entries.map { it.name }
-        assertFalse(names.contains("Trade"))
-        assertFalse(names.contains("League"))
+        assertTrue(names.contains("Trade"))
+        assertTrue(names.contains("League"))
     }
 
     @Test
