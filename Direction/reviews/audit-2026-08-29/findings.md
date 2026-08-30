@@ -5,7 +5,7 @@ evidence.** Ordered by severity, then by pass.
 
 | ID | Finding | Lens | Criterion | Severity | Reversibility | Abort class |
 |---|---|---|---|---|---|---|
-| **F-VET-01** | Missing confidence score renders as "Confidence 0" | Veteran | A7 | **BETA-BLOCKING** | afternoon | **1 — FIRED** |
+| ~~**F-VET-01**~~ | ~~Missing confidence score renders as "Confidence 0"~~ **FIXED 2026-08-30, `ced460f`** — optional through the payload on both platforms; 6 regression tests | Veteran | A7 | ~~BETA-BLOCKING~~ | afternoon | 1 — **cleared** |
 | **F-HOT-01** | iOS fails the whole League decode if a section is absent; Android degrades | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
 | **F-HOT-02** | Four `trade-compare.v2` fields required on iOS, defaulted on Android | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
 | **F-VET-02** | Five of eight Waiver Watch states unreachable | Veteran | A1 | WEEK-1 | afternoon (hide) | none |
