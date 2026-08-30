@@ -27,6 +27,19 @@ const SENSITIVE_QUERY_PARAMETER_PATTERN = /password|cookie|token|secret|swid|esp
  *      here, not an edge one.
  */
 const SENSITIVE_TEXT_PATTERN = /([A-Za-z0-9_-]*(?:password|cookie|token|secret|swid|espn_s2|vault|authorization)[A-Za-z0-9_-]*)("?\s*[:=]\s*"?)([^"&\s,;}]+)/gi;
+
+/**
+ * OAuth authorization codes, scrubbed separately and narrowly.
+ *
+ * `code` cannot go in the vocabulary above: that pattern allows any prefix/suffix, so it would
+ * also redact `status_code=500`, `error_code=...`, `country_code=US` — destroying the
+ * diagnostics an error report exists for. This matches `code` ONLY in query-parameter position,
+ * which is where an OAuth code actually appears.
+ *
+ * Found by A8 on 2026-08-30: a Yahoo/Discord callback error carried `?code=<value>` into the
+ * error backend. A code is single-use and short-lived, and it is still a credential.
+ */
+const OAUTH_CODE_TEXT_PATTERN = /(^|[?&\s])(code)(=)([^&\s"',;}]+)/gi;
 /**
  * `Bearer <token>` and `Basic <token>` need their own rule, because the
  * key/value rule above stops a value at the first space — so
@@ -73,7 +86,8 @@ function scrubText(value) {
   // rather than the word "Bearer".
   return value
     .replace(AUTHORIZATION_SCHEME_PATTERN, (_match, scheme) => `${scheme} ${SCRUBBED}`)
-    .replace(SENSITIVE_TEXT_PATTERN, (_match, key, separator) => `${key}${separator}${SCRUBBED}`);
+    .replace(SENSITIVE_TEXT_PATTERN, (_match, key, separator) => `${key}${separator}${SCRUBBED}`)
+    .replace(OAUTH_CODE_TEXT_PATTERN, (_match, lead, key, eq) => `${lead}${key}${eq}${SCRUBBED}`);
 }
 
 function scrubValue(value) {
@@ -92,7 +106,11 @@ function scrubValue(value) {
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
-      SENSITIVE_KEY_PATTERN.test(key) ? SCRUBBED : scrubValue(entry),
+      // Exact-match `code` rather than substring, for the same reason the text pattern is
+      // narrow: `status_code` and `error_code` must survive.
+      SENSITIVE_KEY_PATTERN.test(key) || key.toLowerCase() === "code"
+        ? SCRUBBED
+        : scrubValue(entry),
     ]),
   );
 }
@@ -196,6 +214,13 @@ function scrubSentryEvent(event, hint) {
   if (event?.request) {
     event.request.url = scrubUrl(event.request.url);
     event.request.headers = scrubHeaders(event.request.headers);
+    // A8, 2026-08-30. `query_string` was never passed through the scrubber, so an OAuth
+    // callback error delivered `code=<value>` and `access_token=<value>` to the error backend
+    // verbatim while the URL beside it was correctly redacted. `beforeSend` covered url,
+    // headers, data, extra, message and contexts — and not this one.
+    if (event.request.query_string !== undefined) {
+      event.request.query_string = scrubText(event.request.query_string);
+    }
 
     if (shouldDropRequestData(hint)) {
       delete event.request.data;

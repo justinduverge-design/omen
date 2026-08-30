@@ -511,3 +511,57 @@ test("the error handler is the shipped one, and server.js has no second copy", (
     "server.js must not carry a second, untested error envelope",
   );
 });
+
+// ---------------------------------------------------------------------------
+// A8 — 2026-08-30. Found by provoking the scrubber with canaries rather than
+// reading it, which is the only way this repo has ever found a hole in it.
+// ---------------------------------------------------------------------------
+
+test("A8: request.query_string is scrubbed — an OAuth callback error must not carry the code", () => {
+  const { scrubSentryEvent } = require("../src/middleware/sentry");
+  const canary = "CANARY_OAUTH_CODE_qqq111";
+
+  // `beforeSend` covered url, headers, data, extra, message and contexts — and not
+  // query_string, which Sentry's express integration populates. So the URL beside it was
+  // correctly redacted while this delivered the credential verbatim.
+  const event = scrubSentryEvent({
+    request: {
+      url: `https://slopssaloon.com/api/yahoo/callback?code=${canary}`,
+      query_string: `code=${canary}&state=abc`,
+    },
+  });
+
+  assert.ok(!JSON.stringify(event).includes(canary), "no OAuth code may reach the error backend");
+});
+
+test("A8: an access token in a query string is scrubbed", () => {
+  const { scrubSentryEvent } = require("../src/middleware/sentry");
+  const canary = "CANARY_ACCESS_TOKEN_www222";
+
+  const event = scrubSentryEvent({
+    request: { url: "/x", query_string: `access_token=${canary}` },
+  });
+
+  assert.ok(!JSON.stringify(event).includes(canary));
+});
+
+test("A8: an OAuth code is scrubbed as a bare key and in query position", () => {
+  const { scrubText, scrubValue } = require("../src/middleware/sentry");
+  const canary = "CANARY_CODE_abc";
+
+  assert.ok(!scrubText(`callback failed ?code=${canary}`).includes(canary));
+  assert.ok(!JSON.stringify(scrubValue({ code: canary })).includes(canary));
+});
+
+test("A8: scrubbing `code` must not destroy the diagnostics an error report exists for", () => {
+  const { scrubText, scrubValue } = require("../src/middleware/sentry");
+
+  // `code` cannot join the general vocabulary — that pattern allows any prefix, so it would
+  // also redact these. The narrow rule exists precisely to keep them readable.
+  for (const kept of ["status_code=500", "error_code=ESPN_404", "country_code=US", "HTTP code 401"]) {
+    assert.equal(scrubText(kept), kept, `${kept} must survive scrubbing`);
+  }
+  const out = scrubValue({ status_code: 500, error_code: "X" });
+  assert.equal(out.status_code, 500);
+  assert.equal(out.error_code, "X");
+});
