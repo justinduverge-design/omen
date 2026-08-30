@@ -29,6 +29,17 @@ struct LeagueDirectory: Decodable, Equatable {
         case selectionPersistence = "selection_persistence"
     }
 
+    /// True when the server has told us a cross-provider choice cannot persist AND the user
+    /// actually has more than one provider to choose between. One provider has nothing to
+    /// cross, so warning there would be noise about a limit the user cannot reach.
+    ///
+    /// Keyed off the server's own signal, so applying the reviewed selection column flips this
+    /// to false with no client change.
+    var crossProviderChoiceCannotPersist: Bool {
+        guard selectionPersistence == "provider_binding_only" else { return false }
+        return platforms.filter { !$0.leagues.isEmpty }.count > 1
+    }
+
     struct Active: Decodable, Equatable {
         let platform: String?
         let leagueID: String?

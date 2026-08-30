@@ -82,6 +82,28 @@ fun OmenLeagueSwitcherSheet(
                         )
                     }
 
+                    // F-DEV-02. The founder, on a real device: "I hit switch... and then I
+                    // hit ESPN, and it still stays on my sleeper." The switch was not
+                    // ignored — the server bound the league inside ESPN exactly as asked.
+                    // What it cannot yet do is record WHICH PROVIDER he chose:
+                    // `platform_connections` has no such column until
+                    // `sql/2026-08-26_league_selection_review.sql` is applied, so every
+                    // surface falls back to its tie-break, which puts Sleeper first.
+                    //
+                    // The server says so in `selection_persistence`, and both sheets decoded
+                    // that field and then ignored it. Saying nothing was the defect; the
+                    // switch itself works.
+                    if (state.directory.crossProviderChoiceCannotPersist) {
+                        OmenStateSurface(
+                            kind = OmenStateSurfaceKind.Stale,
+                            title = "Omen will keep using ${activeProviderName(state.directory)}",
+                            message = "You can pick any league here and Omen will use it " +
+                                "within that platform. Choosing a league on a different " +
+                                "platform won't stick yet — Omen can't remember which " +
+                                "platform you picked.",
+                        )
+                    }
+
                     if (state.directory.platforms.all { it.leagues.isEmpty() }) {
                         // §10.3: the empty state explains the value of connecting and offers
                         // a route. It never becomes a dead dashboard.
@@ -173,6 +195,12 @@ private fun PlatformSection(
             }
         }
     }
+}
+
+/** The provider Omen actually resolves to, in the user's words rather than a key. */
+private fun activeProviderName(directory: LeagueDirectory): String {
+    val platform = directory.active?.platform ?: return "your current platform"
+    return platformDisplayName(platform)
 }
 
 fun platformDisplayName(platform: String): String = when (platform) {

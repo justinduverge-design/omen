@@ -29,6 +29,18 @@ data class LeagueDirectory(
     val active: Active?,
     val platforms: List<PlatformGroup>,
 ) {
+    /**
+     * True when the server has told us a cross-provider choice cannot persist AND the user
+     * actually has more than one provider to choose between. One provider has nothing to
+     * cross, so warning there would be noise about a limit the user cannot reach.
+     *
+     * Keyed off the server's own signal, so applying the reviewed selection column flips this
+     * to false with no client change. iOS mirror: `crossProviderChoiceCannotPersist`.
+     */
+    val crossProviderChoiceCannotPersist: Boolean
+        get() = selectionPersistence == "provider_binding_only" &&
+            platforms.count { it.leagues.isNotEmpty() } > 1
+
     data class Active(
         val platform: String?,
         val leagueId: String?,

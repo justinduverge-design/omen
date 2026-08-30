@@ -98,6 +98,51 @@ final class LeagueSwitcherTests: XCTestCase {
         ))
     }
 
+    // MARK: - F-DEV-02: the switch that "did not take"
+
+    /// The founder picked ESPN and Omen kept using Sleeper. The switch was not ignored — the
+    /// server bound the league inside ESPN — but nothing records which PROVIDER he chose until
+    /// the reviewed selection column is applied, so every surface falls back to a tie-break
+    /// that puts Sleeper first. The server reports this in `selection_persistence`, and the
+    /// sheet decoded that field and ignored it.
+    func testACrossProviderChoiceIsFlaggedAsUnableToPersist() throws {
+        let directory = try decodedDirectory()
+
+        XCTAssertEqual(directory.selectionPersistence, "provider_binding_only")
+        XCTAssertGreaterThan(directory.platforms.filter { !$0.leagues.isEmpty }.count, 1)
+        XCTAssertTrue(directory.crossProviderChoiceCannotPersist)
+    }
+
+    /// Applying the column flips the server to `explicit`, and the warning must disappear on
+    /// its own — no client release, no flag to remember to remove.
+    func testTheWarningDisappearsOnceTheServerCanPersistTheChoice() throws {
+        let directory = try decodedDirectory()
+        let applied = LeagueDirectory(
+            contractVersion: directory.contractVersion,
+            season: directory.season,
+            selectionPersistence: "explicit",
+            active: directory.active,
+            platforms: directory.platforms
+        )
+
+        XCTAssertFalse(applied.crossProviderChoiceCannotPersist)
+    }
+
+    /// One provider has nothing to cross. Warning there would describe a limit the user
+    /// cannot reach, which is its own kind of dishonesty.
+    func testASingleProviderIsNotWarnedAboutCrossProviderPersistence() throws {
+        let directory = try decodedDirectory()
+        let onlyFirst = LeagueDirectory(
+            contractVersion: directory.contractVersion,
+            season: directory.season,
+            selectionPersistence: "provider_binding_only",
+            active: directory.active,
+            platforms: directory.platforms.filter { !$0.leagues.isEmpty }.prefix(1).map { $0 }
+        )
+
+        XCTAssertFalse(onlyFirst.crossProviderChoiceCannotPersist)
+    }
+
     func testLoadPublishesTheDirectory() async throws {
         let model = try viewModel(selection: successfulSelection())
         await model.load()

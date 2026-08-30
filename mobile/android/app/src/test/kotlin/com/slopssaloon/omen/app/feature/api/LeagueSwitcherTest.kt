@@ -183,4 +183,43 @@ class LeagueSwitcherTest {
             }
         assertTrue(switcherErrorMessage(OmenApiError.Unauthorized).contains("Sign in"))
     }
+
+    // MARK: F-DEV-02 — the switch that "did not take". Swift twin: `LeagueSwitcherTests`.
+    //
+    // This fixture already IS the founder's situation: Sleeper active with two leagues, ESPN
+    // connected with its one bound league. He picked ESPN and Omen kept using Sleeper. The
+    // switch was not ignored — the server bound the league inside ESPN — but nothing records
+    // which PROVIDER he chose until the reviewed selection column is applied, so every surface
+    // falls back to a tie-break that puts Sleeper first. The server reports exactly that in
+    // `selection_persistence`, and both sheets decoded the field and then ignored it.
+
+    @Test
+    fun `a cross-provider choice is flagged as unable to persist`() {
+        val directory = directory()
+
+        assertEquals("provider_binding_only", directory.selectionPersistence)
+        assertTrue(directory.platforms.count { it.leagues.isNotEmpty() } > 1)
+        assertTrue(directory.crossProviderChoiceCannotPersist)
+    }
+
+    @Test
+    fun `the warning disappears once the server can persist the choice`() {
+        // Applying the column flips the server to `explicit`. The warning must go on its own —
+        // no client release, no flag anyone has to remember to remove.
+        val applied = directory().copy(selectionPersistence = "explicit")
+
+        assertFalse(applied.crossProviderChoiceCannotPersist)
+    }
+
+    @Test
+    fun `a single provider is not warned about cross-provider persistence`() {
+        // One provider has nothing to cross. Warning there would describe a limit the user
+        // cannot reach, which is its own kind of dishonesty.
+        val base = directory()
+        val onlyOne = base.copy(
+            platforms = base.platforms.filter { it.leagues.isNotEmpty() }.take(1),
+        )
+
+        assertFalse(onlyOne.crossProviderChoiceCannotPersist)
+    }
 }

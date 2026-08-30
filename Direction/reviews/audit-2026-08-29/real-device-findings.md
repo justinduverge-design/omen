@@ -114,6 +114,43 @@ normally and the app looked healthy. Passing `-Pomen.debugApiBaseUrl` did *not* 
 `OMEN_DEBUG_API_BASE_URL=… ./gradlew :app:installDebug` is the working form. Had I trusted the
 screen, I would have filed a wiring bug that did not exist — or worse, "fixed" working code.
 
+## F-DEV-02 — the ESPN switch that "didn't take". **DIAGNOSED. Client made honest; the real fix is a founder-gated migration.**
+
+- **Reported:** *"I hit switch, wait for it to load, and then I hit ESPN, and it still stays on
+  my sleeper."*
+- **The switch was never ignored.** `POST /api/leagues/active` did exactly what it promises: it
+  bound the league *within* ESPN. What it cannot do is record **which provider** was chosen.
+- **Root cause, and it is documented in our own contract.** `platform_connections` holds one row
+  per `(user_id, platform)` and **has no column for the user's cross-provider choice**.
+  `api-routes.md` §Active-league selection says so plainly: until
+  `sql/2026-08-26_league_selection_review.sql` is applied, `selection_persistence` reports
+  `provider_binding_only` and `src/services/activeSelection.js` falls back to the deterministic
+  tie-break — which for `omen.js` is **sleeper → espn → yahoo**. Sleeper wins. Every time.
+- **The client defect was silence, not the switch.** Both clients *decode*
+  `selection_persistence` and neither renders anything from it. The iOS model's own doc comment
+  claimed *"the sheet reads this to avoid promising a cross-provider choice that the server has
+  told us it cannot yet persist"* — **the sheet did not read it.** A comment asserting behavior
+  that does not exist is worse than no comment: it retires the question.
+- **Fixed:** both sheets now show a `.stale` surface — "Omen will keep using Sleeper… choosing a
+  league on a different platform won't stick yet" — gated on
+  `crossProviderChoiceCannotPersist`, which requires *both* the server's own
+  `provider_binding_only` signal *and* more than one provider with leagues. One provider has
+  nothing to cross, and warning there would describe a limit the user cannot reach.
+- **It expires by itself.** Applying the column flips the server to `explicit` and the notice
+  disappears with **no client release and no flag to remember to remove**. Three tests per
+  platform pin that, including the disappearance.
+- **The real fix is the founder's call, not mine.** Applying SQL is the gated founder sequence
+  (facts-of-record #8: approval → staging → verification → production). The migration is
+  additive and reversible — one nullable `is_selected` column plus a partial unique index, no
+  existing row rewritten, rollback in the file's own footer. **Until it is applied, no client
+  change can make cross-provider switching work.**
+
+**Why no audit pass caught this.** Every lens read the switcher as *rendered state* and it
+rendered correctly: real leagues, correct grouping, checkmark on the active row, honest error
+surface. The defect only exists **across a state transition** — pick, close, re-read, observe the
+old context — and it needed a second connected provider to be visible at all. The founder had
+both. No pass had either.
+
 ## Two design-system checks caught the fix mid-flight
 
 Worth recording as the system working:

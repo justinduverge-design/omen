@@ -91,6 +91,30 @@ struct OmenLeagueSwitcherSheet: View {
                 )
             }
 
+            // F-DEV-02. The founder, on a real device: "I hit switch… and then I hit ESPN,
+            // and it still stays on my sleeper." The switch was not ignored — the server
+            // bound the league inside ESPN exactly as asked. What it cannot yet do is record
+            // WHICH PROVIDER he chose: `platform_connections` has no such column until
+            // `sql/2026-08-26_league_selection_review.sql` is applied, so every surface falls
+            // back to its deterministic tie-break, which puts Sleeper first.
+            //
+            // The server says so plainly in `selection_persistence`, and this sheet decoded
+            // that field and then ignored it — closing on a switch it had been told would not
+            // hold across providers. Saying nothing was the defect; the switch itself works.
+            //
+            // Shown only when it can actually bite: one connected provider has nothing to
+            // cross. When the column is applied the server reports `explicit` and this
+            // disappears on its own, with no client release.
+            if directory.crossProviderChoiceCannotPersist {
+                OmenStateSurface(
+                    kind: .stale,
+                    title: "Omen will keep using \(activeProviderName(directory))",
+                    message: "You can pick any league here and Omen will use it within that "
+                        + "platform. Choosing a league on a different platform won't stick yet — "
+                        + "Omen can't remember which platform you picked."
+                )
+            }
+
             if directory.platforms.allSatisfy({ $0.leagues.isEmpty }) {
                 emptyState
             } else {
@@ -99,6 +123,12 @@ struct OmenLeagueSwitcherSheet: View {
                 }
             }
         }
+    }
+
+    /// The provider Omen is actually resolving to, in the user's words rather than a key.
+    private func activeProviderName(_ directory: LeagueDirectory) -> String {
+        guard let platform = directory.active?.platform else { return "your current platform" }
+        return platformDisplayName(platform)
     }
 
     @ViewBuilder
