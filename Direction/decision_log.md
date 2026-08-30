@@ -1,5 +1,31 @@
 # Omen Decision Log
 
+## 2026-08-29 — Abort classes ratified; the audit is dated today and Stage 1 commences
+
+- **Decision: the five abort classes are RATIFIED**, as recommended in
+  `Blueprints/playbooks/debt-preflight-v1.md` §0.6 — keep three, tighten one, add one. They now
+  bind. A class firing is **binary**, and the person who wants to ship does not grant the
+  exception; an override is recorded here with a name on it, never resolved by re-reading the
+  class until it stops applying.
+- **Class 1 was amended before ratification, and the amendment matters.** As originally drafted
+  — *"any user-facing claim Omen cannot support with real data"* — it would have grounded the
+  beta over Waiver Watch's "availability needs confirmation", which is **honest absence**. The
+  operative line is **asserting vs admitting**, not claim vs no claim.
+- **Class 5 was added because none of the other four catch a crash on launch.** Class 3 asks
+  whether we can *see* a crash and would pass happily while the app was crashing. Scoped to the
+  B1 first-run path so it stays testable rather than becoming "no bugs anywhere".
+- **Decision: the audit is dated 2026-08-29 — today.** This is what converts debt register items
+  #1 and #3 from a promise into a plan: their repair interval was "after the audit", a trigger
+  with no date. **`M11A` and the data-plan ⚠️ rows are now due after today and before beta
+  invitations**, not indefinitely deferred.
+- **Decision: the founder reads beta feedback, daily while the beta is open**, on his stated
+  principle that whoever pays for the apps and AI services reads what they produce. **The read
+  surface does not exist yet** — feedback writes to `moves` and `GET /api/moves` is scoped to
+  the authenticated user, so a tester sees their own and nobody sees everyone's. Agreed fix is a
+  saved Supabase query plus a standing reminder, **not** an admin route: building one for ten
+  testers is gold-plating. Recorded as an open action, not a closed check.
+- **Stage 0 passes 6 of 6. Stage 1 commences with the Veteran pass.**
+
 ## 2026-08-29 — Provider proof carried as a liability until after the audit
 
 - **Decision: `M11A-ProviderShapeProof` is deliberately deferred until after the audit** and
