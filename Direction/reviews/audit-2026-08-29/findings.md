@@ -15,15 +15,25 @@ evidence.** Ordered by severity, then by pass.
 | **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
 | **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
 | **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
-| **F-VET-B01** | Screenshot harness is a drifted duplicate of the app shell; Trade/League still show removed placeholders | Veteran (B) | B2 · A10 | **BETA-BLOCKING** | afternoon | none |
+| ~~**F-VET-B01**~~ | ~~Screenshot harness is a drifted duplicate~~ **FIXED 2026-08-30, `97e8768`** — both harnesses mount the real screens; tab metadata single-sourced; 3 guards, proven by reintroducing the defect | Veteran (B) | B2 · A10 | ~~BETA-BLOCKING~~ | afternoon | none |
 | **F-VET-B02** | Content scrolls under the status bar and Dynamic Island unreadably | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
-| **F-VET-B03** | Trade and League have no screenshot scenario, so nothing can exercise them | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
+| ~~**F-VET-B03**~~ | ~~No scenario for Trade or League~~ **FIXED 2026-08-30, `97e8768`** — four scenarios added with an `initialTab` | Veteran (B) | B2 · B5 | ~~WEEK-1~~ | afternoon | none |
 | **F-VET-B04** | Android light theme leaves the status bar clock and icons invisible | Veteran (B) | B5 | WEEK-1 | afternoon | none |
 | **F-HOT-B01** | First screen: different layout and inverted primary action per platform | Hotshot (B) | A9 | WEEK-1 | afternoon | none |
-| **F-HOT-B02** | Parity cannot be assessed while the harness is drifted | Hotshot (B) | A9 · A10 | WEEK-1 | afternoon | none |
+| ~~**F-HOT-B02**~~ | ~~Parity unassessable while the harness is drifted~~ **RESOLVED 2026-08-30, `97e8768`** — same fix; parity comparison is trustworthy again | Hotshot (B) | A9 · A10 | ~~WEEK-1~~ | afternoon | none |
 | **F-SCR-B01** | Demo is the cheapest onboarding asset and is positioned inconsistently | Scrappy (B) | B1 | AFTER | afternoon | none |
 | **F-TOOL-01** | The audit method is not a skill, so it is not repeatable | tooling | A11 | WEEK-1 | afternoon | none |
 | **F-TOOL-02** | Session named no skills and appended no ledger row | tooling | A11 | AFTER | afternoon | none |
+
+## Remediation status — 2026-08-30
+
+**Both beta blockers are closed.** `F-VET-01` (`ced460f`, W1) and `F-VET-B01` (`97e8768`, W2).
+W2 also closed `F-VET-B03` and resolved `F-HOT-B02`, which were the same defect from other
+angles. **Four of sixteen findings cleared; no abort class remains fired.**
+
+Remaining: `F-VET-02` `F-VET-03` `F-VET-04` `F-VET-B02` `F-VET-B04` `F-HOT-01` `F-HOT-02`
+`F-HOT-B01` `F-SCR-01` `F-SCR-02` `F-SCR-03` `F-TOOL-01` `F-TOOL-02`. W3 (Try Demo suppression)
+is planned and not started.
 
 ## Phase B — what changed the picture
 
