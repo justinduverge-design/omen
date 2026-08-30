@@ -6,19 +6,19 @@ evidence.** Ordered by severity, then by pass.
 | ID | Finding | Lens | Criterion | Severity | Reversibility | Abort class |
 |---|---|---|---|---|---|---|
 | ~~**F-VET-01**~~ | ~~Missing confidence score renders as "Confidence 0"~~ **FIXED 2026-08-30, `ced460f`** — optional through the payload on both platforms; 6 regression tests | Veteran | A7 | ~~BETA-BLOCKING~~ | afternoon | 1 — **cleared** |
-| **F-HOT-01** | iOS fails the whole League decode if a section is absent; Android degrades | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
-| **F-HOT-02** | Four `trade-compare.v2` fields required on iOS, defaulted on Android | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
+| ~~**F-HOT-01**~~ | ~~iOS fails the whole decode if a section is absent~~ **FIXED 2026-08-30, `a453a61`** | Hotshot | A6 · A9 | ~~WEEK-1~~ | — | none |
+| ~~**F-HOT-02**~~ | ~~Four `trade-compare.v2` fields required on iOS~~ **FIXED 2026-08-30, `a453a61`** | Hotshot | A6 · A9 | ~~WEEK-1~~ | — | none |
 | **F-VET-02** | Five of eight Waiver Watch states unreachable | Veteran | A1 | WEEK-1 | afternoon (hide) | none |
 | **F-VET-03** | League activity cannot populate; Alternate state ships as Primary | Veteran | A1 | WEEK-1 | contract | none |
 | **F-VET-04** | Fixtures written since 2026-08-28 not from captured traffic | Veteran | A4 | WEEK-1 | afternoon | none |
-| **F-SCR-01** | Native standings discard `points_for` / `points_against` the web renders | Scrappy | A3 | WEEK-1 | afternoon | none |
+| ~~**F-SCR-01**~~ | ~~Native standings discard the points columns~~ **FIXED 2026-08-30, `a453a61`** | Scrappy | A3 | ~~WEEK-1~~ | — | none |
 | **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
 | **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
 | **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
 | ~~**F-VET-B01**~~ | ~~Screenshot harness is a drifted duplicate~~ **FIXED 2026-08-30, `97e8768`** — both harnesses mount the real screens; tab metadata single-sourced; 3 guards, proven by reintroducing the defect | Veteran (B) | B2 · A10 | ~~BETA-BLOCKING~~ | afternoon | none |
 | **F-VET-B02** | Content scrolls under the status bar and Dynamic Island unreadably | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
 | ~~**F-VET-B03**~~ | ~~No scenario for Trade or League~~ **FIXED 2026-08-30, `97e8768`** — four scenarios added with an `initialTab` | Veteran (B) | B2 · B5 | ~~WEEK-1~~ | afternoon | none |
-| **F-VET-B04** | Android light theme leaves the status bar clock and icons invisible | Veteran (B) | B5 | WEEK-1 | afternoon | none |
+| ~~**F-VET-B04**~~ | ~~Android light theme hides the status bar~~ **FIXED 2026-08-30, `a453a61`** | Veteran (B) | B5 | ~~WEEK-1~~ | — | none |
 | **F-HOT-B01** | First screen: different layout and inverted primary action per platform | Hotshot (B) | A9 | WEEK-1 | afternoon | none |
 | ~~**F-HOT-B02**~~ | ~~Parity unassessable while the harness is drifted~~ **RESOLVED 2026-08-30, `97e8768`** — same fix; parity comparison is trustworthy again | Hotshot (B) | A9 · A10 | ~~WEEK-1~~ | afternoon | none |
 | **F-SCR-B01** | Demo is the cheapest onboarding asset and is positioned inconsistently | Scrappy (B) | B1 | AFTER | afternoon | none |
