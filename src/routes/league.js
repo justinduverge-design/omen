@@ -307,25 +307,129 @@ function emptyActivity() {
 }
 
 /**
+ * Step 2 — standings-derived activity signals.
+ *
+ * Every signal here is deterministic and checkable against the standings payload it came from.
+ * Nothing is inferred, and no likelihood is stated: §2.1 keeps probability behind its own
+ * evidence gate, so this reports position facts only.
+ *
+ * `playoffTeams` gates all of it. Until 2026-08-30 nothing read it, which is why
+ * `settings_known` was hardcoded `false` and this panel could never populate — the data plan
+ * sequenced these signals as needing no provider work while every one of them required a field
+ * no provider path parsed. It was in the Sleeper league object all along (M11A).
+ *
+ * The **deadline** signal is deliberately absent. `settings.trade_deadline` is a WEEK NUMBER,
+ * not a date, so "in 12 days" needs a week-to-date conversion through the NFL schedule. That is
+ * step 3, and guessing it here would be exactly the invention this contract exists to prevent.
+ */
+function standingsActivity(teams, playoffTeams) {
+  const rows = Array.isArray(teams) ? teams : [];
+  const cut = Number(playoffTeams);
+  if (!rows.length || !Number.isFinite(cut) || cut < 1 || cut >= rows.length) {
+    return emptyActivity();
+  }
+
+  const items = [];
+  const ranked = rows.filter((t) => Number.isFinite(Number(t?.rank)))
+    .sort((a, b) => Number(a.rank) - Number(b.rank));
+
+  const lastIn = ranked[cut - 1];
+  const firstOut = ranked[cut];
+  const record = (t) => (Number.isFinite(Number(t?.wins)) && Number.isFinite(Number(t?.losses))
+    ? `${Number(t.wins)}-${Number(t.losses)}`
+    : null);
+
+  // Tied at the cut line — two or more teams with identical W-L across the boundary.
+  const lastInRecord = record(lastIn);
+  if (lastInRecord && lastInRecord === record(firstOut)) {
+    items.push({
+      category: "standings",
+      text: "Two teams are tied for the final playoff spot.",
+      source: "derived_standings",
+    });
+  }
+
+  // Cut-line proximity — the caller's own team within one game of the boundary, either side.
+  const mine = rows.find((t) => t?.is_current_user);
+  const myRank = Number(mine?.rank);
+  if (mine && Number.isFinite(myRank)) {
+    const inside = myRank <= cut;
+    const boundary = inside ? firstOut : lastIn;
+    const myWins = Number(mine.wins);
+    const theirWins = Number(boundary?.wins);
+    if (Number.isFinite(myWins) && Number.isFinite(theirWins)) {
+      const games = Math.abs(myWins - theirWins);
+      if (games <= 1) {
+        items.push({
+          category: "standings",
+          text: inside
+            ? "You are one game from the playoff cut line."
+            : "You are one game out of the playoff cut line.",
+          source: "derived_standings",
+        });
+      }
+    }
+  }
+
+  if (!items.length) return emptyActivity();
+
+  return {
+    // `partial`, not `available`: standings signals are live and the transactions family is
+    // still missing. The contract requires `unavailable_families` whenever status is partial,
+    // so the screen can name which half is absent rather than implying full coverage.
+    status: "partial",
+    unavailable_families: ["transactions"],
+    // §14.2 caps items at three and the SERVER enforces it; the client never trims.
+    items: items.slice(0, 3),
+  };
+}
+
+/**
  * Playoff position, stated only as far as the payload supports it.
  *
- * `cut_line_note` stays null and `settings_known` stays false because neither provider path
- * below reads playoff settings yet. Per the data plan, likelihood and clinch/elimination
- * scenarios are explicitly out of v1 — this carries verified current position and nothing more.
+ * `playoffTeams` is the league's own playoff-team count when the provider supplies it. Absent
+ * it, `settings_known` stays `false` and `cut_line_note` stays null — position without a
+ * boundary is still a true statement, and inventing the boundary is not.
+ *
+ * Likelihood, clinch, and elimination stay out per §2.1. This reports where the team sits and,
+ * when the league says where the line is, how far it is from that line. Nothing more.
  */
-function playoffPicture(teams) {
+function playoffPicture(teams, playoffTeams) {
   const mine = (teams || []).find((team) => team?.is_current_user);
   if (!mine || !Number.isFinite(Number(mine.rank)) || Number(mine.rank) < 1) return null;
 
   const rank = Number(mine.rank);
   const total = teams.length;
+  const cut = Number(playoffTeams);
+  const known = Number.isFinite(cut) && cut >= 1 && cut < total;
+
   return {
     rank,
     team_count: total,
-    line: `${ordinal(rank)} of ${total}`,
-    cut_line_note: null,
-    settings_known: false,
+    line: known
+      ? `${ordinal(rank)} of ${total} · ${rank <= cut ? "in a playoff spot" : "outside the cut line"}`
+      : `${ordinal(rank)} of ${total}`,
+    cut_line_note: known ? cutLineNote(teams, rank, cut) : null,
+    settings_known: known,
   };
+}
+
+/** Games clear of, or back from, the playoff boundary. Null unless both records are present. */
+function cutLineNote(teams, rank, cut) {
+  const ranked = (teams || []).filter((t) => Number.isFinite(Number(t?.rank)))
+    .sort((a, b) => Number(a.rank) - Number(b.rank));
+  const mine = ranked.find((t) => Number(t.rank) === rank);
+  const inside = rank <= cut;
+  const boundary = inside ? ranked[cut] : ranked[cut - 1];
+
+  const myWins = Number(mine?.wins);
+  const theirWins = Number(boundary?.wins);
+  if (!Number.isFinite(myWins) || !Number.isFinite(theirWins)) return null;
+
+  const games = Math.abs(myWins - theirWins);
+  if (games === 0) return inside ? "Level with the cut line" : "Level with the cut line";
+  const plural = games === 1 ? "game" : "games";
+  return inside ? `${games} ${plural} clear of the cut line` : `${games} ${plural} back of the cut line`;
 }
 
 function ordinal(n) {
@@ -373,15 +477,21 @@ async function sleeperOverview(connection, context) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "sleeper" });
   }
 
+  // M11A proved this field arrives on a live Sleeper league: `settings.playoff_teams`, an int.
+  // Nothing read it before 2026-08-30, which is the whole reason `settings_known` was false and
+  // the activity panel could never populate.
+  const playoffTeams = Number(league?.settings?.playoff_teams);
+
   return overviewEnvelope(connection, context, {
     league_name: league?.name || null,
     season: Number(league?.season) || context.season,
     matchup,
     standings: {
       status: standings.length ? "available" : "off_season",
-      playoff_picture: playoffPicture(standings),
+      playoff_picture: playoffPicture(standings, playoffTeams),
       teams: standings,
     },
+    activity: standingsActivity(standings, playoffTeams),
   });
 }
 
@@ -409,8 +519,10 @@ async function espnOverview(connection, userId, context) {
   return overviewEnvelope(connection, context, {
     matchup,
     standings: {
+      // No playoff-team count: ESPN's settings field is M11A claim 3 and is still unproven.
+      // Passing `undefined` keeps `settings_known: false`, which is the honest answer.
+      playoff_picture: playoffPicture(standings, undefined),
       status: standings.length ? "available" : "off_season",
-      playoff_picture: playoffPicture(standings),
       teams: standings,
     },
   });
@@ -435,7 +547,8 @@ async function yahooOverview(connection, userId, context) {
     },
     standings: {
       status: standingsEnvelope.standings.length ? "available" : "off_season",
-      playoff_picture: playoffPicture(standingsEnvelope.standings),
+      // Yahoo: unproven the same way, and its entitlement story is separate.
+      playoff_picture: playoffPicture(standingsEnvelope.standings, undefined),
       teams: standingsEnvelope.standings,
     },
   });
@@ -523,5 +636,6 @@ module.exports.selectConnections = selectConnections;
 module.exports.connectionUsable = connectionUsable;
 module.exports.errorEnvelope = errorEnvelope;
 module.exports.playoffPicture = playoffPicture;
+module.exports.standingsActivity = standingsActivity;
 module.exports.emptyActivity = emptyActivity;
 module.exports.ordinal = ordinal;

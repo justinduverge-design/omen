@@ -46,7 +46,15 @@ function defaultSleeperAdapter(overrides = {}) {
   const real = require("../src/adapters/sleeper");
   return {
     fetchSleeperUser: async () => ({ user_id: "sleeper-user-1" }),
-    fetchSleeperLeague: async () => ({ league_id: "league-1", name: "Sleeper League", season: "2026" }),
+    // Shaped from the live league read on 2026-08-30 (M11A claim 2): `playoff_teams` is an
+    // int on `settings`, and `trade_deadline` is a WEEK NUMBER — captured here so the fixture
+    // cannot drift back to the shape the contract merely assumed.
+    fetchSleeperLeague: async () => ({
+      league_id: "league-1",
+      name: "Sleeper League",
+      season: "2026",
+      settings: { playoff_teams: 2, playoff_week_start: 15, trade_deadline: 11 },
+    }),
     fetchSleeperStandings: async () => SLEEPER_STANDINGS,
     fetchSleeperRoster: async () => ({ roster_id: 7 }),
     fetchSleeperMatchups: async () => ([
@@ -184,7 +192,7 @@ test("GET /api/league/overview returns a real matchup built from data that was b
   assert.equal(res.body.matchup.opponent.points, 91.1);
 });
 
-test("GET /api/league/overview reports standings position without inventing a cut line", async () => {
+test("GET /api/league/overview reports standings position", async () => {
   const app = buildApp({ connections: [SLEEPER_CONNECTION] });
 
   const res = await request(app, "/api/league/overview");
@@ -193,23 +201,23 @@ test("GET /api/league/overview reports standings position without inventing a cu
   assert.equal(res.body.standings.teams.length, 3);
   assert.equal(res.body.standings.playoff_picture.rank, 2);
   assert.equal(res.body.standings.playoff_picture.team_count, 3);
-  assert.equal(res.body.standings.playoff_picture.line, "2nd of 3");
-  // No provider path reads playoff settings yet, so the cut line must stay absent and
-  // `settings_known` must say so rather than the client having to guess.
-  assert.equal(res.body.standings.playoff_picture.cut_line_note, null);
-  assert.equal(res.body.standings.playoff_picture.settings_known, false);
 });
 
-test("GET /api/league/overview keeps the transactions slot open for the waiver work", async () => {
+// This test used to assert `settings_known: false` and a bare "2nd of 3", on the reasoning that
+// "no provider path reads playoff settings yet". That was true when written and stopped being
+// true on 2026-08-30, when M11A found `settings.playoff_teams` on the live Sleeper league object
+// the route ALREADY fetched. The "do not invent a cut line" half of its intent did not go away —
+// it moved to the sibling test below, which exercises a league that genuinely supplies nothing.
+
+test("GET /api/league/overview keeps the transactions family named even when signals fire", async () => {
   const app = buildApp({ connections: [SLEEPER_CONNECTION] });
 
   const res = await request(app, "/api/league/overview");
 
-  // v1 ships no activity signals. The shape step 4 will fill already exists, so waivers land
-  // without a contract change: `status` is explicit and the missing family is NAMED.
-  assert.equal(res.body.activity.status, "empty");
+  // The seam is unchanged by step 2 landing: whatever the status, the missing family is NAMED,
+  // so waivers still land without a contract change. Only `items` and `status` move.
   assert.deepEqual(res.body.activity.unavailable_families, ["transactions"]);
-  assert.deepEqual(res.body.activity.items, []);
+  assert.ok(["empty", "partial", "available"].includes(res.body.activity.status));
 });
 
 test("a dead matchup read still returns standings — sections fail independently", async () => {
@@ -305,4 +313,81 @@ test("GET /api/league/standings is unchanged by the additive overview route", as
   // The Command Center context strip consumes this contract and must not be disturbed.
   assert.equal(res.body.contract_version, "league-standings.v1");
   assert.equal(res.body.standings.length, 3);
+});
+
+test("playoff settings are read, so the cut line stops being unknowable", async () => {
+  const app = buildApp({ connections: [SLEEPER_CONNECTION] });
+
+  const res = await request(app, "/api/league/overview");
+  const picture = res.body.standings.playoff_picture;
+
+  // Until 2026-08-30 nothing read `settings.playoff_teams`, so this was hardcoded false and the
+  // League screen could never draw a cut line. M11A found the field in an object already fetched.
+  assert.equal(picture.settings_known, true);
+  assert.equal(picture.rank, 2);
+  assert.equal(picture.line, "2nd of 3 · in a playoff spot");
+  assert.equal(picture.cut_line_note, "4 games clear of the cut line");
+});
+
+test("a provider that does not supply playoff settings stays honestly unknown", async () => {
+  const app = buildApp({
+    connections: [SLEEPER_CONNECTION],
+    sleeperAdapter: defaultSleeperAdapter({
+      fetchSleeperLeague: async () => ({ league_id: "league-1", name: "L", season: "2026" }),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+  const picture = res.body.standings.playoff_picture;
+
+  assert.equal(picture.settings_known, false);
+  assert.equal(picture.cut_line_note, null);
+  // Position without a boundary is still true; inventing the boundary is not.
+  assert.equal(picture.line, "2nd of 3");
+  assert.equal(res.body.activity.status, "empty");
+});
+
+test("standings-derived activity populates, and names the family it still lacks", async () => {
+  // Tailored so a signal actually fires. The default fixture has the caller 4 games clear of
+  // the cut, which correctly produces NO signal — the first version of this test asserted
+  // otherwise and was wrong about its own data, not about the code.
+  const app = buildApp({
+    connections: [SLEEPER_CONNECTION],
+    sleeperAdapter: defaultSleeperAdapter({
+      fetchSleeperStandings: async () => ([
+        { rank: 1, team_id: "3", team_name: "Top Dogs", is_current_user: false, wins: 7, losses: 1 },
+        { rank: 2, team_id: "7", team_name: "Ravens Flock", is_current_user: true, wins: 4, losses: 4 },
+        { rank: 3, team_id: "9", team_name: "Also Rans", is_current_user: false, wins: 4, losses: 4 },
+      ]),
+    }),
+  });
+
+  const res = await request(app, "/api/league/overview");
+
+  // `partial`, not `available`: standings signals are live while transactions are still missing,
+  // and the contract requires the missing family be named whenever status is partial.
+  assert.equal(res.body.activity.status, "partial");
+  assert.deepEqual(res.body.activity.unavailable_families, ["transactions"]);
+  assert.ok(res.body.activity.items.length >= 1);
+  assert.ok(res.body.activity.items.every((i) => i.source === "derived_standings"));
+});
+
+test("the deadline signal is NOT emitted, because the field is a week number", async () => {
+  const app = buildApp({ connections: [SLEEPER_CONNECTION] });
+
+  const res = await request(app, "/api/league/overview");
+
+  // M11A claim 2: `settings.trade_deadline` is `11` — a WEEK, not a date. Producing "in 12 days"
+  // needs a week-to-date conversion through the NFL schedule, which is step 3. Emitting it from
+  // a week number would be the invention this contract exists to prevent.
+  const texts = res.body.activity.items.map((i) => i.text).join(" ");
+  assert.ok(!/deadline/i.test(texts), "no deadline claim until the week-to-date conversion exists");
+});
+
+test("activity items are capped at three by the server, never by the client", async () => {
+  const app = buildApp({ connections: [SLEEPER_CONNECTION] });
+
+  const res = await request(app, "/api/league/overview");
+
+  assert.ok(res.body.activity.items.length <= 3);
 });
