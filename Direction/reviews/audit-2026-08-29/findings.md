@@ -15,6 +15,8 @@ evidence.** Ordered by severity, then by pass.
 | **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
 | **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
 | **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
+| **F-TOOL-01** | The audit method is not a skill, so it is not repeatable | tooling | A11 | WEEK-1 | afternoon | none |
+| **F-TOOL-02** | Session named no skills and appended no ledger row | tooling | A11 | AFTER | afternoon | none |
 
 ## Where the lenses disagreed
 

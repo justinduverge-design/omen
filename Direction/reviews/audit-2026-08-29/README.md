@@ -9,6 +9,7 @@ below. Nothing audit-related lives outside this directory.
 | 1 | Veteran | Does it hold? | [`pass-1-veteran.md`](pass-1-veteran.md) | complete (Part A) |
 | 2 | Scrappy | What does this actually cost? | [`pass-2-scrappy.md`](pass-2-scrappy.md) | complete (Part A) |
 | 3 | Hotshot | What are we locking ourselves into? | [`pass-3-hotshot.md`](pass-3-hotshot.md) | complete (Part A) |
+| — | — | Do we have the tooling? | [`tooling-check.md`](tooling-check.md) | complete |
 | — | all | Consolidated register | [`findings.md`](findings.md) | live |
 
 **Part B (device, real accounts) is not run in any pass.** It is founder-gated and needs
