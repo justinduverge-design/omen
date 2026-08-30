@@ -75,3 +75,63 @@ this audit applies to everything else.
 
 Android has no equivalent automated sweep; its states were checked by hand for the two enums
 above only. **Android A1 coverage remains partial**, and that is a real gap, not a formality.
+
+---
+
+# Gap closure 02 — the six screens Phase B never opened
+
+Captured on the iPhone 16 simulator from the current build: `help-support.available`,
+`help-support.offline`, `omen.disconnected`, `league-switcher.failed`. Opening the Help screen
+produced the most serious finding of the entire audit.
+
+## F-VET-06 — There is no way for a native beta tester to send feedback. Abort class 3 FIRES.
+
+- **Claim:** Both feedback affordances on Help + Support are dead ends. Neither submits
+  anything. Native never calls `POST /api/omen/feedback` on either platform.
+- **Evidence:** `OmenHelpSupportView.swift:84-93` — "Share feedback" and "Report a problem" each
+  carry `action: { feedbackUnavailable = true }`, whose only effect is to flip the screen to
+  `.submissionUnavailable`. "Share feedback" already subtitles itself *"Feedback sending is not
+  available yet."* Android is identical at `OmenHelpSupportScreen.kt:118-126`. A repo-wide grep
+  for `omen/feedback` across both native targets returns **nothing** — no repository method, no
+  submit function, no call site. The route is deployed and the **web** client is wired to it;
+  **native is not.**
+- **Failure scenario:** A beta tester on a real device hits a broken provider connection, opens
+  Help, taps "Report a problem", and is told reporting is unavailable. **We learn nothing.** The
+  founder's Stage 0.2 commitment — *"the founder reads feedback, daily while the beta is
+  open"* — has nothing to read, because nothing can be written.
+- **Criterion:** Stage 0.2 — can we hear? A1 — honest state at screen level.
+- **Severity:** **BETA-BLOCKING**
+- **Reversibility:** afternoon (wire the existing route) · the decision is the founder's
+- **Abort class:** **3 — *any instrument dead: we cannot see crashes, or cannot hear testers.*
+  FIRED.**
+
+### Correction to Stage 0.2, which this audit passed
+
+Stage 0.2 was recorded **PASS on the answer, ACTION open** — reader named, read surface missing.
+That was wrong in a way worth naming precisely.
+
+The check asked *"does a beta tester have a working path to tell us something is broken?"* The
+evidence recorded for it was `POST /api/omen/feedback` returning **401 unauthenticated**, read as
+*"deployed and gated."* **That verified the endpoint. It never verified that the app can reach
+it.** The same shape as `F-VET-B01`: a component was confirmed healthy and the path through it
+was assumed.
+
+`F-SCR-03` then found the **read** half missing and framed the loop as *"the radio transmits and
+the only receiver is the sender's own handset."* **That was too generous. The radio does not
+transmit either.**
+
+**The generalisable rule, and it is now the third time this audit has produced it:** proving a
+component works is not proving the path through it works. `O8` and issue #354 were the same
+error at the error-tracking layer, `F-VET-B01` at the harness layer, this at the feedback layer.
+
+## Also captured, no findings
+
+`help-support.available`, `omen.disconnected`, and `league-switcher.failed` render their states
+correctly. The offline Help state renders well — *"You are offline. Help remains available. Try
+again when your connection returns."* — which is precisely what makes **F-VET-05** worth fixing:
+the state is designed, written, and unreachable.
+
+## Screens still never opened
+
+`Connect`, `Account`, `Forced Update`, and the signed-in `Omen` tab with a real decision. Phase B
+coverage is now 8 of 10 rather than 4 of 10, and the remainder is recorded rather than implied.
