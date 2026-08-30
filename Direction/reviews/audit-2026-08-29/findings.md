@@ -1,0 +1,54 @@
+# Audit 2026-08-29 — consolidated findings register
+
+Every finding from every pass, one row each. **This is the list; the pass files carry the
+evidence.** Ordered by severity, then by pass.
+
+| ID | Finding | Lens | Criterion | Severity | Reversibility | Abort class |
+|---|---|---|---|---|---|---|
+| **F-VET-01** | Missing confidence score renders as "Confidence 0" | Veteran | A7 | **BETA-BLOCKING** | afternoon | **1 — FIRED** |
+| **F-HOT-01** | iOS fails the whole League decode if a section is absent; Android degrades | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
+| **F-HOT-02** | Four `trade-compare.v2` fields required on iOS, defaulted on Android | Hotshot | A6 · A9 | WEEK-1 | afternoon → **one-way at distribution** | none |
+| **F-VET-02** | Five of eight Waiver Watch states unreachable | Veteran | A1 | WEEK-1 | afternoon (hide) | none |
+| **F-VET-03** | League activity cannot populate; Alternate state ships as Primary | Veteran | A1 | WEEK-1 | contract | none |
+| **F-VET-04** | Fixtures written since 2026-08-28 not from captured traffic | Veteran | A4 | WEEK-1 | afternoon | none |
+| **F-SCR-01** | Native standings discard `points_for` / `points_against` the web renders | Scrappy | A3 | WEEK-1 | afternoon | none |
+| **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
+| **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
+| **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
+
+## Where the lenses disagreed
+
+Per `audit-grading-system-v1.md`, the disagreements are the output. Three arose.
+
+**1 — F-VET-01, whether it can be deferred.** The Veteran called it beta-blocking. The Scrappy
+lens, whose job is to find the cheaper path, **found no deferral to offer**: it fires a ratified
+abort class and the fix is an afternoon. Resolution: no contest — correctness never trades, and
+there was no cost argument on the other side.
+
+**2 — F-VET-02, what to do about it.** Veteran: a section that cannot report a working league is
+a lie by omission, fix or hide it. Scrappy: hide it, one commit, versus a per-provider
+integration that is the largest slip risk in the queue. Reversibility is an afternoon →
+**Scrappy decides**.
+
+**3 — F-HOT-01/02, whether they are worth doing now.** Ordinarily the Scrappy lens wins a
+ship-it-versus-harden-it dispute. He does not here, and the reason is the reversibility rule
+rather than seniority: both are `afternoon` today and **`one-way` the moment a build reaches a
+tester**, because an installed app cannot be taught to tolerate a field it was compiled to
+require. **Hotshot decides**, and the written reason is that this is the last cheap moment.
+
+## What all three agreed on — checked, per the "look harder" rule
+
+All three lenses independently reach the same verdict on **provider proof** (`M11A`): it is the
+top item. The grading system says unanimity means the lenses may have collapsed into one
+reviewer, so it was checked. They arrive by different routes — Veteran via F-VET-04 (fixtures
+prove nothing about a real provider), Scrappy via cost (hours, highest value per hour in the
+queue), Hotshot via F-SCR-02 and the ⚠️ rows (each unmeasured assumption is baked into a shipped
+contract). Different reasoning, same conclusion. Not a collapse.
+
+## What the re-run changed
+
+The first Veteran draft was written from knowledge of code just authored. Re-running every pass
+as a sweep **dropped nothing and added four findings** — F-SCR-01, F-HOT-01, F-HOT-02, F-HOT-03
+— three of them in criteria the first draft never swept at all, because the Hotshot pass had not
+been run. The two most consequential (F-HOT-01/02) are invisible to anyone reading either
+platform alone; they only appear when the two are diffed against the same contract.
