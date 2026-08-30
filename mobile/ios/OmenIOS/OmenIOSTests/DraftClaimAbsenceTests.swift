@@ -181,4 +181,74 @@ final class DraftClaimAbsenceTests: XCTestCase {
         }
         return root
     }
+
+    /// `F-VET-B01`. The League/Trade placeholders survived removal because the assertion that
+    /// should have caught them read **only the two files that session had edited** — and the
+    /// surviving copy was in a third, `ScreenshotScenarios.swift`. A test scoped to the files
+    /// someone touched cannot find a duplicate somewhere else.
+    ///
+    /// This sweeps the whole app target instead. It is deliberately blunt: any shipped source
+    /// file containing a tab-placeholder phrase fails, wherever it lives.
+    func testNoShippedSourceAdvertisesAScreenAsNotYetBuilt() throws {
+        let root = try repoAppSourcesRoot()
+        let banned = ["landing next", "coming soon", "arrives here", "is landing"]
+
+        var violations: [String] = []
+        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        while let url = files?.nextObject() as? URL {
+            guard url.pathExtension == "swift" else { continue }
+            let text = Self.strippingComments(from: (try? String(contentsOf: url, encoding: .utf8)) ?? "")
+            let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
+            for phrase in banned where text.lowercased().contains(phrase) {
+                violations.append("\(relative): shipped copy still says \"\(phrase)\"")
+            }
+        }
+
+        if !violations.isEmpty {
+            XCTFail(
+                "A screen is advertised as unbuilt in shipped source. If the screen now exists, "
+                + "delete the placeholder — including any copy in the screenshot harness:\n"
+                + violations.joined(separator: "\n")
+            )
+        }
+    }
+
+    /// The harness must mount the same screens the app does. Checking the strings alone is not
+    /// enough: a harness rendering a blank tab would pass the sweep above.
+    func testTheScreenshotHarnessMountsTheRealScreens() throws {
+        let root = try repoAppSourcesRoot()
+        let text = try String(
+            contentsOf: root.appendingPathComponent("Screenshot/ScreenshotScenarios.swift"),
+            encoding: .utf8
+        )
+        let body = Self.strippingComments(from: text)
+
+        for screen in ["OmenCommandCenterScreen(", "OmenDecisionScreen(", "OmenTradeScreen(", "OmenLeagueScreen("] {
+            XCTAssertTrue(
+                body.contains(screen),
+                "the harness must render \(screen) — a stand-in makes every screenshot and UI test "
+                + "taken through it evidence about a screen that does not ship"
+            )
+        }
+    }
+
+    /// Tab titles and icons are defined once. Two copies of a list drift; one cannot.
+    func testTabTitlesAndIconsAreDefinedOnlyOnce() throws {
+        let root = try repoAppSourcesRoot()
+        var literalTabItems = 0
+        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        while let url = files?.nextObject() as? URL {
+            guard url.pathExtension == "swift" else { continue }
+            let text = Self.strippingComments(from: (try? String(contentsOf: url, encoding: .utf8)) ?? "")
+            literalTabItems += text.components(separatedBy: "tabItem { Label(").count - 1
+        }
+
+        XCTAssertEqual(
+            literalTabItems, 0,
+            "tab items must come from CommandCenterTab, not from inline Label literals — "
+            + "duplicated tab metadata is what let the harness drift from the app"
+        )
+    }
+
+    // MARK: - Helpers
 }

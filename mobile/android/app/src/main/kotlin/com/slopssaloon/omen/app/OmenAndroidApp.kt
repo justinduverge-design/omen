@@ -548,7 +548,15 @@ fun OmenAndroidApp() {
  * respectively — neither is orphaned. League uses its own group glyph so it cannot be
  * mistaken for the contextual Account action.
  */
-private enum class NavDestination(
+/**
+ * The permanent 4-tab navigation contract.
+ *
+ * **Internal, not private, since 2026-08-30.** The screenshot harness used to carry its own
+ * `FauxNavTab` mirror of this list. A mirror is a duplicate, and duplicates drift — that is how
+ * the harness came to render Trade and League as stubs for a day after the real screens shipped
+ * (`F-VET-B01`). One definition cannot drift from itself.
+ */
+internal enum class NavDestination(
     val label: String,
     val iconRes: Int,
     val contentDescription: String,

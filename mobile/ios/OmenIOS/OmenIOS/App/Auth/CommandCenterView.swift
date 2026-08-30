@@ -104,7 +104,7 @@ struct CommandCenterView: View {
                 }
             }
             .task { await commandCenterViewModel.load(userID: userID) }
-            .tabItem { Label("Command", systemImage: "sparkles") }
+            .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 
             // M5 slice D: the Omen destination now renders the live engine's answer.
@@ -115,7 +115,7 @@ struct CommandCenterView: View {
                 omenDecisionViewModel.onConnect = { showConnectSheet = true }
                 await omenDecisionViewModel.load(userID: userID)
             }
-            .tabItem { Label("Omen", systemImage: "bolt.fill") }
+            .tabItem { CommandCenterTab.omen.label }
             .tag(CommandCenterTab.omen)
 
             // M5 slice G: the Trade destination now renders `trade-compare.v2`.
@@ -133,7 +133,7 @@ struct CommandCenterView: View {
                 guard case .loaded(let overview) = newValue else { return }
                 tradeViewModel.useLeague(platform: overview.platform, leagueId: overview.leagueId)
             }
-            .tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
+            .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
             // M5 slice F: the League destination now renders `league-overview.v1`. It
@@ -145,7 +145,7 @@ struct CommandCenterView: View {
                 onConnect: { showConnectSheet = true }
             )
             .task { await leagueViewModel.load(userID: userID) }
-            .tabItem { Label("League", systemImage: "person.3.fill") }
+            .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)
         }
         .sheet(isPresented: $showSwitcherSheet) {
@@ -223,7 +223,35 @@ struct CommandCenterView: View {
     }
 }
 
-private enum CommandCenterTab: Hashable { case command, omen, trade, league }
+/// The permanent 4-tab navigation contract.
+///
+/// **Title and icon live here and nowhere else.** They used to be written twice — once in this
+/// file and once in `ScreenshotScenarios.FauxShell` — which is how the screenshot harness came
+/// to advertise Trade and League as "landing next" for a day after the real screens shipped
+/// (`F-VET-B01`). Two copies of a list drift; one copy cannot.
+enum CommandCenterTab: String, Hashable, CaseIterable {
+    case command, omen, trade, league
+
+    var title: String {
+        switch self {
+        case .command: return "Command"
+        case .omen: return "Omen"
+        case .trade: return "Trade"
+        case .league: return "League"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .command: return "sparkles"
+        case .omen: return "bolt.fill"
+        case .trade: return "arrow.left.arrow.right"
+        case .league: return "person.3.fill"
+        }
+    }
+
+    var label: some View { Label(title, systemImage: systemImage) }
+}
 
 /// User-facing copy for a shell read failure. Deliberately says what the user can do and
 /// never surfaces a token, URL, or provider identifier — `OmenApiError` carries only a

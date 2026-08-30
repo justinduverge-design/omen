@@ -29,6 +29,13 @@ import com.slopssaloon.omen.app.feature.help.OmenHelpDestination
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpSupportState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextualHelpSheet
+import com.slopssaloon.omen.app.feature.api.LeagueOverview
+import com.slopssaloon.omen.app.feature.api.LeagueViewModel
+import com.slopssaloon.omen.app.feature.api.TradeCompare
+import com.slopssaloon.omen.app.feature.api.TradeOffer
+import com.slopssaloon.omen.app.feature.api.TradeViewModel
+import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
@@ -264,12 +271,18 @@ private fun CommandCenterInShell(demo: Boolean) {
                     onOpenLedger = { selected = FauxNavTab.Omen },
                     onOpenLeague = { selected = FauxNavTab.League },
                 )
-                else -> Text(
-                    text = "${selected.label} — screenshot fixture only",
-                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-                    color = OmenTheme.color.textSecondary,
-                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                // The REAL screens, driven by explicit state — the same rule the Command tab
+                // above already followed. These two rendered a bare "screenshot fixture only"
+                // stub for a day after `M5` slices F and G shipped (`F-VET-B01`), so every
+                // capture and every UI test reaching them assessed a screen that never ships.
+                FauxNavTab.Trade -> OmenTradeScreen(
+                    state = TradeViewModel.ViewState.Loaded(screenshotTradeVerdict()),
+                    offer = TradeOffer(send = listOf("A.J. Brown"), receive = listOf("Garrett Wilson")),
                 )
+                FauxNavTab.League -> OmenLeagueScreen(
+                    state = LeagueViewModel.ViewState.Loaded(screenshotLeagueOverview()),
+                )
+                FauxNavTab.Omen -> OmenDecisionScreen(state = OmenDecisionFixtures.demo)
             }
         }
     }
@@ -321,3 +334,42 @@ private fun FauxBottomNav(selected: FauxNavTab, onSelect: (FauxNavTab) -> Unit) 
         }
     }
 }
+
+/**
+ * Decoded from contract JSON rather than built by constructor, so a scenario also proves the
+ * screen renders from a payload the server could actually send. Swift twin:
+ * `ScreenshotScenarios.leagueOverviewJSON`.
+ */
+private fun screenshotLeagueOverview(): LeagueOverview = requireNotNull(
+    LeagueOverview.parse(
+        """
+        {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+         "league_name":"Demo Slate (mock league)","season":2026,"week":8,
+         "matchup":{"status":"live",
+           "you":{"team_id":"7","team_name":"Demo Titans","record":"6-1","points":64.8,"projected":null},
+           "opponent":{"team_id":"3","team_name":"Demo Rivals","record":"5-2","points":58.1,"projected":null},
+           "unavailable_reason":null},
+         "standings":{"status":"available",
+           "playoff_picture":{"rank":3,"team_count":12,"line":"3rd of 12","cut_line_note":null,"settings_known":false},
+           "teams":[
+             {"team_name":"Demo Rivals","is_current_user":false,"rank":1,"wins":7,"losses":1},
+             {"team_name":"Demo Hawks","is_current_user":false,"rank":2,"wins":6,"losses":2},
+             {"team_name":"Demo Titans","is_current_user":true,"rank":3,"wins":6,"losses":1},
+             {"team_name":"Demo Bandits","is_current_user":false,"rank":4,"wins":4,"losses":4}]},
+         "activity":{"status":"empty","unavailable_families":["transactions"],"items":[]}}
+        """.trimIndent(),
+    ),
+) { "screenshot league fixture failed to parse" }
+
+private fun screenshotTradeVerdict(): TradeCompare = requireNotNull(
+    TradeCompare.parse(
+        """
+        {"contract_version":"trade-compare.v2","verdict_state":"favors_you",
+         "evaluability":{"status":"evaluable","reason":null,"missing_projection_count":0,"total_player_count":2},
+         "analysis_context":{"mode":"personalized","platform":"sleeper","league_id":"1",
+           "league_name":"Demo Slate (mock league)","applied":["scoring_format","roster_construction"],
+           "unavailable_reason":null},
+         "net_value":4.2,"explanation":null}
+        """.trimIndent(),
+    ),
+) { "screenshot trade fixture failed to parse" }

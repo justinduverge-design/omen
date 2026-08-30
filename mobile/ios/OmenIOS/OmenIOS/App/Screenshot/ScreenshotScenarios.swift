@@ -22,6 +22,25 @@ enum ScreenshotScenarios {
             label: "Command Center — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.disconnected")) }
         ),
+        // `M5` slices F and G. Added 2026-08-30 with `F-VET-B03`: the two newest screens in
+        // the product had no scenario at all, so nothing — not the harness, not an
+        // accessibility audit, not any UI test — could reach them without a real account.
+        "trade.verdict": ScreenshotScenario(
+            label: "Trade — personalized verdict",
+            content: { AnyView(FauxShell(scenarioKey: "trade.verdict", initialTab: .trade)) }
+        ),
+        "trade.empty": ScreenshotScenario(
+            label: "Trade — no offer entered yet",
+            content: { AnyView(FauxShell(scenarioKey: "trade.empty", initialTab: .trade)) }
+        ),
+        "league.loaded": ScreenshotScenario(
+            label: "League — live matchup, standings, empty activity",
+            content: { AnyView(FauxShell(scenarioKey: "league.loaded", initialTab: .league)) }
+        ),
+        "league.matchup-unavailable": ScreenshotScenario(
+            label: "League — matchup unavailable beside live standings",
+            content: { AnyView(FauxShell(scenarioKey: "league.matchup-unavailable", initialTab: .league)) }
+        ),
         "omen.demo": ScreenshotScenario(
             label: "Omen — demo/mock decision",
             content: { AnyView(FauxShell(scenarioKey: "omen.demo")) }
@@ -217,11 +236,14 @@ struct ScreenshotScenarioHost: View {
 /// leaves the other tabs on their "coming next" placeholders.
 private struct FauxShell: View {
     var scenarioKey: String = ""
+    /// Which tab the capture opens on. Without it a Trade or League scenario would screenshot
+    /// the Command tab and silently prove nothing.
+    var initialTab: CommandCenterTab = .command
     /// Set by scenarios that supply a state directly instead of naming a whole fixture.
     var commandStateOverride: OmenCommandCenterState?
 
     var body: some View {
-        TabView {
+        TabView(selection: .constant(initialTab)) {
             OmenCommandCenterScreen(
                 state: commandState,
                 onOpenAccount: {},
@@ -234,30 +256,25 @@ private struct FauxShell: View {
                 onOpenLedger: { _ in },
                 onOpenLeague: {}
             )
-                .tabItem { Label("Command", systemImage: "sparkles") }
+                .tabItem { CommandCenterTab.command.label }
+            .tag(CommandCenterTab.command)
 
             OmenDecisionScreen(state: omenState)
-            .tabItem { Label("Omen", systemImage: "bolt.fill") }
+            .tabItem { CommandCenterTab.omen.label }
+            .tag(CommandCenterTab.omen)
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "Trade is landing next",
-                message: "Trade Analyzer arrives here. It is free and open on the Omen website today."
-            )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
-            .tabItem { Label("Trade", systemImage: "arrow.left.arrow.right") }
+            // The REAL screens, driven by explicit state — the same rule the Command and Omen
+            // tabs above already followed. These two carried "landing next" placeholders for a
+            // day after `M5` slices F and G shipped (`F-VET-B01`), so every screenshot and
+            // every accessibility UI test that reached them was assessing a screen that no
+            // longer existed.
+            OmenTradeScreen(state: tradeState, offer: tradeOffer)
+            .tabItem { CommandCenterTab.trade.label }
+            .tag(CommandCenterTab.trade)
 
-            OmenStateSurface(
-                kind: .empty,
-                title: "League is landing next",
-                message: "Roster, matchup, and standings for your connected league arrive here."
-            )
-            .padding(OmenSpacing.step24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(OmenColor.bg)
-            .tabItem { Label("League", systemImage: "person.3.fill") }
+            OmenLeagueScreen(state: leagueState)
+            .tabItem { CommandCenterTab.league.label }
+            .tag(CommandCenterTab.league)
         }
     }
 
@@ -269,6 +286,80 @@ private struct FauxShell: View {
         default: return OmenCommandCenterFixtures.realDisconnected
         }
     }
+
+    /// Decoded from contract JSON rather than built by memberwise init, so a scenario also
+    /// proves the screen renders from a payload the server could actually send. A malformed
+    /// fixture surfaces as the screen's own failure state rather than a blank tab.
+    private var leagueState: LeagueViewModel.ViewState {
+        guard
+            scenarioKey != "league.matchup-unavailable",
+            let overview = Self.decodeOverview(Self.leagueOverviewJSON)
+        else {
+            if let degraded = Self.decodeOverview(Self.leagueMatchupUnavailableJSON) {
+                return .loaded(degraded)
+            }
+            return .failed(.decode)
+        }
+        return .loaded(overview)
+    }
+
+    private var tradeState: TradeViewModel.ViewState {
+        guard let result = Self.decodeTrade(Self.tradeVerdictJSON) else { return .failed(.decode) }
+        return scenarioKey == "trade.empty" ? .idle : .loaded(result)
+    }
+
+    private var tradeOffer: TradeOffer {
+        scenarioKey == "trade.empty"
+            ? TradeOffer()
+            : TradeOffer(send: ["A.J. Brown"], receive: ["Garrett Wilson"])
+    }
+
+    private static func decodeOverview(_ json: String) -> LeagueOverview? {
+        guard let data = json.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(LeagueOverview.self, from: data)
+    }
+
+    private static func decodeTrade(_ json: String) -> TradeCompare? {
+        guard let data = json.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(TradeCompare.self, from: data)
+    }
+
+    private static let leagueOverviewJSON = """
+    {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+     "league_name":"Demo Slate (mock league)","season":2026,"week":8,
+     "matchup":{"status":"live",
+       "you":{"team_id":"7","team_name":"Demo Titans","record":"6-1","points":64.8,"projected":null},
+       "opponent":{"team_id":"3","team_name":"Demo Rivals","record":"5-2","points":58.1,"projected":null},
+       "unavailable_reason":null},
+     "standings":{"status":"available",
+       "playoff_picture":{"rank":3,"team_count":12,"line":"3rd of 12","cut_line_note":null,"settings_known":false},
+       "teams":[
+         {"team_name":"Demo Rivals","is_current_user":false,"rank":1,"wins":7,"losses":1},
+         {"team_name":"Demo Hawks","is_current_user":false,"rank":2,"wins":6,"losses":2},
+         {"team_name":"Demo Titans","is_current_user":true,"rank":3,"wins":6,"losses":1},
+         {"team_name":"Demo Bandits","is_current_user":false,"rank":4,"wins":4,"losses":4}]},
+     "activity":{"status":"empty","unavailable_families":["transactions"],"items":[]}}
+    """
+
+    private static let leagueMatchupUnavailableJSON = """
+    {"contract_version":"league-overview.v1","platform":"yahoo","league_id":"1",
+     "league_name":"Demo Slate (mock league)","season":2026,"week":8,
+     "matchup":{"status":"unavailable","you":null,"opponent":null,
+       "unavailable_reason":"provider_unsupported"},
+     "standings":{"status":"available",
+       "playoff_picture":{"rank":3,"team_count":12,"line":"3rd of 12","cut_line_note":null,"settings_known":false},
+       "teams":[{"team_name":"Demo Titans","is_current_user":true,"rank":3,"wins":6,"losses":1}]},
+     "activity":{"status":"empty","unavailable_families":["transactions"],"items":[]}}
+    """
+
+    private static let tradeVerdictJSON = """
+    {"contract_version":"trade-compare.v2","verdict_state":"favors_you",
+     "evaluability":{"status":"evaluable","reason":null,"missing_projection_count":0,"total_player_count":2},
+     "analysis_context":{"mode":"personalized","platform":"sleeper","league_id":"1",
+       "league_name":"Demo Slate (mock league)","applied":["scoring_format","roster_construction"],
+       "unavailable_reason":null},
+     "net_value":4.2,"explanation":null}
+    """
 
     private var omenState: OmenDecisionBriefState {
         switch scenarioKey {
