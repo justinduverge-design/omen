@@ -93,10 +93,10 @@ Sweeping the remaining provider surface found exactly one live instance, F-SCR-0
 
 ## Criteria not runnable in this pass
 
-**B1 — the first ninety seconds.** Requires a device, a real account, and a walk of the install
-→ sign-in → connect → populated Command Center path.
+**B1 — the first ninety seconds.** Phase B, and genuinely founder-gated: it needs a real
+account and a walk of the install → sign-in → connect → populated Command Center path.
 
-**B4 — timing.** Requires measurement against a running app on cellular. **Explicitly not
+**B4 — timing.** Phase B, founder-gated. Requires measurement against a running app on cellular. **Explicitly not
 estimated here.** `O4`'s recorded lesson is that a performance number means nothing without a
 stated admission-control policy, and guessing one is worse than having none. The Omen of the
 Week enrichment chain is the named target: `src/routes/omen.js:541-560` awaits `liveOmenResult`,

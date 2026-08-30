@@ -128,7 +128,17 @@ searching emitted output for a canary; it states outright that review is insuffi
 scrubber has been found holed three times, every time by provocation and never by reading.
 **Not marked pass.**
 
-**B2, B3, B5, B6, B7, B8 — all device work**, real accounts, founder-gated hardware.
+**B2, B3, B5, B6, B7, B8 — not run. This is Phase B, and it is a separate phase on a separate
+day**, per `pre-beta-audit-criteria-v1.md`: *"An auditor doing both at once will quietly demote
+B, because B is slower and less satisfying."*
+
+**Correction to how this line first read.** It said "founder-gated hardware", which was only
+partly true and understated what is available. The app ships **24 screenshot scenarios** driven
+by a launch argument (`ScreenshotScenarios.swift`), **13 simulators** are available on this
+machine, and a built Android debug APK exists. B3, B5, B6 and the fixture-backed half of B2 are
+runnable without a founder and without touching a credential. **Only the real-account work is
+genuinely gated** — B7 entirely, B4's real timing, and the real-league halves of B1 and B2.
+Recorded so Phase B is not scheduled around a blocker that does not exist.
 
 ---
 
