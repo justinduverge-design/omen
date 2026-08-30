@@ -26,6 +26,10 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    // WindowCompat, for the status-bar appearance the theme sets (F-VET-B04). The theme is the
+    // only thing that knows whether the app painted dark or light, so it is the only place that
+    // can tell the system bars.
+    implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
 
