@@ -57,7 +57,10 @@ android {
         applicationId = "com.slopssaloon.omen"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // Bumped 2026-08-30. Version code 1 was accepted by Play on 2026-08-18 and Play
+        // rejects a duplicate outright — the same reason iOS CURRENT_PROJECT_VERSION moved to
+        // 2. Neither store will take today's work under the version number the last build used.
+        versionCode = 2
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
