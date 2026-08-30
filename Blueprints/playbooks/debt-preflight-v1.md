@@ -59,6 +59,27 @@ silence is indistinguishable from success. That is the worst failure mode a moni
       someone reads the other end.
 - [ ] We know who is reading it and how often.
 
+**Answered 2026-08-29 — founder is the reader**, on the same principle as every app and AI
+service he pays for: the person carrying the cost reads the signal. Cadence: **daily while the
+beta is open**, and not before, since volume is zero until invitations go out.
+
+**But the loop is still open, and the reason is specific.** Feedback writes `followed`,
+`user_stars`, and `user_note` onto the `moves` table. The only route that reads them back is
+`GET /api/moves`, which is **scoped to the authenticated user** — a tester can see their own
+feedback and nobody can see everyone's. *The radio transmits, and the only receiver is the
+sender's own handset.*
+
+**Recommendation — the cheap real fix, not the good-looking one:** a saved Supabase query over
+`moves` filtered to rows with a non-null `user_note` or `user_stars`, plus a standing daily
+reminder while the beta is open. No new route, no admin surface, no auth model to get wrong.
+Building an admin endpoint for ten testers is the gold-plating the Scrappy lens exists to catch.
+Revisit only if the beta outgrows a query.
+
+**Risk worth naming:** the founder is already the binding constraint on this project by the
+sprint's own reckoning. Making him the reader adds load to the constraint. The mitigation is
+that the reminder pushes to him rather than requiring him to remember a ritual — a check that
+depends on discipline is a check that lapses in week two.
+
 **Why:** flying without a radio is legal in some airspace and stupid in all of it. Ten testers
 who cannot reach us are ten testers we learn nothing from.
 
@@ -109,12 +130,44 @@ they govern different things:
   "We do not open a beta while any provider is unproven" is a rule. "This particular unproven
   provider is probably fine" is what you tell yourself at 11pm on the ninth.
 
-Proposed abort classes, for ratification:
+### Abort classes — recommended set, 2026-08-29
 
-1. Any user-facing claim Omen cannot support with real data.
-2. Any provider path unproven against a real connected account.
-3. Any instrument dead — we cannot see crashes, or cannot hear testers.
-4. Any credential reachable in an emitted payload.
+The founder asked for a recommendation rather than a menu. This is it: **keep three, tighten
+one, add one.** Reasoning is given per class, because a rule nobody can argue with is a rule
+nobody will apply.
+
+**1. AMENDED — any user-facing statement that asserts something Omen has not verified.**
+*Was: "any user-facing claim Omen cannot support with real data."* Too broad as written. Waiver
+Watch saying "availability needs confirmation" is **honest absence**, and the original wording
+would have grounded the beta over it. The line that matters is not *claim vs no claim* — it is
+**asserting vs admitting**. Honest absence passes. An unverified assertion does not.
+
+**2. KEEP — any provider path unproven against a real connected account.**
+Binds at the **invitation gate**, not the audit gate. Ratifying this does not reopen the
+2026-08-29 decision to defer `M11A` past the audit; the two are compatible by construction.
+
+**3. KEEP — any instrument dead: we cannot see crashes, or cannot hear testers.**
+This class **caught a real failure on its first run** — 0.2 above. A rule that finds something
+the first time it is applied is a live rule, not a formality.
+
+**4. KEEP — any credential reachable in an emitted payload.**
+Worst blast radius in the set and the least reversible. The shared scrubber has been found holed
+in three consecutive sessions, every time by provoking a real failure rather than by review.
+Non-negotiable.
+
+**5. ADD — any reproducible crash or hang on the first-run path.**
+**None of the other four catch this.** Instruments being alive is not the same as the app being
+stable; class 3 would happily pass while the app crashes on launch, because it only asks whether
+we can *see* the crash. Scope it to the B1 path — install, sign in, connect, reach a populated
+Command Center — so it stays testable rather than becoming "no bugs anywhere."
+
+### The firing rule
+
+**An abort class firing is binary, and the person who wants to ship does not get to grant the
+exception.** Without this the classes are advisory, and advisory abort criteria are the thing
+0.6 exists to prevent. If a class fires and the founder overrides it, that override is recorded
+in `decision_log.md` as a decision with his name on it — not resolved by re-reading the class
+until it no longer applies.
 
 ---
 

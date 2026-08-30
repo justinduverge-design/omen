@@ -3,8 +3,11 @@
 Run against `main` at `15debde`, per `Blueprints/playbooks/debt-preflight-v1.md` Stage 0.
 **Purpose:** establish whether we are equipped and fit to run Stage 1 at all.
 
-**Verdict: 4 of 6 pass. Stage 1 should not begin until 0.2 and 0.6 are answered — both need
-the founder, and neither takes long.**
+**Verdict at first run: 4 of 6 pass.**
+
+**Updated same day — the founder answered all three.** 0.2 has a named reader and a cadence;
+the audit is dated **today, 2026-08-29**; and the abort classes have a recommended set awaiting
+a single yes. See "Stage 0 close-out" at the foot of this document.
 
 ---
 
@@ -131,3 +134,72 @@ production on 2026-08-29 **without it**. The deploy succeeded and production ver
 hand afterward, so no harm resulted — but the rule was written to not depend on that, and it was
 not followed. `O3` is `READY`, unblocked, agent-buildable, cost `small`. Recording it rather
 than quietly noting the deploy went fine.
+
+
+---
+
+# Stage 0 close-out — 2026-08-29
+
+## 1. Who reads beta feedback — **ANSWERED**
+
+**The founder**, on his stated principle: the person paying for the apps and AI services reads
+what they produce. Cadence **daily while the beta is open** — not before, since volume is zero
+until invitations go out.
+
+**The check surfaced a real gap while answering it.** `POST /api/omen/feedback` writes
+`followed` / `user_stars` / `user_note` onto `moves`, and the only route reading them back —
+`GET /api/moves` — is **scoped to the authenticated user**. A tester can see their own feedback
+and nobody can see everyone's. The radio transmits; the only receiver is the sender's own
+handset.
+
+**Recommended fix — deliberately the cheap one:** a saved Supabase query over `moves` filtered
+to non-null `user_note` / `user_stars`, plus a standing daily reminder while the beta is open.
+No new route, no admin surface, no auth model to get wrong. Building an admin endpoint for ten
+testers is exactly the gold-plating the Scrappy lens exists to catch.
+
+**Named risk:** the founder is already the binding constraint by the sprint's own reckoning, and
+this adds load to the constraint. The mitigation is that the reminder pushes to him rather than
+relying on him remembering a ritual — a check that depends on discipline lapses in week two.
+
+## 2. Abort classes — **RECOMMENDATION MADE, awaiting one yes**
+
+Keep three, tighten one, add one. Full reasoning in `debt-preflight-v1.md` §0.6.
+
+| # | Class | Change |
+|---|---|---|
+| 1 | Any user-facing statement that **asserts** something Omen has not verified | **AMENDED** — the original wording would have grounded the beta over honest absence. The line is asserting vs admitting, not claim vs no claim. |
+| 2 | Any provider path unproven against a real connected account | keep — binds at the invitation gate, does not reopen the `M11A` deferral |
+| 3 | Any instrument dead — cannot see crashes, cannot hear testers | keep — **it caught a real failure on its first run** |
+| 4 | Any credential reachable in an emitted payload | keep — worst blast radius, least reversible |
+| 5 | Any reproducible crash or hang on the **first-run path** | **ADDED** — none of the other four catch it. Class 3 passes happily while the app crashes on launch, because it only asks whether we can *see* it. |
+
+**Plus the firing rule:** a class firing is binary, and the person who wants to ship does not
+grant the exception. An override is recorded in `decision_log.md` with a name on it, never
+resolved by re-reading the class until it stops applying.
+
+## 3. Audit date — **ANSWERED: today, 2026-08-29**
+
+This is the answer that converts debt register items #1 and #3 from a promise into a plan. Their
+repair interval was "after the audit", which was a trigger with no date; the audit now has one.
+
+**Consequence to state plainly:** `M11A` and the data-plan ⚠️ rows are now due **after today**,
+and before beta invitations. They are no longer indefinitely deferred.
+
+---
+
+## Stage 0 status
+
+| Check | Result |
+|---|---|
+| 0.1 instruments | **PASS** (with `O6` IP re-proof carried) |
+| 0.2 radio | **PASS on the answer, ACTION open** — reader and cadence named; the read surface is a saved query yet to be created |
+| 0.3 documents current | **PASS** after the `M12` repair |
+| 0.4 weight and balance | **PASS** |
+| 0.5 fuel reserve | **PASS**, borrowed |
+| 0.6 abort classes | **PENDING ONE YES** — recommended set above |
+
+**Stage 1 is cleared to begin the moment 0.6 gets its yes.** Nothing else holds it, and by 0.6's
+own logic that yes has to land *before* Stage 1 produces findings — ratifying afterward is the
+rationalisation the check exists to prevent.
+
+Per `audit-grading-system-v1.md`, Stage 1 opens with the **Veteran** pass: *does it hold?*
