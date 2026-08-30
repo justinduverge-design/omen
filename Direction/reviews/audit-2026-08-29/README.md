@@ -12,8 +12,30 @@ below. Nothing audit-related lives outside this directory.
 | — | — | Do we have the tooling? | [`tooling-check.md`](tooling-check.md) | complete |
 | — | all | Consolidated register | [`findings.md`](findings.md) | live |
 
-**Part B (device, real accounts) is not run in any pass.** It is founder-gated and needs
-hardware. Every pass states its own Part B position rather than implying coverage.
+## Phases — the audit is half done
+
+`pre-beta-audit-criteria-v1.md` defines **two phases, run on separate days**:
+
+> *"Run them in that order and on separate days. They fail differently: A is read against the
+> repo, B is read against a running app on a real device. **An auditor doing both at once will
+> quietly demote B**, because B is slower and less satisfying."*
+
+| Phase | Scope | Lenses | Status |
+|---|---|---|---|
+| Stage 0 | fitness to assess | — | **PASS 6/6**, 2026-08-29 |
+| **A — Code** | read against the repo | Veteran → Scrappy → Hotshot | **COMPLETE**, 2026-08-29 — 12 findings |
+| **B — The apps** | read against a running app | Veteran → Scrappy → Hotshot | **NOT STARTED** — separate day |
+
+**The audit is not done, and this file will not say it is until Phase B has run.** Every B
+criterion — B1 through B8 — is currently *unassessed*, not passed. No screen was launched, no
+screenshot taken, and no app opened during Phase A.
+
+**What Phase B needs, corrected.** An earlier draft called Part B "founder-gated" wholesale.
+That understated what is available: the app ships **24 screenshot scenarios** driven by a launch
+argument, **13 simulators** are on the build machine, and an Android debug APK is built. B3, B5,
+B6 and the fixture-backed half of B2 need no founder and no credentials. **Genuinely
+founder-gated:** B7 entirely, B4's real timing, and the real-league halves of B1 and B2 — all of
+which need a real connected account.
 
 ## Method note — passes were re-run from zero
 
