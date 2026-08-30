@@ -1,5 +1,36 @@
 # Omen Decision Log
 
+## 2026-08-30 — Try Demo suppressed, not removed; and the Android guardrail that was never wired
+
+- **Decision: the Try Demo entry point is suppressed behind a runtime flag, not deleted.**
+  Founder, 2026-08-29: *"suppress the button for now, we might need it later."* Nothing else
+  changed — the session path, `demoUserID` / `DEMO_USER_ID`, all eight `.demo` view states, the
+  fixtures and the screenshot scenarios are intact. Reversal is one line per platform.
+- **Why suppression is the better answer and not merely the smaller one.** Deleting the button
+  while leaving the states would have made all eight unreachable in production — `F-VET-02`'s
+  *"a populated state constructed only in fixtures is decoration"*, reproduced deliberately on
+  the day it was filed. Suppression keeps a reachable producer.
+- **Not a `#if DEBUG` gate, deliberately.** Compiling the entry point out of Release would leave
+  the `.demo` states unreachable in the **shipped** build while still looking correct in Debug —
+  the defect in the configuration that matters, hidden in the one that doesn't.
+- **Android was a defect, not a preference.** `OMEN_DEMO_MODE_ENABLED` has existed since the
+  build was configured and `release` already set it `false`, with a comment reading *"A shipped
+  build must never present mock output as live fantasy advice."* **The button was never gated on
+  it.** A release build would have shipped the demo entry point in direct contradiction of its
+  own build config and of the F9 mock/live labeling gate. Found while implementing a founder
+  preference; fixed as a bug. iOS had the same flag, hardcoded `true` with no config source, so
+  it shipped demo in Release too.
+- **The generalisable point:** a guardrail that is written, commented, and never wired reads
+  exactly like a guardrail that works. Both files *said* demo was off in release. Neither was.
+  **Nothing asserts a config value is honoured except a test or a screen**, and there was
+  neither.
+- **A flag shipping `false` for a season is a removal nobody recorded.** Revisit at the beta
+  retro rather than letting the default decide by drift.
+- **Still open:** whether App Store review depends on demo mode (Guideline 2.1 — a reviewer must
+  be able to evaluate the app, and Omen shows little without a connected league). Nothing in the
+  sprint or release readiness records a demo-account strategy. **Unresolved, and cheaper to
+  answer before a submission than after a rejection.**
+
 ## 2026-08-29 — Abort classes ratified; the audit is dated today and Stage 1 commences
 
 - **Decision: the five abort classes are RATIFIED**, as recommended in
