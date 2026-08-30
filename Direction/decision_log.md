@@ -1,5 +1,29 @@
 # Omen Decision Log
 
+## 2026-08-30 — iOS Build 2 uploaded to TestFlight, the first build containing any of the audit work
+
+- **Fact:** the founder archived and uploaded **iOS v0.1.0 Build 2** from `main` at `4fd2e4d`,
+  working tree clean. It is the **first build ever produced after 2026-08-18**, and therefore the
+  first that contains the League and Trade screens, the Command Center repairs, and every fix
+  from the 2026-08-29/30 audit.
+- **Why this needed doing at all — the gap `F-AUDIT-01` named.** Until today the only builds in
+  existence were iOS Build 1 and Android version code 1, both dated **2026-08-18**. The screens
+  merged on 2026-08-29. For a day, `main` and the field were eleven days apart, and every audit
+  finding was true of a build nobody could install. **`R6` invitations issued before this upload
+  would have pointed testers at an app with no League page, no Trade page, and the
+  confidence-zero defect.**
+- **Blocker found and cleared in the process:** the archive was initially **v0.1.0 Build 1** —
+  byte-identical in version to what App Store Connect already held, which rejects duplicate build
+  numbers outright. `CURRENT_PROJECT_VERSION` was bumped to `2` and Android's `versionCode` to
+  `2` for the same reason. **An upload attempted before that would have failed after the round
+  trip, not before it.**
+- **Still true, and not to be confused with this:** uploading is not releasing. External testers
+  cannot install until **Apple Beta App Review** passes on this specific build; internal testers
+  can install as soon as processing completes. `done/release-done.md` gate 4 is unchanged.
+- **Android is NOT uploaded.** `bundleRelease` fails closed without the founder's keystore
+  properties. "Both platforms ship the beta together" remains a founder decision, and it is not
+  satisfied by this upload.
+
 ## 2026-08-30 — Try Demo suppressed, not removed; and the Android guardrail that was never wired
 
 - **Decision: the Try Demo entry point is suppressed behind a runtime flag, not deleted.**
