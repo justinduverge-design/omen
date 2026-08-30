@@ -19,6 +19,9 @@ evidence.** Ordered by severity, then by pass.
 | **F-VET-B02** | Content scrolls under the status bar and Dynamic Island unreadably | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
 | **F-VET-B03** | Trade and League have no screenshot scenario, so nothing can exercise them | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
 | **F-VET-B04** | Android light theme leaves the status bar clock and icons invisible | Veteran (B) | B5 | WEEK-1 | afternoon | none |
+| **F-HOT-B01** | First screen: different layout and inverted primary action per platform | Hotshot (B) | A9 | WEEK-1 | afternoon | none |
+| **F-HOT-B02** | Parity cannot be assessed while the harness is drifted | Hotshot (B) | A9 · A10 | WEEK-1 | afternoon | none |
+| **F-SCR-B01** | Demo is the cheapest onboarding asset and is positioned inconsistently | Scrappy (B) | B1 | AFTER | afternoon | none |
 | **F-TOOL-01** | The audit method is not a skill, so it is not repeatable | tooling | A11 | WEEK-1 | afternoon | none |
 | **F-TOOL-02** | Session named no skills and appended no ledger row | tooling | A11 | AFTER | afternoon | none |
 
@@ -32,10 +35,20 @@ someone edited, and visible in about ninety seconds to anyone who taps the Trade
 screenshot, accessibility audit, and UI-test result about the tab shell describes a screen that
 no longer exists — including results this audit would otherwise have relied on.
 
-**One candidate finding was ruled out rather than reported:** an Android "System UI isn't
-responding" dialog on launch, which would have fired abort class 5 as a hang on the first-run
-path. `logcat -b events` attributed it to `com.android.systemui`'s keyguard service, not Omen.
-Recorded in the pass file so it is not re-found and mis-reported.
+**Two candidate findings were ruled out rather than reported**, and both would have been
+defensible on the screenshot alone:
+
+1. An Android *"System UI isn't responding"* dialog on launch — would have fired **abort class
+   5** as a hang on the first-run path. `logcat -b events` attributed it to
+   `com.android.systemui`'s keyguard service; Omen's crash buffer was empty and its pid alive.
+2. A pure-lime `#1EFF1C` border around the Android platforms card, matching no Omen token —
+   would have read as a design-system violation. `settings get secure accessibility_enabled`
+   returns `1` with TalkBack named: it is the **system's** focus rectangle.
+
+A third near-miss: Android's **first ever** cold launch measured **10,373 ms**, which a
+single-measurement pass would have filed beta-blocking. Runs 2–4 converged to
+**5,745 / 2,562 / 2,267 ms** — the first figure was emulator warm-up. **Each of the three cost
+one command to disprove.**
 
 ## Where the lenses disagreed
 

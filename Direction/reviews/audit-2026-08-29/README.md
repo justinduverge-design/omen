@@ -10,6 +10,8 @@ below. Nothing audit-related lives outside this directory.
 | 2 | Scrappy | What does this actually cost? | [`pass-2-scrappy.md`](pass-2-scrappy.md) | complete (Part A) |
 | 3 | Hotshot | What are we locking ourselves into? | [`pass-3-hotshot.md`](pass-3-hotshot.md) | complete (Part A) |
 | 4 | Veteran | Does it hold? — **on the running apps** | [`pass-4-veteran-apps.md`](pass-4-veteran-apps.md) | complete (Phase B) |
+| 5 | Scrappy | What does this cost? — **on the running apps** | [`pass-5-scrappy-apps.md`](pass-5-scrappy-apps.md) | complete (Phase B) |
+| 6 | Hotshot | What are we locking in? — **on the running apps** | [`pass-6-hotshot-apps.md`](pass-6-hotshot-apps.md) | complete (Phase B) |
 | — | — | Do we have the tooling? | [`tooling-check.md`](tooling-check.md) | complete |
 | — | all | Consolidated register | [`findings.md`](findings.md) | live |
 
@@ -25,11 +27,12 @@ below. Nothing audit-related lives outside this directory.
 |---|---|---|---|
 | Stage 0 | fitness to assess | — | **PASS 6/6**, 2026-08-29 |
 | **A — Code** | read against the repo | Veteran → Scrappy → Hotshot | **COMPLETE**, 2026-08-29 — 12 findings |
-| **B — The apps** | read against a running app | Veteran → Scrappy → Hotshot | **Veteran done** (`pass-4-veteran-apps.md`) — Scrappy and Hotshot not started |
+| **B — The apps** | read against a running app | Veteran → Scrappy → Hotshot | **COMPLETE**, 2026-08-29 — 6 findings, 2 ruled out |
 
-**The audit is not done, and this file will not say it is until Phase B has run.** Every B
-criterion — B1 through B8 — is currently *unassessed*, not passed. No screen was launched, no
-screenshot taken, and no app opened during Phase A.
+**Both phases have now run.** B7 (provider truth) and B8 (native crash reporting) remain
+**unassessed** — both need a real connected account or signing path, and B7 is the liability the
+founder deferred on 2026-08-29. Theme coverage is one-sided: iOS was observed in dark, Android in
+light, and neither was seen in the other.
 
 **What Phase B needs, corrected.** An earlier draft called Part B "founder-gated" wholesale.
 That understated what is available: the app ships **24 screenshot scenarios** driven by a launch
