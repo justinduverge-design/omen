@@ -1,5 +1,8 @@
 package com.slopssaloon.omen.app.feature.help
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import com.slopssaloon.omen.BuildConfig
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +76,24 @@ fun OmenHelpSupportScreen(
     modifier: Modifier = Modifier,
 ) {
     var feedbackUnavailable by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Opens the user's mail app. SubmissionUnavailable is now reached only when there is
+    // genuinely no way to send — a device with no mail client — which is what that state was
+    // always meant to mean. See the iOS twin for why this is not `POST /api/omen/feedback`.
+    fun compose(subject: String) {
+        val body = "\n\n—\nOmen ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:$SUPPORT_ADDRESS")
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_TEXT, body)
+        }
+        try {
+            context.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            feedbackUnavailable = true
+        }
+    }
     val effectiveState = if (feedbackUnavailable) OmenHelpSupportState.SubmissionUnavailable else state
 
     Column(
@@ -116,13 +139,13 @@ fun OmenHelpSupportScreen(
                 Spacer(Modifier.padding(top = OmenTheme.spacing.step8))
                 OmenListRow(
                     title = "Share feedback",
-                    subtitle = "Feedback sending is not available yet",
-                    onClick = { feedbackUnavailable = true },
+                    subtitle = "Opens your mail app — nothing is attached automatically",
+                    onClick = { compose("Omen feedback") },
                 )
                 OmenListRow(
                     title = "Report a problem",
                     subtitle = "Tell us what happened without private league data",
-                    onClick = { feedbackUnavailable = true },
+                    onClick = { compose("Omen problem report") },
                 )
             }
         }
@@ -173,3 +196,13 @@ private fun HelpSupportStateMessage(state: OmenHelpSupportState) {
         )
     }
 }
+
+/**
+ * The same address the web app already publishes (`frontend/src/pages/Support.jsx`), so wiring
+ * this invents no contract and adds no backend surface.
+ *
+ * Deliberately NOT `POST /api/omen/feedback`: that route is *move* feedback — it requires
+ * `week`, `season` and a boolean `followed`, and upserts into `moves`. A bug report written
+ * there would fabricate scoring data and still not reach a person.
+ */
+private const val SUPPORT_ADDRESS = "support@slopssaloon.com"

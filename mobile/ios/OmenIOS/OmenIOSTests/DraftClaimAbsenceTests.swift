@@ -250,5 +250,29 @@ final class DraftClaimAbsenceTests: XCTestCase {
         )
     }
 
+
+    /// `F-VET-06`. Help must not be wired to the move-feedback route. `POST /api/omen/feedback`
+    /// requires `week`, `season` and a boolean `followed` and upserts into `moves` — a bug
+    /// report sent there would fabricate scoring data and still reach nobody. Support goes to
+    /// the address the web app already publishes.
+    func testHelpSupportIsNotWiredToTheMoveFeedbackRoute() throws {
+        let root = try repoAppSourcesRoot()
+        let text = try String(
+            contentsOf: root.appendingPathComponent("Help/OmenHelpSupportView.swift"),
+            encoding: .utf8
+        )
+        // Comments stripped: the file *documents* why it does not use that route, and a naive
+        // grep matched the explanation. The first run of this test caught exactly that.
+        let body = Self.strippingComments(from: text)
+        XCTAssertFalse(
+            body.contains("api/omen/feedback"),
+            "Help must not post move feedback — that route needs a week, a season and a followed flag"
+        )
+        XCTAssertTrue(
+            body.contains("support@slopssaloon.com"),
+            "Help must route to the support address the web app publishes"
+        )
+    }
+
     // MARK: - Helpers
 }

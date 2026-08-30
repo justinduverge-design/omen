@@ -31,13 +31,31 @@ var omenShowsYahooAttribution: Bool {
     ConnectProvider.yahoo.availability == .available
 }
 
-/// Approved M4 Help + Support surface. Feedback is intentionally not sent or queued until an
-/// approved support contract exists; no league, roster, credential, token, cookie, or raw
-/// provider error is attached automatically.
+/// Approved M4 Help + Support surface.
+///
+/// **Feedback now reaches a human (F-VET-06, 2026-08-30).** It previously did not: both rows
+/// were deliberate dead ends, on the reasoning that nothing should be *"sent or queued until an
+/// approved support contract exists."* That was a defensible call when written and became a
+/// beta blocker the moment the beta plan depended on hearing from testers — a tester who hit a
+/// broken connection was told reporting was unavailable, and we learned nothing.
+///
+/// It routes to `support@slopssaloon.com`, **the same address the web app already publishes**
+/// (`frontend/src/pages/Support.jsx`), so this invents no contract and adds no backend surface.
+///
+/// It deliberately does **not** use `POST /api/omen/feedback`. That route is *move* feedback —
+/// it requires `week`, `season` and a boolean `followed`, and upserts into `moves`. A bug report
+/// written there would fabricate scoring data and still not reach a person.
+///
+/// The privacy promise below is enforced by construction: the prefilled body carries the app and
+/// OS version and nothing else. No league, roster, credential, token, cookie, or provider error
+/// is ever attached.
 struct OmenHelpSupportView: View {
+    static let supportAddress = "support@slopssaloon.com"
+
     let state: OmenHelpSupportState
     let contextDescription: String?
     @State private var feedbackUnavailable = false
+    @Environment(\.openURL) private var openURL
 
     init(state: OmenHelpSupportState = .available, contextDescription: String? = nil) {
         self.state = state
@@ -46,6 +64,42 @@ struct OmenHelpSupportView: View {
 
     private var effectiveState: OmenHelpSupportState {
         feedbackUnavailable ? .submissionUnavailable : state
+    }
+
+    /// Opens the user's mail app. `submissionUnavailable` is now reached only when there is
+    /// genuinely no way to send — a device with no mail account — which is what that state was
+    /// always supposed to mean.
+    private func compose(subject: String) {
+        guard let url = Self.mailtoURL(subject: subject) else {
+            feedbackUnavailable = true
+            return
+        }
+        openURL(url) { accepted in
+            if !accepted { feedbackUnavailable = true }
+        }
+    }
+
+    /// Body carries app and OS version only. Everything the privacy card promises is excluded
+    /// by simply never being read here — there is no code path that could attach a league,
+    /// roster, credential, token, cookie, or provider error.
+    static func mailtoURL(subject: String) -> URL? {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let body = """
+
+
+        —
+        Omen \(version) (\(build))
+        """
+
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = supportAddress
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: subject),
+            URLQueryItem(name: "body", value: body)
+        ]
+        return components.url
     }
 
     var body: some View {
@@ -83,13 +137,13 @@ struct OmenHelpSupportView: View {
                             .foregroundStyle(OmenColor.textPrimary)
                         OmenListRow(
                             title: "Share feedback",
-                            subtitle: "Feedback sending is not available yet",
-                            action: { feedbackUnavailable = true }
+                            subtitle: "Opens your mail app — nothing is attached automatically",
+                            action: { compose(subject: "Omen feedback") }
                         )
                         OmenListRow(
                             title: "Report a problem",
                             subtitle: "Tell us what happened without private league data",
-                            action: { feedbackUnavailable = true }
+                            action: { compose(subject: "Omen problem report") }
                         )
                     }
                 }
