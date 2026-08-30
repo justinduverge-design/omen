@@ -22,7 +22,7 @@ evidence.** Ordered by severity, then by pass.
 | **F-HOT-B01** | First screen: different layout and inverted primary action per platform | Hotshot (B) | A9 | WEEK-1 | afternoon | none |
 | ~~**F-HOT-B02**~~ | ~~Parity unassessable while the harness is drifted~~ **RESOLVED 2026-08-30, `97e8768`** — same fix; parity comparison is trustworthy again | Hotshot (B) | A9 · A10 | ~~WEEK-1~~ | afternoon | none |
 | **F-SCR-B01** | Demo is the cheapest onboarding asset and is positioned inconsistently | Scrappy (B) | B1 | AFTER | afternoon | none |
-| **F-VET-06** | No native path to send feedback — both Help affordances are dead ends | Veteran | 0.2 · A1 | **BETA-BLOCKING** | afternoon | **3 — FIRED** |
+| ~~**F-VET-06**~~ | ~~No native feedback path~~ **FIXED 2026-08-30, `51b159b`** — routes to the support address the web already publishes; not the move-feedback route | Veteran | 0.2 · A1 | ~~BETA-BLOCKING~~ | afternoon | ~~3~~ **cleared** |
 | **F-VET-05** | Help + Support can never report offline, noAccount, or providerRecovery — 3 of 5 states, both platforms | Veteran | A1 | WEEK-1 | afternoon | none |
 | **F-AUDIT-02** | A1 was reported swept while missing 12 of 18 state machines; Phase B opened 4 of 10 screens | Stage 0 gap | A1 · 0.6 | **WEEK-1** | afternoon | none |
 | **F-AUDIT-01** | The audit never checked whether the artifact under audit is the artifact in the field | Stage 0 gap | 0.1 · A11 | **WEEK-1** | afternoon | none |
@@ -77,7 +77,12 @@ in the same sentence.
 the field, and confirm they are the same artifact — or state the delta before any finding is
 recorded.*
 
-**Two beta blockers were closed, and a third has since been found.** `F-VET-01` (`ced460f`, W1) and `F-VET-B01` (`97e8768`, W2).
+**All three beta blockers found so far are closed.** `F-VET-01` (`ced460f`), `F-VET-B01`
+(`97e8768`), `F-VET-06` (`51b159b`). No abort class is currently fired.
+
+**That is a statement about what has been looked at, not about the app.** Coverage is still
+incomplete: Phase B has opened 8 of 10 screens, Android's A1 sweep is partial, A8 has never run,
+and every finding is against `main` rather than any build a tester can install (`F-AUDIT-01`). `F-VET-01` (`ced460f`, W1) and `F-VET-B01` (`97e8768`, W2).
 W2 also closed `F-VET-B03` and resolved `F-HOT-B02`, which were the same defect from other
 angles. **Four of sixteen findings cleared; no abort class remains fired.**
 
