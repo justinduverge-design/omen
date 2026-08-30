@@ -9,10 +9,10 @@ evidence.** Ordered by severity, then by pass.
 | ~~**F-HOT-01**~~ | ~~iOS fails the whole decode if a section is absent~~ **FIXED 2026-08-30, `a453a61`** | Hotshot | A6 · A9 | ~~WEEK-1~~ | — | none |
 | ~~**F-HOT-02**~~ | ~~Four `trade-compare.v2` fields required on iOS~~ **FIXED 2026-08-30, `a453a61`** | Hotshot | A6 · A9 | ~~WEEK-1~~ | — | none |
 | **F-VET-02** | Five of eight Waiver Watch states unreachable | Veteran | A1 | WEEK-1 | afternoon (hide) | none |
-| **F-VET-03** | League activity cannot populate; Alternate state ships as Primary | Veteran | A1 | WEEK-1 | contract | none |
+| ~~**F-VET-03**~~ | ~~League activity cannot populate~~ **FIXED for Sleeper 2026-08-30, `e43c5a0`** — standings signals populate; ESPN/Yahoo still unknown pending M11A claim 3 | Veteran | A1 | WEEK-1 → **partial** | — | none |
 | **F-VET-04** | Fixtures written since 2026-08-28 not from captured traffic | Veteran | A4 | WEEK-1 | afternoon | none |
 | ~~**F-SCR-01**~~ | ~~Native standings discard the points columns~~ **FIXED 2026-08-30, `a453a61`** | Scrappy | A3 | ~~WEEK-1~~ | — | none |
-| **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
+| ~~**F-SCR-02**~~ | ~~Data plan mis-sequences the activity work~~ **RESOLVED 2026-08-30, `e43c5a0`** — the field was in an object already fetched; `api-routes.md` corrected | Scrappy | A11 | ~~AFTER~~ | — | none |
 | **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
 | **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
 | ~~**F-VET-B01**~~ | ~~Screenshot harness is a drifted duplicate~~ **FIXED 2026-08-30, `97e8768`** — both harnesses mount the real screens; tab metadata single-sourced; 3 guards, proven by reintroducing the defect | Veteran (B) | B2 · A10 | ~~BETA-BLOCKING~~ | afternoon | none |
