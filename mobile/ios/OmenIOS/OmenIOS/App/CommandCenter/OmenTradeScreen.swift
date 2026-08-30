@@ -19,6 +19,13 @@ struct OmenTradeScreen: View {
 
     @State private var sendDraft: String = ""
     @State private var receiveDraft: String = ""
+    /// Found by the founder on a real device, 2026-08-30: the keyboard opened on the player
+    /// fields and there was no way out of it — no Done, no tap-to-dismiss, no scroll dismissal.
+    /// The screen became a trap. Nothing in the audit caught this, because every pass looked at
+    /// rendered state and none of them typed.
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable { case send, receive }
 
     var body: some View {
         ScrollView {
@@ -32,7 +39,18 @@ struct OmenTradeScreen: View {
             .padding(OmenSpacing.step24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Dragging the list dismisses the keyboard, the standard iOS gesture.
+        .scrollDismissesKeyboard(.interactively)
         .background(OmenColor.bg)
+        // Tapping anywhere off a field also dismisses it. Belt and braces, because a text
+        // field a user cannot escape is worse than one that is slightly eager to let go.
+        .onTapGesture { focusedField = nil }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
+        }
     }
 
     private var header: some View {
@@ -75,11 +93,20 @@ struct OmenTradeScreen: View {
                     label: "Add a player",
                     placeholder: "Player name"
                 )
+                .focused($focusedField, equals: side == .send ? .send : .receive)
+                // Return adds the player, so the common path never needs the Done button.
+                .submitLabel(.done)
+                .onSubmit {
+                    onAdd?(draft.wrappedValue, side)
+                    draft.wrappedValue = ""
+                    focusedField = nil
+                }
                 OmenButton(
                     title: "Add",
                     action: {
                         onAdd?(draft.wrappedValue, side)
                         draft.wrappedValue = ""
+                        focusedField = nil
                     },
                     variant: .secondary,
                     size: .md
