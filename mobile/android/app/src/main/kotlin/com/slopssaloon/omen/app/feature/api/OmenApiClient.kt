@@ -7,6 +7,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -119,6 +120,32 @@ class OmenApiClient(
         body: String = "{}",
         decode: (String) -> T?,
     ): OmenApiResult<T> = send(path, "POST", accessToken, body, decode)
+
+    /**
+     * GET where the token is genuinely optional, with query parameters.
+     * iOS mirror: `get(_:optionalAccessToken:query:as:)`.
+     *
+     * [query] values are percent-encoded here and nowhere else. Interpolating them into [path]
+     * would appear to work on this platform — URLs are assembled by string concatenation in
+     * [send] — right up until a player name contains a space or an `&`. iOS had the mirror-image
+     * bug for the mirror-image reason: `URL.appendingPathComponent` encoded the whole
+     * `search?q=…` string as ONE path segment and 404'd every request. Neither client should
+     * ever hand-build a query string again.
+     */
+    suspend fun <T> getOptionalAuth(
+        path: String,
+        accessToken: String?,
+        query: Map<String, String> = emptyMap(),
+        decode: (String) -> T?,
+    ): OmenApiResult<T> = send(pathWithQuery(path, query), "GET", accessToken, null, decode)
+
+    private fun pathWithQuery(path: String, query: Map<String, String>): String {
+        if (query.isEmpty()) return path
+        val encoded = query.entries.joinToString("&") { (key, value) ->
+            "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
+        }
+        return "$path?$encoded"
+    }
 
     private suspend fun <T> send(
         path: String,

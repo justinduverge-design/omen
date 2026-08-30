@@ -78,6 +78,42 @@ the native client did not consume. The Scrappy pass swept for that and found `po
 not find this, because the sweep compared *provider payloads* against clients and never asked
 **which of our own routes no client calls.**
 
+### Android had the identical gap, and the identical fix
+
+The founder's standing rule is that both platforms ship together, so Android was checked rather
+than assumed. It had **the same bare field and the same never-called route** — the defect was
+never iOS-specific, it was one omission made twice.
+
+The URL bug, though, was *mirror-imaged*, and this is the part worth keeping:
+
+| | how the query was built | what happened |
+|---|---|---|
+| iOS | `URL.appendingPathComponent("search?q=…")` | encoded the whole thing as ONE path segment → `search%3Fq=…` → **404 on every request** |
+| Android | `"$base/$path"` string concatenation | would have *appeared* to work — until a name contained a space (malformed URL, rejected before sending) or an `&` (a second query parameter injected from user input) |
+
+The iOS version failed loudly on the first try. The Android version would have passed a casual
+test with "jefferson" and failed on "Justin Jefferson". Both clients now build query items
+through a real encoder — `URLComponents` on iOS, `URLEncoder` on Android — and neither may
+hand-assemble a query string again. `PlayerSearchTest` pins both properties, including that an
+`&` in a name cannot inject a parameter.
+
+Android also now clears focus when a player is picked, matching iOS. Android was never a keyboard
+*trap* — the system back button always dismissed it — so this is parity, not a rescue.
+
+**Verified live on the emulator against the production API**, same as iOS: "jeffer" returned
+Justin Jefferson (WR·MIN), Alshon Jeffery (WR·FA), Ramon Jefferson (RB·FA), Van Jefferson
+(WR·WAS), Jermar Jefferson (RB·MIN); tapping the first added it with a Remove control, cleared
+the field, closed the picker and the keyboard, and moved the hint to "Add a player you'd receive."
+
+**One detour worth recording, because it nearly produced a false bug report.** The first two
+emulator runs showed no rows and looked like a wiring defect. The cause was that the Android
+**debug build points at `https://example.invalid` by default** — a deliberate placeholder guard —
+so every request went nowhere, silently. Demo mode is served locally, so Command Center rendered
+normally and the app looked healthy. Passing `-Pomen.debugApiBaseUrl` did *not* help either:
+`cfg()` reads environment variables and `local.properties`, never Gradle project properties.
+`OMEN_DEBUG_API_BASE_URL=… ./gradlew :app:installDebug` is the working form. Had I trusted the
+screen, I would have filed a wiring bug that did not exist — or worse, "fixed" working code.
+
 ## Two design-system checks caught the fix mid-flight
 
 Worth recording as the system working:

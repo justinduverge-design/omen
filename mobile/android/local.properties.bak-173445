@@ -1,0 +1,17 @@
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read the
+# header note.
+#Thu Aug 13 16:27:53 EDT 2026
+sdk.dir=/Users/justinduvergecatalino/Library/Android/sdk
+omen.supabaseUrl=https://xyudxfhqejbwvjngiwhw.supabase.co
+omen.supabaseAnonKey=sb_publishable_idkpRLkKVOjfgdrkCBiovw_kZdeL6ZK
+omen.googleWebClientId=310882975169-ldvkt89fk4jse3v0ud7odc922bk11ahj.apps.googleusercontent.com
+
+omen.androidSentryDsn=https://ddb0290d4e8de4508134314a953bd435@o4511928445960192.ingest.us.sentry.io/4511928504680449
+omen.releaseStoreFile=../../../omen-upload.jks
+omen.releaseStorePassword=Kemp2304
+omen.releaseKeyAlias=omen-upload
+omen.releaseKeyPassword=Kemp2304

@@ -19,9 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.slopssaloon.omen.app.feature.api.OmenApiError
+import com.slopssaloon.omen.app.feature.api.PlayerSearchResult
 import com.slopssaloon.omen.app.feature.api.TradeCompare
 import com.slopssaloon.omen.app.feature.api.TradeOffer
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
@@ -32,6 +34,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenButtonSize
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
 import com.slopssaloon.omen.core.designsystem.component.OmenCard
 import com.slopssaloon.omen.core.designsystem.component.OmenCardVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenListRow
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.component.OmenTextField
@@ -54,12 +57,20 @@ fun OmenTradeScreen(
     state: TradeViewModel.ViewState,
     offer: TradeOffer,
     modifier: Modifier = Modifier,
+    /** Autocomplete rows for the side currently being typed into. Empty hides the picker. */
+    suggestions: List<PlayerSearchResult> = emptyList(),
+    searchingSide: TradeViewModel.Side? = null,
+    onQueryChanged: ((String, TradeViewModel.Side) -> Unit)? = null,
     onAdd: ((String, TradeViewModel.Side) -> Unit)? = null,
     onRemove: ((Int, TradeViewModel.Side) -> Unit)? = null,
     onCompare: (() -> Unit)? = null,
 ) {
     var sendDraft by remember { mutableStateOf("") }
     var receiveDraft by remember { mutableStateOf("") }
+    // Picking a player closes the keyboard, matching iOS. There the open keyboard was an
+    // outright trap the founder hit on a real device (no Done, no tap-out, no scroll dismiss);
+    // Android always had the system back button, so this is parity rather than a rescue.
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = modifier
@@ -90,10 +101,17 @@ fun OmenTradeScreen(
             title = "You send",
             players = offer.send,
             draft = sendDraft,
-            onDraftChange = { sendDraft = it },
-            onAdd = {
-                onAdd?.invoke(sendDraft, TradeViewModel.Side.Send)
+            // The picker belongs to one side at a time, so two filled fields can never show
+            // one list between them and drop a player onto the wrong half of the offer.
+            suggestions = if (searchingSide == TradeViewModel.Side.Send) suggestions else emptyList(),
+            onDraftChange = {
+                sendDraft = it
+                onQueryChanged?.invoke(it, TradeViewModel.Side.Send)
+            },
+            onAdd = { name ->
+                onAdd?.invoke(name, TradeViewModel.Side.Send)
                 sendDraft = ""
+                focusManager.clearFocus()
             },
             onRemove = { onRemove?.invoke(it, TradeViewModel.Side.Send) },
         )
@@ -102,10 +120,15 @@ fun OmenTradeScreen(
             title = "You receive",
             players = offer.receive,
             draft = receiveDraft,
-            onDraftChange = { receiveDraft = it },
-            onAdd = {
-                onAdd?.invoke(receiveDraft, TradeViewModel.Side.Receive)
+            suggestions = if (searchingSide == TradeViewModel.Side.Receive) suggestions else emptyList(),
+            onDraftChange = {
+                receiveDraft = it
+                onQueryChanged?.invoke(it, TradeViewModel.Side.Receive)
+            },
+            onAdd = { name ->
+                onAdd?.invoke(name, TradeViewModel.Side.Receive)
                 receiveDraft = ""
+                focusManager.clearFocus()
             },
             onRemove = { onRemove?.invoke(it, TradeViewModel.Side.Receive) },
         )
@@ -170,8 +193,9 @@ private fun TradeSide(
     title: String,
     players: List<String>,
     draft: String,
+    suggestions: List<PlayerSearchResult>,
     onDraftChange: (String) -> Unit,
-    onAdd: () -> Unit,
+    onAdd: (String) -> Unit,
     onRemove: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
@@ -208,6 +232,24 @@ private fun TradeSide(
             }
         }
 
+        // Sits directly under the field it belongs to, and only for the side being typed into.
+        if (suggestions.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(OmenTheme.color.surface1),
+            ) {
+                suggestions.forEach { player ->
+                    OmenListRow(
+                        title = player.name,
+                        subtitle = player.subtitle,
+                        onClick = { onAdd(player.name) },
+                    )
+                }
+            }
+        }
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
             verticalAlignment = Alignment.Bottom,
@@ -221,7 +263,7 @@ private fun TradeSide(
             )
             OmenButton(
                 text = "Add",
-                onClick = onAdd,
+                onClick = { onAdd(draft) },
                 variant = OmenButtonVariant.Secondary,
                 size = OmenButtonSize.Md,
             )

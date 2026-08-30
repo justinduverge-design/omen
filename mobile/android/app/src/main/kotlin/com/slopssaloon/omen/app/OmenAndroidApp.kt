@@ -64,6 +64,7 @@ import com.slopssaloon.omen.app.feature.api.LeagueSwitcherViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueSwitcherSheet
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
 import com.slopssaloon.omen.app.feature.api.ApiLeagueRepository
+import com.slopssaloon.omen.app.feature.api.ApiPlayerSearchRepository
 import com.slopssaloon.omen.app.feature.api.ApiTradeRepository
 import com.slopssaloon.omen.app.feature.api.LeagueViewModel
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
@@ -188,8 +189,11 @@ fun OmenAndroidApp() {
     val tradeViewModel = remember {
         TradeViewModel(
             repository = ApiTradeRepository(OmenApiClient(env.apiBaseUrl)),
+            // Autocomplete is public too — `/api/players/search` takes no bearer.
+            playerSearch = ApiPlayerSearchRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
             accessTokenProvider = { store.load()?.accessToken },
+            scope = scope,
         )
     }
 
@@ -722,6 +726,9 @@ private fun SignedInDestination(
             OmenTradeScreen(
                 state = tradeViewModel.viewState,
                 offer = tradeViewModel.offer,
+                suggestions = tradeViewModel.suggestions,
+                searchingSide = tradeViewModel.searchingSide,
+                onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
                 onAdd = { name, side -> tradeViewModel.add(name, side) },
                 onRemove = { index, side -> tradeViewModel.remove(index, side) },
                 onCompare = { scope.launch { tradeViewModel.compare(userId) } },

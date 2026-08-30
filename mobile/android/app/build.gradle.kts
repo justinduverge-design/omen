@@ -215,6 +215,9 @@ dependencies {
     // into a quietly passing test. This never reaches the app: at runtime Android supplies
     // its own `org.json`, so production behaviour is unchanged.
     testImplementation(libs.json.unit.test)
+    // Added for PlayerSearchTest: the search path is suspending, and its URL construction is
+    // the part real use exposed and unit tests had no way to reach.
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext.junit)
