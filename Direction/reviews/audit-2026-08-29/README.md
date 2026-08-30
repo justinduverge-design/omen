@@ -9,6 +9,7 @@ below. Nothing audit-related lives outside this directory.
 | 1 | Veteran | Does it hold? | [`pass-1-veteran.md`](pass-1-veteran.md) | complete (Part A) |
 | 2 | Scrappy | What does this actually cost? | [`pass-2-scrappy.md`](pass-2-scrappy.md) | complete (Part A) |
 | 3 | Hotshot | What are we locking ourselves into? | [`pass-3-hotshot.md`](pass-3-hotshot.md) | complete (Part A) |
+| 4 | Veteran | Does it hold? — **on the running apps** | [`pass-4-veteran-apps.md`](pass-4-veteran-apps.md) | complete (Phase B) |
 | — | — | Do we have the tooling? | [`tooling-check.md`](tooling-check.md) | complete |
 | — | all | Consolidated register | [`findings.md`](findings.md) | live |
 
@@ -24,7 +25,7 @@ below. Nothing audit-related lives outside this directory.
 |---|---|---|---|
 | Stage 0 | fitness to assess | — | **PASS 6/6**, 2026-08-29 |
 | **A — Code** | read against the repo | Veteran → Scrappy → Hotshot | **COMPLETE**, 2026-08-29 — 12 findings |
-| **B — The apps** | read against a running app | Veteran → Scrappy → Hotshot | **NOT STARTED** — separate day |
+| **B — The apps** | read against a running app | Veteran → Scrappy → Hotshot | **Veteran done** (`pass-4-veteran-apps.md`) — Scrappy and Hotshot not started |
 
 **The audit is not done, and this file will not say it is until Phase B has run.** Every B
 criterion — B1 through B8 — is currently *unassessed*, not passed. No screen was launched, no

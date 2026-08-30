@@ -15,8 +15,27 @@ evidence.** Ordered by severity, then by pass.
 | **F-SCR-02** | Data plan sequences the activity work as free; it is not | Scrappy | A11 | AFTER | afternoon | none |
 | **F-SCR-03** | Feedback has a transmitter and no receiver | Scrappy | A11 · 0.2 | AFTER | afternoon | 3 at invitation gate |
 | **F-HOT-03** | The activity seam is untested in the direction it will be used | Hotshot | A6 | AFTER | afternoon | none |
+| **F-VET-B01** | Screenshot harness is a drifted duplicate of the app shell; Trade/League still show removed placeholders | Veteran (B) | B2 · A10 | **BETA-BLOCKING** | afternoon | none |
+| **F-VET-B02** | Content scrolls under the status bar and Dynamic Island unreadably | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
+| **F-VET-B03** | Trade and League have no screenshot scenario, so nothing can exercise them | Veteran (B) | B2 · B5 | WEEK-1 | afternoon | none |
+| **F-VET-B04** | Android light theme leaves the status bar clock and icons invisible | Veteran (B) | B5 | WEEK-1 | afternoon | none |
 | **F-TOOL-01** | The audit method is not a skill, so it is not repeatable | tooling | A11 | WEEK-1 | afternoon | none |
 | **F-TOOL-02** | Session named no skills and appended no ledger row | tooling | A11 | AFTER | afternoon | none |
+
+## Phase B — what changed the picture
+
+Phase B produced the **highest-severity finding in the audit** (`F-VET-B01`) and it was
+unreachable from Phase A. The harness drift is invisible to a code read scoped to the files
+someone edited, and visible in about ninety seconds to anyone who taps the Trade tab.
+
+**It also invalidates evidence retroactively.** Until the harness matches the app, every
+screenshot, accessibility audit, and UI-test result about the tab shell describes a screen that
+no longer exists — including results this audit would otherwise have relied on.
+
+**One candidate finding was ruled out rather than reported:** an Android "System UI isn't
+responding" dialog on launch, which would have fired abort class 5 as a hang on the first-run
+path. `logcat -b events` attributed it to `com.android.systemui`'s keyguard service, not Omen.
+Recorded in the pass file so it is not re-found and mis-reported.
 
 ## Where the lenses disagreed
 
