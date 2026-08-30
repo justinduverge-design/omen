@@ -22,10 +22,57 @@ evidence.** Ordered by severity, then by pass.
 | **F-HOT-B01** | First screen: different layout and inverted primary action per platform | Hotshot (B) | A9 | WEEK-1 | afternoon | none |
 | ~~**F-HOT-B02**~~ | ~~Parity unassessable while the harness is drifted~~ **RESOLVED 2026-08-30, `97e8768`** — same fix; parity comparison is trustworthy again | Hotshot (B) | A9 · A10 | ~~WEEK-1~~ | afternoon | none |
 | **F-SCR-B01** | Demo is the cheapest onboarding asset and is positioned inconsistently | Scrappy (B) | B1 | AFTER | afternoon | none |
+| **F-AUDIT-01** | The audit never checked whether the artifact under audit is the artifact in the field | Stage 0 gap | 0.1 · A11 | **WEEK-1** | afternoon | none |
 | **F-TOOL-01** | The audit method is not a skill, so it is not repeatable | tooling | A11 | WEEK-1 | afternoon | none |
 | **F-TOOL-02** | Session named no skills and appended no ledger row | tooling | A11 | AFTER | afternoon | none |
 
-## Remediation status — 2026-08-30
+## Correction — 2026-08-30, raised by the founder
+
+**The founder reported the two new pages are not visible on his real phone. He is right, and a
+claim made earlier in that session was wrong.**
+
+The pages were described as *"built, shipped, and deployed."* Only the first is true of the
+apps. What deployed on 2026-08-29 was the **backend** — `deploy.yml` to KVM1, which is what
+carries `GET /api/league/overview`. The **native screens merged to `main` and were never built
+into any distributable artifact.**
+
+| Artifact | Date | Contains the screens? |
+|---|---|---|
+| Screens merged to `main` (`e603a08`) | **2026-08-29** | — |
+| iOS TestFlight — v0.1.0 **Build 1**, the only build this app has ever had | **2026-08-18** | **No.** Eleven days earlier. |
+| Android `app-release.aab`, Play version code 1 | **2026-08-18** | **No.** |
+| Every CI run since the merge | 2026-08-29/30 | "Deploy to Hostinger KVM1" — **backend only** |
+
+`ios-ci.yml` triggers only on `release/**` and manual dispatch, and has not run since
+2026-08-03. There is no release branch and no tag. **No mobile build has been produced since the
+screens were written**, so the device cannot be showing them and nothing is wrong with the
+device.
+
+**`definition-of-done.md` already carries the rule this broke:** *"Work merged to `main` is
+merged, not released, and must never be described as live or deployed without
+`done/release-done.md` gate 4 evidence."* Backend deployment and mobile release were conflated
+in the same sentence.
+
+### F-AUDIT-01 — the preflight never asked whether it was auditing the shipped artifact
+
+- **Claim:** Stage 0 established that we could see, hear, and read current documents, and what
+  capacity we had. It never asked **which build the founder actually runs**, so an eleven-day gap
+  between `main` and the only existing TestFlight build went unnoticed through six audit passes.
+- **Evidence:** `stage-0-preflight.md` checks 0.1–0.6 contain no build-provenance check. Phase B
+  ran entirely on a simulator and an emulator, both installed from a fresh local build of `main`.
+- **Failure scenario:** Exactly what happened. Every Phase B finding is true of `main` and **none
+  of them is known to be true of the build in the founder's hand** — including the two beta
+  blockers now marked fixed. A tester on Build 1 has none of today's fixes and none of today's
+  screens.
+- **Criterion:** Stage 0.1 instruments — *you cannot audit what you cannot observe*, extended to
+  *you cannot audit a build nobody is running*.
+- **Severity:** WEEK-1-BLOCKING — `R6` invitations point testers at Build 1
+- **Reversibility:** afternoon (add the check) · the rebuild itself is founder-gated
+- **Abort class:** none, but it makes class 2 and 3 evidence build-specific rather than absolute
+
+**Proposed Stage 0 check 0.7, for the next audit:** *name the build under audit and the build in
+the field, and confirm they are the same artifact — or state the delta before any finding is
+recorded.*
 
 **Both beta blockers are closed.** `F-VET-01` (`ced460f`, W1) and `F-VET-B01` (`97e8768`, W2).
 W2 also closed `F-VET-B03` and resolved `F-HOT-B02`, which were the same defect from other
