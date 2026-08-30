@@ -223,6 +223,87 @@ final class OmenDecisionTests: XCTestCase {
         XCTAssertNil(envelope.recovery)
         guard case .empty = envelope.briefState() else { return XCTFail("expected empty") }
     }
+
+    /// Regression, `F-VET-01`. `OmenDecision` filled a missing confidence score with `?? 0`,
+    /// and `OmenConfidenceBar` prints its score verbatim — so a brief the server declined to
+    /// score displayed **"Confidence 0"**, which reads as "Omen has no confidence in this move"
+    /// rather than "Omen did not say". The server models the absence deliberately:
+    /// `src/routes/omen.js` persists it as `null` behind a `Number.isFinite` guard.
+    func testAMissingConfidenceScoreIsAbsentRatherThanZero() throws {
+        let envelope = try decode("""
+        {
+          "contract_version": "2026-05-18.omen-live.v1",
+          "state": "success",
+          "mode": "live",
+          "recommendation": {
+            "type": "waiver_pickup",
+            "title": "Add Jaylen Wright",
+            "move": "Pick up Jaylen Wright to cover your RB slot.",
+            "risk": {"level": "medium", "reasons": []},
+            "explanation": {"summary": "Add Jaylen Wright."}
+          }
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else {
+            return XCTFail("a scoreless recommendation is still a renderable brief")
+        }
+        XCTAssertNil(payload.confidence, "absence must survive the mapping, not become 0")
+        // The rest of the brief is unaffected — one absent field must not degrade the others.
+        XCTAssertEqual(payload.verdict, "Add Jaylen Wright")
+        XCTAssertEqual(payload.risk, .medium)
+    }
+
+    /// The whole confidence block absent, not merely its score.
+    func testAnEntirelyAbsentConfidenceBlockIsAlsoAbsent() throws {
+        let envelope = try decode("""
+        {
+          "contract_version": "2026-05-18.omen-live.v1",
+          "state": "success",
+          "mode": "live",
+          "recommendation": {
+            "type": "start_sit",
+            "title": "Start DeVonta Smith",
+            "move": "Start DeVonta Smith over Chris Olave.",
+            "confidence": {"label": "medium_high", "rationale": "No numeric score supplied."},
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Smith."}
+          }
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else {
+            return XCTFail("expected a success brief")
+        }
+        XCTAssertNil(payload.confidence, "a confidence block with a label but no score is still scoreless")
+    }
+
+    /// A real score must still survive untouched — the fix must not suppress valid data.
+    func testARealConfidenceScoreStillRenders() throws {
+        XCTAssertEqual(try zeroConfidencePayload(score: "0")?.confidence, 0,
+                       "a genuine 0 from the server is a real answer and must be kept")
+        XCTAssertEqual(try zeroConfidencePayload(score: "83")?.confidence, 83)
+    }
+
+    private func zeroConfidencePayload(score: String) throws -> OmenDecisionBriefPayload? {
+        let envelope = try decode("""
+        {
+          "contract_version": "2026-05-18.omen-live.v1",
+          "state": "success",
+          "mode": "live",
+          "recommendation": {
+            "type": "start_sit",
+            "title": "Start DeVonta Smith",
+            "move": "Start DeVonta Smith over Chris Olave.",
+            "confidence": {"score": \(score), "label": "low", "rationale": "r"},
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Smith."}
+          }
+        }
+        """)
+        guard case .success(let payload) = envelope.briefState() else { return nil }
+        return payload
+    }
 }
 
 // MARK: - View model
@@ -309,4 +390,5 @@ final class OmenDecisionViewModelTests: XCTestCase {
             return XCTFail("the pre-request state must be loading, not empty")
         }
     }
+
 }

@@ -116,18 +116,35 @@ no separate work.
 (*"a populated state constructed only in fixtures is decoration"*) reproduced deliberately, four
 times per platform, on the day it was reported.
 
-**Recommended scope — full removal, with one carve-out:**
+### FOUNDER DECISION 2026-08-29 — suppress, do not remove
 
-1. Delete the button on both platforms.
-2. Delete the `.demo` / `Demo` view-state cases and every branch that handles them.
-3. Delete `demoUserID` / `DEMO_USER_ID` and the session path that mints a demo identity.
-4. **Keep the demo *fixtures*.** They are legitimate screenshot and test data. The harness
-   already supports supplying a state directly — `ScreenshotScenarioHost.commandCenter(_ state:)`
-   does exactly this — so scenarios can render demo data **without** a `.demo` view state
-   existing in the app's state machine. Fixtures become test inputs, not a product mode.
+*"Let's just suppress the button for now, we might need it later."*
 
-That carve-out is what keeps W3 from deleting the `command-center.demo-connected` and `omen.demo`
-scenarios along with the mode.
+**This resolves the trap above rather than dodging it, and it is the better answer.** Nothing is
+deleted, so the eight `.demo` view states keep a reachable producer and do not become
+decoration. It also keeps the App Store review option open at zero cost — which matters given
+Decision 2 below is unresolved.
+
+**Revised scope:**
+
+1. **One named constant per platform**, defaulting to off — e.g. `AppEnvironment.demoEntryEnabled`
+   and its Kotlin twin. The welcome screen renders Try Demo only when it is true.
+2. **Nothing else is deleted.** `demoUserID` / `DEMO_USER_ID`, the `.demo` view states, the
+   session path, the fixtures, and the screenshot scenarios all stay exactly as they are.
+3. **The Waiver Watch copy still must change** — see the dead-copy trap below. That is not
+   optional under suppression; it is *more* necessary, because the affordance still exists in
+   the binary and simply cannot be reached.
+4. Record the constant's default and its reason in `decision_log.md`, so the next session does
+   not read a false-defaulting flag as a bug and "fix" it.
+
+**Deliberately not a `#if DEBUG` gate.** Compiling the entry point out of Release would make the
+`.demo` states genuinely unreachable in the shipped build — reintroducing the decoration defect
+in exactly the configuration that matters, while looking clean in Debug. A runtime constant that
+ships `false` keeps the path intact and is one line to flip.
+
+**What suppression does not buy:** it is not a decision about demo's future, and it should not be
+allowed to become one by default. A flag that ships `false` for a season is a removal nobody
+recorded. Revisit at the beta retro.
 
 ## Decision 2 — the risk that must be checked first
 

@@ -33,7 +33,12 @@ data class OmenDecisionBriefPayload(
     val verdict: String,
     val move: String,
     val impact: String? = null,
-    val confidence: Int,
+    /**
+     * Nullable since 2026-08-29. It was `Int`, and `OmenDecision` filled a missing score with
+     * `?: 0`, so a brief the server declined to score displayed "Confidence 0" — a claim Omen
+     * never made, and indistinguishable from genuine zero confidence.
+     */
+    val confidence: Int? = null,
     val risk: OmenRiskLevel,
     val riskReasons: List<String> = emptyList(),
     val explanation: List<String> = emptyList(),
@@ -229,7 +234,9 @@ private fun SuccessBody(
         if (payload.metrics.isNotEmpty()) {
             OmenMetricStrip(items = payload.metrics)
         }
-        OmenConfidenceBar(score = payload.confidence, label = "Confidence")
+        // Absent means absent. No placeholder bar, no dash, no zero — a greyed bar still
+        // occupies the position a number belongs in and reads as a number.
+        payload.confidence?.let { OmenConfidenceBar(score = it, label = "Confidence") }
         OmenRiskPanel(level = payload.risk, reasons = payload.riskReasons)
         for (paragraph in payload.explanation) {
             Text(

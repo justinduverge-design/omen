@@ -162,7 +162,10 @@ extension OmenDecisionEnvelope {
             verdict: verdict,
             move: move,
             impact: recommendation.expectedValueDelta.flatMap(Self.impactText),
-            confidence: conf?.score ?? 0,
+            // Never `?? 0`. `src/routes/omen.js` persists a missing score as null behind a
+            // `Number.isFinite` guard — the server treats absence as a real, expected state,
+            // and the client must not manufacture a number the server declined to give.
+            confidence: conf?.score,
             risk: Self.riskLevel(recommendation.risk?.level),
             riskReasons: recommendation.risk?.reasons ?? [],
             explanation: Self.explanationLines(explanationBlock),

@@ -21,7 +21,11 @@ struct OmenDecisionBriefPayload {
     let verdict: String
     let move: String
     let impact: String?
-    let confidence: Int
+    /// Optional since 2026-08-29. It was `Int`, and `OmenDecision` filled a missing score with
+    /// `?? 0`, so a brief the server declined to score displayed "Confidence 0" — a claim Omen
+    /// never made, and indistinguishable from genuine zero confidence. The struct's own
+    /// contract above already said any field may be absent; this one did not honour it.
+    let confidence: Int?
     let risk: OmenRiskLevel
     let riskReasons: [String]
     let explanation: [String]
@@ -33,7 +37,7 @@ struct OmenDecisionBriefPayload {
         verdict: String,
         move: String,
         impact: String? = nil,
-        confidence: Int,
+        confidence: Int? = nil,
         risk: OmenRiskLevel,
         riskReasons: [String] = [],
         explanation: [String] = [],
@@ -198,7 +202,11 @@ struct OmenDecisionBrief<Feedback: View>: View {
             if !payload.metrics.isEmpty {
                 OmenMetricStrip(items: payload.metrics)
             }
-            OmenConfidenceBar(score: payload.confidence, label: "Confidence")
+            // Absent means absent. No placeholder bar, no em dash, no zero — a greyed bar
+            // still occupies the position a number belongs in and reads as a number.
+            if let confidence = payload.confidence {
+                OmenConfidenceBar(score: confidence, label: "Confidence")
+            }
             OmenRiskPanel(level: payload.risk, reasons: payload.riskReasons)
             ForEach(Array(payload.explanation.enumerated()), id: \.offset) { _, paragraph in
                 Text(paragraph)

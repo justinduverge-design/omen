@@ -1,5 +1,6 @@
 package com.slopssaloon.omen.app.feature.api
 
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
@@ -250,5 +251,71 @@ class OmenDecisionTest {
     fun unparseableBodyIsRejectedRatherThanGuessed() {
         assertNull(OmenDecisionEnvelope.parse("not json"))
         assertNull(OmenDecisionEnvelope.parse("""{"no_state_field": true}"""))
+    }
+
+    /**
+     * Regression, `F-VET-01`. Swift twin: `testAMissingConfidenceScoreIsAbsentRatherThanZero`.
+     *
+     * `OmenDecision` filled a missing confidence score with `?: 0`, and `OmenConfidenceBar`
+     * prints its score verbatim — so a brief the server declined to score displayed
+     * **"Confidence 0"**, which reads as "Omen has no confidence in this move" rather than
+     * "Omen did not say". The server models the absence deliberately: `src/routes/omen.js`
+     * persists it as null behind a Number.isFinite guard.
+     */
+    @Test
+    fun `a missing confidence score is absent rather than zero`() {
+        val envelope = parse(
+            """
+            {"contract_version":"2026-05-18.omen-live.v1","state":"success","mode":"live",
+             "recommendation":{"type":"waiver_pickup","title":"Add Jaylen Wright",
+              "move":"Pick up Jaylen Wright to cover your RB slot.",
+              "risk":{"level":"medium","reasons":[]},
+              "explanation":{"summary":"Add Jaylen Wright."}}}
+            """.trimIndent(),
+        )
+
+        val payload = (envelope.briefState() as OmenDecisionBriefState.Success).payload
+        assertNull("absence must survive the mapping, not become 0", payload.confidence)
+        // One absent field must not degrade the others.
+        assertEquals("Add Jaylen Wright", payload.verdict)
+    }
+
+    /** The whole confidence block absent, not merely its score. */
+    @Test
+    fun `a confidence block with a label but no score is still scoreless`() {
+        val envelope = parse(
+            """
+            {"contract_version":"2026-05-18.omen-live.v1","state":"success","mode":"live",
+             "recommendation":{"type":"start_sit","title":"Start DeVonta Smith",
+              "move":"Start DeVonta Smith over Chris Olave.",
+              "confidence":{"label":"medium_high","rationale":"No numeric score supplied."},
+              "risk":{"level":"low","reasons":[]},
+              "explanation":{"summary":"Start Smith."}}}
+            """.trimIndent(),
+        )
+
+        val payload = (envelope.briefState() as OmenDecisionBriefState.Success).payload
+        assertNull(payload.confidence)
+    }
+
+    /** A real score must survive untouched — including a genuine zero, which IS an answer. */
+    @Test
+    fun `a real confidence score still renders`() {
+        assertEquals(0, scored("0")?.confidence)
+        assertEquals(83, scored("83")?.confidence)
+    }
+
+    private fun scored(score: String): OmenDecisionBriefPayload? {
+        val envelope = parse(
+            """
+            {"contract_version":"2026-05-18.omen-live.v1","state":"success","mode":"live",
+             "recommendation":{"type":"start_sit","title":"Start DeVonta Smith",
+              "move":"Start DeVonta Smith over Chris Olave.",
+              "confidence":{"score":$score,"label":"low","rationale":"r"},
+              "risk":{"level":"low","reasons":[]},
+              "explanation":{"summary":"Start Smith."}}}
+            """.trimIndent(),
+        )
+        return (envelope.briefState() as? OmenDecisionBriefState.Success)?.payload
     }
 }

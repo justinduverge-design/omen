@@ -175,7 +175,10 @@ data class OmenDecisionEnvelope(
             verdict = verdict,
             move = move,
             impact = impactText(rec),
-            confidence = rec.confidenceScore ?: 0,
+            // Never `?: 0`. `src/routes/omen.js` persists a missing score as null behind a
+            // Number.isFinite guard — the server treats absence as a real, expected state, and
+            // the client must not manufacture a number the server declined to give.
+            confidence = rec.confidenceScore,
             risk = riskLevel(rec.riskLevel),
             riskReasons = rec.riskReasons,
             explanation = rec.explanationLines,
