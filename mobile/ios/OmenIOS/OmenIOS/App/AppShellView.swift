@@ -94,6 +94,9 @@ struct AppShellView: View {
                     ),
                     tradeRepository: ApiTradeRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
+                    playerSearchRepository: ApiPlayerSearchRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
                     )
                 )
                 }

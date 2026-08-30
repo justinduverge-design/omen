@@ -49,6 +49,46 @@ looked at rendered state, and none of them **typed, tapped, or switched anything
   is null or the `yahoo`-style pre-bind sentinel, candidate 1 is confirmed and the fix is a real
   state on the switcher — not a silent no-op.
 
+## F-DEV-03 — Trade had no player search at all, and then had a broken one. **FIXED.**
+
+- **Reported:** *"players' names don't pop up. You can't add. You can't do any of that. It's
+  like the page wasn't wired to the code."* **That diagnosis was exactly right.**
+- **Cause 1 — never wired.** `GET /api/players/search` → `players-search.v1` has existed all
+  along. `Blueprints/api-routes.md` describes it in words as **"Free Trade Analyzer
+  autocomplete"** — public Sleeper data, no auth, max 10 rows. The web client uses it. The
+  native Trade screen shipped with a **bare free-text field** and never called it. Verified live:
+  `?q=jefferson` returns Justin Jefferson (WR/MIN), Van Jefferson (WR/WAS), and three others.
+- **Cause 2 — the first fix was broken, and only real use would have shown it.** The wiring used
+  `client.get("api/players/search?q=\(query)")`, and `OmenApiClient` builds URLs with
+  `URL.appendingPathComponent`, **which treats the whole string as ONE path segment and
+  percent-encodes the `?`**. Every request went to `api/players/search%3Fq=jefferson` and 404'd.
+  Silent: autocomplete simply never appeared, exactly like having no search at all.
+- **Fixed:** query items now go through `URLComponents`; a debounce (250 ms, 2-char minimum)
+  keeps a fast typist inside the route's 30-per-minute-per-IP limit; results render as
+  `OmenListRow`s under the field being typed into; picking one adds the player and closes the
+  keyboard.
+- **Verified on the simulator against the live API**, not asserted: typing "jeffer" returns five
+  real players with positions and teams, and tapping one adds it and updates the hint to "Add a
+  player you'd receive."
+- **Severity:** was BETA-BLOCKING. Trade was the destination the founder called "the front door"
+  in `context.md`, and it could not be used.
+
+**This is `F-SCR-01`'s exact shape a second time** — a capability the backend already serves that
+the native client did not consume. The Scrappy pass swept for that and found `points_for`; it did
+not find this, because the sweep compared *provider payloads* against clients and never asked
+**which of our own routes no client calls.**
+
+## Two design-system checks caught the fix mid-flight
+
+Worth recording as the system working:
+
+- `PrimitiveEnforcementTests` rejected the suggestion rows for using a raw SwiftUI `Button`, then
+  rejected the keyboard toolbar for the same reason. Both became `OmenListRow` / `OmenButton`.
+- The contrast audits on Help + Support failed on a dirty simulator and passed clean — the same
+  environment-sensitivity already recorded for `ContextualHelpAccessibilityUITests` (register #8).
+  **A second instance of that flake class**, and the trigger is now clearly "simulator driven by
+  hand during a session," not the tests themselves.
+
 ## Confirmed working, on device, with a real league
 
 League: standings render, matchup renders, playoff line reads **"1st … in a playoff spot"** —

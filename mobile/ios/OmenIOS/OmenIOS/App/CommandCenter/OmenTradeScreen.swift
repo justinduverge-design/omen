@@ -13,6 +13,10 @@ import SwiftUI
 struct OmenTradeScreen: View {
     let state: TradeViewModel.ViewState
     let offer: TradeOffer
+    /// Autocomplete rows for the side currently being typed into. Empty hides the picker.
+    var suggestions: [PlayerSearchResult] = []
+    var searchingSide: TradeViewModel.Side?
+    var onQueryChanged: ((String, TradeViewModel.Side) -> Void)?
     var onAdd: ((String, TradeViewModel.Side) -> Void)?
     var onRemove: ((Int, TradeViewModel.Side) -> Void)?
     var onCompare: (() -> Void)?
@@ -48,7 +52,13 @@ struct OmenTradeScreen: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Done") { focusedField = nil }
+                // OmenButton, not a raw one — same rule that caught the suggestion rows.
+                OmenButton(
+                    title: "Done",
+                    action: { focusedField = nil },
+                    variant: .link,
+                    size: .sm
+                )
             }
         }
     }
@@ -87,6 +97,31 @@ struct OmenTradeScreen: View {
                 )
             }
 
+            // The picker sits directly under the field it belongs to, and only for the side
+            // being typed into — so two open fields can never show one list between them.
+            if searchingSide == side, !suggestions.isEmpty {
+                VStack(spacing: 0) {
+                    // `OmenListRow`, not a raw `Button` — `PrimitiveEnforcementTests` bans raw
+                    // SwiftUI controls in app sources, and it caught the first cut of this
+                    // picker. The row already carries the tap target, disabled handling and
+                    // accessibility shape the design system expects.
+                    ForEach(suggestions) { player in
+                        OmenListRow(
+                            title: player.name,
+                            subtitle: player.subtitle,
+                            action: {
+                                onAdd?(player.name, side)
+                                draft.wrappedValue = ""
+                                focusedField = nil
+                            }
+                        )
+                    }
+                }
+                .background(OmenColor.surface1)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(OmenColor.border))
+            }
+
             HStack(spacing: OmenSpacing.step8) {
                 OmenTextField(
                     value: draft,
@@ -94,6 +129,9 @@ struct OmenTradeScreen: View {
                     placeholder: "Player name"
                 )
                 .focused($focusedField, equals: side == .send ? .send : .receive)
+                .onChange(of: draft.wrappedValue) { _, newValue in
+                    onQueryChanged?(newValue, side)
+                }
                 // Return adds the player, so the common path never needs the Done button.
                 .submitLabel(.done)
                 .onSubmit {

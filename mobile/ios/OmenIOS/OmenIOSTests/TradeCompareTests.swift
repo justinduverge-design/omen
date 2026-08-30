@@ -164,4 +164,73 @@ final class TradeCompareTests: XCTestCase {
         XCTAssertEqual(result.evaluability.totalPlayerCount, 0)
         XCTAssertEqual(result.analysisContext.applied, [])
     }
+
+    // MARK: - F-DEV-03 — player search
+
+    /// The query must go through `URLComponents`, never interpolated into the path.
+    /// `URL.appendingPathComponent` treats the whole string as ONE path segment and
+    /// percent-encodes the `?`, so `search?q=x` shipped as `search%3Fq=x` and 404'd every time.
+    /// Found by the founder typing a name into a real build; invisible in every prior test
+    /// because no test had ever performed a search.
+    func testPlayerSearchBuildsAQueryStringRatherThanEscapingItIntoThePath() async {
+        final class CapturingFetcher: OmenHTTPFetching {
+            var lastURL: URL?
+            func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+                lastURL = request.url
+                let response = HTTPURLResponse(
+                    url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+                )!
+                return (Data("[]".utf8), response)
+            }
+        }
+
+        let fetcher = CapturingFetcher()
+        let client = OmenApiClient(baseURL: URL(string: "https://example.com")!, fetcher: fetcher)
+        _ = await ApiPlayerSearchRepository(client: client).search(query: "jefferson")
+
+        let url = try? XCTUnwrap(fetcher.lastURL)
+        XCTAssertEqual(url?.path, "/api/players/search", "the path must not carry the query")
+        XCTAssertEqual(url?.query, "q=jefferson")
+        XCTAssertFalse(
+            url?.absoluteString.contains("%3F") ?? true,
+            "a percent-encoded ? means the query was escaped into the path — the original defect"
+        )
+    }
+
+    /// A one-character query must not hit the network: the route is rate limited at 30/min/IP
+    /// and a per-keystroke request would burn that on a single name.
+    func testAShortQueryIsNotSentAtAll() async {
+        final class CountingFetcher: OmenHTTPFetching {
+            var calls = 0
+            func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+                calls += 1
+                let response = HTTPURLResponse(
+                    url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+                )!
+                return (Data("[]".utf8), response)
+            }
+        }
+
+        let fetcher = CountingFetcher()
+        let client = OmenApiClient(baseURL: URL(string: "https://example.com")!, fetcher: fetcher)
+        let repo = ApiPlayerSearchRepository(client: client)
+
+        _ = await repo.search(query: "j")
+        _ = await repo.search(query: "  ")
+        XCTAssertEqual(fetcher.calls, 0)
+    }
+
+    /// The subtitle omits the separator entirely when the provider gives neither field, rather
+    /// than rendering a stray "·".
+    func testPlayerSubtitleOmitsAStraySeparator() {
+        XCTAssertEqual(
+            PlayerSearchResult(id: "1", name: "A", position: "WR", team: "MIN").subtitle,
+            "WR · MIN"
+        )
+        XCTAssertEqual(
+            PlayerSearchResult(id: "2", name: "B", position: "RB", team: nil).subtitle,
+            "RB"
+        )
+        XCTAssertNil(PlayerSearchResult(id: "3", name: "C", position: nil, team: nil).subtitle)
+    }
 }

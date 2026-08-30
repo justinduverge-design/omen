@@ -16,12 +16,55 @@ final class TradeViewModel: ObservableObject {
     @Published private(set) var viewState: ViewState = .idle
     @Published var offer = TradeOffer()
 
-    private let repository: TradeRepository
-    private let sessionManager: SessionManager
+    /// Autocomplete results for whichever side is being typed into. Empty is the resting
+    /// state — the picker only appears when the server actually returned names.
+    @Published private(set) var suggestions: [PlayerSearchResult] = []
+    @Published private(set) var searchingSide: Side?
 
-    init(repository: TradeRepository, sessionManager: SessionManager) {
+    private let repository: TradeRepository
+    private let playerSearch: PlayerSearchRepository
+    private let sessionManager: SessionManager
+    private var searchTask: Task<Void, Never>?
+
+    init(
+        repository: TradeRepository,
+        playerSearch: PlayerSearchRepository,
+        sessionManager: SessionManager
+    ) {
         self.repository = repository
+        self.playerSearch = playerSearch
         self.sessionManager = sessionManager
+    }
+
+    /// Debounced so a fast typist does not fire a request per keystroke against a
+    /// 30-per-minute-per-IP rate limit.
+    func search(_ query: String, side: Side) {
+        searchTask?.cancel()
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else {
+            suggestions = []
+            searchingSide = nil
+            return
+        }
+        searchingSide = side
+        searchTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled, let self else { return }
+            if case .success(let rows) = await self.playerSearch.search(query: trimmed) {
+                guard !Task.isCancelled else { return }
+                self.suggestions = rows
+            } else {
+                // A failed lookup leaves the field usable: the user can still type a name and
+                // press Add. Autocomplete is an accelerator, never a gate.
+                self.suggestions = []
+            }
+        }
+    }
+
+    func clearSuggestions() {
+        searchTask?.cancel()
+        suggestions = []
+        searchingSide = nil
     }
 
     func add(_ name: String, to side: Side) {
@@ -31,6 +74,7 @@ final class TradeViewModel: ObservableObject {
         case .send: offer.send.append(trimmed)
         case .receive: offer.receive.append(trimmed)
         }
+        clearSuggestions()
         // Any edit invalidates the standing verdict. Leaving it on screen beside a changed
         // offer would show an answer to a question the user is no longer asking.
         viewState = .idle

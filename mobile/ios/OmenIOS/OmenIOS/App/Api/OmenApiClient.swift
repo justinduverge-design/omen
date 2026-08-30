@@ -51,6 +51,20 @@ struct OmenApiClient {
         await send(makeRequest(path: path, method: "GET", accessToken: accessToken, body: nil), as: type)
     }
 
+    /// GET where the token is genuinely optional. `/api/players/search` is public, like
+    /// `/api/trade/compare` — sending an empty bearer would be a malformed header.
+    func get<T: Decodable>(
+        _ path: String,
+        optionalAccessToken: String?,
+        query: [String: String] = [:],
+        as type: T.Type
+    ) async -> Result<T, OmenApiError> {
+        await send(
+            makeRequest(path: path, method: "GET", accessToken: optionalAccessToken, body: nil, query: query),
+            as: type
+        )
+    }
+
     /// Authenticated POST returning a decoded contract payload. `body` is encoded as JSON;
     /// the live Omen route is called with `{}` per the dashboard-gated contract.
     func post<T: Decodable>(
@@ -80,8 +94,23 @@ struct OmenApiClient {
         )
     }
 
-    private func makeRequest(path: String, method: String, accessToken: String?, body: Data?) -> URLRequest {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+    private func makeRequest(
+        path: String,
+        method: String,
+        accessToken: String?,
+        body: Data?,
+        query: [String: String] = [:]
+    ) -> URLRequest {
+        // Query items must NOT go through `appendingPathComponent` — it treats the whole string
+        // as one path segment and percent-encodes the `?`, so `search?q=x` becomes
+        // `search%3Fq=x` and the server 404s. That shipped in the first cut of player search and
+        // was found by the founder typing a name into a real build.
+        var url = baseURL.appendingPathComponent(path)
+        if !query.isEmpty, var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+            url = components.url ?? url
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")

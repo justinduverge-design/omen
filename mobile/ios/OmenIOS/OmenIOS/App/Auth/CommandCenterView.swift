@@ -34,7 +34,8 @@ struct CommandCenterView: View {
         omenDecisionRepository: OmenDecisionRepository,
         connectRepository: ConnectRepository,
         leagueDirectoryRepository: LeagueDirectoryRepository,
-        tradeRepository: TradeRepository
+        tradeRepository: TradeRepository,
+        playerSearchRepository: PlayerSearchRepository
     ) {
         self.connectRepository = connectRepository
         self.userID = userID
@@ -52,6 +53,7 @@ struct CommandCenterView: View {
         ))
         _tradeViewModel = StateObject(wrappedValue: TradeViewModel(
             repository: tradeRepository,
+            playerSearch: playerSearchRepository,
             sessionManager: sessionManager
         ))
         _leagueViewModel = StateObject(wrappedValue: LeagueViewModel(
@@ -122,6 +124,9 @@ struct CommandCenterView: View {
             OmenTradeScreen(
                 state: tradeViewModel.viewState,
                 offer: tradeViewModel.offer,
+                suggestions: tradeViewModel.suggestions,
+                searchingSide: tradeViewModel.searchingSide,
+                onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
                 onAdd: { name, side in tradeViewModel.add(name, to: side) },
                 onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
                 onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
