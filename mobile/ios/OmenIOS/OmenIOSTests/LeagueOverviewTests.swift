@@ -157,4 +157,85 @@ final class LeagueOverviewTests: XCTestCase {
         )
         XCTAssertNil(notMine.contextStrip)
     }
+
+    // MARK: - F-HOT-01 — sections must fail independently at the decode boundary
+
+    /// Regression. `matchup`, `standings` and `activity` were non-optional, so an absent section
+    /// threw and failed the WHOLE decode — on a contract explicitly designed for sections to
+    /// fail independently. Android tolerated a null section and iOS did not, so one payload
+    /// produced two different products.
+    func testAnAbsentSectionDegradesInsteadOfFailingTheWholePayload() throws {
+        let json = Data("""
+        {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+         "league_name":"Slops Dynasty","season":2026,"week":8,
+         "standings":{"status":"available","playoff_picture":null,
+           "teams":[{"team_name":"Team Slops","is_current_user":true,"rank":3}]},
+         "activity":{"status":"empty","unavailable_families":["transactions"],"items":[]}}
+        """.utf8)
+
+        let overview = try JSONDecoder().decode(LeagueOverview.self, from: json)
+
+        // The missing section degrades...
+        XCTAssertEqual(overview.matchup.status, .unavailable)
+        XCTAssertEqual(overview.matchup.unavailableReason, "not_read")
+        XCTAssertNil(overview.matchupHero)
+        // ...and every other section still decodes and renders.
+        XCTAssertEqual(overview.standings.status, .available)
+        XCTAssertEqual(overview.standings.teams.count, 1)
+        XCTAssertEqual(overview.activity.unavailableFamilies, ["transactions"])
+    }
+
+    /// A payload with nothing but a contract version must still produce a renderable screen.
+    func testAPayloadMissingEverySectionStillDecodes() throws {
+        let json = Data(#"{"contract_version":"league-overview.v1","platform":"sleeper"}"#.utf8)
+
+        let overview = try JSONDecoder().decode(LeagueOverview.self, from: json)
+
+        XCTAssertEqual(overview.matchup.status, .unavailable)
+        XCTAssertEqual(overview.standings.status, .unavailable)
+        XCTAssertEqual(overview.activity.status, .unavailable)
+        // The pulse resolves to an explicit resting state rather than staying pending.
+        guard case .unavailable = overview.leaguePulse else {
+            return XCTFail("unreadable standings must resolve League Pulse, not leave it loading")
+        }
+    }
+
+    // MARK: - F-SCR-01 — the points the league is actually sorted by
+
+    func testStandingsRowsCarryTheirPointsColumns() throws {
+        let json = Data("""
+        {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+         "league_name":"L","season":2026,"week":8,
+         "matchup":{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":null},
+         "standings":{"status":"available","playoff_picture":null,
+           "teams":[{"team_name":"Mine","is_current_user":true,"rank":1,"wins":6,"losses":2,
+                     "points_for":1142.4,"points_against":980.6}]},
+         "activity":{"status":"empty","unavailable_families":[],"items":[]}}
+        """.utf8)
+
+        let team = try XCTUnwrap(
+            JSONDecoder().decode(LeagueOverview.self, from: json).standings.teams.first
+        )
+        XCTAssertEqual(team.pointsFor, 1142.4)
+        XCTAssertEqual(team.pointsAgainst, 980.6)
+    }
+
+    /// A provider that omits them must render as absent, never as 0.0 — the same rule the
+    /// confidence fix established.
+    func testAbsentPointsStayAbsentRatherThanBecomingZero() throws {
+        let json = Data("""
+        {"contract_version":"league-overview.v1","platform":"espn","league_id":"1",
+         "league_name":"L","season":2026,"week":8,
+         "matchup":{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":null},
+         "standings":{"status":"available","playoff_picture":null,
+           "teams":[{"team_name":"Mine","is_current_user":true,"rank":1}]},
+         "activity":{"status":"empty","unavailable_families":[],"items":[]}}
+        """.utf8)
+
+        let team = try XCTUnwrap(
+            JSONDecoder().decode(LeagueOverview.self, from: json).standings.teams.first
+        )
+        XCTAssertNil(team.pointsFor)
+        XCTAssertNil(team.pointsAgainst)
+    }
 }

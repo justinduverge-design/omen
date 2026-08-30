@@ -199,10 +199,14 @@ private fun StandingsTable(teams: List<LeagueStandings.Team>) {
 @Composable
 private fun StandingsRow(team: LeagueStandings.Team) {
     val record = if (team.wins != null && team.losses != null) "${team.wins}-${team.losses}" else null
+    // Points for. Shown because it is what the league is actually sorted by — without it two
+    // teams at the same record appear ranked arbitrarily.
+    val points = team.pointsFor?.let { String.format(java.util.Locale.US, "%.1f", it) }
     val description = buildList {
         team.rank?.let { add("Rank $it") }
         add(team.teamName ?: "Unnamed team")
         record?.let { add(it) }
+        points?.let { add("$it points for") }
         if (team.isCurrentUser) add("your team")
     }.joinToString(", ")
 
@@ -232,6 +236,13 @@ private fun StandingsRow(team: LeagueStandings.Team) {
                 text = it,
                 style = OmenTheme.typography.bodySmall.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
+            )
+        }
+        points?.let {
+            Text(
+                text = it,
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
             )
         }
         if (team.isCurrentUser) {

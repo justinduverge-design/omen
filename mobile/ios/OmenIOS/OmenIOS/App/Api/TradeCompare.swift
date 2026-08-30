@@ -29,8 +29,19 @@ struct TradeCompare: Decodable, Equatable {
     struct Evaluability: Decodable, Equatable {
         let status: String
         let reason: String?
+        // F-HOT-02. These were required on iOS and defaulted on Android, so a server release
+        // that legitimately omitted one — additive by the server's own rules — broke iOS Trade
+        // with a decode error while Android kept working.
         let missingProjectionCount: Int
         let totalPlayerCount: Int
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            status = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+            reason = try c.decodeIfPresent(String.self, forKey: .reason)
+            missingProjectionCount = try c.decodeIfPresent(Int.self, forKey: .missingProjectionCount) ?? 0
+            totalPlayerCount = try c.decodeIfPresent(Int.self, forKey: .totalPlayerCount) ?? 0
+        }
 
         enum CodingKeys: String, CodingKey {
             case status, reason
@@ -50,6 +61,16 @@ struct TradeCompare: Decodable, Equatable {
         let leagueName: String?
         let applied: [String]
         let unavailableReason: String?
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            mode = try c.decodeIfPresent(String.self, forKey: .mode) ?? ""
+            platform = try c.decodeIfPresent(String.self, forKey: .platform)
+            leagueId = try c.decodeIfPresent(String.self, forKey: .leagueId)
+            leagueName = try c.decodeIfPresent(String.self, forKey: .leagueName)
+            applied = try c.decodeIfPresent([String].self, forKey: .applied) ?? []
+            unavailableReason = try c.decodeIfPresent(String.self, forKey: .unavailableReason)
+        }
 
         enum CodingKeys: String, CodingKey {
             case mode, platform, applied

@@ -28,11 +28,19 @@ struct LeagueStandings: Decodable, Equatable {
         let rank: Int?
         let wins: Int?
         let losses: Int?
+        /// F-SCR-01. `league-standings.v1` has always carried these — the Sleeper adapter uses
+        /// `points_for` as the standings tiebreaker, and the web app renders both — while
+        /// neither native client decoded them. A user could see two teams at 6-2 ranked
+        /// differently with nothing on screen explaining why.
+        let pointsFor: Double?
+        let pointsAgainst: Double?
 
         enum CodingKeys: String, CodingKey {
             case teamName = "team_name"
             case isCurrentUser = "is_current_user"
             case rank, wins, losses
+            case pointsFor = "points_for"
+            case pointsAgainst = "points_against"
         }
 
         /// `is_current_user` is additive on some provider paths; a missing flag means
@@ -44,6 +52,8 @@ struct LeagueStandings: Decodable, Equatable {
             rank = try c.decodeIfPresent(Int.self, forKey: .rank)
             wins = try c.decodeIfPresent(Int.self, forKey: .wins)
             losses = try c.decodeIfPresent(Int.self, forKey: .losses)
+            pointsFor = try c.decodeIfPresent(Double.self, forKey: .pointsFor)
+            pointsAgainst = try c.decodeIfPresent(Double.self, forKey: .pointsAgainst)
         }
     }
 

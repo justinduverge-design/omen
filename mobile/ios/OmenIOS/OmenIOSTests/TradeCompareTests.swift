@@ -143,4 +143,25 @@ final class TradeCompareTests: XCTestCase {
 
         XCTAssertNil(offer.requestBody["league_context"])
     }
+
+    /// `F-HOT-02`. `missing_projection_count`, `total_player_count` and `applied` were required
+    /// on iOS and defaulted on Android, so a server release that legitimately omitted one —
+    /// additive by the server's own rules — broke iOS Trade with a decode error while Android
+    /// kept working. Same payload, two products.
+    func testAPayloadOmittingAdditiveFieldsStillDecodes() throws {
+        let json = Data("""
+        {"contract_version":"trade-compare.v2","verdict_state":"favors_you",
+         "evaluability":{"status":"evaluable","reason":null},
+         "analysis_context":{"mode":"neutral","platform":null,"league_id":null,
+           "league_name":null,"unavailable_reason":null},
+         "net_value":4.2,"explanation":null}
+        """.utf8)
+
+        let result = try JSONDecoder().decode(TradeCompare.self, from: json)
+
+        XCTAssertEqual(result.verdictState, .favorsYou)
+        XCTAssertEqual(result.evaluability.missingProjectionCount, 0)
+        XCTAssertEqual(result.evaluability.totalPlayerCount, 0)
+        XCTAssertEqual(result.analysisContext.applied, [])
+    }
 }

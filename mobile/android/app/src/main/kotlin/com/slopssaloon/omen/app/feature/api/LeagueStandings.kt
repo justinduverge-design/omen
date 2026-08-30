@@ -29,6 +29,13 @@ data class LeagueStandings(
         val rank: Int?,
         val wins: Int? = null,
         val losses: Int? = null,
+        /**
+         * F-SCR-01. `league-standings.v1` has always carried these — the Sleeper adapter uses
+         * `points_for` as the standings tiebreaker and the web app renders both — while neither
+         * native client decoded them.
+         */
+        val pointsFor: Double? = null,
+        val pointsAgainst: Double? = null,
     )
 
     /** The caller's own team, if the provider identified one. */
@@ -124,6 +131,8 @@ data class LeagueStandings(
                             rank = if (row.has("rank")) row.optInt("rank") else null,
                             wins = if (row.has("wins")) row.optInt("wins") else null,
                             losses = if (row.has("losses")) row.optInt("losses") else null,
+                            pointsFor = if (row.has("points_for")) row.optDouble("points_for") else null,
+                            pointsAgainst = if (row.has("points_against")) row.optDouble("points_against") else null,
                         ),
                     )
                 }

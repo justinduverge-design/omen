@@ -18,6 +18,10 @@ struct LeagueOverview: Decodable, Equatable {
     let leagueName: String?
     let season: Int?
     let week: Int?
+    // F-HOT-01. These were non-optional, so an absent section threw and failed the WHOLE
+    // decode — on a contract explicitly designed for sections to fail independently. Android
+    // tolerated a null section and iOS did not, so one payload produced two different products.
+    // Optional-with-fallback keeps the independence the contract promises.
     let matchup: Matchup
     let standings: Standings
     let activity: Activity
@@ -28,6 +32,22 @@ struct LeagueOverview: Decodable, Equatable {
         case leagueId = "league_id"
         case leagueName = "league_name"
         case season, week, matchup, standings, activity
+    }
+
+    /// Custom decoding so a missing section degrades to its own `unavailable` state instead of
+    /// failing the whole payload. This is the A6 rule — contracts degrade, never blank — applied
+    /// at the section boundary the contract itself defines.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        contractVersion = try c.decodeIfPresent(String.self, forKey: .contractVersion) ?? ""
+        platform = try c.decodeIfPresent(String.self, forKey: .platform) ?? ""
+        leagueId = try c.decodeIfPresent(String.self, forKey: .leagueId)
+        leagueName = try c.decodeIfPresent(String.self, forKey: .leagueName)
+        season = try c.decodeIfPresent(Int.self, forKey: .season)
+        week = try c.decodeIfPresent(Int.self, forKey: .week)
+        matchup = (try? c.decode(Matchup.self, forKey: .matchup)) ?? .unreadable
+        standings = (try? c.decode(Standings.self, forKey: .standings)) ?? .unreadable
+        activity = (try? c.decode(Activity.self, forKey: .activity)) ?? .unreadable
     }
 
     // MARK: - Matchup
@@ -63,6 +83,12 @@ struct LeagueOverview: Decodable, Equatable {
         let you: Side?
         let opponent: Side?
         let unavailableReason: String?
+
+        /// What a section becomes when it is absent or unreadable. Distinct from a section the
+        /// server explicitly marked unavailable, which carries the server's own reason.
+        static let unreadable = Matchup(
+            status: .unavailable, you: nil, opponent: nil, unavailableReason: "not_read"
+        )
 
         enum CodingKeys: String, CodingKey {
             case status, you, opponent
@@ -105,6 +131,8 @@ struct LeagueOverview: Decodable, Equatable {
         /// Provider rank order, preserved exactly. Omen never reorders a league (§14.1).
         let teams: [LeagueStandings.Team]
 
+        static let unreadable = Standings(status: .unavailable, playoffPicture: nil, teams: [])
+
         enum CodingKeys: String, CodingKey {
             case status, teams
             case playoffPicture = "playoff_picture"
@@ -137,6 +165,15 @@ struct LeagueOverview: Decodable, Equatable {
         let status: Status
         let unavailableFamilies: [String]
         let items: [Item]
+
+        static let unreadable = Activity(status: .unavailable, unavailableFamilies: [], items: [])
+
+        /// Memberwise, restored — the custom `init(from:)` below suppresses the synthesised one.
+        init(status: Status, unavailableFamilies: [String], items: [Item]) {
+            self.status = status
+            self.unavailableFamilies = unavailableFamilies
+            self.items = items
+        }
 
         enum CodingKeys: String, CodingKey {
             case status, items

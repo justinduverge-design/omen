@@ -1,8 +1,12 @@
 package com.slopssaloon.omen.core.designsystem.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -46,6 +50,20 @@ object OmenTheme {
         content: @Composable () -> Unit,
     ) {
         val colors = if (darkTheme) OmenDarkColors else OmenLightColors
+
+        // F-VET-B04. Nothing told the system bars which way the app had painted, so a light
+        // theme left the clock and the wifi/battery glyphs white on a near-white background —
+        // on the FIRST screen a new tester sees. The status bar must be told, and the theme is
+        // the only thing that knows.
+        val view = LocalView.current
+        if (!view.isInEditMode) {
+            SideEffect {
+                val window = (view.context as? Activity)?.window ?: return@SideEffect
+                WindowCompat.getInsetsController(window, view)
+                    .isAppearanceLightStatusBars = !darkTheme
+            }
+        }
+
         CompositionLocalProvider(
             LocalOmenColorScheme provides colors,
             LocalOmenTypography provides OmenTypographyRoles,

@@ -171,4 +171,70 @@ class LeagueOverviewTest {
         )
         assertNull(notMine.contextStrip)
     }
+
+    /**
+     * F-HOT-01 twin. Android already tolerated an absent section; this pins that behaviour so
+     * the two platforms cannot diverge again. iOS used to fail the whole decode here.
+     */
+    @Test
+    fun `an absent section degrades instead of failing the whole payload`() {
+        val overview = requireNotNull(
+            LeagueOverview.parse(
+                """
+                {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+                 "league_name":"Slops Dynasty","season":2026,"week":8,
+                 "standings":{"status":"available","playoff_picture":null,
+                   "teams":[{"team_name":"Team Slops","is_current_user":true,"rank":3}]},
+                 "activity":{"status":"empty","unavailable_families":["transactions"],"items":[]}}
+                """.trimIndent(),
+            ),
+        )
+
+        assertEquals(LeagueOverview.Matchup.Status.Unavailable, overview.matchup.status)
+        assertNull(overview.matchupHero)
+        assertEquals(LeagueOverview.Standings.Status.Available, overview.standings.status)
+        assertEquals(1, overview.standings.teams.size)
+    }
+
+    /** F-SCR-01 twin — the column the league is actually sorted by. */
+    @Test
+    fun `standings rows carry their points columns`() {
+        val overview = requireNotNull(
+            LeagueOverview.parse(
+                """
+                {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1",
+                 "league_name":"L","season":2026,"week":8,
+                 "matchup":{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":null},
+                 "standings":{"status":"available","playoff_picture":null,
+                   "teams":[{"team_name":"Mine","is_current_user":true,"rank":1,"wins":6,"losses":2,
+                             "points_for":1142.4,"points_against":980.6}]},
+                 "activity":{"status":"empty","unavailable_families":[],"items":[]}}
+                """.trimIndent(),
+            ),
+        )
+
+        val team = overview.standings.teams.first()
+        assertEquals(1142.4, team.pointsFor!!, 0.001)
+        assertEquals(980.6, team.pointsAgainst!!, 0.001)
+    }
+
+    /** Absent points stay absent — never 0.0, the same rule the confidence fix established. */
+    @Test
+    fun `absent points stay absent rather than becoming zero`() {
+        val overview = requireNotNull(
+            LeagueOverview.parse(
+                """
+                {"contract_version":"league-overview.v1","platform":"espn","league_id":"1",
+                 "league_name":"L","season":2026,"week":8,
+                 "matchup":{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":null},
+                 "standings":{"status":"available","playoff_picture":null,
+                   "teams":[{"team_name":"Mine","is_current_user":true,"rank":1}]},
+                 "activity":{"status":"empty","unavailable_families":[],"items":[]}}
+                """.trimIndent(),
+            ),
+        )
+
+        assertNull(overview.standings.teams.first().pointsFor)
+        assertNull(overview.standings.teams.first().pointsAgainst)
+    }
 }

@@ -285,6 +285,8 @@ data class LeagueOverview(
                             rank = if (row.has("rank")) row.optInt("rank") else null,
                             wins = if (row.has("wins")) row.optInt("wins") else null,
                             losses = if (row.has("losses")) row.optInt("losses") else null,
+                            pointsFor = if (row.has("points_for")) row.optDouble("points_for") else null,
+                            pointsAgainst = if (row.has("points_against")) row.optDouble("points_against") else null,
                         ),
                     )
                 }

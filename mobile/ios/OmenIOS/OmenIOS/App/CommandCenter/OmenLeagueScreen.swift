@@ -247,11 +247,18 @@ private struct OmenStandingsRow: View {
         return "\(wins)-\(losses)"
     }
 
+    /// Points for. Shown because it is what the league is actually sorted by — without it two
+    /// teams at the same record appear ranked arbitrarily. Absent when the provider omits it.
+    private var pointsText: String? {
+        team.pointsFor.map { String(format: "%.1f", $0) }
+    }
+
     private var accessibilityText: String {
         var parts: [String] = []
         if let rank = team.rank { parts.append("Rank \(rank)") }
         parts.append(team.teamName ?? "Unnamed team")
         if let recordText { parts.append(recordText) }
+        if let pointsText { parts.append("\(pointsText) points for") }
         if team.isCurrentUser { parts.append("your team") }
         return parts.joined(separator: ", ")
     }
@@ -272,6 +279,12 @@ private struct OmenStandingsRow: View {
                 Text(recordText)
                     .omenTextStyle(OmenTypography.bodySmall)
                     .foregroundStyle(OmenColor.textSecondary)
+            }
+
+            if let pointsText {
+                Text(pointsText)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textTertiary)
             }
 
             if team.isCurrentUser {
