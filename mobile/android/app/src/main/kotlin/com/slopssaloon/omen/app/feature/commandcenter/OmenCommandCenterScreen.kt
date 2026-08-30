@@ -222,7 +222,10 @@ private fun WaiverWatch(state: OmenWaiverWatchState, onOpenOmen: (() -> Unit)?) 
             OmenWaiverWatchState.NotConnected -> OmenStateSurface(
                 kind = OmenStateSurfaceKind.Disconnected,
                 title = "Personalized waiver moves need a league",
-                message = "Connect a league to see roster-aware opportunities, or use Try Demo to explore a labeled example.",
+                // The Try Demo pointer was removed 2026-08-30 with W3. Copy that names an
+                // affordance the user cannot see is an unverified claim about the product's own
+                // surface — an abort class 1 candidate, not a cosmetic mismatch.
+                message = "Connect a league to see roster-aware opportunities Omen can act on.",
             )
             OmenWaiverWatchState.OffSeason -> OmenStateSurface(
                 kind = OmenStateSurfaceKind.Empty,

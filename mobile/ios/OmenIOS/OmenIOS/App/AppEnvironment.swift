@@ -48,7 +48,15 @@ struct AppEnvironment: Equatable {
 
         return AppEnvironment(
             apiBaseURL: apiBaseURL,
-            demoModeEnabled: true,
+            // Suppressed 2026-08-30 by founder decision (W3). Demo mode itself is intact —
+            // the session path, the `.demo` view states, the fixtures and the screenshot
+            // scenarios all still exist and still work. Only the welcome-screen entry point is
+            // hidden, so this is one line to reverse and nothing had to be deleted.
+            //
+            // Deliberately a runtime constant rather than `#if DEBUG`: compiling the entry
+            // point out of Release would leave the `.demo` states unreachable in the shipped
+            // build while still looking correct in Debug.
+            demoModeEnabled: false,
             supabaseURL: supabaseURL,
             supabaseAnonKey: supabaseAnonKey,
             sentryDsn: sentryDsn,

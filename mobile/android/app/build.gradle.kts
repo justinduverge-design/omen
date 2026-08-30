@@ -76,7 +76,9 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "OMEN_API_BASE_URL", "\"$debugApiBaseUrl\"")
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
+            // Suppressed 2026-08-30 (W3). Was `true`. Flip back here to restore the
+            // welcome-screen entry point — nothing about demo mode was deleted.
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
@@ -86,7 +88,8 @@ android {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
             buildConfigField("String", "OMEN_API_BASE_URL", "\"$stagingApiBaseUrl\"")
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
+            // Suppressed 2026-08-30 (W3). Was `true`.
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
         }
         release {
             isMinifyEnabled = false

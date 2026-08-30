@@ -398,7 +398,18 @@ fun OmenAndroidApp() {
                         style = OmenTheme.typography.body.toTextStyle(),
                         color = OmenTheme.color.textSecondary,
                     )
-                    OmenButton(text = "Try Demo", onClick = { sessionManager.onDemo() }, variant = OmenButtonVariant.Secondary)
+                    // Gated 2026-08-30 (W3). `OMEN_DEMO_MODE_ENABLED` has existed since the
+                    // build was configured and release already set it to `false` — with a
+                    // comment saying a shipped build must never present mock output as live
+                    // fantasy advice — but this button was never gated on it. The guardrail
+                    // was written and not wired; this wires it.
+                    if (env.demoModeEnabled) {
+                        OmenButton(
+                            text = "Try Demo",
+                            onClick = { sessionManager.onDemo() },
+                            variant = OmenButtonVariant.Secondary,
+                        )
+                    }
                     OmenButton(text = "Get started", onClick = { showAuth = true })
                 }
 
