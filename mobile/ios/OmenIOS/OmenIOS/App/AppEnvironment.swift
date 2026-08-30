@@ -48,15 +48,18 @@ struct AppEnvironment: Equatable {
 
         return AppEnvironment(
             apiBaseURL: apiBaseURL,
-            // Suppressed 2026-08-30 by founder decision (W3). Demo mode itself is intact —
-            // the session path, the `.demo` view states, the fixtures and the screenshot
-            // scenarios all still exist and still work. Only the welcome-screen entry point is
-            // hidden, so this is one line to reverse and nothing had to be deleted.
+            // RESTORED 2026-08-30, hours after being suppressed. The suppression (W3) was a
+            // founder preference; this reverses it for a hard external reason.
             //
-            // Deliberately a runtime constant rather than `#if DEBUG`: compiling the entry
-            // point out of Release would leave the `.demo` states unreachable in the shipped
-            // build while still looking correct in Debug.
-            demoModeEnabled: false,
+            // The App Store review notes and Beta App Description both instruct the reviewer to
+            // "tap Try Demo" to get into the app without an account, and `Sign-in required` is
+            // unchecked — so with the button hidden, Apple's reviewer has NO way in and Beta App
+            // Review fails. The remediation plan flagged exactly this risk and said to check it
+            // before suppressing rather than after a rejection. It was not checked.
+            //
+            // This does not change the tester experience: friends still sign in and connect
+            // real leagues. The button only gives the reviewer a door.
+            demoModeEnabled: true,
             supabaseURL: supabaseURL,
             supabaseAnonKey: supabaseAnonKey,
             sentryDsn: sentryDsn,

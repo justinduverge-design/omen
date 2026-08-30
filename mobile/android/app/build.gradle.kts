@@ -60,7 +60,7 @@ android {
         // Bumped 2026-08-30. Version code 1 was accepted by Play on 2026-08-18 and Play
         // rejects a duplicate outright — the same reason iOS CURRENT_PROJECT_VERSION moved to
         // 2. Neither store will take today's work under the version number the last build used.
-        versionCode = 2
+        versionCode = 3
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -79,9 +79,9 @@ android {
     buildTypes {
         debug {
             buildConfigField("String", "OMEN_API_BASE_URL", "\"$debugApiBaseUrl\"")
-            // Suppressed 2026-08-30 (W3). Was `true`. Flip back here to restore the
-            // welcome-screen entry point — nothing about demo mode was deleted.
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
+            // Restored 2026-08-30: App Store review notes tell the reviewer to tap "Try Demo",
+            // so hiding it fails Beta App Review. See AppEnvironment.swift for the full reason.
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
@@ -91,8 +91,8 @@ android {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug")
             buildConfigField("String", "OMEN_API_BASE_URL", "\"$stagingApiBaseUrl\"")
-            // Suppressed 2026-08-30 (W3). Was `true`.
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
+            // Restored 2026-08-30, same reason as debug.
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
         }
         release {
             isMinifyEnabled = false
@@ -100,7 +100,9 @@ android {
             // output as live fantasy advice — see the guardrail in Direction/current_sprint.md
             // and the F9 mock/live labeling gate.
             buildConfigField("String", "OMEN_API_BASE_URL", "\"$releaseApiBaseUrl\"")
-            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "false")
+            // Release keeps demo ON for the beta: the App Store reviewer needs a way into the
+            // app, and the review notes promise one. Revisit when the beta closes.
+            buildConfigField("Boolean", "OMEN_DEMO_MODE_ENABLED", "true")
             buildConfigField("String", "OMEN_SUPABASE_URL", "\"${cfg("omen.supabaseUrl")}\"")
             buildConfigField("String", "OMEN_SUPABASE_ANON_KEY", "\"${cfg("omen.supabaseAnonKey")}\"")
             buildConfigField("String", "OMEN_GOOGLE_WEB_CLIENT_ID", "\"${cfg("omen.googleWebClientId")}\"")
