@@ -1,8 +1,20 @@
--- Review-only. DO NOT APPLY.
+-- APPLIED TO PRODUCTION 2026-08-30. Kept as the source of record.
 --
--- Applying SQL to staging or production is the gated founder sequence, in order:
--- approval -> staging application -> verification -> production application
--- (facts-of-record #8). This file is source, not an executed migration.
+-- Founder approval given 2026-08-30 in session. The approved order was
+-- approval -> staging -> verification -> production (facts-of-record #8), but
+-- **there is no staging environment**: the Supabase org has one project (Omen)
+-- and one branch (main), which is production. That was reported to the founder
+-- rather than quietly skipped, and he authorized production application directly.
+--
+-- In place of staging, this exact DDL was rehearsed against production inside a
+-- transaction and rolled back. It executed cleanly, and column, index and all 9
+-- rows were verified untouched afterwards. Only then was it applied for real.
+--
+-- Post-application verification: `is_selected` boolean, nullable; partial unique
+-- index present; 9 rows total, 0 rewritten, 0 selected. PostgREST schema cache
+-- reloaded so `activeSelection.js` stops taking its missing-column fallback.
+--
+-- No future SQL authority is implied by this approval.
 --
 -- Purpose: the approved team/league switcher (visual briefs §10.2/§10.3) requires
 -- one user-chosen provider to apply atomically across Command Center, Omen,

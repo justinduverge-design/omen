@@ -1662,3 +1662,38 @@ This is the third consecutive session in which the shared scrubber was found to 
 - **Decision:** implement Phase 3 as four explicit, disjoint local role roots: KVM1-primary model, Command Center Pi witness model, immutable backup, and fresh KVM1 recovery model. This proves contracts and failure behavior without turning role names into authority to mutate either host.
 - **Failure policy:** exact witness mismatch quarantines; witness outage, stale source, or low disk holds; source loss remains pending with no fallback; schema drift quarantines; corrections retain exact scope/rulesets, cite `supersedes`, and enumerate changed subjects. Recovery requires exact backup bytes plus a matching witness observation.
 - **Boundary:** every receipt remains publication/promoted false. No SSH, service, timer, database, dependency, credential, deploy, production scoring, or live alert delivery occurred. A7B returns to READY before production-readiness/A4 rehearsal or exact-host provisioning.
+
+## 2026-08-30 — `is_selected` applied to production; no staging exists
+
+**Decision.** Applied `sql/2026-08-26_league_selection_review.sql` to the production Omen
+Supabase project after explicit founder approval in session.
+
+**Why it mattered.** It is the root cause of `F-DEV-02`, the founder's own report that picking
+ESPN in the switcher "still stays on my sleeper". Without the column, nothing records which
+*provider* a user chose, so every surface falls back to the deterministic tie-break that puts
+Sleeper first. No client change could fix that.
+
+**The approved precondition could not be met, and this is the part worth keeping.** The founder
+approved "staging first". There is no staging: the org has one project and one branch, and that
+branch is production. Rather than quietly treat production as staging, that was reported back and
+production application was separately authorized.
+
+**What stood in for staging.** The exact DDL was run against production inside a transaction and
+rolled back. It executed cleanly; column, index and all 9 rows were then verified untouched. That
+proves the statements parse, run, and reverse — most of what a staging pass buys for an additive
+column — without a paid preview branch.
+
+**Blast radius, measured before applying:** 9 connection rows, 4 users, 3 with more than one
+provider. **After:** boolean, nullable, partial unique index present, **0 rows rewritten**. The
+index only constrains rows where `is_selected` is true, and every existing row is null, so no
+pre-existing row could violate it.
+
+**No deploy needed.** `activeSelection.js` detects the column at runtime by attempting the select
+and falling back on a missing-column error. The PostgREST schema cache was reloaded so that
+detection actually sees the new column — without that, the API would have kept taking the
+fallback path and reporting `provider_binding_only` while the column sat there unused. That step
+is easy to forget and produces no error when skipped.
+
+**Rollback**, if needed, is in the file's own footer: drop the index, drop the column.
+
+**No future SQL authority is implied.** Facts-of-record #8 still governs the next one.
