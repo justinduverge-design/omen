@@ -32,6 +32,14 @@ persistent context across every page until the user changes it again.
   object is a standalone image plus a public Omen link. QR is optional, not the default.
 - A public trade page may collect Accept / Reject / Counter opinions with adjacent copy that the
   action does not affect the real fantasy league. Chat-native polls are parked.
+- Beta is **provider handoff only**. Omen builds, analyzes, packages, copies, and shares the exact
+  offer, then opens or directs the user to Yahoo, Sleeper, or ESPN to submit it. Omen never says
+  an offer was sent without provider confirmation.
+- Provider capability is explicit: `submission: supported | handoff_only | unavailable`. Current
+  official capability is `handoff_only`: Yahoo's current application access is read-only,
+  Sleeper publishes no authenticated trade-write endpoint, and ESPN publishes no developer write
+  API. Future official access or partnership can activate `supported` without changing the page's
+  core contract.
 - English only for beta.
 - Roster rows may show provider positional rank only when lawfully available, source-labelled and
   current. Otherwise rank is `null` and the UI shows a dash. Omen never invents or silently
@@ -55,7 +63,5 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Exact roster-row information hierarchy beyond source-ranked positional rank.
 - Two-/three-team builder interaction and accessibility behavior.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
-- Whether Omen ever submits offers or remains an advisor/share layer.
 - Public vote visibility and retention/consent details.
 - Trade verdict contract that prevents `insufficient_data` from emitting directional advice.
-

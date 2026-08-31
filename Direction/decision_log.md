@@ -1864,3 +1864,15 @@ three-team, keeper, and dynasty deals, but defer implementation and valuation to
 Omen-owned ranking pipeline work. The current Trade contract must not harden into a permanent
 player-only model. It also must not assign a value to a pick before a defensible, source-backed
 model exists. Workshop record: `Blueprints/specs/mobile/omen-trade-page-workshop-v1.md`.
+
+## 2026-08-31 — Trade beta hands off to providers; it does not claim submission
+
+**Decision:** Omen prepares and explains a complete offer, produces polished share/copy output,
+and hands the user into Yahoo, Sleeper, or ESPN to finish. It does not use undocumented private
+write endpoints or claim an offer was submitted without provider confirmation. The contract keeps
+an explicit submission capability seam for future official write access or partnership.
+
+**Current source proof:** Yahoo's current developer-access page says Fantasy API applications are
+read-only despite older transaction docs describing writes; Sleeper's official API publishes
+trade reads but no authenticated create endpoint; ESPN documents trading only in its own clients
+and publishes no developer write API.
