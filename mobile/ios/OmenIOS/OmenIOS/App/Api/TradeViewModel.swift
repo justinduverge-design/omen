@@ -200,6 +200,8 @@ final class TradeViewModel: ObservableObject {
             return "Omen couldn't reach the server. Check your connection and try again."
         case .unauthorized:
             return "Your session expired. Sign in again to compare with your league's settings."
+        case .server(let status) where status == 422:
+            return "Omen couldn't verify one or more players. Remove them and choose from search suggestions."
         case .server:
             return "Omen is having trouble on our side. Try again in a moment."
         case .decode:

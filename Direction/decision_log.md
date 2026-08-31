@@ -1839,3 +1839,20 @@ screen appeared to show a player on a side while Compare stayed disabled. The ca
 now labelled "Tap a player to add" on both platforms, and Android gained the container border it
 was missing relative to iOS. Verified on simulator and emulator with a committed player and a
 suggestion list on screen together.
+
+## 2026-08-31 — Player identity is a hard gate; fuzzy matches are suggestions only
+
+**Decision:** Trade resolves every submitted player against the canonical active-player source
+before recommendation math or the explainer runs. Unknown, ambiguous, or forged identities return
+an honest `422 trade_unresolved_players` response with no VORP, tier, scarcity, verdict, summary,
+or explanation. A source outage returns `503 player_resolution_unavailable`.
+
+Near matches are deliberately not auto-resolved. Search may return up to three rows marked
+`match_type: fuzzy`; both native clients label those rows "Did you mean?" and require the user to
+commit the canonical player. Exact search rows retain their existing contract. This closes the
+false-authority path in `F-BAR-29` while adding the recovery path required by `F-BAR-30`.
+
+**Rate-limit production record:** commit `a2e3e3e` deployed in Actions run `33442658013`.
+Independent live probes observed `300;w=60` for player search and `120;w=60` for Trade, with the
+buckets independent. The durable carrier-NAT improvement remains credential-aware limiting; it
+is not silently represented as solved by the larger IP budgets.

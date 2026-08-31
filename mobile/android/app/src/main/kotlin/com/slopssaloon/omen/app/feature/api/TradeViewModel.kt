@@ -230,7 +230,11 @@ class TradeViewModel(
                 "Omen couldn't reach the server. Check your connection and try again."
             is OmenApiError.Unauthorized ->
                 "Your session expired. Sign in again to compare with your league's settings."
-            is OmenApiError.Server -> "Omen is having trouble on our side. Try again in a moment."
+            is OmenApiError.Server -> if (error.status == 422) {
+                "Omen couldn't verify one or more players. Remove them and choose from search suggestions."
+            } else {
+                "Omen is having trouble on our side. Try again in a moment."
+            }
             is OmenApiError.Decode -> "Omen sent something this version of the app couldn't read."
         }
     }

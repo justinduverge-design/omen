@@ -76,6 +76,19 @@ async function compare(router, body, headers = {}) {
   }
 }
 
+async function resolveAsGiven(players) {
+  return players.map((player, index) => ({
+    status: "resolved",
+    player: {
+      id: player.player_key || `test:${index}:${player.name}`,
+      name: player.name,
+      position: player.position || "UNK",
+      team: player.team || "FA",
+      projected_points: player.projected_points ?? null,
+    },
+  }));
+}
+
 /** A router whose personalization always resolves to the given league shape. */
 function routerForLeague(slots, { roster = ROSTER_RB_DEEP, format = "ppr", teamCount = 12 } = {}) {
   const built = buildTradeScoringConfig({
@@ -85,6 +98,7 @@ function routerForLeague(slots, { roster = ROSTER_RB_DEEP, format = "ppr", teamC
     rosterPlayers: roster,
   });
   return tradeRoutes.createTradeRouter({
+    playerResolver: resolveAsGiven,
     authenticate: async () => ({ id: "user-1" }),
     leagueContextResolver: async () => ({
       status: "personalized",
@@ -97,6 +111,7 @@ function routerForLeague(slots, { roster = ROSTER_RB_DEEP, format = "ppr", teamC
 }
 
 const NEUTRAL_ROUTER = tradeRoutes.createTradeRouter({
+  playerResolver: resolveAsGiven,
   authenticate: async () => { throw new Error("no token"); },
   leagueContextResolver: async () => ({ status: "unavailable", reason: "no_connected_league" }),
 });
@@ -385,6 +400,7 @@ test("asking to personalize without a session degrades to neutral, not a 401", a
 
 test("an unresolvable league says so and retains neutral analysis", async () => {
   const router = tradeRoutes.createTradeRouter({
+    playerResolver: resolveAsGiven,
     authenticate: async () => ({ id: "user-1" }),
     leagueContextResolver: async () => ({ status: "unavailable", reason: "no_connected_league" }),
   });

@@ -5,6 +5,7 @@ const test = require("node:test");
 const {
   normalizePlayerSearchQuery,
   normalizePosition,
+  resolvePlayerInputs,
   searchNflPlayers,
   searchPlayerSource,
 } = require("../src/services/playerSearch");
@@ -43,6 +44,20 @@ const SOURCE = {
     team: "HOU",
     active: true,
     projected_points: 18.4,
+  },
+  600: {
+    full_name: "Tetairoa McMillan",
+    position: "WR",
+    team: "CAR",
+    active: true,
+    search_rank: 20,
+  },
+  700: {
+    full_name: "Jaxson Dart",
+    position: "QB",
+    team: "NYG",
+    active: true,
+    search_rank: 30,
   },
 };
 
@@ -85,6 +100,56 @@ test("searchPlayerSource handles punctuation-insensitive names", () => {
 
 test("searchPlayerSource returns an empty array for blank autocomplete queries", () => {
   assert.deepEqual(searchPlayerSource(SOURCE, { position: "RB", q: "" }), []);
+});
+
+test("searchPlayerSource returns explicit fuzzy suggestions for common spoken spellings", () => {
+  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Ted McMillan" }), [{
+    id: "sleeper:600",
+    name: "Tetairoa McMillan",
+    position: "WR",
+    team: "CAR",
+    projected_points: null,
+    match_type: "fuzzy",
+  }]);
+  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Jackson Dart" }), [{
+    id: "sleeper:700",
+    name: "Jaxson Dart",
+    position: "QB",
+    team: "NYG",
+    projected_points: null,
+    match_type: "fuzzy",
+  }]);
+});
+
+test("searchPlayerSource does not manufacture a fuzzy suggestion without a strong anchor", () => {
+  assert.deepEqual(searchPlayerSource(SOURCE, { q: "Zzzqx Notaplayer" }), []);
+});
+
+test("resolvePlayerInputs accepts canonical ids and exact names only", () => {
+  const [byId, byName, typo, invented] = resolvePlayerInputs(SOURCE, [
+    { player_key: "sleeper:100", name: "ignored" },
+    { name: "Patrick Mahomes" },
+    { name: "Jackson Dart", position: "QB" },
+    { name: "Zzzqx Notaplayer", position: "RB" },
+  ]);
+
+  assert.equal(byId.status, "resolved");
+  assert.equal(byId.player.name, "Patrick Mahomes");
+  assert.equal(byName.status, "resolved");
+  assert.equal(typo.status, "unresolved");
+  assert.equal(typo.suggestions[0].name, "Jaxson Dart");
+  assert.equal(typo.suggestions[0].match_type, "fuzzy");
+  assert.equal(invented.status, "unresolved");
+  assert.deepEqual(invented.suggestions, []);
+});
+
+test("resolvePlayerInputs rejects a forged provider-scoped id even when the name is real", () => {
+  const [result] = resolvePlayerInputs(SOURCE, [{
+    player_key: "sleeper:not-real",
+    name: "Patrick Mahomes",
+  }]);
+  assert.equal(result.status, "unresolved");
+  assert.deepEqual(result.suggestions, []);
 });
 
 test("searchNflPlayers caps results at ten", async () => {

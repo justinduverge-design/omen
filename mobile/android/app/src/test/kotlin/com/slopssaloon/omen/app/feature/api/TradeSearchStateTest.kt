@@ -138,4 +138,13 @@ class TradeSearchStateTest {
             )
         }
     }
+
+
+    @Test
+    fun `an unresolved player failure is an honest refusal`() {
+        val message = TradeViewModel.messageFor(OmenApiError.Server(422))
+        assertTrue(message.contains("couldn't verify"))
+        assertTrue(message.contains("search suggestions"))
+        assertNotEquals(message, TradeViewModel.messageFor(OmenApiError.Server(500)))
+    }
 }

@@ -12,6 +12,7 @@ const {
 } = require("../services/tradeShareStore");
 const { buildTradeShareOgSvg } = require("../services/tradeShareOg");
 const { compareTrade } = require("../services/tradeValue");
+const { resolveNflPlayerInputs } = require("../services/playerSearch");
 const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { authenticateOmenRequest, getActivePlatformConnections } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
@@ -168,6 +169,44 @@ function neutralAnalysisContext(reason = null) {
   };
 }
 
+async function defaultPlayerResolver(players) {
+  return resolveNflPlayerInputs(players, { fetchPlayers: sleeperAdapter.fetchSleeperPlayers });
+}
+
+function resolvedTradePlayers(inputs, resolutions) {
+  return inputs.map((input, index) => {
+    const canonical = resolutions[index].player;
+    const out = {
+      name: canonical.name,
+      position: canonical.position,
+      team: canonical.team,
+      player_key: canonical.id,
+    };
+    if (Object.prototype.hasOwnProperty.call(input, "projected_points")) {
+      out.projected_points = Number(input.projected_points);
+    } else if (canonical.projected_points != null) {
+      out.projected_points = canonical.projected_points;
+    }
+    if (input.status != null) out.status = input.status;
+    return out;
+  });
+}
+
+function unresolvedPlayersFor(side, inputs, resolutions) {
+  const unresolved = [];
+  resolutions.forEach((resolution, index) => {
+    if (resolution.status === "resolved") return;
+    unresolved.push({
+      side,
+      index,
+      name: String(inputs[index]?.name || "").trim(),
+      reason: resolution.status,
+      suggestions: resolution.suggestions,
+    });
+  });
+  return unresolved;
+}
+
 /**
  * Default personalization resolver: reads the caller's own connections and
  * the provider's league settings. Injected in tests so the maths is provable
@@ -306,6 +345,8 @@ function createTradeRouter({
   tradePulseRedisClient = tradePulseRedis,
   authenticate = authenticateOmenRequest,
   leagueContextResolver = defaultLeagueContextResolver,
+  playerResolver = defaultPlayerResolver,
+  tradeExplainer = llm.explainTrade,
 } = {}) {
   const router = express.Router();
 
@@ -388,6 +429,40 @@ function createTradeRouter({
         return res.status(400).json({ error: contextError });
       }
 
+      // `F-BAR-29`: identity is a hard gate ahead of every score, tier,
+      // summary, share snapshot and LLM call. Missing projections can produce
+      // an honest non-verdict for a *real* player; they can never turn an
+      // invented name into a low-confidence fantasy asset.
+      let sendResolutions;
+      let receiveResolutions;
+      try {
+        [sendResolutions, receiveResolutions] = await Promise.all([
+          playerResolver(req.body.send),
+          playerResolver(req.body.receive),
+        ]);
+      } catch (error) {
+        logger.warn("Trade player resolution unavailable", { err: error.message });
+        return res.status(503).json({
+          error: "player_resolution_unavailable",
+          code: "player_resolution_unavailable",
+        });
+      }
+
+      const unresolved = [
+        ...unresolvedPlayersFor("send", req.body.send, sendResolutions),
+        ...unresolvedPlayersFor("receive", req.body.receive, receiveResolutions),
+      ];
+      if (unresolved.length) {
+        return res.status(422).json({
+          error: "unresolved_players",
+          code: "trade_unresolved_players",
+          unresolved,
+        });
+      }
+
+      const send = resolvedTradePlayers(req.body.send, sendResolutions);
+      const receive = resolvedTradePlayers(req.body.receive, receiveResolutions);
+
       const { analysis, scoringConfig } = await resolveAnalysisContext(req);
       // A personalized run derives its scoring format from the provider's own
       // settings; the client-supplied label only governs the neutral path.
@@ -396,8 +471,8 @@ function createTradeRouter({
         : (req.body.scoring_format || "ppr");
 
       const result = compareTrade({
-        send: req.body.send,
-        receive: req.body.receive,
+        send,
+        receive,
       }, {
         scoringFormat: scoring_format,
       }, scoringConfig);
@@ -408,9 +483,9 @@ function createTradeRouter({
       result.verdict_state = verdictStateFor(result, evaluability);
       result.analysis_context = analysis;
 
-      result.explanation = await llm.explainTrade({
-        send:      req.body.send,
-        receive:   req.body.receive,
+      result.explanation = await tradeExplainer({
+        send,
+        receive,
         net_value: result.net_value,
         a_score: result.a_score,
         b_score: result.b_score,

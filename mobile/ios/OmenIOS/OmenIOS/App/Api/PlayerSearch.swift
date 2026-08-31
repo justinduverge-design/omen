@@ -15,6 +15,30 @@ struct PlayerSearchResult: Decodable, Equatable, Identifiable {
     let name: String
     let position: String?
     let team: String?
+    /// Present only when the backend found no exact/substring result and is
+    /// offering a correction. A fuzzy row is never silently committed.
+    let matchType: String?
+
+    init(
+        id: String,
+        name: String,
+        position: String?,
+        team: String?,
+        matchType: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.position = position
+        self.team = team
+        self.matchType = matchType
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, position, team
+        case matchType = "match_type"
+    }
+
+    var isFuzzySuggestion: Bool { matchType == "fuzzy" }
 
     /// "WR · MIN" — omitted entirely when the provider gives neither, rather than rendering
     /// a stray separator.

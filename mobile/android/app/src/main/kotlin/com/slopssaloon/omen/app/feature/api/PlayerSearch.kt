@@ -19,7 +19,10 @@ data class PlayerSearchResult(
     val name: String,
     val position: String?,
     val team: String?,
+    /** Present only for a correction candidate, never an automatic identity resolution. */
+    val matchType: String? = null,
 ) {
+    val isFuzzySuggestion: Boolean get() = matchType == "fuzzy"
     /**
      * "WR - MIN", omitted entirely when the provider gives neither rather than rendering a
      * stray separator against an empty half.
@@ -46,6 +49,7 @@ data class PlayerSearchResult(
                     name = name,
                     position = row.optString("position").takeIf { it.isNotEmpty() },
                     team = row.optString("team").takeIf { it.isNotEmpty() },
+                    matchType = row.optString("match_type").takeIf { it.isNotEmpty() },
                 )
             }
         }.getOrNull()

@@ -156,7 +156,7 @@ struct OmenTradeScreen: View {
             // `F-BAR-14`: a suggestion row read as a player already committed to the
             // offer. These rows are *candidates*, not members of the offer, and the
             // group now says so rather than leaving "Remove" as the only tell.
-            Text("Tap a player to add")
+            Text(rows.allSatisfy(\.isFuzzySuggestion) ? "Did you mean?" : "Tap a player to add")
                 .omenTextStyle(OmenTypography.label)
                 .foregroundStyle(OmenColor.textSecondary)
             VStack(spacing: 0) {

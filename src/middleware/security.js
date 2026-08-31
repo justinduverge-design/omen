@@ -175,13 +175,14 @@ const publicToolRateLimit = rateLimit({
 // The number is set from measured cost, not from a round figure. The route
 // reads an in-process cache of the Sleeper player blob (refreshed daily) and,
 // since the search index is built once per blob rather than once per request,
-// costs **0.23ms of CPU per search** over 11.4k players — down from 3.9ms, a
-// 17× reduction measured on the same fixture. One core sustains ~4,300
-// searches/second.
+// costs **0.23ms of CPU for an exact search** over 11.4k players — down from
+// 3.9ms, a 17× reduction measured on the same fixture. The rarer fuzzy fallback
+// is shortlisted before edit distance and measures at 1.9–2.6ms.
 //
-// At 300/min/IP the worst a single IP can extract is 69ms of CPU per minute:
-// about 0.1% of one core. That is cheap enough to be generous with, which
-// matters because this budget is shared by everyone behind the same NAT.
+// At 300/min/IP, even a minute made entirely of fuzzy misses extracts <0.8s of
+// CPU: about 1.3% of one core. Exact searches are about 0.1%. That is cheap
+// enough to be generous with, which matters because this budget is shared by
+// everyone behind the same NAT.
 //
 // For scale: a debounced client spends 3–6 requests per player name typed, so
 // 300/min is roughly 50–100 player lookups a minute — far past what one person

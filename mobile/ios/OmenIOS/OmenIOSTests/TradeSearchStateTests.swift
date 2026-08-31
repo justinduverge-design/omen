@@ -105,4 +105,11 @@ final class TradeSearchStateTests: XCTestCase {
             )
         }
     }
+
+    func testUnresolvedPlayerFailureIsAnHonestRefusal() {
+        let message = TradeViewModel.message(for: .server(status: 422))
+        XCTAssertTrue(message.contains("couldn't verify"))
+        XCTAssertTrue(message.contains("search suggestions"))
+        XCTAssertNotEqual(message, TradeViewModel.message(for: .server(status: 500)))
+    }
 }

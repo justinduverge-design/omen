@@ -149,15 +149,14 @@ final class TradeCompareTests: XCTestCase {
         let send = offer.requestBody["send"] as? [[String: Any]]
         XCTAssertNotNil(send, "send must be an array of objects — a bare string is a 400")
         XCTAssertEqual(send?.first?["name"] as? String, "Justin Jefferson")
-        // Carried because the server scores on them: a name-only player resolves to
-        // `position: "UNK"` and drops out of scarcity and tier entirely.
+        // Carried so the server can verify canonical identity before scoring.
         XCTAssertEqual(send?.first?["position"] as? String, "WR")
         XCTAssertEqual(send?.first?["team"] as? String, "MIN")
         XCTAssertEqual(send?.first?["player_key"] as? String, "sleeper:6794")
     }
 
     /// A hand-typed name has no position, and that must stay legal rather than being padded
-    /// with an invented one. The server answers at lower confidence; it does not refuse.
+    /// with an invented one. The server resolves an exact name or refuses it before scoring.
     func testAHandTypedNameSendsOnlyTheName() {
         let payload = TradePlayer(name: "Some Guy").payload
 
@@ -211,6 +210,19 @@ final class TradeCompareTests: XCTestCase {
 
     // MARK: - F-DEV-03 — player search
 
+    func testFuzzySearchRowsDecodeAsExplicitSuggestions() throws {
+        let json = Data("""
+        [{"id":"sleeper:12527","name":"Jaxson Dart","position":"QB","team":"NYG",
+          "projected_points":null,"match_type":"fuzzy"}]
+        """.utf8)
+
+        let rows = try JSONDecoder().decode([PlayerSearchResult].self, from: json)
+
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertTrue(rows[0].isFuzzySuggestion)
+        XCTAssertEqual(rows[0].name, "Jaxson Dart")
+    }
+
     /// The query must go through `URLComponents`, never interpolated into the path.
     /// `URL.appendingPathComponent` treats the whole string as ONE path segment and
     /// percent-encodes the `?`, so `search?q=x` shipped as `search%3Fq=x` and 404'd every time.
@@ -241,7 +253,7 @@ final class TradeCompareTests: XCTestCase {
         )
     }
 
-    /// A one-character query must not hit the network: the route is rate limited at 30/min/IP
+    /// A one-character query must not hit the network: the route is rate limited at 300/min/IP
     /// and a per-keystroke request would burn that on a single name.
     func testAShortQueryIsNotSentAtAll() async {
         final class CountingFetcher: OmenHTTPFetching {

@@ -70,7 +70,7 @@ class PlayerSearchTest {
         val result = repository(fetcher).search("j")
 
         // The route would answer 400, and a one-character keystroke would still spend one of
-        // the 30-per-minute-per-IP budget. Answer locally instead.
+        // the 300-per-minute-per-IP budget. Answer locally instead.
         assertEquals(0, fetcher.calls)
         assertEquals(emptyList<PlayerSearchResult>(), (result as OmenApiResult.Success).value)
     }
@@ -84,6 +84,17 @@ class PlayerSearchTest {
         )
 
         assertEquals(listOf("Justin Jefferson", "Van Jefferson"), rows?.map { it.name })
+    }
+
+    @Test
+    fun `a fuzzy row stays an explicit suggestion`() {
+        val rows = PlayerSearchResult.parseList(
+            """[{"id":"sleeper:12527","name":"Jaxson Dart","position":"QB","team":"NYG",
+                "match_type":"fuzzy"}]""",
+        )
+
+        assertEquals(1, rows?.size)
+        assertTrue(requireNotNull(rows).first().isFuzzySuggestion)
     }
 
     @Test
@@ -120,8 +131,7 @@ class TradePlayerPayloadTest {
         val first = send.getJSONObject(0)
 
         assertEquals("Justin Jefferson", first.getString("name"))
-        // Carried because the server scores on them: a name-only player resolves to
-        // `position: "UNK"` and drops out of scarcity and tier entirely.
+        // Carried so the server can verify canonical identity before scoring.
         assertEquals("WR", first.getString("position"))
         assertEquals("MIN", first.getString("team"))
         assertEquals("sleeper:6794", first.getString("player_key"))
@@ -129,8 +139,8 @@ class TradePlayerPayloadTest {
 
     @Test
     fun `a hand-typed name sends only the name`() {
-        // No position is invented for a name the user typed. The server answers at lower
-        // confidence; it does not refuse.
+        // No position is invented for a name the user typed. The server resolves an exact
+        // name or refuses it before scoring.
         val payload = TradePlayer("Some Guy").payload()
 
         assertEquals("Some Guy", payload.getString("name"))

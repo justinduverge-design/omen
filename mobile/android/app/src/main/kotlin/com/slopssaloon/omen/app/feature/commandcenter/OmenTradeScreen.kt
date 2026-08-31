@@ -278,7 +278,11 @@ private fun TradeSide(
                 verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
             ) {
                 Text(
-                    text = "Tap a player to add",
+                    text = if (searchState.rows.all { it.isFuzzySuggestion }) {
+                        "Did you mean?"
+                    } else {
+                        "Tap a player to add"
+                    },
                     style = OmenTheme.typography.label.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
                 )

@@ -29,7 +29,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 | `POST` | `/api/trade/share` | `trade-share.v1` | No | Creates a 30-day public share hash from bounded Trade Analyzer input. Uses Redis in production; no auth or provider data. |
 | `GET` | `/api/trade/share/:hash` | `trade-share.v1` | No | Public read of a shared trade snapshot by UUID hash. Returns `404 trade_share_not_found` when missing/expired. |
 | `GET` | `/api/trade/share/:hash/og.svg` | trade-share public OG image | No | Server-side SVG image for crawler cards. Reads the same public snapshot and returns `image/svg+xml`; no auth/provider data. |
-| `GET` | `/api/players/search` | `players-search.v1` | No | Free Trade Analyzer autocomplete. Uses public Sleeper player data; max 10 rows. |
+| `GET` | `/api/players/search` | `players-search.v1` | No | Free Trade Analyzer autocomplete. Uses public Sleeper player data; max 10 exact rows or 3 explicitly marked fuzzy suggestions. |
 | `POST` | `/api/draft-assistant/recommendations` | `draft-assistant-recommendations.v1` | No | Mock/preview recommendations until live Draft Assistant data ships. |
 | `GET` | `/api/draft-assistant/adp` | ADP response | No | Public ADP; optional Yahoo enrichment when auth is supplied. |
 | `GET` | `/api/sleeper/draft?leagueId=` | `sleeper-draft-list.v1` | Yes | Connected Sleeper league only. |
@@ -63,7 +63,7 @@ LLM bridge status is additive on `GET /api/ready` and `GET /api/platform-status`
 
 ## Trade compare v2 — additive, 2026-08-24
 
-`POST /api/trade/compare` gained real league personalization and explicit server semantics for all four approved verdict states. **Every change is additive.** v1 consumers — the web Trade Analyzer and `trade-share.v1` snapshots — read the same fields they always did and behave identically.
+`POST /api/trade/compare` provides real league personalization and explicit server semantics for all four approved verdict states. Player identity resolution became a required precondition on 2026-08-31; see **Player identity gate** below.
 
 ### Request
 
@@ -117,6 +117,47 @@ Only **Sleeper** resolves a personalized context today.
 
 Validation: a `league_context` that is not an object, names an unknown platform, or carries an over-long `league_id` returns `400`.
 
+### Player identity gate — F-BAR-29 / F-BAR-30
+
+Every player is resolved against the same canonical Sleeper NFL index used by
+`GET /api/players/search` **before** scoring, scarcity analysis, summary generation, sharing, or
+the LLM explainer. Resolution accepts either:
+
+- a provider-scoped `player_key` that exists in the index; or
+- one exact folded name, narrowed by supplied position/team when present.
+
+Fuzzy matches are suggestions only. They are never silently promoted to identity. If any player
+is unknown or ambiguous, Trade returns `422` and performs no scoring or LLM work:
+
+```json
+{
+  "error": "unresolved_players",
+  "code": "trade_unresolved_players",
+  "unresolved": [{
+    "side": "send",
+    "index": 0,
+    "name": "Jackson Dart",
+    "reason": "unresolved",
+    "suggestions": [{
+      "id": "sleeper:12527",
+      "name": "Jaxson Dart",
+      "position": "QB",
+      "team": "NYG",
+      "projected_points": null,
+      "match_type": "fuzzy"
+    }]
+  }]
+}
+```
+
+The response deliberately contains no `verdict`, VORP, tier, scarcity analysis, summary, share
+payload, or explanation. A player-source outage returns `503` with
+`code: "player_resolution_unavailable"`; it never falls through to scoring.
+
+`GET /api/players/search` still returns ordinary exact/substring rows unchanged. Only a fallback
+row adds `match_type: "fuzzy"`. Native clients render an all-fuzzy result set under **Did you
+mean?** and require the user to tap the canonical player.
+
 ## Rate Limits
 
 Four limiters are in play. They **stack** — a request passes through every one that matches its
@@ -148,9 +189,10 @@ Three things changed:
 2. **Player search became genuinely cheap, so the budget could honestly rise.** The search index
    over ~11.4k Sleeper players is now built once per cached player blob instead of once per
    request — previously every keystroke re-ran ~11.4k NFKD Unicode normalizations. Measured on
-   the same fixture: **3.9ms → 0.23ms per search, a 17× reduction**; one core sustains ~4,300
-   searches/second. At 300/min/IP the worst a single IP extracts is ~69ms of CPU per minute,
-   about 0.1% of one core. A 27,461-case differential test (`accents, apostrophes, hyphens,
+   the same fixture: **3.9ms → 0.23ms per exact search, a 17× reduction**. The fuzzy fallback
+   added later is shortlisted before edit distance and measures at 1.9–2.6ms. At 300/min/IP,
+   even all-fuzzy misses consume under 0.8s of CPU per minute (~1.3% of one core); exact traffic
+   is about 0.1%. A 27,461-case differential test (`accents, apostrophes, hyphens,
    position aliases, arrays vs objects, empty and non-object sources`) proves the results are
    byte-identical to the previous implementation.
 

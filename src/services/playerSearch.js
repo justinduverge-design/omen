@@ -11,6 +11,9 @@ const POSITION_ALIASES = new Map([
   ["PK", "K"],
 ]);
 
+const MATCH_TYPE_FUZZY = "fuzzy";
+const MAX_FUZZY_SUGGESTIONS = 3;
+
 const sourceCaches = new WeakMap();
 
 /**
@@ -186,6 +189,109 @@ function publicPlayer(player) {
   };
 }
 
+function publicMatchedPlayer(player, matchType) {
+  return {
+    ...publicPlayer(player),
+    match_type: matchType,
+  };
+}
+
+/**
+ * Damerau-Levenshtein distance for short, folded player-name tokens.
+ *
+ * Transposition matters here: mobile typos are commonly two adjacent letters
+ * swapped. The matrix is bounded by the 64-character query cap, so keeping the
+ * implementation local is cheaper and safer than adding a dependency.
+ */
+function editDistance(left, right) {
+  const a = String(left || "");
+  const b = String(right || "");
+  const rows = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i += 1) rows[i][0] = i;
+  for (let j = 0; j <= b.length; j += 1) rows[0][j] = j;
+
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      rows[i][j] = Math.min(
+        rows[i - 1][j] + 1,
+        rows[i][j - 1] + 1,
+        rows[i - 1][j - 1] + cost
+      );
+      if (
+        i > 1 && j > 1
+        && a[i - 1] === b[j - 2]
+        && a[i - 2] === b[j - 1]
+      ) {
+        rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return rows[a.length][b.length];
+}
+
+function fuzzyNameScore(player, foldedQuery) {
+  const queryTokens = foldedQuery.split(" ").filter(Boolean);
+  const playerTokens = player._tokens;
+  if (!queryTokens.length || queryTokens.length !== playerTokens.length) return null;
+
+  // Cheap candidate rejection before allocating an edit-distance matrix. On
+  // the ~11.4k-player source this removes virtually every unrelated name and
+  // keeps the fuzzy fallback inside the generous search budget.
+  const lastNameAnchored = queryTokens.at(-1) === playerTokens.at(-1);
+  for (let i = 0; i < queryTokens.length; i += 1) {
+    if (queryTokens[i][0] !== playerTokens[i][0]) return null;
+    const isLast = i === queryTokens.length - 1;
+    if (!(lastNameAnchored && !isLast) && Math.abs(queryTokens[i].length - playerTokens[i].length) > 2) {
+      return null;
+    }
+  }
+
+  let total = 0;
+  for (let i = 0; i < queryTokens.length; i += 1) {
+    const queryToken = queryTokens[i];
+    const playerToken = playerTokens[i];
+    const distance = editDistance(queryToken, playerToken);
+    const maxLength = Math.max(queryToken.length, playerToken.length, 1);
+    const ratio = distance / maxLength;
+
+    // A last name must be very close. First names may be colloquial
+    // shortenings ("Ted" -> "Tetairoa"), but only when the last name is an
+    // exact anchor and the initial agrees. This produces a suggestion, never
+    // an automatic identity resolution.
+    const isLast = i === queryTokens.length - 1;
+    const shortFirstName = !isLast
+      && lastNameAnchored
+      && queryToken.length >= 2
+      && queryToken[0] === playerToken[0];
+    const allowed = isLast
+      ? (distance <= 2 && ratio <= 0.34)
+      : ((distance <= 2 && ratio <= 0.4) || shortFirstName);
+    if (!allowed) return null;
+    total += ratio;
+  }
+  return total / queryTokens.length;
+}
+
+function fuzzyMatches(index, foldedQuery, { position = null, limit = MAX_FUZZY_SUGGESTIONS } = {}) {
+  const matches = [];
+  for (const player of index) {
+    if (position && player.position !== position) continue;
+    const score = fuzzyNameScore(player, foldedQuery);
+    if (score == null) continue;
+    matches.push({ player, score });
+  }
+  return matches
+    .sort((a, b) => (
+      a.score - b.score
+      || a.player._search_rank - b.player._search_rank
+      || a.player.name.localeCompare(b.player.name)
+      || a.player.id.localeCompare(b.player.id)
+    ))
+    .slice(0, limit)
+    .map(({ player }) => publicMatchedPlayer(player, MATCH_TYPE_FUZZY));
+}
+
 /** The per-source work, done once. See `indexCaches`. */
 function buildSearchIndex(source) {
   const out = [];
@@ -228,7 +334,7 @@ function searchPlayerSource(source, query = {}) {
     matches.push({ player, matchRank });
   }
 
-  return matches
+  const exact = matches
     .sort((a, b) => (
       a.matchRank - b.matchRank
       || a.player._search_rank - b.player._search_rank
@@ -237,6 +343,59 @@ function searchPlayerSource(source, query = {}) {
     ))
     .slice(0, normalized.limit)
     .map((entry) => publicPlayer(entry.player));
+
+  if (exact.length) return exact;
+  return fuzzyMatches(searchIndexFor(source), foldedQuery, {
+    position: normalized.position,
+    limit: Math.min(normalized.limit, MAX_FUZZY_SUGGESTIONS),
+  });
+}
+
+/**
+ * Resolve trade inputs against the same canonical index search uses.
+ *
+ * Identity is deliberately strict: provider-scoped id, or an exact folded
+ * name narrowed by optional position/team. Fuzzy matches are returned only as
+ * suggestions. They are never silently promoted to identity and therefore
+ * can never reach scoring or an LLM paragraph under the wrong name.
+ */
+function resolvePlayerInputs(source, players = []) {
+  const index = searchIndexFor(source);
+  const byId = new Map(index.map((player) => [player.id, player]));
+
+  return players.map((input) => {
+    const playerKey = toTrimmedString(input?.player_key || input?.id);
+    if (playerKey) {
+      const found = byId.get(playerKey);
+      if (found) return { status: "resolved", player: publicPlayer(found) };
+      return { status: "unresolved", input, suggestions: [] };
+    }
+
+    const foldedName = foldText(input?.name);
+    const requestedPosition = normalizePosition(input?.position);
+    const requestedTeam = toTrimmedString(input?.team).toUpperCase();
+    let exact = index.filter((player) => player._search_name === foldedName);
+    if (requestedPosition) exact = exact.filter((player) => player.position === requestedPosition);
+    if (requestedTeam && requestedTeam !== "FA") {
+      exact = exact.filter((player) => player.team === requestedTeam);
+    }
+
+    if (exact.length === 1) {
+      return { status: "resolved", player: publicPlayer(exact[0]) };
+    }
+
+    const suggestions = fuzzyMatches(index, foldedName, {
+      position: requestedPosition,
+      limit: MAX_FUZZY_SUGGESTIONS,
+    });
+    return {
+      status: exact.length > 1 ? "ambiguous" : "unresolved",
+      input,
+      suggestions: exact.length > 1
+        ? exact.slice(0, MAX_FUZZY_SUGGESTIONS).map((player) => publicPlayer(player))
+        : suggestions,
+    };
+  });
 }
 
 async function getCachedSource(fetchPlayers, cacheTtlMs = DEFAULT_CACHE_TTL_MS) {
@@ -286,6 +445,14 @@ async function searchNflPlayers(query = {}, options = {}) {
   return searchPlayerSource(source, normalized);
 }
 
+async function resolveNflPlayerInputs(players = [], options = {}) {
+  const source = await getCachedSource(
+    options.fetchPlayers,
+    options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS
+  );
+  return resolvePlayerInputs(source, players);
+}
+
 module.exports = {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -293,6 +460,8 @@ module.exports = {
   foldText,
   normalizePlayerSearchQuery,
   normalizePosition,
+  resolveNflPlayerInputs,
+  resolvePlayerInputs,
   searchNflPlayers,
   searchPlayerSource,
 };

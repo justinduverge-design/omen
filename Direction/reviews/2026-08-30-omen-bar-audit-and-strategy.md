@@ -1578,3 +1578,58 @@ directly contradicting the doc comment above it and leaving `onAddResult` dead c
 resolves to `position: "UNK"` server-side and falls out of scarcity and tier, so this was a real
 scoring defect, not a cosmetic one. It is **not** part of `F-BAR-34` and is recorded here so it
 is not mistaken for one.
+
+---
+
+## 24. Tier 0.1 / 0.2 production deployment — VERIFIED — 2026-08-31 (session 4)
+
+Commits `1f156fc` and `a2e3e3e` were pushed to `main` and deployed by GitHub Actions run
+`33442658013`. Quality, image build/push, KVM1 restart, `/api/health`, SPA-logo verification and
+the public-route visual canary all passed.
+
+Independent production proof after the workflow—not the workflow reporting on itself:
+
+- `/api/health` → `200`, `service: omen-api`.
+- `/api/players/search?q=jefferson` → four canonical rows and
+  `RateLimit-Policy: 300;w=60`.
+- `/api/players/search?q=Zqxwvp` → `[]`.
+- `/api/trade/compare` → its own `RateLimit-Policy: 120;w=60`, proving search no longer spends
+  the same prefix bucket.
+
+The production Trade probe also directly reproduced `F-BAR-29`: a manually supplied real name
+was still scored as `position: UNK` and assigned a `starter` tier. That became the next pull
+rather than being hidden by the successful deployment.
+
+## 25. `F-BAR-29` / `F-BAR-30` — FIXED locally, awaiting deployment proof — 2026-08-31
+
+### Unknown players can no longer reach scoring
+
+Trade now resolves every submitted player against the same canonical Sleeper NFL index used by
+autocomplete **before** league-context work, recommendation math, scarcity/VORP/tiering, sharing,
+or the LLM explainer. Resolution accepts a real provider-scoped id or one exact folded name.
+
+Any unknown or ambiguous identity returns `422 trade_unresolved_players` with the side, index,
+typed name and up to three suggestions. The response contains no verdict, VORP, tier, scarcity
+analysis, summary, share payload, or explanation. A source outage returns `503
+player_resolution_unavailable`; it never falls through to invented analysis.
+
+A regression test spies on the explainer and proves it is called zero times for an unknown name.
+It also asserts the forbidden fields are absent from the response—not null, absent.
+
+### Fuzzy matching is suggestion-only
+
+If exact/substring search returns nothing, the backend performs a bounded Damerau-Levenshtein
+fallback over a cheap candidate shortlist. `Ted McMillan` suggests Tetairoa McMillan; `Jackson
+Dart` suggests Jaxson Dart. Fuzzy rows add `match_type: fuzzy`; exact rows are byte-compatible
+with the prior contract. Both native apps render an all-fuzzy set under **Did you mean?** and
+require a deliberate tap. A fuzzy result is never silently promoted to identity.
+
+Performance was measured after implementation rather than inferred: the initial fuzzy path took
+15–21ms because it allocated edit-distance matrices across all ~11.4k players. After candidate
+shortlisting (same token count, matching initials, plausible lengths), it measures 1.9–2.6ms.
+At the deployed 300/min/IP ceiling, an entire minute of fuzzy misses consumes under 0.8s CPU
+(~1.3% of one core); normal exact traffic remains around 0.1%.
+
+**Local evidence:** backend 922/922; iOS unit 318/318; Android 192/192. Running-app and live API
+verification remain required after deployment; this section must not be promoted to production
+verified from local evidence alone.
