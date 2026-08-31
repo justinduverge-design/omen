@@ -53,6 +53,8 @@ persistent context across every page until the user changes it again.
 - Qualitative actions are deliberately bounded to `lean_accept`, `lean_reject`, or `too_close`.
   The explanation may be blunt about what is wrong, but the action cannot say Accept or Reject
   as a command when the trade is unscored.
+- A fully scored verdict backed by complete, validated evidence uses the simple direct actions
+  `accept`, `reject`, or `counter`.
 - `insufficient_data` and qualitative analysis cannot contradict each other. The screenshot state
   "won't force a verdict" paired with "good trade", `+9.72`, and "smart move" is invalid.
 
@@ -73,4 +75,4 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Two-/three-team builder interaction and accessibility behavior.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
 - Public vote visibility and retention/consent details.
-- Scored-verdict action language and thresholds.
+- Scored-verdict thresholds and exact Counter behavior.

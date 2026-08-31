@@ -1888,3 +1888,5 @@ with a `+9.72` gain.
 
 **Language bound:** an unscored action is `lean_accept`, `lean_reject`, or `too_close`. Omen may
 explain the weakness bluntly, but it cannot issue an Accept/Reject command without scored support.
+When complete, validated scoring evidence exists, the direct action vocabulary is `accept`,
+`reject`, or `counter`.
