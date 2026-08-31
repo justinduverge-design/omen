@@ -1894,3 +1894,5 @@ When complete, validated scoring evidence exists, the direct action vocabulary i
 **Counter behavior:** Counter may pair a verified replacement offer with private negotiation
 advice. If roster or valuation evidence cannot support a concrete replacement, advice-only is
 valid when the limitation is explicit. Trade shape and canonical roster ownership are preserved.
+Verified roster weaknesses may inform private advice, but that strategy is prohibited from public
+trade links, share cards, and poll pages.

@@ -59,6 +59,9 @@ persistent context across every page until the user changes it again.
   concrete counter must use verified assets from participating rosters and preserve the selected
   trade shape. If Omen cannot construct one honestly, it may provide advice alone with the
   limitation stated; it never fabricates roster ownership or availability.
+- Private negotiation advice may use verified roster weaknesses and depth, such as explaining
+  that another team is thin at RB. That strategy is private-only. Public links, share cards, and
+  poll pages never expose the sender's leverage, targeting logic, or negotiation advice.
 - `insufficient_data` and qualitative analysis cannot contradict each other. The screenshot state
   "won't force a verdict" paired with "good trade", `+9.72`, and "smart move" is invalid.
 
@@ -80,4 +83,3 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
 - Public vote visibility and retention/consent details.
 - Scored-verdict thresholds.
-- Boundaries for roster-aware negotiation advice.
