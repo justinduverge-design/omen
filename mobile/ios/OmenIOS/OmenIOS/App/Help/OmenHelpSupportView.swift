@@ -21,14 +21,17 @@ let omenYahooAttributionText = "Fantasy data provided by Yahoo Fantasy."
 
 /// Whether the Yahoo attribution should render.
 ///
-/// Mirrors the web gate (`YAHOO_CONNECTIONS_ENABLED` in `frontend/src/lib/yahooAuth.js`): Omen
-/// currently displays no Yahoo Fantasy Information at all, because Yahoo has not granted the
-/// Fantasy Sports entitlement, so an unconditional line would state something untrue. Deriving it
-/// from `ConnectProvider.yahoo.availability` means the attribution appears on the same recorded
-/// decision that makes Yahoo connectable again, instead of depending on someone remembering it at
-/// launch.
+/// The test is **"can Yahoo Fantasy Information reach this app at all"**, not "can you connect
+/// from inside it". Those came apart on 2026-08-28 when Yahoo restored the entitlement: a user
+/// can now connect Yahoo on the web and that connection is read by every native surface, so the
+/// app displays Yahoo data while offering no in-app Yahoo button.
+///
+/// Gating on `== .available` would therefore have shipped Yahoo data **with no attribution**,
+/// which the Yahoo API Access and Use Agreement requires wherever that data is displayed. Only
+/// `.onHold` means genuinely no Yahoo data, so only `.onHold` hides the line.
 var omenShowsYahooAttribution: Bool {
-    ConnectProvider.yahoo.availability == .available
+    if case .onHold = ConnectProvider.yahoo.availability { return false }
+    return true
 }
 
 /// Approved M4 Help + Support surface.

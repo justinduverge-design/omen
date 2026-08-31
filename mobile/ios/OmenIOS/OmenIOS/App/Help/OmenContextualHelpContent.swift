@@ -137,7 +137,7 @@ enum OmenContextualHelpContent {
                     ),
                     OmenHelpTip(
                         label: "Yahoo",
-                        body: "Yahoo connections are paused while we wait on Yahoo to restore our data access."
+                        body: "Yahoo connects in your browser. Connect it once on the Omen website and it'll show up here."
                     ),
                     OmenHelpTip(
                         label: "ESPN",

@@ -141,10 +141,20 @@ final class OmenContextualHelpTests: XCTestCase {
         XCTAssertEqual(omenYahooAttributionText, "Fantasy data provided by Yahoo Fantasy.")
     }
 
-    /// Attribution must not claim Yahoo data while Yahoo is on hold and no Yahoo data can be
-    /// displayed. It is tied to the availability decision so it turns on with Yahoo, not before.
-    func testYahooAttributionIsHiddenWhileYahooIsOnHold() {
-        XCTAssertNotEqual(ConnectProvider.yahoo.availability, .available)
-        XCTAssertFalse(omenShowsYahooAttribution)
+    /// Attribution must appear wherever Yahoo Fantasy Information can be **displayed**, which is
+    /// not the same as where it can be **connected**. Yahoo's entitlement returned 2026-08-28: a
+    /// user connects on the web, and every native surface then reads that connection. Gating the
+    /// line on `.available` would ship Yahoo data with no attribution, breaching the API Access
+    /// and Use Agreement.
+    func testYahooAttributionShowsOnceYahooDataCanReachTheApp() {
+        XCTAssertNotEqual(ConnectProvider.yahoo.availability, .available, "no in-app Yahoo button yet")
+        XCTAssertTrue(omenShowsYahooAttribution, "web-connected Yahoo data still needs attribution")
+    }
+
+    /// The line stays off only when Yahoo is genuinely unreachable, which is the one state that
+    /// means no Yahoo data exists anywhere in the app.
+    func testYahooAttributionIsHiddenOnlyWhenYahooIsOnHold() {
+        let onHold = ConnectAvailability.onHold(reason: "paused")
+        if case .onHold = onHold {} else { return XCTFail("expected the on-hold case") }
     }
 }

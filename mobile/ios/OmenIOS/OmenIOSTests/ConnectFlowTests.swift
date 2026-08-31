@@ -26,7 +26,7 @@ final class ConnectFlowTests: XCTestCase {
     func testOnlySleeperIsConnectableInTheApp() {
         XCTAssertEqual(ConnectProvider.sleeper.availability, .available)
 
-        guard case .onHold = ConnectProvider.yahoo.availability else {
+        guard case .useWeb = ConnectProvider.yahoo.availability else {
             return XCTFail("Yahoo must be on hold, not connectable")
         }
         guard case .useWeb = ConnectProvider.espn.availability else {

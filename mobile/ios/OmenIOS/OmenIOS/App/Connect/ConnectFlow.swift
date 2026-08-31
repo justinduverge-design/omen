@@ -109,12 +109,24 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
         case .sleeper:
             return .available
         case .yahoo:
-            // `YAHOO_ENABLED` is false pending a Fantasy API entitlement only Yahoo can grant
-            // (P1-YahooReauth). The OAuth handshake still succeeds while every Fantasy call
-            // 403s, so offering the button would produce a connection that reads connected
-            // and serves nothing.
-            return .onHold(
-                reason: "Yahoo connections are paused while we wait on Yahoo to restore our data access."
+            // **Entitlement GRANTED 2026-08-28.** Yahoo turned Fantasy Sports API access back on
+            // for app ZcZJXm8V; `YAHOO_ENABLED=true` on omen_api and omen_cron, and the web gate
+            // `YAHOO_CONNECTIONS_ENABLED` is true. See `src/config/index.js`.
+            //
+            // This case said "paused while we wait on Yahoo" for two days after that stopped
+            // being true, and the founder found it on his own phone. The comment was describing
+            // a state the system had left. **Native was the only surface still blocking Yahoo.**
+            //
+            // It is `.useWeb` rather than `.available` for an honest reason: Yahoo connects by
+            // OAuth, and native has browser plumbing only for Supabase sign-in, not for a
+            // provider connect handshake. Returning `.available` would render a button with
+            // nothing behind it — the dead-affordance failure this enum exists to prevent.
+            // Connecting on the web genuinely works today and the connection shows up here.
+            //
+            // Wiring Yahoo OAuth to `ASWebAuthenticationSession` is real work, tracked
+            // separately. This unblocks Yahoo testers now without inventing a path.
+            return .useWeb(
+                reason: "Yahoo connects in your browser. Connect it once on the Omen website and it'll show up here."
             )
         case .espn:
             // Onboarding contract §5: ESPN is research-gated on native and a store build must
