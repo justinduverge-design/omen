@@ -1856,3 +1856,11 @@ false-authority path in `F-BAR-29` while adding the recovery path required by `F
 Independent live probes observed `300;w=60` for player search and `120;w=60` for Trade, with the
 buckets independent. The durable carrier-NAT improvement remains credential-aware limiting; it
 is not silently represented as solved by the larger IP budgets.
+
+## 2026-08-31 — Draft picks saved as a Trade/ADP pipeline seam, not beta scope
+
+**Decision:** preserve draft picks as a future first-class Trade asset, especially for
+three-team, keeper, and dynasty deals, but defer implementation and valuation to the 2027 ADP and
+Omen-owned ranking pipeline work. The current Trade contract must not harden into a permanent
+player-only model. It also must not assign a value to a pick before a defensible, source-backed
+model exists. Workshop record: `Blueprints/specs/mobile/omen-trade-page-workshop-v1.md`.
