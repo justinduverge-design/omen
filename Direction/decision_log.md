@@ -1697,3 +1697,34 @@ is easy to forget and produces no error when skipped.
 **Rollback**, if needed, is in the file's own footer: drop the index, drop the column.
 
 **No future SQL authority is implied.** Facts-of-record #8 still governs the next one.
+
+## 2026-08-30 — Android builds at parity; distribution deferred until there are Android testers
+
+**Decision (founder, in session).** Keep building Android to full feature parity with iOS, but
+**do not distribute it yet.** In his words: *"no one in my league uses it… I have no one who uses
+Android devices."* External recruiting of Android testers is a separate, later effort.
+
+**What this does NOT change.** The both-platforms-together rule still governs *code*. Every fix
+in this session — `F-DEV-02` through `F-DEV-05` — landed on Android at the same time as iOS, with
+tests, and was verified on the emulator against the production API. Android is not behind; it is
+simply not being handed to anyone.
+
+**What it does change.** Play Console work stops here. The app is a **Draft** with the initial
+setup tasks incomplete, which locks both closed and open testing. Internal testing *is* active
+and would have worked tonight — up to 100 testers by email — but shipping to a track with no
+audience is effort spent on nobody.
+
+**Two facts worth keeping for whenever Android distribution resumes:**
+
+1. **Internal testing works while the app is still a Draft**, but testers see the temporary name
+   `com.slopssaloon.omen (unreviewed)` until setup is complete and the app is reviewed. Closed
+   and open testing are hard-gated behind those same setup tasks — content rating, data safety,
+   target audience, and the rest, all of which are founder declarations.
+2. **The signed AAB at `versionCode 4` cannot be uploaded through the browser bridge**: it is
+   10.04 MB against a 10 MB limit. Either drag it in by hand or finish the Play Developer API
+   service account, which has no size limit. The service account was started tonight and
+   abandoned as a poor use of the hour — it is a Google Cloud detour and would not have avoided
+   the size problem anyway.
+
+**Cost of the deferral:** if an Android tester appears, the bundle is already built and signed
+and only needs uploading. Nothing has to be rebuilt.
