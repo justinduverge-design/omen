@@ -55,3 +55,9 @@ mobile/ios/**/Config/Local.xcconfig
 mobile/ios/**/*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 # Per-user IDE state (window layout, breakpoints). Leaks local usernames/paths and churns.
 **/xcuserdata/
+
+# Local Codex CLI preferences — machine-specific, never shared.
+# Committed by accident 2026-08-30 via `git add -A`; it carries
+# approval_policy="never" and sandbox_mode="danger-full-access", which must
+# not become anyone else's default just because they cloned the repo.
+.Codex/
