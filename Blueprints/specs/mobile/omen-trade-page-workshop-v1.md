@@ -55,6 +55,10 @@ persistent context across every page until the user changes it again.
   as a command when the trade is unscored.
 - A fully scored verdict backed by complete, validated evidence uses the simple direct actions
   `accept`, `reject`, or `counter`.
+- `counter` may return both a concrete replacement offer and private negotiation advice. A
+  concrete counter must use verified assets from participating rosters and preserve the selected
+  trade shape. If Omen cannot construct one honestly, it may provide advice alone with the
+  limitation stated; it never fabricates roster ownership or availability.
 - `insufficient_data` and qualitative analysis cannot contradict each other. The screenshot state
   "won't force a verdict" paired with "good trade", `+9.72`, and "smart move" is invalid.
 
@@ -75,4 +79,5 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Two-/three-team builder interaction and accessibility behavior.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
 - Public vote visibility and retention/consent details.
-- Scored-verdict thresholds and exact Counter behavior.
+- Scored-verdict thresholds.
+- Boundaries for roster-aware negotiation advice.

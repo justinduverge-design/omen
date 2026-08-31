@@ -1890,3 +1890,7 @@ with a `+9.72` gain.
 explain the weakness bluntly, but it cannot issue an Accept/Reject command without scored support.
 When complete, validated scoring evidence exists, the direct action vocabulary is `accept`,
 `reject`, or `counter`.
+
+**Counter behavior:** Counter may pair a verified replacement offer with private negotiation
+advice. If roster or valuation evidence cannot support a concrete replacement, advice-only is
+valid when the limitation is explicit. Trade shape and canonical roster ownership are preserved.
