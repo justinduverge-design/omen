@@ -311,7 +311,10 @@ private struct FauxShell: View {
     private var tradeOffer: TradeOffer {
         scenarioKey == "trade.empty"
             ? TradeOffer()
-            : TradeOffer(send: ["A.J. Brown"], receive: ["Garrett Wilson"])
+            : TradeOffer(
+                send: [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")],
+                receive: [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
+            )
     }
 
     private static func decodeOverview(_ json: String) -> LeagueOverview? {

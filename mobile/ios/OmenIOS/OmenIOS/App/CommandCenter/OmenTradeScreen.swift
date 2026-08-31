@@ -18,6 +18,8 @@ struct OmenTradeScreen: View {
     var searchingSide: TradeViewModel.Side?
     var onQueryChanged: ((String, TradeViewModel.Side) -> Void)?
     var onAdd: ((String, TradeViewModel.Side) -> Void)?
+    /// Picking a row keeps position/team/id; typing a name keeps only the name.
+    var onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Void)?
     var onRemove: ((Int, TradeViewModel.Side) -> Void)?
     var onCompare: (() -> Void)?
 
@@ -82,7 +84,7 @@ struct OmenTradeScreen: View {
     private func side(
         title: String,
         side: TradeViewModel.Side,
-        players: [String],
+        players: [TradePlayer],
         draft: Binding<String>
     ) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
@@ -90,9 +92,9 @@ struct OmenTradeScreen: View {
                 .omenTextStyle(OmenTypography.label)
                 .foregroundStyle(OmenColor.textSecondary)
 
-            ForEach(Array(players.enumerated()), id: \.offset) { index, name in
+            ForEach(Array(players.enumerated()), id: \.offset) { index, player in
                 OmenTradePlayerRow(
-                    name: name,
+                    name: player.name,
                     onRemove: { onRemove?(index, side) }
                 )
             }

@@ -120,8 +120,8 @@ class TradeCompareTest {
     @Test
     fun `an offer is not comparable until both sides have a player`() {
         assertFalse(TradeOffer().isComparable)
-        assertFalse(TradeOffer(send = listOf("A.J. Brown")).isComparable)
-        assertTrue(TradeOffer(send = listOf("A.J. Brown"), receive = listOf("Garrett Wilson")).isComparable)
+        assertFalse(TradeOffer(send = listOf(TradePlayer("A.J. Brown", "WR", "PHI"))).isComparable)
+        assertTrue(TradeOffer(send = listOf(TradePlayer("A.J. Brown", "WR", "PHI")), receive = listOf(TradePlayer("Garrett Wilson", "WR", "NYJ"))).isComparable)
     }
 
     /**
@@ -131,8 +131,8 @@ class TradeCompareTest {
     @Test
     fun `the request body names the league and sends no league data`() {
         val offer = TradeOffer(
-            send = listOf("A.J. Brown"),
-            receive = listOf("Garrett Wilson"),
+            send = listOf(TradePlayer("A.J. Brown", "WR", "PHI")),
+            receive = listOf(TradePlayer("Garrett Wilson", "WR", "NYJ")),
             leagueContext = TradeOffer.LeagueContext("sleeper", "league-1"),
         )
 
@@ -148,7 +148,7 @@ class TradeCompareTest {
 
     @Test
     fun `an offer without a league sends no context at all`() {
-        val offer = TradeOffer(send = listOf("A.J. Brown"), receive = listOf("Garrett Wilson"))
+        val offer = TradeOffer(send = listOf(TradePlayer("A.J. Brown", "WR", "PHI")), receive = listOf(TradePlayer("Garrett Wilson", "WR", "NYJ")))
 
         assertFalse(JSONObject(offer.requestBody()).has("league_context"))
     }

@@ -151,6 +151,44 @@ surface. The defect only exists **across a state transition** — pick, close, r
 old context — and it needed a second connected provider to be visible at all. The founder had
 both. No pass had either.
 
+## F-DEV-04 — every Compare would have failed. **FOUND DURING THE PRE-BUILD-4 SWEEP. FIXED.**
+
+Not reported by anyone. Found because the founder's condition for cutting Build 4 was **"make
+sure all pages work"**, so the Trade flow was driven end to end instead of being declared fixed
+once autocomplete worked.
+
+- **`POST /api/trade/compare` validates `each player must be an object`.** Both native clients
+  sent `{"send": ["Justin Jefferson"]}` — an array of **bare strings**. Verified against the live
+  production route: a string payload returns `{"error":"each player must be an object"}`, a 400.
+- **So Compare failed for every real user**, and failed in the worst available way: the screen
+  rendered `.error` — *"Omen couldn't compare this"* — in place of the honest `insufficient_data`
+  answer the contract defines for an offer it cannot score. An error state standing in for a
+  content state is exactly what the honest-state registry forbids.
+- **Two defects in one screen, and the first hid the second.** Nobody reached Compare because
+  `F-DEV-03` meant nobody could add a player. Fixing autocomplete is what made this reachable —
+  and it would have shipped to the founder's cousins in Build 4 if the sweep had stopped at
+  "autocomplete works."
+- **A second, quieter half.** Even as objects, a name-only player resolves server-side to
+  `position: "UNK"` and drops out of scarcity and tier calculation entirely. The autocomplete
+  rows already carried position, team and the provider id — **and the client discarded all three
+  on the way into the offer.** `TradeOffer` now holds `TradePlayer` (name + optional position,
+  team, `player_key`) rather than `[String]`, on both platforms.
+- **A hand-typed name still works and still carries only a name.** No position is invented for
+  input the user did not give; the server answers at lower confidence rather than refusing.
+
+**Confirmed against the live route, not asserted:** the object payload returns a real analysis
+(`net_value: 1.5`, per-player scarcity and tier). It currently answers `insufficient_data` with
+`reason: "missing_projections"` — **which is correct**: projections do not exist until the season
+opens, per facts-of-record #10 (2026 floor clears **2026-09-05**). Before this fix that same
+offer produced an error surface; after it, the honest non-answer. From 2026-09-05 it becomes a
+real verdict with no client change.
+
+**Scope of the live proof, stated exactly.** The payload shape is pinned by three tests per
+platform and that exact payload was run against production. The full in-app round trip was
+**not** exercised end to end, because demo mode deliberately issues no verdict (facts-of-record
+#7) and no real account was available to sign in with. That gap is real and is named here rather
+than papered over.
+
 ## Two design-system checks caught the fix mid-flight
 
 Worth recording as the system working:

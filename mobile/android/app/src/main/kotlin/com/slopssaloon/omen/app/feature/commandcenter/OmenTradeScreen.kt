@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.PlayerSearchResult
+import com.slopssaloon.omen.app.feature.api.TradePlayer
 import com.slopssaloon.omen.app.feature.api.TradeCompare
 import com.slopssaloon.omen.app.feature.api.TradeOffer
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
@@ -62,6 +63,8 @@ fun OmenTradeScreen(
     searchingSide: TradeViewModel.Side? = null,
     onQueryChanged: ((String, TradeViewModel.Side) -> Unit)? = null,
     onAdd: ((String, TradeViewModel.Side) -> Unit)? = null,
+    /** Picking a row keeps position/team/id; typing a name keeps only the name. */
+    onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Unit)? = null,
     onRemove: ((Int, TradeViewModel.Side) -> Unit)? = null,
     onCompare: (() -> Unit)? = null,
 ) {
@@ -104,6 +107,11 @@ fun OmenTradeScreen(
             // The picker belongs to one side at a time, so two filled fields can never show
             // one list between them and drop a player onto the wrong half of the offer.
             suggestions = if (searchingSide == TradeViewModel.Side.Send) suggestions else emptyList(),
+            onPick = { result ->
+                onAddResult?.invoke(result, TradeViewModel.Side.Send)
+                sendDraft = ""
+                focusManager.clearFocus()
+            },
             onDraftChange = {
                 sendDraft = it
                 onQueryChanged?.invoke(it, TradeViewModel.Side.Send)
@@ -121,6 +129,11 @@ fun OmenTradeScreen(
             players = offer.receive,
             draft = receiveDraft,
             suggestions = if (searchingSide == TradeViewModel.Side.Receive) suggestions else emptyList(),
+            onPick = { result ->
+                onAddResult?.invoke(result, TradeViewModel.Side.Receive)
+                receiveDraft = ""
+                focusManager.clearFocus()
+            },
             onDraftChange = {
                 receiveDraft = it
                 onQueryChanged?.invoke(it, TradeViewModel.Side.Receive)
@@ -191,9 +204,10 @@ fun OmenTradeScreen(
 @Composable
 private fun TradeSide(
     title: String,
-    players: List<String>,
+    players: List<TradePlayer>,
     draft: String,
     suggestions: List<PlayerSearchResult>,
+    onPick: (PlayerSearchResult) -> Unit,
     onDraftChange: (String) -> Unit,
     onAdd: (String) -> Unit,
     onRemove: (Int) -> Unit,
@@ -205,7 +219,7 @@ private fun TradeSide(
             color = OmenTheme.color.textSecondary,
         )
 
-        players.forEachIndexed { index, name ->
+        players.forEachIndexed { index, player ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,12 +227,13 @@ private fun TradeSide(
                     .background(OmenTheme.color.surface1)
                     .padding(OmenTheme.spacing.step12)
                     .semantics {
-                        contentDescription = "$name, activate remove to take out of the offer"
+                        contentDescription =
+                            "${player.name}, activate remove to take out of the offer"
                     },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = name,
+                    text = player.name,
                     style = OmenTheme.typography.body.toTextStyle(),
                     color = OmenTheme.color.textPrimary,
                     modifier = Modifier.weight(1f),
@@ -244,7 +259,7 @@ private fun TradeSide(
                     OmenListRow(
                         title = player.name,
                         subtitle = player.subtitle,
-                        onClick = { onAdd(player.name) },
+                        onClick = { onPick(player) },
                     )
                 }
             }

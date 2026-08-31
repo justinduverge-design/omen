@@ -137,9 +137,53 @@ struct TradeCompare: Decodable, Equatable {
 /// The offer being compared. Names only: the client never sends roster, scoring rules, or
 /// settings, and `league_context` is a *request* for personalization rather than the data —
 /// the server reads that from the user's own stored connection.
+/// One side of an offer.
+///
+/// **This was `[String]`, and that was a beta-blocking defect.** `POST /api/trade/compare`
+/// validates `each player must be an object` and rejects a bare string with a 400, so every
+/// Compare from either native client failed — and failed as "Omen couldn't compare this", an
+/// error surface, rather than as the honest `insufficient_data` answer the contract defines.
+///
+/// Nobody found it because nobody could reach it: the Trade screen had no working way to add a
+/// player (`F-DEV-03`), so Compare was never pressed against the live API with a real offer.
+/// Two defects in one screen, the first one hiding the second.
+///
+/// `position` and `team` are carried because the server scores on them — a name-only player
+/// resolves to `position: "UNK"` and drops out of scarcity and tier calculation entirely. The
+/// autocomplete already returns both and the client was discarding them.
+struct TradePlayer: Equatable {
+    let name: String
+    var position: String?
+    var team: String?
+    /// The provider's own id (`"sleeper:6794"`), passed through untouched so the server can
+    /// resolve a projection by key rather than by fuzzy name match.
+    var playerKey: String?
+
+    init(name: String, position: String? = nil, team: String? = nil, playerKey: String? = nil) {
+        self.name = name
+        self.position = position
+        self.team = team
+        self.playerKey = playerKey
+    }
+
+    /// A name typed by hand carries no position. That is honest and still comparable — the
+    /// server answers with lower confidence rather than refusing.
+    init(_ result: PlayerSearchResult) {
+        self.init(name: result.name, position: result.position, team: result.team, playerKey: result.id)
+    }
+
+    var payload: [String: Any] {
+        var out: [String: Any] = ["name": name]
+        if let position, !position.isEmpty { out["position"] = position }
+        if let team, !team.isEmpty { out["team"] = team }
+        if let playerKey, !playerKey.isEmpty { out["player_key"] = playerKey }
+        return out
+    }
+}
+
 struct TradeOffer: Equatable {
-    var send: [String] = []
-    var receive: [String] = []
+    var send: [TradePlayer] = []
+    var receive: [TradePlayer] = []
     var leagueContext: LeagueContext?
 
     struct LeagueContext: Equatable {
@@ -150,7 +194,10 @@ struct TradeOffer: Equatable {
     var isComparable: Bool { !send.isEmpty && !receive.isEmpty }
 
     var requestBody: [String: Any] {
-        var body: [String: Any] = ["send": send, "receive": receive]
+        var body: [String: Any] = [
+            "send": send.map(\.payload),
+            "receive": receive.map(\.payload),
+        ]
         if let leagueContext {
             body["league_context"] = [
                 "platform": leagueContext.platform,

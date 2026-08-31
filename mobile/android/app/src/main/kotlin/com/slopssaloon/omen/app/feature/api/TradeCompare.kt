@@ -140,9 +140,55 @@ data class TradeCompare(
  * settings, and `league_context` is a *request* for personalization rather than the data — the
  * server reads that from the user's own stored connection.
  */
+/**
+ * One player in an offer. iOS mirror: `TradePlayer`.
+ *
+ * **These were bare strings, and that was a beta-blocking defect.**
+ * `POST /api/trade/compare` validates `each player must be an object` and rejects a string with
+ * a 400, so every Compare from either native client failed — and failed as "Omen couldn't
+ * compare this", an error surface, rather than as the honest `insufficient_data` answer the
+ * contract defines.
+ *
+ * Nobody found it because nobody could reach it: the Trade screen had no working way to add a
+ * player (`F-DEV-03`), so Compare was never pressed against the live API with a real offer.
+ * Two defects in one screen, the first hiding the second.
+ *
+ * `position` and `team` are carried because the server scores on them — a name-only player
+ * resolves to `position: "UNK"` and drops out of scarcity and tier calculation entirely. The
+ * autocomplete already returned both and the client was discarding them.
+ */
+data class TradePlayer(
+    val name: String,
+    val position: String? = null,
+    val team: String? = null,
+    /**
+     * The provider's own id (`"sleeper:6794"`), passed through untouched so the server can
+     * resolve a projection by key rather than by fuzzy name match.
+     */
+    val playerKey: String? = null,
+) {
+    fun payload(): JSONObject {
+        val out = JSONObject().put("name", name)
+        position?.takeIf { it.isNotEmpty() }?.let { out.put("position", it) }
+        team?.takeIf { it.isNotEmpty() }?.let { out.put("team", it) }
+        playerKey?.takeIf { it.isNotEmpty() }?.let { out.put("player_key", it) }
+        return out
+    }
+
+    companion object {
+        /** A name typed by hand carries no position, and none is invented for it. */
+        fun of(result: PlayerSearchResult) = TradePlayer(
+            name = result.name,
+            position = result.position,
+            team = result.team,
+            playerKey = result.id,
+        )
+    }
+}
+
 data class TradeOffer(
-    val send: List<String> = emptyList(),
-    val receive: List<String> = emptyList(),
+    val send: List<TradePlayer> = emptyList(),
+    val receive: List<TradePlayer> = emptyList(),
     val leagueContext: LeagueContext? = null,
 ) {
     data class LeagueContext(val platform: String, val leagueId: String)
@@ -151,8 +197,8 @@ data class TradeOffer(
 
     fun requestBody(): String {
         val root = JSONObject()
-            .put("send", JSONArray(send))
-            .put("receive", JSONArray(receive))
+            .put("send", JSONArray(send.map { it.payload() }))
+            .put("receive", JSONArray(receive.map { it.payload() }))
         leagueContext?.let {
             root.put(
                 "league_context",

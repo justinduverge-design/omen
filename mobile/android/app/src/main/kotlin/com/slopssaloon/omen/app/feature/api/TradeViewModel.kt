@@ -83,12 +83,24 @@ class TradeViewModel(
         searchingSide = null
     }
 
+    /** Typed by hand. Name only, which the server accepts at lower confidence. */
     fun add(name: String, side: Side) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
+        add(TradePlayer(trimmed), side)
+    }
+
+    /**
+     * Picked from autocomplete. Keeps position, team and the provider id, all of which the
+     * server scores on — a name-only player resolves to `position: "UNK"` and falls out of
+     * scarcity and tier entirely. The rows already carried this and the client threw it away.
+     */
+    fun add(result: PlayerSearchResult, side: Side) = add(TradePlayer.of(result), side)
+
+    private fun add(player: TradePlayer, side: Side) {
         offer = when (side) {
-            Side.Send -> offer.copy(send = offer.send + trimmed)
-            Side.Receive -> offer.copy(receive = offer.receive + trimmed)
+            Side.Send -> offer.copy(send = offer.send + player)
+            Side.Receive -> offer.copy(receive = offer.receive + player)
         }
         clearSuggestions()
         // Any edit invalidates the standing verdict. Leaving it on screen beside a changed

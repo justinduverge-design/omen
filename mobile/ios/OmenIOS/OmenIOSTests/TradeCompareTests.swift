@@ -111,10 +111,10 @@ final class TradeCompareTests: XCTestCase {
         var offer = TradeOffer()
         XCTAssertFalse(offer.isComparable)
 
-        offer.send = ["A.J. Brown"]
+        offer.send = [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")]
         XCTAssertFalse(offer.isComparable, "one-sided offers are not comparable")
 
-        offer.receive = ["Garrett Wilson"]
+        offer.receive = [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
         XCTAssertTrue(offer.isComparable)
     }
 
@@ -122,8 +122,8 @@ final class TradeCompareTests: XCTestCase {
     /// or settings — those are read server-side from the user's own stored connection.
     func testTheRequestBodyNamesTheLeagueAndSendsNoLeagueData() {
         var offer = TradeOffer()
-        offer.send = ["A.J. Brown"]
-        offer.receive = ["Garrett Wilson"]
+        offer.send = [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")]
+        offer.receive = [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
         offer.leagueContext = .init(platform: "sleeper", leagueId: "league-1")
 
         let body = offer.requestBody
@@ -136,10 +136,54 @@ final class TradeCompareTests: XCTestCase {
         XCTAssertNil(body["roster"])
     }
 
+    /// The defect that made every Compare fail. `POST /api/trade/compare` validates
+    /// `each player must be an object` and answers a bare string with a 400 — so the screen
+    /// showed "Omen couldn't compare this", an error surface, in place of the honest
+    /// `insufficient_data` answer. Verified against the live route: a string payload returns
+    /// `{"error":"each player must be an object"}`, an object payload returns a real analysis.
+    func testEachPlayerIsSentAsAnObjectAndNotABareName() {
+        var offer = TradeOffer()
+        offer.send = [TradePlayer(name: "Justin Jefferson", position: "WR", team: "MIN", playerKey: "sleeper:6794")]
+        offer.receive = [TradePlayer(name: "Chase Brown", position: "RB", team: "CIN")]
+
+        let send = offer.requestBody["send"] as? [[String: Any]]
+        XCTAssertNotNil(send, "send must be an array of objects — a bare string is a 400")
+        XCTAssertEqual(send?.first?["name"] as? String, "Justin Jefferson")
+        // Carried because the server scores on them: a name-only player resolves to
+        // `position: "UNK"` and drops out of scarcity and tier entirely.
+        XCTAssertEqual(send?.first?["position"] as? String, "WR")
+        XCTAssertEqual(send?.first?["team"] as? String, "MIN")
+        XCTAssertEqual(send?.first?["player_key"] as? String, "sleeper:6794")
+    }
+
+    /// A hand-typed name has no position, and that must stay legal rather than being padded
+    /// with an invented one. The server answers at lower confidence; it does not refuse.
+    func testAHandTypedNameSendsOnlyTheName() {
+        let payload = TradePlayer(name: "Some Guy").payload
+
+        XCTAssertEqual(payload["name"] as? String, "Some Guy")
+        XCTAssertNil(payload["position"], "never invent a position the user did not give")
+        XCTAssertNil(payload["team"])
+        XCTAssertNil(payload["player_key"])
+    }
+
+    /// Picking from autocomplete must keep what the rows already carried. The client had this
+    /// data on screen and discarded it on the way into the offer.
+    func testPickingFromAutocompleteKeepsPositionTeamAndProviderId() {
+        let result = PlayerSearchResult(id: "sleeper:6794", name: "Justin Jefferson", position: "WR", team: "MIN")
+
+        let player = TradePlayer(result)
+
+        XCTAssertEqual(player.name, "Justin Jefferson")
+        XCTAssertEqual(player.position, "WR")
+        XCTAssertEqual(player.team, "MIN")
+        XCTAssertEqual(player.playerKey, "sleeper:6794")
+    }
+
     func testAnOfferWithoutALeagueSendsNoContextAtAll() {
         var offer = TradeOffer()
-        offer.send = ["A.J. Brown"]
-        offer.receive = ["Garrett Wilson"]
+        offer.send = [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")]
+        offer.receive = [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
 
         XCTAssertNil(offer.requestBody["league_context"])
     }

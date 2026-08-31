@@ -67,12 +67,25 @@ final class TradeViewModel: ObservableObject {
         searchingSide = nil
     }
 
+    /// Typed by hand. Carries a name and nothing else, which the server accepts at lower
+    /// confidence — it does not refuse.
     func add(_ name: String, to side: Side) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        add(TradePlayer(name: trimmed), to: side)
+    }
+
+    /// Picked from autocomplete. Keeps position, team and the provider id, all of which the
+    /// server scores on — a name-only player resolves to `position: "UNK"` and falls out of
+    /// scarcity and tier entirely. The rows already carried this and the client threw it away.
+    func add(_ result: PlayerSearchResult, to side: Side) {
+        add(TradePlayer(result), to: side)
+    }
+
+    private func add(_ player: TradePlayer, to side: Side) {
         switch side {
-        case .send: offer.send.append(trimmed)
-        case .receive: offer.receive.append(trimmed)
+        case .send: offer.send.append(player)
+        case .receive: offer.receive.append(player)
         }
         clearSuggestions()
         // Any edit invalidates the standing verdict. Leaving it on screen beside a changed

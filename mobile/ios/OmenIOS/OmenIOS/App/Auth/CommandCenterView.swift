@@ -128,6 +128,7 @@ struct CommandCenterView: View {
                 searchingSide: tradeViewModel.searchingSide,
                 onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
                 onAdd: { name, side in tradeViewModel.add(name, to: side) },
+                onAddResult: { player, side in tradeViewModel.add(player, to: side) },
                 onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
                 onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
             )

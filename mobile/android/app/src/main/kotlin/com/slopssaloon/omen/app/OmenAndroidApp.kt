@@ -730,6 +730,7 @@ private fun SignedInDestination(
                 searchingSide = tradeViewModel.searchingSide,
                 onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
                 onAdd = { name, side -> tradeViewModel.add(name, side) },
+                onAddResult = { player, side -> tradeViewModel.add(player, side) },
                 onRemove = { index, side -> tradeViewModel.remove(index, side) },
                 onCompare = { scope.launch { tradeViewModel.compare(userId) } },
             )

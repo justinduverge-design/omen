@@ -1,7 +1,9 @@
 package com.slopssaloon.omen.app.feature.api
 
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -94,5 +96,58 @@ class PlayerSearchTest {
         assertEquals("FA", teamOnly.subtitle)
         // Not " · " — a lone separator under a name reads as a rendering bug.
         assertNull(neither.subtitle)
+    }
+}
+
+/**
+ * The payload shape that made every Compare fail. Swift twin: `TradeCompareTests`.
+ *
+ * `POST /api/trade/compare` validates `each player must be an object` and answers a bare string
+ * with a 400 — so the screen showed "Omen couldn't compare this", an error surface, in place of
+ * the honest `insufficient_data` answer. Verified against the live route: a string payload
+ * returns `{"error":"each player must be an object"}`, an object payload returns a real analysis.
+ */
+class TradePlayerPayloadTest {
+
+    @Test
+    fun `each player is sent as an object and not a bare name`() {
+        val offer = TradeOffer(
+            send = listOf(TradePlayer("Justin Jefferson", "WR", "MIN", "sleeper:6794")),
+            receive = listOf(TradePlayer("Chase Brown", "RB", "CIN")),
+        )
+
+        val send = JSONObject(offer.requestBody()).getJSONArray("send")
+        val first = send.getJSONObject(0)
+
+        assertEquals("Justin Jefferson", first.getString("name"))
+        // Carried because the server scores on them: a name-only player resolves to
+        // `position: "UNK"` and drops out of scarcity and tier entirely.
+        assertEquals("WR", first.getString("position"))
+        assertEquals("MIN", first.getString("team"))
+        assertEquals("sleeper:6794", first.getString("player_key"))
+    }
+
+    @Test
+    fun `a hand-typed name sends only the name`() {
+        // No position is invented for a name the user typed. The server answers at lower
+        // confidence; it does not refuse.
+        val payload = TradePlayer("Some Guy").payload()
+
+        assertEquals("Some Guy", payload.getString("name"))
+        assertFalse(payload.has("position"))
+        assertFalse(payload.has("team"))
+        assertFalse(payload.has("player_key"))
+    }
+
+    @Test
+    fun `picking from autocomplete keeps position team and provider id`() {
+        val player = TradePlayer.of(
+            PlayerSearchResult("sleeper:6794", "Justin Jefferson", "WR", "MIN"),
+        )
+
+        assertEquals("Justin Jefferson", player.name)
+        assertEquals("WR", player.position)
+        assertEquals("MIN", player.team)
+        assertEquals("sleeper:6794", player.playerKey)
     }
 }

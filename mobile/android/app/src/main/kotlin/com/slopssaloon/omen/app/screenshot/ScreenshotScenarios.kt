@@ -33,6 +33,7 @@ import com.slopssaloon.omen.app.feature.api.LeagueOverview
 import com.slopssaloon.omen.app.feature.api.LeagueViewModel
 import com.slopssaloon.omen.app.feature.api.TradeCompare
 import com.slopssaloon.omen.app.feature.api.TradeOffer
+import com.slopssaloon.omen.app.feature.api.TradePlayer
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
@@ -277,7 +278,10 @@ private fun CommandCenterInShell(demo: Boolean) {
                 // capture and every UI test reaching them assessed a screen that never ships.
                 FauxNavTab.Trade -> OmenTradeScreen(
                     state = TradeViewModel.ViewState.Loaded(screenshotTradeVerdict()),
-                    offer = TradeOffer(send = listOf("A.J. Brown"), receive = listOf("Garrett Wilson")),
+                    offer = TradeOffer(
+                        send = listOf(TradePlayer("A.J. Brown", position = "WR", team = "PHI")),
+                        receive = listOf(TradePlayer("Garrett Wilson", position = "WR", team = "NYJ")),
+                    ),
                 )
                 FauxNavTab.League -> OmenLeagueScreen(
                     state = LeagueViewModel.ViewState.Loaded(screenshotLeagueOverview()),
