@@ -130,7 +130,7 @@ class ContextualHelpContentTest {
     fun providerCopyMatchesTheIosTableAndTheConnectFlow() {
         val connect = ContextualHelpContent.topic(OmenHelpDestination.Connect)
         assertEquals(
-            "Yahoo connections are paused while we wait on Yahoo to restore our data access.",
+            "Yahoo connects in your browser. Connect it once on the Omen website and it'll show up here.",
             connect.tips.first { it.label == "Yahoo" }.body,
         )
         assertEquals(
@@ -154,7 +154,10 @@ class ContextualHelpContentTest {
      * displayed. It is tied to the availability decision so it turns on with Yahoo, not before.
      */
     @Test
-    fun yahooAttributionIsHiddenWhileYahooIsOnHold() {
-        assertFalse(omenShowsYahooAttribution())
+    fun yahooAttributionShowsOnceYahooDataCanReachTheApp() {
+        // Attribution follows where Yahoo data can be DISPLAYED, not where it can be connected.
+        // The entitlement returned 2026-08-28: users connect on the web and every native surface
+        // reads that connection, so gating on Available would ship Yahoo data unattributed.
+        assertTrue(omenShowsYahooAttribution())
     }
 }
