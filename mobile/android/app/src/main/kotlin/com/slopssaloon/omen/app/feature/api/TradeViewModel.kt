@@ -40,9 +40,36 @@ class TradeViewModel(
     var offer: TradeOffer by mutableStateOf(TradeOffer())
         private set
 
-    /** Autocomplete rows for the side currently being typed into. Empty hides the picker. */
-    var suggestions: List<PlayerSearchResult> by mutableStateOf(emptyList())
+    /**
+     * The six honest content states, applied to autocomplete. iOS mirror:
+     * `TradeViewModel.SearchState`.
+     *
+     * `F-BAR-34`: this used to be a bare `List<PlayerSearchResult>`, and **every** failure —
+     * 429, offline, decode — collapsed into the empty list. On screen that is indistinguishable
+     * from "this player does not exist", which is a claim the client had no basis to make.
+     * `/api/players/search` shares a 30-request-per-minute-per-IP bucket with `/api/trade`,
+     * `/api/demo` and `/api/draft-assistant`, so a normal typing session can and does hit it.
+     * Silence about a failure is not neutral — it is a false answer.
+     */
+    sealed interface SearchState {
+        /** Query too short to search. No surface at all. */
+        data object Idle : SearchState
+        data object Searching : SearchState
+        data class Results(val rows: List<PlayerSearchResult>) : SearchState
+        /** The server answered, and genuinely knows no such player. */
+        data class Empty(val query: String) : SearchState
+        data class Failed(val error: OmenApiError) : SearchState
+    }
+
+    var searchState: SearchState by mutableStateOf(SearchState.Idle)
         private set
+
+    /**
+     * Rows only when the server actually returned names. Derived so no caller can mistake a
+     * failure for an empty result — the two are different cases of [SearchState].
+     */
+    val suggestions: List<PlayerSearchResult>
+        get() = (searchState as? SearchState.Results)?.rows.orEmpty()
 
     /**
      * Which field the rows belong to. Without this, two fields with text in them would show one
@@ -61,25 +88,32 @@ class TradeViewModel(
         searchJob?.cancel()
         val trimmed = query.trim()
         if (trimmed.length < ApiPlayerSearchRepository.MIN_QUERY_LENGTH) {
-            suggestions = emptyList()
+            searchState = SearchState.Idle
             searchingSide = null
             return
         }
         searchingSide = side
+        searchState = SearchState.Searching
         searchJob = scope.launch {
             delay(SEARCH_DEBOUNCE_MS)
             when (val result = playerSearch.search(trimmed)) {
-                is OmenApiResult.Success -> suggestions = result.value
-                // A failed lookup leaves the field usable: the user can still type a name and
-                // press Add. Autocomplete is an accelerator, never a gate.
-                is OmenApiResult.Failure -> suggestions = emptyList()
+                // Zero rows is a real answer and gets its own state. It is never used to stand
+                // in for a failure.
+                is OmenApiResult.Success -> searchState = if (result.value.isEmpty()) {
+                    SearchState.Empty(trimmed)
+                } else {
+                    SearchState.Results(result.value)
+                }
+                // A failed lookup still leaves the field usable — the user can type a name and
+                // press Add — but the screen says so instead of implying the player is unknown.
+                is OmenApiResult.Failure -> searchState = SearchState.Failed(result.error)
             }
         }
     }
 
     fun clearSuggestions() {
         searchJob?.cancel()
-        suggestions = emptyList()
+        searchState = SearchState.Idle
         searchingSide = null
     }
 
@@ -162,6 +196,34 @@ class TradeViewModel(
 
     companion object {
         const val SEARCH_DEBOUNCE_MS = 250L
+
+        /**
+         * Autocomplete-specific copy. Deliberately separate from [messageFor]: a failed
+         * *search* must never read like a failed *verdict*, and the rate-limit case is the one
+         * users actually hit, so it gets named at full volume rather than folded into "server".
+         */
+        fun searchTitleFor(error: OmenApiError): String =
+            if (error is OmenApiError.Server && error.status == 429) {
+                "Too many searches"
+            } else {
+                "Search unavailable"
+            }
+
+        fun searchMessageFor(error: OmenApiError): String = when {
+            error is OmenApiError.Server && error.status == 429 ->
+                "Omen limits searches to protect the service. Wait about a minute, " +
+                    "or type the full name and press Add."
+            error is OmenApiError.Network ->
+                "Omen couldn't reach the server. Check your connection, " +
+                    "or type the full name and press Add."
+            error is OmenApiError.Unauthorized ->
+                "Omen couldn't authorize this search. Type the full name and press Add."
+            error is OmenApiError.Decode ->
+                "Omen sent something this version of the app couldn't read. " +
+                    "Type the full name and press Add."
+            else ->
+                "Omen is having trouble on our side. Type the full name and press Add."
+        }
 
         fun messageFor(error: OmenApiError): String = when (error) {
             is OmenApiError.Network ->

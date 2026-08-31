@@ -124,7 +124,7 @@ struct CommandCenterView: View {
             OmenTradeScreen(
                 state: tradeViewModel.viewState,
                 offer: tradeViewModel.offer,
-                suggestions: tradeViewModel.suggestions,
+                searchState: tradeViewModel.searchState,
                 searchingSide: tradeViewModel.searchingSide,
                 onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
                 onAdd: { name, side in tradeViewModel.add(name, to: side) },

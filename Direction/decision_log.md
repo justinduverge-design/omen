@@ -1775,3 +1775,32 @@ audience is effort spent on nobody.
 
 **Cost of the deferral:** if an Android tester appears, the bundle is already built and signed
 and only needs uploading. Nothing has to be rebuilt.
+
+## 2026-08-31 — `F-BAR-12` / `F-BAR-22` withdrawn; `F-BAR-34` fixed on both platforms
+
+**Decision:** withdraw `F-BAR-12` and `F-BAR-22` as code defects. There is no focus fault on iOS.
+
+**Why:** a standalone minimal reproduction (`TabView` > `ScrollView` > two `TextField`s, no Omen
+code) worked first try, and a calibration build proved tap coordinates were delivered exactly as
+requested. The finding was an instrument error — screenshot px were converted to tap points with
+a 2.251 px/pt vertical scale instead of ≈2.346, landing every tap 20–35pt low, in the gaps
+between controls. Verified positively: on the current build a trade completes end to end on iOS
+(both fields focus in either order, live search resolves, Compare fires), and the Sign in email
+field focuses and types on the first tap. §21's six eliminated hypotheses were true negatives
+from a broken harness.
+
+**Scope of the withdrawal:** the *diagnosis* is disproved, not the founder's on-device report.
+Simulator input is not touch input. A remaining on-device failure is a new investigation with no
+code suspect carried over.
+
+**Also decided:** search failures get first-class states rather than collapsing into "no
+results". `SearchState` (`idle`/`searching`/`results`/`empty`/`failed`) replaces the bare
+suggestions list on iOS and Android; `429` is named at full volume because the shared 30/min
+per-IP bucket is the actual cause of both external reports. Verified live on simulator and
+emulator against production, including a deliberately exhausted rate-limit bucket.
+
+**Method rule adopted:** calibrate the instrument before trusting a negative result. A
+non-response is a claim about the harness as much as about the app.
+
+Detail: `Direction/reviews/2026-08-30-omen-bar-audit-and-strategy.md` §22–§23;
+handoff `Blueprints/handoffs/2026-08-31-tier-0-focus-withdrawal-and-search-states.md`.

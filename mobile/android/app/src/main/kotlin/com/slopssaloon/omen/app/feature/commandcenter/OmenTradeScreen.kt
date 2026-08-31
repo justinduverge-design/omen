@@ -58,8 +58,8 @@ fun OmenTradeScreen(
     state: TradeViewModel.ViewState,
     offer: TradeOffer,
     modifier: Modifier = Modifier,
-    /** Autocomplete rows for the side currently being typed into. Empty hides the picker. */
-    suggestions: List<PlayerSearchResult> = emptyList(),
+    /** Autocomplete state for the side currently being typed into. Idle hides the surface. */
+    searchState: TradeViewModel.SearchState = TradeViewModel.SearchState.Idle,
     searchingSide: TradeViewModel.Side? = null,
     onQueryChanged: ((String, TradeViewModel.Side) -> Unit)? = null,
     onAdd: ((String, TradeViewModel.Side) -> Unit)? = null,
@@ -104,9 +104,13 @@ fun OmenTradeScreen(
             title = "You send",
             players = offer.send,
             draft = sendDraft,
-            // The picker belongs to one side at a time, so two filled fields can never show
+            // The surface belongs to one side at a time, so two filled fields can never show
             // one list between them and drop a player onto the wrong half of the offer.
-            suggestions = if (searchingSide == TradeViewModel.Side.Send) suggestions else emptyList(),
+            searchState = if (searchingSide == TradeViewModel.Side.Send) {
+                searchState
+            } else {
+                TradeViewModel.SearchState.Idle
+            },
             onPick = { result ->
                 onAddResult?.invoke(result, TradeViewModel.Side.Send)
                 sendDraft = ""
@@ -128,7 +132,11 @@ fun OmenTradeScreen(
             title = "You receive",
             players = offer.receive,
             draft = receiveDraft,
-            suggestions = if (searchingSide == TradeViewModel.Side.Receive) suggestions else emptyList(),
+            searchState = if (searchingSide == TradeViewModel.Side.Receive) {
+                searchState
+            } else {
+                TradeViewModel.SearchState.Idle
+            },
             onPick = { result ->
                 onAddResult?.invoke(result, TradeViewModel.Side.Receive)
                 receiveDraft = ""
@@ -206,7 +214,7 @@ private fun TradeSide(
     title: String,
     players: List<TradePlayer>,
     draft: String,
-    suggestions: List<PlayerSearchResult>,
+    searchState: TradeViewModel.SearchState,
     onPick: (PlayerSearchResult) -> Unit,
     onDraftChange: (String) -> Unit,
     onAdd: (String) -> Unit,
@@ -248,14 +256,24 @@ private fun TradeSide(
         }
 
         // Sits directly under the field it belongs to, and only for the side being typed into.
-        if (suggestions.isNotEmpty()) {
-            Column(
+        // `F-BAR-34`: each outcome gets its own surface. A failure never renders as an empty
+        // list, because "no results" is a claim about the player, not about the request.
+        when (searchState) {
+            is TradeViewModel.SearchState.Idle -> Unit
+
+            is TradeViewModel.SearchState.Searching -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Loading,
+                title = "Searching",
+                message = "Looking up players.",
+            )
+
+            is TradeViewModel.SearchState.Results -> Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .background(OmenTheme.color.surface1),
             ) {
-                suggestions.forEach { player ->
+                searchState.rows.forEach { player ->
                     OmenListRow(
                         title = player.name,
                         subtitle = player.subtitle,
@@ -263,6 +281,18 @@ private fun TradeSide(
                     )
                 }
             }
+
+            is TradeViewModel.SearchState.Empty -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Empty,
+                title = "No player matches \u201C${searchState.query}\u201D",
+                message = "Check the spelling, or type the full name and press Add.",
+            )
+
+            is TradeViewModel.SearchState.Failed -> OmenStateSurface(
+                kind = OmenStateSurfaceKind.Error,
+                title = TradeViewModel.searchTitleFor(searchState.error),
+                message = TradeViewModel.searchMessageFor(searchState.error),
+            )
         }
 
         Row(

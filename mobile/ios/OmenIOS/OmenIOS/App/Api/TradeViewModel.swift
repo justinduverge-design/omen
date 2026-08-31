@@ -16,10 +16,33 @@ final class TradeViewModel: ObservableObject {
     @Published private(set) var viewState: ViewState = .idle
     @Published var offer = TradeOffer()
 
-    /// Autocomplete results for whichever side is being typed into. Empty is the resting
-    /// state — the picker only appears when the server actually returned names.
-    @Published private(set) var suggestions: [PlayerSearchResult] = []
+    /// The six honest content states, applied to autocomplete.
+    ///
+    /// `F-BAR-34`: this used to be a bare `[PlayerSearchResult]`, and **every** failure —
+    /// 429, offline, decode — collapsed into the empty array. On screen that is indistinguishable
+    /// from "this player does not exist", which is a claim the client had no basis to make.
+    /// The `/api/players/search` route shares a 30-request-per-minute-per-IP bucket with
+    /// `/api/trade`, `/api/demo` and `/api/draft-assistant`, so a normal typing session can and
+    /// does hit it. Silence about a failure is not neutral — it is a false answer.
+    enum SearchState: Equatable {
+        /// Query too short to search. No surface at all.
+        case idle
+        case searching
+        case results([PlayerSearchResult])
+        /// The server answered, and genuinely knows no such player.
+        case empty(query: String)
+        case failed(OmenApiError)
+    }
+
+    @Published private(set) var searchState: SearchState = .idle
     @Published private(set) var searchingSide: Side?
+
+    /// Rows only when the server actually returned names. Derived so no caller can mistake a
+    /// failure for an empty result — the two are different cases of `searchState`.
+    var suggestions: [PlayerSearchResult] {
+        if case .results(let rows) = searchState { return rows }
+        return []
+    }
 
     private let repository: TradeRepository
     private let playerSearch: PlayerSearchRepository
@@ -42,28 +65,33 @@ final class TradeViewModel: ObservableObject {
         searchTask?.cancel()
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else {
-            suggestions = []
+            searchState = .idle
             searchingSide = nil
             return
         }
         searchingSide = side
+        searchState = .searching
         searchTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 250_000_000)
             guard !Task.isCancelled, let self else { return }
-            if case .success(let rows) = await self.playerSearch.search(query: trimmed) {
-                guard !Task.isCancelled else { return }
-                self.suggestions = rows
-            } else {
-                // A failed lookup leaves the field usable: the user can still type a name and
-                // press Add. Autocomplete is an accelerator, never a gate.
-                self.suggestions = []
+            let outcome = await self.playerSearch.search(query: trimmed)
+            guard !Task.isCancelled else { return }
+            switch outcome {
+            case .success(let rows):
+                // Zero rows is a real answer and gets its own state. It is never used to
+                // stand in for a failure.
+                self.searchState = rows.isEmpty ? .empty(query: trimmed) : .results(rows)
+            case .failure(let error):
+                // A failed lookup still leaves the field usable — the user can type a name and
+                // press Add — but the screen says so instead of implying the player is unknown.
+                self.searchState = .failed(error)
             }
         }
     }
 
     func clearSuggestions() {
         searchTask?.cancel()
-        suggestions = []
+        searchState = .idle
         searchingSide = nil
     }
 
@@ -135,6 +163,34 @@ final class TradeViewModel: ObservableObject {
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
             viewState = .failed(error)
+        }
+    }
+
+    /// Autocomplete-specific copy. Deliberately separate from `message(for:)`: a failed
+    /// *search* must never read like a failed *verdict*, and the rate-limit case is the one
+    /// users actually hit, so it gets named at full volume rather than folded into "server".
+    static func searchTitle(for error: OmenApiError) -> String {
+        if case .server(let status) = error, status == 429 {
+            return "Too many searches"
+        }
+        return "Search unavailable"
+    }
+
+    static func searchMessage(for error: OmenApiError) -> String {
+        switch error {
+        case .server(let status) where status == 429:
+            return "Omen limits searches to protect the service. Wait about a minute, "
+                + "or type the full name and press Add."
+        case .network:
+            return "Omen couldn't reach the server. Check your connection, "
+                + "or type the full name and press Add."
+        case .unauthorized:
+            return "Omen couldn't authorize this search. Type the full name and press Add."
+        case .server:
+            return "Omen is having trouble on our side. Type the full name and press Add."
+        case .decode:
+            return "Omen sent something this version of the app couldn't read. "
+                + "Type the full name and press Add."
         }
     }
 

@@ -13,8 +13,8 @@ import SwiftUI
 struct OmenTradeScreen: View {
     let state: TradeViewModel.ViewState
     let offer: TradeOffer
-    /// Autocomplete rows for the side currently being typed into. Empty hides the picker.
-    var suggestions: [PlayerSearchResult] = []
+    /// Autocomplete state for the side currently being typed into. `.idle` hides the surface.
+    var searchState: TradeViewModel.SearchState = .idle
     var searchingSide: TradeViewModel.Side?
     var onQueryChanged: ((String, TradeViewModel.Side) -> Void)?
     var onAdd: ((String, TradeViewModel.Side) -> Void)?
@@ -101,27 +101,8 @@ struct OmenTradeScreen: View {
 
             // The picker sits directly under the field it belongs to, and only for the side
             // being typed into — so two open fields can never show one list between them.
-            if searchingSide == side, !suggestions.isEmpty {
-                VStack(spacing: 0) {
-                    // `OmenListRow`, not a raw `Button` — `PrimitiveEnforcementTests` bans raw
-                    // SwiftUI controls in app sources, and it caught the first cut of this
-                    // picker. The row already carries the tap target, disabled handling and
-                    // accessibility shape the design system expects.
-                    ForEach(suggestions) { player in
-                        OmenListRow(
-                            title: player.name,
-                            subtitle: player.subtitle,
-                            action: {
-                                onAdd?(player.name, side)
-                                draft.wrappedValue = ""
-                                focusedField = nil
-                            }
-                        )
-                    }
-                }
-                .background(OmenColor.surface1)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(OmenColor.border))
+            if searchingSide == side {
+                searchSurface(side: side, draft: draft)
             }
 
             HStack(spacing: OmenSpacing.step8) {
@@ -152,6 +133,58 @@ struct OmenTradeScreen: View {
                     size: .md
                 )
             }
+        }
+    }
+
+    /// `F-BAR-34`. Each outcome of a lookup gets its own surface. A failure never renders as
+    /// an empty list, because "no results" is a claim about the player, not about the request.
+    @ViewBuilder
+    private func searchSurface(
+        side: TradeViewModel.Side,
+        draft: Binding<String>
+    ) -> some View {
+        switch searchState {
+        case .idle:
+            EmptyView()
+        case .searching:
+            OmenStateSurface(
+                kind: .loading,
+                title: "Searching",
+                message: "Looking up players."
+            )
+        case .results(let rows):
+            VStack(spacing: 0) {
+                // `OmenListRow`, not a raw `Button` — `PrimitiveEnforcementTests` bans raw
+                // SwiftUI controls in app sources, and it caught the first cut of this
+                // picker. The row already carries the tap target, disabled handling and
+                // accessibility shape the design system expects.
+                ForEach(rows) { player in
+                    OmenListRow(
+                        title: player.name,
+                        subtitle: player.subtitle,
+                        action: {
+                            onAddResult?(player, side)
+                            draft.wrappedValue = ""
+                            focusedField = nil
+                        }
+                    )
+                }
+            }
+            .background(OmenColor.surface1)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(OmenColor.border))
+        case .empty(let query):
+            OmenStateSurface(
+                kind: .empty,
+                title: "No player matches \u{201C}\(query)\u{201D}",
+                message: "Check the spelling, or type the full name and press Add."
+            )
+        case .failed(let error):
+            OmenStateSurface(
+                kind: .error,
+                title: TradeViewModel.searchTitle(for: error),
+                message: TradeViewModel.searchMessage(for: error)
+            )
         }
     }
 

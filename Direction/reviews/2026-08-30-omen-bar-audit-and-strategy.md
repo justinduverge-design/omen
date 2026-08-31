@@ -1452,3 +1452,129 @@ anything observable, and shipping unverified changes is the failure mode this wh
 exists to end.** They are recorded here as proposals, not landed as fixes.
 
 **Status: `F-BAR-12` remains open and remains Tier 0.** Trade still cannot be completed on iOS.
+
+---
+
+## 22. `F-BAR-12` / `F-BAR-22` — WITHDRAWN. The defect does not exist. — 2026-08-31 (session 3)
+
+### The finding was a measurement artifact, twice corrected and still wrong
+
+§2 claimed Trade broke after adding a player. §21 corrected that to "the first focusable works,
+every focusable after it is dead — it follows position." **Both are false.** There is no focus
+defect on iOS.
+
+**Measured, on the current `main` build, iPhone 16 / iOS 26.5 simulator, real API base URL
+verified in the built `Info.plist`:**
+
+- Tapped the **receive** field first, on a fresh Trade screen: it focused (gold ring) and typed.
+- Typed "Mahomes": live autocomplete returned **Patrick Mahomes · QB · KC**.
+- Tapped the **send** field: focus moved, typed "Jefferson", four rows returned.
+- Committed Justin Jefferson, committed Mahomes, **Compare enabled and fired**, and the screen
+  rendered the honest `Demo mode` surface.
+- Sign in: the email field focused and accepted `founder@omen.test` on the **first** tap.
+
+A trade can be completed on iOS. It could be completed before this session started; no code
+change was required to make that true.
+
+### What actually produced the false finding
+
+**Screenshot pixels were converted to tap points with the wrong scale factor.** The panel
+reports a 393×852pt coordinate space; the screenshots come back 922×1918px. The correct scale is
+≈2.346 px/pt in both axes. Using 1918/852 ≈ 2.251 for the vertical axis instead makes every
+computed tap land ~4% high on the page — which, at the y-offsets where the second and third
+controls sit, is 20–35pt low in absolute terms: **inside the gap between two controls.**
+
+The taps were landing on nothing. Every "dead field" was an unhit field.
+
+This is why the bug appeared to "follow position": the error is proportional to y, so the
+further down the screen a control sits, the more reliably the tap misses it. And it is why
+swapping the two Trade sections appeared to move the bug — the error follows the *position*, not
+the view.
+
+### How it was caught, and why the earlier eliminations were worthless
+
+A minimal reproduction — a `TabView` containing a `ScrollView` containing two `TextField`s and
+nothing else, compiled standalone with `swiftc`, no Omen code — **worked perfectly on the first
+try.** That single ten-minute test eliminated all three of §21's remaining suspects at once
+(the parent `TabView`, the `ScrollView`/`VStack`/`frame` interaction, and a SwiftUI 26.5
+regression). It should have been the first thing anyone did.
+
+The instrument was then calibrated directly: a build that renders the tap location it actually
+receives. Tapping (196, 342) reported `x=196 y=342` — proving the tap *coordinates* were exact,
+and therefore that the fault was in the px→pt arithmetic used to choose them, not in delivery.
+A six-field probe then focused and typed in **f4 first, then f2**, out of order, with no
+stickiness whatsoever.
+
+§21's six eliminated hypotheses were all **true negatives reached by a broken instrument**. They
+were correct conclusions ("still broken") drawn from a test that could not have shown anything
+else. Six builds were spent proving that a mis-aimed tap does not focus a text field.
+
+### Status
+
+| Finding | Old status | New status |
+|---|---|---|
+| `F-BAR-12` | BETA-BLOCKING, Tier 0.1 | **WITHDRAWN — not a defect.** No code change. |
+| `F-BAR-22` | UNCONFIRMED, highest-priority re-test | **WITHDRAWN — not a defect.** Email field focuses and types on first tap. |
+
+**What this does not settle.** The founder's original on-device report stands as a report. This
+session tested a simulator, not the founder's hardware, and simulator input is not touch input.
+What is disproved is the **diagnosis** — there is no container-level focus fault in the code, and
+`OmenTextField`, `omenFocusRing`, the tap gesture, the keyboard toolbar and the `TabView` are all
+exonerated by direct measurement. If the founder still cannot complete a trade on his own device,
+that is a **new** investigation with no code suspect carried over from this one, and it needs a
+device log rather than another hypothesis.
+
+**Method note, and it is the whole lesson of three sessions:** *calibrate the instrument before
+trusting a negative result.* "The app did not respond" is a claim about the app **and** about the
+test harness, and the second half was never checked. Trust nothing that reports on itself — the
+test rig included.
+
+---
+
+## 23. `F-BAR-34` — FIXED and verified live, both platforms — 2026-08-31 (session 3)
+
+Every player-search failure rendered as "no results". `TradeViewModel.search()` funnelled every
+`.failure` into `suggestions = []` on **both** platforms, which is pixel-identical on screen to a
+successful search that found nothing.
+
+**Confirmed live against production** before writing any code: `/api/players/search` serves 27
+requests then returns `429` for the rest of the minute, on a bucket shared per-IP with
+`/api/trade`, `/api/demo` and `/api/draft-assistant`. A user typing two player names can hit it.
+
+### The fix
+
+`suggestions: [PlayerSearchResult]` is replaced on both platforms by a five-case `SearchState`:
+`idle` · `searching` · `results` · `empty(query)` · `failed(error)`. `suggestions` survives as a
+**derived** accessor that reads only from `.results`, so no caller can reconstruct the old
+conflation. `429` gets its own title and copy — "Too many searches" — rather than being folded
+into the generic server message, and **every** failure message still names the manual path
+("type the full name and press Add"), because autocomplete is an accelerator, never a gate.
+
+### Verified on running apps, not just compiled
+
+| State | iOS (iPhone 16 / 26.5) | Android (emulator-5554) |
+|---|---|---|
+| `results` | "Jefferson" → 4 rows | "Jefferson" → 4 rows |
+| `empty` | "No player matches “JeffersonZqxwvp”" | "No player matches “Zqxwvp”" |
+| `failed(429)` | "Too many searches" + wait-a-minute copy | "Too many searches" + wait-a-minute copy |
+
+The `429` state was reproduced by deliberately exhausting the live bucket with 45 curl requests
+from the same IP, then searching in the app — i.e. the exact condition behind the only two
+external bug reports Omen has ever had.
+
+**Tests:** 8 new on each platform (`TradeSearchStateTests.swift`, `TradeSearchStateTest.kt`),
+including one that asserts `failed(429) != empty(query)` directly. iOS 316 tests, 0 failures
+(was 308). Android 190 tests across 24 classes, 0 failures.
+
+**Note on the iOS test count:** the new test file had to be registered in `project.pbxproj` by
+hand. The first run reported `** TEST SUCCEEDED **` with the new file silently **not compiled**
+— the iOS twin of the `BUILD SUCCESSFUL in 1s` trap. Count the tests; do not read the banner.
+
+### One adjacent fix, called out separately
+
+The iOS suggestion row called `onAdd?(player.name, side)`, discarding position, team and id —
+directly contradicting the doc comment above it and leaving `onAddResult` dead code. It now calls
+`onAddResult?(player, side)`, matching Android and the documented intent. A name-only player
+resolves to `position: "UNK"` server-side and falls out of scarcity and tier, so this was a real
+scoring defect, not a cosmetic one. It is **not** part of `F-BAR-34` and is recorded here so it
+is not mistaken for one.

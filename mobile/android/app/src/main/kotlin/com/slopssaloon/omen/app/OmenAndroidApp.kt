@@ -726,7 +726,7 @@ private fun SignedInDestination(
             OmenTradeScreen(
                 state = tradeViewModel.viewState,
                 offer = tradeViewModel.offer,
-                suggestions = tradeViewModel.suggestions,
+                searchState = tradeViewModel.searchState,
                 searchingSide = tradeViewModel.searchingSide,
                 onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
                 onAdd = { name, side -> tradeViewModel.add(name, side) },
