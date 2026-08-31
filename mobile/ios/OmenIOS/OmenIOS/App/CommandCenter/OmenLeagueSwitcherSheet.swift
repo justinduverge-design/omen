@@ -23,6 +23,9 @@ import SwiftUI
 ///   - Connect another league / Manage connected leagues stay secondary, at the bottom.
 struct OmenLeagueSwitcherSheet: View {
     @ObservedObject var viewModel: LeagueSwitcherViewModel
+    /// Passed so the sheet can tell "demo" apart from "signed out", which look identical from
+    /// the token alone and must not read the same to a user.
+    var userID: String?
     let onSelected: ([String]) -> Void
     let onConnectAnother: () -> Void
     let onManageConnections: () -> Void
@@ -44,7 +47,7 @@ struct OmenLeagueSwitcherSheet: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(OmenColor.bg)
-        .task { await viewModel.load() }
+        .task { await viewModel.load(userID: userID) }
     }
 
     @ViewBuilder
@@ -55,6 +58,13 @@ struct OmenLeagueSwitcherSheet: View {
                 kind: .loading,
                 title: "Reading your leagues",
                 message: "Omen is asking each connected platform which leagues you are in."
+            )
+        case .demo:
+            OmenStateSurface(
+                kind: .mock,
+                title: "Demo league",
+                message: "Demo mode runs one mock league, so there is nothing to switch to. "
+                    + "Sign in and connect a platform to pick your own team."
             )
         case .failed(let error):
             // §10.3: never a dead selector, and never a fixture standing in for real
@@ -68,7 +78,7 @@ struct OmenLeagueSwitcherSheet: View {
                 )
                 OmenButton(
                     title: "Try again",
-                    action: { Task { await viewModel.load() } },
+                    action: { Task { await viewModel.load(userID: userID) } },
                     variant: .secondary,
                     size: .md
                 )

@@ -10,6 +10,12 @@ final class LeagueSwitcherViewModel: ObservableObject {
         /// falling back to a fixture — showing demo leagues to a real user is exactly
         /// the mock/live mixing facts-of-record #7 rules out.
         case failed(OmenApiError)
+        /// Demo has no session and no real leagues. Without this the sheet took the
+        /// `.unauthorized` branch and told a demo user **"Your session expired. Sign in again"** —
+        /// which is false: there is no session to expire. An auth-error state standing in for
+        /// "not available in demo" is the same substitution the honest-state registry forbids,
+        /// and it sat on the one path Apple's reviewer is told to take.
+        case demo
     }
 
     @Published private(set) var viewState: ViewState = .loading
@@ -28,7 +34,13 @@ final class LeagueSwitcherViewModel: ObservableObject {
         self.sessionManager = sessionManager
     }
 
-    func load() async {
+    /// Demo is not a load state and never touches the network, matching
+    /// `CommandCenterViewModel` and `OmenDecisionViewModel`.
+    func load(userID: String? = nil) async {
+        guard userID != SessionManager.demoUserID else {
+            viewState = .demo
+            return
+        }
         viewState = .loading
         guard let token = sessionManager.currentSession?.accessToken else {
             viewState = .failed(.unauthorized)

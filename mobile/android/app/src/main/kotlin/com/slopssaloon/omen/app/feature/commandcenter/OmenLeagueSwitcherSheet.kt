@@ -60,6 +60,13 @@ fun OmenLeagueSwitcherSheet(
                     message = "Omen is asking each connected platform which leagues you are in.",
                 )
 
+                LeagueSwitcherViewModel.ViewState.Demo -> OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Mock,
+                    title = "Demo league",
+                    message = "Demo mode runs one mock league, so there is nothing to switch " +
+                        "to. Sign in and connect a platform to pick your own team.",
+                )
+
                 is LeagueSwitcherViewModel.ViewState.Failed -> {
                     // §10.3: never a dead selector, and never a fixture standing in for real
                     // data — showing demo leagues to a real user is the mock/live mixing

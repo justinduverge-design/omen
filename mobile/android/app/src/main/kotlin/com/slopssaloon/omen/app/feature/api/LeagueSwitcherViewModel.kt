@@ -1,5 +1,7 @@
 package com.slopssaloon.omen.app.feature.api
 
+import com.slopssaloon.omen.core.session.SessionManager
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +16,15 @@ class LeagueSwitcherViewModel(
 ) {
     sealed interface ViewState {
         data object Loading : ViewState
+
+        /**
+         * Demo has no session and no real leagues. Without this the sheet took the
+         * `Unauthorized` branch and told a demo user **"Your session expired. Sign in again"** —
+         * which is false: there is no session to expire. An auth-error state standing in for
+         * "not available in demo" is the same substitution facts-of-record #7 forbids, and it
+         * sat on the one path Apple's reviewer is told to take. iOS mirror: `ViewState.demo`.
+         */
+        data object Demo : ViewState
         data class Loaded(val directory: LeagueDirectory) : ViewState
 
         /**
@@ -35,7 +46,12 @@ class LeagueSwitcherViewModel(
     var selectionError: OmenApiError? by mutableStateOf(null)
         private set
 
-    suspend fun load() {
+    /** Demo is not a load state and never touches the network. */
+    suspend fun load(userId: String? = null) {
+        if (userId == SessionManager.DEMO_USER_ID) {
+            viewState = ViewState.Demo
+            return
+        }
         viewState = ViewState.Loading
         val token = accessTokenProvider() ?: run {
             viewState = ViewState.Failed(OmenApiError.Unauthorized)

@@ -498,7 +498,7 @@ fun OmenAndroidApp() {
                         onDismiss = { showSwitcherSheet = false },
                     )
                     LaunchedEffect(showSwitcherSheet) {
-                        if (showSwitcherSheet) leagueSwitcherViewModel.load()
+                        if (showSwitcherSheet) leagueSwitcherViewModel.load(s.userId)
                     }
                     OmenModalSheet(
                         visible = showConnectSheet,

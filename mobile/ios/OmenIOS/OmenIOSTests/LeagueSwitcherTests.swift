@@ -143,6 +143,20 @@ final class LeagueSwitcherTests: XCTestCase {
         XCTAssertFalse(onlyFirst.crossProviderChoiceCannotPersist)
     }
 
+    /// Demo has no session, so the token lookup failed and the sheet told a demo user
+    /// **"Your session expired. Sign in again"** — false, and on the one path Apple's reviewer
+    /// is told to take. Demo and signed-out look identical from the token alone; they must not
+    /// read the same to a user.
+    func testDemoIsNotReportedAsAnExpiredSession() async throws {
+        let model = try viewModel(selection: successfulSelection())
+
+        await model.load(userID: SessionManager.demoUserID)
+
+        guard case .demo = model.viewState else {
+            return XCTFail("demo must be its own state, never .failed(.unauthorized)")
+        }
+    }
+
     func testLoadPublishesTheDirectory() async throws {
         let model = try viewModel(selection: successfulSelection())
         await model.load()

@@ -3,6 +3,7 @@ package com.slopssaloon.omen.app.feature.api
 import com.slopssaloon.omen.app.feature.commandcenter.leagueSubtitle
 import com.slopssaloon.omen.app.feature.commandcenter.switcherErrorMessage
 import com.slopssaloon.omen.app.feature.commandcenter.switcherRowAccessibilityLabel
+import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -221,5 +222,20 @@ class LeagueSwitcherTest {
         )
 
         assertFalse(onlyOne.crossProviderChoiceCannotPersist)
+    }
+
+    @Test
+    fun `demo is not reported as an expired session`() = runBlocking {
+        // Demo has no session, so the token lookup failed and the sheet told a demo user
+        // "Your session expired. Sign in again" — false, and on the one path Apple's reviewer
+        // is told to take. Demo and signed-out look identical from the token alone; they must
+        // not read the same to a user. Swift twin: `testDemoIsNotReportedAsAnExpiredSession`.
+        val repo = StubLeagueDirectoryRepository(OmenApiResult.Success(directory()), selectionSuccess())
+        // No token, exactly as in demo — the old code turned that into Unauthorized.
+        val model = LeagueSwitcherViewModel(repo) { null }
+
+        model.load(SessionManager.DEMO_USER_ID)
+
+        assertEquals(LeagueSwitcherViewModel.ViewState.Demo, model.viewState)
     }
 }

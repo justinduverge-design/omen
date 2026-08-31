@@ -189,6 +189,29 @@ platform and that exact payload was run against production. The full in-app roun
 #7) and no real account was available to sign in with. That gap is real and is named here rather
 than papered over.
 
+## F-DEV-05 — the switcher told demo users their session had expired. **FOUND IN THE SWEEP. FIXED.**
+
+Also unreported, also found only by opening the screen.
+
+- In demo mode, tapping **Switch** rendered: *"Omen could not read your leagues — **Your session
+  expired. Sign in again** to see your leagues."*
+- **That statement is false.** Demo has no session, so it has none to expire. The view model
+  read the access token, found none, and took the `unauthorized` branch — because **demo and
+  signed-out are indistinguishable from the token alone.**
+- It is the registry violation again in a third place: an **error** state standing in for a
+  **mock** state. And it sat on the exact path Apple's reviewer is instructed to take, since the
+  Beta App Review notes say to tap "Try Demo".
+- **Fixed:** `LeagueSwitcherViewModel.load(userID:)` now guards on the demo id first and
+  publishes a `.demo` / `Demo` state, matching the guard `CommandCenterViewModel` and
+  `OmenDecisionViewModel` already had. The sheet renders a `.mock` surface: *"Demo league —
+  Demo mode runs one mock league, so there is nothing to switch to."*
+- **Verified on the simulator**, before and after. One test per platform pins that demo never
+  resolves to `unauthorized`.
+
+**Why the audit missed it:** the switcher sheet was reviewed while signed in, where it is
+correct. Demo was reviewed on the Command Center, where it is correct. Nobody opened *the
+switcher while in demo* — the intersection of two states each of which had been checked alone.
+
 ## Two design-system checks caught the fix mid-flight
 
 Worth recording as the system working:

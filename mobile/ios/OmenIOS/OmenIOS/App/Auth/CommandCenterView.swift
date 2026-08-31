@@ -157,6 +157,7 @@ struct CommandCenterView: View {
         .sheet(isPresented: $showSwitcherSheet) {
             OmenLeagueSwitcherSheet(
                 viewModel: leagueSwitcherViewModel,
+                userID: userID,
                 onSelected: { _ in
                     // §10.3: apply the new context atomically across the personalized
                     // surfaces. The server names them in `refresh`; the shell reload is
