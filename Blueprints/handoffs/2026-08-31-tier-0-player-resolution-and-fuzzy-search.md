@@ -1,7 +1,7 @@
 # Handoff — Tier 0 player identity and fuzzy search
 
 **Date:** 2026-08-31  
-**Branch:** `codex/tier0-player-resolution`  
+**Release commit:** `a09b045` on `main`
 **Findings:** `F-BAR-29`, `F-BAR-30`
 
 ## Outcome
@@ -33,20 +33,24 @@ and a body with no verdict, scarcity analysis, summary, or explanation.
 
 ## Production state
 
-The previous Tier 0 release (`1f156fc`, `a2e3e3e`) is deployed and independently verified in
-production. This branch is **not yet merged or deployed** at the time of this handoff. Do not
-describe F-BAR-29/F-BAR-30 as live until production probes prove:
+The release is deployed by Actions run `33445423517`. Independent production probes proved:
 
 1. `Ted McMillan` → Tetairoa McMillan with `match_type: fuzzy`.
 2. `Jackson Dart` → Jaxson Dart with `match_type: fuzzy`.
 3. an invented name in Trade → `422`, with no analysis fields.
-4. canonical picked players still compare.
-5. both running native apps render **Did you mean?** and can commit the suggested player.
+4. canonical exact players still reach the honest `insufficient_data` response.
+
+Item 5—both running native apps render **Did you mean?** and can commit the suggested
+player—remains unverified and must not be inferred from the successful native unit tests.
 
 ## Explicitly not verified
 
 - Full iOS UI suite: the first run hung in Xcode after losing its runner; unit target passed in a
-  fresh directory. Running-app proof is still owed after deployment.
+  fresh directory. The app was clean-installed and visibly launched against production, but the
+  Trade interaction was not driven because this environment exposed no native UI-control tool.
+- Android running-app proof: the APK built, but Gradle first lost ADB device properties and then
+  ADB became nonresponsive during direct installation. No successful install or interaction is
+  claimed from that attempt.
 - Physical iPhone or Android hardware: simulator/emulator only are available here.
 - 2026 projections: still deliberately deferred to the 2026-09-05 season-floor check.
 - Web handling of `422`: the web app is secondary and was not changed in this native-first Tier 0
@@ -55,7 +59,8 @@ describe F-BAR-29/F-BAR-30 as live until production probes prove:
 
 ## Next beta work after live proof
 
-Tier 0 from the 2026-08-30 bar audit is complete once this branch is deployed and verified.
+Tier 0 backend behavior is deployed. Tier 0 native presentation is complete only after the
+remaining simulator/emulator interaction proof.
 Beta readiness still depends on founder/store/device gates in the canonical sprint: signing and
 internal tracks, real-account Yahoo/Sleeper/ESPN QA, auth edge/destructive cases, accessibility,
 and the 2026-09-05 live projection check. Those are not made complete by this backend fix.

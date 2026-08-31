@@ -1600,7 +1600,7 @@ The production Trade probe also directly reproduced `F-BAR-29`: a manually suppl
 was still scored as `position: UNK` and assigned a `starter` tier. That became the next pull
 rather than being hidden by the successful deployment.
 
-## 25. `F-BAR-29` / `F-BAR-30` — FIXED locally, awaiting deployment proof — 2026-08-31
+## 25. `F-BAR-29` / `F-BAR-30` — DEPLOYED; native interaction proof incomplete — 2026-08-31
 
 ### Unknown players can no longer reach scoring
 
@@ -1630,6 +1630,15 @@ shortlisting (same token count, matching initials, plausible lengths), it measur
 At the deployed 300/min/IP ceiling, an entire minute of fuzzy misses consumes under 0.8s CPU
 (~1.3% of one core); normal exact traffic remains around 0.1%.
 
-**Local evidence:** backend 922/922; iOS unit 318/318; Android 192/192. Running-app and live API
-verification remain required after deployment; this section must not be promoted to production
-verified from local evidence alone.
+**Evidence:** backend 922/922; iOS unit 318/318; Android 192/192. Commit `a09b045` deployed in
+Actions run `33445423517`; quality, image build, KVM restart, health, asset and public canary all
+passed. Independent live probes then proved `Jackson Dart` → canonical `Jaxson Dart` with
+`match_type: fuzzy`, an invented player → `422 trade_unresolved_players` with no analysis fields,
+and exact canonical names still reach the honest `insufficient_data` response.
+
+The iOS build was clean-installed with a built `Info.plist` containing
+`https://slopssaloon.com` and visibly launched on iPhone 16 / iOS 26.5. The Trade interaction is
+**not verified on either running native app**: no simulator UI-control mechanism was available,
+and the Android emulator's ADB channel became nonresponsive during the final install attempt.
+Therefore F-BAR-29/F-BAR-30 are backend-production verified and native-unit verified, but their
+native presentation is not promoted to running-app verified.
