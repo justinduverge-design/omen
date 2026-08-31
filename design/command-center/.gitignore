@@ -1,0 +1,3 @@
+# Seeded design-canvas payload — a ~2MB build artifact.
+# Regenerate from the .dc.html artboards + canvas.json with the design skill's seed-canvas.mjs.
+omen-command-center-teams.html

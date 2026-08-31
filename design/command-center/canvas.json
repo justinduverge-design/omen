@@ -1,0 +1,54 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Chosen direction" },
+    { "id": "page-2", "name": "Not chosen" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Command Center — chosen", "page": "page-1", "x": 0, "y": 0, "w": 393, "h": 852 },
+    { "file": "OptionB.dc.html", "title": "Option B — Three equal cards, stacked", "page": "page-2", "x": 0, "y": 0, "w": 393, "h": 852 },
+    { "file": "OptionC.dc.html", "title": "Option C — Three cards, swipe between", "page": "page-2", "x": 500, "y": 0, "w": 393, "h": 852 }
+  ],
+  "annotations": [
+    {
+      "id": "chosen",
+      "page": "page-1",
+      "x": 0,
+      "y": -300,
+      "w": 460,
+      "text": "OPTION A, revised — 2026-08-31\n\nChanged from the version you picked:\n\n1. Header shrunk. 'Your week' drops 32pt to 20pt and the\n   eyebrow goes quieter. The greeting was eating ~35% of the\n   first screen.\n\n2. Primary team card tightened — smaller scores, the move\n   folded into one tappable row instead of its own block.\n\n3. THIRD THING NOW FITS: the swipeable widget deck sits above\n   the fold, below your other teams.\n\nEverything is on one screen now. No scrolling to reach any of it."
+    },
+    {
+      "id": "deck",
+      "page": "page-1",
+      "x": 480,
+      "y": 300,
+      "w": 400,
+      "text": "THE SWIPE, MOVED\n\nSwipe is now on the WIDGETS, not the teams — League Pulse,\nthe Ledger, Waiver Watch. Your original instinct, applied where\nit does not fight the vertical scroll as hard.\n\nWhy this is better than swiping teams: the teams need to be\ncomparable at a glance (that is the whole point of showing\nthree). Widgets do not — you read them one at a time anyway.\n\nSTILL THE SAME RISK, stated plainly: horizontal swipe inside a\nvertical scroll is a gesture conflict, and gesture collision is\nwhat I believe broke iOS Trade (F-BAR-12). This needs the deck\nto own its gesture properly, and it needs a visible tap route\ntoo — the dots alone are not an accessible affordance.\n\nAND THE VETERAN'S POINT STANDS: Waiver Watch is a permanent\nshrug today. Swiping to it changes nothing until F-BAR-04 is\nwired. Content before chrome — the deck lands after the\nwidgets have something to say."
+    },
+    {
+      "id": "open",
+      "page": "page-1",
+      "x": 0,
+      "y": 900,
+      "w": 393,
+      "text": "STILL OPEN\n\n• Which widgets go in the deck, and in what order?\n  Drawn here: League Pulse, Ledger, Waivers.\n• Trade / Omen / League stay scoped to ONE team — the primary\n  one. Confirm that is right when three are on screen.\n• Off-season: no live scores until 2026-09-05. Every card here\n  needs an honest pre-season state.\n• Fewer than three teams: with one team, does the 'other teams'\n  section disappear or invite you to connect another?"
+    },
+    {
+      "id": "note-b",
+      "page": "page-2",
+      "x": 0,
+      "y": 900,
+      "w": 393,
+      "text": "OPTION B — not chosen\n\nThree equal cards, nobody primary. Truest to 'everything at a\nglance', but the longest screen, and it breaks the 'one active\nteam' idea the context strip depends on."
+    },
+    {
+      "id": "note-c",
+      "page": "page-2",
+      "x": 500,
+      "y": 900,
+      "w": 393,
+      "text": "OPTION C — not chosen for TEAMS\n\nBut its idea survived: the swipe moved to the widget deck on\nthe chosen direction. Kept here as the reference for how the\npeek and dots should behave."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

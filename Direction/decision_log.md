@@ -1,5 +1,52 @@
 # Omen Decision Log
 
+## 2026-08-31 — Seventeen founder rulings, a device-tested audit, and a Tier 0 fix that was reverted rather than shipped
+
+- **Decision: the product thesis is the LITERAL reading of league/team context (R-05).** Omen's
+  job is that you always know which team and league you are in — a context strip on all ten
+  screens, never contradicting itself between tabs. The deeper readings (every answer
+  league-scoped; league-first navigation) were offered and NOT chosen. This is materially cheaper
+  than the audit doc's first framing, which is corrected in §19.
+- **Decision: Command Center keeps the scroll; the navigation rework is deferred, not rejected
+  (R-01).** The founder's dropdown/swipe instinct remains live product intent, resequenced behind
+  content — a selector over empty sections is worse than a scroll.
+- **Decision: the layout is settled (R-13).** Primary team in full, up to two compact rows, and a
+  swipeable widget deck. The swipe moved from teams to WIDGETS, because three teams must be
+  comparable at a glance and a gesture showing one at a time defeats the requirement it serves.
+  Design canvas: `design/command-center/`.
+- **Decision: the deck ships with TWO widgets and is built extensible (R-15).** Ledger and League
+  Pulse, both genuinely fed. Waiver Watch joins when `F-BAR-04` is wired. This dissolved a block
+  rather than breaking a rule: with a two-card launch set, every card on the deck is real.
+- **Decision: no individual defensive players — team D/ST only (R-16).** The existing
+  `VALID_POSITIONS` filter is CORRECT. "IDP is unsupported" is withdrawn as a finding; it is the
+  product definition. What survives is that an empty result must say why.
+- **Standing rule: the data feeding a page is part of the page (R-14).** A screen whose source
+  does not exist yet is a screen that is not ready to build. This gates the widget deck on
+  `F-BAR-04` and the league-mate picker on a route that does not exist.
+- **Fact, measured: coverage was never the problem (R-17).** The player index spans ids `96`
+  (Aaron Rodgers) to `14039`, every active draft class. The two external "missing players"
+  reports were caused by three other defects: web has no player search at all (`F-BAR-28`), the
+  matcher has no fuzzy step (`F-BAR-30`), and **every search failure renders as "no results"**
+  (`F-BAR-34` — verified live: 30 requests then `429`, on a bucket shared across four routes, per
+  IP).
+- **Fact: the engine scores players that do not exist (`F-BAR-29`).** An invented name returned a
+  VORP, a scarcity tier and an LLM paragraph. Founder ruling R-10: refuse to score an
+  unresolvable name.
+- **Decision: nothing was committed from the Tier 0 attempt.** Six hypotheses for `F-BAR-12` were
+  each built, installed and hand-driven on device; all six failed. Two changes were defensible on
+  their own merits and were still **reverted**, because shipping an unverified fix is the failure
+  mode this work exists to end. `F-BAR-12` remains open and remains Tier 0.
+- **Correction of record — three, all made in the same document that asserted them.** `F-BAR-12`
+  was wrongly stated as "breaks after adding one player" (the second field never worked; the
+  cause was inferred from test order). The missing-player diagnosis was incomplete. The thesis
+  cost estimate applied to a reading the founder did not choose. Recorded here as well as in the
+  review, because a correction written only where it was discovered is exactly how the Yahoo
+  failure happened twice.
+- **Open and dated: 2026-09-05.** Every player currently returns `projected_points: null`, so
+  every trade returns `insufficient_data` and scoring format cannot change any answer. Whether
+  that is correct off-season suppression or an empty pipeline **cannot be determined from
+  outside**. Check deliberately on the day.
+
 ## 2026-08-30 — iOS Build 2 uploaded to TestFlight, the first build containing any of the audit work
 
 - **Fact:** the founder archived and uploaded **iOS v0.1.0 Build 2** from `main` at `4fd2e4d`,
