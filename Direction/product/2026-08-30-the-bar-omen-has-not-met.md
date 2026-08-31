@@ -103,18 +103,61 @@ Separate from #4, and this one is straight parity. The web page has, and native 
 Tonight's work took native Trade from **broken** to **working**. It did not take it to **equal**,
 and the founder was allowed to believe otherwise. That was the reporting failure of the session.
 
-### 6. Yahoo cannot be connected — externally blocked, not a defect
+### 6. Yahoo — ~~externally blocked~~ **WRONG. Native was stale. Corrected and fixed.**
 
 > "You can't connect to Yahoo leagues. What the heck is going on?"
 
-`YAHOO_ENABLED` is false, deliberately, and the code says why: the OAuth handshake still succeeds
-while every Fantasy API call returns 403, so offering the button would mint a connection that
-reads *connected* and serves nothing — exactly what facts-of-record #12 forbids. Tracked as
-`P1-YahooReauth`. **No amount of client work moves this**; it needs Yahoo to restore API access.
+**The first version of this section was wrong, and the founder caught it:**
 
-**This is now a beta-scoping fact, not a backlog item.** The founder's testers are a *mix of all
-three providers*. Sleeper testers get the full product; ESPN testers must connect once in a
-browser first; **Yahoo testers cannot participate at all.**
+> "Yahoo restored our API. That's live. That's ready to go. What is going on? That should have
+> been documented. That happened Friday."
+
+He is right. Yahoo granted the Fantasy Sports entitlement for app `ZcZJXm8V` on **2026-08-28**.
+`src/config/index.js` records the live probe — 200 on `/game/nfl` and `/users;use_login=1/games`,
+where every call had 403'd since 2026-08-13. `YAHOO_ENABLED=true` on `omen_api` and `omen_cron`.
+The web gate `YAHOO_CONNECTIONS_ENABLED` is `true`. There is a handoff doc and a commit,
+`feat(yahoo): entitlement granted — re-enable Yahoo connections`.
+
+**It was documented. Native just never got the message** — both clients still hardcoded *"paused
+while we wait on Yahoo to restore our data access."* Backend live, web live, native blocking, for
+two days.
+
+**How the wrong claim got written down:** the native comment was read and reported as current
+fact, without checking the backend or the git history. That is the same failure recorded in
+`F-DEV-02` earlier the same night — a comment asserting a state the system had already left —
+committed while holding the note about it.
+
+**Fixed** (`F-DEV-06`, on `main`): Yahoo is now `useWeb` on both platforms, matching ESPN. Not
+`available`, because Yahoo connects by OAuth and native has browser plumbing only for Supabase
+sign-in; `available` would render a dead button. Web connect works today and every native surface
+reads the resulting connection.
+
+**A contractual catch came with it.** `omenShowsYahooAttribution` was gated on `== .available`.
+Since a web-connected Yahoo account *is* read natively, the app can display Yahoo data while
+showing no Yahoo button — so that gate would have shipped Yahoo Fantasy Information with **no
+attribution**, which the Yahoo API Access and Use Agreement (executed 2026-08-20) requires
+wherever it appears. The gate now asks whether Yahoo data can reach the app at all.
+
+**Corrected beta scope:** Sleeper testers get the full product. **Yahoo and ESPN testers connect
+once in a browser, then the app works.** Nobody is locked out.
+
+## The founder's requirements for the next build
+
+Given verbatim, with the verified state of each beside it. **These are requirements, not
+suggestions.**
+
+| # | Requirement | Verified state today |
+|---|---|---|
+| R1 | *"connect to every app other than ESPN through their phone"* | Sleeper ✅ native. **Yahoo ❌** — now `useWeb`; needs native OAuth wired to `ASWebAuthenticationSession` / Custom Tabs, both of which already exist for Supabase sign-in. ESPN stays web **by his explicit exemption**. |
+| R2 | *"see league context on every window, on everything"* | **Command Center only.** `OmenContextStrip` renders on no other screen — Omen, Trade and League show nothing. |
+| R3 | *"for trades, I want there to be the positions"* | Web has a position dropdown; native has none. |
+| R4 | *"choose between two teams in your leagues or three teams"* | Web has `deal_shape` two_team / multi_team; native has neither. The league-mate picker is specced in `b2d3-live-trade-capability-sleeper-v1.md`, and `fetchSleeperRoster` **already fetches every roster and every user, then discards the opponents.** |
+| R5 | *"type in players in case… if you want that instead, sure"* | Native already does this. **Keep it** — it becomes the fallback, not the only path. |
+| R6 | *"send those QR codes or whatever"* | Backend has `POST /api/trade/share` → `trade-share.v1`, a 30-day public hash, plus an OG SVG for link cards. **Native has no share affordance at all, and no QR exists anywhere.** QR is genuinely new. |
+| R7 | *"I need to be able to watch stuff"* | **Ambiguous — do not guess.** Read as Waiver Watch, which renders on Command Center as `availabilityUnknown` because `dashboard-summary.v1` carries no opportunities. Confirm before building. |
+
+The through-line in R1, R2 and R4 is one complaint, not three: **the app does not act like it
+knows what league you are in.**
 
 ## The honest summary
 
