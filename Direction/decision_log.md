@@ -1876,3 +1876,12 @@ an explicit submission capability seam for future official write access or partn
 read-only despite older transaction docs describing writes; Sleeper's official API publishes
 trade reads but no authenticated create endpoint; ESPN documents trading only in its own clients
 and publishes no developer write API.
+
+## 2026-08-31 — Missing projections may support an unscored qualitative opinion
+
+**Decision:** Trade does not become silent merely because projections are absent. When verified
+non-projection evidence exists, Omen may give a directional opinion that is unmistakably labelled
+qualitative and unscored, with data used and data missing named. It may not attach a fabricated
+point gain, value gap, VORP, tier, numerical confidence, or other scoring authority. This replaces
+the contradictory production state that said it could not call a trade and then called it good
+with a `+9.72` gain.

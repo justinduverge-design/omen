@@ -46,6 +46,12 @@ persistent context across every page until the user changes it again.
   substitutes a rank.
 - Omen-owned season, weekly, and rest-of-season rankings are a future proprietary shared-data
   product for Trade, Waivers, Start/Sit, League, and Command Center—not a Trade-only patch.
+- Missing projections may produce a **clearly labelled qualitative opinion**, not a scored
+  verdict. It must name the evidence used and the material evidence missing. It may express a
+  directional lean from verified roster fit, role, injury, rank, and league facts, but may not
+  invent a point delta, value gap, VORP, tier, confidence precision, or numerical advantage.
+- `insufficient_data` and qualitative analysis cannot contradict each other. The screenshot state
+  "won't force a verdict" paired with "good trade", `+9.72`, and "smart move" is invalid.
 
 ## Draft-pick seam — saved, deferred
 
@@ -64,4 +70,4 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Two-/three-team builder interaction and accessibility behavior.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
 - Public vote visibility and retention/consent details.
-- Trade verdict contract that prevents `insufficient_data` from emitting directional advice.
+- Exact qualitative-opinion language and action strength when scoring is unavailable.
