@@ -50,6 +50,9 @@ persistent context across every page until the user changes it again.
   verdict. It must name the evidence used and the material evidence missing. It may express a
   directional lean from verified roster fit, role, injury, rank, and league facts, but may not
   invent a point delta, value gap, VORP, tier, confidence precision, or numerical advantage.
+- Qualitative actions are deliberately bounded to `lean_accept`, `lean_reject`, or `too_close`.
+  The explanation may be blunt about what is wrong, but the action cannot say Accept or Reject
+  as a command when the trade is unscored.
 - `insufficient_data` and qualitative analysis cannot contradict each other. The screenshot state
   "won't force a verdict" paired with "good trade", `+9.72`, and "smart move" is invalid.
 
@@ -70,4 +73,4 @@ displayable pick with no defensible value cannot receive a scored verdict.
 - Two-/three-team builder interaction and accessibility behavior.
 - Provider-by-provider roster, rank, pick, ownership, and submission capability proof.
 - Public vote visibility and retention/consent details.
-- Exact qualitative-opinion language and action strength when scoring is unavailable.
+- Scored-verdict action language and thresholds.

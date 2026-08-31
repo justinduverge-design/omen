@@ -1885,3 +1885,6 @@ qualitative and unscored, with data used and data missing named. It may not atta
 point gain, value gap, VORP, tier, numerical confidence, or other scoring authority. This replaces
 the contradictory production state that said it could not call a trade and then called it good
 with a `+9.72` gain.
+
+**Language bound:** an unscored action is `lean_accept`, `lean_reject`, or `too_close`. Omen may
+explain the weakness bluntly, but it cannot issue an Accept/Reject command without scored support.
