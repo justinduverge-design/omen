@@ -49,6 +49,7 @@ const {
   authRateLimit,
   permissionsPolicyMiddleware,
   publicToolRateLimit,
+  playerSearchRateLimit,
 } = require("./middleware/security");
 const { applyHotRouteRateLimits } = require("./middleware/hotRouteLimits");
 const { errorHandler } = require("./middleware/errorEnvelope");
@@ -142,7 +143,10 @@ if (config.draftAssistant.enabled) {
 // --- Player search autocomplete routes --------------------------
 try {
   const playersRoutes = require("./routes/players");
-  app.use("/api/players", publicToolRateLimit, playersRoutes);
+  // Own budget, not the shared public-tool one: this route fires per keystroke
+  // and is the cheapest thing Omen serves (0.23ms CPU/search). Sharing a bucket
+  // with LLM-backed trade analysis is what made autocomplete fail mid-sentence.
+  app.use("/api/players", playerSearchRateLimit, playersRoutes);
 } catch (e) {
   logger.error("Players router failed to load", { err: e.message, stack: e.stack });
 }

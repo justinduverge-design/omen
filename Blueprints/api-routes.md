@@ -124,10 +124,50 @@ path, and the tightest applicable budget is the one that binds.
 
 | Limiter | Applies to | Budget | Source |
 | --- | --- | --- | --- |
-| General | every `/api/*` except `/api/health` | 100 / min / IP | `src/middleware/security.js` |
+| General | every `/api/*` except `/api/health` | 600 / min / IP | `src/middleware/security.js` |
 | Auth | `/api/auth/*` | 20 / 10 min / IP | `src/middleware/security.js` |
-| Public tool | `/api/trade/*`, `/api/players/*`, `/api/demo/*`, `/api/waitlist/*` | 30 / min / IP | `src/middleware/security.js` |
+| Public tool | `/api/trade/*`, `/api/demo/*`, `/api/draft-assistant/*`, `/api/waitlist/*` | 120 / min / IP | `src/middleware/security.js` |
+| **Player search** | `/api/players/*` | 300 / min / IP | `src/middleware/security.js` |
 | **Hot route (S3)** | the three routes below | see table | `src/middleware/hotRouteLimits.js` |
+
+### Budgets raised 2026-08-31 — and why the old ones were wrong
+
+Read the General row together with every other row: **a per-route budget above the app-wide
+budget is a fiction**, because the app-wide limiter trips first and the route never reaches its
+own number. `test/playerSearchRateLimit.test.js` asserts this invariant directly rather than
+leaving it to review.
+
+Three things changed:
+
+1. **`/api/players/*` left the shared public-tool bucket.** Autocomplete fires *per keystroke*
+   and was sharing one 30/min budget with LLM-backed trade analysis. Typing two player names
+   could lock a user out of the product's front door — and because the native clients rendered
+   every failure as "no results" (`F-BAR-34`), the user was told the player did not exist. That
+   pairing is the direct cause of the only two external bug reports Omen has received.
+
+2. **Player search became genuinely cheap, so the budget could honestly rise.** The search index
+   over ~11.4k Sleeper players is now built once per cached player blob instead of once per
+   request — previously every keystroke re-ran ~11.4k NFKD Unicode normalizations. Measured on
+   the same fixture: **3.9ms → 0.23ms per search, a 17× reduction**; one core sustains ~4,300
+   searches/second. At 300/min/IP the worst a single IP extracts is ~69ms of CPU per minute,
+   about 0.1% of one core. A 27,461-case differential test (`accents, apostrophes, hyphens,
+   position aliases, arrays vs objects, empty and non-object sources`) proves the results are
+   byte-identical to the previous implementation.
+
+3. **The app-wide 100/min/IP was raised to 600.** It is a flood backstop, not a cost control —
+   everything expensive is capped tighter and closer to the work by the hot-route limiters
+   below. At 100 it was actively harmful, because **mobile clients sit behind carrier-grade
+   NAT**: thousands of unrelated users share a handful of public IPs, so a few dozen Omen users
+   on one carrier could exhaust the app-wide budget for every other user on that carrier, each
+   seeing failures they could not explain or fix.
+
+**Known structural limit, not yet addressed.** Every budget above is keyed on IP alone. Under
+carrier-grade NAT that is the wrong axis, and no number fully fixes it — it only moves the
+population size at which it bites. The durable fix is per-credential keying (the mechanism
+already exists in `hotRouteLimits.js`), which requires the clients to present their bearer token
+on these routes; `/api/players/search` is deliberately unauthenticated today, so that is a
+product decision rather than a code change. Revisit before any launch that concentrates users
+on one carrier or campus.
 
 ### Hot-route budgets — S3
 
@@ -137,7 +177,7 @@ hammer. Both limits are enforced on every request, per rolling 60-second window.
 | Route | Per IP | Per credential | Why these numbers |
 | --- | --- | --- | --- |
 | `POST /api/omen/mvp-move` | 20 / min | 10 / min | Heaviest request Omen serves — provider fan-out plus an LLM call. There is one real Omen per user per week; everything past that is a refresh tap. |
-| `POST /api/trade/compare` | 20 / min | 20 / min | LLM-backed and the free front door, so a session of genuine back-to-back comparisons has to fit. Sits under the 30/min public-tool limit on `/api/trade/*`, making the expensive endpoint the tighter of the two rather than a redundant duplicate. |
+| `POST /api/trade/compare` | 20 / min | 20 / min | LLM-backed and the free front door, so a session of genuine back-to-back comparisons has to fit. Sits under the 120/min public-tool limit on `/api/trade/*`, making the expensive endpoint the tighter of the two rather than a redundant duplicate. |
 | `GET /api/dashboard/summary` | 60 / min | 30 / min | Cheapest and most polled — app launch, tab focus, post-connect refresh. A household or campus NAT puts many real users behind one IP, so its per-IP number is deliberately the loosest. |
 
 **"Per credential", not "per account" — stated plainly because the difference matters.** These

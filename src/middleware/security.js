@@ -105,11 +105,28 @@ const corsMiddleware = cors((req, cb) => {
 });
 
 // ── General rate limit ────────────────────────────────────────────
-// 100 requests per minute per IP. Roomy for legit users, trips bots.
-// Uses standard headers (RFC draft) so clients can implement backoff.
+// 600 requests per minute per IP, app-wide across `/api/*`.
+//
+// This is a **flood backstop, not a cost control.** Everything expensive is
+// separately capped much tighter and much closer to the work:
+//
+//   /api/omen/mvp-move    20/min/IP + 10/min/credential   (provider fan-out + LLM)
+//   /api/trade/compare    20/min/IP + 20/min/credential   (LLM)
+//   /api/dashboard/summary 60/min/IP + 30/min/credential
+//   /api/players          PLAYER_SEARCH_PER_MINUTE below
+//
+// See `middleware/hotRouteLimits.js`. Because those exist, this number does not
+// need to be small to protect spend — and when it is small it does real damage:
+// **mobile clients sit behind carrier-grade NAT**, where thousands of unrelated
+// users share a handful of public IPs. At 100/min/IP, a few dozen Omen users on
+// the same carrier could exhaust the app-wide budget for every other user on
+// that carrier, and each of them would see failures they cannot explain or fix.
+//
+// Raised from 100 on 2026-08-31 for exactly that reason. Uses standard headers
+// (RFC draft) so clients can implement real backoff.
 const generalRateLimit = rateLimit({
   windowMs:        60 * 1000,
-  limit:           100,
+  limit:           600,
   standardHeaders: "draft-7",
   legacyHeaders:   false,
   message:         { error: "Too many requests, please slow down." },
@@ -127,17 +144,58 @@ const authRateLimit = rateLimit({
 });
 
 // ── Public tool rate limit ───────────────────────────────────────
-// Applied to high-work public endpoints such as Trade Analyzer and Draft
-// Assistant. Keeps the free surface usable without letting one client turn it
-// into an unbounded compute sink.
+// Applied to high-work public endpoints: Trade Analyzer, Draft Assistant, demo
+// and waitlist. Keeps the free surface usable without letting one client turn
+// it into an unbounded compute sink.
+//
+// Raised 30 → 120 on 2026-08-31. The old 30 was shared across `/api/trade`,
+// `/api/demo`, `/api/draft-assistant`, `/api/waitlist` **and** `/api/players`,
+// which meant cheap autocomplete keystrokes competed for budget with
+// LLM-backed trade analysis and could lock a user out of the product's front
+// door mid-sentence. `/api/players` now has its own budget below, and the
+// genuinely expensive endpoint under this prefix — `/api/trade/compare` — keeps
+// its own tighter 20/min/IP + 20/min/credential limiter, so this prefix-wide
+// number is the loose outer bound and not the thing protecting spend.
 const publicToolRateLimit = rateLimit({
   windowMs:        60 * 1000,
-  limit:           30,
+  limit:           120,
   standardHeaders: "draft-7",
   legacyHeaders:   false,
   message:         {
     error: "Too many tool requests, please slow down.",
     code: "public_tool_rate_limited",
+  },
+});
+
+// ── Player search rate limit ─────────────────────────────────────
+// `GET /api/players/search` — the Trade autocomplete. Its own bucket, because
+// it is the one public route that fires **per keystroke** and is by far the
+// cheapest thing Omen serves.
+//
+// The number is set from measured cost, not from a round figure. The route
+// reads an in-process cache of the Sleeper player blob (refreshed daily) and,
+// since the search index is built once per blob rather than once per request,
+// costs **0.23ms of CPU per search** over 11.4k players — down from 3.9ms, a
+// 17× reduction measured on the same fixture. One core sustains ~4,300
+// searches/second.
+//
+// At 300/min/IP the worst a single IP can extract is 69ms of CPU per minute:
+// about 0.1% of one core. That is cheap enough to be generous with, which
+// matters because this budget is shared by everyone behind the same NAT.
+//
+// For scale: a debounced client spends 3–6 requests per player name typed, so
+// 300/min is roughly 50–100 player lookups a minute — far past what one person
+// can type, and room for dozens of simultaneous users on one carrier IP.
+const PLAYER_SEARCH_PER_MINUTE = 300;
+
+const playerSearchRateLimit = rateLimit({
+  windowMs:        60 * 1000,
+  limit:           PLAYER_SEARCH_PER_MINUTE,
+  standardHeaders: "draft-7",
+  legacyHeaders:   false,
+  message:         {
+    error: "Too many player searches, please slow down.",
+    code: "player_search_rate_limited",
   },
 });
 
@@ -149,4 +207,6 @@ module.exports = {
   authRateLimit,
   permissionsPolicyMiddleware,
   publicToolRateLimit,
+  playerSearchRateLimit,
+  PLAYER_SEARCH_PER_MINUTE,
 };

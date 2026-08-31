@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.feature.commandcenter
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -267,18 +268,34 @@ private fun TradeSide(
                 message = "Looking up players.",
             )
 
+            // `F-BAR-14`: a suggestion row used to be visually identical to a player
+            // already committed to the offer — same surface, same type, same padding —
+            // so the screen appeared to show a player on a side while Compare stayed
+            // disabled and the copy still asked for one. These rows are *candidates*,
+            // not members of the offer, and the group now says so. The border matches
+            // iOS, which had it and Android did not.
             is TradeViewModel.SearchState.Results -> Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(OmenTheme.color.surface1),
+                verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
             ) {
-                searchState.rows.forEach { player ->
-                    OmenListRow(
-                        title = player.name,
-                        subtitle = player.subtitle,
-                        onClick = { onPick(player) },
-                    )
+                Text(
+                    text = "Tap a player to add",
+                    style = OmenTheme.typography.label.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(OmenTheme.color.surface1)
+                        .border(1.dp, OmenTheme.color.border, RoundedCornerShape(8.dp)),
+                ) {
+                    searchState.rows.forEach { player ->
+                        OmenListRow(
+                            title = player.name,
+                            subtitle = player.subtitle,
+                            onClick = { onPick(player) },
+                        )
+                    }
                 }
             }
 

@@ -1804,3 +1804,38 @@ non-response is a claim about the harness as much as about the app.
 
 Detail: `Direction/reviews/2026-08-30-omen-bar-audit-and-strategy.md` §22–§23;
 handoff `Blueprints/handoffs/2026-08-31-tier-0-focus-withdrawal-and-search-states.md`.
+
+## 2026-08-31 — Rate limits raised on measured cost; `F-BAR-14` fixed
+
+**Decision:** raise the search and app-wide budgets, and give `/api/players` its own bucket.
+General 100 → 600/min/IP · public tool 30 → 120/min/IP · new player search 300/min/IP.
+
+**Why the old numbers were wrong, in order of importance:**
+
+1. **The buckets were shared across unlike work.** Autocomplete fires per keystroke and sat in
+   one 30/min budget with LLM-backed trade analysis, so typing two names could lock a user out
+   of the front door. Paired with `F-BAR-34` rendering every failure as "no results", that is
+   the direct cause of both external bug reports.
+2. **The route was accidentally expensive, and the limit was compensating for it.** The search
+   index is now built once per cached player blob rather than once per request — 3.9ms → 0.23ms
+   per search, 17×, verified byte-identical across 27,461 differential cases. Cheap work is what
+   makes a generous limit honest rather than optimistic.
+3. **100/min/IP app-wide was actively harmful under carrier-grade NAT**, where thousands of
+   unrelated users share a handful of IPs. Expensive routes are capped separately and tighter,
+   so the app-wide number is a flood backstop and does not need to be small.
+
+**Invariant now asserted in tests:** a per-route budget above the app-wide budget is a fiction —
+the app-wide limiter trips first. `test/playerSearchRateLimit.test.js` drives real requests to
+prove it rather than reading config.
+
+**Left open deliberately:** every budget is still keyed on IP alone, which is the wrong axis
+under carrier NAT; raising numbers only moves the population size at which it bites. The durable
+fix is per-credential keying, which needs the clients to send a bearer on a route that is
+deliberately unauthenticated today — a product decision, not a code change. Recorded in
+`Blueprints/api-routes.md`.
+
+**Also:** `F-BAR-14` fixed. A suggestion row was visually identical to a committed player, so the
+screen appeared to show a player on a side while Compare stayed disabled. The candidate list is
+now labelled "Tap a player to add" on both platforms, and Android gained the container border it
+was missing relative to iOS. Verified on simulator and emulator with a committed player and a
+suggestion list on screen together.
