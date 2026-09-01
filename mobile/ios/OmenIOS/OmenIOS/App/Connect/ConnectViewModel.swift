@@ -22,12 +22,15 @@ final class ConnectViewModel: ObservableObject {
     init(
         repository: ConnectRepository,
         sessionManager: SessionManager,
-        authSession: ProviderAuthSessionPresenting = ASWebAuthenticationProviderSession(),
+        // Nil rather than a default expression: `ASWebAuthenticationProviderSession` is
+        // main-actor isolated, and a default argument is evaluated in the *caller's* context,
+        // which is not guaranteed to be. Constructing it here is.
+        authSession: ProviderAuthSessionPresenting? = nil,
         makeRequestId: @escaping () -> String = ConnectViewModel.defaultRequestId
     ) {
         self.repository = repository
         self.sessionManager = sessionManager
-        self.authSession = authSession
+        self.authSession = authSession ?? ASWebAuthenticationProviderSession()
         self.makeRequestId = makeRequestId
     }
 

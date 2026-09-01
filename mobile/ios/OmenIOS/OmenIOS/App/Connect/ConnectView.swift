@@ -14,12 +14,15 @@ struct ConnectView: View {
     init(
         repository: ConnectRepository,
         sessionManager: SessionManager,
+        /// Nil takes the real system-browser session; tests inject a stub.
+        authSession: ProviderAuthSessionPresenting? = nil,
         onConnected: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
         _viewModel = StateObject(wrappedValue: ConnectViewModel(
             repository: repository,
-            sessionManager: sessionManager
+            sessionManager: sessionManager,
+            authSession: authSession
         ))
         self.onConnected = onConnected
         self.onDismiss = onDismiss
@@ -32,12 +35,18 @@ struct ConnectView: View {
                 case .notStarted:
                     providerPicker
                     sleeperUsernameEntry
-                case .resolvingAccount, .validatingConnection:
+                case .resolvingAccount, .validatingConnection,
+                     .startingYahooAuthorization, .awaitingYahooReturn,
+                     .confirmingYahooConnection, .bindingYahooLeague:
                     busySection
                 case .choosingLeague(let account):
                     leaguePicker(account)
                 case .connected(let league):
                     connectedSection(league)
+                case .choosingYahooLeague(let leagues):
+                    yahooLeaguePicker(leagues)
+                case .yahooConnected(let league):
+                    yahooConnectedSection(league)
                 case .canceled:
                     canceledSection
                 case .retryableError(let failure):
@@ -80,9 +89,13 @@ struct ConnectView: View {
         }
     }
 
+    /// States what tapping will do *before* it is tapped, so no row is a surprise. Yahoo's row
+    /// says "browser" plainly: the user is about to leave the app, and being told after the
+    /// fact is how a connect flow reads as a hijack.
     private func availabilityLabel(_ provider: ConnectProvider) -> String {
         switch provider.availability {
-        case .available: return "Connect with your username"
+        case .available:
+            return provider == .yahoo ? "Sign in with Yahoo in your browser" : "Connect with your username"
         case .onHold: return "On hold"
         case .useWeb: return "Connect on the web"
         }
@@ -117,6 +130,42 @@ struct ConnectView: View {
         }
     }
 
+    // MARK: - Yahoo
+
+    private func yahooLeaguePicker(_ leagues: [YahooLeague]) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text("Choose a league")
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            Text("Yahoo is connected. Pick the league Omen should read.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+
+            ForEach(leagues) { league in
+                OmenListRow(
+                    title: league.name,
+                    subtitle: league.subtitle,
+                    action: { Task { await viewModel.bindYahooLeague(league) } },
+                    leading: { OmenPlatformBadge(platform: .yahoo) },
+                    trailing: { EmptyView() }
+                )
+            }
+
+            OmenButton(title: "Choose another provider", action: { viewModel.startOver() }, variant: .link, size: .sm)
+        }
+    }
+
+    private func yahooConnectedSection(_ league: YahooLeague) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenStateSurface(
+                kind: .empty,
+                title: "\(league.name) is connected",
+                message: "Omen can now read this league's roster, scoring, and matchup."
+            )
+            OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+        }
+    }
+
     private var busySection: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             OmenStateSurface(
@@ -125,7 +174,8 @@ struct ConnectView: View {
                 // Spec §6: never a bare "Loading…" — say what is happening.
                 message: viewModel.state.progressLabel ?? "Working…"
             )
-            // Leaving mid-flight is safe: the connect call is idempotent by request id.
+            // Leaving mid-flight is safe: the Sleeper connect is idempotent by request id, and
+            // the Yahoo one is a server-bound OAuth transaction that is consumed or expires.
             OmenButton(title: "Cancel", action: { viewModel.cancel() }, variant: .link, size: .sm)
         }
     }
@@ -182,7 +232,17 @@ struct ConnectView: View {
     private func errorSection(_ failure: ConnectFailure) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             OmenStateSurface(kind: .error, title: "That didn't work", message: failure.message)
-            // Spec §6: every non-success state has a safe next action.
+            // Spec §6: every non-success state has a safe next action. A Yahoo round trip that
+            // already happened is re-checked rather than restarted — sending a user who is in
+            // fact connected back through the browser is the loop this flow exists to avoid.
+            if failure == .providerNotConnected || failure == .noLeaguesForSeason {
+                OmenButton(
+                    title: "Check again",
+                    action: { Task { await viewModel.confirmYahooConnection() } },
+                    variant: .primary,
+                    size: .md
+                )
+            }
             OmenButton(title: "Try again", action: { viewModel.startOver() }, variant: .secondary, size: .md)
             OmenButton(title: "Explore the demo instead", action: onDismiss, variant: .link, size: .sm)
         }

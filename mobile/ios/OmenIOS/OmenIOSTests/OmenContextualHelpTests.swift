@@ -81,14 +81,30 @@ final class OmenContextualHelpTests: XCTestCase {
 
     func testProviderCopyMatchesActualNativeAvailability() {
         let connect = OmenContextualHelpContent.topic(for: .connect)
-        let yahoo = connect.tips.first { $0.label == "Yahoo" }
         let espn = connect.tips.first { $0.label == "ESPN" }
 
-        // These sentences are the recorded product facts in ConnectProvider.availability.
-        // If that changes, this fails and the copy gets updated with it.
-        XCTAssertEqual(yahoo?.body, Self.reason(ConnectProvider.yahoo.availability))
+        // A web-only provider's help sentence IS the recorded reason in
+        // ConnectProvider.availability. If that changes, this fails and the copy follows.
         XCTAssertEqual(espn?.body, Self.reason(ConnectProvider.espn.availability))
         XCTAssertEqual(ConnectProvider.sleeper.availability, .available)
+    }
+
+    /// Help copy for a connectable provider must describe the in-app path, not send the user to
+    /// a browser they no longer need. Yahoo's tip said "connect it once on the Omen website"
+    /// while the native flow existed — help that contradicts the app is worse than none.
+    func testConnectableProviderHelpDescribesTheInAppPath() {
+        let connect = OmenContextualHelpContent.topic(for: .connect)
+        let yahoo = connect.tips.first { $0.label == "Yahoo" }
+
+        XCTAssertEqual(ConnectProvider.yahoo.availability, .available)
+        XCTAssertNotNil(yahoo)
+        XCTAssertFalse(
+            yahoo?.body.lowercased().contains("omen website") ?? true,
+            "Yahoo connects in the app now; help must not route users to the website"
+        )
+        // The contract's own promise, and the reason the login opens in the system browser
+        // rather than a WebView the app could read.
+        XCTAssertTrue(yahoo?.body.contains("never sees your Yahoo password") ?? false)
     }
 
     // MARK: - Contract shape
@@ -142,13 +158,29 @@ final class OmenContextualHelpTests: XCTestCase {
     }
 
     /// Attribution must appear wherever Yahoo Fantasy Information can be **displayed**, which is
-    /// not the same as where it can be **connected**. Yahoo's entitlement returned 2026-08-28: a
-    /// user connects on the web, and every native surface then reads that connection. Gating the
-    /// line on `.available` would ship Yahoo data with no attribution, breaching the API Access
-    /// and Use Agreement.
-    func testYahooAttributionShowsOnceYahooDataCanReachTheApp() {
-        XCTAssertNotEqual(ConnectProvider.yahoo.availability, .available, "no in-app Yahoo button yet")
-        XCTAssertTrue(omenShowsYahooAttribution, "web-connected Yahoo data still needs attribution")
+    /// not the same as where it can be **connected**. The two came apart on 2026-08-28, when the
+    /// entitlement returned and Yahoo data reached the app through a web-made connection while
+    /// no in-app Yahoo button existed. Native connect has since closed that gap, so the states
+    /// agree again — but the gate must still not be written as `== .available`, because that is
+    /// what would silently drop attribution the next time they diverge.
+    func testYahooAttributionShowsWheneverYahooDataCanReachTheApp() {
+        XCTAssertEqual(ConnectProvider.yahoo.availability, .available)
+        XCTAssertTrue(omenShowsYahooAttribution)
+    }
+
+    /// The gate's real contract: attribution survives a provider that is reachable but not
+    /// connectable in-app. Asserted on the enum rather than the live value so it keeps holding
+    /// after `ConnectProvider.yahoo.availability` changes again.
+    func testAttributionWouldSurviveYahooReturningToWebOnly() {
+        XCTAssertTrue(
+            omenYahooAttributionApplies(to: .useWeb(reason: "connect on the web")),
+            "web-connected Yahoo data still needs attribution"
+        )
+        XCTAssertTrue(omenYahooAttributionApplies(to: .available))
+        XCTAssertFalse(
+            omenYahooAttributionApplies(to: .onHold(reason: "paused")),
+            "on hold is the only state with no Yahoo data anywhere in the app"
+        )
     }
 
     /// The line stays off only when Yahoo is genuinely unreachable, which is the one state that
