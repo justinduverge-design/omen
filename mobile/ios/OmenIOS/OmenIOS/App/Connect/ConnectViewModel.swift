@@ -64,10 +64,7 @@ final class ConnectViewModel: ObservableObject {
     func resolveUsername() async {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !state.isBusy else { return }
-        guard let accessToken = sessionManager.currentSession?.accessToken else {
-            state = .needsReauth
-            return
-        }
+        guard let accessToken = await bearer() else { return }
 
         state = .resolvingAccount
         switch await repository.resolveSleeper(username: trimmed, accessToken: accessToken) {
@@ -91,11 +88,28 @@ final class ConnectViewModel: ObservableObject {
         await connect(league: league, username: username)
     }
 
-    private func connect(league: SleeperLeague, username: String) async {
-        guard let accessToken = sessionManager.currentSession?.accessToken else {
+    /// Renews an expiring access token before a connect round trip and sets the matching
+    /// failure state when there isn't one.
+    ///
+    /// Connect is where a stale token used to be most expensive: the user had just typed their
+    /// username, and a one-hour-old session turned that into "sign in again" with the typing
+    /// discarded. `authorization()` renews first. A transport failure is reported as a network
+    /// problem — **not** as re-auth, which would throw away a session that is still valid.
+    private func bearer() async -> String? {
+        switch await sessionManager.authorization() {
+        case .token(let token):
+            return token
+        case .unavailable:
+            state = .retryableError(.network)
+            return nil
+        case .needsReauth:
             state = .needsReauth
-            return
+            return nil
         }
+    }
+
+    private func connect(league: SleeperLeague, username: String) async {
+        guard let accessToken = await bearer() else { return }
         guard let requestId = pendingRequestId else { return }
 
         state = .validatingConnection(league: league)

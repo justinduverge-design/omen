@@ -86,17 +86,17 @@ final class CommandCenterViewModel: ObservableObject {
             return
         }
 
-        guard let accessToken = sessionManager.currentSession?.accessToken else {
-            viewState = .failed(.unauthorized)
-            return
-        }
-
         viewState = .loading
         context = nil
         ledger = nil
         leaguePulse = nil
         matchup = nil
-        switch await repository.fetchSummary(accessToken: accessToken) {
+
+        // The shell read goes through the session seam, which renews an expiring token before
+        // the call and retries once on a 401. The two follow-ups then reuse the token that
+        // read just proved good, rather than each renewing on their own — three concurrent
+        // refreshes would race Supabase's refresh-token rotation and sign the user out.
+        switch await sessionManager.authorized({ await repository.fetchSummary(accessToken: $0) }) {
         case .success(let summary):
             viewState = .loaded(summary)
             // Both follow-ups run only after the shell is renderable, and they run
@@ -104,6 +104,10 @@ final class CommandCenterViewModel: ObservableObject {
             // other's result, and running them in sequence made the Command Center three
             // serial round trips deep — the standings call is a live provider read and the
             // slowest of the three, so it was holding the Ledger behind it for no reason.
+            // Re-read the bearer rather than reusing the one `authorized` sent: if that call
+            // renewed mid-flight, the stored token is the live one and the sent one is
+            // already retired. This never refreshes again — it was just renewed.
+            guard case .token(let accessToken) = await sessionManager.authorization() else { break }
             async let contextTask: Void = {
                 // Slice C runs only when the shell says a provider is actually connected —
                 // asking a disconnected user's provider for standings is a guaranteed
@@ -120,7 +124,8 @@ final class CommandCenterViewModel: ObservableObject {
             }()
             _ = await (contextTask, ledgerTask)
         case .failure(let error):
-            if error == .unauthorized { sessionManager.onRefreshFailed() }
+            // `authorized` has already forced a refresh, retried once, and routed a genuine
+            // authorization failure to re-auth. Nothing left to do but render honestly.
             viewState = .failed(error)
         }
     }

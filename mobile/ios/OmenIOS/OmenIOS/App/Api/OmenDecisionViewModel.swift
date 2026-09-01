@@ -60,17 +60,11 @@ final class OmenDecisionViewModel: ObservableObject {
     }
 
     private func reload() async {
-        guard let accessToken = sessionManager.currentSession?.accessToken else {
-            viewState = .failed(.unauthorized)
-            return
-        }
-
         viewState = .loading
-        switch await repository.fetchDecision(accessToken: accessToken) {
+        switch await sessionManager.authorized({ await repository.fetchDecision(accessToken: $0) }) {
         case .success(let envelope):
             viewState = .loaded(envelope)
         case .failure(let error):
-            if error == .unauthorized { sessionManager.onRefreshFailed() }
             viewState = .failed(error)
         }
     }

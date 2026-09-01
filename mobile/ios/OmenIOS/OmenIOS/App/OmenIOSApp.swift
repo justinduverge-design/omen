@@ -45,6 +45,11 @@ struct OmenIOSApp: App {
             passkeyProvider: passkeyProvider,
             sessionManager: manager
         )
+        // Installs the token-renewal seam. Without this line every authenticated request in
+        // the app sends whatever bearer is in the Keychain, and a Supabase access token lives
+        // one hour — which is how signed-in beta users kept landing back on the sign-in screen.
+        manager.attach(refresher: AuthRepositorySessionRefresher(repository: repository))
+
         if let nativeOAuthProvider = oauthProvider as? ASWebAuthenticationOAuthProvider {
             nativeOAuthProvider.callbackHandler = { [weak viewModel] url in
                 viewModel?.handleOAuthCallback(url)

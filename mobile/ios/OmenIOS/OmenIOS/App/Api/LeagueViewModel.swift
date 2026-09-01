@@ -37,17 +37,14 @@ final class LeagueViewModel: ObservableObject {
     }
 
     func reload() async {
-        guard let accessToken = sessionManager.currentSession?.accessToken else {
-            viewState = .failed(.unauthorized)
-            return
-        }
-
         viewState = .loading
-        switch await repository.fetchOverview(accessToken: accessToken) {
+        // `authorized` renews an expiring token first and retries once on a 401, so a
+        // `.unauthorized` arriving here has already survived a forced refresh and has
+        // already routed the session to re-auth.
+        switch await sessionManager.authorized({ await repository.fetchOverview(accessToken: $0) }) {
         case .success(let overview):
             viewState = .loaded(overview)
         case .failure(let error):
-            if error == .unauthorized { sessionManager.onRefreshFailed() }
             viewState = .failed(error)
         }
     }

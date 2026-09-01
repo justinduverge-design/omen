@@ -154,7 +154,14 @@ final class TradeViewModel: ObservableObject {
 
         // `/compare` degrades an unauthenticated caller to a 200 neutral answer rather than a
         // 401, so a missing token is not a failure here — it just means no personalization.
-        let accessToken = sessionManager.currentSession?.accessToken
+        // A signed-in user still gets a renewed token: a stale bearer would silently
+        // downgrade their verdict to the anonymous one.
+        let accessToken: String?
+        if case .token(let renewed) = await sessionManager.authorization() {
+            accessToken = renewed
+        } else {
+            accessToken = nil
+        }
 
         viewState = .loading
         switch await repository.compare(offer: offer, accessToken: accessToken) {

@@ -102,7 +102,10 @@ struct AppShellView: View {
                 }
             }
         }
-        .task { sessionManager.restore() }
+        // `restoreRefreshing`, not `restore`: the plain restore marks any expired session
+        // `.needsReauth` immediately, and after the first hour every cold launch has an
+        // expired access token. Renew before judging.
+        .task { await sessionManager.restoreRefreshing() }
         .task { await updateGate.check() }
         .sheet(
             isPresented: Binding(
