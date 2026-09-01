@@ -379,3 +379,98 @@ Analytics events land **with each wave**, never as a separate project.
   Swift files in the same week.
 - **`main` is the proof.** `Direction/agent_inbox.md` records handoffs repeatedly claiming work as
   unmerged that was already on `main`; a handoff is a pointer, never evidence.
+
+---
+
+# Part 6 — Closing the open questions
+
+Same session, 2026-08-31. These resolve items the earlier parts left explicitly open.
+
+## Locked decisions
+
+### Council ordering
+
+- **Biggest impact leads. No exception for expiry.** The move that gains the most points is the top
+  seat, whether or not something else is closing sooner.
+- **Recorded tradeoff, chosen knowingly:** a waiver claim closing in two hours can sit below a
+  higher-impact trade. **The deadline mark on the card is the only warning the user gets**, which
+  makes that mark load-bearing rather than decorative — it must be legible at a glance and must
+  survive font scaling.
+
+### Confidence vocabulary
+
+- The bands are **Confident / Leaning / Coin flip.**
+- These describe how Omen reads the situation, not a calibrated probability. They replace the
+  numeric percentage everywhere: `OmenDecisionBriefPayload.confidence`, `OmenConfidenceBar`, and the
+  `/omen` confidence-gradient rules in `page-system.md` all have to move together, in the payload
+  contract, not at the view layer.
+- "Coin flip" is deliberate. It is the phrase a real manager says out loud, and it is honest in a
+  way "Low confidence" is not.
+
+### The Ledger
+
+- Both verified and self-reported rows **count toward Omen's record**, and self-reported rows carry
+  a **visible mark**.
+- **Consequent requirement, not optional:** any accuracy figure Omen shows about itself must state
+  how much of it is self-reported. A single blended number is Omen partly grading its own homework,
+  and shipping one without that disclosure would be the same class of unearned precision this
+  workshop already rejected for confidence percentages.
+
+### Offline and stale data
+
+- **The last thing the user saw stays readable, with a timestamp**: "as of Thursday 9:41pm".
+- Nothing recalculates offline. Nothing is presented as live. This applies **across every screen**,
+  not per-feature — it is a shell-level rule.
+
+### Post-connect tour
+
+- **Four cards, one per destination, each naming something true about the league they just
+  connected.** "Command — your council. Right now it's watching your Week 7 matchup."
+- Not a feature pitch. A preview of their own data. A card that cannot name something real about
+  this user's league does not ship as a generic sentence — it is dropped for that user.
+
+### Waiver drop selection
+
+- **The scoring engine chooses the drop. The model only writes the sentence explaining it.**
+- A model that selects players will eventually name someone the user does not own. This is the same
+  fabrication boundary the Trade workshop already set — Omen never invents roster ownership — and it
+  applies identically here.
+
+### Help + Support
+
+- The screen answers **three questions and nothing else**: connection problems, what the confidence
+  words mean, and privacy — what Omen can and cannot see.
+- Problem reporting moves out to the beta pill (Part 2). The Help screen stops being a container for
+  everything nobody opens.
+
+### Context strip with no league
+
+- The strip **becomes the connect prompt**: "No league connected — tap to connect." It earns its
+  space rather than showing a placeholder, and the prompt follows the user across every screen until
+  the connection exists.
+
+### Notifications
+
+- **Hard quiet hours, no exceptions.** Nothing wakes anyone, roughly 10pm–8am local.
+- **Consequent requirement, not optional:** many leagues process waivers overnight, around 3am. With
+  no overnight exception, **an evening warning before any deadline that falls in the quiet window is
+  mandatory.** Without it the quiet-hours rule silently costs users claims, which is worse than the
+  buzz it prevents.
+
+### Quiet-week voice
+
+- The line is **"Your advisors are off conquering something. Nothing needs you."**
+- The Part 1 fence still governs: this is for genuinely neutral quiet only. Never after a loss,
+  never alongside an injury, never on an error state.
+- **Known weakness, accepted:** a single fixed line reads as a stuck screen by the fifth viewing.
+  If it wears thin in beta, the fix is a small rotating set in the same voice — not a retreat to
+  flat copy.
+
+## Still open after Part 6
+
+- The offseason line (distinct from the in-season quiet line).
+- Notification copy itself, and how the evening pre-deadline warning is worded.
+- Whether the deadline mark is a color, a glyph, a countdown, or all three — it is now
+  load-bearing under pure-impact ordering.
+- The exact accuracy-figure disclosure wording on the Ledger.
+- Sign-in screen composition beyond the animated lockup.
