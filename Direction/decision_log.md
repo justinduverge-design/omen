@@ -1896,3 +1896,33 @@ advice. If roster or valuation evidence cannot support a concrete replacement, a
 valid when the limitation is explicit. Trade shape and canonical roster ownership are preserved.
 Verified roster weaknesses may inform private advice, but that strategy is prohibited from public
 trade links, share cards, and poll pages.
+
+## 2026-08-31 — App-wide page workshop: the Small Council, and the ESPN mobile dead end
+
+**Trigger:** beta feedback. Sleeper connect worked without a question (Rudy). ESPN on iOS did not
+(Abby) — because the native ESPN path's only honest instruction was to find a desktop, sideload an
+unpacked Chrome extension, and come back. That is a missing flow, not a copy defect.
+
+**Frame:** Command Center is a Small Council. Omen's advisors give short reads on what they watch,
+the user chooses what to go deeper on, and the rest of the app is the depth. The advisors are Omen
+speaking in different capacities — one voice, seats labelled by subject, no named in-world titles.
+
+**Locked:** four destinations stay and get de-duplicated (one owner per data surface). Demo mode is
+cut, including every `.demo` state branch. Council seats are the week, waiver watch, and the
+Ledger; only advisors with something to say appear; the quiet state is voiced and playful, with a
+hard fence — never playful on a loss, an injury, or an error. Omen returns one move-type-agnostic
+call (start/sit, pickup, drop, or trade), expresses confidence as bands rather than percentages,
+names the athlete and fantasy team on a trade call, and issues no trade call at all where other
+rosters are unreadable. League owns Waiver and reads Matchup → Standings → Waiver → Activity;
+waiver is ranked pickups with reasons, each paired with its drop. The Ledger gets a real screen,
+with follow-through read from the provider and self-report only as a marked fallback. ESPN gets an
+in-app login sheet. Connect orders providers by market share. In-app problem reporting replaces the
+mail-app handoff. Team theming is postponed pending infrastructure — not cancelled, and not to be
+reintroduced as a partial version.
+
+**Gated, not approved to build:** the ESPN in-app sheet needs an ESPN terms read and a prepared App
+Review answer first. Confidence bands are a payload-contract change, not a view-layer patch.
+Provider-read follow-through and cross-team roster reads are unproven per provider and must stay
+fail-closed until evidenced.
+
+**Record:** `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`.
