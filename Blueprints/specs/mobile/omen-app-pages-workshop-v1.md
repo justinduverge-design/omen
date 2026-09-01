@@ -474,3 +474,40 @@ Same session, 2026-08-31. These resolve items the earlier parts left explicitly 
   load-bearing under pure-impact ordering.
 - The exact accuracy-figure disclosure wording on the Ledger.
 - Sign-in screen composition beyond the animated lockup.
+
+---
+
+# Part 7 — Command Center is a swipe deck
+
+Founder correction, 2026-08-31, on seeing the first canvas draft. Recorded because the earlier parts
+describe a vertical page and that description is now wrong.
+
+## Locked
+
+- **The Small Council is a horizontal widget deck, not a vertical scroll.** One advisor fills the
+  frame, the next peeks at the edge, page dots carry position. The user swipes between seats instead
+  of scrolling past them.
+- **Impact still orders the deck** (Part 6). The highest-impact advisor is seat one.
+- **"Only advisors with something to say" now shortens the deck**, which is cleaner than the column
+  behavior it replaces — a short deck reads as complete, where a short column reads as unfinished.
+
+## Why this is better than what Parts 1–6 described
+
+Each seat gets a genuine headline and a full-width action instead of a row squeezed against two
+neighbours. The council metaphor also lands harder: one advisor speaks at a time.
+
+## Open — created by this change
+
+- **A carousel hides content.** A user who never swipes never sees the Ledger. Undecided: whether
+  the deck nudges once on first open, or whether seat three is simply allowed to be missed.
+- Accessibility is now load-bearing in a new way: the deck needs VoiceOver-navigable seats and must
+  not depend on a swipe gesture alone. This joins the Wave 2 accessibility scope.
+- Whether the deck's card height is fixed across seats or sizes to its content.
+
+## Canvas
+
+`Omen App Rework` — nine artboards, published 2026-08-31. Screens: Command seat 1, Command seat 2,
+Omen's call, League with Waiver, the Ledger, quiet week, no-league (Abby), ESPN consent, beta report
+pill. Built against the live `OmenColor` hexes, the 12px/8px radii, the 4/8/12/16/24 spacing scale,
+the 44pt touch floor, and the **two-family type system** (fact #21 — no mono anywhere, tabular
+figures instead).
