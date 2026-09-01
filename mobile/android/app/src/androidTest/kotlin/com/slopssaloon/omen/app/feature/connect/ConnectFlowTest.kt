@@ -38,24 +38,31 @@ class ConnectFlowTest {
         sessionManager = SessionManager(
             InMemorySecureSessionStore(token?.let { Session("u1", it, "r", 100_000) }),
         ) { 1_000 },
+        // Sleeper never opens a browser; a stub that would only report cancellation makes that
+        // a provable property of these cases rather than an assumption.
+        authSession = StubProviderAuthSession(),
     )
 
     // MARK: Provider policy
 
     /**
-     * Sleeper is the only native connect path for beta. Yahoo is paused on an entitlement only
-     * Yahoo can grant; ESPN is research-gated by the onboarding contract §5.
+     * Sleeper and Yahoo both connect natively; ESPN is research-gated by the onboarding
+     * contract §5 and stays on the web path.
+     *
+     * Yahoo read `OnHold` here for four days after the entitlement was restored on 2026-08-28
+     * — Android was describing a state the system had already left, and the copy told testers
+     * to wait for something that had happened.
      */
     @Test
-    fun onlySleeperIsConnectableInTheApp() {
+    fun sleeperAndYahooAreConnectableInTheAppAndEspnIsNot() {
         assertTrue(ConnectProvider.Sleeper.availability is ConnectAvailability.Available)
-        assertTrue(ConnectProvider.Yahoo.availability is ConnectAvailability.OnHold)
+        assertTrue(ConnectProvider.Yahoo.availability is ConnectAvailability.Available)
         assertTrue(ConnectProvider.Espn.availability is ConnectAvailability.UseWeb)
     }
 
     /** An unavailable provider must never dead-end. */
     @Test
-    fun selectingAnUnavailableProviderExplainsRatherThanFailing() {
+    fun selectingAnUnavailableProviderExplainsRatherThanFailing() = runBlocking {
         val vm = viewModel(StubConnectRepository())
 
         vm.selectProvider(ConnectProvider.Espn)

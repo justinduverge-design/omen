@@ -79,6 +79,7 @@ import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.MinVersionGateClient
 import com.slopssaloon.omen.app.feature.api.UpdateGateState
 import com.slopssaloon.omen.app.feature.api.UpdateGateViewModel
+import com.slopssaloon.omen.app.feature.connect.CustomTabsProviderAuthSession
 import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
@@ -204,6 +205,9 @@ fun OmenAndroidApp() {
         ConnectViewModel(
             repository = ApiConnectRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
+            // Yahoo signs in on Yahoo's own page in a Custom Tab, never in a WebView — the
+            // onboarding contract §87 forbids the app hosting a provider login.
+            authSession = CustomTabsProviderAuthSession(context),
         )
     }
     var showConnectSheet by remember { mutableStateOf(false) }
@@ -281,6 +285,14 @@ fun OmenAndroidApp() {
     // OAUTH_CALLBACK_MISMATCH through the reducer.
     LaunchedEffect(oauthProvider) {
         OAuthCallbackBus.callbacks.collect { uri ->
+            // The same deep link carries two different returns. A *provider connect* (Yahoo)
+            // comes back with `status=connected|cancelled` and no PKCE code, because the server
+            // minted, validated and consumed that OAuth state itself; `ConnectViewModel`'s
+            // browser session collects it. Handing it to the sign-in reducer would dispatch a
+            // callback with an empty code and push a signed-in user's auth flow into a failure
+            // state over a connect that went fine. It is also deliberately NOT cleared here —
+            // the connect session is the collector that owns it.
+            if (uri.getQueryParameter("status") != null) return@collect
             // Consume the replay immediately. The current handling attempt is authoritative;
             // retaining a completed or rejected callback would make a later collector replay it.
             OAuthCallbackBus.clear()

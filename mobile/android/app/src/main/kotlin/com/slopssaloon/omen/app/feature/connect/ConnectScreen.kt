@@ -55,12 +55,20 @@ fun ConnectScreen(
                 ConnectProvider.entries.forEach { provider ->
                     OmenListRow(
                         title = provider.displayName,
+                        // States what tapping will do *before* it is tapped. Yahoo's row says
+                        // "browser" plainly: the user is about to leave the app, and being
+                        // told after the fact is how a connect flow reads as a hijack.
                         subtitle = when (provider.availability) {
-                            is ConnectAvailability.Available -> "Connect with your username"
+                            is ConnectAvailability.Available ->
+                                if (provider == ConnectProvider.Yahoo) {
+                                    "Sign in with Yahoo in your browser"
+                                } else {
+                                    "Connect with your username"
+                                }
                             is ConnectAvailability.OnHold -> "On hold"
                             is ConnectAvailability.UseWeb -> "Connect on the web"
                         },
-                        onClick = { viewModel.selectProvider(provider) },
+                        onClick = { scope.launch { viewModel.selectProvider(provider) } },
                         leadingContent = { OmenPlatformBadge(platform = provider.platform) },
                     )
                 }
@@ -86,15 +94,50 @@ fun ConnectScreen(
                 )
             }
 
-            is ConnectState.ResolvingAccount, is ConnectState.ValidatingConnection -> {
+            is ConnectState.ResolvingAccount, is ConnectState.ValidatingConnection,
+            is ConnectState.StartingYahooAuthorization, is ConnectState.AwaitingYahooReturn,
+            is ConnectState.ConfirmingYahooConnection, is ConnectState.BindingYahooLeague -> {
                 OmenStateSurface(
                     kind = OmenStateSurfaceKind.Loading,
                     title = "Just a moment",
                     // Spec §6: never a bare "Loading…" — say what is happening.
                     message = state.progressLabel ?: "Working…",
                 )
-                // Leaving mid-flight is safe: connect is idempotent by request id.
+                // Leaving mid-flight is safe: the Sleeper connect is idempotent by request id,
+                // and the Yahoo one is a server-bound OAuth transaction that is consumed or
+                // expires.
                 OmenButton("Cancel", { viewModel.cancel() }, variant = OmenButtonVariant.Link)
+            }
+
+            is ConnectState.ChoosingYahooLeague -> {
+                Text("Choose a league", style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
+                Text(
+                    "Yahoo is connected. Pick the league Omen should read.",
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+                state.leagues.forEach { league ->
+                    OmenListRow(
+                        title = league.name,
+                        subtitle = league.subtitle,
+                        onClick = { scope.launch { viewModel.bindYahooLeague(league) } },
+                        leadingContent = {
+                            OmenPlatformBadge(
+                                platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Yahoo,
+                            )
+                        },
+                    )
+                }
+                OmenButton("Choose another provider", { viewModel.startOver() }, variant = OmenButtonVariant.Link)
+            }
+
+            is ConnectState.YahooConnected -> {
+                OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Empty,
+                    title = "${state.league.name} is connected",
+                    message = "Omen can now read this league's roster, scoring, and matchup.",
+                )
+                OmenButton("Go to Command Center", onConnected)
             }
 
             is ConnectState.ChoosingLeague -> {
@@ -141,7 +184,15 @@ fun ConnectScreen(
                     title = "That didn't work",
                     message = state.failure.message,
                 )
-                // Spec §6: every non-success state has a safe next action.
+                // Spec §6: every non-success state has a safe next action. A Yahoo round trip
+                // that already happened is re-checked rather than restarted — sending a user
+                // who is in fact connected back through the browser is the loop this flow
+                // exists to avoid.
+                if (state.failure == ConnectFailure.ProviderNotConnected ||
+                    state.failure == ConnectFailure.NoLeaguesForSeason
+                ) {
+                    OmenButton("Check again", { scope.launch { viewModel.confirmYahooConnection() } })
+                }
                 OmenButton("Try again", { viewModel.startOver() }, variant = OmenButtonVariant.Secondary)
                 OmenButton("Explore the demo instead", onDismiss, variant = OmenButtonVariant.Link)
             }
