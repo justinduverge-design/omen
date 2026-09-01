@@ -3,6 +3,7 @@ package com.slopssaloon.omen.app.feature.api
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,7 +18,6 @@ class TradeViewModel(
     private val repository: TradeRepository,
     private val playerSearch: PlayerSearchRepository,
     private val sessionManager: SessionManager,
-    private val accessTokenProvider: () -> String?,
     private val scope: CoroutineScope,
 ) {
     sealed interface ViewState {
@@ -182,7 +182,9 @@ class TradeViewModel(
 
         // `/compare` degrades an unauthenticated caller to a 200 neutral answer rather than a
         // 401, so a missing token is not a failure here — it just means no personalization.
-        val accessToken = accessTokenProvider()
+        // A signed-in user still gets a renewed token: a stale bearer would silently downgrade
+        // their verdict to the anonymous one.
+        val accessToken = (sessionManager.authorization() as? SessionAuthorization.Token)?.accessToken
 
         viewState = ViewState.Loading
         viewState = when (val result = repository.compare(offer, accessToken)) {

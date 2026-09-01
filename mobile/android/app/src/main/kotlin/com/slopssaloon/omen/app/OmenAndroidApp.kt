@@ -51,6 +51,7 @@ import com.slopssaloon.omen.core.auth.AuthEvent
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.auth.AuthRepository
+import com.slopssaloon.omen.core.auth.AuthRepositorySessionRefresher
 import com.slopssaloon.omen.core.auth.FakeAuthRepository
 import com.slopssaloon.omen.core.auth.GoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.GoogleIdTokenResult
@@ -140,9 +141,14 @@ fun OmenAndroidApp() {
     val discordConfigured = remember(oauthProvider) { oauthProvider.isConfigured("discord") }
     val accountRepo: AccountRepository = remember { OkHttpAccountRepository(env.apiBaseUrl) }
 
+    // Installs the token-renewal seam. Without this every authenticated request sends whatever
+    // bearer is in secure storage, and a Supabase access token lives one hour — which is how
+    // signed-in beta users kept landing back on the sign-in screen.
+    remember(sessionManager, repo) { sessionManager.attach(AuthRepositorySessionRefresher(repo)) }
+
     // M5 slices B + C. Built from the same public `apiBaseUrl` the account repository uses —
-    // `AppEnvironment` holds public config only, never a secret. The token is read lazily from
-    // the secure store at call time rather than captured, so a re-auth is picked up on reload.
+    // `AppEnvironment` holds public config only, never a secret. Bearers come from
+    // `SessionManager.authorized`, which renews an expiring token before the call.
     val commandCenterViewModel = remember {
         val client = OmenApiClient(env.apiBaseUrl)
         CommandCenterViewModel(
@@ -150,7 +156,6 @@ fun OmenAndroidApp() {
             leagueRepository = ApiLeagueRepository(client),
             movesRepository = ApiMovesRepository(client),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -159,7 +164,7 @@ fun OmenAndroidApp() {
     val leagueSwitcherViewModel = remember {
         LeagueSwitcherViewModel(
             repository = ApiLeagueDirectoryRepository(OmenApiClient(env.apiBaseUrl)),
-            accessTokenProvider = { store.load()?.accessToken },
+            sessionManager = sessionManager,
         )
     }
 
@@ -170,7 +175,6 @@ fun OmenAndroidApp() {
         OmenDecisionViewModel(
             repository = ApiOmenDecisionRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -180,7 +184,6 @@ fun OmenAndroidApp() {
         LeagueViewModel(
             repository = ApiLeagueRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -192,7 +195,6 @@ fun OmenAndroidApp() {
             // Autocomplete is public too — `/api/players/search` takes no bearer.
             playerSearch = ApiPlayerSearchRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
             scope = scope,
         )
     }
@@ -201,7 +203,7 @@ fun OmenAndroidApp() {
     val connectViewModel = remember {
         ConnectViewModel(
             repository = ApiConnectRepository(OmenApiClient(env.apiBaseUrl)),
-            accessTokenProvider = { store.load()?.accessToken },
+            sessionManager = sessionManager,
         )
     }
     var showConnectSheet by remember { mutableStateOf(false) }
@@ -216,7 +218,10 @@ fun OmenAndroidApp() {
         )
     }
 
-    LaunchedEffect(Unit) { sessionManager.restore() }
+    // `restoreRefreshing`, not `restore`: the plain restore marks any expired session
+    // NeedsReauth immediately, and after the first hour every cold launch has an expired
+    // access token. Renew before judging.
+    LaunchedEffect(Unit) { sessionManager.restoreRefreshing() }
     LaunchedEffect(Unit) { updateGateViewModel.check() }
 
     var flow by remember { mutableStateOf<AuthFlowState>(AuthFlowState.Idle) }

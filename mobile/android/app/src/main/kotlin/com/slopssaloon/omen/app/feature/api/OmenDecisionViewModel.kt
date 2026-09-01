@@ -18,7 +18,6 @@ import com.slopssaloon.omen.core.session.SessionManager
 class OmenDecisionViewModel(
     private val repository: OmenDecisionRepository,
     private val sessionManager: SessionManager,
-    private val accessTokenProvider: () -> String?,
 ) {
     sealed interface ViewState {
         data object Idle : ViewState
@@ -62,19 +61,10 @@ class OmenDecisionViewModel(
     }
 
     suspend fun reload() {
-        val accessToken = accessTokenProvider()
-        if (accessToken.isNullOrEmpty()) {
-            viewState = ViewState.Failed(OmenApiError.Unauthorized)
-            return
-        }
-
         viewState = ViewState.Loading
-        when (val result = repository.fetchDecision(accessToken)) {
-            is OmenApiResult.Success -> viewState = ViewState.Loaded(result.value)
-            is OmenApiResult.Failure -> {
-                if (result.error is OmenApiError.Unauthorized) sessionManager.onRefreshFailed()
-                viewState = ViewState.Failed(result.error)
-            }
+        viewState = when (val result = sessionManager.authorized { repository.fetchDecision(it) }) {
+            is OmenApiResult.Success -> ViewState.Loaded(result.value)
+            is OmenApiResult.Failure -> ViewState.Failed(result.error)
         }
     }
 

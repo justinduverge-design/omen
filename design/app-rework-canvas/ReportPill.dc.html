@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&family=Alegreya:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #A67C2E; } a:hover { color: #C49035; }
+    .sans { font-family: 'Alegreya Sans', system-ui, sans-serif; }
+    .serif { font-family: 'Alegreya', Georgia, serif; }
+    .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #AEAEB2; }
+    .chip { font-size: 11px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; }
+    .h1 { font-size: 32px; font-weight: 700; color: #F5F0E8; line-height: 1.1; }
+    .h2 { font-size: 20px; font-weight: 600; color: #F5F0E8; line-height: 1.25; }
+    .h3 { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+    .body { font-family: 'Alegreya', Georgia, serif; font-size: 15px; color: #F5F0E8; line-height: 1.5; }
+    .small { font-family: 'Alegreya', Georgia, serif; font-size: 13px; color: #AEAEB2; line-height: 1.45; }
+    .card { background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+<div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="height: 54px; flex-shrink: 0;"></div>
+  <div style="flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+
+    <div style="opacity: 0.32; padding: 24px 16px; display: flex; flex-direction: column; gap: 16px;">
+      <div class="eyebrow">Command Center</div>
+      <div class="h1">Evening, Justin.</div>
+      <div class="card" style="height: 120px;"></div>
+      <div class="card" style="height: 90px;"></div>
+    </div>
+
+    <div style="position: absolute; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 22px; background: #2C2C2E; border: 1px solid #3A3A3C;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      <div style="font-size: 14px; font-weight: 600; color: #F5F0E8;">Report</div>
+    </div>
+
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #1C1C1E; border-top: 1px solid #3A3A3C; border-radius: 16px 16px 0 0; padding: 12px 24px 24px 24px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A3A3C; align-self: center;"></div>
+      <div class="h2">What went wrong?</div>
+      <div style="border: 1px solid #3A3A3C; border-radius: 8px; padding: 12px; min-height: 72px;">
+        <div class="body" style="color: #6D6D72;">Tell us what happened…</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; border: 1px solid #3A3A3C; border-radius: 8px; padding: 12px;">
+        <div style="width: 40px; height: 56px; border-radius: 4px; background: #2C2C2E; border: 1px solid #3A3A3C;"></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+          <div class="h3" style="font-size: 15px;">Screenshot attached</div>
+          <div class="small" style="color: #6D6D72;">Tap to review or remove</div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+        <div class="eyebrow" style="padding-bottom: 4px;">Sent with your report</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2C2C2E;">
+          <div class="small" style="color: #AEAEB2;">Screen</div>
+          <div style="font-size: 14px; font-weight: 500; color: #F5F0E8;" class="num">Command Center</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2C2C2E;">
+          <div class="small" style="color: #AEAEB2;">Version</div>
+          <div style="font-size: 14px; font-weight: 500; color: #F5F0E8;" class="num">1.0.4 (312)</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2C2C2E;">
+          <div class="small" style="color: #AEAEB2;">Device</div>
+          <div style="font-size: 14px; font-weight: 500; color: #F5F0E8;" class="num">iPhone 15 · iOS 19.2</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2C2C2E;">
+          <div class="small" style="color: #AEAEB2;">Connection</div>
+          <div style="font-size: 14px; font-weight: 500; color: #F5F0E8;" class="num">Sleeper · connected</div>
+        </div>
+      </div>
+      <div class="small" style="color: #6D6D72;">No league names, rosters, or passwords are ever included. Reports are summarized by a model to build a daily digest.</div>
+      <div style="display: flex; align-items: center; justify-content: center; background: #A67C2E; border-radius: 8px; height: 48px;">
+        <div style="font-size: 16px; font-weight: 600; color: #0A0A0B;">Send report</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

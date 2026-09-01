@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&family=Alegreya:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #A67C2E; } a:hover { color: #C49035; }
+    .sans { font-family: 'Alegreya Sans', system-ui, sans-serif; }
+    .serif { font-family: 'Alegreya', Georgia, serif; }
+    .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #AEAEB2; }
+    .chip { font-size: 11px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; }
+    .h1 { font-size: 32px; font-weight: 700; color: #F5F0E8; line-height: 1.1; }
+    .h2 { font-size: 20px; font-weight: 600; color: #F5F0E8; line-height: 1.25; }
+    .h3 { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+    .body { font-family: 'Alegreya', Georgia, serif; font-size: 15px; color: #F5F0E8; line-height: 1.5; }
+    .small { font-family: 'Alegreya', Georgia, serif; font-size: 13px; color: #AEAEB2; line-height: 1.45; }
+    .card { background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+<div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="height: 54px; flex-shrink: 0;"></div>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div class="chip" style="color: #AEAEB2;">Slop Bowl · Sleeper · Week 7</div>
+    <div class="chip" style="display: flex; align-items: center; gap: 4px; color: #A67C2E;">Switch
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 20px 0 0 0; display: flex; flex-direction: column; gap: 18px;">
+    <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div class="h1" style="font-size: 32px; letter-spacing: -0.01em;">Trade</div>
+      <div style="display: flex; background: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 8px; padding: 3px; gap: 3px;">
+        <div style="flex: 1; text-align: center; padding: 9px 0; border-radius: 6px; font-size: 14px; font-weight: 500; color: #AEAEB2;">Type a trade</div>
+        <div style="flex: 1; text-align: center; padding: 9px 0; border-radius: 6px; background: #3A3A3C; font-size: 14px; font-weight: 600; color: #F5F0E8;">Build from rosters</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="chip" style="color: #0A0A0B; background: #A67C2E; border-radius: 4px; padding: 5px 9px;">Mike's Marauders</div>
+        <div class="chip" style="color: #AEAEB2; border: 1px solid #3A3A3C; border-radius: 4px; padding: 5px 9px;">Regulation Blondes</div>
+        <div class="chip" style="color: #6D6D72; border: 1px dashed #3A3A3C; border-radius: 4px; padding: 5px 9px;">+ 3rd team</div>
+      </div>
+    </div>
+
+    <div style="flex: 1; overflow: hidden; padding: 0 16px; display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="eyebrow" style="flex-grow: 1;">You send</div>
+          <div class="small" style="color: #6D6D72;">Starters</div>
+        </div>
+        <div style="background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 6px;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; background: rgba(166,124,46,0.08);">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: #A67C2E; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12 10 17 19 8"></polyline></svg></div>
+          <div style="flex-grow: 1; display: flex; align-items: center; gap: 7px; min-width: 0;">
+            <div class="h3" style="font-size: 15px; white-space: nowrap;">Alvin Kamara</div>
+            <div class="chip" style="color: #34D399; border: 1px solid #34D39959; background: #34D3991A; border-radius: 4px; padding: 2px 6px;">RB</div>
+            <div class="small" style="color: #6D6D72; font-size: 12px;">NO</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #6D6D72; width: 34px; text-align: right;">RB 14</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; ">
+          <div style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid #3A3A3C; flex-shrink: 0;"></div>
+          <div style="flex-grow: 1; display: flex; align-items: center; gap: 7px; min-width: 0;">
+            <div class="h3" style="font-size: 15px; white-space: nowrap;">Jaylen Waddle</div>
+            <div class="chip" style="color: #60A5FA; border: 1px solid #60A5FA59; background: #60A5FA1A; border-radius: 4px; padding: 2px 6px;">WR</div>
+            <div class="small" style="color: #6D6D72; font-size: 12px;">MIA</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #6D6D72; width: 34px; text-align: right;">WR 21</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; ">
+          <div style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid #3A3A3C; flex-shrink: 0;"></div>
+          <div style="flex-grow: 1; display: flex; align-items: center; gap: 7px; min-width: 0;">
+            <div class="h3" style="font-size: 15px; white-space: nowrap;">Tucker Kraft</div>
+            <div class="chip" style="color: #C084FC; border: 1px solid #C084FC59; background: #C084FC1A; border-radius: 4px; padding: 2px 6px;">TE</div>
+            <div class="small" style="color: #6D6D72; font-size: 12px;">GB</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #6D6D72; width: 34px; text-align: right;">—</div>
+        </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="flex-grow: 1; height: 1px; background: #2C2C2E;"></div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 4 3 8 7 12"></polyline><line x1="3" y1="8" x2="15" y2="8"></line><polyline points="17 12 21 16 17 20"></polyline><line x1="21" y1="16" x2="9" y2="16"></line></svg>
+        <div style="flex-grow: 1; height: 1px; background: #2C2C2E;"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="eyebrow" style="flex-grow: 1;">You receive</div>
+          <div class="small" style="color: #6D6D72;">Mike's bench</div>
+        </div>
+        <div style="background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 6px;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; background: rgba(166,124,46,0.08);">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: #A67C2E; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12 10 17 19 8"></polyline></svg></div>
+          <div style="flex-grow: 1; display: flex; align-items: center; gap: 7px; min-width: 0;">
+            <div class="h3" style="font-size: 15px; white-space: nowrap;">Rome Odunze</div>
+            <div class="chip" style="color: #60A5FA; border: 1px solid #60A5FA59; background: #60A5FA1A; border-radius: 4px; padding: 2px 6px;">WR</div>
+            <div class="small" style="color: #6D6D72; font-size: 12px;">CHI</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #6D6D72; width: 34px; text-align: right;">WR 29</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; ">
+          <div style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid #3A3A3C; flex-shrink: 0;"></div>
+          <div style="flex-grow: 1; display: flex; align-items: center; gap: 7px; min-width: 0;">
+            <div class="h3" style="font-size: 15px; white-space: nowrap;">Bucky Irving</div>
+            <div class="chip" style="color: #34D399; border: 1px solid #34D39959; background: #34D3991A; border-radius: 4px; padding: 2px 6px;">RB</div>
+            <div class="small" style="color: #6D6D72; font-size: 12px;">TB</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #6D6D72; width: 34px; text-align: right;">RB 22</div>
+        </div>
+        </div>
+      </div>
+      <div class="small" style="color: #6D6D72;">Ranks come from your provider. A dash means Omen has no ranking it can stand behind.</div>
+    </div>
+
+    <div style="padding: 0 16px 12px 16px;">
+      <div style="display: flex; align-items: center; justify-content: center; background: #A67C2E; border-radius: 8px; height: 48px;">
+        <div style="font-size: 16px; font-weight: 600; color: #0A0A0B;">Compare trade</div>
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: flex-start; justify-content: space-around; padding: 8px 0 0 0; height: 49px; background: #1C1C1E; border-top: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; width: 76px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"></path><path d="M18 16.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z"></path></svg>
+      <div style="font-size: 10px; font-weight: 500; color: #6D6D72;">Command</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; width: 76px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2"></polygon></svg>
+      <div style="font-size: 10px; font-weight: 500; color: #6D6D72;">Omen</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; width: 76px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 5 3 9 7 13"></polyline><line x1="3" y1="9" x2="16" y2="9"></line><polyline points="17 11 21 15 17 19"></polyline><line x1="21" y1="15" x2="8" y2="15"></line></svg>
+      <div style="font-size: 10px; font-weight: 600; color: #A67C2E;">Trade</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 3px; width: 76px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3 19a6 6 0 0 1 12 0"></path><path d="M16 6.2a3 3 0 0 1 0 5.6"></path><path d="M18 19a6 6 0 0 0-3-5.2"></path></svg>
+      <div style="font-size: 10px; font-weight: 500; color: #6D6D72;">League</div>
+    </div>
+  </div>
+  <div style="height: 34px; flex-shrink: 0; background: #1C1C1E;"></div>
+</div>
+</x-dc>
+</body>
+</html>

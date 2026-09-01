@@ -3,6 +3,8 @@ package com.slopssaloon.omen.app.feature.connect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.slopssaloon.omen.core.session.SessionAuthorization
+import com.slopssaloon.omen.core.session.SessionManager
 import java.util.UUID
 
 /**
@@ -11,7 +13,7 @@ import java.util.UUID
  */
 class ConnectViewModel(
     private val repository: ConnectRepository,
-    private val accessTokenProvider: () -> String?,
+    private val sessionManager: SessionManager,
     private val makeRequestId: () -> String = ::defaultRequestId,
 ) {
     var state: ConnectState by mutableStateOf(ConnectState.NotStarted)
@@ -54,11 +56,7 @@ class ConnectViewModel(
     suspend fun resolveUsername() {
         val trimmed = username.trim()
         if (trimmed.isEmpty() || state.isBusy) return
-        val accessToken = accessTokenProvider()
-        if (accessToken.isNullOrEmpty()) {
-            state = ConnectState.NeedsReauth
-            return
-        }
+        val accessToken = bearer() ?: return
 
         state = ConnectState.ResolvingAccount
         repository.resolveSleeper(trimmed, accessToken)
@@ -78,12 +76,29 @@ class ConnectViewModel(
         connect(league, username)
     }
 
-    private suspend fun connect(league: SleeperLeague, username: String) {
-        val accessToken = accessTokenProvider()
-        if (accessToken.isNullOrEmpty()) {
-            state = ConnectState.NeedsReauth
-            return
+    /**
+     * Renews an expiring access token before a connect round trip and sets the matching failure
+     * state when there isn't one.
+     *
+     * Connect is where a stale token used to be most expensive: the user had just typed their
+     * username, and a one-hour-old session turned that into "sign in again" with the typing
+     * discarded. A transport failure is reported as a network problem — **not** as re-auth,
+     * which would throw away a session that is still valid.
+     */
+    private suspend fun bearer(): String? = when (val authorization = sessionManager.authorization()) {
+        is SessionAuthorization.Token -> authorization.accessToken
+        SessionAuthorization.Unavailable -> {
+            state = ConnectState.RetryableError(ConnectFailure.Network)
+            null
         }
+        SessionAuthorization.NeedsReauth -> {
+            state = ConnectState.NeedsReauth
+            null
+        }
+    }
+
+    private suspend fun connect(league: SleeperLeague, username: String) {
+        val accessToken = bearer() ?: return
         val requestId = pendingRequestId ?: return
 
         state = ConnectState.ValidatingConnection(league)

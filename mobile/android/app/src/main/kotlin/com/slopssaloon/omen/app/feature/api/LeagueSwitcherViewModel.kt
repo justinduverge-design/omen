@@ -12,7 +12,7 @@ import androidx.compose.runtime.setValue
  */
 class LeagueSwitcherViewModel(
     private val repository: LeagueDirectoryRepository,
-    private val accessTokenProvider: () -> String?,
+    private val sessionManager: SessionManager,
 ) {
     sealed interface ViewState {
         data object Loading : ViewState
@@ -53,11 +53,7 @@ class LeagueSwitcherViewModel(
             return
         }
         viewState = ViewState.Loading
-        val token = accessTokenProvider() ?: run {
-            viewState = ViewState.Failed(OmenApiError.Unauthorized)
-            return
-        }
-        viewState = when (val result = repository.fetchDirectory(token)) {
+        viewState = when (val result = sessionManager.authorized { repository.fetchDirectory(it) }) {
             is OmenApiResult.Success -> ViewState.Loaded(result.value)
             is OmenApiResult.Failure -> ViewState.Failed(result.error)
         }
@@ -73,11 +69,8 @@ class LeagueSwitcherViewModel(
         selectionError = null
         selectingLeagueId = leagueId
         try {
-            val token = accessTokenProvider() ?: run {
-                selectionError = OmenApiError.Unauthorized
-                return null
-            }
-            return when (val result = repository.selectLeague(token, platform, leagueId, teamId)) {
+            val result = sessionManager.authorized { repository.selectLeague(it, platform, leagueId, teamId) }
+            return when (result) {
                 is OmenApiResult.Success -> {
                     // Re-read rather than mutating the local copy: the server decides what
                     // `is_active` and `selection_persistence` now are, and a locally-invented

@@ -9,6 +9,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
+import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -26,7 +27,6 @@ class CommandCenterViewModel(
     private val leagueRepository: LeagueRepository,
     private val movesRepository: MovesRepository,
     private val sessionManager: SessionManager,
-    private val accessTokenProvider: () -> String?,
 ) {
     sealed interface ViewState {
         data object Loading : ViewState
@@ -103,21 +103,22 @@ class CommandCenterViewModel(
             return
         }
 
-        val accessToken = accessTokenProvider()
-        if (accessToken.isNullOrEmpty()) {
-            viewState = ViewState.Failed(OmenApiError.Unauthorized)
-            return
-        }
-
         viewState = ViewState.Loading
         context = null
         ledger = null
         leaguePulse = null
         matchup = null
 
-        when (val result = repository.fetchSummary(accessToken)) {
+        // The shell read goes through the session seam, which renews an expiring token before
+        // the call and retries once on a 401.
+        when (val result = sessionManager.authorized { repository.fetchSummary(it) }) {
             is OmenApiResult.Success -> {
                 viewState = ViewState.Loaded(result.value)
+                // Re-read the bearer rather than reusing the one `authorized` sent: if that
+                // call renewed mid-flight, the stored token is the live one. This never
+                // refreshes again — it was just renewed.
+                val accessToken = (sessionManager.authorization() as? SessionAuthorization.Token)
+                    ?.accessToken ?: return
                 // Both follow-ups run only after the shell is renderable, and they run
                 // CONCURRENTLY. They hit different routes and neither reads the other's result;
                 // running them in sequence made the Command Center three serial round trips
@@ -144,7 +145,8 @@ class CommandCenterViewModel(
                 }
             }
             is OmenApiResult.Failure -> {
-                if (result.error is OmenApiError.Unauthorized) sessionManager.onRefreshFailed()
+                // `authorized` has already forced a refresh, retried once, and routed a genuine
+                // authorization failure to re-auth. Nothing left to do but render honestly.
                 viewState = ViewState.Failed(result.error)
             }
         }
