@@ -1945,3 +1945,41 @@ introducing a split.
 the Android equivalent, the registry rows, and the Matchup Spine type note. Queued as
 `W2-Typography` rather than applied ad hoc, so it lands with the rest of the design-system and
 accessibility wave.
+
+## 2026-08-31 — ESPN: terms read completed, risk accepted by the founder
+
+**W1-GATE question 1 — answered, negatively.** ESPN is governed by the Disney Terms of Use, which
+name it explicitly. Three clauses bear on Omen:
+
+- **§2.B.viii** — no *"commercial or business-related use or build a business utilizing the Disney
+  Products... in each case whether or not for profit."* The "whether or not for profit" wording
+  removes the argument that Omen being free is a defense.
+- **§2.B.x** — no access, monitoring, copying or extraction by *"robot, spider, script, or other
+  automated means."* Omen's server-side calls to ESPN fantasy endpoints are automated means.
+- **§1.F** — *"You agree that you will not share your account or account information with others."*
+  Asking a user for their ESPN session induces the user to breach their own agreement.
+
+**Apple App Store Review Guideline 5.2.2** is the practical enforcement point, not ESPN:
+*"ensure that you are specifically permitted to do so under the service's terms of use.
+Authorization must be provided upon request."* Omen has no authorization and there is no ESPN
+developer program from which to obtain one. This is the Yahoo lesson in a harder form — with Yahoo
+the checkbox was "a request, not a grant"; ESPN publishes no checkbox at all.
+
+**Scope note:** the finding is not limited to the proposed in-app sheet. The **already-shipped**
+ESPN integration — the desktop extension path and the server-side calls — sits under the same
+clauses.
+
+**Founder decision, made with the above in front of him:** **ship it anyway and accept the risk**,
+and **keep the live ESPN integration running, adding a plain consent line**. The reasoning offered
+is that every comparable fantasy tool operates the same way and ESPN has never enforced against
+them. The accepted risk is an App Review rejection that cannot be answered with authorization,
+potentially arriving after the sheet is built.
+
+**This reading is not legal advice.** It is a reading of published terms by an agent, not an
+attorney. The recommendation to obtain an attorney's read of the live integration was made and
+declined for now; it remains available and is not foreclosed by this decision.
+
+**Consequent work, now the real mitigation:**
+1. A prepared App Review answer ships with the feature (drafted in the Wave 1 contract).
+2. A user-facing consent line on the live ESPN connection.
+3. No ESPN branding that implies association or endorsement (Disney ToU §2.B.vii).

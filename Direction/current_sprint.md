@@ -1429,7 +1429,12 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-GATE — ESPN in-app sheet legal and review gate
 
-- **Status:** READY
+- **Status:** CLOSED
+- **Closure:** COMPLETED — 2026-08-31. Terms read answered **no** (Disney ToU §2.B.viii / §2.B.x /
+  §1.F; Apple 5.2.2 has no authorization to point at). Founder reviewed the finding and **accepted
+  the risk**, choosing to ship and to keep the live integration with a consent line. Evidence:
+  `Direction/decision_log.md` 2026-08-31; App Review answer drafted in
+  `Blueprints/specs/mobile/omen-wave1-contract-v1.md` §W1-A.
 - **Blocked by:** None
 - **Priority:** P0 — blocks W1-A entirely
 - **Cost:** small
@@ -1446,8 +1451,11 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-A — ESPN in-app connect sheet (iOS + Android)
 
-- **Status:** BLOCKED
-- **Blocked by:** TASK-W1-GATE
+- **Status:** READY
+- **Blocked by:** None
+- **Unblock:** 2026-08-31 CLEARED — `TASK-W1-GATE` CLOSED. The terms answer was negative and the
+  founder accepted the risk explicitly; build proceeds under the constraints recorded in the Wave 1
+  contract (no association-implying ESPN branding, consent screen, prepared App Review answer).
 - **Priority:** P0 — the only confirmed beta failure on record
 - **Cost:** medium
 - **Agent-buildable:** yes, client-only
