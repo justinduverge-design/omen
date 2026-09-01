@@ -1547,6 +1547,17 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 - **Blocked by:** TASK-W1-CONSENT
 - **Blocked by:** TASK-W1-DEMO-NAMES
 - **Blocked by:** FOUNDER — build upload and App Store Connect submission are founder actions
+- **Runbook:** `Blueprints/playbooks/first-app-review-submission-runbook.md` — every agent-verifiable
+  fact is verified there. **The Release archive builds** (`ARCHIVE SUCCEEDED`, team `6RWR5G9894`),
+  version `0.1.0` build `4`, and the archive carries the **production** API base URL
+  `https://slopssaloon.com`, not the `example.invalid` committed default. `release_readiness.md`
+  listed build upload as untested; the archive half is now proven, the upload half still needs the
+  founder's account.
+- **Carry into the submission:** the Safari-extension paste block must **not** be included — no
+  extension target exists in `project.pbxproj` and no `PlugIns` directory is produced. And
+  `OMEN_IOS_APP_STORE_URL` is empty in the archive, so `ForcedUpdateView`'s button has nothing to
+  open — acceptable for a first submission (the URL cannot exist before the listing does), but
+  `min-version` must never be raised against a build whose store URL is blank.
 - **Verified 2026-09-01:** the reviewer path was walked end to end on an iPhone 17 simulator. Try
   Demo reaches a populated, correctly labelled Command Center, and the Omen destination renders a
   full decision brief. **The path described in the reviewer notes works today** — which is precisely

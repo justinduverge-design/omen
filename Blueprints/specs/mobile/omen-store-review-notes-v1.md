@@ -42,7 +42,7 @@ What you will see in Demo Mode:
 - League, Trade, and account screens
 
 All demo content is sample data and is labeled as such in the interface.
-Player names are generic ("Sample QB Starter") specifically so that demo output
+Player names are generic ("Sample RB1", "Sample RB2") specifically so that demo output
 can never be mistaken for real fantasy advice.
 
 Sign-in options (not required for review): Sign in with Apple, Discord, email
@@ -164,3 +164,23 @@ Do not submit until every line is checked. Several are still gated.
 - Demo and mock data is labeled and never presented as live advice (`Direction/facts-of-record.md` #7).
 - ESPN cookie values never appear in any artifact, including screenshots and reviewer notes.
 - Store submission, signing, and provider configuration remain founder-gated. This document is preparation only.
+
+
+---
+
+## Reconciliation — 2026-09-01
+
+**This claim was false until 2026-09-01 and is now true.** The notes stated demo player names were
+generic; the shipped demo fixture read **Christian McCaffrey**, **Ken Walker III**, and **SEA**,
+verified on an iPhone 17 simulator. Fixed in `4d101f3` (`W1-DEMO-NAMES`) on both platforms, and the
+example in the paste block above now matches the strings the app actually renders
+("Sample RB1" / "Sample RB2", team "Demo").
+
+**Before pasting, re-verify against the build you are submitting**, not against this file. The notes
+are a statement to Apple about a specific binary.
+
+**Safari extension paste block — DO NOT INCLUDE. Confirmed 2026-09-01.** `project.pbxproj` contains
+no Safari extension target (no `espnconnect`, no `Safari` match), and a Debug build produced no
+`PlugIns` directory in `Omen.app`. `M7-EspnSafariExtension` is not in this binary. The block stays in
+this file for the build that eventually ships it; including it now would describe a feature that
+does not exist, which the block itself warns is a rejection risk.
