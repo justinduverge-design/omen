@@ -21,7 +21,9 @@ layout: positions, page grouping, and the sticky notes carrying each screen's de
 
 | File | Screen |
 |---|---|
-| `SignInB.dc.html` | Sign in — first screen, absorbs the old Welcome, Demo lives here |
+| `SignInB.dc.html` | 1 · Sign in — first screen, absorbs the old Welcome, Demo lives here |
+| `EmailCode.dc.html` | 2 · Email six-digit code (the only sign-in path needing a screen) |
+| `ConnectLeague.dc.html` | 3 · Connect your league |
 | `TradeBuild.dc.html` | Trade — build from rosters |
 | `TradeVerdict.dc.html` | Trade — the read, counter, and private advice |
 | `TradeShare.dc.html` | Trade — share card |

@@ -59,7 +59,6 @@ class CommandCenterLedgerTest {
         leagueRepository = StubLeagueRepository(OmenApiResult.Failure(OmenApiError.Network)),
         movesRepository = moves,
         sessionManager = sessionManager(),
-        accessTokenProvider = { "t" },
     )
 
     private class CountingMovesRepository : MovesRepository {

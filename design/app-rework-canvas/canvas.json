@@ -6,7 +6,25 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Sign in \u2014 the chosen direction",
+      "title": "1 \u00b7 Sign in",
+      "page": "page-3"
+    },
+    {
+      "file": "EmailCode.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 \u00b7 Email code",
+      "page": "page-3"
+    },
+    {
+      "file": "ConnectLeague.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3 \u00b7 Connect your league",
       "page": "page-3"
     },
     {
@@ -222,6 +240,22 @@
       "w": 390,
       "text": "BETA ONLY \u2014 compiled out of App Store builds by a build flag, not a runtime toggle.\n\nThe 'sent with your report' list is deliberately visible: people share more when they can see exactly what leaves their phone.",
       "page": "page-2"
+    },
+    {
+      "id": "n-code",
+      "x": 470,
+      "y": -210,
+      "w": 390,
+      "page": "page-3",
+      "text": "EMAIL CODE - the only sign-in path that needs a screen.\n\nApple, Google and Discord hand off to a system sheet, so there is nothing to design there.\n\nThe six boxes fill as you type and Continue stays disabled until all six land - no button that fails when you press it.\n\nTwo escapes, both named: resend, and change the email. A code screen with no way out is where people quit."
+    },
+    {
+      "id": "n-conn",
+      "x": 940,
+      "y": -210,
+      "w": 390,
+      "page": "page-3",
+      "text": "CONNECT - held to the sign-in standard.\n\nProviders by market share, per your call. Each row says what it will actually cost you before you tap it - and ESPN says 'needs a computer for now', because today it does. That line is what Abby needed and never got.\n\nWhen W1-A ships, the ESPN row changes to a normal tap and this screen barely moves.\n\nThe safety note is not filler: 'never posts or trades on your behalf' is the single most common fear about connecting a fantasy account."
     }
   ],
   "launch": {
@@ -231,7 +265,7 @@
   "pages": [
     {
       "id": "page-3",
-      "name": "Sign in"
+      "name": "Onboarding flow"
     },
     {
       "id": "page-1",

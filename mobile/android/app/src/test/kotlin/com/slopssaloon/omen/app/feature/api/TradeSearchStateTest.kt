@@ -39,7 +39,6 @@ class TradeSearchStateTest {
         repository = StubTradeRepository(OmenApiResult.Failure(OmenApiError.Network)),
         playerSearch = StubPlayerSearchRepository(search),
         sessionManager = sessionManager(),
-        accessTokenProvider = { null },
         scope = scope,
     )
 
