@@ -1545,7 +1545,15 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 - **Status:** BLOCKED
 - **Blocked by:** TASK-W1-CONSENT
+- **Blocked by:** TASK-W1-DEMO-NAMES
 - **Blocked by:** FOUNDER — build upload and App Store Connect submission are founder actions
+- **Verified 2026-09-01:** the reviewer path was walked end to end on an iPhone 17 simulator. Try
+  Demo reaches a populated, correctly labelled Command Center, and the Omen destination renders a
+  full decision brief. **The path described in the reviewer notes works today** — which is precisely
+  why facts-of-record #19 now defers the demo-mode cut until after approval.
+- **Known and accepted in this build, not blockers:** light-mode contrast (#340) and Dynamic Type
+  (#338) are Wave 2; confidence still renders as the numeric `72` with a gradient bar, since bands
+  are a payload-contract change.
 - **Priority:** P0 — this is the gate that answers the ESPN question, and it is on the critical path
   regardless (`omen-1.0-plan.md` R6)
 - **Cost:** medium
@@ -1564,3 +1572,34 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
   rescoped accordingly.
 - **Carry into the submission:** the prepared App Review answer in
   `Blueprints/specs/mobile/omen-wave1-contract-v1.md` §W1-A, ready to send if a reviewer asks.
+
+### W1-DEMO-NAMES — Generic demo fixtures, so the app matches the reviewer notes
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — blocks `W1-REVIEW`; the notes currently describe an app we do not ship
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Scope:** `omen-store-review-notes-v1.md` tells Apple that "Player names are generic ('Sample QB
+  Starter') specifically so that demo output can never be mistaken for real fantasy advice."
+  Verified on an iPhone 17 simulator 2026-09-01: the Omen destination's demo fixture shows
+  **Christian McCaffrey**, **Ken Walker III**, and **SEA**. Swap every demo fixture — iOS
+  `OmenDecisionFixtures`, the Android equivalent, and any web demo path — to generic names and
+  non-NFL team labels.
+- **Done when:** no real player name or NFL team abbreviation appears anywhere in demo mode on
+  either platform; screenshot evidence per destination; the reviewer-notes claim is true as written.
+- **Do not touch:** the demo labelling itself. "DEMO · Sample data — not live advice" and "MOCK ·
+  Demo roster snapshot" render correctly and were verified on device.
+
+### W1-TABBAR — Tab bar uses the Omen accent, not iOS system blue
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — ships in the review build; it is the most persistent chrome in the app
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Scope:** the `TabView` in `CommandCenterView` renders its selected item in iOS system blue
+  (`#007AFF`), verified on simulator 2026-09-01, while every other element on the same screen uses
+  `OmenColor.accent`. Tint the tab bar to the accent on both platforms.
+- **Done when:** the selected tab renders in the Omen accent in light and dark mode, with AA
+  contrast checked in both; screenshot evidence.
