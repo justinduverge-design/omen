@@ -1451,8 +1451,9 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-A — ESPN in-app connect sheet (iOS + Android)
 
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** BLOCKED
+- **Blocked by:** TASK-W1-REVIEW — do not spend Wave 1's largest build on an ESPN path Apple has
+  never seen. See the sequencing note on `W1-REVIEW`.
 - **Unblock:** 2026-08-31 CLEARED — `TASK-W1-GATE` CLOSED. The terms answer was negative and the
   founder accepted the risk explicitly; build proceeds under the constraints recorded in the Wave 1
   contract (no association-implying ESPN branding, consent screen, prepared App Review answer).
@@ -1523,3 +1524,43 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 - **Do not touch:** the tabular-digit behavior. Losing column alignment is the one way this change
   can go wrong, and reintroducing a mono family to fix it is explicitly prohibited
   (facts-of-record #21).
+
+### W1-CONSENT — Plain consent line on the live ESPN connection
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — ships in the build that goes to Beta App Review, so it lands before `W1-REVIEW`
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Scope:** add a plain-language line to the existing ESPN connect path (web and native entry
+  points) stating that the connection uses the user's own ESPN session, that it is their account and
+  their choice, and that it is removable at any time from Account. No ESPN branding, styling, or
+  wording that implies association or endorsement (Disney ToU §2.B.vii) — a factual platform label
+  only.
+- **Done when:** the line renders on every ESPN connect entry point; no copy implies ESPN approves
+  of or is aware of Omen; screenshot evidence at default and large font scale.
+- **Do not touch:** the ESPN credential handling itself. This item is copy and disclosure only.
+
+### W1-REVIEW — First Beta App Review submission, with the existing ESPN path
+
+- **Status:** BLOCKED
+- **Blocked by:** TASK-W1-CONSENT
+- **Blocked by:** FOUNDER — build upload and App Store Connect submission are founder actions
+- **Priority:** P0 — this is the gate that answers the ESPN question, and it is on the critical path
+  regardless (`omen-1.0-plan.md` R6)
+- **Cost:** medium
+- **Agent-buildable:** build preparation yes; submission is founder-gated
+- **Scope:** get a build carrying the **existing** ESPN connect path through Apple's first Beta App
+  Review. **Apple has never reviewed this app** — `Direction/release_readiness.md` records build
+  upload as untested and no Beta App Review performed — so the guideline 5.2.2 question about ESPN
+  has never actually been put to the only party that enforces it.
+- **Sequencing rationale:** `W1-A` is the largest build in Wave 1 and rests entirely on ESPN
+  surviving review. Submitting first costs nothing extra, because this review is required before
+  external TestFlight either way, and it converts an untested assumption into an answer **before**
+  the money is spent. If review passes, `W1-A` proceeds knowing ESPN survives. If it is rejected,
+  that is learned at the cost of a submission rather than a feature.
+- **Done when:** a build is submitted and Apple returns a decision; the outcome — approval, or the
+  exact rejection text — is recorded in `Direction/decision_log.md` and `W1-A` is unblocked or
+  rescoped accordingly.
+- **Carry into the submission:** the prepared App Review answer in
+  `Blueprints/specs/mobile/omen-wave1-contract-v1.md` §W1-A, ready to send if a reviewer asks.

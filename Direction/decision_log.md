@@ -1983,3 +1983,29 @@ declined for now; it remains available and is not foreclosed by this decision.
 1. A prepared App Review answer ships with the feature (drafted in the Wave 1 contract).
 2. A user-facing consent line on the live ESPN connection.
 3. No ESPN branding that implies association or endorsement (Disney ToU §2.B.vii).
+
+
+## 2026-08-31 — Sequence the ESPN sheet behind the first Beta App Review
+
+**Finding:** `Direction/release_readiness.md` records App Store Connect build upload as **untested**
+and no Beta App Review performed. **Apple has never reviewed this app.** Current beta users are on
+locally-installed iOS builds and Play internal testing, neither of which involves Apple review. So
+the guideline 5.2.2 question raised by the ESPN terms read has never been put to the party that
+actually enforces it.
+
+**Decision:** submit a build carrying the **existing** ESPN connect path for Beta App Review
+**before** building `W1-A`, the in-app ESPN sheet. `W1-A` is the largest build in Wave 1 and rests
+entirely on ESPN surviving review. The submission costs nothing extra — first-build Beta App Review
+is already required before external TestFlight (`omen-1.0-plan.md` R6) — and it converts an untested
+assumption into an answer before the expensive work is done.
+
+**Consequent ordering:** `W1-CONSENT` (the plain consent line) ships in that build, so the disclosure
+is in front of the reviewer rather than added afterwards. `W1-REVIEW` blocks `W1-A`.
+
+**The ESPN decision itself is unchanged** — ship, with the risk accepted, per the earlier entry
+today. This changes only when the expensive part is built, not whether ESPN ships.
+
+**Risk framing recorded honestly:** the realistic downside of the ESPN posture is an App Review
+rejection — a delay and a lost feature — not litigation. ESPN's practical enforcement against
+third-party fantasy tools appears to be nil, though that observation is not exhaustively verified
+and is not a defense.
