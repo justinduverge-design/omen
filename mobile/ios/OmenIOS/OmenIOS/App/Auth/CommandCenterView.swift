@@ -154,6 +154,10 @@ struct CommandCenterView: View {
             .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)
         }
+        // The selected tab rendered in iOS system blue while every other element on the same
+        // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
+        // already tinted correctly; only iOS had drifted.
+        .tint(OmenColor.accent)
         .sheet(isPresented: $showSwitcherSheet) {
             OmenLeagueSwitcherSheet(
                 viewModel: leagueSwitcherViewModel,
@@ -299,14 +303,20 @@ struct OmenDecisionScreen: View {
     }
 }
 
+/// Demo fixtures use deliberately generic player names. `omen-store-review-notes-v1.md` tells App
+/// Review that "Player names are generic ('Sample QB Starter') specifically so that demo output can
+/// never be mistaken for real fantasy advice" — until 2026-09-01 that claim was false on this very
+/// fixture, which shipped Christian McCaffrey and Ken Walker III. Do not reintroduce real player
+/// names or NFL team abbreviations here: the reviewer notes are a statement to Apple, and this
+/// fixture is the thing that has to make it true.
 enum OmenDecisionFixtures {
     static let demo: OmenDecisionBriefState = .demo(OmenDecisionBriefPayload(
-        verdict: "Start Christian McCaffrey", move: "Bench Ken Walker for the RB1 slot.",
+        verdict: "Start Sample RB1", move: "Bench Sample RB2 for the RB1 slot.",
         impact: "+4.1 projected over your bench.", confidence: 72, risk: .low,
-        riskReasons: ["Full practice Friday."], explanation: ["The matchup and usage signals favor McCaffrey this week."],
+        riskReasons: ["Full practice Friday."], explanation: ["The matchup and usage signals favor Sample RB1 this week."],
         metrics: [OmenMetricItem(label: "Projected", value: "22.4", delta: "+4.1", deltaDirection: .positive)],
         signals: [OmenSignalItem(label: "Demo roster snapshot", source: .mock)],
-        alternatives: [OmenDecisionBriefAlternative(name: "Ken Walker III", position: .rb, team: "SEA", meta: "Limited practice")]
+        alternatives: [OmenDecisionBriefAlternative(name: "Sample RB2", position: .rb, team: "Demo", meta: "Limited practice")]
     ))
     static let realDisconnected: OmenDecisionBriefState = .disconnected(connect: nil)
 }

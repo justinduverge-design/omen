@@ -1575,7 +1575,14 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-DEMO-NAMES — Generic demo fixtures, so the app matches the reviewer notes
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Evidence:** 2026-09-01 Claude. iOS `OmenDecisionFixtures.demo` and Android
+  `OmenDecisionScreen.kt` now read "Start Sample RB1" / "Bench Sample RB2" with team `Demo`.
+  Confirmed rendered on an iPhone 17 simulator: no real player name or NFL abbreviation appears in
+  demo mode. iOS 318/318 signed; Android `:app` 106/106. The `#if DEBUG` preview fixtures in
+  `OmenDecisionBrief.swift`, `OmenPlayerRow.swift`, and `DesignSystemGalleryView.swift` still carry
+  real names and were **deliberately left alone** — they are compiled out of release builds and are
+  not what the reviewer notes describe.
 - **Blocked by:** None
 - **Priority:** P0 — blocks `W1-REVIEW`; the notes currently describe an app we do not ship
 - **Cost:** small
@@ -1593,7 +1600,11 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-TABBAR — Tab bar uses the Omen accent, not iOS system blue
 
-- **Status:** READY
+- **Status:** VERIFIED
+- **Evidence:** 2026-09-01 Claude. `.tint(OmenColor.accent)` on the `TabView` in
+  `CommandCenterView`. Confirmed on simulator: the selected tab renders gold, not `#007AFF`.
+  **Android needed no change** — its `NavigationBarItemDefaults.colors` already used
+  `OmenTheme.color.accent`; only iOS had drifted.
 - **Blocked by:** None
 - **Priority:** P1 — ships in the review build; it is the most persistent chrome in the app
 - **Cost:** small
@@ -1603,3 +1614,18 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
   `OmenColor.accent`. Tint the tab bar to the accent on both platforms.
 - **Done when:** the selected tab renders in the Omen accent in light and dark mode, with AA
   contrast checked in both; screenshot evidence.
+
+### W1-CONSENT — Plain consent line on the live ESPN connection
+
+- **Status:** VERIFIED
+- **Evidence:** 2026-09-01 Claude. Native: `ConnectView.espnConsentNote`, shown on the ESPN branch
+  of Connect. Web: `ESPN_CONSENT_NOTE` on the ESPN card in `ConnectLeague.jsx`; string confirmed
+  present in the production bundle (`dist/assets/index-*.js`). Frontend build clean; iOS 318/318.
+- **Not visually verified on web** — `/account/connect` is auth-gated and local Supabase is not
+  configured, so the line is proved in source and in the built bundle but was not rendered. Worth a
+  look on staging before submission.
+- **Copy:** "Connecting ESPN uses your own ESPN session so Omen can read your league — your roster,
+  scoring, and matchup. It is your account and your choice, and you can disconnect it any time in
+  Account. Omen is not affiliated with or endorsed by ESPN."
+- The affiliation sentence is load-bearing, not decorative: Disney ToU §2.B.vii bars use that
+  suggests an association with their brands.

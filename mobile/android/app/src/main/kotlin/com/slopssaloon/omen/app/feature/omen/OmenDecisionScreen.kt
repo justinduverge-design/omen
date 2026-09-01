@@ -61,16 +61,16 @@ fun OmenDecisionScreen(state: OmenDecisionBriefState, modifier: Modifier = Modif
 object OmenDecisionFixtures {
     val demo = OmenDecisionBriefState.Demo(
         OmenDecisionBriefPayload(
-            verdict = "Start Christian McCaffrey",
-            move = "Bench Ken Walker for the RB1 slot.",
+            verdict = "Start Sample RB1",
+            move = "Bench Sample RB2 for the RB1 slot.",
             impact = "+4.1 projected over your bench.",
             confidence = 72,
             risk = OmenRiskLevel.Low,
             riskReasons = listOf("Full practice Friday."),
-            explanation = listOf("The matchup and usage signals favor McCaffrey this week."),
+            explanation = listOf("The matchup and usage signals favor Sample RB1 this week."),
             metrics = listOf(OmenMetricItem("Projected", "22.4", "+4.1", OmenMetricDelta.Positive)),
             signals = listOf(OmenSignalItem("Demo roster snapshot", OmenSignalSource.Mock)),
-            alternatives = listOf(OmenDecisionBriefAlternative("Ken Walker III", OmenPosition.RB, "SEA", "Limited practice")),
+            alternatives = listOf(OmenDecisionBriefAlternative("Sample RB2", OmenPosition.RB, "Demo", "Limited practice")),
         ),
     )
 

@@ -207,9 +207,30 @@ struct ConnectView: View {
                 title: "\(provider.displayName) can't be connected in the app yet",
                 message: unsupportedMessage(provider)
             )
+            if provider == .espn {
+                espnConsentNote
+            }
             OmenButton(title: "Choose another provider", action: { viewModel.startOver() }, variant: .secondary, size: .md)
         }
     }
+
+    /// Disclosure required by the 2026-08-31 ESPN decision (`Direction/decision_log.md`). The
+    /// connection runs on the user's own ESPN session, so the user is told that plainly before
+    /// they go and make one. The affiliation disclaimer is not decorative — Disney's Terms of Use
+    /// §2.B.vii bars use that suggests an association with their brands.
+    private var espnConsentNote: some View {
+        Text(Self.espnConsentText)
+            .omenTextStyle(OmenTypography.bodySmall)
+            .foregroundStyle(OmenColor.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(Self.espnConsentText)
+    }
+
+    static let espnConsentText = """
+    Connecting ESPN uses your own ESPN session so Omen can read your league — your roster, scoring, \
+    and matchup. It is your account and your choice, and you can disconnect it any time in Account. \
+    Omen is not affiliated with or endorsed by ESPN.
+    """
 
     private func unsupportedMessage(_ provider: ConnectProvider) -> String {
         switch provider.availability {

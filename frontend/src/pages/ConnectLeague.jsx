@@ -443,6 +443,12 @@ const ESPN_STEPS = [
 
 const ESPN_EXTENSION_GUIDE_URL = '/espn-connect';
 
+// Disclosure required by the 2026-08-31 ESPN decision (Direction/decision_log.md). The connection
+// runs on the user's own ESPN session, so say so before they invest effort in setting one up. The
+// affiliation line is not decorative: Disney's Terms of Use section 2.B.vii bars use that suggests
+// an association with their brands.
+const ESPN_CONSENT_NOTE = "Connecting ESPN uses your own ESPN session so Omen can read your league \u2014 your roster, scoring, and matchup. It is your account and your choice, and you can disconnect it any time in Account. Omen is not affiliated with or endorsed by ESPN.";
+
 function MobileEspnCard() {
   return (
     <PlatformConnectionCard
@@ -459,6 +465,7 @@ function MobileEspnCard() {
           </a>
         </Button>
         <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Sleeper connects right here on your phone if you'd rather start there.</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{ESPN_CONSENT_NOTE}</p>
       </div>}
     />
   );
