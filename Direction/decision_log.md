@@ -1926,3 +1926,22 @@ Provider-read follow-through and cross-team roster reads are unproven per provid
 fail-closed until evidenced.
 
 **Record:** `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`.
+
+
+## 2026-08-31 — DM Mono is retired from the whole app
+
+**Decision:** the type system is two families — Alegreya Sans (UI, headings, controls, labels,
+chips, eyebrows, numerics) and Alegreya (reading copy). DM Mono comes out of every page, every
+section, both native platforms and web. This supersedes the 2026-07-19 three-family role lock in the
+native design-system registry §2.4.
+
+**Why it is safe:** the `eyebrow`, `chip`, and `numeric` roles were separated by case and letter
+tracking as much as by typeface, and those survive. `numeric` keeps tabular alignment because
+`.monospacedDigit()` applies to any font — standings and scores stay in aligned columns without a
+mono family. Web never shipped a mono face at all, so this **aligns native to web** rather than
+introducing a split.
+
+**Scope of change:** `OmenFontDesign.dmMono` and its three role references in `OmenTypography.swift`,
+the Android equivalent, the registry rows, and the Matchup Spine type note. Queued as
+`W2-Typography` rather than applied ad hoc, so it lands with the rest of the design-system and
+accessibility wave.

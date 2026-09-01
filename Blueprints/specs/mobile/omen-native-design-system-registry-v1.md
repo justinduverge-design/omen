@@ -250,3 +250,33 @@ Top-level: **Command Center, Omen, Trade, League**. Draft is a strong **seasonal
 - Token values transcribed from the `index.css` dark/light blocks documented in `omen-ux-ui-design-system-v1.md` (CSS is source of truth; M1 verifies against live CSS).
 - Figma access confirmed (`whoami`); Design House currently a stub (`00 — Start Here`).
 - No app code, deploy, secret, schema, Figma permission, or provider behavior touched.
+
+
+---
+
+## Amendment — 2026-08-31: DM Mono is retired, app-wide
+
+**Founder decision.** The locked family list is now **Alegreya Sans** (UI, headings, controls,
+labels, chips, eyebrows, numerics) and **Alegreya** (longer reading copy). **DM Mono is removed from
+the app entirely** — every page, every section, every surface, both platforms and web. This
+supersedes the 2026-07-19 three-family role split in §2.4, the `eyebrow` / `chip` / `numeric` rows,
+the Matchup Spine's type note, and the §2.4 lock item.
+
+**Roles keep their identity without the third family.** `eyebrow` stays uppercase with its +0.12em
+tracking, `chip` stays uppercase at +0.10em, `numeric` stays medium-weight — all in Alegreya Sans.
+The tracking and case, not the typeface, are what separated them.
+
+**Tabular digits survive.** `numeric` carries `tabularNumbers: true` and renders through
+`.monospacedDigit()`, which works on **any** font. Standings columns, scores, and metric values stay
+aligned in Alegreya Sans. Dropping the mono face costs the mono *look*, not the alignment — do not
+reintroduce a mono family to "fix" column alignment.
+
+**This aligns native to web, it does not diverge from it.** `frontend/src/index.css` contains no
+mono face; `page-system.md` already states Alegreya Sans and Alegreya with "No other typefaces."
+Native was the surface carrying the third family.
+
+**Implementation:** `OmenFontDesign.dmMono` and its three role references in
+`mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenTypography.swift`, plus the Android equivalent. Queued
+as `W2-Typography` in Wave 2 (the design-system and accessibility wave), not applied ad hoc.
+
+**Still locked:** Cormorant Garamond, Cinzel, and Inter must not be revived.

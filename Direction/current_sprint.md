@@ -1497,3 +1497,21 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
   email alone.
 - **Do not touch:** the `AI_PROVIDER=cloud` fail-closed branch or the public-host guard in
   `src/services/llm.js`. Relaxing either is a founder decision, not part of this item.
+
+### W2-Typography — Retire DM Mono across both native platforms
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — design-system correctness; blocks nothing but touches every screen
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Scope:** remove `OmenFontDesign.dmMono` and repoint the `eyebrow`, `chip`, and `numeric` roles
+  to Alegreya Sans in `mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenTypography.swift`; same on
+  Android; update the Matchup Spine type note. Roles keep their uppercase and tracking — that, not
+  the typeface, is what distinguished them.
+- **Done when:** no mono family resolves anywhere in either app; `numeric` still renders **tabular
+  digits** through `.monospacedDigit()` and a standings column is screenshot-proved still aligned;
+  registry §2.4 rows match the shipped roles.
+- **Do not touch:** the tabular-digit behavior. Losing column alignment is the one way this change
+  can go wrong, and reintroducing a mono family to fix it is explicitly prohibited
+  (facts-of-record #21).
