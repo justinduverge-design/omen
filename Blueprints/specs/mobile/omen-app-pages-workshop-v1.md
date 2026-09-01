@@ -511,3 +511,50 @@ Omen's call, League with Waiver, the Ledger, quiet week, no-league (Abby), ESPN 
 pill. Built against the live `OmenColor` hexes, the 12px/8px radii, the 4/8/12/16/24 spacing scale,
 the 44pt touch floor, and the **two-family type system** (fact #21 — no mono anywhere, tabular
 figures instead).
+
+---
+
+# Part 8 — The deck advances itself, and Trade sets the bar
+
+## Locked — auto-advance
+
+- **The Small Council deck advances on its own every 7.5 seconds.**
+- The interval is deliberate and deliberately unfashionable. Industry carousels run 3–5 seconds
+  because they assume nobody reads. Omen's cards carry a real sentence of reasoning, and 7.5s is
+  long enough to finish one. Founder's framing: *we're not trying to talk to goldfish.*
+
+**Two guardrails, non-negotiable, because they are the difference between this and the carousel
+everyone hates:**
+
+1. **First touch stops it permanently for that session.** Once the user swipes, taps, or even
+   scrolls the deck, auto-advance ends and does not resume. A deck that pulls itself away from
+   someone mid-read is worse than no deck. The timer restarts only on a fresh open.
+2. **Reduce Motion and VoiceOver disable it entirely.** Auto-advancing content is a known
+   accessibility failure — it steals focus from screen readers and is disorienting for motion
+   sensitivity. Under either setting the deck is swipe-only, and this joins the Wave 2 scope.
+
+This also resolves the Part 7 open question about a carousel hiding content: auto-advance means a
+user who never swipes still sees every seat.
+
+## Locked — Trade is the reference standard
+
+Trade is now the **benchmark set** every other screen is measured against, and it is drawn first so
+the rest of the app has something to match rather than something to imagine.
+
+The three screens make the Trade workshop's boundaries visible rather than merely written:
+
+- **Build from rosters** — assets come from real connected rosters, so nothing can be offered that
+  is not owned. A third team is a chip, not a separate mode. A player with no defensible provider
+  rank renders a **dash**, never an invented number.
+- **The read** — three separated regions on one screen: the scored verdict with its confidence band;
+  a **concrete** counter built only from assets that exist; and private negotiation advice behind an
+  explicit fence. The provider line states honestly that Omen cannot submit the offer and will hand
+  it over instead.
+- **Share** — the trade and nothing else. No verdict, no leverage, no read on the counterparty. Vote
+  copy states plainly that it does nothing to the real league.
+
+## Still open
+
+- Whether auto-advance runs at all on the very first session, before the user knows the deck swipes.
+- Trade's empty and error states, which these three artboards do not cover.
+- The type-a-trade path — only the build-from-rosters half is drawn.
