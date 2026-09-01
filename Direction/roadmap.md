@@ -1,6 +1,6 @@
 # Omen Roadmap
 
-Last updated: **2026-08-05** (mobile-primary reconciliation).
+Last updated: **2026-08-31** (app-wide page workshop reconciliation).
 
 **Omen is a mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has
 a web app. Scope and sequence live in `Direction/omen-1.0-plan.md`; evidence
@@ -118,7 +118,38 @@ else's ADP.
 
 ## Guardrails
 
-- Keep Start/Sit and waiver logic inside Omen / MVP Move unless Justin separates them.
+- **Omen's weekly call is one move of any type** — start/sit, pickup, drop, or trade. Waiver has
+  its own section inside League. (Revised 2026-08-31; this line previously said to keep Start/Sit
+  and waiver logic inside Omen. The founder identified that as a misunderstanding carried over from
+  backend work.)
 - Keep ESPN recovery user-safe and explicit.
 - Prefer plain-English reasoning over visible heavy math.
 - Do not deploy, apply Supabase SQL, touch secrets, auth providers, package files, or production config without explicit Justin approval.
+
+## Beta rework waves — 2026-08-31
+
+Driven by the app-wide page workshop. Beta feedback was two data points pointing opposite ways:
+Sleeper connect worked without a question, and **ESPN on iPhone had no phone path at all.**
+
+Ordered by what unblocks the most for the least. Analytics events land **with each wave**, never as
+a separate project.
+
+1. **ESPN in-app connect sheet · in-app report pill · Founder Digest.** Repairs the only confirmed
+   beta failure and builds the instrument that makes the next beta round informative. Contracted in
+   `Blueprints/specs/mobile/omen-wave1-contract-v1.md`. **The ESPN sheet needs no new backend** —
+   `POST /api/platforms/espn/connect` already validates and stores. Blocked on an ESPN terms review
+   and a prepared App Review answer, with a named desktop-only fallback if either comes back no.
+2. **Accessibility (#340 contrast, #338 Dynamic Type, #341 Android status bar) · honest-state
+   consolidation · demo-mode deletion.** Mechanical, no design dependency, safely parallel.
+3. **Command Center as the Small Council · the Ledger screen · the persistent context strip.**
+4. **League, with the ranked Waiver section inside it.**
+5. **Trade rebuild** to the Trade workshop contract — roster-based building, two- and three-team
+   shapes, share output, counters. Today's native screen is two text fields and a Compare button.
+
+**Work split:** Codex owns backend (analytics events, digest job, alert signals, waiver ranking,
+Ledger follow-through reads). Claude owns native UI, iOS and Android moving together screen by
+screen. Backend contracts are written before either starts, and the two must not be editing the
+same Swift files in the same week.
+
+**Not in these waves:** team theming (postponed, fact #19), Draft Assistant (2027), web page
+migrations (paused; a separate session owns web).

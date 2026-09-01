@@ -27,13 +27,21 @@ The product should explain:
 - what the risk is
 - how confident Omen is
 
-## Tool Hierarchy
+## Tool Hierarchy — revised 2026-08-31 by the app-wide page workshop
 
 - Trade Analyzer is the front door.
-- Draft Assistant is the preparation and seasonal tool.
+- Draft Assistant is cut from 1.0 and ships 2027 on a Slops-built ADP.
 - Omen of the Week / MVP Move is the main event.
-- Start/Sit lives inside Omen / MVP Move.
-- Waiver logic lives inside Omen / MVP Move unless explicitly separated later.
+- **Omen returns ONE call per week, and its type is not fixed.** That call may be a start/sit,
+  a pickup, a drop, or a trade. The earlier reading — that Start/Sit and Waiver were sub-pages
+  living *inside* Omen — was a misunderstanding carried over from backend work and is retired.
+- **Waiver has its own section, and it lives in the League destination**, not inside Omen and not
+  as a fifth tab. It is ranked pickups with reasons, each paired with its drop.
+- **Command Center is the Small Council.** Omen's advisors give short reads on what they watch;
+  the user picks what to go deeper on. The advisors are Omen speaking in different capacities —
+  one voice, seats labelled by subject.
+
+Authority: `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`.
 
 ## Platform Context
 
@@ -51,18 +59,15 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - Backend to frontend: `Blueprints/handoffs/backend-to-frontend.md`
 - Shared engineering decisions: `Blueprints/handoffs/decisions.md`
 
-## Current Build Truth — 2026-06-02
+## Current Build Truth — 2026-06-02 (Stripe/subscription lines corrected 2026-08-31)
 
 - Live Omen MVP route exists at `POST /api/omen/mvp-move`.
-- Live Omen requires auth, Pro subscription, and a usable Yahoo, Sleeper, or ESPN league connection.
+- Live Omen requires auth and a usable Yahoo, Sleeper, or ESPN league connection. **There is no subscription gate** — Omen is free indefinitely and Stripe was fully removed 2026-07-12 (facts-of-record #1). Corrected 2026-08-31; this line read "requires auth, Pro subscription" for roughly seven weeks after billing was deleted.
 - Yahoo, Sleeper, and ESPN can produce the first live lineup/start-sit Omen envelope when credentials and league context are usable.
 - Dashboard Omen gate source is `GET /api/dashboard/summary`.
 - Omen frontend should call the live route with `{}` only after dashboard status is `tools.omen_of_the_week.status === "ready"`.
 - `GET /api/system/current-week` provides public season/week context for routes that still need explicit week input.
 - Trade Analyzer is free and public.
-- Stripe checkout and portal return to `/account`.
-- `GET /api/stripe/prices` is a read-only pricing display contract sourced from configured Stripe Price IDs; `Account.jsx` calls it live with a null-safe fallback.
-- `GET /api/dashboard/summary` now includes a safe `subscription` block for Account page UI.
 - `GET /api/dashboard/summary` now includes `user.favorite_team`, returning the saved favorite team or `null` when the user has not chosen one.
 - `POST /api/omen/feedback` is deployed for HITL feedback and upserts by user/week/season into `moves`. The live Supabase `moves` repair is applied and idempotence-smoked. Frontend: `OmenFeedback.jsx` is wired and handles `200`, `401`, `422`, and `500`.
 - `GET /api/moves` is deployed for Move History and returns `moves-history.v1`. Frontend: `MoveHistory.jsx` is wired on the Football page "History" tab.
@@ -80,3 +85,13 @@ Users need plain-English reasoning, not heavy math. Math can support decisions, 
 - Codex owns backend contracts, auth gates, subscription state, live Omen, platform integration truth, and handoff answers.
 - Claude owns frontend screens, Account subscription UI, Omen display states, and app polish.
 - If Claude reports work from `.claude/worktrees/...`, verify it is merged into the canonical repo before treating it as live.
+
+## Product Direction — 2026-08-31
+
+The app-wide page workshop (`Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`) is the current
+product direction for every native screen. It was driven by beta feedback: Sleeper connect worked
+without a question; **ESPN on iPhone had no phone path at all** — the only instruction was to find a
+desktop and sideload a Chrome extension.
+
+Read it before planning any native screen work. Wave 1 is contracted in
+`Blueprints/specs/mobile/omen-wave1-contract-v1.md`.

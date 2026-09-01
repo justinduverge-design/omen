@@ -3,6 +3,37 @@
 **Refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection below re-derived from what is actually open. Handoffs are pointers, not standalone proof; `main` is the proof.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
+## 📌 Next pull — 2026-08-31: Beta Rework Wave 1
+
+**Refreshed by Claude after the app-wide page workshop.** Product direction for every native screen
+now lives in `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`; Wave 1 is contracted in
+`omen-wave1-contract-v1.md` and queued in `current_sprint.md` under "Lane: Beta Rework — Wave 1".
+
+**Why this wave and not something else.** Beta gave two data points pointing opposite ways: Sleeper
+connect worked without a single question, and **ESPN on iPhone had no phone path at all** — the only
+instruction was to find a desktop, install Chrome, and sideload an unpacked extension. That is a
+missing flow, not a copy defect, and it is the only confirmed beta failure on record.
+
+Pull in this order:
+
+1. **`W1-GATE`** (READY) — the ESPN terms review and prepared App Review answer. Blocks `W1-A`
+   entirely. Research and drafting are agent work; the decision is the founder's.
+2. **`W1-B`** (READY) — the in-app report and beta feedback pill. Independent of the gate. Without
+   it the next beta round teaches us nothing.
+3. **`W1-C`** (READY) — Founder Digest and alerts. Backend lane. Carries a known open gap: email is
+   not a paging mechanism and W1-C is not complete on email alone.
+4. **`W1-A`** (BLOCKED on `W1-GATE`) — the ESPN sheet itself. **Client-only:**
+   `POST /api/platforms/espn/connect` already validates and stores, so no new backend is needed.
+
+**Two staleness findings left open on purpose.** `check-sprint-staleness.js` reports `A4` and
+`B2-D3-S2` as STALE. `A4` is a legitimate hold — #386 was the gate checker, not A4, and cron scoring
+is deliberately off. `B2-D3-S2` needs a founder closure judgement on its `Done when:` clauses. Both
+are annotated in place. **Do not auto-close either.** The five `#308` conflicts the checker also
+reports are false positives: every one sits inside a block already marked SUPERSEDED or RESOLVED,
+and rewriting superseded-history prose to satisfy a linter would destroy provenance this repo keeps
+on purpose.
+
+
 ## ✅ Founder-directed A7B Phase 3 slice — complete 2026-08-25
 
 **Result:** The local staging-shadow, deterministic failure matrix, immutable backup, exact-hash witness, correction candidate, health alerts, and fresh-primary recovery proof are complete. Evidence: `Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md`. A7B returns to READY for a separately approved production-readiness/A4 no-write rehearsal; no remote host, service, timer, database, credential, publication, deployment, production scoring, or ADP state changed.

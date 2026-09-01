@@ -154,6 +154,11 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### A4 — Tuesday scoring production enablement
 
+- **Staleness note (2026-08-31):** `check-sprint-staleness.js` reports A4 as STALE because PR #386
+  merged. **#386 was the mechanical scoring-enablement gate checker, not A4 itself.** A4 remains a
+  legitimate hold: `OMEN_CRON_SCORING_ENABLED=false` and `CORVUS_CRON_SCORING_ENABLED=false` are set
+  in production under the founder's 2026-08-26 safety hold, pending the A6 repair proven on new rows
+  and O2 evidenced. Do not close A4 on the strength of #386.
 - **Status:** BLOCKED
 - **Blocked by:** TASK-A6-MovesScoringFormat — deploy the fail-closed recommendation-persistence repair and prove newly generated production rows carry their contract-required/coverage metadata before scoring can be re-enabled.
 - **Mechanical gate checker added 2026-08-27.** `node scripts/check-a4-scoring-gates.js` verifies enablement readiness against the live system: season actually open (read from `is_off_season`, never the clamped week), O2 drill evidence, a real post-repair `moves` row for this season, that row's metadata being complete rather than `pending`, and the flag's current state. `--json` for alerting; exit 0 only when every gate passes.
@@ -807,6 +812,11 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### B2-D3-S2 — Merge and deploy the prepared-not-deployed set
 
+- **Staleness note (2026-08-31):** `check-sprint-staleness.js` reports this STALE — status
+  READY_FOR_REVIEW while PR #371 is merged. **Whether every `Done when:` clause was met is a founder
+  judgement, not an agent one**, and the deploy action in this item is founder-gated by its own
+  Blocked-by line. Left open deliberately, flagged for the founder to close or annotate. Do not
+  auto-close.
 - **Status:** READY_FOR_REVIEW
 - **Claim:** 2026-08-26 Claude — agent half complete on `feat/m9-backend-gap-closure`; the deploy action remains founder-gated and was not performed.
 - **Evidence:** `Direction/release_readiness.md` §"Not Deployed / Not Merged" is now **empty**, with per-item commit evidence. **Every item was already on `main`, most since 2026-06-03/04** — the section was stale by roughly twelve weeks, not the work outstanding. `GET https://slopssaloon.com/api/version` answered live from production on 2026-08-26, so one of the six was demonstrably deployed, not merely merged. B2-D3-S closed 2026-08-02 (PR #259). Zero PRs open. Founder deploy note: `Direction/reviews/2026-08-26-b2d3s2-deploy-note.md`.
@@ -1407,3 +1417,83 @@ The handoff must include:
 - Team-based runtime theming is removed. Do not revive team skins without a new approved theme-pack plan.
 - No paid dependency, cloud model spend, or external service commitment without explicit approval.
 - **Draft Assistant is not a 1.0 feature.** Do not advertise it, build against it as a launch dependency, or let it back into scope without a new founder decision.
+
+---
+
+## Lane: Beta Rework — Wave 1 (added 2026-08-31)
+
+Source: `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`.
+Contract: `Blueprints/specs/mobile/omen-wave1-contract-v1.md`.
+Waves 2–5 get their own contracts and are **not** queued here yet — they are listed in
+`Direction/roadmap.md` so the sequence is visible without inviting a premature pull.
+
+### W1-GATE — ESPN in-app sheet legal and review gate
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — blocks W1-A entirely
+- **Cost:** small
+- **Agent-buildable:** research and drafting yes; the decision is founder's
+- **Scope:** answer two questions in writing and record them in `Direction/decision_log.md`.
+  (1) Does ESPN's terms permit authenticating a user to ESPN inside our own web sheet and reading
+  the resulting session? (2) What is the prepared App Review answer for why the app opens a
+  third-party login? Comparable financial apps clear this routinely — that is a reason to expect a
+  path, not a reason to skip preparing one.
+- **Done when:** both answers are recorded with their reasoning. If either is no, W1-A is not built
+  and `ConnectView` marks ESPN desktop-only **at the provider-choice step, before the user invests
+  any effort**.
+- **Do not touch:** any ESPN sheet implementation before this closes.
+
+### W1-A — ESPN in-app connect sheet (iOS + Android)
+
+- **Status:** BLOCKED
+- **Blocked by:** TASK-W1-GATE
+- **Priority:** P0 — the only confirmed beta failure on record
+- **Cost:** medium
+- **Agent-buildable:** yes, client-only
+- **Scope:** consent screen → native web auth sheet against ESPN's own sign-in → read the session
+  → existing league-selection step. **No new backend.** `POST /api/platforms/espn/connect` already
+  accepts `{leagueId, espn_s2, swid, espnTeamId}`, validates through `verifyLeagueAccess()`, and
+  stores Vault secret references. Omen renders no credential fields of its own at any point.
+- **Done when:** a founder-run **device** test connects a real ESPN league end-to-end on an iPhone
+  with no computer involved; `espn_s2`/`SWID` appear in zero emitted bytes outside the single
+  connect request, proved by provoking a real failure and searching the bytes; Android at parity.
+- **Do not touch:** cookie values in logs, echoes, analytics, crash reports, or the W1-B payload.
+
+### W1-B — In-app report and beta feedback pill
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0 — without it the next beta round teaches us nothing
+- **Cost:** medium
+- **Agent-buildable:** yes
+- **Scope:** floating report pill compiled into **beta builds only** (build flag, not a runtime
+  toggle); report payload of message, screen enum, version/build/OS/device, a screenshot the user
+  reviews and may redact or drop, connection state as provider+status only, and scrubbed recent
+  error codes. New `beta_reports` table with **RLS in the first migration**, not added after.
+- **Done when:** a report with a screenshot round-trips and is readable in the digest; emitted bytes
+  contain no league name, roster entry, token, or cookie; the pill is absent from a
+  release-configuration binary, proved by inspecting the build.
+- **Do not touch:** email as a user identifier in the payload; league or roster content of any kind.
+
+### W1-C — Founder Digest and alerts
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P0
+- **Cost:** medium
+- **Agent-buildable:** yes (backend lane)
+- **Scope:** daily digest over Resend (already wired), **silent on a day with no reports and no
+  incidents**. Four sections: what users said (themed, with every raw report reproduced beneath),
+  what's broken or shaky in plain sentences, what needs money or attention soon, and how many people
+  used it. Summarization is **local Ollama only**. In-house analytics events into Supabase. Alerts
+  limited to the two founder-interrupting categories per facts-of-record #18.
+- **Done when:** a digest generates from seeded data and reads start to finish for a non-technical
+  reader with no follow-up questions; with the local model stopped the digest still sends, complete,
+  saying summarization was unavailable; a forced backup failure raises the alert; nothing outside
+  the two alert categories fires.
+- **Open gap that blocks completion:** **email is not a paging mechanism.** "The app is down" must
+  reach the founder when he is not reading email. The channel is undecided; W1-C is not complete on
+  email alone.
+- **Do not touch:** the `AI_PROVIDER=cloud` fail-closed branch or the public-host guard in
+  `src/services/llm.js`. Relaxing either is a founder decision, not part of this item.

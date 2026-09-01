@@ -154,3 +154,23 @@ The goal is not to restrict agents for the sake of it. The goal is to let them m
 - the tokens/components tell them what to reuse;
 - the test gates tell them how to prove it;
 - the security boundaries keep a beautiful app from becoming an unsafe one.
+
+
+---
+
+## Amendment — 2026-08-31: screen artifact of record
+
+**Decision:** an **approved Claude Design canvas is a valid screen artifact of record** for native
+feature code, alongside an approved Figma screen. **Figma remains authoritative for vector assets**
+— logo, lockup, icon set, team marks.
+
+**Why:** the founder is the approval bottleneck on every layout revision, and translating each
+revision into Figma bought nothing when Figma's real advantage here is vector authoring, which AI
+tooling does poorly and Figma does well.
+
+**What does not change:** native feature code still follows an **approved** screen. This amendment
+changes which artifact can carry that approval; it does not remove the requirement, and it does not
+authorize starting feature code from a sketch nobody signed off.
+
+**Authority:** `Direction/facts-of-record.md` #20;
+`Blueprints/specs/mobile/omen-app-pages-workshop-v1.md` Part 3.
