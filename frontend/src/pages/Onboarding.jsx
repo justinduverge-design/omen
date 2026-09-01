@@ -3,11 +3,44 @@ import { Link, useNavigate } from 'react-router';
 import { apiFetch } from '../lib/api.js';
 import { Card } from '../components/ui/Card.jsx';
 import {
-  hasConnectedPlatform,
+  OnboardingStatus,
   isOnboardingDone,
   markOnboardingDone,
-  syncOnboardingFromServer,
+  resolveOnboardingStatus,
 } from '../lib/onboarding.js';
+
+// Onboarding step, kept across remounts.
+//
+// `step` was plain component state, so anything that remounted this page — a
+// route change, a provider redirect coming back, React re-rendering the tree —
+// silently dropped the user at screen one. Session storage is the right lifetime:
+// it survives the remount and the redirect, and it is gone on the next visit.
+const STEP_KEY = 'omen.onboarding.step';
+
+function readStep() {
+  try {
+    const stored = Number(sessionStorage.getItem(STEP_KEY));
+    return Number.isInteger(stored) && stored >= 0 && stored <= 2 ? stored : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeStep(step) {
+  try {
+    sessionStorage.setItem(STEP_KEY, String(step));
+  } catch {
+    // Storage blocked. Losing the step costs a re-click, not correctness.
+  }
+}
+
+function clearStep() {
+  try {
+    sessionStorage.removeItem(STEP_KEY);
+  } catch {
+    // Nothing to clean up if it was never written.
+  }
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -47,7 +80,7 @@ function WelcomeStep({ onNext }) {
   );
 }
 
-function ConnectStep({ onCheck, checking, noConnection }) {
+function ConnectStep({ onCheck, checking, status }) {
   return (
     <div>
       <p
@@ -124,10 +157,22 @@ function ConnectStep({ onCheck, checking, noConnection }) {
         </button>
       </div>
 
-      {noConnection && (
+      {/*
+        A failed check and a confirmed "nothing connected" are different facts and
+        get different sentences. They used to share one, so a user whose league was
+        connected fine but whose check hit a network blip was told their platform
+        was missing — and then went and connected it a second time.
+      */}
+      {status === OnboardingStatus.NOT_CONNECTED && (
         <p className="mt-5 text-sm leading-relaxed" style={{ color: 'var(--color-risk-high)' }}>
-          No platform detected yet. Connect a league using the button above, then return here and
-          click "I've connected."
+          No platform detected yet. Connect a league using the button above — this page moves on
+          by itself once the connection lands.
+        </p>
+      )}
+      {status === OnboardingStatus.UNKNOWN && (
+        <p className="mt-5 text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+          We couldn't check your setup just now — that's on us, not on you. Nothing is lost.
+          Try again in a moment.
         </p>
       )}
 
@@ -213,43 +258,74 @@ function StepDots({ step }) {
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [step, setStepState] = useState(readStep);
   const [checking, setChecking] = useState(false);
-  const [noConnection, setNoConnection] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const setStep = useCallback((next) => {
+    writeStep(next);
+    setStepState(next);
+  }, []);
 
   useEffect(() => {
     if (isOnboardingDone()) {
+      clearStep();
       navigate('/football', { replace: true });
       return;
     }
     // Returning users may have a valid connection before live recommendations
     // are ready. A server-side connection *is* a completed onboarding, so record
     // it and leave — a fresh browser must not walk an established user back
-    // through setup.
-    syncOnboardingFromServer(apiFetch).then((connected) => {
-      if (connected) navigate('/football', { replace: true });
+    // through setup. A failed check leaves them here, which is the safe side of
+    // that one: the page itself is usable and offers a retry.
+    resolveOnboardingStatus(apiFetch).then((resolved) => {
+      if (resolved === OnboardingStatus.CONNECTED) {
+        clearStep();
+        navigate('/football', { replace: true });
+      }
     });
   }, [navigate]);
 
   const checkConnection = useCallback(async () => {
     setChecking(true);
-    setNoConnection(false);
-    try {
-      const data = await apiFetch('/api/platforms');
-      if (hasConnectedPlatform(data)) {
-        setStep(2);
-      } else {
-        setNoConnection(true);
-      }
-    } catch {
-      setNoConnection(true);
-    } finally {
-      setChecking(false);
+    setStatus(null);
+    const resolved = await resolveOnboardingStatus(apiFetch);
+    setStatus(resolved);
+    if (resolved === OnboardingStatus.CONNECTED) setStep(2);
+    setChecking(false);
+  }, [setStep]);
+
+  // The connection is made on another page — or, for ESPN, in another tab. The
+  // server knows the moment it lands, so the page asks rather than making the
+  // user tell it. "I've connected" stays as a manual nudge, but pressing it is no
+  // longer the only way forward: a user who connected and came back to a tab that
+  // still said "no platform detected" had every reason to think it had failed.
+  useEffect(() => {
+    if (step !== 1) return undefined;
+
+    let mounted = true;
+    async function recheck() {
+      if (document.visibilityState !== 'visible') return;
+      const resolved = await resolveOnboardingStatus(apiFetch);
+      // Only a positive answer acts. A background poll must never *introduce* an
+      // error message the user did not ask for.
+      if (mounted && resolved === OnboardingStatus.CONNECTED) setStep(2);
     }
-  }, []);
+
+    document.addEventListener('visibilitychange', recheck);
+    const timer = setInterval(recheck, 5000);
+    recheck();
+
+    return () => {
+      mounted = false;
+      document.removeEventListener('visibilitychange', recheck);
+      clearInterval(timer);
+    };
+  }, [step, setStep]);
 
   function complete() {
     markOnboardingDone();
+    clearStep();
     navigate('/football', { replace: true });
   }
 
@@ -272,7 +348,7 @@ export default function Onboarding() {
               className="font-display text-sm leading-none"
               style={{ color: 'var(--color-accent)' }}
             >
-              C
+              O
             </span>
           </div>
           <span
@@ -292,7 +368,7 @@ export default function Onboarding() {
             <ConnectStep
               onCheck={checkConnection}
               checking={checking}
-              noConnection={noConnection}
+              status={status}
             />
           )}
           {step === 2 && <CompleteStep onDone={complete} />}

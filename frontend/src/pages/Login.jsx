@@ -61,6 +61,24 @@ function DiscordIcon() {
 
 // ── Magic link form ───────────────────────────────────────────────────────────
 
+/**
+ * Requests a sign-in link. Shared by the first send and every resend so both go
+ * through exactly the same call — a resend that differed from the original send
+ * would be a second code path to get wrong.
+ *
+ * Returns an error message, or null on success. A `null` return means Supabase
+ * accepted the request; it does NOT mean the message reached an inbox, which is
+ * why the sent state offers a resend and a route to support rather than
+ * declaring victory.
+ */
+export async function requestSignInLink(email) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin + '/login' },
+  });
+  return error ? error.message : null;
+}
+
 function MagicLinkForm({ onBeforeSubmit, onSent }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,13 +90,10 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
     onBeforeSubmit();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + '/login' },
-    });
+    const message = await requestSignInLink(email);
     setLoading(false);
-    if (err) {
-      setError(err.message);
+    if (message) {
+      setError(message);
     } else {
       onSent(email);
     }
@@ -116,13 +131,92 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
 
 // ── Sent confirmation ─────────────────────────────────────────────────────────
 
-function MagicLinkSent({ email }) {
+/** Seconds a user must wait before asking for another link. */
+const RESEND_COOLDOWN_SECONDS = 60;
+
+/**
+ * What happens after the link is requested.
+ *
+ * This used to be four lines of static text and nothing else. That framing was
+ * the problem: Supabase answering 200 means it *accepted the request*, which is
+ * not the same as the message reaching an inbox — it can still bounce, be
+ * deferred by the receiving provider, land in spam, or be dropped for an address
+ * on a suppression list. A user whose link never arrived had no resend, no hint
+ * to check spam, and no way to tell us. They just sat on "Check your email".
+ *
+ * So: a resend behind a cooldown (so a retry cannot itself trigger rate limits),
+ * the spam prompt, and a route to support that does not require the email that
+ * is not arriving.
+ */
+function MagicLinkSent({ email, onResend }) {
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return undefined;
+    const timer = setTimeout(() => setSecondsLeft((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [secondsLeft]);
+
+  async function handleResend() {
+    setResending(true);
+    setError('');
+    setResent(false);
+    const err = await onResend(email);
+    setResending(false);
+    if (err) {
+      setError(err);
+    } else {
+      setResent(true);
+      setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4 text-center">
       <p className="text-sm font-semibold text-[var(--color-text-primary)]">Check your email</p>
       <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
         We sent a sign-in link to <span className="text-[var(--color-text-primary)]">{email}</span>.
         Click it to continue.
+      </p>
+      <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
+        It usually lands within a minute. If it hasn't, check your spam or junk folder — and if
+        you use Yahoo or iCloud, look in Promotions too.
+      </p>
+
+      <button
+        type="button"
+        onClick={handleResend}
+        disabled={resending || secondsLeft > 0}
+        aria-busy={resending}
+        className="mt-4 min-h-[44px] w-full rounded-lg border border-[var(--color-border)] px-4 text-xs font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {resending
+          ? 'Sending…'
+          : secondsLeft > 0
+            ? `Resend in ${secondsLeft}s`
+            : 'Resend the link'}
+      </button>
+
+      {resent && (
+        <p className="mt-2 text-xs text-[var(--color-text-secondary)]" role="status">
+          Sent again. If the second one doesn't arrive either, the problem is on our side — tell us
+          below and we'll sort it out.
+        </p>
+      )}
+      {error && <p className="mt-2 text-xs text-red-400" role="alert">{error}</p>}
+
+      <p className="mt-4 text-xs text-[var(--color-text-tertiary)]">
+        Still nothing?{' '}
+        <Link
+          to="/support"
+          className="underline underline-offset-2 transition-colors hover:text-[var(--color-text-secondary)]"
+        >
+          Get help
+        </Link>
+        {' '}— you don't need the email to reach us.
       </p>
     </div>
   );
@@ -305,7 +399,7 @@ export default function Login() {
         )}
 
         {sentEmail ? (
-          <MagicLinkSent email={sentEmail} />
+          <MagicLinkSent email={sentEmail} onResend={requestSignInLink} />
         ) : (
           <div className="flex flex-col gap-3">
             {/* Social providers */}

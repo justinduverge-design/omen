@@ -102,8 +102,13 @@ test('the legacy corvus onboarding flag is still honored', async () => {
 
 test('the onboarding gate consults the server before sending an established user back through setup', () => {
   const protectedRoute = read('frontend', 'src', 'components', 'layout', 'ProtectedRoute.jsx');
-  assert.match(protectedRoute, /syncOnboardingFromServer/,
+  assert.match(protectedRoute, /resolveOnboardingStatus/,
     'ProtectedRoute must hydrate onboarding state from /api/platforms, not from localStorage alone');
+  // The gate must redirect on a CONFIRMED "no league", never on a failed check.
+  // It used to test a bare boolean that was false for both, so one flaky
+  // /api/platforms response threw an established user back to setup.
+  assert.match(protectedRoute, /onboarding === OnboardingStatus\.NOT_CONNECTED/,
+    'only a confirmed not-connected answer may redirect to onboarding');
   assert.doesNotMatch(protectedRoute, /localStorage\.getItem\('(omen|corvus)\.onboarding\.done'\)/,
     'the gate must go through the shared onboarding helper so every reader agrees');
 });
