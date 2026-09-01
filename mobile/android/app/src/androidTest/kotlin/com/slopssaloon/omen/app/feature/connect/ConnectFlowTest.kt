@@ -1,5 +1,8 @@
 package com.slopssaloon.omen.app.feature.connect
 
+import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
+import com.slopssaloon.omen.core.session.Session
+import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,10 +26,19 @@ class ConnectFlowTest {
 
     private fun account() = ResolvedSleeperAccount(username = "slops", leagues = listOf(league()))
 
+    /**
+     * [token] null models a caller with no stored session. Bearers now come from
+     * `SessionManager.authorization()`, which renews an expiring token before the request.
+     */
     private fun viewModel(
         repository: ConnectRepository,
         token: String? = "t",
-    ) = ConnectViewModel(repository = repository, accessTokenProvider = { token })
+    ) = ConnectViewModel(
+        repository = repository,
+        sessionManager = SessionManager(
+            InMemorySecureSessionStore(token?.let { Session("u1", it, "r", 100_000) }),
+        ) { 1_000 },
+    )
 
     // MARK: Provider policy
 
