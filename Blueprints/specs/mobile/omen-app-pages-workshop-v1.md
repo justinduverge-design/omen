@@ -558,3 +558,52 @@ The three screens make the Trade workshop's boundaries visible rather than merel
 - Whether auto-advance runs at all on the very first session, before the user knows the deck swipes.
 - Trade's empty and error states, which these three artboards do not cover.
 - The type-a-trade path — only the build-from-rosters half is drawn.
+
+---
+
+# Part 9 — Two things the canvas got wrong
+
+Founder review of the Trade artboards, 2026-08-31. Both corrections came from asking what the screen
+could actually do, not what it looked like.
+
+## The provider button was theater
+
+**Finding:** "Open Sleeper" implied more than the product can do. Sleeper publishes no authenticated
+trade-write endpoint (already established in `omen-trade-page-workshop-v1.md` as `handoff_only`) and
+no documented deep link that opens a pre-filled trade. The button could only launch the app — which
+the user can do from their own home screen.
+
+**Locked:** the button stays, **demoted and labelled honestly** as "Launch Sleeper", below **Copy the
+offer**, which is promoted to the primary action. The caption states plainly that Sleeper does not
+let Omen send offers and that Launch only opens the app.
+
+**The copy is the product.** The exact offer text is what travels — into the league chat, or into the
+user's own hands while they submit it themselves. Any future provider work should improve what gets
+copied before it improves what gets launched.
+
+## The vote poll does not exist, and its numbers were fiction
+
+**Finding:** `src/routes/trade.js` has no poll endpoint, no vote storage, nothing. The artboard's
+"42 votes" was invented at a scale the product will never see — a 10-team league sharing into a group
+chat yields roughly four to eight votes, and a percentage bar at n=5 inflates five opinions into a
+statistic.
+
+**Locked: the poll is cut.** The share card and public link stay; the argument happens in the group
+chat people are already in. This removes vote storage, ballot-stuffing defenses, moderation, and a
+retention policy from the build — none of which had been costed.
+
+**The share card is now the entire social product**, so it carries the weight: the trade, both sides,
+the league's scoring, the Omen mark — and nothing else. No verdict, no leverage, no read on the
+counterparty. That boundary is unchanged from the Trade workshop; it now has one fewer surface to
+leak through.
+
+**If the poll is ever revisited:** one vote per device with no account required — enough to stop
+casual double-voting without asking a stranger to sign up, and honest that a determined person can
+get around it. **Raw counts, never percentages.**
+
+## The general lesson worth keeping
+
+Both errors were the same shape: a mockup that looked more capable than the system behind it. A
+canvas can draw a button for an endpoint that does not exist and a chart for data that will never
+arrive at that volume. **Check every affordance against a real capability before it reaches a
+contract** — the founder caught both of these by asking what the button does, not how it looks.
