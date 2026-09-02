@@ -105,7 +105,7 @@ import java.util.UUID
 
 /**
  * M3-A / M4 app shell. Session is restored from Keystore-backed secure storage on launch,
- * "Get started" drives the real [AuthFlowReducer], and the signed-in destination hosts the
+ * signed-out users land on the real [AuthFlowReducer], and the signed-in destination hosts the
  * approved [OmenCommandCenterScreen] (feature layer). Auth surfaces are delegated to
  * [OmenAuthFlow] and [OmenDeleteAccountScreen], which are individually allowlisted under
  * M4-Auth and retire together in a future Omen-primitive-native auth pass.
@@ -233,7 +233,6 @@ fun OmenAndroidApp() {
     var flow by remember { mutableStateOf<AuthFlowState>(AuthFlowState.Idle) }
     var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var showAuth by remember { mutableStateOf(false) }
     var selectedDestination by remember { mutableStateOf(NavDestination.Command) }
     var showDelete by remember { mutableStateOf(false) }
     var deletePhrase by remember { mutableStateOf("") }
@@ -282,7 +281,6 @@ fun OmenAndroidApp() {
             is AuthFlowState.ExchangingOAuthCode -> Unit // driven by the callback collector
             is AuthFlowState.Authenticated -> {
                 sessionManager.onAuthenticated(next.session)
-                showAuth = false
                 flow = AuthFlowState.Idle
             }
             else -> Unit
@@ -395,11 +393,11 @@ fun OmenAndroidApp() {
                     )
                     OmenButton(
                         text = "Sign in",
-                        onClick = { showAuth = true; sessionManager.signOut() },
+                        onClick = { sessionManager.signOut() },
                     )
                 }
 
-                SessionState.SignedOut -> if (showAuth) {
+                SessionState.SignedOut -> {
                     OmenAuthFlow(
                         state = flow,
                         email = email,
@@ -407,8 +405,9 @@ fun OmenAndroidApp() {
                         live = env.supabaseConfigured,
                         googleConfigured = env.googleSignInConfigured,
                         discordConfigured = discordConfigured,
+                        demoModeEnabled = env.demoModeEnabled,
                         onEmailChange = { email = it },
-                        onCodeChange = { code = it },
+                        onCodeChange = { code = OtpCodeValidator.normalize(it).take(6) },
                         onSubmitEmail = { dispatch(AuthEvent.EmailSubmitted(email)) },
                         resend = otpResend,
                         onResendCode = {
@@ -424,36 +423,9 @@ fun OmenAndroidApp() {
                         onSubmitCode = { dispatch(AuthEvent.OtpSubmitted(code)) },
                         onGoogle = { dispatch(AuthEvent.GoogleRequested) },
                         onDiscord = { dispatch(AuthEvent.OAuthRequested(providerId = "discord")) },
-                        onReset = { dispatch(AuthEvent.Reset) },
-                        onBack = { showAuth = false; dispatch(AuthEvent.Reset) },
+                        onReset = { code = ""; dispatch(AuthEvent.Reset) },
+                        onTryDemo = { sessionManager.onDemo() },
                     )
-                } else Column(
-                    modifier = Modifier.padding(OmenTheme.spacing.cardInterior),
-                    verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
-                ) {
-                    Text(
-                        text = "Welcome to Omen",
-                        style = OmenTheme.typography.h1.toTextStyle(),
-                        color = OmenTheme.color.textPrimary,
-                    )
-                    Text(
-                        text = "See the move before the league does.",
-                        style = OmenTheme.typography.body.toTextStyle(),
-                        color = OmenTheme.color.textSecondary,
-                    )
-                    // Gated 2026-08-30 (W3). `OMEN_DEMO_MODE_ENABLED` has existed since the
-                    // build was configured and release already set it to `false` — with a
-                    // comment saying a shipped build must never present mock output as live
-                    // fantasy advice — but this button was never gated on it. The guardrail
-                    // was written and not wired; this wires it.
-                    if (env.demoModeEnabled) {
-                        OmenButton(
-                            text = "Try Demo",
-                            onClick = { sessionManager.onDemo() },
-                            variant = OmenButtonVariant.Secondary,
-                        )
-                    }
-                    OmenButton(text = "Get started", onClick = { showAuth = true })
                 }
 
                 is SessionState.SignedIn -> if (showDelete) {

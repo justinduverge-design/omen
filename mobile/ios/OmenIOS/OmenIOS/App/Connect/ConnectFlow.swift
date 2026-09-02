@@ -119,9 +119,9 @@ enum ConnectFailure: Error, Equatable {
 /// Providers offered in the picker. Availability is a *product* fact here, not a guess —
 /// each case's `availability` is sourced from a recorded decision, not from probing.
 enum ConnectProvider: String, CaseIterable, Identifiable {
-    case sleeper
-    case yahoo
     case espn
+    case yahoo
+    case sleeper
 
     var id: String { rawValue }
 
@@ -163,7 +163,7 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
             // not ask for a password or raw cookie entry. §10 blocks any "ESPN connected" UI
             // until the ESPN mobile feasibility memo is resolved.
             return .useWeb(
-                reason: "ESPN needs your browser to connect securely. Connect it once on the Omen website and it'll show up here."
+                reason: "Needs a computer for now · we'll show you"
             )
         }
     }

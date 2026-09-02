@@ -14,6 +14,18 @@ enum ScreenshotScenarios {
 
     /// Every declared scenario. Add rows here to extend the workflow matrix.
     static let entries: [String: ScreenshotScenario] = [
+        "onboarding.sign-in": ScreenshotScenario(
+            label: "Onboarding — sign in first",
+            content: { AnyView(OnboardingAuthScreenshotHost(kind: .signIn)) }
+        ),
+        "onboarding.email-code": ScreenshotScenario(
+            label: "Onboarding — email code",
+            content: { AnyView(OnboardingAuthScreenshotHost(kind: .emailCode)) }
+        ),
+        "onboarding.connect-league": ScreenshotScenario(
+            label: "Onboarding — connect your league",
+            content: { AnyView(OnboardingConnectScreenshotHost()) }
+        ),
         "command-center.demo-connected": ScreenshotScenario(
             label: "Command Center — demo/mock connected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.demo-connected")) }
@@ -227,6 +239,122 @@ struct ScreenshotScenarioHost: View {
     /// state. Used by scenarios that vary one section rather than selecting a whole fixture.
     static func commandCenter(_ state: OmenCommandCenterState) -> some View {
         FauxShell(commandStateOverride: state)
+    }
+}
+
+private struct OnboardingAuthScreenshotHost: View {
+    enum Kind { case signIn, emailCode }
+
+    let kind: Kind
+    @StateObject private var viewModel: AuthViewModel
+
+    init(kind: Kind) {
+        self.kind = kind
+        _viewModel = StateObject(wrappedValue: Self.makeViewModel())
+    }
+
+    var body: some View {
+        SignInView(
+            viewModel: viewModel,
+            demoModeEnabled: true,
+            onTryDemo: {}
+        )
+        .task {
+            guard kind == .emailCode, viewModel.emailField.isEmpty else { return }
+            viewModel.emailField = "justin@slopssaloon.com"
+            viewModel.submitEmail()
+            for _ in 0..<20 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                viewModel.clearOtpResendCooldownForTesting()
+                if case .awaitingOtp = viewModel.flowState {
+                    break
+                }
+            }
+            viewModel.otpField = "417"
+        }
+    }
+
+    private static func makeViewModel() -> AuthViewModel {
+        AuthViewModel(
+            repository: FakeAuthRepository(),
+            appleProvider: ScreenshotAppleIDTokenProvider(),
+            oauthProvider: ScreenshotOAuthProvider(),
+            passkeyProvider: ScreenshotPasskeyProvider(),
+            sessionManager: SessionManager(store: InMemorySecureSessionStore(), nowEpochSeconds: { 1_000 })
+        )
+    }
+}
+
+private struct OnboardingConnectScreenshotHost: View {
+    var body: some View {
+        ConnectView(
+            repository: ScreenshotConnectRepository(),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(
+                    initial: Session(
+                        userID: "screenshot",
+                        accessToken: "t",
+                        refreshToken: "r",
+                        expiresAtEpochSeconds: 9_999_999_999
+                    )
+                ),
+                nowEpochSeconds: { 1_000 }
+            ),
+            authSession: StubProviderAuthSession(),
+            onConnected: {},
+            onDismiss: {}
+        )
+    }
+}
+
+private struct ScreenshotAppleIDTokenProvider: AppleIDTokenProviding {
+    let isConfigured = true
+    func getIDToken(rawNonce: String) async -> AppleIDTokenResult { .unavailable }
+}
+
+private final class ScreenshotOAuthProvider: SupabaseOAuthProvider {
+    func isConfigured(providerId: String) -> Bool { ["google", "discord"].contains(providerId) }
+    func launch(providerId: String) async -> OAuthLaunchResult { .unavailable }
+    func parseCallback(providerId: String, code: String?, state: String?) -> OAuthCallback { .malformed }
+}
+
+private struct ScreenshotPasskeyProvider: PasskeyProvider {
+    let isSupported = false
+    func getAssertion(options: PasskeyAuthenticationOptions) async -> PasskeyResult { .unavailable }
+    func register(options: PasskeyRegistrationOptions) async -> PasskeyRegistrationResult { .unavailable }
+}
+
+private struct ScreenshotConnectRepository: ConnectRepository {
+    func resolveSleeper(username: String, accessToken: String) async -> Result<ResolvedSleeperAccount, ConnectFailure> {
+        .success(
+            ResolvedSleeperAccount(
+                username: username,
+                leagues: [
+                    SleeperLeague(id: "1", name: "Demo League", season: 2026, scoringFormat: "PPR", teamName: "Demo Team")
+                ]
+            )
+        )
+    }
+
+    func connectSleeper(
+        username: String,
+        leagueId: String,
+        requestId: String,
+        accessToken: String
+    ) async -> Result<Void, ConnectFailure> {
+        .success(())
+    }
+
+    func startYahooAuthorization(accessToken: String) async -> Result<URL, ConnectFailure> {
+        .success(URL(string: "https://example.invalid/yahoo")!)
+    }
+
+    func yahooLeagues(accessToken: String) async -> Result<[YahooLeague], ConnectFailure> {
+        .success([YahooLeague(id: "yahoo.l.1", name: "Demo Yahoo", season: 2026)])
+    }
+
+    func bindYahooLeague(id: String, accessToken: String) async -> Result<Void, ConnectFailure> {
+        .success(())
     }
 }
 

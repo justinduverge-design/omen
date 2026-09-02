@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let connectCanvasTileSurface = Color(red: 20 / 255, green: 20 / 255, blue: 22 / 255)
+
 /// M5-NativeConnect — onboarding steps 4–6 as a single navigable sheet.
 ///
 /// Every screen here is assembled from approved primitives; no one-off component is
@@ -29,63 +31,110 @@ struct ConnectView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
-                switch viewModel.state {
-                case .notStarted:
-                    providerPicker
-                    sleeperUsernameEntry
-                case .resolvingAccount, .validatingConnection,
-                     .startingYahooAuthorization, .awaitingYahooReturn,
-                     .confirmingYahooConnection, .bindingYahooLeague:
-                    busySection
-                case .choosingLeague(let account):
-                    leaguePicker(account)
-                case .connected(let league):
-                    connectedSection(league)
-                case .choosingYahooLeague(let leagues):
-                    yahooLeaguePicker(leagues)
-                case .yahooConnected(let league):
-                    yahooConnectedSection(league)
-                case .canceled:
-                    canceledSection
-                case .retryableError(let failure):
-                    errorSection(failure)
-                case .needsReauth:
-                    reauthSection
-                case .unsupportedOnMobile(let provider):
-                    unsupportedSection(provider)
+        GeometryReader { proxy in
+            ScrollView {
+                Group {
+                    switch viewModel.state {
+                    case .notStarted:
+                        if viewModel.selectedProvider == .sleeper {
+                            sleeperUsernameEntry
+                        } else {
+                            providerPicker
+                        }
+                    case .resolvingAccount, .validatingConnection,
+                         .startingYahooAuthorization, .awaitingYahooReturn,
+                         .confirmingYahooConnection, .bindingYahooLeague:
+                        busySection
+                    case .choosingLeague(let account):
+                        leaguePicker(account)
+                    case .connected(let league):
+                        connectedSection(league)
+                    case .choosingYahooLeague(let leagues):
+                        yahooLeaguePicker(leagues)
+                    case .yahooConnected(let league):
+                        yahooConnectedSection(league)
+                    case .canceled:
+                        canceledSection
+                    case .retryableError(let failure):
+                        errorSection(failure)
+                    case .needsReauth:
+                        reauthSection
+                    case .unsupportedOnMobile(let provider):
+                        unsupportedSection(provider)
+                    }
                 }
+                .padding(.horizontal, OmenSpacing.step24)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step24)
+            .background(OmenColor.bg.ignoresSafeArea())
         }
-        .background(OmenColor.bg.ignoresSafeArea())
     }
 
     // MARK: - Step 4 — choose provider
 
     private var providerPicker: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            Text("Connect a league")
-                .omenTextStyle(OmenTypography.h1)
-                .foregroundStyle(OmenColor.textPrimary)
-            // Spec §4: explain the benefit in one sentence.
-            Text("Connect a league so Omen can use your roster, scoring, and matchup.")
-                .omenTextStyle(OmenTypography.body)
-                .foregroundStyle(OmenColor.textSecondary)
+        VStack(alignment: .leading, spacing: 0) {
+            Color.clear.frame(height: OmenSpacing.step12)
+            OmenIconButton(
+                contentDescription: "Back",
+                icon: Image("CanvasChevronLeft"),
+                action: onDismiss,
+                size: .sm
+            )
+            .frame(height: 44)
+
+            Color.clear.frame(height: 28)
+
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                Text("Bring your league.")
+                    .omenTextStyle(OmenTypography.h1)
+                    .foregroundStyle(OmenColor.textPrimary)
+                // Spec §4: explain the benefit in one sentence.
+                Text("Omen reads your roster, your scoring, and your matchup. That's all it asks for, and you can disconnect any time.")
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textSecondary)
+            }
+
+            Color.clear.frame(height: 28)
 
             // No provider is selected by default (spec §4). Availability is stated up front
             // rather than discovered by tapping into a dead end.
-            ForEach(ConnectProvider.allCases) { provider in
-                OmenListRow(
-                    title: provider.displayName,
-                    subtitle: availabilityLabel(provider),
-                    action: { viewModel.selectProvider(provider) },
-                    leading: { OmenPlatformBadge(platform: provider.platform) },
-                    trailing: { EmptyView() }
-                )
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(ConnectProvider.allCases) { provider in
+                    ConnectProviderCard(
+                        provider: provider,
+                        subtitle: availabilityLabel(provider),
+                        action: { viewModel.selectProvider(provider) }
+                    )
+                }
             }
+
+            Spacer(minLength: 0)
+
+            HStack(alignment: .center, spacing: 10) {
+                Image("CanvasShield")
+                    .resizable()
+                    .renderingMode(.original)
+                    .frame(width: 18, height: 18)
+                    .accessibilityHidden(true)
+                Text("Omen never asks for your league password, and never posts or trades on your behalf.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(OmenColor.omen.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(OmenColor.omen.opacity(0.35), lineWidth: 1)
+                )
+
+            Color.clear.frame(height: 14)
+            CanvasTextAction(title: "I'll do this later", action: onDismiss)
+            Color.clear.frame(height: 22)
         }
     }
 
@@ -95,9 +144,10 @@ struct ConnectView: View {
     private func availabilityLabel(_ provider: ConnectProvider) -> String {
         switch provider.availability {
         case .available:
-            return provider == .yahoo ? "Sign in with Yahoo in your browser" : "Connect with your username"
+            if provider == .yahoo { return "Sign in with Yahoo" }
+            return "Just your username — no password"
         case .onHold: return "On hold"
-        case .useWeb: return "Connect on the web"
+        case .useWeb: return "Needs a computer for now · we'll show you"
         }
     }
 
@@ -126,6 +176,12 @@ struct ConnectView: View {
                 variant: .primary,
                 size: .md,
                 enabled: viewModel.canSubmitUsername
+            )
+            OmenButton(
+                title: "Choose another provider",
+                action: { viewModel.startOver() },
+                variant: .link,
+                size: .sm
             )
         }
     }
@@ -162,7 +218,7 @@ struct ConnectView: View {
                 title: "\(league.name) is connected",
                 message: "Omen can now read this league's roster, scoring, and matchup."
             )
-            OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+            connectedActions
         }
     }
 
@@ -212,7 +268,34 @@ struct ConnectView: View {
                 title: "\(league.name) is connected",
                 message: "Omen can now read this league's roster, scoring, and matchup."
             )
-            OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+            connectedActions
+        }
+    }
+
+    private var connectedActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: OmenSpacing.step12) {
+                OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+                    .frame(maxWidth: .infinity)
+                OmenButton(
+                    title: "Connect another league",
+                    action: { viewModel.startOver() },
+                    variant: .secondary,
+                    size: .md
+                )
+                .frame(maxWidth: .infinity)
+            }
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                OmenButton(title: "Go to Command Center", action: onConnected, variant: .primary, size: .md)
+                    .frame(maxWidth: .infinity)
+                OmenButton(
+                    title: "Connect another league",
+                    action: { viewModel.startOver() },
+                    variant: .secondary,
+                    size: .md
+                )
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 
@@ -299,5 +382,98 @@ struct ConnectView: View {
         case .available:
             return ""
         }
+    }
+}
+
+private struct ConnectProviderCard: View {
+    let provider: ConnectProvider
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: OmenSpacing.step12) {
+                providerMark
+                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                    Text(provider.displayName)
+                        .omenTextStyle(OmenTypography.h3)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    Text(subtitle)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: OmenSpacing.step8)
+                Image("CanvasChevronRight")
+                    .resizable()
+                    .renderingMode(.original)
+                    .frame(width: 20, height: 20)
+                    .accessibilityHidden(true)
+            }
+            .padding(OmenSpacing.step16)
+            .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
+            .background(connectCanvasTileSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(OmenColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(provider.displayName), \(subtitle)")
+        .accessibilityHint("Double tap to open")
+    }
+
+    private var providerMark: some View {
+        Text(markText)
+            .omenTextStyle(OmenTypography.h2)
+            .fontWeight(.bold)
+            .foregroundStyle(markForeground)
+            .frame(width: 44, height: 44)
+            .background(markBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .accessibilityHidden(true)
+    }
+
+    private var markText: String {
+        switch provider {
+        case .espn: return "E"
+        case .yahoo: return "Y!"
+        case .sleeper: return "S"
+        }
+    }
+
+    private var markBackground: Color {
+        switch provider {
+        case .espn: return OmenColor.Data.platformEspnChip
+        case .yahoo: return OmenColor.Data.platformYahooChip
+        case .sleeper: return OmenColor.Data.platformSleeperChip
+        }
+    }
+
+    private var markForeground: Color {
+        switch provider {
+        case .espn: return OmenColor.Data.onPlatformEspn
+        case .yahoo: return OmenColor.Data.onPlatformYahoo
+        case .sleeper: return OmenColor.Data.onPlatformSleeper
+        }
+    }
+}
+
+private struct CanvasTextAction: View {
+    let title: String
+    let action: () -> Void
+    var enabled = true
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(enabled ? OmenColor.textTertiary : OmenColor.textTertiary.opacity(0.45))
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }

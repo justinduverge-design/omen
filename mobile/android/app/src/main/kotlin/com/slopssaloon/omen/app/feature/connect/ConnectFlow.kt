@@ -100,9 +100,9 @@ sealed interface ConnectAvailability {
 }
 
 enum class ConnectProvider(val displayName: String, val platform: OmenPlatform) {
-    Sleeper("Sleeper", OmenPlatform.Sleeper),
+    Espn("ESPN", OmenPlatform.Espn),
     Yahoo("Yahoo", OmenPlatform.Yahoo),
-    Espn("ESPN", OmenPlatform.Espn);
+    Sleeper("Sleeper", OmenPlatform.Sleeper);
 
     val availability: ConnectAvailability
         get() = when (this) {
@@ -121,7 +121,7 @@ enum class ConnectProvider(val displayName: String, val platform: OmenPlatform) 
             // not ask for a password or raw cookie entry. §10 blocks "ESPN connected" UI until
             // the ESPN mobile feasibility memo resolves.
             Espn -> ConnectAvailability.UseWeb(
-                "ESPN needs your browser to connect securely. Connect it once on the Omen website and it'll show up here.",
+                "Needs a computer for now · we'll show you",
             )
         }
 }
