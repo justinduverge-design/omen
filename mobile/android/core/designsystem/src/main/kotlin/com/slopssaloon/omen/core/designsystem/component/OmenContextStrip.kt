@@ -34,10 +34,18 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
  * screen, not as a bounded content container.
  */
 sealed interface OmenContextStripState {
-    /** A team/league is selected and considered healthy. */
+    /**
+     * A team/league is selected and considered healthy.
+     *
+     * [leagueName] is nullable because a provider can genuinely fail to supply one — ESPN did,
+     * for every user, until the adapter learned to read the name `mSettings` already returns.
+     * The strip previously demanded a league name and rendered the **Empty** state without it,
+     * so a real connected team vanished behind "Choose a team". Omitting one line is honest;
+     * erasing the selection, or inventing a name for it, is not.
+     */
     data class Selected(
         val platform: OmenPlatform,
-        val leagueName: String,
+        val leagueName: String?,
         val teamName: String,
     ) : OmenContextStripState
 
@@ -142,11 +150,15 @@ private fun Body(state: OmenContextStripState) {
                 style = OmenTheme.typography.h3.toTextStyle(),
                 color = colors.textPrimary,
             )
-            Text(
-                text = state.leagueName,
-                style = OmenTheme.typography.bodySmall.toTextStyle(),
-                color = colors.textSecondary,
-            )
+            // Omitted entirely when the provider gave no name — never a placeholder.
+            val leagueName = state.leagueName
+            if (leagueName != null) {
+                Text(
+                    text = leagueName,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = colors.textSecondary,
+                )
+            }
         }
         is OmenContextStripState.NeedsRecovery -> {
             Text(
@@ -214,7 +226,9 @@ private fun Trailing(state: OmenContextStripState, showSwitchHint: Boolean) {
 /** Publicly exposed for callers/tests that need the same a11y string the view uses. */
 fun contextStripAccessibilityLabel(state: OmenContextStripState): String = when (state) {
     is OmenContextStripState.Selected ->
-        "Selected: ${state.teamName} in ${state.leagueName} on ${platformLabel(state.platform)}. Tap to switch."
+        state.leagueName
+            ?.let { "Selected: ${state.teamName} in $it on ${platformLabel(state.platform)}. Tap to switch." }
+            ?: "Selected: ${state.teamName} on ${platformLabel(state.platform)}. Tap to switch."
     is OmenContextStripState.NeedsRecovery ->
         "Reauth needed for ${state.teamName} in ${state.leagueName} on ${platformLabel(state.platform)}. ${state.reason}. Tap to switch."
     is OmenContextStripState.MultiTeamHint ->

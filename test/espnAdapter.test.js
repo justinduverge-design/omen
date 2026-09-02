@@ -554,3 +554,43 @@ test("fetchEspnLastResult never caches when teamId is unknown", async () => {
   assert.equal(requests.length, 2, "without a teamId there is nothing safe to key a cache entry on, so each call refetches");
   assert.equal(store.size, 0);
 });
+
+/**
+ * ESPN reported a null league name to every client.
+ *
+ * `buildLeagueStandings` has always requested `mSettings`, and the league's name has always
+ * been in that response — it was simply never read, and `espnStandings()`/`espnOverview()`
+ * built their envelopes without one. Sleeper and Yahoo both supplied it. On Android the null
+ * surfaced as the literal word "null" under the team name on the Command Center; on iOS and
+ * web the league was left unnamed.
+ */
+test("buildLeagueContext reads the league name ESPN already returns", async () => {
+  const teams = [
+    { id: 9, ownerId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", name: "Current Team", wins: 5, losses: 3 },
+  ];
+  const { adapter } = loadEspnAdapterWithTeams(teams, {
+    responseForRequest: () => ({ teams, settings: { name: "The Titans of Slopsilonia" } }),
+  });
+
+  const context = await adapter.buildLeagueContext(
+    "12345",
+    "s2-cookie",
+    "{SWID}",
+    { seasonId: 2026, week: 1 }
+  );
+
+  assert.equal(context.league_name, "The Titans of Slopsilonia");
+  assert.equal(context.standings.length, 1);
+  assert.equal(context.standings[0].team_name, "Current Team");
+});
+
+test("a league with no usable name is null, never the string 'null'", async () => {
+  const teams = [{ id: 9, name: "Current Team", wins: 1, losses: 0 }];
+  for (const settings of [undefined, {}, { name: null }, { name: "" }, { name: "   " }]) {
+    const { adapter } = loadEspnAdapterWithTeams(teams, {
+      responseForRequest: () => ({ teams, settings }),
+    });
+    const context = await adapter.buildLeagueContext("12345", "s2", "{SWID}", { seasonId: 2026, week: 1 });
+    assert.equal(context.league_name, null, `settings ${JSON.stringify(settings)} should yield null`);
+  }
+});

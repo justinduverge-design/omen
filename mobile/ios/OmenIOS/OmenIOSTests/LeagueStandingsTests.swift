@@ -61,14 +61,41 @@ final class LeagueStandingsTests: XCTestCase {
         XCTAssertEqual(teamName, "Team Slops")
     }
 
-    /// A partial answer would mean printing a placeholder beside a real value. Better to
-    /// leave the strip unfilled than to half-name a league.
-    func testMissingLeagueNameProducesNoContextRatherThanAPlaceholder() throws {
-        XCTAssertNil(try decode(json(leagueName: nil)).contextStrip)
+    /// **Reversed 2026-09-02.** These two asserted that a missing league name produced *no*
+    /// context strip at all, on the reasoning that "a partial answer would mean printing a
+    /// placeholder beside a real value."
+    ///
+    /// The premise was right and the conclusion was too strong. Omitting an optional line is
+    /// not printing a placeholder. Requiring the name meant every ESPN user — for whom the
+    /// server supplied `league_name: null` unconditionally until the adapter was fixed — saw
+    /// the Empty state telling them to "Choose a team" while their league sat connected and
+    /// their team name was known. Discarding a real team name to avoid an absent league name
+    /// is the worse trade.
+    ///
+    /// What must still never happen: an invented or placeholder league name. That is asserted
+    /// directly — the name is `nil`, not a stand-in string.
+    func testMissingLeagueNameStillNamesTheTeamAndInventsNothing() throws {
+        guard case .selected(let platform, let leagueName, let teamName)? =
+            try decode(json(leagueName: nil)).contextStrip else {
+            return XCTFail("a known team must still produce a selected strip")
+        }
+        XCTAssertEqual(platform, .sleeper)
+        XCTAssertEqual(teamName, "Team Slops")
+        XCTAssertNil(leagueName, "the league name must be absent, never a placeholder")
     }
 
-    func testEmptyLeagueNameIsTreatedAsMissing() throws {
-        XCTAssertNil(try decode(json(leagueName: "")).contextStrip)
+    func testEmptyLeagueNameIsTreatedAsMissingNotAsAName() throws {
+        guard case .selected(_, let leagueName, _)? =
+            try decode(json(leagueName: "")).contextStrip else {
+            return XCTFail("a known team must still produce a selected strip")
+        }
+        XCTAssertNil(leagueName, "an empty string is absence, not a name")
+    }
+
+    /// The strip's real precondition: a team the provider marked as the caller's. Without one
+    /// there is nothing honest to say, and the Empty state is correct.
+    func testNoCurrentUserTeamStillProducesNoContext() throws {
+        XCTAssertNil(try decode(json(teams: "")).contextStrip)
     }
 
     /// The off-season returns `200` with an empty standings array. That is a valid response,

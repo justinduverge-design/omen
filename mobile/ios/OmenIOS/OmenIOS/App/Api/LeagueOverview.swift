@@ -269,12 +269,15 @@ extension LeagueOverview {
     var contextStrip: OmenContextStripState? {
         guard
             let platform = omenPlatform,
-            let leagueName, !leagueName.isEmpty,
             let teamName = standings.teams.first(where: { $0.isCurrentUser })?.teamName,
             !teamName.isEmpty
         else { return nil }
 
-        return .selected(platform: platform, leagueName: leagueName, teamName: teamName)
+        // The league name is what a provider is most likely to omit, and the least
+        // load-bearing of the three: the strip's job is to say which team you are looking at.
+        // Requiring it sent every ESPN user to "Choose a team" with a league connected.
+        let league = leagueName.flatMap { $0.isEmpty ? nil : $0 }
+        return .selected(platform: platform, leagueName: league, teamName: teamName)
     }
 
     /// An unrecognized provider yields `nil` rather than a guess.

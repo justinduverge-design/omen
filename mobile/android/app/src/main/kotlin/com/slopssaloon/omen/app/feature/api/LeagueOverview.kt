@@ -133,16 +133,20 @@ data class LeagueOverview(
         }
 
     /**
-     * Same rule as `LeagueStandings.contextStrip`: a real platform, a real league name, and a
-     * team the provider marked as the caller's — or nothing.
+     * Same rule as `LeagueStandings.contextStrip`: a real platform and a team the provider
+     * marked as the caller's — or nothing.
+     *
+     * The league **name** used to be required too, which meant every ESPN user fell through to
+     * the Empty state and was told to "Choose a team" while their league sat connected. The
+     * name is what a provider is most likely to omit, and it is the least load-bearing of the
+     * three: the strip's job is to say which team you are looking at.
      */
     val contextStrip: OmenContextStripState?
         get() {
             val resolved = omenPlatform ?: return null
-            val league = leagueName?.takeIf { it.isNotEmpty() } ?: return null
             val team = standings.teams.firstOrNull { it.isCurrentUser }
-                ?.teamName?.takeIf { it.isNotEmpty() } ?: return null
-            return OmenContextStripState.Selected(resolved, league, team)
+                ?.teamName?.takeIf { it.isNotBlank() } ?: return null
+            return OmenContextStripState.Selected(resolved, leagueName?.takeIf { it.isNotBlank() }, team)
         }
 
     /**

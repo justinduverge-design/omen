@@ -72,16 +72,19 @@ function defaultSleeperAdapter() {
 
 function defaultEspnAdapter() {
   return {
-    buildLeagueStandings: async () => ([{
-      rank: 1,
-      team_id: "9",
-      team_name: "ESPN Team",
-      is_current_user: true,
-      wins: 5,
-      losses: 3,
-      points_for: 1001.2,
-      points_against: 944.6,
-    }]),
+    buildLeagueContext: async () => ({
+      league_name: "The Titans of Slopsilonia",
+      standings: [{
+        rank: 1,
+        team_id: "9",
+        team_name: "ESPN Team",
+        is_current_user: true,
+        wins: 5,
+        losses: 3,
+        points_for: 1001.2,
+        points_against: 944.6,
+      }],
+    }),
   };
 }
 

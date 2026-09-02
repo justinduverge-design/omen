@@ -149,7 +149,10 @@ async function sleeperStandings(connection, context) {
 
 async function espnStandings(connection, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  const standings = await espnAdapter.buildLeagueStandings(
+  // `league_name` was omitted here while Sleeper and Yahoo both supplied it, so every ESPN
+  // envelope reported a null league name. The name was already in the `mSettings` response
+  // this call has always made; it was simply never read.
+  const { league_name, standings } = await espnAdapter.buildLeagueContext(
     connection.league_id,
     credentials.espn_s2,
     credentials.swid,
@@ -160,7 +163,7 @@ async function espnStandings(connection, userId, context) {
     }
   );
 
-  return baseEnvelope(connection, context, { standings });
+  return baseEnvelope(connection, context, { league_name, standings });
 }
 
 /** Dispatch to the right adapter. Unknown platforms reject rather than return null. */
@@ -497,7 +500,7 @@ async function sleeperOverview(connection, context) {
 
 async function espnOverview(connection, userId, context) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
-  const standings = await espnAdapter.buildLeagueStandings(
+  const { league_name: espnLeagueName, standings } = await espnAdapter.buildLeagueContext(
     connection.league_id,
     credentials.espn_s2,
     credentials.swid,
@@ -517,6 +520,7 @@ async function espnOverview(connection, userId, context) {
   }
 
   return overviewEnvelope(connection, context, {
+    league_name: espnLeagueName,
     matchup,
     standings: {
       // No playoff-team count: ESPN's settings field is M11A claim 3 and is still unproven.
