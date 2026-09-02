@@ -5,6 +5,7 @@ import Foundation
 @MainActor
 final class ConnectViewModel: ObservableObject {
     @Published private(set) var state: ConnectState = .notStarted
+    @Published private(set) var selectedProvider: ConnectProvider?
     @Published var username: String = ""
 
     private let repository: ConnectRepository
@@ -54,13 +55,16 @@ final class ConnectViewModel: ObservableObject {
             // Sleeper's next step is the username field the picker already renders beneath
             // itself; Yahoo's is a browser round trip that has to be started explicitly.
             if provider == .yahoo {
+                selectedProvider = provider
                 Task { await connectYahoo() }
             } else {
+                selectedProvider = provider
                 state = .notStarted
             }
         case .onHold, .useWeb:
             // Not an error and not a dead end — the view renders the provider's own reason and
             // a safe next action from `availability`.
+            selectedProvider = provider
             state = .unsupportedOnMobile(provider: provider)
         }
     }
@@ -74,6 +78,7 @@ final class ConnectViewModel: ObservableObject {
     /// Returns to the provider picker without treating the exit as a failure.
     func startOver() {
         pendingRequestId = nil
+        selectedProvider = nil
         state = .notStarted
     }
 

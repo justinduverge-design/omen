@@ -20,6 +20,9 @@ class ConnectViewModel(
     var state: ConnectState by mutableStateOf(ConnectState.NotStarted)
         private set
 
+    var selectedProvider: ConnectProvider? by mutableStateOf(null)
+        private set
+
     var username: String by mutableStateOf("")
 
     /**
@@ -39,10 +42,19 @@ class ConnectViewModel(
             // Sleeper's next step is the username field the picker already renders beneath
             // itself; Yahoo's is a browser round trip that has to be started explicitly.
             is ConnectAvailability.Available ->
-                if (provider == ConnectProvider.Yahoo) connectYahoo() else state = ConnectState.NotStarted
+                if (provider == ConnectProvider.Yahoo) {
+                    selectedProvider = provider
+                    connectYahoo()
+                } else {
+                    selectedProvider = provider
+                    state = ConnectState.NotStarted
+                }
             // Not an error and not a dead end — the screen renders the provider's own reason
             // and a safe next action.
-            else -> state = ConnectState.UnsupportedOnMobile(provider)
+            else -> {
+                selectedProvider = provider
+                state = ConnectState.UnsupportedOnMobile(provider)
+            }
         }
     }
 
@@ -54,6 +66,7 @@ class ConnectViewModel(
 
     fun startOver() {
         pendingRequestId = null
+        selectedProvider = null
         state = ConnectState.NotStarted
     }
 

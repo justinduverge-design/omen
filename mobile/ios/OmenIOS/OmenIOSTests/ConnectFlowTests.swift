@@ -50,12 +50,12 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertNil(viewModel.state.progressLabel)
     }
 
-    /// ESPN copy must point at the working path rather than describing a limitation only.
-    func testEspnCopyRoutesToTheWebPath() {
+    /// ESPN copy must be the approved native row copy: no sheet, no logo, no endorsement.
+    func testEspnCopyUsesTheApprovedComputerOnlyLine() {
         guard case .useWeb(let reason) = ConnectProvider.espn.availability else {
             return XCTFail("expected useWeb")
         }
-        XCTAssertTrue(reason.lowercased().contains("website") || reason.lowercased().contains("web"))
+        XCTAssertEqual(reason, "Needs a computer for now · we'll show you")
     }
 
     // MARK: - Resolve

@@ -8,7 +8,6 @@ struct AppShellView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @Environment(\.omenEnvironment) private var environment
     @StateObject private var updateGate: UpdateGateViewModel
-    @State private var showSignIn = false
 
     init() {
         // Reads `environment` fresh here rather than via `@Environment` — the gate client
@@ -40,21 +39,11 @@ struct AppShellView: View {
                     .padding(OmenSpacing.step24)
 
             case .signedOut:
-                if showSignIn {
-                    SignInView(
-                        viewModel: authViewModel,
-                        onBack: {
-                            showSignIn = false
-                            authViewModel.reset()
-                        }
-                    )
-                } else {
-                    WelcomeView(
-                        demoModeEnabled: environment.demoModeEnabled,
-                        onTryDemo: { sessionManager.onDemo() },
-                        onGetStarted: { showSignIn = true }
-                    )
-                }
+                SignInView(
+                    viewModel: authViewModel,
+                    demoModeEnabled: environment.demoModeEnabled,
+                    onTryDemo: { sessionManager.onDemo() }
+                )
 
             case .needsReauth:
                 SignInView(

@@ -57,6 +57,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     var appleSignInAvailable: Bool { appleProvider.isConfigured }
+    var googleSignInAvailable: Bool { oauthProvider.isConfigured(providerId: "google") }
     var discordSignInAvailable: Bool { oauthProvider.isConfigured(providerId: "discord") }
     var passkeySignInAvailable: Bool { passkeyProvider.isSupported }
 

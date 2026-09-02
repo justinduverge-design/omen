@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.slopssaloon.omen.R
+import com.slopssaloon.omen.app.auth.OmenAuthFlow
+import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
@@ -37,9 +39,21 @@ import com.slopssaloon.omen.app.feature.api.TradePlayer
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
+import com.slopssaloon.omen.app.feature.connect.ConnectRepository
+import com.slopssaloon.omen.app.feature.connect.ConnectScreen
+import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
+import com.slopssaloon.omen.app.feature.connect.ProviderAuthOutcome
+import com.slopssaloon.omen.app.feature.connect.ResolvedSleeperAccount
+import com.slopssaloon.omen.app.feature.connect.SleeperLeague
+import com.slopssaloon.omen.app.feature.connect.StubProviderAuthSession
+import com.slopssaloon.omen.app.feature.connect.YahooLeague
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionFixtures
 import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
+import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
+import com.slopssaloon.omen.core.session.Session
+import com.slopssaloon.omen.core.session.SessionManager
 
 /**
  * Reusable screenshot-mode registry for the native-visual-evidence CI workflow. The
@@ -62,6 +76,18 @@ object ScreenshotScenarios {
 
     /** Every declared scenario. Add rows here to extend the workflow matrix. */
     val entries: Map<String, ScreenshotScenario> = linkedMapOf(
+        "onboarding.sign-in" to ScreenshotScenario(
+            label = "Onboarding — sign in first",
+            render = { OnboardingAuthBody(AuthFlowState.Idle) },
+        ),
+        "onboarding.email-code" to ScreenshotScenario(
+            label = "Onboarding — email code",
+            render = { OnboardingAuthBody(AuthFlowState.AwaitingOtp("justin@slopssaloon.com")) },
+        ),
+        "onboarding.connect-league" to ScreenshotScenario(
+            label = "Onboarding — connect your league",
+            render = { OnboardingConnectBody() },
+        ),
         "command-center.demo-connected" to ScreenshotScenario(
             label = "Command Center — demo/mock connected",
             render = { CommandCenterInShell(demo = true) },
@@ -241,6 +267,92 @@ data class ScreenshotScenario(
     val label: String,
     val render: @Composable () -> Unit,
 )
+
+@Composable
+private fun OnboardingAuthBody(state: AuthFlowState) {
+    OmenTheme {
+        val resend = remember { OtpResendController() }
+        OmenAuthFlow(
+            state = state,
+            email = "justin@slopssaloon.com",
+            code = if (state is AuthFlowState.AwaitingOtp) "417" else "",
+            live = true,
+            googleConfigured = true,
+            discordConfigured = true,
+            demoModeEnabled = true,
+            onEmailChange = {},
+            onCodeChange = {},
+            onSubmitEmail = {},
+            onSubmitCode = {},
+            resend = if (state is AuthFlowState.AwaitingOtp) resend else null,
+            onGoogle = {},
+            onDiscord = {},
+            onReset = {},
+            onTryDemo = {},
+        )
+    }
+}
+
+@Composable
+private fun OnboardingConnectBody() {
+    OmenTheme {
+        ConnectScreen(
+            viewModel = remember {
+                ConnectViewModel(
+                    repository = ScreenshotConnectRepository(),
+                    sessionManager = SessionManager(
+                        InMemorySecureSessionStore(
+                            Session(
+                                userId = "screenshot",
+                                accessToken = "t",
+                                refreshToken = "r",
+                                expiresAtEpochSeconds = 9_999_999_999,
+                            ),
+                        ),
+                        nowEpochSeconds = { 1_000 },
+                    ),
+                    authSession = StubProviderAuthSession(ProviderAuthOutcome.Canceled),
+                )
+            },
+            onConnected = {},
+            onDismiss = {},
+        )
+    }
+}
+
+private class ScreenshotConnectRepository : ConnectRepository {
+    override suspend fun resolveSleeper(username: String, accessToken: String): Result<ResolvedSleeperAccount> =
+        Result.success(
+            ResolvedSleeperAccount(
+                username = username,
+                leagues = listOf(
+                    SleeperLeague(
+                        id = "1",
+                        name = "Demo League",
+                        season = 2026,
+                        scoringFormat = "PPR",
+                        teamName = "Demo Team",
+                    ),
+                ),
+            ),
+        )
+
+    override suspend fun connectSleeper(
+        username: String,
+        leagueId: String,
+        requestId: String,
+        accessToken: String,
+    ): Result<Unit> = Result.success(Unit)
+
+    override suspend fun startYahooAuthorization(accessToken: String): Result<String> =
+        Result.success("https://example.invalid/yahoo")
+
+    override suspend fun yahooLeagues(accessToken: String): Result<List<YahooLeague>> =
+        Result.success(listOf(YahooLeague(id = "yahoo.l.1", name = "Demo Yahoo", season = 2026)))
+
+    override suspend fun bindYahooLeague(id: String, accessToken: String): Result<Unit> =
+        Result.success(Unit)
+}
 
 /**
  * Deterministic shell mirroring the signed-in Scaffold in [com.slopssaloon.omen.app.OmenAndroidApp]
