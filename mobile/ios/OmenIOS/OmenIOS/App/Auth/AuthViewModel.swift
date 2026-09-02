@@ -120,6 +120,12 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Lets a test exercise the resend without waiting 60 real seconds. The cooldown itself is
+    /// asserted separately, so skipping it here does not skip covering it.
+    func clearOtpResendCooldownForTesting() {
+        cancelOtpResendCooldown()
+    }
+
     private func cancelOtpResendCooldown() {
         otpCooldownTask?.cancel()
         otpCooldownTask = nil
