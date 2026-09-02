@@ -67,3 +67,13 @@ mobile/ios/**/*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 # approval_policy="never" and sandbox_mode="danger-full-access", which must
 # not become anyone else's default just because they cloned the repo.
 .Codex/
+
+# Backups and copies of secret files. `mobile/android/local.properties.bak-173445`
+# was committed and pushed with the release keystore password in it, because the
+# ignore rule matched the exact filename and nothing else.
+*.bak
+*.bak-*
+local.properties*
+!local.properties.example
+*Local.xcconfig
+!Local.xcconfig.example
