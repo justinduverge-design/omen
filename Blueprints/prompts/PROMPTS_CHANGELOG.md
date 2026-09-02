@@ -123,3 +123,29 @@ To make feature builds near hands-off: one short instruction + the folder carrie
 Lower token/coordination cost per feature; consistent handoffs; fewer boundary violations; a pattern that can later be lifted to slops-saloon for new apps to inherit.
 
 <!-- Add new entries above this line, newest first -->
+
+## 2026-09-02 — kickoff and agent docs realigned as one contract
+
+`CLAUDE.md` and `kickoff-l2.md` had **drifted**: the kickoff told an agent to read `AGENT.md`,
+`RESOLVER.md`, and `Direction/status-model.md`; `CLAUDE.md` listed none of the three. An agent
+arriving via one file was reading a different set from an agent arriving via the other, and
+nothing detected it.
+
+- Both now carry the **same 15-entry read order**, split into an always-read core (posture,
+  routing, current state) and a read-before-you-plan tail. Order is identical by contract.
+- **`node scripts/check-kickoff-drift.js`** compares the ordered file paths in each and fails
+  when they disagree. Verified against injected drift before commit, not only against the
+  passing case.
+- **The stale Stripe gate is gone** from the kickoff safety gates. Stripe was fully removed —
+  no code, route, middleware, table, or column — so a gate naming "Stripe production behavior"
+  implied a payment surface that does not exist.
+- `AGENT.md` vs `AGENTS.md` is now explained where an agent meets it. Both are legitimate and
+  both are referenced; the names differ by one letter and their roles are easy to invert, so
+  each read order says which is which.
+- `omen-ux-ui-design-system-v1.md` is flagged in place as partially superseded, naming what it
+  still owns (base palette hexes, dark-mode token names, brand voice) and what it does not
+  (component APIs, tokens, state patterns).
+- `DBS_INDEX.md` no longer gives a Windows absolute path as canonical.
+
+**Rule going forward:** the agent docs and the kickoff prompts are one contract. Change one,
+change both, and let the drift check prove it.
