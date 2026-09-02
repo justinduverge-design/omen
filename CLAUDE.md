@@ -39,6 +39,13 @@ If a file is missing, continue and mention it.
 
 ## Reads on demand
 
+- **`Blueprints/skills/README.md` — where the global skill library actually is.** It is in the
+  **`Slops-OS` repository, not this one.** This repo's `Blueprints/skills/` holds two Omen-local
+  skills; the 59-skill library lives one repo over, and `Slops-OS/Blueprints/skills/SKILL_ROUTING.md`
+  is authoritative. Read the README's inventory before concluding a skill does not exist — and note
+  that `slops-ui-ux-audit`, `mobile-first-qa-playbook` and `slops-mobile-smoke` are **web-app only**;
+  native work wants `slops-native-ui-audit` and `slops-native-sim-drive`.
+
 - `Brand/brand-system.md` — voice, palette, type, AAA framework
 - `Blueprints/specs/page-system.md` — per-page typography / accent / palette / copy contract
 - `Blueprints/specs/design/component-lock-v1.md` — canonical component API/tokens (Button, Input, Segmented, Card shell, Type scale, Spacing)
