@@ -112,8 +112,6 @@ data class OmenDecisionEnvelope(
         private const val UNVERIFIED_MODE =
             "Omen could not verify whether this recommendation is live. Refresh or update before acting."
 
-        private fun JSONObject.optStringOrNull(key: String): String? =
-            if (isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
 
         private fun JSONObject.optIntOrNull(key: String): Int? = if (isNull(key)) null else optInt(key)
 

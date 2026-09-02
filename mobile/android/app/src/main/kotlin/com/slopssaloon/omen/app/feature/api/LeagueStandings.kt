@@ -125,7 +125,7 @@ data class LeagueStandings(
                     val row = rows?.optJSONObject(i) ?: continue
                     add(
                         Team(
-                            teamName = row.optString("team_name").takeIf { it.isNotEmpty() },
+                            teamName = row.optStringOrNull("team_name"),
                             // A missing flag means "not known to be mine", never "mine".
                             isCurrentUser = row.optBoolean("is_current_user", false),
                             rank = if (row.has("rank")) row.optInt("rank") else null,
@@ -139,10 +139,9 @@ data class LeagueStandings(
             }
 
             LeagueStandings(
-                contractVersion = root.optString("contract_version"),
-                platform = root.optString("platform"),
-                leagueName = root.optString("league_name")
-                    .takeIf { it.isNotEmpty() && it != "null" },
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                platform = root.optStringOrNull("platform").orEmpty(),
+                leagueName = root.optStringOrNull("league_name"),
                 standings = teams,
             )
         }.getOrNull()

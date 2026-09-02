@@ -42,14 +42,14 @@ data class PlayerSearchResult(
             val array = JSONArray(json)
             (0 until array.length()).mapNotNull { index ->
                 val row = array.optJSONObject(index) ?: return@mapNotNull null
-                val id = row.optString("id").takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-                val name = row.optString("name").takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val id = row.optStringOrNull("id") ?: return@mapNotNull null
+                val name = row.optStringOrNull("name") ?: return@mapNotNull null
                 PlayerSearchResult(
                     id = id,
                     name = name,
-                    position = row.optString("position").takeIf { it.isNotEmpty() },
-                    team = row.optString("team").takeIf { it.isNotEmpty() },
-                    matchType = row.optString("match_type").takeIf { it.isNotEmpty() },
+                    position = row.optStringOrNull("position"),
+                    team = row.optStringOrNull("team"),
+                    matchType = row.optStringOrNull("match_type"),
                 )
             }
         }.getOrNull()
