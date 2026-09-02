@@ -41,6 +41,7 @@ import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
 import com.slopssaloon.omen.app.auth.OAuthCallbackBus
+import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
 import com.slopssaloon.omen.core.auth.AccountDeletion
@@ -50,6 +51,7 @@ import com.slopssaloon.omen.core.auth.AccountRepository
 import com.slopssaloon.omen.core.auth.AuthEvent
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
 import com.slopssaloon.omen.core.auth.AuthFlowState
+import com.slopssaloon.omen.core.auth.AuthOutcome
 import com.slopssaloon.omen.core.auth.AuthRepository
 import com.slopssaloon.omen.core.auth.AuthRepositorySessionRefresher
 import com.slopssaloon.omen.core.auth.FakeAuthRepository
@@ -241,12 +243,21 @@ fun OmenAndroidApp() {
     var showSwitcherSheet by remember { mutableStateOf(false) }
     var showHelpSupportSheet by remember { mutableStateOf(false) }
 
+    // The "code didn't arrive" half of email sign-in. Held beside the reducer rather than
+    // inside it: a failed resend must not knock the user out of AwaitingOtp and discard the
+    // code they may be mid-way through typing.
+    val otpResend = remember { OtpResendController() }
+
     fun dispatch(event: AuthEvent) {
         val next = AuthFlowReducer.reduce(flow, event)
         flow = next
         when (next) {
-            is AuthFlowState.RequestingOtp ->
-                scope.launch { dispatch(AuthEvent.OtpRequestResult(repo.requestEmailOtp(next.email))) }
+            is AuthFlowState.RequestingOtp -> scope.launch {
+                otpResend.reset()
+                val outcome = repo.requestEmailOtp(next.email)
+                dispatch(AuthEvent.OtpRequestResult(outcome))
+                if (outcome is AuthOutcome.OtpSent) otpResend.startCooldown()
+            }
             is AuthFlowState.VerifyingOtp ->
                 scope.launch {
                     dispatch(AuthEvent.OtpVerifyResult(repo.verifyEmailOtp(next.email, OtpCodeValidator.normalize(code))))
@@ -399,6 +410,17 @@ fun OmenAndroidApp() {
                         onEmailChange = { email = it },
                         onCodeChange = { code = it },
                         onSubmitEmail = { dispatch(AuthEvent.EmailSubmitted(email)) },
+                        resend = otpResend,
+                        onResendCode = {
+                            scope.launch {
+                                val current = flow
+                                if (current is AuthFlowState.AwaitingOtp &&
+                                    otpResend.resend(current.email, repo::requestEmailOtp)
+                                ) {
+                                    otpResend.startCooldown()
+                                }
+                            }
+                        },
                         onSubmitCode = { dispatch(AuthEvent.OtpSubmitted(code)) },
                         onGoogle = { dispatch(AuthEvent.GoogleRequested) },
                         onDiscord = { dispatch(AuthEvent.OAuthRequested(providerId = "discord")) },

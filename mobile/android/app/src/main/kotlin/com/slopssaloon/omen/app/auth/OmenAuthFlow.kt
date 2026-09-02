@@ -38,6 +38,9 @@ fun OmenAuthFlow(
     onCodeChange: (String) -> Unit,
     onSubmitEmail: () -> Unit,
     onSubmitCode: () -> Unit,
+    /** Null hides the delivery-help block entirely (e.g. previews). */
+    resend: OtpResendController? = null,
+    onResendCode: () -> Unit = {},
     onGoogle: () -> Unit,
     onDiscord: () -> Unit = {},
     onReset: () -> Unit,
@@ -84,6 +87,48 @@ fun OmenAuthFlow(
                         loading = state is AuthFlowState.VerifyingOtp,
                         modifier = Modifier.fillMaxWidth(),
                     )
+
+                    // What to do when the code does not turn up. This screen used to end at
+                    // "Verify code": a request the server accepts still has to survive the
+                    // send, the receiving provider, and the user's spam filter, and when it
+                    // did not there was nothing here to press and nothing to read.
+                    if (resend != null) {
+                        Text(
+                            text = "It usually lands within a minute. If it hasn't, check your " +
+                                "spam or junk folder — and on Yahoo or iCloud, look in Promotions too.",
+                            style = OmenTheme.typography.bodySmall.toTextStyle(),
+                            color = OmenTheme.color.textSecondary,
+                        )
+                        OmenButton(
+                            text = if (resend.secondsRemaining > 0) {
+                                "Resend in ${resend.secondsRemaining}s"
+                            } else {
+                                "Send a new code"
+                            },
+                            onClick = onResendCode,
+                            variant = OmenButtonVariant.Secondary,
+                            enabled = resend.canResend && state is AuthFlowState.AwaitingOtp,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (resend.resent) {
+                            Text(
+                                text = "Sent again. If the second one doesn't arrive either, " +
+                                    "the problem is on our side.",
+                                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                                color = OmenTheme.color.textSecondary,
+                            )
+                        }
+                        // `if` rather than `?.let`: the lambda is not a composable scope, so
+                        // the theme getters are unavailable inside it.
+                        val resendError = resend.error
+                        if (resendError != null) {
+                            Text(
+                                text = resendError,
+                                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                                color = OmenTheme.color.data.riskHigh,
+                            )
+                        }
+                    }
                 }
                 else -> {
                     OmenFormField(label = "Email") {
