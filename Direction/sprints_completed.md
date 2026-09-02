@@ -483,3 +483,34 @@ Full record: `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`.
 | Exact-host operation + A4 separate no-write rehearsal | KVM1 primary, Command Center witness, seven alert paths, backup/restore, publication receipt, and one real pending production row compared in Standard/Half-PPR/PPR with zero attempted/completed writes; `Blueprints/handoffs/2026-08-26-a7b-phase4-production-readiness-execution.md` | PASS |
 
 Correction truth is deliberately bounded: two authentic upstream schedule revisions changed zero accepted subjects. The only changed-subject correction exercise is permanently labeled `controlled_fixture_not_upstream`; it is valid path/failure evidence and is not represented as an observed upstream correction. A7B closure does not close A4 or A6. Tuesday scoring is held with both flags `false` after the separate A6 persistence defect was found.
+
+---
+
+## O2 — named rollback owner and tested rollback path — closed 2026-08-27
+
+**Closure: COMPLETED.** Filed 2026-09-02 during a sprint reconciliation pass; the item had been marked `CLOSED` in `current_sprint.md` since the 2026-08-27 live exercise but never received its ledger row.
+
+**Delivered:** `Blueprints/playbooks/rollback-runbook.md` — the backend procedure that works today, the mobile answer, and the verification steps. Wired into `Blueprints/done/release-done.md` gates 11 and 16.
+
+**Rollback owner:** Justin Duverge, named 2026-08-19. Owner and sole executor are the same person — a real single point of failure on a solo product, recorded rather than papered over.
+
+**The finding this task existed to surface.** Before PR [#347](https://github.com/justinduverge-design/omen/pull/347) / `5cf3597`, `deploy.yml` published only mutable `:main` tags and immediately ran a bare `docker image prune -f`, destroying the local artifact a rollback would need. GHCR digest lookup remained possible but required package-read access and a value nobody had recorded. The workflow now publishes `:sha-${{ github.sha }}` alongside `:main` for both API and cron images and scopes pruning to `--filter "until=168h"`. Verification before merge: deploy hardening 4/4, backend 570/570, workflow YAML parsed. No deploy run was registered because `.github/workflows/**` is path-ignored; production was not restarted.
+
+**The before-state stays documented in the runbook on purpose,** so a later "cleanup" trimming the tag list back to one entry can see what that costs.
+
+**Mobile answer, as the `Done when:` required:** no rollback exists. Halting distribution stops new installs; it does not remove or downgrade an installed app. `O7`'s forced-update gate is the mitigation, with its ordering constraint stated — store URLs first, minimum version second, or a bad build becomes a total lockout.
+
+**Also corrected while here:** `Blueprints/done/release-done.md` carried a ⛔ HARD-BLOCKED banner citing the GitHub Actions billing hold. That hold was retracted 2026-08-01 — it never existed — and the banner would have blocked a legitimate Release Done closure on a false premise for 18 days.
+
+## W1-GATE — ESPN in-app sheet legal and review gate — closed 2026-08-31
+
+**Closure: COMPLETED.** Filed 2026-09-02 during a sprint reconciliation pass; closed in `current_sprint.md` on 2026-08-31 without a ledger row.
+
+**Both questions answered in writing, as the `Done when:` required.**
+
+1. *Does ESPN's terms permit authenticating a user to ESPN inside our own web sheet and reading the resulting session?* **No** — Disney ToU §2.B.viii / §2.B.x / §1.F. Apple 5.2.2 has no authorization to point at.
+2. *What is the prepared App Review answer for why the app opens a third-party login?* Drafted in `Blueprints/specs/mobile/omen-wave1-contract-v1.md` §W1-A.
+
+**Founder decision: accepted the risk explicitly** and chose to ship, keeping the live integration with a consent line. Recorded in `Direction/decision_log.md`, 2026-08-31.
+
+**Constraints carried into `W1-A`:** no association-implying ESPN branding, a consent screen, and the prepared App Review answer. `W1-A` remains `BLOCKED` on `TASK-W1-REVIEW` by the Wave 1 sequencing note — the gate cleared the terms question, not the review question.
