@@ -230,7 +230,11 @@ enum AuthFlowReducer {
     }
 }
 
-private extension RetryableCode {
+/// Internal rather than fileprivate: the resend path in `AuthViewModel` surfaces its failure
+/// beside the code field instead of through the reducer, so that a failed resend cannot knock
+/// the user out of code entry and discard what they have typed. It still needs the same
+/// mapping, and a second copy of it would be a second thing to keep in step.
+extension RetryableCode {
     var asAuthFailure: AuthFailure {
         switch self {
         case .network: return .network

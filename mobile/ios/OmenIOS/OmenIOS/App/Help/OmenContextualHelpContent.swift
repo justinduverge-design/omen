@@ -137,7 +137,7 @@ enum OmenContextualHelpContent {
                     ),
                     OmenHelpTip(
                         label: "Yahoo",
-                        body: "Yahoo connects in your browser. Connect it once on the Omen website and it'll show up here."
+                        body: "Pick Yahoo and sign in on Yahoo's own page in your browser, then choose your league. Omen never sees your Yahoo password."
                     ),
                     OmenHelpTip(
                         label: "ESPN",

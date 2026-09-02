@@ -41,6 +41,7 @@ import com.slopssaloon.omen.app.feature.omen.OmenDecisionScreen
 import com.slopssaloon.omen.app.auth.AndroidChromeTabsOAuthProvider
 import com.slopssaloon.omen.app.auth.CredentialManagerGoogleIdTokenProvider
 import com.slopssaloon.omen.app.auth.OAuthCallbackBus
+import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.auth.OkHttpAccountRepository
 import com.slopssaloon.omen.app.auth.OkHttpGoTrueTransport
 import com.slopssaloon.omen.core.auth.AccountDeletion
@@ -50,7 +51,9 @@ import com.slopssaloon.omen.core.auth.AccountRepository
 import com.slopssaloon.omen.core.auth.AuthEvent
 import com.slopssaloon.omen.core.auth.AuthFlowReducer
 import com.slopssaloon.omen.core.auth.AuthFlowState
+import com.slopssaloon.omen.core.auth.AuthOutcome
 import com.slopssaloon.omen.core.auth.AuthRepository
+import com.slopssaloon.omen.core.auth.AuthRepositorySessionRefresher
 import com.slopssaloon.omen.core.auth.FakeAuthRepository
 import com.slopssaloon.omen.core.auth.GoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.GoogleIdTokenResult
@@ -78,6 +81,7 @@ import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.MinVersionGateClient
 import com.slopssaloon.omen.app.feature.api.UpdateGateState
 import com.slopssaloon.omen.app.feature.api.UpdateGateViewModel
+import com.slopssaloon.omen.app.feature.connect.CustomTabsProviderAuthSession
 import com.slopssaloon.omen.app.feature.connect.ApiConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
@@ -140,9 +144,14 @@ fun OmenAndroidApp() {
     val discordConfigured = remember(oauthProvider) { oauthProvider.isConfigured("discord") }
     val accountRepo: AccountRepository = remember { OkHttpAccountRepository(env.apiBaseUrl) }
 
+    // Installs the token-renewal seam. Without this every authenticated request sends whatever
+    // bearer is in secure storage, and a Supabase access token lives one hour — which is how
+    // signed-in beta users kept landing back on the sign-in screen.
+    remember(sessionManager, repo) { sessionManager.attach(AuthRepositorySessionRefresher(repo)) }
+
     // M5 slices B + C. Built from the same public `apiBaseUrl` the account repository uses —
-    // `AppEnvironment` holds public config only, never a secret. The token is read lazily from
-    // the secure store at call time rather than captured, so a re-auth is picked up on reload.
+    // `AppEnvironment` holds public config only, never a secret. Bearers come from
+    // `SessionManager.authorized`, which renews an expiring token before the call.
     val commandCenterViewModel = remember {
         val client = OmenApiClient(env.apiBaseUrl)
         CommandCenterViewModel(
@@ -150,7 +159,6 @@ fun OmenAndroidApp() {
             leagueRepository = ApiLeagueRepository(client),
             movesRepository = ApiMovesRepository(client),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -159,7 +167,7 @@ fun OmenAndroidApp() {
     val leagueSwitcherViewModel = remember {
         LeagueSwitcherViewModel(
             repository = ApiLeagueDirectoryRepository(OmenApiClient(env.apiBaseUrl)),
-            accessTokenProvider = { store.load()?.accessToken },
+            sessionManager = sessionManager,
         )
     }
 
@@ -170,7 +178,6 @@ fun OmenAndroidApp() {
         OmenDecisionViewModel(
             repository = ApiOmenDecisionRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -180,7 +187,6 @@ fun OmenAndroidApp() {
         LeagueViewModel(
             repository = ApiLeagueRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
         )
     }
 
@@ -192,7 +198,6 @@ fun OmenAndroidApp() {
             // Autocomplete is public too — `/api/players/search` takes no bearer.
             playerSearch = ApiPlayerSearchRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
-            accessTokenProvider = { store.load()?.accessToken },
             scope = scope,
         )
     }
@@ -201,7 +206,10 @@ fun OmenAndroidApp() {
     val connectViewModel = remember {
         ConnectViewModel(
             repository = ApiConnectRepository(OmenApiClient(env.apiBaseUrl)),
-            accessTokenProvider = { store.load()?.accessToken },
+            sessionManager = sessionManager,
+            // Yahoo signs in on Yahoo's own page in a Custom Tab, never in a WebView — the
+            // onboarding contract §87 forbids the app hosting a provider login.
+            authSession = CustomTabsProviderAuthSession(context),
         )
     }
     var showConnectSheet by remember { mutableStateOf(false) }
@@ -216,7 +224,10 @@ fun OmenAndroidApp() {
         )
     }
 
-    LaunchedEffect(Unit) { sessionManager.restore() }
+    // `restoreRefreshing`, not `restore`: the plain restore marks any expired session
+    // NeedsReauth immediately, and after the first hour every cold launch has an expired
+    // access token. Renew before judging.
+    LaunchedEffect(Unit) { sessionManager.restoreRefreshing() }
     LaunchedEffect(Unit) { updateGateViewModel.check() }
 
     var flow by remember { mutableStateOf<AuthFlowState>(AuthFlowState.Idle) }
@@ -232,12 +243,21 @@ fun OmenAndroidApp() {
     var showSwitcherSheet by remember { mutableStateOf(false) }
     var showHelpSupportSheet by remember { mutableStateOf(false) }
 
+    // The "code didn't arrive" half of email sign-in. Held beside the reducer rather than
+    // inside it: a failed resend must not knock the user out of AwaitingOtp and discard the
+    // code they may be mid-way through typing.
+    val otpResend = remember { OtpResendController() }
+
     fun dispatch(event: AuthEvent) {
         val next = AuthFlowReducer.reduce(flow, event)
         flow = next
         when (next) {
-            is AuthFlowState.RequestingOtp ->
-                scope.launch { dispatch(AuthEvent.OtpRequestResult(repo.requestEmailOtp(next.email))) }
+            is AuthFlowState.RequestingOtp -> scope.launch {
+                otpResend.reset()
+                val outcome = repo.requestEmailOtp(next.email)
+                dispatch(AuthEvent.OtpRequestResult(outcome))
+                if (outcome is AuthOutcome.OtpSent) otpResend.startCooldown()
+            }
             is AuthFlowState.VerifyingOtp ->
                 scope.launch {
                     dispatch(AuthEvent.OtpVerifyResult(repo.verifyEmailOtp(next.email, OtpCodeValidator.normalize(code))))
@@ -276,6 +296,14 @@ fun OmenAndroidApp() {
     // OAUTH_CALLBACK_MISMATCH through the reducer.
     LaunchedEffect(oauthProvider) {
         OAuthCallbackBus.callbacks.collect { uri ->
+            // The same deep link carries two different returns. A *provider connect* (Yahoo)
+            // comes back with `status=connected|cancelled` and no PKCE code, because the server
+            // minted, validated and consumed that OAuth state itself; `ConnectViewModel`'s
+            // browser session collects it. Handing it to the sign-in reducer would dispatch a
+            // callback with an empty code and push a signed-in user's auth flow into a failure
+            // state over a connect that went fine. It is also deliberately NOT cleared here —
+            // the connect session is the collector that owns it.
+            if (uri.getQueryParameter("status") != null) return@collect
             // Consume the replay immediately. The current handling attempt is authoritative;
             // retaining a completed or rejected callback would make a later collector replay it.
             OAuthCallbackBus.clear()
@@ -382,6 +410,17 @@ fun OmenAndroidApp() {
                         onEmailChange = { email = it },
                         onCodeChange = { code = it },
                         onSubmitEmail = { dispatch(AuthEvent.EmailSubmitted(email)) },
+                        resend = otpResend,
+                        onResendCode = {
+                            scope.launch {
+                                val current = flow
+                                if (current is AuthFlowState.AwaitingOtp &&
+                                    otpResend.resend(current.email, repo::requestEmailOtp)
+                                ) {
+                                    otpResend.startCooldown()
+                                }
+                            }
+                        },
                         onSubmitCode = { dispatch(AuthEvent.OtpSubmitted(code)) },
                         onGoogle = { dispatch(AuthEvent.GoogleRequested) },
                         onDiscord = { dispatch(AuthEvent.OAuthRequested(providerId = "discord")) },

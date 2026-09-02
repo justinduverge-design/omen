@@ -3,6 +3,8 @@ package com.slopssaloon.omen.app.feature.api
 import com.slopssaloon.omen.app.feature.commandcenter.leagueSubtitle
 import com.slopssaloon.omen.app.feature.commandcenter.switcherErrorMessage
 import com.slopssaloon.omen.app.feature.commandcenter.switcherRowAccessibilityLabel
+import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
+import com.slopssaloon.omen.core.session.Session
 import com.slopssaloon.omen.core.session.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -22,6 +24,14 @@ import org.junit.Test
  * render. Every unit was fine; the wiring between them was the whole defect.
  */
 class LeagueSwitcherTest {
+
+    /** A manager holding a live session, so `authorized` hands the repository a bearer. */
+    private fun signedIn(): SessionManager = SessionManager(
+        InMemorySecureSessionStore(Session("u1", "token", "r", 100_000)),
+    ) { 1_000 }
+
+    /** No stored session — the shape a signed-out (or demo) caller presents. */
+    private fun signedOut(): SessionManager = SessionManager(InMemorySecureSessionStore()) { 1_000 }
 
     private val directoryJson = """
     {
@@ -97,7 +107,7 @@ class LeagueSwitcherTest {
     @Test
     fun `select sends platform league and team and returns refresh targets`() = runBlocking {
         val repo = StubLeagueDirectoryRepository(OmenApiResult.Success(directory()), selectionSuccess())
-        val vm = LeagueSwitcherViewModel(repo) { "token" }
+        val vm = LeagueSwitcherViewModel(repo, signedIn())
 
         val refresh = vm.select("sleeper", "L-zeta", "7")
 
@@ -111,7 +121,7 @@ class LeagueSwitcherTest {
             OmenApiResult.Success(directory()),
             OmenApiResult.Failure(OmenApiError.Server(502)),
         )
-        val vm = LeagueSwitcherViewModel(repo) { "token" }
+        val vm = LeagueSwitcherViewModel(repo, signedIn())
 
         // §10.3: a failed switch must never leave the old context looking new. Returning
         // null is what stops the caller re-reading and relabelling it.
@@ -123,7 +133,8 @@ class LeagueSwitcherTest {
     fun `an unreadable directory fails honestly rather than falling back to a fixture`() = runBlocking {
         val vm = LeagueSwitcherViewModel(
             StubLeagueDirectoryRepository(OmenApiResult.Failure(OmenApiError.Network)),
-        ) { "token" }
+            signedIn(),
+        )
 
         vm.load()
 
@@ -138,7 +149,8 @@ class LeagueSwitcherTest {
     fun `a missing access token is unauthorized rather than a crash`() = runBlocking {
         val vm = LeagueSwitcherViewModel(
             StubLeagueDirectoryRepository(OmenApiResult.Success(directory())),
-        ) { null }
+            signedOut(),
+        )
 
         vm.load()
 
@@ -232,7 +244,7 @@ class LeagueSwitcherTest {
         // not read the same to a user. Swift twin: `testDemoIsNotReportedAsAnExpiredSession`.
         val repo = StubLeagueDirectoryRepository(OmenApiResult.Success(directory()), selectionSuccess())
         // No token, exactly as in demo — the old code turned that into Unauthorized.
-        val model = LeagueSwitcherViewModel(repo) { null }
+        val model = LeagueSwitcherViewModel(repo, signedOut())
 
         model.load(SessionManager.DEMO_USER_ID)
 

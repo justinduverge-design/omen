@@ -184,10 +184,18 @@ object AuthFlowReducer {
         }
     }
 
-    private fun RetryableCode.toFailure(): AuthFailure = when (this) {
-        RetryableCode.NETWORK -> AuthFailure.NETWORK
-        RetryableCode.TIMEOUT -> AuthFailure.TIMEOUT
-        RetryableCode.SERVER -> AuthFailure.SERVER
-        RetryableCode.UNKNOWN -> AuthFailure.UNKNOWN
-    }
+    private fun RetryableCode.toFailure(): AuthFailure = asAuthFailure()
+}
+
+/**
+ * Top-level so the OTP resend path can reuse it. That path surfaces its failure beside the code
+ * field instead of reducing it into `AuthFlowState.Failed`, because a reduced failure knocks the
+ * user out of `AwaitingOtp` and discards the code they may be mid-way through typing — but it
+ * still needs the same mapping, and a second copy would be a second thing to keep in step.
+ */
+fun RetryableCode.asAuthFailure(): AuthFailure = when (this) {
+    RetryableCode.NETWORK -> AuthFailure.NETWORK
+    RetryableCode.TIMEOUT -> AuthFailure.TIMEOUT
+    RetryableCode.SERVER -> AuthFailure.SERVER
+    RetryableCode.UNKNOWN -> AuthFailure.UNKNOWN
 }

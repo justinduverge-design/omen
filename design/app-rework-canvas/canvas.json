@@ -1,0 +1,279 @@
+{
+  "artboards": [
+    {
+      "file": "SignInB.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1 \u00b7 Sign in",
+      "page": "page-3"
+    },
+    {
+      "file": "EmailCode.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 \u00b7 Email code",
+      "page": "page-3"
+    },
+    {
+      "file": "ConnectLeague.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3 \u00b7 Connect your league",
+      "page": "page-3"
+    },
+    {
+      "file": "TradeBuild.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Trade \u2014 build from rosters",
+      "page": "page-1"
+    },
+    {
+      "file": "TradeVerdict.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Trade \u2014 the read + counter",
+      "page": "page-1"
+    },
+    {
+      "file": "TradeShare.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Trade \u2014 share + poll",
+      "page": "page-1"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Command \u2014 widget 1 of 3",
+      "page": "page-2"
+    },
+    {
+      "file": "CommandSwipe2.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Command \u2014 swiped to 2",
+      "page": "page-2"
+    },
+    {
+      "file": "OmenBrief.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Omen \u2014 the call",
+      "page": "page-2"
+    },
+    {
+      "file": "LeagueWaiver.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "League \u2014 with Waiver",
+      "page": "page-2"
+    },
+    {
+      "file": "Ledger.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "The Ledger",
+      "page": "page-2"
+    },
+    {
+      "file": "CommandQuiet.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Command \u2014 quiet week",
+      "page": "page-2"
+    },
+    {
+      "file": "CommandNoLeague.dc.html",
+      "x": 470,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Command \u2014 no league (Abby)",
+      "page": "page-2"
+    },
+    {
+      "file": "EspnConnect.dc.html",
+      "x": 940,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "ESPN \u2014 consent before the sheet",
+      "page": "page-2"
+    },
+    {
+      "file": "ReportPill.dc.html",
+      "x": 1410,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Beta report pill",
+      "page": "page-2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "n-sb",
+      "x": 0,
+      "y": -210,
+      "w": 390,
+      "page": "page-3",
+      "text": "SIGN IN - Option B, built out.\n\nCopy is the APPROVED brand line \"See the move before the league does.\" - the line WelcomeView.swift already carries, inherited by the screen that absorbs it. The alternate approved line is \"See the result before it happens.\" (page-system, the primary marketing line). Say the word and I swap it.\n\nThe Welcome screen is GONE. This is the first screen, and Demo lives on it.\n\nThe mark is your REAL stacked lockup from logos/svg/omen-lockup-stacked.svg - the O is already a football with a brass sheen, so the ball is the logo rather than a decoration beside it.\n\nFootball, kept serious: faint yard lines across the ground and a single warm glow behind the mark. No turf texture, no cartoon.\n\nApple is the filled primary because guideline 4.8 requires Sign in with Apple to be at least as prominent as Google or Discord on iOS. On ANDROID the primary swaps to Google.\n\nThe three icon buttons carry aria-labels - an icon-only control is unusable with VoiceOver without them."
+    },
+    {
+      "id": "n-tbuild",
+      "x": 0,
+      "y": -190,
+      "w": 390,
+      "page": "page-1",
+      "text": "BUILD FROM ROSTERS \u2014 the path that doesn't exist today.\n\nReal assets from real rosters, so nothing can be traded that isn't owned. Third team is a chip, not a mode.\n\nThe dash on Kraft is deliberate: no provider rank Omen can stand behind, so it shows a dash and never invents one."
+    },
+    {
+      "id": "n-tverdict",
+      "x": 470,
+      "y": -190,
+      "w": 390,
+      "page": "page-1",
+      "text": "THE READ \u2014 one screen, three separations.\n\n1. The verdict is blunt and scored ('Counter' + Confident band).\n2. The counter is CONCRETE, built from assets that actually exist.\n3. Private advice is fenced \u2014 Mike's RB thinness never leaves this screen.\n\n'Launch Sleeper' is demoted and labelled honestly: it opens the app and nothing more. Sleeper publishes no trade-write endpoint, so COPY is the real product."
+    },
+    {
+      "id": "n-tshare",
+      "x": 940,
+      "y": -190,
+      "w": 390,
+      "page": "page-1",
+      "text": "SHARE CARD \u2014 the poll is CUT.\n\nNo vote endpoint or storage ever existed; the earlier '42 votes' was fiction at a scale a 10-team league never reaches. People argue in the group chat they're already in.\n\nWhat's left is the thing that travels: an image and a link carrying the trade and NOTHING else \u2014 no verdict, no leverage, no read on Mike."
+    },
+    {
+      "id": "n-deck",
+      "x": 0,
+      "y": -190,
+      "w": 390,
+      "text": "SWIPE DECK, not a scroll.\n\nOne advisor at a time, next one peeking. Impact orders the deck, so Waiver leads this week.\n\nTwo things this buys: each seat gets a real headline and a real action instead of a squeezed row, and 'only advisors with something to say' now shortens the DECK rather than leaving gaps.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-swipe2",
+      "x": 470,
+      "y": -190,
+      "w": 390,
+      "text": "SWIPED TO SEAT 2.\n\nSame frame, different card. Dots carry position.\n\nOPEN: a carousel hides content. If someone never swipes, they never see the Ledger. Worth deciding whether the deck auto-advances once, or whether seat 3 is allowed to be missed.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-conf",
+      "x": 940,
+      "y": -190,
+      "w": 390,
+      "text": "CONFIDENCE \u2014 bands, never a percentage.\n\nConfident / Leaning / Coin flip. The three-up strip is here to show the states side by side; the real screen shows only the active band.\n\nDrop the strip once you've picked the treatment.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-waiver",
+      "x": 1410,
+      "y": -190,
+      "w": 390,
+      "text": "WAIVER lives in League: Matchup - Standings - Waiver - Activity.\n\nEvery pickup names its drop. The engine picks it; the model only writes the sentence.\n\nThe deadline chip is load-bearing \u2014 under pure-impact ordering it is the ONLY warning a closing claim gets.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-ledger",
+      "x": 1880,
+      "y": -190,
+      "w": 390,
+      "text": "LEDGER \u2014 self-reported rows count, but are marked ('You told us').\n\nThat forces the record to disclose its own composition: '5-1 when you followed' sits beside 'two of these six are your own report.'\n\nNo blended number without that sentence.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-quiet",
+      "x": 0,
+      "y": 1880,
+      "w": 390,
+      "text": "QUIET WEEK \u2014 the playful register, fenced.\n\nNever after a loss, an injury, or an error. A single fixed line reads as a stuck screen by the fifth viewing; if it wears thin, rotate a small set in the same voice rather than going flat.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-abby",
+      "x": 470,
+      "y": 1880,
+      "w": 390,
+      "text": "ABBY'S SCREEN \u2014 signed in, no league.\n\nThe context strip becomes the connect prompt and follows her everywhere until it's done. Providers by market share, per your call.\n\nDemo mode is gone, so there is no 'try it fake' escape hatch here.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-espn",
+      "x": 940,
+      "y": 1880,
+      "w": 390,
+      "text": "THE HIGHEST-STAKES SCREEN IN THE APP.\n\nThree plain promises before the sheet opens \u2014 this is what separates 'signing into ESPN' from 'a scam asking for my password'. Modelled on Plaid Link.\n\nBLOCKED until the ESPN terms read and App Review answer are written down (W1-GATE).",
+      "page": "page-2"
+    },
+    {
+      "id": "n-report",
+      "x": 1410,
+      "y": 1880,
+      "w": 390,
+      "text": "BETA ONLY \u2014 compiled out of App Store builds by a build flag, not a runtime toggle.\n\nThe 'sent with your report' list is deliberately visible: people share more when they can see exactly what leaves their phone.",
+      "page": "page-2"
+    },
+    {
+      "id": "n-code",
+      "x": 470,
+      "y": -210,
+      "w": 390,
+      "page": "page-3",
+      "text": "EMAIL CODE - the only sign-in path that needs a screen.\n\nApple, Google and Discord hand off to a system sheet, so there is nothing to design there.\n\nThe six boxes fill as you type and Continue stays disabled until all six land - no button that fails when you press it.\n\nTwo escapes, both named: resend, and change the email. A code screen with no way out is where people quit."
+    },
+    {
+      "id": "n-conn",
+      "x": 940,
+      "y": -210,
+      "w": 390,
+      "page": "page-3",
+      "text": "CONNECT - held to the sign-in standard.\n\nProviders by market share, per your call. Each row says what it will actually cost you before you tap it - and ESPN says 'needs a computer for now', because today it does. That line is what Abby needed and never got.\n\nWhen W1-A ships, the ESPN row changes to a normal tap and this screen barely moves.\n\nThe safety note is not filler: 'never posts or trades on your behalf' is the single most common fear about connecting a fantasy account."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-3"
+  },
+  "pages": [
+    {
+      "id": "page-3",
+      "name": "Onboarding flow"
+    },
+    {
+      "id": "page-1",
+      "name": "Trade \u2014 the bar"
+    },
+    {
+      "id": "page-2",
+      "name": "Council & the rest"
+    }
+  ]
+}

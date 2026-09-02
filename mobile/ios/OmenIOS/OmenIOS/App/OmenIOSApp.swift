@@ -45,6 +45,11 @@ struct OmenIOSApp: App {
             passkeyProvider: passkeyProvider,
             sessionManager: manager
         )
+        // Installs the token-renewal seam. Without this line every authenticated request in
+        // the app sends whatever bearer is in the Keychain, and a Supabase access token lives
+        // one hour — which is how signed-in beta users kept landing back on the sign-in screen.
+        manager.attach(refresher: AuthRepositorySessionRefresher(repository: repository))
+
         if let nativeOAuthProvider = oauthProvider as? ASWebAuthenticationOAuthProvider {
             nativeOAuthProvider.callbackHandler = { [weak viewModel] url in
                 viewModel?.handleOAuthCallback(url)
@@ -75,6 +80,14 @@ struct OmenIOSApp: App {
                     // ceremony (validate CSRF state, exchange PKCE code for session).
                     .onOpenURL { url in
                         guard url.scheme == "com.slopssaloon.omen", url.host == "auth" else { return }
+                        // The same deep link carries two different returns. A *provider connect*
+                        // (Yahoo) comes back with `status=connected|cancelled` and no PKCE code,
+                        // because the server minted, validated and consumed that OAuth state
+                        // itself; `ConnectViewModel` handles it through the browser session's
+                        // own completion. Handing it to the sign-in handler would make it
+                        // dispatch a callback with an empty code and push a signed-in user's
+                        // auth flow into a failure state over a connect that went fine.
+                        guard ConnectViewModel.callbackStatus(url) == nil else { return }
                         authViewModel.handleOAuthCallback(url)
                     }
             }

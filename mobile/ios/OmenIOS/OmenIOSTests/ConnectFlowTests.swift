@@ -21,14 +21,16 @@ final class ConnectFlowTests: XCTestCase {
 
     // MARK: - Provider policy
 
-    /// Sleeper is the only native connect path for beta. Yahoo is paused on an entitlement
-    /// only Yahoo can grant; ESPN is research-gated by the onboarding contract §5.
-    func testOnlySleeperIsConnectableInTheApp() {
+    /// Sleeper and Yahoo both connect natively. ESPN is research-gated by the onboarding
+    /// contract §5 and stays on the web path.
+    ///
+    /// Yahoo read `.useWeb` here until native OAuth was wired: the entitlement had been granted
+    /// on 2026-08-28, but the client had browser plumbing only for Supabase sign-in, so a
+    /// Yahoo tester on a phone was told to go find a computer.
+    func testSleeperAndYahooAreConnectableInTheAppAndEspnIsNot() {
         XCTAssertEqual(ConnectProvider.sleeper.availability, .available)
+        XCTAssertEqual(ConnectProvider.yahoo.availability, .available)
 
-        guard case .useWeb = ConnectProvider.yahoo.availability else {
-            return XCTFail("Yahoo must be on hold, not connectable")
-        }
         guard case .useWeb = ConnectProvider.espn.availability else {
             return XCTFail("ESPN must route to the web, not offer in-app connection")
         }
@@ -227,5 +229,201 @@ final class ConnectFlowTests: XCTestCase {
 
         XCTAssertEqual(sparse.subtitle, "2026")
         XCTAssertFalse(sparse.subtitle.contains("nil"))
+    }
+}
+
+
+// MARK: - Yahoo
+
+/// Native Yahoo connect: browser authorization → server-confirmed connection → league bind.
+///
+/// The flow these cover is the one a beta tester could not complete. Every route already
+/// existed server-side; the client refused to offer the provider at all.
+@MainActor
+final class YahooConnectFlowTests: XCTestCase {
+
+    private func sessionManager(withToken token: String? = "t") -> SessionManager {
+        let store = InMemorySecureSessionStore(
+            initial: token.map {
+                Session(userID: "u1", accessToken: $0, refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999)
+            }
+        )
+        return SessionManager(store: store, nowEpochSeconds: { 1_000 })
+    }
+
+    private let authorizeURL = URL(string: "https://api.login.yahoo.com/oauth2/request_auth?client_id=x&state=y")!
+
+    private func leagues(_ count: Int) -> [YahooLeague] {
+        (1...count).map { YahooLeague(id: "nfl.l.\($0)", name: "League \($0)", season: 2026) }
+    }
+
+    private func viewModel(
+        repository: StubConnectRepository,
+        authSession: StubProviderAuthSession
+    ) -> ConnectViewModel {
+        ConnectViewModel(
+            repository: repository,
+            sessionManager: sessionManager(),
+            authSession: authSession
+        )
+    }
+
+    /// The happy path with more than one league: the user is asked which one.
+    func testAuthorizingThenConfirmingOffersTheLeaguePicker() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        repository.yahooLeaguesResult = .success(leagues(2))
+        let authSession = StubProviderAuthSession(
+            outcome: .returned(URL(string: "com.slopssaloon.omen://auth/callback?status=connected")!)
+        )
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        await viewModel.connectYahoo()
+
+        // The app must open the URL the *server* built, never one it assembled itself — the
+        // CSRF state lives in that URL and is bound to a server-side `oauth_state` row.
+        XCTAssertEqual(authSession.requestedURLs, [authorizeURL])
+        guard case .choosingYahooLeague(let offered) = viewModel.state else {
+            return XCTFail("expected choosingYahooLeague, got \(viewModel.state)")
+        }
+        XCTAssertEqual(offered.count, 2)
+    }
+
+    /// One league is not a choice — binding it directly removes a screen with one possible answer.
+    func testASingleLeagueIsBoundWithoutAskingTheUserToPickIt() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        repository.yahooLeaguesResult = .success(leagues(1))
+        repository.yahooBindResult = .success(())
+        let authSession = StubProviderAuthSession(
+            outcome: .returned(URL(string: "com.slopssaloon.omen://auth/callback?status=connected")!)
+        )
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        await viewModel.connectYahoo()
+
+        guard case .yahooConnected(let league) = viewModel.state else {
+            return XCTFail("expected yahooConnected, got \(viewModel.state)")
+        }
+        XCTAssertEqual(league.id, "nfl.l.1")
+        XCTAssertEqual(repository.recorder.boundYahooLeagueIds, ["nfl.l.1"])
+    }
+
+    /// Contract §6: cancellation is normal, not an error. Dismissing the browser sheet.
+    func testDismissingTheBrowserIsCancellationNotFailure() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        let viewModel = viewModel(repository: repository, authSession: StubProviderAuthSession(outcome: .canceled))
+
+        await viewModel.connectYahoo()
+
+        XCTAssertEqual(viewModel.state, .canceled)
+    }
+
+    /// Declining inside Yahoo's own screen returns `status=cancelled`. Same meaning, so it must
+    /// read the same way — not as an error the user caused.
+    func testDecliningInsideYahooReadsAsCancellationNotFailure() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        let authSession = StubProviderAuthSession(
+            outcome: .returned(URL(string: "com.slopssaloon.omen://auth/callback?status=cancelled")!)
+        )
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        await viewModel.connectYahoo()
+
+        XCTAssertEqual(viewModel.state, .canceled)
+    }
+
+    /// `status=connected` is not proof. Any app on the device can fire that deep link, and more
+    /// usefully, a user can approve in Yahoo while the token exchange fails behind them. The
+    /// server's own answer decides.
+    func testAConnectedStatusIsNotBelievedWithoutServerConfirmation() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        repository.yahooLeaguesResult = .failure(.providerNotConnected)
+        let authSession = StubProviderAuthSession(
+            outcome: .returned(URL(string: "com.slopssaloon.omen://auth/callback?status=connected")!)
+        )
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        await viewModel.connectYahoo()
+
+        XCTAssertEqual(viewModel.state, .retryableError(.providerNotConnected))
+    }
+
+    /// The retry after a failed confirmation re-checks the server rather than reopening the
+    /// browser — sending a user who is in fact connected back through Yahoo is the loop this
+    /// flow exists to avoid.
+    func testCheckingAgainConfirmsWithoutReopeningTheBrowser() async {
+        var repository = StubConnectRepository()
+        repository.yahooLeaguesResult = .success(leagues(2))
+        let authSession = StubProviderAuthSession()
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        await viewModel.confirmYahooConnection()
+
+        XCTAssertTrue(authSession.requestedURLs.isEmpty, "re-checking must not reopen the browser")
+        guard case .choosingYahooLeague = viewModel.state else {
+            return XCTFail("expected choosingYahooLeague, got \(viewModel.state)")
+        }
+    }
+
+    /// A 503 from `requireYahooEnabled` is a product state with its own sentence, not the
+    /// generic "problem on our side".
+    func testAPausedEntitlementGetsItsOwnSentence() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .failure(.providerUnavailable)
+        let viewModel = viewModel(repository: repository, authSession: StubProviderAuthSession())
+
+        await viewModel.connectYahoo()
+
+        XCTAssertEqual(viewModel.state, .retryableError(.providerUnavailable))
+        XCTAssertTrue(ConnectFailure.providerUnavailable.message.contains("Yahoo"))
+        XCTAssertFalse(ConnectFailure.providerUnavailable.message.contains("our side"))
+    }
+
+    /// Selecting Yahoo in the picker starts the flow. It must not fall through to the Sleeper
+    /// username field, which is what `.notStarted` renders.
+    func testSelectingYahooStartsItsOwnFlow() async {
+        var repository = StubConnectRepository()
+        repository.yahooAuthResult = .success(authorizeURL)
+        repository.yahooLeaguesResult = .success(leagues(2))
+        let authSession = StubProviderAuthSession(
+            outcome: .returned(URL(string: "com.slopssaloon.omen://auth/callback?status=connected")!)
+        )
+        let viewModel = viewModel(repository: repository, authSession: authSession)
+
+        viewModel.selectProvider(.yahoo)
+        // `selectProvider` starts the work in a Task; let it run to completion.
+        await viewModel.connectYahoo()
+
+        XCTAssertNotEqual(viewModel.state, .notStarted)
+    }
+
+    /// Every waiting state names what is happening (contract §6: never a bare "Loading…").
+    func testEveryYahooWaitingStateSaysWhatIsHappening() {
+        let waiting: [ConnectState] = [
+            .startingYahooAuthorization,
+            .awaitingYahooReturn,
+            .confirmingYahooConnection,
+            .bindingYahooLeague(league: YahooLeague(id: "nfl.l.1", name: "L", season: 2026)),
+        ]
+        for state in waiting {
+            XCTAssertTrue(state.isBusy, "\(state) should disable controls")
+            XCTAssertNotNil(state.progressLabel, "\(state) needs its own sentence")
+        }
+    }
+
+    /// The deep-link reader must not mistake Supabase's sign-in callback — same scheme, but
+    /// `code`/`state` instead of `status` — for a provider connect return.
+    func testCallbackStatusOnlyReadsProviderReturns() {
+        XCTAssertEqual(
+            ConnectViewModel.callbackStatus(URL(string: "com.slopssaloon.omen://auth/callback?status=connected")!),
+            "connected"
+        )
+        XCTAssertNil(
+            ConnectViewModel.callbackStatus(URL(string: "com.slopssaloon.omen://auth/callback?code=abc&state=xyz")!)
+        )
     }
 }

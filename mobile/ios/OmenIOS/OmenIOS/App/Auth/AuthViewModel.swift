@@ -21,11 +21,26 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var passkeyManagementState: PasskeyManagementState = .idle
     @Published private(set) var showsPasskeyPairingOffer = false
 
+    /// Seconds until another code can be requested. Zero means the resend is live.
+    @Published private(set) var otpResendSecondsRemaining = 0
+    /// Set once a resend has actually been accepted, so the UI can say so.
+    @Published private(set) var otpResent = false
+    /// A resend that failed. Kept separate from `flowState` on purpose: pushing this
+    /// through the reducer would knock the user out of `awaitingOtp` and discard the
+    /// code they may already be typing.
+    @Published private(set) var otpResendError: String?
+
     private let repository: AuthRepository
     private let appleProvider: AppleIDTokenProviding
     private let oauthProvider: SupabaseOAuthProvider
     private let passkeyProvider: PasskeyProvider
     private let sessionManager: SessionManager
+    private var otpCooldownTask: Task<Void, Never>?
+
+    /// Long enough that a second request is a considered act rather than a reflex, and
+    /// comfortably inside Supabase's own per-address rate limit — a user hammering resend
+    /// would otherwise get themselves throttled and blame Omen for the silence.
+    static let otpResendCooldownSeconds = 60
 
     init(
         repository: AuthRepository,
@@ -48,10 +63,73 @@ final class AuthViewModel: ObservableObject {
     func submitEmail() {
         dispatch(.emailSubmitted(email: emailField))
         guard case .requestingOtp(let email) = flowState else { return }
+        otpResent = false
+        otpResendError = nil
         Task {
             let outcome = await repository.requestEmailOtp(email: email)
             dispatch(.otpRequestResult(outcome: outcome))
+            if case .otpSent = outcome { startOtpResendCooldown() }
         }
+    }
+
+    /// Requests another code for the address already in flight.
+    ///
+    /// The code-entry screen used to be a dead end. Supabase answering 200 means it
+    /// **accepted the request**, not that the message reached an inbox — it can still
+    /// bounce, be deferred by the receiving provider, land in spam, or be dropped for an
+    /// address on a suppression list. A user whose code never arrived had nothing to press.
+    ///
+    /// Success deliberately does not touch `flowState`: the user is already on the code
+    /// screen and may be mid-type, and re-entering `awaitingOtp` would clear their field.
+    func resendOtp() {
+        guard otpResendSecondsRemaining == 0 else { return }
+        guard case .awaitingOtp(let email) = flowState else { return }
+
+        otpResent = false
+        otpResendError = nil
+        startOtpResendCooldown()
+        Task {
+            switch await repository.requestEmailOtp(email: email) {
+            case .otpSent:
+                otpResent = true
+            case .retryableError(let code):
+                otpResendError = code.asAuthFailure.userMessage
+                // Nothing was sent, so nothing is worth waiting for.
+                cancelOtpResendCooldown()
+            default:
+                otpResendError = AuthFailure.unknown.userMessage
+                cancelOtpResendCooldown()
+            }
+        }
+    }
+
+    private func startOtpResendCooldown() {
+        otpCooldownTask?.cancel()
+        otpResendSecondsRemaining = Self.otpResendCooldownSeconds
+        otpCooldownTask = Task { [weak self] in
+            while true {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if Task.isCancelled { return }
+                guard let self else { return }
+                if self.otpResendSecondsRemaining <= 1 {
+                    self.otpResendSecondsRemaining = 0
+                    return
+                }
+                self.otpResendSecondsRemaining -= 1
+            }
+        }
+    }
+
+    /// Lets a test exercise the resend without waiting 60 real seconds. The cooldown itself is
+    /// asserted separately, so skipping it here does not skip covering it.
+    func clearOtpResendCooldownForTesting() {
+        cancelOtpResendCooldown()
+    }
+
+    private func cancelOtpResendCooldown() {
+        otpCooldownTask?.cancel()
+        otpCooldownTask = nil
+        otpResendSecondsRemaining = 0
     }
 
     func submitOtp() {
@@ -157,6 +235,9 @@ final class AuthViewModel: ObservableObject {
         passkeys = []
         passkeyManagementState = .idle
         showsPasskeyPairingOffer = false
+        cancelOtpResendCooldown()
+        otpResent = false
+        otpResendError = nil
     }
 
     func loadPasskeys() {

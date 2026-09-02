@@ -15,7 +15,6 @@ import com.slopssaloon.omen.core.session.SessionManager
 class LeagueViewModel(
     private val repository: LeagueRepository,
     private val sessionManager: SessionManager,
-    private val accessTokenProvider: () -> String?,
 ) {
     sealed interface ViewState {
         data object Idle : ViewState
@@ -37,19 +36,13 @@ class LeagueViewModel(
     }
 
     suspend fun reload() {
-        val accessToken = accessTokenProvider()
-        if (accessToken.isNullOrEmpty()) {
-            viewState = ViewState.Failed(OmenApiError.Unauthorized)
-            return
-        }
-
         viewState = ViewState.Loading
-        viewState = when (val result = repository.fetchOverview(accessToken)) {
+        // `authorized` renews an expiring token first and retries once on a 401, so an
+        // Unauthorized arriving here has already survived a forced refresh and has already
+        // routed the session to re-auth.
+        viewState = when (val result = sessionManager.authorized { repository.fetchOverview(it) }) {
             is OmenApiResult.Success -> ViewState.Loaded(result.value)
-            is OmenApiResult.Failure -> {
-                if (result.error is OmenApiError.Unauthorized) sessionManager.onRefreshFailed()
-                ViewState.Failed(result.error)
-            }
+            is OmenApiResult.Failure -> ViewState.Failed(result.error)
         }
     }
 

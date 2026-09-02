@@ -22,15 +22,23 @@ let omenYahooAttributionText = "Fantasy data provided by Yahoo Fantasy."
 /// Whether the Yahoo attribution should render.
 ///
 /// The test is **"can Yahoo Fantasy Information reach this app at all"**, not "can you connect
-/// from inside it". Those came apart on 2026-08-28 when Yahoo restored the entitlement: a user
-/// can now connect Yahoo on the web and that connection is read by every native surface, so the
-/// app displays Yahoo data while offering no in-app Yahoo button.
+/// from inside it". Those came apart on 2026-08-28 when Yahoo restored the entitlement: for a
+/// while a user could connect Yahoo only on the web, while every native surface read that
+/// connection and displayed the data. Gating on `== .available` would have shipped Yahoo data
+/// **with no attribution**, which the Yahoo API Access and Use Agreement requires wherever that
+/// data is displayed.
 ///
-/// Gating on `== .available` would therefore have shipped Yahoo data **with no attribution**,
-/// which the Yahoo API Access and Use Agreement requires wherever that data is displayed. Only
-/// `.onHold` means genuinely no Yahoo data, so only `.onHold` hides the line.
+/// Native connect has since shipped, so `.available` is now the live case — but the gate stays
+/// written the same way on purpose. `.onHold` is the one state that means no Yahoo data exists
+/// anywhere in the app, so `.onHold` is the only state that hides the line.
 var omenShowsYahooAttribution: Bool {
-    if case .onHold = ConnectProvider.yahoo.availability { return false }
+    omenYahooAttributionApplies(to: ConnectProvider.yahoo.availability)
+}
+
+/// Split out so the rule can be tested against every availability state, not only whichever
+/// one happens to be live today.
+func omenYahooAttributionApplies(to availability: ConnectAvailability) -> Bool {
+    if case .onHold = availability { return false }
     return true
 }
 

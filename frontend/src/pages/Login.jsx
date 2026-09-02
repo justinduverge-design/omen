@@ -61,6 +61,24 @@ function DiscordIcon() {
 
 // ── Magic link form ───────────────────────────────────────────────────────────
 
+/**
+ * Requests a sign-in code. Shared by the first send and every resend so both go
+ * through exactly the same call — a resend that differed from the original send
+ * would be a second code path to get wrong.
+ *
+ * Returns an error message, or null on success. A `null` return means Supabase
+ * accepted the request; it does NOT mean the message reached an inbox, which is
+ * why the sent state offers a resend and a route to support rather than
+ * declaring victory.
+ */
+export async function requestSignInLink(email) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin + '/login' },
+  });
+  return error ? error.message : null;
+}
+
 function MagicLinkForm({ onBeforeSubmit, onSent }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,13 +90,10 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
     onBeforeSubmit();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + '/login' },
-    });
+    const message = await requestSignInLink(email);
     setLoading(false);
-    if (err) {
-      setError(err.message);
+    if (message) {
+      setError(message);
     } else {
       onSent(email);
     }
@@ -105,7 +120,7 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
         disabled={loading}
         type="submit"
       >
-        {loading ? 'Sending link…' : 'Continue with Email'}
+        {loading ? 'Sending code…' : 'Email me a sign-in code'}
       </button>
       {error && (
         <p className="text-xs text-red-400" role="alert">{error}</p>
@@ -116,13 +131,181 @@ function MagicLinkForm({ onBeforeSubmit, onSent }) {
 
 // ── Sent confirmation ─────────────────────────────────────────────────────────
 
-function MagicLinkSent({ email }) {
+/** Seconds a user must wait before asking for another code. */
+const RESEND_COOLDOWN_SECONDS = 60;
+
+/**
+ * Writes the legal acceptance audit record. Returns true only on a confirmed write.
+ *
+ * Two attempts: transient failures here are common (cold start, a brief 5xx) and a
+ * single miss would otherwise defer the record for a whole session.
+ */
+export async function recordLegalAcceptance(version, attempts = 2) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await apiFetch('/api/user/legal-acceptance', {
+        method: 'POST',
+        body: {
+          terms_version: version,
+          privacy_version: version,
+          minimum_age_confirmed: true,
+        },
+      });
+      return true;
+    } catch (_) {
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Verifies a 6-digit code. Mirrors what native already does — `POST /auth/v1/verify`
+ * with `type: 'email'` — so both clients accept the same message.
+ */
+export async function verifySignInCode(email, token) {
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+  return error ? error.message : null;
+}
+
+/**
+ * What happens after a code is requested.
+ *
+ * This screen used to say "Click it to continue" and offer no input at all, because the web
+ * client was written for a magic *link*. Native, though, calls `auth/v1/otp` and then verifies
+ * a 6-digit token at `auth/v1/verify` — so the project's email template renders a **code**, and
+ * both clients share one template. The result was a user holding a code with nowhere on the
+ * website to type it. That is the "I can't get in" the beta kept reporting.
+ *
+ * So the code field is the primary action here, and the link still works if the template
+ * carries one (`detectSessionInUrl` is on).
+ *
+ * The rest is delivery help. Supabase answering 200 to the request means it *accepted* it, not
+ * that the message reached an inbox — it can still bounce, be deferred by the receiving
+ * provider, land in spam, or be dropped for an address on a suppression list.
+ */
+function EmailCodeStep({ email, onResend }) {
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState('');
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return undefined;
+    const timer = setTimeout(() => setSecondsLeft((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [secondsLeft]);
+
+  // Supabase codes are 6 digits. Stripping anything else as it is typed means a pasted
+  // "123 456" or a stray space from an email client still verifies.
+  const normalized = code.replace(/\D/g, '').slice(0, 6);
+  const canVerify = normalized.length === 6 && !verifying;
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    if (!canVerify) return;
+    setVerifying(true);
+    setVerifyError('');
+    const message = await verifySignInCode(email, normalized);
+    setVerifying(false);
+    // Success needs no branch: `onAuthStateChange` on the page below picks up the new session
+    // and routes on, exactly as it does for a link or an OAuth return.
+    if (message) setVerifyError(message);
+  }
+
+  async function handleResend() {
+    setResending(true);
+    setResendError('');
+    setResent(false);
+    const message = await onResend(email);
+    setResending(false);
+    if (message) {
+      setResendError(message);
+    } else {
+      setResent(true);
+      setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+      setCode('');
+      setVerifyError('');
+    }
+  }
+
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4 text-center">
-      <p className="text-sm font-semibold text-[var(--color-text-primary)]">Check your email</p>
-      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-        We sent a sign-in link to <span className="text-[var(--color-text-primary)]">{email}</span>.
-        Click it to continue.
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-5">
+      <p className="text-sm font-semibold text-[var(--color-text-primary)]">Enter your sign-in code</p>
+      <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+        We sent a 6-digit code to <span className="text-[var(--color-text-primary)]">{email}</span>.
+      </p>
+
+      <form className="mt-4 flex flex-col gap-3" onSubmit={handleVerify}>
+        <label className="sr-only" htmlFor="login-code">6-digit code</label>
+        <input
+          id="login-code"
+          aria-label="6-digit code"
+          // `one-time-code` is what lets iOS and Android offer the code from the
+          // notification instead of making the user switch apps to read it.
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          autoFocus
+          className="w-full min-h-[52px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 text-center text-lg font-semibold tracking-[0.4em] text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none transition-colors focus:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+          placeholder="000000"
+          type="text"
+          value={normalized}
+          onChange={(e) => setCode(e.target.value)}
+        />
+        <button
+          className="w-full min-h-[48px] rounded-lg bg-[var(--color-accent)] px-5 text-sm font-semibold text-black transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          aria-busy={verifying}
+          disabled={!canVerify}
+          type="submit"
+        >
+          {verifying ? 'Verifying…' : 'Verify and sign in'}
+        </button>
+        {verifyError && <p className="text-xs text-red-400" role="alert">{verifyError}</p>}
+      </form>
+
+      <p className="mt-4 text-xs leading-5 text-[var(--color-text-tertiary)]">
+        If the email has a sign-in button instead, that works too. Codes usually land within a
+        minute — if it hasn&apos;t, check your spam or junk folder, and on Yahoo or iCloud look in
+        Promotions.
+      </p>
+
+      <button
+        type="button"
+        onClick={handleResend}
+        disabled={resending || secondsLeft > 0}
+        aria-busy={resending}
+        className="mt-3 min-h-[44px] w-full rounded-lg border border-[var(--color-border)] px-4 text-xs font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {resending
+          ? 'Sending…'
+          : secondsLeft > 0
+            ? `Resend in ${secondsLeft}s`
+            : 'Send a new code'}
+      </button>
+
+      {resent && (
+        <p className="mt-2 text-xs text-[var(--color-text-secondary)]" role="status">
+          Sent again. Use the newest code — the earlier one stops working.
+        </p>
+      )}
+      {resendError && <p className="mt-2 text-xs text-red-400" role="alert">{resendError}</p>}
+
+      <p className="mt-4 text-xs text-[var(--color-text-tertiary)]">
+        Still nothing?{' '}
+        <Link
+          to="/support"
+          className="underline underline-offset-2 transition-colors hover:text-[var(--color-text-secondary)]"
+        >
+          Get help
+        </Link>
+        {' '}— you don&apos;t need the email to reach us.
       </p>
     </div>
   );
@@ -172,24 +355,26 @@ export default function Login() {
       acceptanceInFlight.current = true;
       setRedirecting(true);
       if (hasCurrentLegalAcceptancePending()) {
-        try {
-          await apiFetch('/api/user/legal-acceptance', {
-            method: 'POST',
-            body: {
-              terms_version: legalVersion,
-              privacy_version: legalVersion,
-              minimum_age_confirmed: true,
-            },
-          });
+        // Record the acceptance, but never let failing to record it revoke a session
+        // that Supabase just granted.
+        //
+        // This block used to call `supabase.auth.signOut()` on any failure. The founder
+        // hit it live: Supabase logged `/verify 200` (login, method otp), our API
+        // answered this call with a 500 three tenths of a second later, and Supabase
+        // logged `/logout 204` in the same second. He was signed in and then signed
+        // straight back out by Omen, and the "token has expired" he saw next was just
+        // the second attempt at an already-consumed code. Any 500, CORS refusal, cold
+        // start, or dropped connection did that to every user who signed in.
+        //
+        // The user's acceptance happened when they pressed the button under the consent
+        // line; this request is the audit write for it. A failed audit write is a
+        // bookkeeping problem, so it is retried once now and left pending for the next
+        // sign-in — it is not grounds to deny someone access to their own account.
+        // Clearing the marker is what "recorded" means. Leaving it set on failure is
+        // the retry: `hasCurrentLegalAcceptancePending()` finds it again on the next
+        // sign-in, within its 24-hour window, and tries the write once more.
+        if (await recordLegalAcceptance(legalVersion)) {
           window.localStorage.removeItem('omen.legal.pending');
-        } catch (_) {
-          await supabase.auth.signOut();
-          if (mounted) {
-            setRedirecting(false);
-            setOauthError('Omen could not record your agreement. Please try signing in again.');
-          }
-          acceptanceInFlight.current = false;
-          return;
         }
       }
       const dest = consumeNextUrl();
@@ -305,7 +490,7 @@ export default function Login() {
         )}
 
         {sentEmail ? (
-          <MagicLinkSent email={sentEmail} />
+          <EmailCodeStep email={sentEmail} onResend={requestSignInLink} />
         ) : (
           <div className="flex flex-col gap-3">
             {/* Social providers */}

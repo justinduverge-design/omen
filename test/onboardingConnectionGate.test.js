@@ -12,7 +12,7 @@ test("connected platform completes onboarding and the explicit skip cannot redir
   const onboarding = read("frontend", "src", "pages", "Onboarding.jsx");
   const connectLeague = read("frontend", "src", "pages", "ConnectLeague.jsx");
 
-  assert.match(onboarding, /syncOnboardingFromServer\(apiFetch\)/,
+  assert.match(onboarding, /resolveOnboardingStatus\(apiFetch\)/,
     "onboarding must check the platform connection contract, not recommendation readiness");
   // The shared action moved to `frontend/src/lib/onboarding.js` (2026-08-16,
   // P1-ConnectContinueRoute) so the gate, the help drawer, and both exit paths

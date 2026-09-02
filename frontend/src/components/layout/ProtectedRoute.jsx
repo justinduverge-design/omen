@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { apiFetch } from '../../lib/api.js';
 import { storeNextUrl } from '../../lib/nextUrl.js';
-import { isOnboardingDone, syncOnboardingFromServer } from '../../lib/onboarding.js';
+import { OnboardingStatus, isOnboardingDone, resolveOnboardingStatus } from '../../lib/onboarding.js';
 import { supabase } from '../../lib/supabase.js';
 
 export default function ProtectedRoute({ children }) {
   const location = useLocation();
   const [session, setSession] = useState(undefined); // undefined = still loading
-  // undefined = not yet resolved against the server.
-  const [onboarded, setOnboarded] = useState(() => (isOnboardingDone() ? true : undefined));
+  // undefined = not yet resolved against the server; otherwise an OnboardingStatus.
+  const [onboarding, setOnboarding] = useState(
+    () => (isOnboardingDone() ? OnboardingStatus.CONNECTED : undefined),
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -49,15 +51,15 @@ export default function ProtectedRoute({ children }) {
   // browser, an incognito window, or a second device re-onboards an established
   // account. Exempt /onboarding itself so the page can run its own check.
   useEffect(() => {
-    if (!session || onboarded !== undefined) return;
+    if (!session || onboarding !== undefined) return;
     let mounted = true;
-    syncOnboardingFromServer(apiFetch).then((done) => {
-      if (mounted) setOnboarded(done);
+    resolveOnboardingStatus(apiFetch).then((status) => {
+      if (mounted) setOnboarding(status);
     });
     return () => { mounted = false; };
-  }, [session, onboarded]);
+  }, [session, onboarding]);
 
-  if (session === undefined || (session && onboarded === undefined && location.pathname !== '/onboarding')) {
+  if (session === undefined || (session && onboarding === undefined && location.pathname !== '/onboarding')) {
     return (
       <div
         className="flex min-h-[100dvh] items-center justify-center"
@@ -77,8 +79,16 @@ export default function ProtectedRoute({ children }) {
   }
 
   // Onboarding gate — redirect new users until setup is complete.
+  //
+  // Only a *confirmed* NOT_CONNECTED redirects. This used to be `if (!onboarded)`
+  // over a boolean that was false both for "no league connected" and for "the
+  // check failed", so one flaky `/api/platforms` response threw an established
+  // user back to the first setup screen. An UNKNOWN answer is not evidence about
+  // the user, so the destination renders instead — and every destination already
+  // has an honest disconnected state with its own connect action, which is a far
+  // better wrong answer than re-onboarding someone who is already set up.
   // Exempt /onboarding itself to avoid a redirect loop.
-  if (!onboarded && location.pathname !== '/onboarding') {
+  if (onboarding === OnboardingStatus.NOT_CONNECTED && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

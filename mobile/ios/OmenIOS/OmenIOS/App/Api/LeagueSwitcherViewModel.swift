@@ -42,11 +42,7 @@ final class LeagueSwitcherViewModel: ObservableObject {
             return
         }
         viewState = .loading
-        guard let token = sessionManager.currentSession?.accessToken else {
-            viewState = .failed(.unauthorized)
-            return
-        }
-        switch await repository.fetchDirectory(accessToken: token) {
+        switch await sessionManager.authorized({ await repository.fetchDirectory(accessToken: $0) }) {
         case .success(let directory): viewState = .loaded(directory)
         case .failure(let error): viewState = .failed(error)
         }
@@ -62,14 +58,11 @@ final class LeagueSwitcherViewModel: ObservableObject {
         selectingLeagueID = leagueID
         defer { selectingLeagueID = nil }
 
-        guard let token = sessionManager.currentSession?.accessToken else {
-            selectionError = .unauthorized
-            return nil
+        let result = await sessionManager.authorized {
+            await repository.selectLeague(
+                accessToken: $0, platform: platform, leagueID: leagueID, teamID: teamID
+            )
         }
-
-        let result = await repository.selectLeague(
-            accessToken: token, platform: platform, leagueID: leagueID, teamID: teamID
-        )
 
         switch result {
         case .success(let selection):
