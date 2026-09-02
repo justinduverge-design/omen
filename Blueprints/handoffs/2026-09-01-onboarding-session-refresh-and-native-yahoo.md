@@ -97,3 +97,73 @@ and sign out a user whose session was fine.
 client secret**. `.gitignore` covered `.env` and `.env.*` but not that name, so any `git add .`
 would have committed both. Fixed on `main` in `0819e62`; rotate those credentials if the file has
 ever been shared or synced.
+
+
+---
+
+## Addendum — 2026-09-02, live verification and two more defects
+
+### The refresh fix is proven in production, not just in tests
+
+Supabase auth logs for the founder's account, Android, against the live API:
+
+| Time (UTC) | Event |
+| --- | --- |
+| 01:58:54 | `/verify` **200** + `Login` — email code accepted |
+| **02:34:39** | **`/token` 200 + `Login` — an access token silently renewed** |
+| 02:51:16 | `/logout` 204, then `/user` 403 `Session not found` |
+
+That `/token 200` is the whole point of this branch. It is the call that never happened before —
+`AuthRepository.refresh()` was implemented and unreachable — and its absence is what ejected
+every signed-in user after an hour.
+
+The "Please sign in again" screen that followed the `/logout` is **correct**: a revoked refresh
+token must be believed. Nothing in the Android app calls the network sign-out (`SessionManager.
+signOut()` clears local storage only), so that logout came from another device.
+
+### Open question worth chasing: sign-out is global
+
+Supabase's default `signOut` scope revokes **every** session for the user, so signing out on the
+web logs the phone out too. `ProtectedRoute` can trigger that automatically:
+
+```js
+apiFetch('/api/session').then((d) => { if (d?.authenticated === false) supabase.auth.signOut(); })
+```
+
+It only fires on an explicit `authenticated: false`, not on a network error, so it is much
+narrower than the legal-acceptance bug fixed in 363c3f7 — but it is the same shape. If
+`/api/session` ever answers `false` spuriously, one web tab signs the user out on every device
+they own. Worth deciding deliberately: either scope that sign-out to `local`, or stop inferring
+sign-out from a single server answer.
+
+### ESPN reported a null league name to every client
+
+`espnStandings()`/`espnOverview()` built envelopes with no `league_name` while Sleeper and Yahoo
+supplied one. The name was never missing from ESPN — `mSettings` has always been requested and
+has always carried it; it was never read. Fixed in `c988f15` via `buildLeagueContext`, same
+single fetch.
+
+On Android that null had been rendering as the literal word **"null"** under the team name,
+because `org.json.optString` returns the string `"null"` for a JSON null. Three parsers had
+grown a private `optStringOrNull` with the correct `isNull` check; seven had nothing, and 89 of
+101 call sites were unguarded. Consolidated to one shared helper in `1987198`.
+
+### A deliberate reversal, flagged for the design steward
+
+`contextStrip` required platform + league name + team, or it rendered the **Empty** state. So a
+missing league name did not blank one line — it told a connected user to "Choose a team". The
+league name is now optional on `OmenContextStripState.Selected` and the line is omitted when
+absent. Two iOS tests asserting the old rule were reversed with their reasoning recorded.
+
+No strip state was added or removed; the registry's four locked states (Figma `25:2`) are intact.
+**Making a rendered field optional is still a design-steward call**, and this addendum is the
+record of it.
+
+### Native Yahoo: proven up to Yahoo's own login
+
+On Android, tapping Yahoo opened `login.yahoo.com` in a Chrome Custom Tab. That proves the server
+returned an authorization URL (so `YAHOO_ENABLED=true` is live), the app opened the
+**server-built** URL rather than one it composed, and Yahoo accepted the `redirect_uri` — the
+console needs no change, because Yahoo only ever sees
+`https://slopssaloon.com/api/yahoo/callback`. The remaining step is a human entering Yahoo
+credentials; it was not performed.
