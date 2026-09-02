@@ -3,6 +3,7 @@ package com.slopssaloon.omen.app.feature.connect
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.OmenApiResult
+import com.slopssaloon.omen.app.feature.api.optStringOrNull
 import org.json.JSONObject
 import java.util.Calendar
 
@@ -179,14 +180,14 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
         buildList {
             for (i in 0 until (rows?.length() ?: 0)) {
                 val row = rows?.optJSONObject(i) ?: continue
-                val id = row.optString("league_id").takeIf { it.isNotEmpty() && it != "null" } ?: continue
+                val id = row.optStringOrNull("league_id") ?: continue
                 add(
                     YahooLeague(
                         id = id,
                         // `getUserLeagues()` returns name/season nullable — a Yahoo payload
                         // shape that drifts still yields the league key, which is the only
                         // field the bind needs.
-                        name = row.optString("name").takeIf { it.isNotEmpty() && it != "null" }
+                        name = row.optStringOrNull("name")
                             ?: "Untitled league",
                         season = row.optInt("season").takeIf { it > 0 },
                     ),
@@ -207,26 +208,24 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
         val leagues = buildList {
             for (i in 0 until (rows?.length() ?: 0)) {
                 val row = rows?.optJSONObject(i) ?: continue
-                val id = row.optString("id").takeIf { it.isNotEmpty() } ?: continue
+                val id = row.optStringOrNull("id") ?: continue
                 add(
                     SleeperLeague(
                         id = id,
                         // `sleeperLeagueSummary()` returns name/team_name nullable — a drifting
                         // roster lookup still yields the league. An unnamed league gets a
                         // neutral label rather than an unidentifiable empty row.
-                        name = row.optString("name").takeIf { it.isNotEmpty() && it != "null" }
+                        name = row.optStringOrNull("name")
                             ?: "Untitled league",
                         season = row.optInt("season")
                             .takeIf { it > 0 } ?: Calendar.getInstance().get(Calendar.YEAR),
-                        scoringFormat = row.optString("scoring_format")
-                            .takeIf { it.isNotEmpty() && it != "null" },
-                        teamName = row.optString("team_name")
-                            .takeIf { it.isNotEmpty() && it != "null" },
+                        scoringFormat = row.optStringOrNull("scoring_format"),
+                        teamName = row.optStringOrNull("team_name"),
                     ),
                 )
             }
         }
-        ResolvedSleeperAccount(username = root.optString("username"), leagues = leagues)
+        ResolvedSleeperAccount(username = root.optStringOrNull("username").orEmpty(), leagues = leagues)
     }.getOrNull()
 }
 

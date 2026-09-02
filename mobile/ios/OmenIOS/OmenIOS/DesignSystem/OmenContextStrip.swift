@@ -6,7 +6,12 @@ import SwiftUI
 /// composition renders the strip and the tap target, the calling screen owns the switcher
 /// sheet.
 enum OmenContextStripState {
-    case selected(platform: OmenPlatform, leagueName: String, teamName: String)
+    /// `leagueName` is optional because a provider can genuinely fail to supply one — ESPN did,
+    /// for every user, until the adapter learned to read the name `mSettings` already returns.
+    /// The strip used to demand a league name and fall through to `.empty` without it, so a
+    /// real connected team vanished behind "Choose a team". Omitting one line is honest;
+    /// erasing the selection, or inventing a name for it, is not.
+    case selected(platform: OmenPlatform, leagueName: String?, teamName: String)
     case needsRecovery(platform: OmenPlatform, leagueName: String, teamName: String, reason: String)
     case empty
     case multiTeamHint(platform: OmenPlatform, leagueName: String, teamName: String, otherTeamCount: Int)
@@ -77,9 +82,12 @@ struct OmenContextStrip: View {
             Text(teamName)
                 .omenTextStyle(OmenTypography.h3)
                 .foregroundStyle(OmenColor.textPrimary)
-            Text(leagueName)
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textSecondary)
+            // Omitted entirely when the provider gave no name — never a placeholder.
+            if let leagueName {
+                Text(leagueName)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+            }
         case let .needsRecovery(_, _, teamName, reason):
             Text(teamName)
                 .omenTextStyle(OmenTypography.h3)
@@ -115,7 +123,10 @@ struct OmenContextStrip: View {
 func omenContextStripAccessibilityLabel(_ state: OmenContextStripState) -> String {
     switch state {
     case let .selected(platform, leagueName, teamName):
-        return "Selected: \(teamName) in \(leagueName) on \(platformLabel(platform)). Tap to switch."
+        if let leagueName {
+            return "Selected: \(teamName) in \(leagueName) on \(platformLabel(platform)). Tap to switch."
+        }
+        return "Selected: \(teamName) on \(platformLabel(platform)). Tap to switch."
     case let .needsRecovery(platform, leagueName, teamName, reason):
         return "Reauth needed for \(teamName) in \(leagueName) on \(platformLabel(platform)). \(reason). Tap to switch."
     case let .multiTeamHint(platform, leagueName, teamName, otherTeamCount):

@@ -57,18 +57,20 @@ data class LeagueStandings(
     /**
      * The context strip this standings response can honestly support.
      *
-     * Returns null — meaning "leave the strip as it is" — unless we have a real platform, a real
-     * league name, and a team the provider marked as the caller's. A partial answer would mean
-     * printing a placeholder next to a real one, which is the invention this mapping prevents.
+     * Returns null — meaning "leave the strip as it is" — unless we have a real platform and a
+     * team the provider marked as the caller's. A placeholder next to a real value is the
+     * invention this mapping prevents; an omitted optional line is not the same thing.
+     *
+     * The league name was required here too until 2026-09-02, which sent every ESPN user to the
+     * Empty state — "Choose a team" — while their league was connected and their team known.
      */
     val contextStrip: OmenContextStripState?
         get() {
             val platform = omenPlatform ?: return null
-            val league = leagueName?.takeIf { it.isNotEmpty() } ?: return null
-            val team = currentUserTeam?.teamName?.takeIf { it.isNotEmpty() } ?: return null
+            val team = currentUserTeam?.teamName?.takeIf { it.isNotBlank() } ?: return null
             return OmenContextStripState.Selected(
                 platform = platform,
-                leagueName = league,
+                leagueName = leagueName?.takeIf { it.isNotBlank() },
                 teamName = team,
             )
         }
@@ -125,7 +127,7 @@ data class LeagueStandings(
                     val row = rows?.optJSONObject(i) ?: continue
                     add(
                         Team(
-                            teamName = row.optString("team_name").takeIf { it.isNotEmpty() },
+                            teamName = row.optStringOrNull("team_name"),
                             // A missing flag means "not known to be mine", never "mine".
                             isCurrentUser = row.optBoolean("is_current_user", false),
                             rank = if (row.has("rank")) row.optInt("rank") else null,
@@ -139,10 +141,9 @@ data class LeagueStandings(
             }
 
             LeagueStandings(
-                contractVersion = root.optString("contract_version"),
-                platform = root.optString("platform"),
-                leagueName = root.optString("league_name")
-                    .takeIf { it.isNotEmpty() && it != "null" },
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                platform = root.optStringOrNull("platform").orEmpty(),
+                leagueName = root.optStringOrNull("league_name"),
                 standings = teams,
             )
         }.getOrNull()

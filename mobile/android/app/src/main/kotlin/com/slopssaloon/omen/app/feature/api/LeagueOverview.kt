@@ -133,16 +133,20 @@ data class LeagueOverview(
         }
 
     /**
-     * Same rule as `LeagueStandings.contextStrip`: a real platform, a real league name, and a
-     * team the provider marked as the caller's — or nothing.
+     * Same rule as `LeagueStandings.contextStrip`: a real platform and a team the provider
+     * marked as the caller's — or nothing.
+     *
+     * The league **name** used to be required too, which meant every ESPN user fell through to
+     * the Empty state and was told to "Choose a team" while their league sat connected. The
+     * name is what a provider is most likely to omit, and it is the least load-bearing of the
+     * three: the strip's job is to say which team you are looking at.
      */
     val contextStrip: OmenContextStripState?
         get() {
             val resolved = omenPlatform ?: return null
-            val league = leagueName?.takeIf { it.isNotEmpty() } ?: return null
             val team = standings.teams.firstOrNull { it.isCurrentUser }
-                ?.teamName?.takeIf { it.isNotEmpty() } ?: return null
-            return OmenContextStripState.Selected(resolved, league, team)
+                ?.teamName?.takeIf { it.isNotBlank() } ?: return null
+            return OmenContextStripState.Selected(resolved, leagueName?.takeIf { it.isNotBlank() }, team)
         }
 
     /**
@@ -243,10 +247,10 @@ data class LeagueOverview(
             val root = JSONObject(json)
 
             LeagueOverview(
-                contractVersion = root.optString("contract_version"),
-                platform = root.optString("platform"),
-                leagueId = root.optString("league_id").takeIf { it.isNotEmpty() },
-                leagueName = root.optString("league_name").takeIf { it.isNotEmpty() },
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                platform = root.optStringOrNull("platform").orEmpty(),
+                leagueId = root.optStringOrNull("league_id"),
+                leagueName = root.optStringOrNull("league_name"),
                 season = root.optInt("season").takeIf { root.has("season") },
                 week = root.optInt("week").takeIf { root.has("week") },
                 matchup = parseMatchup(root.optJSONObject("matchup")),
@@ -256,18 +260,18 @@ data class LeagueOverview(
         }.getOrNull()
 
         private fun parseMatchup(obj: JSONObject?): Matchup = Matchup(
-            status = Matchup.Status.from(obj?.optString("status")),
+            status = Matchup.Status.from(obj?.optStringOrNull("status").orEmpty()),
             you = parseSide(obj?.optJSONObject("you")),
             opponent = parseSide(obj?.optJSONObject("opponent")),
-            unavailableReason = obj?.optString("unavailable_reason")?.takeIf { it.isNotEmpty() && it != "null" },
+            unavailableReason = obj?.optStringOrNull("unavailable_reason").orEmpty()?.takeIf { it.isNotEmpty() && it != "null" },
         )
 
         private fun parseSide(obj: JSONObject?): Matchup.Side? {
             if (obj == null) return null
             return Matchup.Side(
-                teamId = obj.optString("team_id").takeIf { it.isNotEmpty() },
-                teamName = obj.optString("team_name").takeIf { it.isNotEmpty() && it != "null" },
-                record = obj.optString("record").takeIf { it.isNotEmpty() && it != "null" },
+                teamId = obj.optStringOrNull("team_id"),
+                teamName = obj.optStringOrNull("team_name"),
+                record = obj.optStringOrNull("record"),
                 points = if (obj.has("points") && !obj.isNull("points")) obj.optDouble("points") else null,
                 projected = if (obj.has("projected") && !obj.isNull("projected")) obj.optDouble("projected") else null,
             )
@@ -280,7 +284,7 @@ data class LeagueOverview(
                     val row = rows?.optJSONObject(i) ?: continue
                     add(
                         LeagueStandings.Team(
-                            teamName = row.optString("team_name").takeIf { it.isNotEmpty() },
+                            teamName = row.optStringOrNull("team_name"),
                             isCurrentUser = row.optBoolean("is_current_user", false),
                             rank = if (row.has("rank")) row.optInt("rank") else null,
                             wins = if (row.has("wins")) row.optInt("wins") else null,
@@ -299,15 +303,14 @@ data class LeagueOverview(
                 Standings.PlayoffPicture(
                     rank = pictureJson.optInt("rank"),
                     teamCount = pictureJson.optInt("team_count"),
-                    line = pictureJson.optString("line"),
-                    cutLineNote = pictureJson.optString("cut_line_note")
-                        .takeIf { it.isNotEmpty() && it != "null" },
+                    line = pictureJson.optStringOrNull("line").orEmpty(),
+                    cutLineNote = pictureJson.optStringOrNull("cut_line_note"),
                     settingsKnown = pictureJson.optBoolean("settings_known", false),
                 )
             }
 
             return Standings(
-                status = Standings.Status.from(obj?.optString("status")),
+                status = Standings.Status.from(obj?.optStringOrNull("status").orEmpty()),
                 playoffPicture = picture,
                 teams = teams,
             )
@@ -318,7 +321,7 @@ data class LeagueOverview(
             val items = obj?.optJSONArray("items")
 
             return Activity(
-                status = Activity.Status.from(obj?.optString("status")),
+                status = Activity.Status.from(obj?.optStringOrNull("status").orEmpty()),
                 unavailableFamilies = buildList {
                     for (i in 0 until (families?.length() ?: 0)) {
                         families?.optString(i)?.takeIf { it.isNotEmpty() }?.let { add(it) }
@@ -329,9 +332,9 @@ data class LeagueOverview(
                         val row = items?.optJSONObject(i) ?: continue
                         add(
                             Activity.Item(
-                                category = row.optString("category"),
-                                text = row.optString("text"),
-                                source = row.optString("source"),
+                                category = row.optStringOrNull("category").orEmpty(),
+                                text = row.optStringOrNull("text").orEmpty(),
+                                source = row.optStringOrNull("source").orEmpty(),
                             ),
                         )
                     }

@@ -17,6 +17,11 @@ final class OmenCommandCenterScreenTests: XCTestCase {
         // "mock" appears in the visible fixture strings so a caller cannot silently
         // ship this fixture to a real signed-in user without the label reading as such.
         if case let .selected(_, leagueName, teamName) = state.context {
+            // `leagueName` is optional on the state now, but the DEMO fixture must still carry
+            // one — a nil here would quietly drop the "demo" label this test exists to enforce.
+            guard let leagueName else {
+                return XCTFail("the demo fixture must name its league so the label is visible")
+            }
             XCTAssertTrue(leagueName.lowercased().contains("demo") || leagueName.lowercased().contains("mock"))
             XCTAssertTrue(teamName.lowercased().contains("demo"))
         } else {

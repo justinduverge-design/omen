@@ -70,9 +70,14 @@ function defaultSleeperAdapter(overrides = {}) {
 
 function defaultEspnAdapter(overrides = {}) {
   return {
-    buildLeagueStandings: async () => ([
-      { rank: 1, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 5, losses: 3 },
-    ]),
+    // The routes read the league name from the same fetch as the standings; ESPN had been
+    // building every envelope without one.
+    buildLeagueContext: async () => ({
+      league_name: "The Titans of Slopsilonia",
+      standings: [
+        { rank: 1, team_id: "9", team_name: "ESPN Team", is_current_user: true, wins: 5, losses: 3 },
+      ],
+    }),
     fetchEspnMatchup: async () => ({
       status: "final",
       you: { team_id: "9", team_name: "ESPN Team", record: "5-3", points: 120.2, projected: null },

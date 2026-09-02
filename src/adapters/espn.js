@@ -502,6 +502,33 @@ async function buildLeagueStandings(leagueId, espn_s2, swid, opts = {}) {
   return standingsFromEspnData(data, swid, opts);
 }
 
+/**
+ * The league's own name, which `mSettings` already carries.
+ *
+ * This call has always requested `mSettings`, and the name has always been in the response —
+ * it was simply never read. `espnStandings()`/`espnOverview()` therefore built every envelope
+ * without a `league_name`, so `league-overview.v1` reported `null` for **every ESPN user**,
+ * while Sleeper and Yahoo both supplied it. On Android that null surfaced as the literal word
+ * "null" under the team name on the Command Center; on iOS and web it left the league unnamed.
+ *
+ * Exported separately rather than folded into `buildLeagueStandings`'s return so the existing
+ * array contract — and its `.length`/`.map` call sites — stay exactly as they are.
+ */
+function leagueNameFromEspnData(data) {
+  const name = data?.settings?.name;
+  return typeof name === "string" && name.trim() ? name.trim() : null;
+}
+
+/** One fetch, both answers. Used by the routes that build an envelope carrying a league name. */
+async function buildLeagueContext(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mSettings"], scoringPeriodId, opts);
+  return {
+    league_name: leagueNameFromEspnData(data),
+    standings: standingsFromEspnData(data, swid, opts),
+  };
+}
+
 function teamFromEspnData(data, swid, espnTeamId) {
   const teams = data?.teams || [];
   const opts = espnTeamId != null ? { teamId: espnTeamId } : {};
@@ -731,6 +758,8 @@ async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
 
 module.exports = {
   buildLeagueStandings,
+  buildLeagueContext,
+  leagueNameFromEspnData,
   buildNormalizedRoster,
   fetchEspnWaiverPool,
   fetchEspnLastResult,

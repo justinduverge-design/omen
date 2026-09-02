@@ -103,25 +103,25 @@ data class TradeCompare(
             val applied = ctx?.optJSONArray("applied")
 
             TradeCompare(
-                contractVersion = root.optString("contract_version"),
-                verdictState = VerdictState.from(root.optString("verdict_state")),
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
+                verdictState = VerdictState.from(root.optStringOrNull("verdict_state").orEmpty()),
                 evaluability = Evaluability(
                     status = ev?.optString("status").orEmpty(),
-                    reason = ev?.optString("reason")?.takeIf { it.isNotEmpty() && it != "null" },
+                    reason = ev?.optStringOrNull("reason").orEmpty()?.takeIf { it.isNotEmpty() && it != "null" },
                     missingProjectionCount = ev?.optInt("missing_projection_count") ?: 0,
                     totalPlayerCount = ev?.optInt("total_player_count") ?: 0,
                 ),
                 analysisContext = AnalysisContext(
                     mode = ctx?.optString("mode").orEmpty(),
-                    platform = ctx?.optString("platform")?.takeIf { it.isNotEmpty() && it != "null" },
-                    leagueId = ctx?.optString("league_id")?.takeIf { it.isNotEmpty() && it != "null" },
-                    leagueName = ctx?.optString("league_name")?.takeIf { it.isNotEmpty() && it != "null" },
+                    platform = ctx?.optStringOrNull("platform").orEmpty()?.takeIf { it.isNotEmpty() && it != "null" },
+                    leagueId = ctx?.optStringOrNull("league_id").orEmpty()?.takeIf { it.isNotEmpty() && it != "null" },
+                    leagueName = ctx?.optStringOrNull("league_name").orEmpty()?.takeIf { it.isNotEmpty() && it != "null" },
                     applied = buildList {
                         for (i in 0 until (applied?.length() ?: 0)) {
                             applied?.optString(i)?.takeIf { it.isNotEmpty() }?.let { add(it) }
                         }
                     },
-                    unavailableReason = ctx?.optString("unavailable_reason")
+                    unavailableReason = ctx?.optStringOrNull("unavailable_reason").orEmpty()
                         ?.takeIf { it.isNotEmpty() && it != "null" },
                 ),
                 netValue = if (root.has("net_value") && !root.isNull("net_value")) {
@@ -129,7 +129,7 @@ data class TradeCompare(
                 } else {
                     null
                 },
-                explanation = root.optString("explanation").takeIf { it.isNotEmpty() && it != "null" },
+                explanation = root.optStringOrNull("explanation"),
             )
         }.getOrNull()
     }

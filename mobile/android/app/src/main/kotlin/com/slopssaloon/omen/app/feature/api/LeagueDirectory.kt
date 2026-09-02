@@ -173,7 +173,5 @@ data class LeagueSelectionResult(
  * per file rather than shared because the existing helpers in `MovesHistory.kt` and
  * `OmenDecision.kt` are file-private; hoisting them is a separate tidy-up.
  */
-private fun JSONObject.optStringOrNull(key: String): String? =
-    if (isNull(key)) null else optString(key).takeIf { it.isNotEmpty() }
 
 private fun JSONObject.optIntOrNull(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null

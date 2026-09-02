@@ -61,13 +61,13 @@ data class DashboardSummary(
                 platforms.optJSONObject(name)?.optBoolean("connected", false) ?: false
 
             fun status(tool: String): ToolStatus =
-                ToolStatus.from(tools.optJSONObject(tool)?.optString("status"))
+                ToolStatus.from(tools.optJSONObject(tool)?.optStringOrNull("status").orEmpty())
 
             DashboardSummary(
-                contractVersion = root.optString("contract_version"),
+                contractVersion = root.optStringOrNull("contract_version").orEmpty(),
                 isMock = root.optBoolean("is_mock", false),
                 favoriteTeam = root.optJSONObject("user")
-                    ?.optString("favorite_team")
+                    ?.optStringOrNull("favorite_team").orEmpty()
                     ?.takeIf { it.isNotEmpty() && it != "null" },
                 platforms = Platforms(
                     yahooConnected = connected("yahoo"),

@@ -175,8 +175,6 @@ data class MovesHistory(
  * `org.json` returns coerced defaults (`0`, `""`, `false`) for absent or null keys, which is
  * exactly how a missing grade becomes a fabricated one. These read null as null.
  */
-private fun JSONObject.optStringOrNull(key: String): String? =
-    if (isNull(key)) null else optString(key).takeIf { it.isNotEmpty() }
 
 private fun JSONObject.optIntOrNull(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
 

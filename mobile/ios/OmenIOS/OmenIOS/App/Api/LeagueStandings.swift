@@ -83,11 +83,11 @@ struct LeagueStandings: Decodable, Equatable {
     var contextStrip: OmenContextStripState? {
         guard
             let platform = omenPlatform,
-            let leagueName, !leagueName.isEmpty,
             let teamName = currentUserTeam?.teamName, !teamName.isEmpty
         else { return nil }
 
-        return .selected(platform: platform, leagueName: leagueName, teamName: teamName)
+        let league = leagueName.flatMap { $0.isEmpty ? nil : $0 }
+        return .selected(platform: platform, leagueName: league, teamName: teamName)
     }
 
     /// League Pulse, derived from the standings this response already carries.
