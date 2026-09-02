@@ -6,6 +6,12 @@ node_modules/
 .env
 .env.*
 !.env.example
+# Secrets carried in by hand under a non-.env name. `env.md` holds a Supabase
+# service key and the Yahoo client secret; it was untracked but NOT ignored, so
+# any `git add .` would have committed them.
+env.md
+env*.md
+!env.example.md
 *.key
 *.pem
 *.cert
