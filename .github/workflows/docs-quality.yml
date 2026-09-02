@@ -1,0 +1,54 @@
+# Documentation and repo-hygiene gate.
+#
+# Why this exists: the repo's three checker scripts had NO trigger at all.
+# `pr-quality.yml` fires on `src/**`, `test/**`, `evals/**` and package files;
+# `ui-quality.yml` on `frontend/src/**`; `deploy.yml` on push to main. None of
+# them watches `Direction/**`, `Blueprints/**`, root docs, or `scripts/**` — so
+# `check-kickoff-drift.js`, `check-sprint-staleness.js` and
+# `check-valor-brain.mjs` only ever ran when a person remembered to run them.
+#
+# A drift check nobody runs is a drift check that does not exist. That is the
+# same class of gap `pr-quality.yml` was written to close for backend code.
+#
+# No `npm ci`: all three checkers are dependency-free Node. Keeping it that way
+# makes this job fast enough that nobody is tempted to path-filter it away.
+
+name: Docs Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - "Direction/**"
+      - "Blueprints/**"
+      - "scripts/**"
+      - "*.md"
+      - ".github/workflows/docs-quality.yml"
+
+jobs:
+  docs-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # Hard gates. Both are deterministic, read only files in this checkout,
+      # and pass on main today — so a failure here is this PR's doing.
+      - name: Kickoff read-order drift
+        run: node scripts/check-kickoff-drift.js
+
+      - name: Valor Brain metadata
+        run: node scripts/check-valor-brain.mjs
+
+      # Advisory, deliberately. On a runner this script can reach GitHub and so
+      # runs checks it skips locally, which means it can surface pre-existing
+      # documentation debt that has nothing to do with the PR in front of it.
+      # Blocking an unrelated docs change on that would train people to ignore
+      # the gate. Its findings are printed and read; promote it to a hard gate
+      # once the backlog it reports is at zero.
+      - name: Sprint staleness (advisory)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-sprint-staleness.js
