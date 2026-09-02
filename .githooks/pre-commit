@@ -1,0 +1,46 @@
+#!/bin/sh
+# Refuses to commit files that carry credentials.
+#
+# `.gitignore` is the first line of defence and it is not enough on its own: a
+# `git add -f`, a renamed file, or a new secret filename nobody thought to ignore
+# all walk straight past it. This hook checks what is ACTUALLY staged.
+#
+# Installed with:  git config core.hooksPath .githooks
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+fail=0
+
+# 1. Filenames that are credential stores by convention.
+for f in $staged; do
+  case "$(basename "$f")" in
+    env.md|env.*.md|.env|.env.*|*.pem|*.p12|*.keystore|*.jks|service-account*.json)
+      case "$(basename "$f")" in
+        .env.example|env.example.md) ;;
+        *)
+          echo "BLOCKED: $f looks like a credential file."
+          fail=1
+          ;;
+      esac
+      ;;
+  esac
+done
+
+# 2. Content that is a secret regardless of filename. Supabase service keys and
+#    Yahoo client secrets are the two this repo has actually had loose.
+for f in $staged; do
+  git show ":$f" 2>/dev/null | grep -qE 'SUPABASE_SERVICE_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9._-]{20,}|YAHOO_CLIENT_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9._-]{20,}|sb_secret_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+    && { echo "BLOCKED: $f contains what looks like a live secret value."; fail=1; }
+done
+
+if [ "$fail" = 1 ]; then
+  cat <<'MSG'
+
+Commit refused. Move the file outside the repository, or store the value in your
+deployment's secret manager. If this is a false positive and the file genuinely
+carries no live credential, re-run with --no-verify.
+MSG
+  exit 1
+fi
+exit 0
