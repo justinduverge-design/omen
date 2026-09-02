@@ -1,6 +1,10 @@
 # Omen Agent Inbox
 
-**Refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection below re-derived from what is actually open. Handoffs are pointers, not standalone proof; `main` is the proof.
+**Refreshed:** 2026-09-02 — reconciliation pass. 30 `CLOSED` items retired from the active queue to `Direction/sprints_completed.md` (452 lines); `O2` and `W1-GATE` given the ledger rows they were missing; the deadline table reconciled against what actually happened. 13 items in `VERIFIED` / `READY_FOR_REVIEW` are flagged for a founder closure judgement and were deliberately not advanced. Handoffs are pointers, not standalone proof; `main` is the proof.
+
+**Timing, as of this refresh:** the season floor clears **2026-09-05** and NFL Week 1 is **~2026-09-10**. Phase 4's gate is *three* providers passing real-account QA — `F7` (Yahoo) and `F8` (Sleeper) are `READY` with no blocker and have not been pulled; `F6` (ESPN) is `BLOCKED` on founder-device execution. The pin below predates this and still names Wave 1.
+
+**Previously refreshed:** 2026-08-16 — sprint-queue reconciliation. 23 completed items moved to `Direction/sprints_completed.md`, the Done ledger caught up, and the selection re-derived from what was open.
 **Authority:** `Direction/current_sprint.md` is the active queue. `Direction/status-model.md` defines states, `Claim:`/`Evidence:` requirements, blocker grammar, and the selection rule. This file selects or recommends the next pull.
 
 ## 📌 Next pull — 2026-08-31: Beta Rework Wave 1

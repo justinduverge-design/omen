@@ -1,6 +1,7 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-08-05 (revamped around the 1.0 plan — added Store/Release, Security, and Ops lanes; every lane now maps to a phase gate)
+**Last updated:** 2026-09-02 (reconciliation pass — 30 CLOSED items retired to `sprints_completed.md`; deadline table reconciled against what actually happened; `O2` and `W1-GATE` given the ledger rows they were missing)
+**Structure last revised:** 2026-08-05 (revamped around the 1.0 plan — added Store/Release, Security, and Ops lanes; every lane now maps to a phase gate)
 **Purpose:** Active execution queue only — `READY`, `IN_PROGRESS`, `VERIFIED`, `BLOCKED`. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 **Scope and sequence:** `Direction/omen-1.0-plan.md`. **Evidence record:** `Direction/release_readiness.md`.
 
@@ -14,17 +15,49 @@ Task states, `Claim:` and `Evidence:` requirements, `Blocked by:` / `Unblock:` g
 4. Keep implementation in small PRs. If an item needs more than about 80 words of implementation detail, write or use a spec and leave the sprint item as a pointer.
 5. On completion set `Status: VERIFIED` with an `Evidence:` pointer. Move to `Status: CLOSED` with a `Closure:` value (`COMPLETED` needs evidence, `SUPERSEDED` needs a successor, `DESCOPED` needs a reason) once the result is placed in `Direction/sprints_completed.md` with the appropriate Done receipt; update the decision log only when a decision changed, and record actual skill use. `CLOSED` is terminal — a regression creates a new linked task rather than reopening.
 
+## Reconciliation standing items — 2026-09-02
+
+**13 items sit in a terminal-adjacent state and need a closure judgement that is not an agent's to make.**
+Per this file's own rules, `VERIFIED` advances to `CLOSED` only once the result is placed in
+`sprints_completed.md` with a `Closure:` value. None of these were auto-closed.
+
+**`VERIFIED` — awaiting a `Closure:` value and a ledger row (8):**
+`A7-OwnedFootballDataPipeline`, `R2-Android`, `R3-BUILD-Android`, `M5-Native-API-Client`,
+`S5`, `W1-DEMO-NAMES`, `W1-TABBAR`, `W1-CONSENT`.
+
+**`READY_FOR_REVIEW` — awaiting review disposition (5):**
+`M9-BE-Switcher`, `M9-BE-WaiverAnalysis`, `M9-BE-StartSitDetail`, `M9-BE-LedgerDetail`,
+`B2-D3-S2`. `B2-D3-S2` is a known founder-judgement hold flagged by
+`check-sprint-staleness.js`; the inbox says do not auto-close it.
+
+**Two items were `CLOSED` without a ledger row** and were filed during this pass: `O2`
+(closed 2026-08-27) and `W1-GATE` (closed 2026-08-31). Both are now in
+`sprints_completed.md`. Worth noting as a pattern: `F9` had the identical bookkeeping gap
+and the staleness checker flagged it repeatedly for exactly that reason.
+
+**What this pass did not touch:** no `Done when:` clause was judged met, no item changed
+priority or blocker, and no `VERIFIED` item was advanced. Closure remains a human call.
+
 ## Product shape and the deadline
 
 **Omen is a mobile app** (iPhone SwiftUI + Android Kotlin/Compose) that also has a web app. The web app is secondary and is **not** the beta surface.
 
 The NFL season sets the deadline, not the backlog:
 
-| Date | Event | Meaning |
+**Reconciled 2026-09-02.** The table below now records what happened, not only what was
+planned. Dates in the past are marked; do not read a passed target as still pending.
+
+| Date | Event | Status as of 2026-09-02 |
 |---|---|---|
-| ~2026-08-24 | **beta open target** | two weeks of real feedback before Week 1 |
-| ~2026-09-10 | **NFL Week 1** | Start/Sit, Waiver, and Trade go live-or-broken at once. First real load. |
-| ~2026-09-15 | first Tuesday scoring | the core loop provable end to end |
+| ~2026-08-24 | **beta open target** | **PASSED.** A beta round did run — `agent_inbox.md` records two data points from it: Sleeper connect worked without a question, and **ESPN on iPhone had no phone path at all**, the only confirmed beta failure on record. That failure is now queued as `W1-A`. Whether this counts as "beta open" per `R6` is a founder call and is **not** recorded anywhere yet. |
+| **2026-09-05** | **season floor clears** | **3 days out.** `facts-of-record.md` #10. Until it clears, the Omen-recommendation halves of `F6`/`F7`/`F8` cannot pass. `is_off_season` is the authority — never read `week` or `season_type` as evidence the season started. |
+| ~2026-09-10 | **NFL Week 1** | **8 days out.** Start/Sit, Waiver, and Trade go live-or-broken at once. First real load. |
+| ~2026-09-15 | first Tuesday scoring | 13 days out. The core loop provable end to end. Cron scoring is deliberately held with both flags `false` pending the `A6` persistence defect. |
+
+**Phase 4 is the live gate and it is a three-provider gate, not an ESPN gate.** `F6` (ESPN)
+is `BLOCKED` on founder-device execution; **`F7` (Yahoo) and `F8` (Sleeper) are `READY`
+with no blocker** and their connect/session halves are runnable now, ahead of the season
+floor. Both were unblocked before this reconciliation and neither has been pulled.
 
 **Founder decisions 2026-08-05:**
 
@@ -181,22 +214,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### A5 — Decide the Tuesday-scoring fallback data source
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED
-- **Evidence:** `Direction/decision_log.md` (2026-08-22 — Omen will own its football-data pipeline); `Direction/reviews/2026-08-15-a5-scoring-source-options.md` §0A
-- **Priority:** P0
-- **Cost:** small
-- **Phase:** 2 — decide now, not in September
-- **Agent-buildable:** research and options memo only; the vendor/source decision is founder-owned
-- **Source:** if nflverse never publishes `player_stats_2026.csv`, the feature that closes Omen's entire loop has no data source for the whole season. A4 is blocked on an external publish nobody here controls.
-- **Skills:** `pre-build-research`, `slops-data-ingest-plan`
-- **Founder steer (2026-08-11):** prefer another **free** source in the nflverse class. Building a Slops-owned scraper is an accepted fallback but is the last option, not the opener — it converts a data problem into a maintenance obligation that runs every Tuesday during the season. Evaluate free sources first and say plainly whether any clears licence and latency.
-- **Done when:** at least two viable fallback sources are evaluated for licence, cost, coverage, latency, and ToS; the build-our-own option is costed against them including in-season maintenance; a recommendation and a trigger date are recorded; Justin picks one or explicitly accepts the nflverse-only risk.
-- **Do not touch:** paid commitments, new dependencies, or provider contracts without explicit approval.
-- **Memo delivered 2026-08-15:** `Direction/reviews/2026-08-15-a5-scoring-source-options.md`. Two free in-class sources evaluated (Sleeper, ESPN), the fork costed against them, recommendation and trigger date recorded. **Awaiting the founder pick — the agent half of this item is discharged; the decision is not.**
-- **Founder steer amended 2026-08-15 — vendor-agnostic.** The requirement is that scoring survive any one source dying, for Sleeper, ESPN, and Yahoo users alike. The memo's key finding is that this is *source*-agnosticism, not provider-agnosticism: weekly fantasy points are a league-independent NFL fact, and the pipeline already keys on normalized player name, emits all three scoring formats, and dependency-injects `fetchNFLScores`. The seam exists; the memo proposes formalizing it as a `ScoreSource` interface with ordered fallback.
-- **Premise corrected 2026-08-15.** This item was written as "if nflverse never publishes `player_stats_2026.csv`." That file was never going to exist under that name for any season — see `A5-NflversePath` below. The real question is fallback resilience, not one missing file.
-- **Founder decision 2026-08-22:** no paid fallback subscription. Build a Slops-owned Omen football-data pipeline, automatically operated on existing infrastructure, with source rights and reliability proven before any collector is deployed. `A7-OwnedFootballDataPipeline` carries the agent-owned research and architecture work; ADP is a future consumer, not silently absorbed into Tuesday scoring.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
@@ -273,17 +291,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — advanced through VERIFIED after every `Done when:` clause was rechecked, then ledgered closed on 2026-08-26.
-- **Evidence:** Phase 1 immutable raw vault (`Blueprints/handoffs/2026-08-24-a7b-phase1-raw-vault.md`); Phase 2 canonical identities/versioned offensive, kicker, and DST facts plus independent four-week replay (`Blueprints/handoffs/2026-08-25-a7b-phase2-scoring-acceptance.md`); Phase 3 correction/source-loss/schema-drift/KVM1-recovery/witness proofs (`Blueprints/handoffs/2026-08-25-a7b-phase3-staging-shadow.md`); Phase 4 exact-host collection, alerting, backup/recovery, Command Center witness, and real-row/no-write A4 rehearsal (`Blueprints/handoffs/2026-08-26-a7b-phase4-production-readiness-execution.md`). No authentic upstream revision changed an accepted subject; correction evidence is permanently labeled `controlled_fixture_not_upstream`.
-- **Unblock:** 2026-08-25 CLEARED — founder explicitly approved Phase 3. This assignment implements separate local KVM1-primary and Pi-witness roles plus correction, source-loss, schema-drift, recovery, mismatch/unavailability, freshness, disk, and alert proofs. Actual remote-host mutation/service installation, production, publication, timers, databases, SQL, credentials, deployment, scoring enablement, and ADP remain excluded.
-- **Unblock:** 2026-08-25 CLEARED — founder explicitly approved Phase 2 normalization and scoring acceptance: canonical game/player/team identities, versioned offensive/kicker/DST facts, at least four varied historical replay weeks, and hard quality gates. Staging, infrastructure, timers, databases, SQL, publication, credentials, deployment, production, scoring enablement, and ADP remain excluded.
-- **Unblock:** 2026-08-24 CLEARED — founder explicitly approved the first non-production collector/build slice and its bounded full-executor assignment; production, timers, storage provisioning, database, SQL, dependency, credential, deployment, scoring enablement, and ADP work remain excluded.
-- **Priority:** P0 — production dependency for A4 after A6
-- **Cost:** large (62–92 hour build estimate, then 0.5–1.0 hour/week normal maintenance)
-- **Source:** `Direction/reviews/2026-08-24-a7-owned-football-data-pipeline.md`
-- **Done when:** an approved, lawful source is collected into immutable snapshots; normal identities and versioned offensive/kicker/DST facts pass replay/independent-reference validation; staging proves correction, source-loss, schema-drift, KVM1 recovery, and Pi-witness behavior; A4’s separate no-write rehearsal passes.
-- **Do not touch:** no remote staging runner/storage, infrastructure, cron/timer, database, SQL, provider credential, dependency, publication, deployment, or production change until separately approved; do not add a source whose automation/retention rights are unclear; do not claim ADP.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-26. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## R. Store and release — critical path, founder-executed
 
@@ -313,24 +321,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### R3-BUILD-iOS — Establish an iOS build-and-signing path
 
-- **Status:** **CLOSED 2026-08-19.**
-- **Closure:** COMPLETED — the last open clause was `cost recorded`, supplied by the founder 2026-08-19. **The machine bought was a MacBook Neo at $699**, not the Mac mini this item's Options list assumed. Hardware confirmed by reading the machine directly rather than from the verbal report: `Model Name: MacBook Neo`, `Model Identifier: Mac17,5`, `Chip: Apple A18 Pro`, `Memory: 8 GB`, `macOS 26.5.1` (`25F80`), running Xcode 26.6 (`17F113`). **Option 1 ("buy a Mac") was the option taken; the specific machine and price both differ from the estimate written here** (`~$400 refurb M1/M2, $599 new M4`) — recorded as the actual rather than silently mapped onto the closest bullet. Every other clause was already evidenced on 2026-08-18: a signed build on TestFlight and a repeatable path.
-- **Was:** VERIFIED 2026-08-18.
-- **Claim:** Justin (archive, signing, App Store Connect actions) + Claude (diagnosis and code fixes), 2026-08-18 — released on verification.
-- **Evidence:** independently confirmed in the App Store Connect TestFlight tab: **Version 0.1.0, Build 1, Status: Processing, Date Created Aug 18, 2026 6:25 PM** — the first build this app has ever had reach TestFlight, replacing what was an empty "Submit a build to start testing" state earlier the same day. Full account: `Direction/reviews/2026-08-18-r3-ios-appstore-icon-orientation-fix.md`; `Blueprints/handoffs/2026-08-18-r3-ios-appstore-icon-orientation-fix.md`.
-- **What actually blocked it, twice, after signing was fixed:** (1) `ASSETCATALOG_COMPILER_APPICON_NAME = Omen` existed in the Debug build configuration but was **missing entirely from Release** — the configuration an archive actually uses — so a distribution build carried no app-icon reference regardless of what existed on disk. (2) No `UISupportedInterfaceOrientations` was declared anywhere, which Apple's validator rejects outright for a Universal (iPhone+iPad) app. Both fixed; a local `xcodebuild archive -configuration Release` proved the fix compiles clean before the founder spent another round-trip through Xcode's GUI. The already-existing, already-designed Icon Composer brand icon (`OmenIOS/Omen.icon` — real ring-and-laces artwork, not a placeholder) was simply never being referenced; a flat 1024×1024 App Store marketing icon was added alongside it from the same approved brand export (`logos/omen-app-icon-1024.png`) as a belt-and-suspenders fallback, since Icon Composer is new enough that its coverage of the separate marketing-icon requirement wasn't certain.
-- **Option 1 is executed and now fully evidenced end to end.** The Mac mini runs Xcode 26.6 (`17F113`) with Automatic Signing for team `6RWR5G9894`; a distribution certificate was generated (`Apple Distribution: Valor Ventures Limited Liability Company`, alongside the pre-existing development one); a signed archive was produced and uploaded through App Store Connect.
-- **Priority:** **P0 — no iOS beta exists without this**
-- **Cost:** small (rent) or ~$400–600 (buy)
-- **Agent-buildable:** no
-- **Source:** `Blueprints/specs/mobile/omen-native-build-environment-v1.md:22` already states it — "this Windows workstation cannot run Xcode, an iOS simulator, or a signed build on an iPhone." `ios-ci.yml` runs `CODE_SIGNING_ALLOWED=NO` by design. **Nothing in the pipeline currently produces a distributable iOS build.**
-- **Constraint discovered 2026-08-05:** Xcode Cloud requires **Xcode 15+ on a Mac** to create the first workflow (web can edit/launch afterward). The founder's **2017 MacBook Air cannot run it** — it tops out at macOS Monterey (Ventura dropped 2017 Airs), and Xcode 15 needs macOS 13.5+. Independently, `IPHONEOS_DEPLOYMENT_TARGET = 17.0` needs the iOS 17 SDK, which ships only with Xcode 15+.
-- **Options:**
-  1. **Buy a Mac mini** (~$400 refurb M1/M2, $599 new M4) — **founder's stated lean.** Also unblocks M3A-QA on-device debugging, F10 device matrix, and O6 crash symbolication. No rented-machine credential exposure.
-  2. **Rent a hosted Mac hourly** (~$1/hr, no minimum) *once* to create the Xcode Cloud workflow, then run free forever on the 25 included compute hours/month. ~$5–20 total. Caveat: requires signing into Xcode with the Apple ID on third-party hardware.
-  3. **GitHub Actions macOS runner with manual signing** — no Mac needed (CSR can be generated with `openssl` on Windows), but the repo is **private** so macOS runners bill at **10×**. GitHub Free's 2,000 minutes ≈ 200 macOS minutes ≈ 1–2 signed builds/month, and `ios-ci.yml` already draws from that pool. Violates the "no billed macOS minutes" posture in the build-environment spec.
-- **Done when:** a signed iOS build reaches TestFlight, produced by a repeatable path, with the option chosen and its cost recorded.
-- **Do not touch:** Apple ID credentials on any machine that is not trusted; billed macOS minutes without explicit approval.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### R3-BUILD-Android — Fix the release build config and add signing
 
@@ -356,47 +347,15 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### R3 — Signing and provisioning
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — both platforms now satisfy the signing and first-upload acceptance. iOS build 1 reached TestFlight on 2026-08-18; Google Play Console accepted Android version code 1 into an internal-testing release draft on 2026-08-22 and confirms Play App Signing is active. The Android release was not published and has no testers yet.
-- **Evidence:** `R3-BUILD-iOS` evidence above; `R3-BUILD-Android` evidence above; Google Play Console organization account `DarthSlops`, app `com.slopssaloon.omen`, internal-testing draft version code 1, observed 2026-08-22; `Direction/decision_log.md` (2026-08-22 — Android's first signed bundle reached Google Play; rollout remains gated)
-- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only Android-side blocker.
-- **Unblock:** 2026-08-22 CLEARED — Google Play accepted the signed AAB and displayed version code 1 on the internal-release preview. Play App Signing is active. This closes signing/provisioning only; `R4`/`R5` and tester selection still gate publishing the internal release.
-- **Priority:** P0
-- **Cost:** small–medium
-- **Agent-buildable:** no — certificates and keys
-- **Done when:** iOS distribution certificate and provisioning profile exist and a signed build uploads successfully; Android upload key and Play App Signing are configured and a signed AAB uploads successfully.
-- **Do not touch:** never place certificates, keys, or passwords in the repo, logs, or agent output.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### R4 — Privacy nutrition labels and Data Safety form
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED
-- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
-- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
-- **Unblock:** 2026-08-23 PARTIALLY CLEARED — the founder submitted Google Play's Data Safety declaration. Play Console now lists it among the actioned declarations, records three collected/shared data categories, confirms encryption in transit, and shows `https://slopssaloon.com/delete-account` for both account-deletion URL and deletion support. The live privacy-policy URL, sign-in-access instructions, and 13+ target-audience declaration were also completed. This is the Google half only; Apple privacy nutrition labels remain before R4 closes.
-- **Unblock:** 2026-08-23 CLEARED — Apple App Privacy was published against the shipped Privacy Notice: eight declared data types, no tracking, diagnostics not linked to identity, and the public Privacy Notice and deletion-choice URLs attached. Together with the submitted Google declaration, this satisfies both halves of R4.
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** drafting yes; submission founder-only
-- **Source:** the privacy policy shipped in #269 is the input. In-app account deletion is already implemented — that is an Apple requirement already satisfied.
-- **Done when:** Apple privacy nutrition labels and the Google Data Safety form are drafted against actual data flows (Supabase auth, provider tokens, no ad SDKs), reviewed against the shipped privacy policy, and submitted.
-- **Do not touch:** claims not supported by the actual data flow.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-23. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### R5 — Age rating and gambling questionnaire
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED
-- **Evidence:** `Direction/reviews/2026-08-23-r4-r5-store-declarations.md`; `Direction/decision_log.md` (2026-08-23 — both stores' privacy and age declarations are complete)
-- **Unblock:** 2026-08-18 CLEARED — `R2-Android` approved, removing the only remaining blocker (iOS side was already clear).
-- **Unblock:** 2026-08-22 PARTIALLY CLEARED — the Google Play IARC content-rating questionnaire was submitted under `owner@slopssaloon.com` at 10:15 AM and reports `Completed`, with general-audience results including ESRB Everyone, PEGI 3, USK 0, and IARC 3+. This is the Google half only; Apple age-rating/gambling responses and the cross-store copy consistency check remain before R5 closes.
-- **Unblock:** 2026-08-23 CLEARED — the founder saved Apple's current seven-step age-rating questionnaire after a read-back of every answer. Bounded public trade-share is declared as UGC; social, chat, ads, mature content, violence, medical guidance, gambling, simulated gambling, contests, and loot boxes are No/None. The founder applied the 13+ override required by Omen's Terms; App Store Connect reports 13+ in 172 countries/regions, with Apple's regional equivalents elsewhere. Both stores are now complete and consistent with the standing no-wagering boundary.
-- **Priority:** **P0 — store-rejection risk**
-- **Cost:** small
-- **Agent-buildable:** drafting yes; submission founder-only
-- **Source:** fantasy sports can trigger Apple's gambling review path. `Direction/reviews/2026-07-12-store-metadata-privacy-gambling-copy-audit.md` already exists — use it rather than re-deriving.
-- **Skills:** `slops-legal-spot-check`
-- **Done when:** both store questionnaires are answered consistently with the shipped copy and the existing gambling-copy audit; no marketing or in-app string implies wagering, real-money play, or guaranteed outcomes.
-- **Do not touch:** answering a questionnaire in a way the app copy does not support.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-23. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### R6 — Internal testing tracks
 
@@ -424,25 +383,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### R7 — Scrub store metadata of Draft Assistant claims
 
-- **Status:** **CLOSED 2026-08-16.**
-- **Closure:** COMPLETED — merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`, all four checks green. **Not deployed.** `Done when:` met in full; the recorded grep is below.
-- **Claim:** Claude, 2026-08-16 — released on verification.
-- **The store metadata was already clean; the defect was in the app.** `omen-store-listing-copy-v1.md`, `omen-store-review-notes-v1.md`, and `omen-store-privacy-and-rating-answers-v1.md` name Draft Assistant only as a *prohibition* with unticked R7 checkboxes, and the listing is still "Draft for founder review. Not submitted." Nothing there needed scrubbing. **Two false claims were live in shipped native copy on both platforms**, which this item's `Done when:` also covers ("in-app onboarding copy"):
-  1. The **League placeholder** promised "…plus seasonal **Draft entry**, arrive in the M4-League-Screen slice" — a forward promise of a cut feature, which reads to a user as "coming soon", the phrasing `CLAUDE.md` prohibits.
-  2. The **off-season Waiver Watch** state said Omen "will surface relevant **draft** and roster opportunities". With the draft path dark, 1.0 surfaces none.
-- **Why `M6-ContextualHelp`'s existing ban did not catch either:** it bans the exact product name "Draft Assistant" in *help* copy. Neither string contains it, and neither is help copy. The new tests ban the **word** inside user-facing literals, which is the level the claim actually lives at.
-- **Found while fixing it — an unrelated leak in the same sentences.** Both "landing next" placeholders told users their feature arrives "in the **M4-League-Screen** / **M4-Trade-Screen** slice". A sprint key is not a date, a version, or anything a user can act on. Removed from all five sites and banned by a shape-matching rule, so a newly-minted key cannot slip through either.
-- **Contract amended, not silently overridden.** `omen-native-app-shell-auth-api-contract-v1.md` defined the League destination as carrying a "seasonal Draft entry" — it was the older authority, and the native copy was faithfully implementing it. Per governance §3 the conflict is recorded rather than quietly resolved: the `draft` destination row is **preserved** for 2027 and marked out of 1.0 scope, with an amendment note at §1.4.
-- **Evidence:** RED proven on both platforms by restoring the original strings — iOS named both files and quoted both sentences; Android failed on `State=OffSeason`. GREEN: **iOS 192/192** (`xcodebuild test`, Xcode **26.6** build **17F113**, iPhone 17 Pro simulator; baseline 188 + 4 new incl. the `OmenIOSUITests` set), **Android 51/51** connected instrumentation on `medium_phone` API **36** (baseline 50, +1) with `:app:assembleDebug` green, backend **563/563**, frontend build clean, `git diff --check` clean.
-- **Recorded grep (the `Done when:` artifact):** `grep -rniE '"[^"]*\bdrafts?\b[^"]*"'` across `mobile/ios/OmenIOS/OmenIOS` and `mobile/android/app/src/main` returns exactly **one** hit — `DesignSystemGalleryView.swift:334` `"Leave draft?"`, a discard-unsaved-work confirmation in the dev-only design-system gallery. Different sense of the word, never shipped in a fantasy context. `M4-Trade-Screen` / `M4-League-Screen` return none.
-- **Blocked by:** None
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** yes
-- **Source:** Draft Assistant is cut from 1.0. Any store listing, screenshot, onboarding string, or marketing line promising it is now a false claim.
-- **Skills:** `slops-ux-copy`, `slops-legal-spot-check`
-- **Done when:** no store metadata, screenshot, in-app onboarding copy, or marketing surface references Draft Assistant as an available 1.0 feature; a grep across app strings and marketing copy is recorded as evidence.
-- **Do not touch:** the Draft Assistant code path itself — it stays in the repo for 2027, it just is not advertised.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## M. Native mobile execution lane
 
@@ -488,62 +429,15 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### M5-Slice-E-Ledger — Wire the Ledger to `GET /api/moves`
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED
-- **Evidence:** merged PR [#320](https://github.com/justinduverge-design/omen/pull/320) / `ee4387f`, 2026-08-17. Not deployed. `Blueprints/handoffs/2026-08-16-m5-slice-e-ledger.md`; `mobile/ios/OmenIOS/OmenIOS/App/Api/MovesHistory.swift` + `mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/feature/api/MovesHistory.kt`; iOS 221/221 unit + 5/5 UI (Xcode 26.6 `17F113`, iPhone 16 sim), Android `:app:testDebugUnitTest` 27/27 + `:app:assembleDebug` + `:core:designsystem` 22/22.
-- **Blocked by:** None
-- **Priority:** P0 — the last pure-wiring slice of the beta-minimum client.
-- **Cost:** small
-- **Agent-buildable:** yes, in full
-- **Source:** `M5-Native-API-Client` slice E. Slices A–D shipped; the transport, repository, view-model, and contract-mapping patterns all exist on both platforms and were re-proven by slice D on 2026-08-16. **Copy slice D, do not reinvent it** — `OmenDecision.swift` / `OmenDecision.kt` and their view models are the template, including the honest-absence rules.
-- **Scope:** `GET /api/moves` → `moves-history.v1` replaces the Ledger preview fixture. The approved composition (Figma node `72:2`) is unchanged — this is wiring only, no visual work.
-- **Carry the slice-D lessons in:** grep `src/routes/moves.js` for the literal states/shapes it emits before modelling the client (slice D found eleven states where the specs named four); render the server's own message for recovery states rather than a client re-wording; fail safe on an unrecognised shape rather than force-fitting it; never fabricate a field to satisfy a non-optional type — drop the row instead.
-- **Skills:** `slops-tdd`, native read gate
-- **Done when:** the Ledger decodes `moves-history.v1` into existing native state types on both platforms; loading, empty, and error route to `OmenStateSurface` rather than crashing or substituting a fixture; demo still renders labeled fixtures via the demo user id and a test proves the live path is unreachable from demo; iOS `xcodebuild test` and Android `:app:testDebugUnitTest` + `:app:assembleDebug` green, with `xcodebuild -version` recorded per the local-substitute rule. **Pure mapping tests now belong in `:app/src/test`** — the JVM source set landed 2026-08-16; only tests needing a semantics tree or a real Context go in `androidTest`.
-- **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not collapse the demo path (facts-of-record #7).
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-17. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M1-Screen-Trade — M1 screen contract: Trade builder + verdict
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — ratified by the founder 2026-08-29.
-- **Evidence (revised proposal, not approval):** `src/services/tradeLeagueContext.js`, `src/routes/trade.js`, `test/tradePersonalization.test.js` (`npm test` 651/651, baseline 618 + 33), `Blueprints/api-routes.md` § "Trade compare v2"; Figma `mWjrAKPi4JSIP5lAmGAtB3` revised contracts iOS `98:2` / `98:29` / `99:2` / `99:29` and Android `98:53` / `98:80` / `99:53` / `99:80`, superseded originals `41:130` / `41:143` / `41:176` / `41:192` and `41:153` / `41:166` / `41:202` / `41:218`, QA record `87:2`; `Blueprints/handoffs/2026-08-24-m1-league-trade-contract-revision.md`.
-- **Merged and deployed 2026-08-24:** PR [#364](https://github.com/justinduverge-design/omen/pull/364) / `0694a03`. `trade-compare.v2` verified live on `https://slopssaloon.com/api/trade/compare` — v2 contract version, `close_needs_context` neutral, `insufficient_data` with correct counts, and `unauthenticated` degrading to **200** neutral rather than 401. The personalized path is inert until a client sends `league_context` with a session. **Merging is not ratification** — this item stayed `VERIFIED` until 2026-08-29. **RATIFIED 2026-08-29** by the founder; `M5` slice G is unblocked. See `Direction/decision_log.md` 2026-08-29.
-- **Blocked by:** None. ~~Founder ratification, **not** pre-authorized for this item.~~ **RATIFIED 2026-08-29.**
-- **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions (see `Direction/decision_log.md`). The verdict enum gains its fourth state **on the server** (additive `contract_version` + evaluability signal on `POST /api/trade/compare`), and **"Personalize" waits for real league context** — the personalized half of slice G stays blocked until `/compare` accepts league/roster context, and native ships no scoring-format-only Personalize affordance. Both routed to the backend lane. Ratification of the contract itself is still outstanding.
-- **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity iOS/Android frames and the golden pair **already existed** from the M1-P pass (iOS `41:130`/`41:143`/`41:176`/`41:192` + golden `38:2`; Android `41:153`/`41:166`/`41:202`/`41:218` + golden `39:2`); what was missing was §2's "01 — Principles & References" board and the "06 — QA & Evidence" record, both now written (`86:2`, `87:2`). Two open questions need a founder call before `M5` slice G — the shipped three-value verdict enum vs the approved four-label vocabulary, and "Personalize" having no backend input. Both are recorded in `Blueprints/handoffs/frontend-to-backend.md`.
-- **Unblock:** 2026-08-22 ROUTED — founder did not ratify the current contract. Return only when the server accepts real league/roster context, the personalized result is demonstrably different from neutral analysis where context matters, all four approved verdict states are server-supported, and the revised iOS/Android evidence shows the complete personalized flow.
-- **Unblock:** 2026-08-24 DELIVERED — all four conditions are met. `POST /api/trade/compare` accepts an optional `league_context`; personalization applies the league's real scoring format, roster construction, and the caller's own positional depth, not a scoring-format label; the difference is **shown** — one identical offer returns `close_needs_context` neutrally and `favors_you` in a 3-WR league, and two league shapes return two net values while both report mode `personalized`; and all four verdict states carry explicit server semantics via an additive `contract_version` + `evaluability` signal. Neutral-by-default is unchanged (§8.1 stays founder-approved). Only Sleeper personalizes today; ESPN and Yahoo are named unsupported rather than faked.
-- **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `87:2` (QA & Evidence record); `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
-- **Priority:** P1 — ~~this is what blocks `M5` slice G.~~ Approved 2026-08-29; the placeholder may now be replaced.
-- **Cost:** medium
-- **Agent-buildable:** proposal yes; approval no.
-- **Source:** `m1-figma-screen-contract-pass-v1.md` §2 "04 — iOS Screens / 05 — Android Screens", flow **4 (Trade builder + verdict)**, plus its golden-screen pair under "Trade verdict". Named as a blocker in `M5-Native-API-Client`: slices F and G "are not wiring — they are new screens whose Figma slices do not exist yet."
-- **Backend is already live and is not the gate:** `POST /api/trade/compare` ships today and Trade Analyzer is free and public on web. What is missing is the native screen contract, not the data.
-- **Skills:** `figma:figma-generate-design`, `design:design-critique`, native read gate
-- **Done when:** low-fidelity iOS and Android screen contracts exist for the Trade builder and its verdict, each with primary plus most-important alternate state; the golden-screen pair exists; every visible element maps to an approved component or an explicit proposal; platform differences are intentional and documented; and §4's acceptance clauses are satisfied and recorded in "06 — QA & Evidence".
-- **Do not touch:** do not invent or rename semantic tokens; do not create an unapproved production component; do not use competitor layouts or copy; do not begin `M5` slice G implementation on an unapproved contract.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-29. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M1-Screen-League — M1 screen contract: League matchup + standings/activity
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — pre-authorized 2026-08-22, condition met by the 2026-08-24 revision, confirmed 2026-08-29.
-- **Evidence (revised proposal, not approval):** `Blueprints/specs/mobile/m1-league-screen-data-plan-v1.md`; Figma `mWjrAKPi4JSIP5lAmGAtB3` revised contracts iOS `95:2` / `96:2` and Android `95:35` / `96:32`, superseded originals `30:162` / `30:181` / `30:194` / `30:213`, QA record `88:2`; `Blueprints/handoffs/2026-08-24-m1-league-trade-contract-revision.md`.
-- **Merged 2026-08-24:** PR [#364](https://github.com/justinduverge-design/omen/pull/364) / `0694a03`, deployed to production by `deploy.yml` on push to `main` (run `success`). **Merging is not ratification.** Ratification was **pre-authorized 2026-08-22 subject to this evidence**, and the 2026-08-24 revision delivered it — so this gate was already open and the queue wrongly kept saying otherwise until 2026-08-29. `M5` slice F is unblocked.
-- **Blocked by:** None. Ratification was pre-authorized 2026-08-22 subject to this evidence; the 2026-08-24 revision met it. **The gate has been open since 2026-08-24** — the "slice F stays blocked" prose that survived until 2026-08-29 was stale.
-- **Unblock:** 2026-08-16 REASSESSED — founder resolved both open questions. **The empty activity section is the v1 build target:** both Primary frames are redrawn and renamed "standings live, activity empty (v1)", and the populated composition is preserved as a labelled future state (iOS `90:2`, Android `90:8`). **Off-season uses clean omission for 1.0**; prior-season history is parked as a future backend capability. Slice F may build standings plus an empty activity section once the contract is ratified. Ratification itself is still outstanding.
-- **Unblock:** 2026-08-16 ROUTED — proposal complete and awaiting founder ratification. The low-fidelity frames already existed (iOS `30:162`/`30:181`, Android `30:194`/`30:213`); the missing halves — references board and QA & Evidence record — are written (`86:2`, `88:2`). The R7 scope correction was executed **in Figma**: both M2 app-shell frames still listed a `Draft` destination and were amended with a dated note (iOS `18:7`, Android `18:20`). One open question needs a founder call: the Primary frame draws a populated "Around the League" section for which **no backend feed exists**, so either that frame or the v1 build target has to change.
-- **Unblock:** 2026-08-22 ROUTED — founder did not ratify the current contract. Ratification is pre-authorized once revised iOS and Android evidence demonstrates a complete matchup view, standings, and meaningful league activity; an empty activity panel may exist only as a genuine empty/error state, not as the primary approved experience.
-- **Unblock:** 2026-08-24 DELIVERED — the revision is complete. Primary (v2) carries a live Matchup Spine, Playoff Picture, rank table, and a **populated** Around the League built from standings-derived and deadline signals; the empty activity panel moved to Alternate (v2) as a truthful state. The backend-data plan carries the §2.5 provider capability matrix and an additive `GET /api/league/overview` proposal. **The matchup data already ships** — `fetchSleeperMatchups()` and ESPN's `mMatchup` view both run today and are discarded down to one win/loss letter. Ratification is the only step left.
-- **Evidence (proposal, not approval):** Figma `mWjrAKPi4JSIP5lAmGAtB3` nodes `86:2` (references board) and `88:2` (QA & Evidence record), plus corrected `18:7` / `18:20`; `Blueprints/handoffs/2026-08-16-m1-screen-contracts.md`.
-- **Priority:** P1 — ~~this is what blocks `M5` slice F.~~ Approved; the placeholder may now be replaced.
-- **Cost:** medium
-- **Agent-buildable:** proposal yes; approval no.
-- **Source:** `m1-figma-screen-contract-pass-v1.md` §2, flow **5 (League matchup + standings/activity)**.
-- **Backend is already live and is not the gate:** `GET /api/league/standings` → `league-standings.v1` ships and is already consumed by the Command Center context strip (slice C), so the data shape is proven in native code.
-- **Scope correction carried in, 2026-08-16 (R7):** the app-shell contract used to define this destination as carrying a **"seasonal Draft entry."** Draft is cut from 1.0 and the whole draft path is dark; `omen-native-app-shell-auth-api-contract-v1.md` §1.4 is amended and the `draft` row is preserved for 2027. **This screen contract must not include a Draft entry.**
-- **Skills:** `figma:figma-generate-design`, `design:design-critique`, native read gate
-- **Done when:** low-fidelity iOS and Android screen contracts exist for League matchup and standings/activity with primary plus alternate state, including the honest off-season empty state (`league-standings.v1` correctly returns `standings: []` out of season — facts-of-record #10); every element maps to an approved component or explicit proposal; §4 acceptance recorded in "06 — QA & Evidence".
-- **Do not touch:** no Draft entry; no invented tokens; no unapproved production component; do not begin `M5` slice F on an unapproved contract.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-29. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M1-QA-EvidenceGate — Close the M1 screen-contract pass acceptance gate
 
@@ -691,14 +585,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### M8-EspnAndroidHelper — Decide the Android ESPN path
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — founder decision 2026-08-22: retain the existing desktop/web ESPN connection path through beta; after beta, try Microsoft Edge's mobile-extension route first. This closes the decision only, not an implementation, submission, publication, or security review.
-- **Evidence:** `Direction/decision_log.md` (2026-08-22 — Android ESPN stays desktop-assisted through beta; try Microsoft Edge mobile post-beta); `Direction/reviews/2026-08-15-espn-mobile-feasibility-memo.md` § "2026-08-22 Android decision brief"
-- **Unblock:** 2026-08-22 CLEARED — the founder selected the beta posture and the post-beta first experiment. The active founder gate is removed; future Edge feasibility is recorded in the deferred backlog and must be promoted as a separate task after beta.
-- **Priority:** P2
-- **Why it is not a mirror of iOS:** **Firefox does not support `storage.session.setAccessLevel` on any platform** (MDN browser-compat-data). `background.js` calls it precisely so the content script can read the payload the popup staged; without it that read throws and the handoff fails silently. A Firefox port is a **code change**, not a repackage — the staging step would move to message passing or a `storage.local` write with an immediate clear, which carries its own privacy review since `storage.local` persists where `storage.session` does not. An earlier read this session called Firefox Android "the most open path"; on the API that matters it is the closed one.
-- **Edge Android** is on by default for Android 11+/Edge 123+ but uses a curated, sandboxed store. Verify Microsoft's current mobile curation policy directly before planning around it — the available sources were secondary and mixed quality.
-- **Interim answer:** Android ESPN users connect on desktop via the published Chrome/Edge listings. Documented, not hidden.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M3A-QA — Native auth interactive real-device QA
 
@@ -716,66 +603,15 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
 
-- **Status:** **CLOSED 2026-08-22.** The last unevidenced `Done when:` clause is now evidenced: the Android render exists, the assembly/scanner/connected-test results are recorded, and `6466a4c` has a handoff. Ledgered in `Direction/sprints_completed.md`.
-- **Closure:** COMPLETED
-- **Evidence:** `References/evidence/2026-08-14-cc-platforms-compact/` — `README.md` plus `android-medium-phone-command-center-demo-connected.png` (connected **and** disconnected rows in one frame) and `android-medium-phone-command-center-disconnected.png`, on `medium_phone` API 36 at 1080×2400 @420dpi (411×914dp, Pixel-6a-class). Above-the-fold measured by column scan, not eyeballed: Omen hero card ends at y=2000 with the nav bar starting at y=2127. Strip border sampled from the rendered pixel at `#E5E5E3` = the light `border` token (`OmenColor.kt:146`). Gates on 2026-08-22: `:app:assembleDebug` BUILD SUCCESSFUL, `PrimitiveEnforcementTest` **1/1**, `:core:designsystem:testDebugUnitTest` **22/22**, `:app:testDebugUnitTest` **45/45**, `:app:connectedDebugAndroidTest` **53/53**. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
-- **Prior evidence (implementation):** `6466a4c` — `OmenPlatformCompactRow.swift` (+197) and `OmenPlatformCompactRow.kt` (+173) with paired tests (`OmenCommandCenterScreenTests.swift` +50, `OmenPlatformCompactRowTest.kt` +52, `OmenCommandCenterScreenTest.kt` amended), wired into both `OmenCommandCenterScreen` files; iPhone SE renders at `References/evidence/2026-08-14-cc-platforms-compact/iphone-se-command-center-demo.png` and `iphone-se-dynamic-type-xxxl.png`; visual-brief and state-contract updates in the same commit. The status-dot sub-scope was deferred to post-beta polish by PR [#305](https://github.com/justinduverge-design/omen/pull/305).
-- **✅ DONE — do not rebuild:** the compact row is **built, tested, and merged on both platforms** (`OmenPlatformCompactRow.swift` +197, `OmenPlatformCompactRow.kt` +173, wired into both `OmenCommandCenterScreen` files, paired tests on each). iPhone SE render evidence is committed. The status-dot sub-scope is deliberately deferred post-beta (#305). **No composition or code work is owed here.**
-- **✅ REMAINING WORK DONE 2026-08-22:** the Pixel-6a-class Android render, the `:app:assembleDebug` + primitive-scanner + connected-test results, and the handoff for `6466a4c` all exist. `B-FREEZE` loses this blocker.
-- **Formerly-unevidenced clause — now evidenced, and closed the way the note asked.** The clause required the Omen card above the fold on **Pixel 6a-class Android** as well as iPhone SE. It was closed by attaching the Android render and assembly evidence, **not** by deleting the clause.
-- **Unblock:** 2026-08-22 CLEARED — Android compact-row render, assembly/scanner/connected-test results, and the `6466a4c` handoff all delivered.
-- **Not covered, stated rather than implied:** the disconnected row's inline `[Connect]` button does not appear in these renders. That is correct behavior — screenshot mode passes no connect handler and the row draws the button only when one exists, per the honest-state rule. The Connect/Manage paths are covered by the connected tests.
-- **Priority:** **P1 — beta blocker.** The connect flow is the first screen that matters to a new tester.
-- **Cost:** small–medium
-- **Scope:** compact each `OmenPlatformConnectionCard` to a single-line row so Omen stays the hero above the fold on iPhone SE. Target shape: `[PlatformBadge] Sleeper · Connected · 4m ago  ›` connected, `[PlatformBadge] Yahoo · Not connected [Connect]` disconnected. Move Manage-league / full Connect CTAs into a tap-through detail sheet. Hard cap the strip at ~2 row-heights.
-- **Motivation:** founder feedback 2026-07-23 — current cards take too much vertical real estate.
-- **Done when:** compact rows render for both connected and disconnected states on both platforms; the Omen card is visible without scroll on iPhone SE (375×667) and Pixel 6a-class Android; the detail sheet handles Manage/Connect; scanner, connected tests, and `:app:assembleDebug` green.
-- **Do not touch:** live provider connect flow, provider credentials, deep-link config, F2 status contract.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M4-Help-Support-Implementation — Build approved native Help + Support
 
-- **Status:** **CLOSED 2026-08-22.** Ledgered in `Direction/sprints_completed.md`.
-- **Closure:** COMPLETED
-- **Evidence:** `References/evidence/2026-08-22-m4-help-support-native/` — `README.md` plus:
-  - **Android states** — all five (`available`, `no-account`, `offline`, `submission-unavailable`, `provider-recovery`) on `medium_phone` API 36 at 411×914dp.
-  - **Android font scale** — 1.3 and 2.0 (accessibility maximum). Help + Support content reflows cleanly at both.
-  - **Android compact phone** — 360×640dp via `wm size`/`wm density` override, reset afterwards.
-  - **Android TalkBack** — focus capture plus `android-talkback-accessible-name-inventory.txt`: **0 actionable elements without an accessible name**, and a whole-tree scan for `espn_s2`/`swid`/`cookie`/`token`/`bearer`/`password`/`secret`/`session=` returned **no hits**.
-  - **iOS** — five states on iPhone SE (3rd gen, 375×667pt compact), three on iPhone 17 Pro Max (large), plus Dynamic Type at `accessibility-extra-extra-extra-large`.
-  - **iOS VoiceOver substitute** — new `mobile/ios/OmenIOS/OmenIOSUITests/HelpSupportAccessibilityUITests.swift`, **7/7 pass**: all five states plus largest-Dynamic-Type audited with `performAccessibilityAudit()`, and both interactive rows asserted reachable and named.
-  - `xcodebuild -version` = **Xcode 26.6 (17F113)**. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
-- **Honest parity/limitation record** (the `Done when:` asks for one explicitly):
-  - **A real-device VoiceOver pass is still open.** The iOS Simulator cannot run VoiceOver — `com.apple.VoiceOverTouch` is a background-only launchd job there. The audit is the documented substitute and is not claimed as equivalent.
-  - **The Android TalkBack evidence is a static accessibility-tree check**, not a human listening pass. It proves a name exists and is well-formed, not that the announcement is useful or well-ordered.
-  - **One real defect found, and it is not this screen's.** At Android font scale 2.0 the app-wide bottom nav breaks — "Command" wraps to "Comma / nd", "League" clips at the screen edge. Confirmed production code by reading `OmenAndroidApp.kt:505` against the screenshot-mode twin. Recorded in `Direction/known_issues.md`; **still needs a GitHub issue number.**
-  - **Help Center rows are non-interactive by design** (`OmenHelpSupportScreen.kt:107-109`, `OmenListRow` with no `onClick`), which is why they are absent from the actionable-name inventory. Verified in source, not assumed.
-- **Unblock:** 2026-08-22 CLEARED — Android TalkBack, font-scale, and compact/large-phone evidence delivered, along with the iOS half the old `Blocked by:` line understated.
-- **Unblock:** 2026-08-11 REASSESSED — the iOS-CI half of this blocker is retired. As of 2026-08-11 `ios-ci.yml` no longer runs per-PR (release branches + manual dispatch only); routine iOS verification moved to the founder's Mac. **This makes the iOS half of this item Mac-required.** Run the `SUBSTITUTED` command in `Blueprints/definition-of-done.md` → "Local substitutes" and record the output. The Android half is unaffected and remains workable on Windows.
-- **Priority:** **P1 — store metadata requires a support URL**, so this is on the release path, not just the product path.
-- **Cost:** medium
-- **Current state:** implementation merged via PR #229; the accessibility and visual evidence its `Done when:` required was produced on 2026-08-22 and is linked above. PR #229's own closeout was explicit that device evidence had not been run (`adb` unavailable on that Windows workspace) — that is the gap this closed.
-- **Done when:** iOS and Android meet the approved contract with scanner/tests, compact and large-phone visual evidence, VoiceOver/TalkBack and Dynamic Type/font-scale checks, and an honest parity/limitation record.
-- **Do not touch:** new API endpoints, provider credentials/cookies, account/store settings, analytics, deployment, or production.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M4-Auth-Providers-v1 — Discord OAuth (iOS passkeys promoted separately)
 
-- **Status:** **CLOSED 2026-08-19.**
-- **Closure:** COMPLETED — **the implementation landed in #198 and the local verification passed on 2026-08-13; only the recording step was ever missing.** Surfaced by the 2026-08-19 staleness sweep as an item still advertised as `READY` while every PR it cites was merged — the same shape as `S8`. Each `Done when:` clause re-verified against current `main` on 2026-08-19 rather than trusted from the older note:
-  - **Provider-conditional rendering** — Android `OmenAuthFlow.kt:118` renders the Discord block only `if (discordConfigured)` and hides it entirely otherwise; Google degrades to a disabled "Google (not configured)" button rather than vanishing. iOS `SignInView.swift:64` gates on `viewModel.discordSignInAvailable`. Verified by reading both call sites.
-  - **Deep-link callback exchange** — Android `OmenAndroidApp.kt` dispatches `AuthEvent.OAuthCallbackReceived` then `repo.exchangeOAuthCode(...)`; iOS `AuthViewModel.handleOAuthCallback(_:)` destructures `.valid(code, codeVerifier)` into `repository.exchangeOAuthCode(...)`. Verified by reading both paths.
-  - **Scanner** — Android `PrimitiveEnforcementTest` **1/1**; iOS `PrimitiveEnforcementTests` **1/1**.
-  - **Android** — `:core:designsystem:testDebugUnitTest` **22/22**, `:app:testDebugUnitTest` **43/43**, `:app:connectedDebugAndroidTest` **51/51** on `medium_phone` API 36, `:app:assembleDebug` BUILD SUCCESSFUL.
-  - **Local Mac** — `xcodebuild test` **234/234, 0 failures**, `xcodebuild -version` = **Xcode 26.6 (`17F113`)**, per the local-substitute rule in `Blueprints/definition-of-done.md`. "iOS CI green" is not cited anywhere.
-- **Scope of the 2026-08-19 pass, stated precisely.** It re-proved the code paths and the full test/build matrix. It did **not** re-run a live Discord OAuth round-trip — that evidence remains the 2026-08-13 founder-observed run on the Play-enabled Android emulator and a physical iPhone, with Supabase recording successful PKCE exchanges, and is recorded in the `Unblock:` line below. Do not read today's counts as a fresh live-provider proof.
-- **Blocked by:** None
-- **Unblock:** 2026-08-11 REASSESSED — previously "CI-verifiable as of #250." That is no longer true: `ios-ci.yml` stopped running per-PR on 2026-08-11 (release branches + manual dispatch only). **The iOS half of this item is now Mac-required** — verify with the `SUBSTITUTED` `xcodebuild test` command in `Blueprints/definition-of-done.md` and record `xcodebuild -version` alongside the result. Android remains workable on Windows.
-- **Priority:** P1
-- **Cost:** small — **verification only, not implementation**
-- **Current state:** **PR #198 is MERGED** (`73c5a1d`, 43 files, +1911/−33 across Android and iOS auth). Reconciled 2026-08-05 — the prior line said "open and code-complete," true when written and stale by the time it was read. The founder promoted the iOS passkey half on 2026-08-12 as `M4-Auth-Passkeys-iOS-Onramp`; Android remains deferred.
-- **Unblock:** 2026-08-13 VERIFIED LOCALLY — Discord OAuth completed on the Play-enabled Android emulator and physical iPhone. Supabase's provider-owned OAuth `state` is no longer overwritten; Omen's CSRF state travels inside the allow-listed `redirect_to`. Android preserves PKCE state across the callback with a single-task activity, and iOS consumes `ASWebAuthenticationSession`'s callback URL directly rather than waiting on an `onOpenURL` event the system session may consume. Supabase recorded successful PKCE exchanges; Android tests/assembly and iOS **121/0** are green.
-- **Confirmed Supabase state** (project `xyudxfhqejbwvjngiwhw`, 2026-07-23): Email, Google, Apple, Discord, Passkeys enabled; all others disabled.
-- **Done when:** `OmenAuthFlow` renders each button only when its provider is available; the deep-link callback exchanges the Discord code for a session; scanner, connected tests, `:app:assembleDebug` green, and the local Mac `xcodebuild test` run green — all recorded as evidence. "iOS CI green" is no longer an available citation for this item outside a release branch.
-- **Do not touch:** provider client secrets (stay in Supabase Studio), Yahoo OAuth, Apple credentials, deploy.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M4-Auth-Passkeys-iOS-Onramp — Complete native iOS passkey authorization
 
@@ -791,20 +627,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### M4-CC-WaiverWatch — Waiver Watch composition + wiring
 
-- **Status:** **CLOSED 2026-08-22.** The six registered honest states are now rendered and reviewed on iOS, which is what the item was actually waiting on. Ledgered in `Direction/sprints_completed.md`.
-- **Closure:** COMPLETED
-- **Evidence:** `References/evidence/2026-08-22-m4-waiver-watch-ios/` — `README.md` plus one capture per state (`pending`, `processed`, `availability-unknown`, `no-credible-move`, `not-connected`, `off-season`) on iPhone 17 Pro Max / iOS 26.5, each showing the approved copy the Android connected test asserts. Registered as `waiver-watch.*` entries in both `ScreenshotScenarios` registries (iOS and Android twin), which vary only `waiverWatch` on the real `OmenCommandCenterScreen` — the composition itself was not touched. `xcodebuild -version` = **Xcode 26.6 (17F113)** per the local-substitute rule. Handoff: `Blueprints/handoffs/2026-08-22-m4-render-evidence-package.md`.
-- **Prior status:** VERIFIED (merged as PR #271 / `e59fe40`, squash — subject reworded from branch commit `adeba4f`; not deployed or provider-proven). Reconciled 2026-08-05: the prior line said "not pushed, merged, deployed" after the work had shipped.
-- **✅ DONE — do not rebuild:** the approved composition (Figma node `67:2`) is **built and merged on both platforms**. SwiftUI source and XCTest registration complete; Android carries 2 connected tests, `:app:assembleDebug`, and a green primitive-enforcement scanner. The full iOS suite passes on Xcode 26.6. **No code is owed here.**
-- **✅ REMAINING WORK DONE 2026-08-22:** the six registered states were captured and reviewed on iOS, and `xcodebuild -version` is recorded. The composition was not reopened.
-- **Two limitations stated rather than buried.** (1) These scenarios are **deliberately not added to the `native-visual-evidence.yml` matrix**: Waiver Watch renders below the fold on every current iPhone, that workflow captures with no interaction, and a matrix row would upload the top of the Command Center labelled as Waiver Watch evidence. Making them CI-capturable needs a scroll anchor on `OmenCommandCenterScreen` — a change to a shipped screen, out of scope here. (2) The `calm` state has **no committed render on either platform**; `urgent` is covered by the existing `command-center.demo-connected` captures.
-- **Unblock:** 2026-08-22 CLEARED — the six-state iOS render evidence was captured and reviewed. The 2026-08-12 XCTest run proved the registered tests pass; this proves the states were rendered and looked at. Figma node `67:2` was already approved, so design was never the gate.
-- **Unblock:** 2026-08-11 ROUTED — retyped from an untyped prose blocker to `TASK-R3-BUILD-iOS`. With the Mac arriving 2026-08-12 and iOS CI no longer running per-PR, this item's remaining gap is verified by the local `xcodebuild test` substitution, not by CI.
-- **Unblock:** 2026-08-12 REASSESSED — the Mac mini and local simulator now exist, and the full Omen XCTest suite passes 108/108 on Xcode 26.6. That clears the former hardware dependency but does not manufacture the missing per-state render/accessibility evidence or exact Xcode 16.2 substitution required by the current Done authority; the remaining blocker is therefore agent-resolvable evidence work rather than `TASK-R3-BUILD-iOS`.
-- **Priority:** P1
-- **Cost:** medium
-- **Done when:** the approved composition renders all six registered states on both platforms, primitive-enforcement scanner green, connected tests and `:app:assembleDebug` green. Local Android evidence is complete: 2 connected tests, assembly, and primitive scanner green; SwiftUI source and XCTest registration are complete, and the remaining iOS gap is item-specific render/accessibility evidence on the now-available Mac rather than a missing macOS environment.
-- **Do not touch:** provider claims, real waiver deadlines from unverified data, backend, live provider auth.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## B. Backend / recommendation lane
 
@@ -885,33 +708,11 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### S3 — Rate limits on the three hot routes
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main` and not deployed:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
-- **Evidence:** commit `0c1f85e` — `src/middleware/hotRouteLimits.js` (per-IP + per-credential limiters, honest 429 envelope), wired in `src/server.js` ahead of the routers; `test/hotRouteRateLimits.test.js` (14 tests: limit-hit on all three routes for both scopes, reset, anonymous-flood containment, key derivation, mount ordering); budgets and the per-credential tradeoff documented in `Blueprints/api-routes.md` § Rate Limits. Proven against a booted server, not only in unit tests: 20 × 401 then 429 on `POST /api/omen/mvp-move` with `Retry-After: 60` and `RateLimit-Policy: 20;w=60`. Mutation-checked — removing the mount turns 8 of the 14 tests red. `npm test` 607/607.
-- **Blocked by:** None
-- **Priority:** P1
-- **Cost:** small–medium
-- **Agent-buildable:** yes
-- **Scope:** `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. These take the Sunday-morning load and are the ones a tester can hammer.
-- **Skills:** core implementation + `security-privacy-evidence`
-- **Done when:** each route has an enforced per-user and per-IP limit with an honest 429 envelope; tests cover limit-hit and reset behavior; limits are documented in `Blueprints/api-routes.md`.
-- **Do not touch:** provider rate limits, production config, or the deploy action.
+- **Status:** CLOSED — **Closure:** COMPLETED. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### S4 — Confirm no provider credentials reachable in logs on error paths
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main` and not deployed:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
-- **Evidence:** commit `0f546e8` — `test/providerCredentialContainment.test.js` (11 tests) provokes real Yahoo, Sleeper, and ESPN failure paths over their real transports, with the fake provider echoing the credential back in body and headers, captures actual stdout/stderr plus the client-facing envelope, and searches it for the exact canary values fed in. Each test first asserts the canary was genuinely on the wire, so a pass cannot mean the request carried nothing to leak. Two real gaps found by that method and closed in `src/middleware/sentry.js`: `authorization` was absent from the sensitive-key pattern (an axios error carries `config.headers`), and `Bearer <token>` survived the key/value rule because it stops a value at the first space. Containment is now structural — every winston line leaves through the scrubber (`src/middleware/logging.js`), and the terminal error handler moved to `src/middleware/errorEnvelope.js` so the message it echoes is scrubbed and the shipped envelope is the one under test. GlitchTip-payload half was already proven by `O8` (`test/providerErrorCapture.test.js`). Mutation-checked: reverting either scrubber turns the corresponding backstop test red. `npm test` 618/618.
-- **Known boundary:** a credential logged as a bare value with no key beside it is invisible to the text scrubber. No code path does this, and facts-of-record #6 keeps ESPN cookie values out of every emission site by construction, but the limit is recorded in the test rather than left implicit.
-- **Blocked by:** None
-- **Unblock:** 2026-08-18 CORRECTED — this item's scope previously read "...or Sentry payloads once O1 lands." That reference was always wrong: `O1` (Kuma/Beszel) never emitted Sentry-shaped payloads — that was `O1b`'s job, and `O1b` closing on 2026-08-17 proved the tool works, not that anything sends to it. `O8` is what will actually emit adapter-failure payloads. The log/error-envelope half of this item's scope is testable now regardless.
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** yes
-- **Scope:** error paths specifically — happy paths are already covered. Provoke adapter failures for Yahoo, Sleeper, and ESPN and confirm nothing leaks into logs or error envelopes now; extend the same proof to GlitchTip payloads once `O8` ships.
-- **Skills:** `security-privacy-evidence`, `slops-investigate`
-- **Done when:** a test proves each adapter's failure path emits no cookie, token, or credential fragment in logs and error envelopes; ESPN cookie names and values are absent from every surface, including GlitchTip payloads once `O8` exists.
-- **Do not touch:** real credential values in test fixtures.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-18. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
 
@@ -929,29 +730,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### S8 — Triage the standing Dependabot queue
 
-- **Status:** **CLOSED 2026-08-19.**
-- **Closure:** COMPLETED — **the work was finished 2026-08-11 and the status was never advanced.** Verified against GitHub 2026-08-19: **zero open Dependabot PRs.** All six named below are resolved exactly as this item's own verdicts prescribed — #273, #274, #277, #281, #282 **merged**; #280 **closed** (correctly: it carried `tailwindcss` 3→4 and `vite` 7→8, which would have broken the build) and now covered by an `ignore` rule so it stops reopening. `.github/dependabot.yml` carries the ignore rules and the phantom-label defect is fixed. Every `Done when:` clause is met: written verdicts for all six, #281 resolved by merge, each red diagnosed to the real cause (a single `nanoid` frontend dev-advisory on `main`, not the PRs), and the config amended rather than PRs manually closed.
-- **Why this sat open for eight days.** `scripts/check-sprint-staleness.js` matches sprint keys against merged **PR titles**, and Dependabot PR titles are `build(deps): …` — they never contain the key `S8`. So the one mechanism that exists to catch this drift is structurally blind to dependency work. **This item was still being offered as an available P1 pull on 2026-08-19** — it was listed as candidate #3 in that morning's re-derived queue before this reconciliation caught it.
-- **Blocked by:** None
-- **Priority:** **P1 — one open PR sits on a hard-failure rule** (see below); the rest are P2 hygiene
-- **Cost:** small per PR, medium for the batch
-- **Agent-buildable:** yes for triage, analysis, and the written verdict. **Merging is founder-only.**
-- **Source:** six Dependabot PRs open as of 2026-08-11 (#282, #281, #280, #277, #274, #273), four of them red. Nothing in this sprint has ever covered dependency-PR triage, which is why they accumulated. `.github/dependabot.yml` runs **weekly, Mondays 09:00 America/New_York** across four ecosystems (root npm, frontend npm, github-actions, Android Gradle) — so **closing a PR is not a decision, it is a six-day delay.** The only durable levers are `ignore` rules or `open-pull-requests-limit`.
-- **Why red matters more than open.** Per `Direction/agent_inbox.md`, two dependency PRs previously reached green and **would still have broken production** — #206 (`express` 4→5) passed 481/481 and would have crash-looped prod, because the bare-`*` SPA fallback throws under `path-to-regexp` 8 and sits behind `HAS_SPA`, which is false in CI and true in the production image. A red dependency PR on this repo is the gate working. Do not bulk-close.
-- **#281 is the one with a standing rule attached.** `production-dependencies`, currently failing. `dependency-health.yml:28` runs `npm audit --omit=dev --audit-level=low`, and the 2026-07-26 decision makes **production dependency advisories a hard failure at every severity**. Triage this one first and on its own.
-- **Receipts are required.** The same 2026-07-26 decision: dependency-changing PRs must identify purpose, scope, license/source, production audit result, and rollback. A merged bump with no receipt is not done.
-- **Unblock:** 2026-08-11 CLEARED — triaged. **Root cause of the red was a single advisory on `main`, not the PRs.** `nanoid <3.3.17` (high, **frontend dev-dependency only**) failed `dependency-health.yml:65` (`npm --prefix frontend audit --audit-level=low`), so every PR running that check went red regardless of content — including #281, a root/backend PR that never touches `frontend/`. Fixed by `npm --prefix frontend audit fix` → `nanoid 3.3.16 → 3.3.18`, 12 insertions / 3 deletions, frontend build green (vite 7.3.6, 563 modules). Root audit was already clean at 0 vulnerabilities, prod and dev.
-- **Verdicts recorded 2026-08-11:**
-  - **#281** production-dependencies (supabase-js, upstash/redis, express-rate-limit — all patch) → **MERGE** after rebase
-  - **#273** frontend-runtime (`@sentry/react` 10.68→10.69, `supabase-js` 2.110.8→2.112.2, both minor) → **MERGE** after rebase
-  - **#274** development-tooling (`impeccable` 3.4→3.5, dev-only) → **MERGE** after rebase
-  - **#282** android-dependencies + gradle wrapper → **MERGE**
-  - **#277** `actions/upload-artifact` v4→v7 → **READ FIRST.** Three majors, but used in exactly one workflow (`native-visual-evidence.yml`) with no production dependency
-  - **#280** frontend-tooling → **DO NOT MERGE.** Carries `tailwindcss` 3.4.17→**4.3.3** and `vite` 7→**8**. Tailwind v4 removes the JS config format (`frontend/tailwind.config.js` exists) and replaces the `@tailwind` directives (`frontend/src/index.css` has three). It would break the build. Now covered by `ignore` rules in `.github/dependabot.yml`, so Dependabot closes it and stops reopening it
-- **Config defects fixed 2026-08-11:** `.github/dependabot.yml` referenced labels `dependencies`, `security`, and `android` — **none exist in this repository**, and GitHub rejected them on every PR with "The following labels could not be found." Removed. Added `ignore` rules for the `tailwindcss`, `vite`, and `@vitejs/plugin-react` majors, each with its reason inline. **Closing a Dependabot PR is not a decision — it reopens weekly. An `ignore` rule is the decision.**
-- **Skills:** `slops-code-review`, `slops-verify`, `security-privacy-evidence`
-- **Done when:** every open Dependabot PR carries a written verdict — merge, hold with a reason, or ignore-rule with a scope and expiry; #281 is resolved or its advisory is explicitly accepted in writing; each red PR's failure is diagnosed as *real breakage* or *flake* rather than closed unread; and if the queue is to stay small, `dependabot.yml` is amended with `ignore` rules or limits rather than relying on manual closing.
-- **Do not touch:** merging to `main` — founder-only, never delegated. Do not close a red PR without recording why it was red. Do not raise `--audit-level` or add `--omit=dev` to a gate to make a failure disappear.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### S7 — Retire stale cloud-AI runtime dependencies (OpenAI **and Anthropic**)
 
@@ -985,22 +764,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### O1b — Application error tracking (Sentry-class)
 
-- **Status:** **CLOSED 2026-08-17.**
-- **Closure:** COMPLETED — GlitchTip deployed on Command Center, all four `Done when:` clauses met with direct evidence.
-- **Claim:** Claude, 2026-08-17 — released on verification.
-- **The resource estimate here was conservative, and checking it changed the hosting call.** This item's own text estimated GlitchTip at "roughly 1–2 GB." The primary source (`glitchtip.com/documentation/install`) states 256–512 MB is enough and arm64 is officially supported. That meant Command Center's 3.2 GB available headroom was plenty — no need to reach for KVM2. Self-hosted Sentry was never evaluated further; its ~16 GB footprint was disqualifying on sight, as already recorded above.
-- **Stack:** `postgres:18` + `valkey/valkey:9` + `glitchtip/glitchtip:6` (`SERVER_ROLE: all_in_one`) at `/opt/command-center/glitchtip/compose.yml`, bound to `100.98.81.0:8000` only — Tailscale-only, matching the existing Kuma/Beszel convention on that host, never `0.0.0.0`. `ALLOWED_HOSTS` pinned to the Tailscale IP rather than left on Django's wildcard default. Email alerts route through Resend SMTP, the same provider Supabase auth already uses for `slopssaloon.com`, on a separate scoped API key rather than reusing Supabase's.
-- **A real defect was found and fixed during deploy, not assumed away.** GlitchTip's `smtp://…@host:465` URL does not imply implicit TLS — it opened a plaintext connection into a TLS-only port and hung until timeout, which is what surfaced mid-session as "registration taking forever." Confirmed with a direct `smtplib` reproduction (plaintext-on-465 times out; implicit-SSL-on-465 and STARTTLS-on-587 both work against Resend). Fixed by moving to port 587. **Carry forward: don't trust a bare `smtp://host:port` pairing to imply the right TLS mode — verify the protocol handshake, not just TCP reachability.**
-- **`mem_limit` needed real follow-through to actually enforce, not just declare.** Command Center's stock kernel had no cgroup memory accounting, so Docker silently discarded the 768m/256m/768m caps — confirmed via `docker inspect` (`HostConfig.Memory: 0`) and the live cgroup file reading `max`, not inferred from `docker stats`' misleading fallback display. Fixed with the standard Raspberry Pi fix (`cgroup_enable=memory cgroup_memory=1` in `/boot/firmware/cmdline.txt`, backup taken first) plus a reboot. **A plain daemon-restart after reboot was not enough** — it reuses each container's already-baked config rather than re-resolving it against the newly-available kernel capability; a `docker compose up -d --force-recreate` was required before the caps actually applied. Re-verified: `HostConfig.Memory` correctly reads 805306368 / 268435456 bytes post-recreate. All seven containers on the host (Pi-hole, Beszel, Beszel-agent, Kuma, plus GlitchTip's three) survived the reboot cleanly via `restart: unless-stopped`.
-- **Done-when evidence:**
-  - *Deliberate error, within 60s, usable stack trace:* a synthetic `ESPNMalformedResponseError` (mirroring this item's own canonical example) was POSTed to the ingest API from an external host and confirmed stored, grouped, and queryable with full stack frames intact in **under 1 second** — verified directly against `issue_events_issueevent` in Postgres, not inferred from the ingest endpoint's 200 response alone.
-  - *Host and resource cost recorded:* ~300 MB RAM measured (519Mi → 812Mi host `used`, before/after the full stack), ~2.9 GB disk (2.88 GB images + 87 MB volumes) — both comfortably inside Command Center's headroom.
-  - *No PII/credential/cookie in payload:* the verification event was entirely synthetic, explicitly labeled as a test in its own `extra` field.
-- **Operational resilience proven 2026-08-18, matching the discipline every other Slops OS layer got (see `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`) rather than resting on the one synthetic ingest test above.** The original closure proved GlitchTip *accepts and stores* an error; it did not prove GlitchTip *survives* anything, which is a different and equally necessary claim. Two controlled tests: (1) `glitchtip-web` stopped deliberately — confirmed the site actually went down (`HTTP 000`, connection refused), restarted, confirmed recovery in ~18s, confirmed the pre-existing issue row survived the outage untouched. (2) Command Center rebooted a second time, cleanly this time (not incidental to chasing the cgroup bug) — all seven containers on the host came back via `restart: unless-stopped` alone with **zero manual intervention**, GlitchTip returned `HTTP 200` on the first post-boot attempt, and critically `HostConfig.Memory` still read the correct `805306368`/`268435456` bytes without needing another `--force-recreate` — proving the mem_limit fix above was a durable configuration change, not a one-time patch that would silently regress on the next reboot.
-- **Kuma monitor added and proven 2026-08-18** — closes the gap above. `GlitchTip` monitor (`HTTP(s) - Keyword`, target `http://100.98.81.0:8000/`, keyword `GlitchTip`, 60s interval), matching the pattern of the three Omen monitors. Proven with a controlled kill/recover cycle observed directly in the Kuma UI, not inferred: stopping `glitchtip-web` produced a real `[GlitchTip] [DOWN] timeout of 48000ms exceeded` event and the badge dropped to red; restarting produced a confirmed `Up` status with a healthy 16ms current response time. GlitchTip now has the same synthetic-monitoring coverage the three Omen endpoints do.
-- **✅ Addendum 2026-08-18 — the Sentry SaaS half of the same 2026-08-17 ratification, reconciled onto `main` for the first time.** This closure record has only ever described GlitchTip because the Sentry SaaS half of the ratified split destination (Option D) was recorded on the branch that became PRs #327/#328, which merged after this task closed. Full account in `decision_log.md`, 2026-08-18. Short version: org **`valor-ventures-llc`** exists, web (React) DSN verified end-to-end with a real transmitted event, iOS/Android projects provisioned and unverified pending `O6`. That same verification pass found and PR #328 fixed a real gap — the frontend Sentry client did not scrub OAuth `code`/`state` the way the backend does — closing one of this item's own "no PII/credential in payload" evidence gates for the frontend half. The backend has the identical breadcrumb-URL variant of that gap, still open, tracked in `known_issues.md`.
-- **Downstream:** `O6` listed `TASK-O1b` as a blocker on both platforms; that half is now resolved. See `O6` below for the remaining `R3-BUILD-iOS` gate on the iOS half only, and for the two provisioned Sentry projects already waiting on it.
-- **Do not touch:** KVM1 production resources (untouched — GlitchTip lives entirely on Command Center); public exposure of the error-tracking UI (confirmed Tailscale-bound only, never `0.0.0.0`).
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-18. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O1c — Product analytics (Umami) — deferred
 
@@ -1011,77 +775,15 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### O6 — Native crash reporting on both platforms
 
-- **Status:** **CLOSED 2026-08-21.**
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "O6 — native crash reporting, and the IP-address question that held it open". The IP-attribution item that this record deliberately held the task open for is resolved: the founder enabled **Prevent Storing of IP Addresses** on the Sentry iOS, Android and React projects on 2026-08-21.
-- **⚠️ Evidence boundary, stated rather than blurred.** The setting change is **founder-confirmed in the Sentry dashboard**. It was **not** re-proven empirically — no fresh deliberate crash was run afterward to observe the user count fall to 0 on iOS. O6's `Done when:` concerns the *payload*, and the payload was already proven clean by grep and by `SentryEnvelopeReporterTests`; the IP was added by Sentry at ingestion, which is why a settings change is the right fix. **But "the toggle is on" and "no IP is stored on the next crash" are two different claims**, and only the first is evidenced here. A fresh deliberate crash on each platform would close that gap and is cheap to run whenever a device is already in hand — worth folding into `F10`'s real-device matrix rather than minting a task for it.
-- **Status history:** VERIFIED 2026-08-19 — both halves, founder-confirmed in the dashboard.
-- **Claim:** Claude, 2026-08-19 — released on verification.
-- **iOS live proof, 2026-08-19.** Founder supplied the DSN; a deliberate `NSException` was raised via the `-OMEN_CRASH_TEST` launch argument on the iPhone 16 simulator. **Sentry returned HTTP 200** — crash at `21:23:30Z`, report acknowledged at `21:23:32.502`, so **~2 seconds against a 60-second requirement.** Stack frames are symbolicated: frame 3 is `$s4Omen14CrashReportingO16crashIfRequested9argumentsySaySSG_tFZ` (Swift-mangled `Omen.CrashReporting.crashIfRequested(arguments:)`), with further `Omen` frames at 4, 5, and 7 — real symbols, not bare addresses. Payload carries no user data, token, or league identifier; the PII boundary is directly asserted in `SentryEnvelopeReporterTests`. Tests: **244/244** iOS unit (Xcode 26.6 `17F113`).
-- **Dashboard confirmed 2026-08-19.** `OmenDeliberateTestCrash` — "O6 verification — deliberate NSException, no user data attached" — `APPLE-IOS-1`, 2 events, seen 2 min after the run, alongside the Android half's `ANDROID-1`. Stored and rendered, not merely accepted.
-- **⚠️ One discrepancy found in that dashboard, and it is not cosmetic.** The iOS issue shows **Users: 1**; the Android issue shows **Users: 0**. **Neither payload emits a `user` field** — verified by grepping both reporters — so the attribution is added by Sentry at ingestion, and the usual cause is the client IP being stored as `user.ip_address` unless *Prevent Storing of IP Addresses* is enabled. **Because the code is identical in shape across both platforms, this is a per-project settings difference, not a code difference.** It matters here specifically: the Android half's evidence cites "0 users (confirming no PII attached)", and the same sentence cannot honestly be written for iOS. O6's `Done when:` says *no PII in the payload* and our payload is provably clean — but an IP is personal data under GDPR, and we are storing one for iOS and apparently not for Android. **Action: check *Prevent Storing of IP Addresses* on both Sentry projects and make them agree** (founder-owned — it is a Sentry dashboard setting). A payload-level `user.ip_address` suppression is the belt-and-braces alternative; it should be re-tested empirically rather than assumed to work.
-- **Not closed yet, deliberately:** the IP-attribution question above is a privacy posture item on a crash pipeline, which is exactly the class of thing this task's `Do not touch` line exists to protect. Settle it, then `CLOSED`.
-- **A real bug this proof caught, and it was the one already written on the wall.** The first DSN write truncated to `https:` in the built `Info.plist` — xcconfig treats `//` as a comment, exactly as `Base.xcconfig`'s own header warns ("The truncation is silent — it reaches `Info.plist` and ships in the build"). Fixed by routing the scheme separator through `$(OMEN_SLASH)`. **The warning existed and was still walked into**, because the DSN was pasted as a plain value rather than treated as a URL. Any future `Local.xcconfig` URL needs the same indirection — verify by extracting the key from the *built* `Info.plist`, never by reading the xcconfig.
-- **iOS implementation 2026-08-19.** `App/CrashReporting/SentryEnvelopeReporter.swift` mirrors the proven Android reporter: hand-rolled envelope, **no Sentry SDK dependency** (same call the Android half and `O8` made), posting `application/x-sentry-envelope` to `/api/<project>/envelope/`. Installed via `CrashReporting.install(dsn:)` as the first statement in `OmenIOSApp.init`, chaining to any previously-installed handler. Blank DSN is a no-op, matching Android and the backend. Plumbed through `OMEN_IOS_SENTRY_DSN` → `Base.xcconfig` → `Info.plist` → `AppEnvironment.sentryDsn`. Tests: `SentryEnvelopeReporterTests` **9/9**; full iOS unit suite **243/243** (Xcode 26.6 `17F113`).
-- **A real coverage limit on iOS, stated rather than implied.** `NSSetUncaughtExceptionHandler` fires for **Objective-C exceptions only**. Pure Swift runtime traps — `fatalError()`, force-unwrapping nil, index out of range — raise `SIGTRAP`/`SIGILL` and do **not** reach it. Catching those needs signal handlers with genuine async-signal-safety hazards, deliberately out of scope. **The iOS half is therefore partial crash coverage**, and the deliberate-crash proof must use an `NSException` for the claim to be honest about what it demonstrates. Android has no equivalent gap: `Thread.setDefaultUncaughtExceptionHandler` catches all JVM throwables.
-- **Blocked by (historical):** None
-- **Unblock:** 2026-08-11 ROUTED — split from a single untyped prose blocker into typed lines per `Direction/status-model.md`. No dependency was added or removed.
-- **Unblock:** 2026-08-12 REASSESSED — the local Mac/device development-signing prerequisite is now satisfied, but at that point this blocker still stood: no archive/dSYM upload or deliberate native crash had been performed, `TASK-O1b` was still open, and `R3-BUILD-iOS` had not reached TestFlight.
-- **Unblock:** 2026-08-17 RESOLVED — `TASK-O1b` closed; GlitchTip is live on Command Center (`http://100.98.81.0:8000`, Tailscale-only) with a proven ingest path (deliberate test error confirmed stored with a full stack trace in <1s). This item's Android-half blocker was satisfied as of this date — Android crash-reporting integration became agent-buildable. At that point overall `Status` stayed `BLOCKED` because iOS symbolication still needed `TASK-R3-BUILD-iOS` to reach a signed build for dSYM upload — see the two entries below for how both remaining pieces closed the same day.
-- **Note 2026-08-18 (reconciled onto `main` late — see `decision_log.md`):** the Sentry SaaS org created under `O1b`'s ratified split destination already has **iOS and Android projects provisioned with DSNs**, alongside the verified web one. Neither DSN is wired into a native app yet — no Sentry SDK exists in either codebase — so this was a head start, not a shortcut past the actual `Done when:` work.
-- **Unblock 2026-08-18 (1/2) — Android half PROVEN.** Hand-rolled Sentry envelope integration (no SDK dependency, same choice O8 made for the backend), wired via `Thread.setDefaultUncaughtExceptionHandler` in `MainActivity.onCreate`. A real deliberate crash (`adb shell am crash`) reached the Android Sentry project in under 1 second — founder-confirmed directly in the Sentry dashboard: `android.app.RemoteServiceException$CrashedByAdbException` / "shell-induced crash", `ANDROID-1`, 2 events, **0 users** (confirming no PII attached). Stack trace is real class/method/line names (unminified debug build — inherently symbolicated, no ProGuard mapping question in play for this proof). Evidence: `Direction/reviews/2026-08-18-o6-android-crash-reporting.md`; `Blueprints/handoffs/2026-08-18-o6-android-crash-reporting.md`.
-- **Unblock 2026-08-18 (2/2) — iOS half's blocker CLEARED.** `TASK-R3-BUILD-iOS` reached TestFlight (`VERIFIED`, see its own record) — a signed build now has a proven, repeatable path. **This does not mean the iOS half of O6 is done** — no Sentry client has been wired into the iOS app and no deliberate iOS crash has been proven yet. It means that work is now agent-buildable rather than gated. `Status` is `READY`, not `VERIFIED`, until the iOS half actually happens.
-- **Priority:** **P0 — hard Phase 3 gate, and the single largest blind spot in the whole system**
-- **Cost:** medium
-- **Agent-buildable:** yes
-- **Source:** **the Pi observability stack cannot see this at all.** A SwiftUI or Compose crash never reaches KVM1, so it never touches Nginx, `omen_api`, Kuma, or Beszel. Every one of those stays green while a tester's app dies on launch. Omen is now a mobile-first product, which makes this the most consequential monitoring gap that exists — and it is invisible precisely because everything else looks healthy.
-- **Done when:** a deliberate crash on iOS and on Android each appear in the error backend within 60 seconds, with symbolicated stack traces and no PII or token in the payload.
-- **Do not touch:** shipping any crash payload containing user data, provider tokens, or league identifiers.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O7 — Forced-update / minimum-version gate
 
-- **Status:** **CLOSED 2026-08-19.**
-- **Closure:** COMPLETED — see `Direction/sprints_completed.md` § "O7 — the forced-update gate lands inert".
-- **Claim:** Claude, 2026-08-19 — released on closure.
-- **Evidence:** `Blueprints/handoffs/2026-08-19-o7-forced-update-gate.md`. Backend `GET /api/system/min-version` (`system-min-version.v1`) in `src/routes/system.js` + `getMinVersionStatus()` in `src/services/systemContracts.js`, minimum sourced from `config.minAppVersion` (`MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID`, both defaulting to `0.1.0` so an unconfigured deploy blocks nobody). iOS `MinVersionGateClient`/`UpdateGateViewModel`/`ForcedUpdateView` gate ahead of the session switch in `AppShellView`; Android `MinVersionGateClient`/`UpdateGateViewModel`/`ForcedUpdateScreen` do the same in `OmenAndroidApp`. **Fails open at three layers** — the service reports `ok` for an unknown platform or unparseable version, both clients collapse network/non-2xx/undecodable to `Unavailable`, and both view models treat `Unavailable` identically to `Ok`. Tests: backend 3 new (below/at/unavailable, incl. bad platform + bad version) with the suite at **569/569**; iOS `MinVersionGateTests` 8/8 with the unit suite at **234/234** and UI at **5/5**; Android `MinVersionGateTest` 8/8 with `:app:testDebugUnitTest` at **42/42** and `:app:assembleDebug` clean. Route also proven against a real booted server (below-minimum → `update_required`, at-minimum → `ok`, no-params → `ok`).
-- **Visual evidence:** `forced-update.blocked` registered in both `ScreenshotScenarios` registries and both `native-visual-evidence.yml` matrices; rendered on iPhone 16 simulator (light + dark) and `medium_phone` emulator. Screenshots in `Direction/reviews/evidence/2026-08-19-o7/`. **Rendering caught a real defect the 276 passing tests could not:** `ForcedUpdateView` set no background and was inheriting the system default (`#000000`/`#FFFFFF`) instead of `OmenColor.bg` (`#0A0A0B`/`#FAFAF9`) — fixed and re-verified by sampling the rendered pixel on all three captures. Android was already correct (hosted in `Surface(color = OmenTheme.color.bg)`). **Accessibility audit done and passing:** `ForcedUpdateAccessibilityUITests` (5 tests) — passes at default and at `AccessibilityExtraExtraExtraLarge`, update control exposed by name and hittable, prompt names reason + required version. The unfiltered audit reports **exactly one** finding, the app-wide `OmenTypography` Dynamic Type issue (pinned `XCTExpectFailure`), and notably **does not fail contrast** unlike the Command Center. iOS UI suite now 10/10. **Still outstanding:** human VoiceOver pass on a physical device, and no Android accessibility audit in this pass.
-- **Deliberately not done:** the minimum stays at `0.1.0` on both platforms and the store URLs stay blank — per this item's own **Do not touch**, there is no live store listing to send a blocked user to yet. Raising either value is a founder action gated on R3/R4, not part of this task.
-- **Priority:** **P0 — mobile has no rollback**
-- **Cost:** medium
-- **Agent-buildable:** yes
-- **Source:** once a build is on a phone it stays there until the user updates. A server-driven minimum-version check is the only lever available when a bad build ships.
-- **Scope:** a server-supplied minimum supported version; the app blocks with an honest update prompt below it. Must fail open on network error — never lock a user out because the check itself failed.
-- **Done when:** both platforms honor a server-driven minimum version, show an honest blocking prompt, and fail open on network error; tests cover below-minimum, at-minimum, and check-unavailable.
-- **Do not touch:** forcing an update without a working store listing to update to.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O2 — Named rollback owner and tested rollback path
 
-- **Status:** CLOSED / COMPLETED — documentation and immutable-tag fix applied earlier; the live exercise was executed 2026-08-27 and the owner clause is settled by facts-of-record #15.
-- **Claim:** Justin Duverge, 2026-08-20 — founder-directed O2 continuation; immutable-tag fix landed, live exercise retained for founder execution.
-- **Delivered:** `Blueprints/playbooks/rollback-runbook.md` — the backend procedure that works *today*, the mobile answer, and the verification steps. Wired into `Blueprints/done/release-done.md` gates 11 and 16.
-- **⚠️ The finding this task existed to surface:** before PR #347, `deploy.yml` published only mutable `:main` tags and immediately ran a bare `docker image prune -f`, destroying the local artifact a rollback would need. GHCR digest lookup remained possible but required package-read access and a value nobody had recorded. The before-state stays documented in the runbook so a later "cleanup" cannot silently recreate it.
-- **Fix APPLIED 2026-08-20 — PR [#347](https://github.com/justinduverge-design/omen/pull/347) / `5cf3597`.** The workflow now publishes `:sha-${{ github.sha }}` alongside `:main` for both API and cron images, and scopes image pruning to `--filter "until=168h"`. Local verification before merge: deploy hardening 4/4, backend 570/570, workflow YAML parsed. GitHub registered no deploy run for the workflow-only merge because `.github/workflows/**` is path-ignored; production was not restarted.
-- **The runbook now documents the applied path:** immutable SHA tags are primary for current builds; digest lookup is the permanent fallback for builds published before the tag change. The before/after account remains so a later "cleanup" trimming the tag list back to one entry can see what that costs.
-- **Mobile answer recorded** as the `Done when:` requires: **no rollback exists.** Halting distribution stops new installs and does not remove or downgrade an installed app. `O7`'s forced-update gate is the mitigation, with its ordering constraint stated — store URLs first, minimum second, or a bad build becomes a total lockout.
-- **Rollback owner named 2026-08-19: Justin Duverge.** Recorded in `Blueprints/playbooks/rollback-runbook.md`. Owner and sole executor are the same person — a real single point of failure on a solo product, noted rather than papered over.
-- **Remaining, founder-only:** execute the path once against a non-critical deploy. The runbook's last section gives the exact six-step shape, and notes that the number worth timing is how long the digest lookup takes when you do not already know it.
-- **Unblock:** 2026-08-22 CLEARED — the founder authorized the controlled non-critical rollback exercise and established that rollback capability plus periodic proof are mandatory operating controls, not optional approval items. Founder-only production access identifies Justin as executor; it does not create discretion to skip the drill. No exercise or deployment occurred in this decision session, so the task remains `IN_PROGRESS` until execution evidence exists.
-- **Also corrected while here:** `Blueprints/done/release-done.md` carried a ⛔ HARD-BLOCKED banner citing the GitHub Actions billing hold. That hold was retracted 2026-08-01 — it never existed — and the banner would have blocked a legitimate Release Done closure on a false premise for 18 days.
-- **Blocked by:** None
-- **Priority:** P0
-- **Cost:** small
-- **Agent-buildable:** documentation yes; the rollback exercise is founder-executed
-- **Source:** A4's own `Done when:` already requires a named rollback owner. Test it before you need it.
-- **Skills:** `slops-ship`, `slops-canary`
-- **Done when:** the backend rollback path is executed once against a non-critical deploy and documented; a rollback owner is named; the mobile answer is explicitly recorded as "no rollback — O7 forced-update is the mitigation."
-- **Do not touch:** an unplanned rollback, a critical deployment, or any exercise without the named human executor, a known-good target, health checks, restore steps, and an evidence plan.
-- **✅ Drill EXECUTED 2026-08-27 — the tested-path half is discharged.** `Direction/reviews/2026-08-27-o2-rollback-drill.md`. Real production path, real deployment: rolled `main` back to the previous build `e83ce8f536b2`, confirmed production served it, then restored `5006307b9ad7`. **Healthy after 3 seconds in both directions.** Restored and verified before the evidence was written. Executed under explicit founder authorization; blast radius was pre-beta with no public cohort.
-- **Finding: the documented fallback existed but was unusable until the day before.** `deploy.yml`'s own comment claims 168h of prune retention "keeps a week of previous builds on disk as a fallback". True, and insufficient — they are kept **dangling and untagged**, so before PR #375 the host held four anonymous 416 MB blobs with no commit metadata. You could roll back to *something* without knowing *what*. #375's build provenance is what makes the target identifiable; without it this drill would have been a coin flip.
-- **Residual gap, named not fixed:** only `:main` is pulled to the host, so the `:sha-<commit>` tags never land there and rollback depends on whatever the prune has not yet collected. After a quiet week there may be nothing to roll back to. Recommended fix is to pull and retain `:sha-<commit>` alongside `:main` — one line in the deploy step. Not done: not authorized, and it is a deploy-config change.
-- **✅ RESOLVED 2026-08-27 — named rollback owner is Justin**, per facts-of-record #15. `A4`'s sixth evidence gate ("completed O2 rollback exercise *with Justin as owner*") is therefore **satisfied**: the exercise is recorded above and the owner is declared. A4's other five gates are unaffected and still require their own evidence.
-- **✅ CLOSED 2026-08-27 — both halves discharged.**
-  - **Tested rollback path:** executed against real production 2026-08-27. `main` rolled back to `e83ce8f536b2`, production confirmed serving it, then restored to `5006307b9ad7`. **Healthy after 3 seconds in both directions.** Evidence: `Direction/reviews/2026-08-27-o2-rollback-drill.md`.
-  - **Named rollback owner: Justin Duverge Catalino**, per facts-of-record #15 (declared 2026-08-27) — he is the sole owner of record for every Omen role requiring a named person, for as long as he is the only person working on the company. This closes the clause without a per-item declaration, and it closes it for every other item that was waiting on the same question.
-- **Carried forward as a separate concern, not a blocker on this item:** only `:main` is pulled to KVM1, so `:sha-<commit>` tags never land there and rollback depends on whatever the 168h prune has not collected. After a quiet week there may be no local image to roll back to. One-line fix in the deploy step; recorded in the drill evidence.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-27. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O3 — Post-deploy canary
 
@@ -1096,81 +798,19 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 ### O4 — Load test the three hot routes
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "S3 + S4 + O4 — the three hot routes get limits, containment, and their first load number". **On a branch under founder review, not on `main`:** PR [#355](https://github.com/justinduverge-design/omen/pull/355), left open deliberately.
-- **Evidence:** commit `1d3f97d`; full record in `Direction/reviews/2026-08-22-o4-hot-route-load-rehearsal.md`. Local loopback only — `scripts/local-load-stack.js` boots the real `src/server.js` against a loopback Supabase stub; no production, no staging, no provider traffic, no LLM call. **Beta (20 concurrent × 8 = 160/route):** p95 20 / 5 / 23 ms for trade / mvp-move / dashboard, 0 % error rate, 0 rate-limited. **10× (200 concurrent × 8 = 1600/route):** p95 107 / 20 / 101 ms, 0 % error rate, 0 rate-limited. Concurrency chosen against the S3 limits and off the repo, not out of the air — 8 requests/client sits under the tightest per-credential budget (`mvp-move`, 10/min), 20 is the top of the K2 beta cohort, and 200 is R6's internal-track ceiling (100 iOS + 100 Android), which is exactly 10×. Each simulated client carries its own `X-Forwarded-For` and bearer token so the limits distribute as they will in production. Two further saturation runs, one identity on purpose, confirm the S3 limiters bind at exactly their documented numbers with the documented envelope and correct `scope`, and never 5xx.
-- **Not claimed:** no provider fan-out, no real LLM call, `mvp-move` ran in explicit mock mode, the stub user has no platform connections, and the whole run is loopback on one host. Per the item's own Scope, Week 1 Sunday morning is the real load test — this is the rehearsal.
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** yes, against approved local/staging targets
-- **Source:** `scripts/load-omen-routes.js` exists and has never been run.
-- **Scope:** `POST /api/omen/mvp-move`, `POST /api/trade/compare`, `GET /api/dashboard/summary`. Note that **Week 1 Sunday morning is the real load test** — this is the rehearsal, not the proof.
-- **Done when:** load evidence is recorded for all three routes with p95 latency and error rate at a realistic beta concurrency, and again at 10× that.
-- **Do not touch:** load-testing production without explicit approval.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O5 — Supabase backup and restore verification
 
-- **Status:** **CLOSED 2026-08-17 (doc reconciliation — the work itself completed 2026-08-11).**
-- **Closure:** COMPLETED — this item sat as "never verified" while the actual pipeline was built and proven in a parallel, undocumented context (the Slops OS infrastructure fleet) a full week earlier. Found and reconciled during the `O1b`/Drive-migration session.
-- **Evidence:** `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md` → "Layer 3 — Steward Automation → The backup pipeline." Encrypted Restic pipeline KVM1 → KVM2, including explicit Supabase Auth export (`auth.users`/`auth.identities`/`auth.mfa_factors`, which the default `supabase db dump` excludes); scheduled every 6 hours; **full disaster-recovery drill proven** — snapshot restored into an isolated, network-disconnected disposable Postgres container with every recovered row count matching source exactly (`moves=1`, `platform_connections=8`, `profiles=3`, `users=3`, `waitlist_signups=10`, zero orphaned Auth identities). Steward monitors freshness (HEALTHY / WARNING >8h / DOWN) through a forced-command-restricted channel that never touches Supabase or Restic credentials.
-- **Known residual gap, honestly carried forward:** KVM1 and KVM2 are both Hostinger — this is off-host but not off-provider disaster separation. A second copy on a different provider/local storage remains undone.
-- **Do not touch:** production data; never restore over production. (Honored throughout — every restore drill ran in an isolated, network-disconnected container, never against production.)
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-17. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O8 — Wire GlitchTip into Omen's actual error paths
 
-- **Status:** **CLOSED 2026-08-21.**
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "O8 — error tracking reaches production, and finds it was never on". PR [#353](https://github.com/justinduverge-design/omen/pull/353) merged and deployed (run `32530387393`); the production DSN defect it uncovered is closed as [#354](https://github.com/justinduverge-design/omen/issues/354). Proven in production: `/api/ready` → `error_tracking.valid: true`, and a real ESPN 404 provoked inside the running container landed in GlitchTip issue 2 tagged `environment: production`, with no credential leak in the stored payload.
-- **Claim:** Claude, 2026-08-21 — O8 implementation pass.
-- **Evidence:** `Blueprints/handoffs/2026-08-21-o8-glitchtip-error-paths.md`; PR [#353](https://github.com/justinduverge-design/omen/pull/353). A **real** provoked ESPN adapter failure (live GET to `lm-api-reads.fantasy.espn.com` for a nonexistent league → HTTP 404, raised inside `doEspnRequest()`) arrived in the GlitchTip `omen-backend` project as **issue 2**, `Error: ESPN API returned HTTP 404`, `first_seen 2026-08-21 21:37:47+00`, with a **10-frame stack trace**, all four tags recorded (`provider`, `omen_mode`, `provider_operation`, `provider_status`), full `extra` context, and **zero credential leaks** — verified by querying `issue_events_issueevent` directly rather than trusting the ingest 200, and by canary-searching the stored payload for the espn_s2 and SWID values the adapter was handed (all three checks false). `npm test` 591/591.
-- **⚠️ Production is NOT yet sending — tracked separately as [#354](https://github.com/justinduverge-design/omen/issues/354), P0.** O8's own `Done when:` never mentioned production configuration, and the code half is complete and proven. But the pass discovered that **KVM1's `SENTRY_DSN` is the literal placeholder `paste_the_value_here` with a real DSN glued on**, in both `omen_api` and `omen_cron` — 115 characters, identical. It is not a legal URL, so `@sentry/node` built no transport and **dropped every event in silence** while reporting `enabled: true`. Omen has been reporting errors nowhere at all. Correcting it is a secrets + production-restart action, so it is founder-gated; the guard against it recurring shipped here.
-- **Blocked by:** None
-- **Priority:** P1 — this is the payoff `O1b` was built for. `O1b`'s done-when was proven with a synthetic error sent by hand from a terminal. Closing `O1b` proved the tool works — it did not prove the tool catches anything real, and those are different claims. Do not conflate them in future status language.
-- **⚠️ This item's original Scope was written on a false premise — corrected 2026-08-21.** It said *"nothing in `src/` sends anything to GlitchTip yet"* and therefore instructed: *"prefer a direct HTTP integration against GlitchTip's store/envelope endpoint over adding `@sentry/node`… `package.json`/dependencies are on this repo's standing do-not-touch list."* **`@sentry/node` was already a dependency and already wired**, and had been since Phase 1.2 (`cc14e79`): `initSentry()` runs before every other import in `src/server.js:24`, `Sentry.setupExpressErrorHandler` is installed at `src/server.js:346`, `src/omen_tuesday_cron.js` has had process-level handlers since the same commit, and `src/middleware/sentry.js` carried a real `beforeSend` scrubber. So the dependency gate the Scope was routing around **did not apply**, and hand-rolling an HTTP integration would have added a second, weaker reporting path beside a working one. The accurate statement of the gap was narrower: **the SDK was wired to the framework but not to the failure paths that actually matter** — no provider adapter reported anything, and the API process had no `uncaughtException`/`unhandledRejection` handlers even though the cron did. *Generalisable: the Scope line was written from the `O1b` handoff's "what is NOT proven" section without grepping `src/`. `main` is the proof — for absence claims too, not only for presence claims.*
-- **Cost:** medium
-- **Agent-buildable:** yes, with one dependency caveat below
-- **Source:** `Blueprints/handoffs/2026-08-17-o1b-glitchtip-error-tracking.md`, "What is NOT proven" — flagged the same day GlitchTip was deployed.
-- **Scope:** capture real unhandled backend errors, starting with the sprint's own recurring example — Yahoo/Sleeper/ESPN adapter failures — plus a global Express error handler and `process.on('uncaughtException' / 'unhandledRejection')`. **Prefer a direct HTTP integration against GlitchTip's store/envelope endpoint** over adding `@sentry/node` or an equivalent SDK: this session proved the wire format by hand (plain JSON POST with an `X-Sentry-Auth` header, no library needed), and `package.json`/dependencies are on this repo's standing do-not-touch list (`agent_inbox.md`) — a hand-rolled integration avoids that gate entirely. If the SDK later proves genuinely necessary (breadcrumbs, auto-instrumentation), that is a separate, explicitly-approved step, not a default.
-- **Must scrub PII/provider credentials/ESPN cookie values before sending.** This is the exact property `S4` exists to verify — build this with `S4`'s acceptance bar in mind rather than as an afterthought to be cleaned up later.
-- **Must never let demo-user activity reach the real GlitchTip project** (facts-of-record #7 — mock and live stay separated; a demo error would pollute real signal and make genuine issues harder to see).
-- **Skills:** core implementation + `security-privacy-evidence`
-- **Done when:** a real, provoked adapter failure (not a curl-synthetic test) appears in GlitchTip with a usable stack trace; a test proves no credential/cookie/PII fragment reaches the payload; a test proves demo-mode errors never reach the real project.
-- **Delivered 2026-08-21:**
-  - `src/middleware/providerErrors.js` — `captureProviderError()`, wired at each provider's single lowest-level HTTP chokepoint: `YahooClient.get()` (`src/services/yahoo.js`), `getJson()` (`src/adapters/sleeper.js`), and all five failure branches of `doEspnRequest()` (`src/adapters/espn.js`). Context is an **allowlist**, not a denylist. Yahoo's `401 yahoo_token_expired` is deliberately not reported — it is the ordinary refresh path and the highest-volume Yahoo error there is.
-  - **Grouping by `provider + operation + status`,** not by stack. Every provider failure shares one throw site, so the default stack fingerprint would have collapsed a 403 entitlement refusal and a 500 outage into a single issue — the exact confusion that let the Yahoo 403 run on a bare status code for eight days.
-  - **Demo isolation, two independent guards** (facts-of-record #7): an explicit `omen_mode` tag, plus a route-prefix drop in `beforeSend` that catches anything thrown under `/api/demo` even when nobody remembered to tag it. Prefix matching respects the segment boundary, so a future `/api/demographics` is not silently unreportable.
-  - `src/server.js` — `uncaughtException` (report → drain → exit 1, let the container restart) and `unhandledRejection` (report, keep serving).
-- **Two real defects found and fixed while here, both pre-existing:**
-  1. **`flushSentry()` calls `Sentry.close()`, which flushes *and permanently disables the client*.** Using it on a survivable path would have ended error reporting for the life of the container after the first unhandled rejection — a silent, permanent outage of the tool O1b was built to provide. Split into `flushSentry()` (terminal) and `drainSentry()` (non-terminal), with the distinction documented at the definition.
-  2. **The shared scrubber missed two shapes that are the common case here, not edge cases.** A leading `\b` meant `access_token=…` never matched — `_token` has no word boundary before `token` — so the literal key names our own code uses (`access_token`, `refresh_token`, `token_secret_id`) were exactly the ones it skipped. And `key=value` matched while `"key": "value"` did not, so a secret inside a JSON body passed straight through. Provider error bodies **are** JSON, and O8 forwards a snippet of them by design. Found by O8's own containment test, which failed on first run against a real Yahoo-shaped 403 body.
-- **Evidence:** `npm test` **587/587** (baseline was 575; +12 in `test/providerErrorCapture.test.js`). End-to-end proof: `node scripts/verify-provider-error-capture.js` provokes a **real** ESPN adapter failure — a live GET to `lm-api-reads.fantasy.espn.com` for a nonexistent league, answered HTTP 404, raised inside `doEspnRequest()` — and asserts against **the exact bytes the SDK transmits**, not against intent: 0 credential leaks, `provider=espn`, `omen_mode=live`, fingerprint `["provider","espn","http_error","404"]`, 10 stack frames resolving back into `espn.js`.
-- **The DSN question is ANSWERED, and the answer was worse than the hypothesis.** The open question at the first pass was *"does production's `SENTRY_DSN` point at GlitchTip or at sentry.io?"* Read directly from both running containers over Tailscale: it points at **neither**, because it is malformed and nothing was ever transmitted. See [#354](https://github.com/justinduverge-design/omen/issues/354).
-- **Three defensive fixes shipped so this class cannot recur silently:**
-  1. `describeSentryDsn()` **validates instead of testing truthiness**, and an invalid-but-set DSN now disables the client honestly and logs loudly at boot.
-  2. The validator **matches the SDK's own key grammar** (`[A-Za-z0-9_]+`). A validator looser than the thing it validates reintroduces the exact bug — `/api/ready` would report healthy while every event dropped. Found the hard way: the first live attempt used GlitchTip's dashed-UUID key, my validator passed it, and `@sentry/node` rejected it with `Invalid Sentry Dsn`.
-  3. `GET /api/ready` → `checks.error_tracking` surfaces `{configured, valid, host, project_id, reason}` — **host and project id only, never the key**. Reported, not gating: refusing to serve traffic because monitoring is misconfigured would turn a reporting outage into a user-facing one.
-- **⚠️ GlitchTip project keys are dashed UUIDs and `@sentry/node` refuses them.** The dashes must be stripped; GlitchTip accepts the undashed form. This is not written down in `O1b`'s handoff and would have cost the next session the same hour. Confirmed live against the `omen-backend` project.
-- **Do not touch:** adding a new npm dependency without explicit approval; KVM1 production behavior beyond the error-reporting hook itself. *(Honored — no dependency added; `@sentry/node` was already present. No production change made.)*
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O9 — Route GlitchTip issues through the existing Layer 5 Discord alerting
 
-- **Status:** **CLOSED 2026-08-21.**
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "O9 — GlitchTip reaches the phone". All three `Done when:` clauses proven live, not in dry-run.
-- **Option chosen: (a), extend the dispatcher.** Option (b) — GlitchTip's native webhook pointed at the same Discord URL — was rejected because it would create a second alert path into one channel with different semantics, and O9's own `Done when:` requires the *same* dedup/recovery behavior as Layer 5's other signals. (b) could only satisfy that by reimplementing the noise control that already exists. Reading GlitchTip's Postgres directly mirrors how the dispatcher already reads Kuma's SQLite, so the integration added **no new secret and no new auth surface**.
-- **Evidence (live, in order):** CRITICAL alert listing three unresolved issues delivered to `#slops-alerts` and quoted back by the founder → unchanged repeat run silent (dedup) → founder resolved all three in the GlitchTip UI → exactly one `SLOPS RECOVERY` delivered and quoted back → subsequent run silent (no repeat recovery). Other signals confirmed unaffected by running each collector directly: 6 `result=` lines from Steward/Sentinel, all 4 Kuma monitors `status=1`, Pi-hole probe clean.
-- **⚠️ Two latent dispatcher defects found and fixed, both pre-dating GlitchTip and both invisible until now:**
-  1. **A multi-signal alert could never have been delivered.** The payload was built by interpolating the signature into JSON, and a multi-line signature embeds raw newlines in a JSON string — Discord answers `400`. Every alert ever proven had exactly one failing signal, so this was never exercised. **If two things had broken at once, no notification would have been sent at all** — the alerting layer failing in exactly the situation it exists for. Found because GlitchTip became the fourth source and produced the first genuinely multi-line signature. Now built with a real JSON encoder.
-  2. **State was persisted before delivery was confirmed**, so a failed send was never retried — the state file claimed "already reported" for an alert that never left the machine. This is how defect 1 stayed silent: the first failed send still recorded its signature. Delivery now happens first.
-- **Also corrected in-pass:** the install briefly set mode `0755` on a script that was `0700`. The script reads the Discord webhook secret path; restored to `0700` and recorded in `ops/command-center/README.md` as a post-deploy check.
-- **Deployed artifact is now vendored** at `ops/command-center/slops-alert-dispatcher`, verified byte-identical to `/usr/local/sbin/slops-alert-dispatcher` on the Pi. It previously existed only on a device nobody could diff.
-- **Constitution honored:** notification-only. Every added data path is read-only by construction — GlitchTip is read under a forced read-only Postgres transaction, verified by confirming an `UPDATE` is refused.
-- **Blocked by:** None.
-- **Priority:** P2
-- **Cost:** small–medium
-- **Agent-buildable:** research/configuration yes; treat with the same care as `O1b` — the actual change lives on Command Center's dispatcher, not in this repo, so the deploy step there is founder-gated the same way.
-- **Source:** founder-flagged 2026-08-18. GlitchTip (`O1b`) and the Layer 5 Discord dispatcher (`Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md`) don't know about each other — the dispatcher already polls Kuma/Steward/Sentinel every 5 minutes and is proven notification-only, but it predates GlitchTip and has no path to it.
-- **Scope:** evaluate two options against Layer 5's existing noise-control rules (dedup on unchanged signature, one recovery notice, notification-only — no remediation capability) before picking one: (a) extend the Command Center dispatcher to poll GlitchTip's issues API the same way it polls Kuma, or (b) use GlitchTip's own native alert/webhook capability pointed at the same Discord webhook.
-- **Done when:** a deliberate new GlitchTip issue reaches `#slops-alerts` on Discord; existing Kuma/Steward/Sentinel alerting is unaffected; the same dedup/recovery behavior already proven for Layer 5's other signals is proven for this one too.
-- **Do not touch:** the dispatcher's remediation boundary (notification-only stays notification-only, per the Constitution in the infrastructure spec); Command Center's resource budget (the `mem_limit` discipline `O1b` established applies here too).
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## P. Launch-blocking defects — discovered 2026-08-11
 
@@ -1215,41 +855,11 @@ event traceable.
 
 ### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
 
-- **Status:** **CLOSED 2026-08-16.**
-- **Closure:** COMPLETED — merged to `main` as PR [#314](https://github.com/justinduverge-design/omen/pull/314) / `107ed66` (2026-08-16T14:55Z). Receipt in `Direction/sprints_completed.md`; ledger row in `Blueprints/done/LEDGER.md` (2026-08-16).
-- **Claim:** Claude, 2026-08-16 — released on verification.
-- **Evidence:** merged `107ed66`, from branch `claude/p1-connect-continue-route`. RED first: `test/connectContinueRoute.test.mjs` failed on the missing `consumeConnectDestination` / `syncOnboardingFromServer` helpers. GREEN: 12/12 focused, full `npm test` **549/549** (537 baseline, +12), `npm --prefix frontend run build` clean, `git diff --check` clean. Handoff: `Blueprints/handoffs/2026-08-16-p1-connect-continue-route.md`. **Merged, not deployed.**
-- **Correction, 2026-08-16 (same day, later session):** this record and the inbox both read "Not pushed, merged, or deployed" *after* the work had merged — the **sixth** recorded instance of this queue mis-describing shipped work, and the second in a single day. The handoff was written pre-merge and never revised post-merge, which is the mechanism: a handoff is a point-in-time artifact, and nothing re-reads it when the PR lands. Not deployed remains true.
-- **Third defect found while fixing the first:** `ConnectLeague.jsx:696` stores `/account/connect` as the post-login destination when a signed-out visitor hits the connect page. Honoring the stored `next` verbatim therefore returned the user to the screen they had just completed — so fixing only the empty-`next` default would have left a second, less obvious wrong landing. `consumeConnectDestination()` treats `/account/connect`, `/onboarding`, and anything `sanitize()` rejects as "no destination" and lands on `/football`.
-- **Cost of the gate fix, stated plainly:** `ProtectedRoute` now holds the spinner for one `/api/platforms` round-trip when the local flag is absent. Users who have the flag pay nothing. It fails closed — a network error or an unauthenticated answer leaves the flag unset and sends the user to onboarding, never past it.
-- **Blocked by:** None
-- **Priority:** P1
-- **Cost:** small
-- **Agent-buildable:** yes
-- **Source:** verified live 2026-08-11 — `localStorage['omen.auth.next']` is `null` in a real signed-in session. `ConnectLeague.jsx:571` `handleContinue()` navigates to `consumeNextUrl()`, which falls back to `'/account'` when nothing is stored (`frontend/src/lib/nextUrl.js:38`). `handleSkip()` on line 568 hardcodes `/football` and behaves correctly. So **Skip works and Continue does not** — finishing onboarding drops the user on account settings instead of the dashboard.
-- **Related:** onboarding completion is tracked only in `localStorage['omen.onboarding.done']` and is never read back from the server, even though `/api/platforms` already knows. `ProtectedRoute.jsx:66-70` gates on the local flag alone, so any cleared storage, new browser, incognito window, or second device sends an established account back through onboarding. Fix both together or the routing fix will look intermittent.
-- **Skills:** `slops-tdd`, `slops-ui-ux-audit`
-- **Done when:** completing connect lands on `/football` regardless of stored `next`; a server-backed connection is treated as onboarding-complete so a fresh browser does not re-onboard an existing user; and a test covers the empty-`next` case and the fresh-browser case.
-- **Do not touch:** the `sanitize()` allowlist in `nextUrl.js` — it is doing correct origin and path validation. The bug is the default value, not the validation.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
 
-- **Status:** **CLOSED 2026-08-16.**
-- **Closure:** COMPLETED — merged as PR [#315](https://github.com/justinduverge-design/omen/pull/315) / `08aa73f`, all four checks green. **Not deployed.** Receipt in `Direction/sprints_completed.md`; ledger row in `Blueprints/done/LEDGER.md`. `Done when:` met in full.
-- **Claim:** Claude, 2026-08-16 — released on verification.
-- **Evidence:** RED first, twice. Pass one: `test/draftAssistantSideline.test.js` failed 8 of 10, and the new `dashboardSummary` assertion failed against the hardcoded `{available: true, status: "ready"}`. Pass two, after the founder override: the draft-dark route assertions failed while `/api/sleeper/draft*` was still registered. GREEN: full `npm test` **563/563** (549 baseline, +14), `npm --prefix frontend run build` clean, `git diff --check` clean. **Strongest single piece of evidence:** the production bundle contains zero occurrences of `Draft Assistant`, `draft-assistant`, or `Draft Position` — the page tree-shakes out entirely once unrouted, so it is unreachable rather than merely unlinked. Handoff: `Blueprints/handoffs/2026-08-16-p1-draft-assistant-sideline.md`.
-- **Fourth surface found while sweeping:** `frontend/src/lib/nextUrl.js` allowlisted `/draft` as a post-login redirect destination, so a stored or crafted `?next=/draft` passed validation and would have landed a freshly signed-in user on a 404. Removed. An allowlist entry for a route that no longer exists is a dead end, not a permission.
-- **Founder override, same day — the whole draft path is dark.** The first pass held `/api/sleeper/draft*` mounted as live-draft *tracking* rather than Draft Assistant. The founder resolved it the other way: 1.0 ships **no draft surface at all**. Those three routes now register only behind `DRAFT_ASSISTANT_ENABLED` (`/roster` and the rest of the Sleeper router untouched), and the Privacy "drafts" collection line moved with them — with the endpoints unmounted, keeping that word *overstates* collection, the mirror of the error that kept it in place while they were live. `test/sleeperDraftRoute.test.js` opts the flag on so the preserved implementation stays green. Founder also confirmed **no "2027 fantasy draft" marketing line** is wanted.
-- **Blocked by:** None
-- **Priority:** P1
-- **Cost:** medium
-- **Agent-buildable:** yes
-- **Source:** founder decision 2026-08-11 — **Draft Assistant is sidelined to the 2027 season** and becomes next season's marketing beat. `CLAUDE.md` already records it as cut from 1.0 (2026-08-05), but verified live 2026-08-11 the product still ships it: `/api/dashboard/summary` advertises `draft_assistant: {available: true, status: "ready"}` (`src/routes/dashboard.js:268`, hardcoded), `Header.jsx:26` links it in primary nav, and `routes/index.jsx:52` serves `/draft`.
-- **Scope — wider than the route.** Frontend: `pages/DraftAssistant.jsx`, `routes/index.jsx`, `components/layout/Header.jsx`, `pages/Landing.jsx`, `pages/OmenLanding.jsx`, `pages/Football.jsx`, `components/help/HelpButton.jsx`. Backend: `src/routes/draftAssistant.js`, `src/services/sleeperDraft.js`, `src/services/sleeperDraftAccess.js`, `src/services/adp.js`, and the hardcoded `dashboard.js` tool entry. **Legal copy: `pages/Privacy.jsx` and `pages/Terms.jsx` both describe Draft Assistant** — shipping legal text about a feature that does not exist is its own defect.
-- **Preserve, do not delete.** The 2027 plan depends on this code. Remove it from the *reachable surface* — nav, routes, advertised tools, marketing and legal copy — and leave the implementation in the tree behind a disabled flag, or move it to `Archive/` with a MANIFEST row naming its return date. Deleting it costs next season's head start.
-- **Skills:** `slops-ui-ux-audit`, `slops-ux-copy`, `slops-legal-spot-check`, `slops-repo-inspector`
-- **Done when:** no nav entry, route, dashboard tool entry, landing-page claim, help entry, or legal clause references Draft Assistant; `/draft` returns the standard not-found behavior; `draft_assistant` no longer appears in `/api/dashboard/summary`; store metadata and onboarding copy are re-checked against `CLAUDE.md`'s prohibition; and the preserved implementation's location and re-activation path are recorded in `Direction/decision_log.md`.
-- **Do not touch:** `src/services/adp.js` beyond disconnecting it from the live route — the 2027 plan is a Slops-built ADP and this is the starting point. Do not delete the Sleeper draft services.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## F. Verify lane — Justin must pin
 
@@ -1302,18 +912,7 @@ event traceable.
 
 ### F9 — Mock / live labeling sweep
 
-- **Status:** **CLOSED 2026-08-21.**
-- **Closure:** COMPLETED — ledgered in `Direction/sprints_completed.md` § "F9 — mock / live labeling sweep". **This was a pure bookkeeping gap:** F9 met every clause on 2026-08-20 and simply never advanced from `VERIFIED`, which is why `check-sprint-staleness.js` kept flagging it. Re-checked before closing rather than trusted: the inventory exists (`Direction/reviews/2026-08-20-f9-mock-live-labeling-inventory.md`, 150 lines), and the two "not proven" items belong to `F10`/`F11` by their own records, not to F9's `Done when:`.
-- **Status history:** VERIFIED 2026-08-20 — all three `Done when:` clauses met; inventory at `Direction/reviews/2026-08-20-f9-mock-live-labeling-inventory.md`. Signed iOS simulator 246/246 (`OmenDecisionTests` 14/14, Xcode 26.6, iPhone 16) and Android `:core:designsystem:connectedDebugAndroidTest` 60/60 on a `medium_phone` AVD, both new Mock/Demo label assertions executing. **Not proven:** human VoiceOver/TalkBack on the labeled states, and rendered screenshot evidence of the new Mock/Demo/Unverified treatments — both belong to F11/F10.
-- **Claim:** 2026-08-20 Codex — inventorying and enforcing honest recommendation-state labels across web, iOS, and Android; deferred cross-platform verification completed by Claude on macOS the same day
-- **Blocked by:** None
-- **Priority:** **P0 — trust-critical.** Mislabeled mock output presented as live advice is the one bug that costs credibility permanently.
-- **Cost:** medium
-- **Agent-buildable:** yes
-- **Scope:** every surface on both native apps and the web app. Demo, mock, stale, offline, and unavailable states must be visibly labeled and never read as live fantasy advice.
-- **Skills:** `demo-mode-pre-empty-state`, `slops-ui-ux-audit`, `slops-ux-copy`
-- **Done when:** every recommendation surface either shows verifiably live data or is explicitly labeled; a written inventory maps each surface to its labeling; no path presents fallback output as live.
-- **Do not touch:** removing a label to make a screen look better.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### F10 — Real-device matrix
 
@@ -1429,25 +1028,7 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-GATE — ESPN in-app sheet legal and review gate
 
-- **Status:** CLOSED
-- **Closure:** COMPLETED — 2026-08-31. Terms read answered **no** (Disney ToU §2.B.viii / §2.B.x /
-  §1.F; Apple 5.2.2 has no authorization to point at). Founder reviewed the finding and **accepted
-  the risk**, choosing to ship and to keep the live integration with a consent line. Evidence:
-  `Direction/decision_log.md` 2026-08-31; App Review answer drafted in
-  `Blueprints/specs/mobile/omen-wave1-contract-v1.md` §W1-A.
-- **Blocked by:** None
-- **Priority:** P0 — blocks W1-A entirely
-- **Cost:** small
-- **Agent-buildable:** research and drafting yes; the decision is founder's
-- **Scope:** answer two questions in writing and record them in `Direction/decision_log.md`.
-  (1) Does ESPN's terms permit authenticating a user to ESPN inside our own web sheet and reading
-  the resulting session? (2) What is the prepared App Review answer for why the app opens a
-  third-party login? Comparable financial apps clear this routinely — that is a reason to expect a
-  path, not a reason to skip preparing one.
-- **Done when:** both answers are recorded with their reasoning. If either is no, W1-A is not built
-  and `ConnectView` marks ESPN desktop-only **at the provider-choice step, before the user invests
-  any effort**.
-- **Do not touch:** any ESPN sheet implementation before this closes.
+- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-31. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### W1-A — ESPN in-app connect sheet (iOS + Android)
 
