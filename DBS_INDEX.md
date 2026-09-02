@@ -8,20 +8,33 @@ When Justin says "Layer 3," treat that as this third layer in plain English.
 
 ## Canonical Path
 
-```text
-C:\Users\JDuve\dev\SLOPS\slops-saloon\omen
-```
+**This repository is its own root.** Every path in Omen's documentation is relative to it:
+`Direction/context.md`, `src/server.js`, `mobile/ios/`. Never write an absolute machine path
+as the way to find a file — Omen is checked out on the founder's machine, in CI, and in
+remote containers, and only one of those has a `C:` drive.
 
-> Corrected 2026-08-05. This file previously gave **two different canonical
-> paths** — an obsolete `OneDrive\Desktop\...\corvus` path here and the correct
-> `dev\...\omen` path under Parent Layers. The OneDrive tree and the `corvus`
-> name are both retired.
+> **Corrected 2026-09-02.** This section previously gave a Windows absolute path as
+> canonical. It does not resolve in CI or in any container, so an agent following it burned
+> a step before falling back to the repo root. Repo-relative paths survive every environment.
+>
+> **Corrected 2026-08-05.** This file previously gave two different canonical paths — an
+> obsolete OneDrive/corvus path here and a dev/omen path under Parent Layers. The OneDrive
+> tree and the `corvus` name are both retired.
 
 ## Parent Layers
 
-- Layer 0 — SLOPS OS: `C:\Users\JDuve\dev\SLOPS`
-- Layer 1 — Slops Saloon division: `C:\Users\JDuve\dev\SLOPS\slops-saloon`
-- Layer 2 — Omen product repo: `C:\Users\JDuve\dev\SLOPS\slops-saloon\omen`
+Layer relationships are structural, not filesystem facts. Where the layers sit on a given
+machine varies; how they nest does not.
+
+- **Layer 0 — SLOPS OS** — the `Slops-OS` repository. Cross-cutting doctrine, reusable
+  skills, agents, runtime policy.
+- **Layer 1 — Slops Saloon division** — `slops-saloon/` inside that repository.
+- **Layer 2 — Omen product repo** — **this repository**, a separate git repository that L0
+  does not track.
+
+*Founder's local layout, informational only — never cite it as a path in documentation or
+code:* the three layers nest as `SLOPS` → `slops-saloon` → `omen` under the founder's dev
+folder.
 
 ## Current Truth
 

@@ -67,21 +67,31 @@ Read in order before acting:
 0. Run slops-repo-inspector before planning. Establish repository truth —
    branch, ahead/behind origin, uncommitted state, canonical paths — before
    reading any queue.
-1. CLAUDE.md / AGENTS.md (this folder)
-2. AGENT.md
-2a. RESOLVER.md
-3. Direction/context.md
-4. Direction/agent_inbox.md         ← pin wins over auto-populate
-5. Direction/current_sprint.md      ← lane queue if no pin
-5b. Direction/status-model.md        ← states, Claim:/Evidence:, blocker grammar
-6. Direction/facts-of-record.md
-7. Direction/known_issues.md
-8. Direction/decision_log.md
-9. Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
-10. Blueprints/definition-of-done.md
-11. Blueprints/playbooks/omen-company-baseline.md
-12. Blueprints/playbooks/skill-activation-runbook.md
-13. Latest entry in Blueprints/handoffs/
+  This list is identical to the one in CLAUDE.md, by contract.
+  node scripts/check-kickoff-drift.js enforces it. Change one, change both.
+
+  ALWAYS-READ CORE
+   1. AGENTS.md            shared root posture, ownership, safety
+   2. AGENT.md             Codex-specific extension of AGENTS.md.
+                           AGENTS.md (with S) is the shared one; AGENT.md
+                           extends it. One letter apart, easy to invert.
+   3. RESOLVER.md          where a new file belongs, before you create one
+   4. Direction/context.md
+   5. Direction/agent_inbox.md      <- a pin wins over the queue
+   6. Direction/current_sprint.md   <- lane queue when there is no pin
+   7. Direction/status-model.md     states, Claim:/Evidence:, blocker grammar
+   8. Direction/facts-of-record.md
+   9. Direction/known_issues.md
+
+  READ BEFORE YOU PLAN
+  10. Direction/decision_log.md
+  11. Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
+  12. Blueprints/definition-of-done.md
+  13. Blueprints/playbooks/omen-company-baseline.md
+  14. Blueprints/playbooks/skill-activation-runbook.md
+  15. Latest entry in Blueprints/handoffs/
+
+  If a file is missing, continue and mention it.
 
 Then run, in order:
 1. PULL TASK
@@ -123,7 +133,10 @@ SAFETY GATES (apply throughout — no tier and no assignment removes these)
   satisfied; and every founder, security, provider, and action-level approval
   is satisfied.
 - Stop and wait for founder approval at: deploy, secrets, migrations,
-  package-file edits, Stripe production behavior, naming, cross-layer moves.
+  package-file edits, naming, cross-layer moves.
+  (Stripe was removed from this list 2026-09-02. Omen is free indefinitely and
+  no Stripe code, route, middleware, table, or column exists — a gate naming it
+  implied a payment surface that is not there.)
 - Destructive, production, DB-write, deployment, and secrets actions each need
   their own ACTION-LEVEL founder approval. General task approval is NOT
   sufficient. Re-ask per action.

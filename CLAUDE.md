@@ -6,18 +6,34 @@ You are working in the Omen product layer. Lanes are a scheduling convenience, n
 
 ## Read in order before pulling a task
 
-1. `AGENTS.md` (root posture, ownership boundaries, safety rules)
-2. `Direction/context.md` — current operating context
-3. `Direction/agent_inbox.md` — pinned task or top-5 queue
-4. `Direction/current_sprint.md` — full lane queue
-5. `Direction/facts-of-record.md` — standing constraints
-6. `Direction/known_issues.md` — open bugs
-7. `Direction/decision_log.md` — rationale + history
-8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` — the loop in one page
-9. `Blueprints/definition-of-done.md` — per-type DoD pointers
-10. `Blueprints/playbooks/omen-company-baseline.md` — baseline procedure
-11. `Blueprints/playbooks/skill-activation-runbook.md` — skill routing
-12. Latest entry in `Blueprints/handoffs/` — last session handoff
+**This list and `Blueprints/prompts/kickoff-l2.md` are one contract and must stay identical.**
+`node scripts/check-kickoff-drift.js` enforces it. If you change one, change both.
+
+### Always-read core
+
+Paid for on every session. It earns its size; do not grow it without the founder.
+
+1. `AGENTS.md` — shared root posture, ownership boundaries, safety rules
+2. `AGENT.md` — Codex-specific ownership, safety rules, end-of-task report shape.
+   **Naming note:** `AGENTS.md` is the shared file every runtime reads; `AGENT.md` (no S)
+   extends it for Codex. The names differ by one letter and the roles are easy to invert —
+   `AGENTS.md` is the general one.
+3. `RESOLVER.md` — where a new file belongs, before you create one
+4. `Direction/context.md` — current operating context
+5. `Direction/agent_inbox.md` — pinned task; **a pin wins over the queue**
+6. `Direction/current_sprint.md` — the lane queue when there is no pin
+7. `Direction/status-model.md` — states, `Claim:`/`Evidence:`, blocker grammar, selection rule
+8. `Direction/facts-of-record.md` — standing constraints
+9. `Direction/known_issues.md` — open bugs
+
+### Read before you plan
+
+10. `Direction/decision_log.md` — rationale and history
+11. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` — the loop in one page
+12. `Blueprints/definition-of-done.md` — per-type DoD pointers
+13. `Blueprints/playbooks/omen-company-baseline.md` — baseline procedure
+14. `Blueprints/playbooks/skill-activation-runbook.md` — skill routing
+15. Latest entry in `Blueprints/handoffs/` — last session handoff
 
 If a file is missing, continue and mention it.
 
@@ -27,7 +43,7 @@ If a file is missing, continue and mention it.
 - `Blueprints/specs/page-system.md` — per-page typography / accent / palette / copy contract
 - `Blueprints/specs/design/component-lock-v1.md` — canonical component API/tokens (Button, Input, Segmented, Card shell, Type scale, Spacing)
 - `Blueprints/specs/design/team-theme-contract-v1.md` — which tokens a team skin may override, contrast rules, room-mode depth
-- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — **partially superseded** by the two specs above (see its own banner); still authoritative for base palette hexes, dark-mode token names, brand voice
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — ⚠️ **PARTIALLY SUPERSEDED.** Do not treat as current for component APIs, tokens, or state patterns — the two specs above own those. It remains authoritative **only** for base palette hexes, dark-mode token names, and brand voice. Read its own banner before citing it for anything else.
 - `Blueprints/api-routes.md` — API contracts
 - `Blueprints/handoffs/frontend-to-backend.md` / `backend-to-frontend.md` / `decisions.md` — contract bus
 
