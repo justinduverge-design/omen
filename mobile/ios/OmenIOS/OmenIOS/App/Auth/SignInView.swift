@@ -100,6 +100,7 @@ struct SignInView: View {
                         enabled: !isOtpBusy,
                         loading: isOtpBusy
                     )
+                    codeDeliveryHelp
                 } else {
                     OmenButton(
                         title: "Continue with email",
@@ -173,6 +174,44 @@ struct SignInView: View {
     private var isOtpBusy: Bool {
         if case .verifyingOtp = viewModel.flowState { return true }
         return false
+    }
+
+    /// What to do when the code does not turn up.
+    ///
+    /// This screen used to end at "Verify code". A request that Supabase accepts still has to
+    /// survive the send, the receiving provider, and the user's spam filter, and when it did
+    /// not there was nothing here to press and nothing to read — the tester simply stopped.
+    @ViewBuilder
+    private var codeDeliveryHelp: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            Text("It usually lands within a minute. If it hasn't, check your spam or junk folder — and on Yahoo or iCloud, look in Promotions too.")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            OmenButton(
+                title: viewModel.otpResendSecondsRemaining > 0
+                    ? "Resend in \(viewModel.otpResendSecondsRemaining)s"
+                    : "Send a new code",
+                action: { viewModel.resendOtp() },
+                variant: .secondary,
+                size: .md,
+                enabled: viewModel.otpResendSecondsRemaining == 0 && !isOtpBusy
+            )
+
+            if viewModel.otpResent {
+                Text("Sent again. If the second one doesn't arrive either, the problem is on our side.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let resendError = viewModel.otpResendError {
+                Text(resendError)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.Data.riskHigh)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var awaitingOtp: Bool {
