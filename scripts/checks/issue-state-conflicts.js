@@ -17,6 +17,26 @@
  * slice: a line that both cites an issue and states a status in words. **Citing the number
  * is what makes a claim checkable**, which is exactly why the buried-entry check exists
  * alongside this one.
+ *
+ * ## What it deliberately does not read: the historical record
+ *
+ * A direction file holds two kinds of sentence. A **current claim** ("Yahoo access is
+ * refused") is checkable against the issue and is this check's whole subject. A **historical
+ * record** — a superseded block kept for provenance, or a dated decision entry stating what
+ * was true when the decision was taken — is correct writing that will never match today's
+ * issue state, because it is not about today.
+ *
+ * Before 2026-09-02 this check read both, and reported five findings on issue #308 that were
+ * all wrong: one inside a block explicitly headed *"Everything below this line is superseded
+ * history, retained for provenance"*, and four narrating the 2026-08-19 reconciliation in
+ * past tense. `agent_inbox.md` had already recorded them as known false positives, with the
+ * reason: **rewriting superseded-history prose to satisfy a linter would destroy provenance
+ * this repo keeps on purpose.**
+ *
+ * That is the failure this exclusion prevents — not a nuisance, but a check that, if obeyed,
+ * would have deleted the record of how a real contradiction was found and fixed. The
+ * exclusions are counted and reported rather than silent, so a suppression can never quietly
+ * grow into blindness.
  */
 
 const path = require("node:path");
@@ -43,6 +63,93 @@ function windowAround(line, index) {
   return line.slice(Math.max(0, index - PROXIMITY), index + PROXIMITY);
 }
 
+/**
+ * Files that are append-only records of dated events rather than statements of current state.
+ *
+ * `decision_log.md` entries are headed `## YYYY-MM-DD — <what was decided>` and describe the
+ * world as it stood on that date. An entry reading "Yahoo is never offered as a
+ * personalization source while its API is refused (issue #308)" was true on 2026-08-24 and is
+ * the reason the decision was taken. Editing it to match a later reality would falsify the
+ * log. `CLAUDE.md` names this file "rationale and history" for exactly this reason.
+ *
+ * Current-state files — `facts-of-record.md`, `known_issues.md`, `current_sprint.md`,
+ * `agent_inbox.md`, `context.md` — stay in scope. They are where a stale claim does damage,
+ * and they are the pair the original #308 contradiction lived in.
+ */
+const HISTORICAL_FILES = new Set(["Direction/decision_log.md"]);
+
+/**
+ * Markers that put a line, or everything after it, into the historical record.
+ *
+ * Two forms appear in this repo, both from `facts-of-record.md` #11:
+ *   inline  `- **[SUPERSEDED 2026-08-28 — the refusal is over.]** Yahoo ... is REFUSED ...`
+ *   opener  `- **Everything below this line is superseded history, retained for provenance.**`
+ *
+ * An opener runs until the next level-2 heading, which is where a new record begins.
+ */
+/**
+ * An inline marker makes ONE line historical: `- **[SUPERSEDED 2026-08-28 ...]** Yahoo ... is
+ * REFUSED ...`. It does not speak for the lines after it — a sprint item often carries one
+ * superseded bullet among live ones, and treating the marker as an opener blinded the rest of
+ * the item.
+ */
+const SUPERSESSION_INLINE =
+  /\[?\bSUPERSEDED\b|\bsuperseded (?:by|on)\b|~~/i;
+
+/**
+ * An opener explicitly hands everything after it to the record:
+ * `- **Everything below this line is superseded history, retained for provenance.**`
+ * It runs until the next heading of any level.
+ */
+const SUPERSESSION_OPENER =
+  /\b(everything below|all below|below this line)\b[^.]*\b(superseded|historical|provenance)\b|\bsuperseded history\b|\bretained for provenance\b/i;
+
+/**
+ * A superseded region ends at the next heading of ANY level.
+ *
+ * An earlier draft closed regions only at `##`. Sprint items are `###`, so one item
+ * mentioning SUPERSEDED swallowed every item after it in the same lane — 8 marker lines in
+ * `current_sprint.md` blinded most of the file. A marker speaks for its own block, not for
+ * everything that happens to follow it.
+ */
+const SECTION_BREAK = /^#{1,6}\s/;
+
+/**
+ * A dated reconciliation heading — `## ✅ Reconciled against GitHub — 2026-08-19` — opens a
+ * record of what was found on that date, not a claim about now.
+ */
+const DATED_RECORD_HEADING = /^##\s.*\b(reconcil\w*|superseded|archive[d]?|history|historical)\b/i;
+
+/**
+ * Mark every line of a file that sits in historical context.
+ *
+ * Returns an array of booleans parallel to the file's lines. Computed once per file so a
+ * long decision log is not re-scanned per reference.
+ */
+function historicalLines(text) {
+  const lines = text.split("\n");
+  const historical = new Array(lines.length).fill(false);
+  let inRegion = false;
+
+  lines.forEach((line, i) => {
+    if (SECTION_BREAK.test(line)) {
+      // A heading of any level closes an open region, then may open its own.
+      inRegion = DATED_RECORD_HEADING.test(line);
+      historical[i] = inRegion;
+      return;
+    }
+    if (SUPERSESSION_OPENER.test(line)) {
+      inRegion = true;
+      historical[i] = true;
+      return;
+    }
+    // An inline marker is historical on its own line only.
+    historical[i] = inRegion || SUPERSESSION_INLINE.test(line);
+  });
+
+  return historical;
+}
+
 function directionFiles(ctx) {
   return ctx.markdownFiles(DIRECTION_DIR).map((n) => path.posix.join(DIRECTION_DIR, n));
 }
@@ -67,10 +174,17 @@ module.exports = {
   run(ctx) {
     const known = ctx.issuesByNumber();
     const findings = [];
+    // Counted, not silent. A suppression nobody can see is how a check goes blind.
+    let suppressedInBlocks = 0;
+    let suppressedInLogs = 0;
+    const blockFiles = new Set();
 
     for (const rel of directionFiles(ctx)) {
       const text = ctx.read(rel);
       if (!text) continue;
+
+      const isHistoricalFile = HISTORICAL_FILES.has(rel);
+      const historical = isHistoricalFile ? null : historicalLines(text);
 
       // Scoped to a single LINE, not a section.
       //
@@ -81,6 +195,17 @@ module.exports = {
       // wording really is about that issue.
       text.split("\n").forEach((line, i) => {
         if (referencedNumbers(line).length === 0) return;
+
+        // Historical context is not a claim about now — see the header note.
+        if (isHistoricalFile) {
+          suppressedInLogs += 1;
+          return;
+        }
+        if (historical[i]) {
+          suppressedInBlocks += 1;
+          blockFiles.add(rel);
+          return;
+        }
 
         // Each reference is judged against its own neighbourhood, not the whole line, so a
         // long line discussing several issues cannot cross-contaminate them.
@@ -112,6 +237,23 @@ module.exports = {
         }
       });
     }
-    return { findings, informational: [] };
+
+    const informational = [];
+    if (suppressedInLogs > 0) {
+      informational.push(
+        `Not read: ${suppressedInLogs} issue reference(s) in ${[...HISTORICAL_FILES].join(", ")} — ` +
+          `an append-only log of dated decisions, which states what was true when each ` +
+          `decision was taken. Editing it to match today would falsify the record.`
+      );
+    }
+    if (suppressedInBlocks > 0) {
+      informational.push(
+        `Not read: ${suppressedInBlocks} issue reference(s) inside superseded blocks or dated ` +
+          `reconciliation sections in ${[...blockFiles].sort().join(", ")}. ` +
+          `Provenance, not current claims. If a live claim is hiding in one of these blocks, ` +
+          `this check will not see it — that is the accepted cost of not rewriting history.`
+      );
+    }
+    return { findings, informational };
   },
 };

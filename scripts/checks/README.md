@@ -78,6 +78,24 @@ Three noise sources were fixed the day this was built, each after seeing real ou
    ±70-character window around each reference.
 3. **Exempt entries that describe the removal.** A note saying a file was deleted is the fix
    working, not drift. `known-issues-missing-paths` skips lines matching `DESCRIBES_REMOVAL`.
+4. **Do not read the historical record as a current claim** *(added 2026-09-02)*. The first CI
+   run of these checkers reported five findings on issue #308, all wrong: one inside a block
+   headed *"Everything below this line is superseded history, retained for provenance"*, four
+   narrating the 2026-08-19 reconciliation in past tense. `agent_inbox.md` had already logged
+   them as known false positives, with the reason — **rewriting superseded prose to satisfy a
+   linter would destroy provenance this repo keeps on purpose.**
+
+   `issue-state-conflicts` now skips three shapes of record: an inline `[SUPERSEDED]` marker
+   or struck-through text (that line only), everything after an explicit *"everything below
+   this line"* opener until the next heading of any level, and `decision_log.md` entirely —
+   an append-only log whose entries state what was true when each decision was taken.
+
+   Two things this got wrong on the way, both worth keeping in mind for the next exclusion:
+   an inline marker first *opened a region*, which blinded every following bullet in the same
+   sprint item; and regions first closed only at `##`, while sprint items are `###`. **An
+   exclusion that quietly swallows real findings is worse than the false positives it
+   removed** — so the skips are counted and printed, and `test/issueStateConflicts.test.js`
+   tests both directions, with the live-claim cases carrying the weight.
 
 And treat `VERIFIED` as legitimate: several items are deliberately held there after merging
 because one `Done when:` clause is unevidenced. Gate on `READY`/`IN_PROGRESS` when you mean
