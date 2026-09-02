@@ -1,5 +1,73 @@
 # Omen Decision Log
 
+## 2026-09-02 — Nine skills, a reconciled queue, one read order, and a red `main` nobody was watching
+
+- **Decision: research is not finished until it reaches a terminal state.** A review or research
+  artifact must end in one of exactly three places — a queue item, a `decision_log.md` deferral
+  with its reason, or a `known_issues.md` row. **"Filed in `Direction/reviews/`" is not one.**
+  This is the ESPN case generalised: the July 2026-07-07 memo identified and the founder's own
+  spike confirmed the working webview-relay approach, and it sat unqueued for eight weeks while an
+  August memo re-argued a settled question. `W1-A` was created on 2026-08-31 because a beta user
+  hit the missing flow, not because the research was read. Encoded as `slops-intent-capture` (L0).
+- **Decision: `intent.md` is the artifact that carries it.** Adopted from Anthropic's AI-Native
+  SDLC Playbook ("Capture as intent.md"): intent captured once in the originator's own words,
+  Claude asks the analyst questions, written to the SLOPS template, **founder reviews and corrects
+  before commit.** The playbook's Maintain→`intent.md` link is the routing gap stated positively,
+  so the two proposed skills (`slops-research-to-queue`, `slops-slc-intent`) were **merged into
+  one** rather than built as competing planning doctrines. The SLC gate survives as the template's
+  scope section.
+- **Decision: the mobile and UI skills are web-app only, and say so.** `slops-mobile-smoke` pins
+  `playwright-core` and drives a desktop browser at phone viewports; `mobile-first-qa-playbook`
+  targets iOS Safari and Android Chrome. Both predate the native pivot and were being routed to
+  native tasks, where they returned confident, irrelevant findings. Marked in frontmatter, in a
+  body banner, and in the routing table. Successors: `slops-native-sim-drive`,
+  `slops-native-ui-audit`.
+- **Decision: `slops-native-sim-drive` ships `parked`, not `draft`.** There is no Playwright for
+  native; the stack is `simctl`/`xcodebuild` and `emulator`/`adb`/`gradle`. It cannot run without a
+  macOS build host — **the same open decision that stalled the native ESPN path** — and a skill that
+  looks available but is not is worse than one that says so. Not to be marked active until its
+  smoke test passes on a real host. **Founder decision still open: cloud runner or newer hardware.**
+- **Decision: the founder admin runbook ships with no requirements encoded.** Store console rules
+  change, and a runbook confidently wrong about a gate sends the founder down a wrong path for a
+  week — the exact failure it exists to prevent. It carries a Freshness Contract instead: every row
+  cites current primary documentation with a verification date, and rows older than 90 days are
+  treated as unverified.
+- **Decision: the agent docs and the kickoff prompts are one contract.** They had genuinely
+  drifted — `kickoff-l2.md` told agents to read `AGENT.md`, `RESOLVER.md` and
+  `Direction/status-model.md`; `CLAUDE.md` listed none of the three, so an agent arriving through
+  it worked without the file-routing rules and without the status model defining `Claim:`/
+  `Evidence:`. Both now carry one identical 15-entry order, split into an always-read core and a
+  read-before-you-plan tail, enforced by `scripts/check-kickoff-drift.js`.
+- **Decision: the docs checkers get a gate that runs them.** `check-kickoff-drift`,
+  `check-sprint-staleness` and `check-valor-brain` had **no trigger at all** — no workflow watched
+  `Direction/`, `Blueprints/`, root docs, or `scripts/`. `.github/workflows/docs-quality.yml`
+  closes it. `check-sprint-staleness` is deliberately `continue-on-error`: on a runner it reaches
+  GitHub and reports pre-existing debt unrelated to the PR in front of it, and blocking an
+  unrelated docs change on that trains people to ignore the gate. **Promote it to a hard gate once
+  its backlog is zero.**
+- **Decision: `issue-state-conflicts` does not read the historical record.** Its first CI run
+  reported five findings on issue #308, all wrong — one inside a block headed *"Everything below
+  this line is superseded history, retained for provenance"*, four narrating the 2026-08-19
+  reconciliation in past tense. `agent_inbox.md` had already logged them as known false positives.
+  It now skips inline `[SUPERSEDED]` markers and struck-through text (that line only), everything
+  after an explicit "everything below this line" opener until the next heading, and
+  `decision_log.md` entirely — **this file states what was true when each decision was taken, and
+  editing it to match a later reality would falsify the record.** Skips are counted and printed.
+- **Decision: the `qs` lockfile bump was approved as a package-file edit.** `main`'s `quality` job
+  had been red since `fff7d54` on a moderate `npm audit` advisory, gating deploys, and it surfaced
+  only because a docs PR happened to touch `test/**`. `qs@6.16.0` is outside the advisory range and
+  inside both existing caret ranges, so the fix is three lockfile lines with no `package.json`
+  change. Verified by reproducing on `main` first, then `npm ci`, full suite 935/0, and audit clean.
+- **Correction of record: `AGENT.md` is not an unreferenced duplicate.** An earlier claim in this
+  session's review said so. `AGENTS.md` cites it as the Codex-specific extension and both are
+  legitimate; the real defect was that `CLAUDE.md` never mentioned it and the names invert easily.
+  Both read orders now say which is which.
+- **Correction of record: a negative search result is unproven, not proven.** Two claims this
+  session were wrong for the same reason — tool output read, conclusion drawn, source unchecked.
+  The ESPN "never queued" claim searched terms the sprint does not use; the "115 test failures are
+  environmental" claim was a stale `node_modules`. Written into `slops-intent-capture` and
+  `scripts/checks/README.md` rather than only noted here.
+
 ## 2026-08-31 — Seventeen founder rulings, a device-tested audit, and a Tier 0 fix that was reverted rather than shipped
 
 - **Decision: the product thesis is the LITERAL reading of league/team context (R-05).** Omen's
