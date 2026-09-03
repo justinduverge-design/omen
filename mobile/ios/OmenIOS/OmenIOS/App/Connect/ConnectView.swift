@@ -1,6 +1,5 @@
 import SwiftUI
 
-private let connectCanvasTileSurface = Color(red: 20 / 255, green: 20 / 255, blue: 22 / 255)
 
 /// M5-NativeConnect — onboarding steps 4–6 as a single navigable sheet.
 ///
@@ -67,7 +66,9 @@ struct ConnectView: View {
                         // whole screen, and nesting a web view inside this ScrollView would fight
                         // it for scrolling.
                         espnSignInPlaceholder
-                    case .checkingEspnConnection, .validatingEspnConnection:
+                    case .choosingEspnLeague(let options):
+                        espnLeaguePicker(options)
+                    case .checkingEspnConnection, .validatingEspnConnection, .discoveringEspnLeagues:
                         busySection
                     case .espnConnected(let connection):
                         espnConnectedSection(connection)
@@ -80,6 +81,8 @@ struct ConnectView: View {
             }
             .background(OmenColor.bg.ignoresSafeArea())
         }
+        // Bound to the state, so discovery finishing closes ESPN's site automatically and the
+        // user lands on Omen's own picker rather than being left on a web page they are done with.
         .fullScreenCover(isPresented: Binding(
             get: { viewModel.state == .espnSigningIn },
             set: { if !$0 { viewModel.cancelEspnSignIn() } }
@@ -453,6 +456,16 @@ struct ConnectView: View {
                 // league id they cannot yet use. Pre-filled by detection when ESPN's URL happens
                 // to carry one; typed by the user when it does not. The desktop helper has had
                 // exactly this field since it shipped.
+                if let diagnostic = viewModel.espnSignInProgress.diagnostic, !diagnostic.isEmpty {
+                    // Presence and host names only. `extension/popup.js` shows the same thing for
+                    // the same reason — "we can't see your session" is unactionable without
+                    // knowing which half is missing. No value ever reaches this string.
+                    Text(diagnostic)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 if viewModel.espnSignInProgress.isSignedIn {
                     OmenTextField(
                         value: $viewModel.espnLeagueId,
@@ -520,7 +533,7 @@ struct ConnectView: View {
             }
             .padding(OmenSpacing.step16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(connectCanvasTileSurface)
+            .background(OmenColor.surface1)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -558,6 +571,37 @@ struct ConnectView: View {
             }
 
             espnConsentNote
+
+            OmenButton(
+                title: "Choose another provider",
+                action: { viewModel.startOver() },
+                variant: .link,
+                size: .sm
+            )
+        }
+    }
+
+    /// The leagues ESPN reported. Omen's own list, in Omen's own design — the user is out of
+    /// ESPN's web view by the time they see this.
+    private func espnLeaguePicker(_ options: [EspnLeagueOption]) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            Text(EspnHandoffCopy.foundLeaguesTitle(options.count))
+                .omenTextStyle(OmenTypography.h2)
+                .foregroundStyle(OmenColor.textPrimary)
+            Text(EspnHandoffCopy.foundLeaguesSubtitle)
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(options) { option in
+                OmenListRow(
+                    title: option.displayName,
+                    subtitle: option.subtitle,
+                    action: { Task { await viewModel.connectEspnLeague(option) } },
+                    leading: { OmenPlatformBadge(platform: .espn) },
+                    trailing: { EmptyView() }
+                )
+            }
 
             OmenButton(
                 title: "Choose another provider",
@@ -669,7 +713,7 @@ private struct ConnectProviderCard: View {
             }
             .padding(OmenSpacing.step16)
             .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
-            .background(connectCanvasTileSurface)
+            .background(OmenColor.surface1)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

@@ -48,14 +48,20 @@ struct EspnCapture: CustomStringConvertible, CustomDebugStringConvertible {
 /// forward. Now sign-in alone is enough to proceed, and the league id is something the user can
 /// supply if ESPN's URL does not.
 enum EspnSignInProgress: Equatable {
-    /// No ESPN session in the jar yet.
-    case signedOut
+    /// No ESPN session in the jar yet. Carries a presence-only diagnostic, never a value.
+    case signedOut(diagnostic: String)
     /// Signed in. The ids are whatever the current page happened to reveal — often nothing.
     case signedIn(detectedLeagueId: String?, detectedTeamId: String?)
 
     var isSignedIn: Bool {
         if case .signedIn = self { return true }
         return false
+    }
+
+    /// Non-nil only while signed out — there is nothing to diagnose once it works.
+    var diagnostic: String? {
+        if case .signedOut(let diagnostic) = self { return diagnostic }
+        return nil
     }
 
     var detectedLeagueId: String? {
@@ -73,19 +79,27 @@ enum EspnSignInProgress: Equatable {
 ///
 /// Nothing here decides to connect. It observes, and hands the decision up.
 struct EspnWebSignIn: UIViewRepresentable {
-    /// Where the sheet starts. ESPN's fantasy hub — full site nav, and the signed-in user's own
-    /// teams surface on it.
+    /// Where the sheet starts: the page that reliably makes ESPN ask for a sign-in.
     ///
-    /// **Two wrong answers preceded this one, both from guessing at ESPN's page structure.**
-    /// `/football/team` renders *a* league, so with no `leagueId` ESPN serves its own "Invalid
-    /// league ID" error immediately after sign-in. `/football/welcome` is ESPN's *new user* page —
-    /// Create a League / Join a Public League — so an existing manager lands on a signup pitch.
+    /// **Chosen from observed device behavior, not from reading ESPN's markup.** On a real
+    /// iPhone, `/football/team` immediately presented the MyDisney sign-in — that part worked
+    /// exactly as wanted. Its only flaw was as a *destination*: with no `leagueId` it then serves
+    /// ESPN's "Invalid league ID" page, so a user who had just signed in successfully landed on
+    /// an error. `afterSignInURL` fixes that half rather than trading away the half that works.
     ///
-    /// The lesson is in `EspnLeagueEntry`, not here: the flow no longer *depends* on landing
-    /// anywhere in particular. Auto-detection is a convenience on top of a league-id field the
-    /// user can always fill themselves, which is exactly how the desktop helper works
-    /// (`extension/popup.html` has the same field, pre-filled the same way).
-    static let entryURL = URL(string: "https://www.espn.com/fantasy/")!
+    /// Two alternatives were tried and rejected on device: `/football/welcome` is ESPN's
+    /// new-user signup pitch (Create a League / Join a Public League), and `www.espn.com/fantasy`
+    /// renders a signed-out content hub whose sign-in entry is buried in the hamburger menu.
+    /// `www.espn.com/login` exists and returns 200, but renders as a nav stub rather than a form,
+    /// so it was not adopted on markup evidence alone.
+    static let entryURL = URL(string: "https://fantasy.espn.com/football/team")!
+
+    /// Where the user is sent once ESPN has a session and the current page names no league.
+    ///
+    /// Exists purely so "Invalid league ID" is never the resting state after a successful
+    /// sign-in. It is a convenience, not a dependency — the league-id field is what this flow
+    /// actually stands on, so if ESPN reshapes this page nothing breaks.
+    static let afterSignInURL = URL(string: "https://www.espn.com/fantasy/football/")!
 
     /// ESPN has issued these under more than one domain scope, and a stale value under one can
     /// coexist with a valid one under another — the failure the extension's multi-domain read
@@ -107,7 +121,12 @@ struct EspnWebSignIn: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.load(URLRequest(url: Self.entryURL))
+        context.coordinator.startWatching(webView)
         return webView
+    }
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.stopWatching()
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
@@ -127,22 +146,72 @@ struct EspnWebSignIn: UIViewRepresentable {
             self.onProgress = onProgress
         }
 
+        /// Guards the one post-sign-in redirect. Without it, a destination that itself reveals
+        /// no league would redirect to itself forever.
+        private var didRedirectAfterSignIn = false
+
+        private var watch: Task<Void, Never>?
+
+        /// Samples the cookie jar on a timer for as long as the sheet is open.
+        ///
+        /// **Navigation callbacks alone are not enough, and assuming they were is what stranded a
+        /// real signed-in user.** ESPN's sign-in completes through redirects and XHR; by the time
+        /// the session cookies land, the page the user is looking at has already finished
+        /// navigating, so `didFinish` never fires again and Omen never looks again. The user sat
+        /// on a signed-in ESPN page — account avatar visible — while Omen insisted they were
+        /// signed out. WebKit also syncs cookies from its network process to the UI process
+        /// asynchronously, so even a perfectly-timed navigation callback can read an empty jar.
+        ///
+        /// A one-second poll is cheap: it reads an in-memory cookie jar, touches no network, and
+        /// stops the moment the sheet closes.
+        func startWatching(_ webView: WKWebView) {
+            watch?.cancel()
+            watch = Task { @MainActor [weak webView] in
+                while !Task.isCancelled {
+                    guard let webView else { return }
+                    await self.sample(webView)
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
+        }
+
+        func stopWatching() {
+            watch?.cancel()
+            watch = nil
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            report(webView.url)
+            report(webView)
         }
 
         /// ESPN's post-sign-in hop to the team page is frequently same-document, and `didFinish`
         /// alone misses it — which reads to the user as "I signed in and Omen did nothing."
         func webView(_ webView: WKWebView, didFinishSameDocumentNavigation navigation: WKNavigation!) {
-            report(webView.url)
+            report(webView)
         }
 
-        private func report(_ url: URL?) {
-            let ids = EspnWebSignIn.leagueAndTeam(from: url)
-            Task { @MainActor [store, onProgress] in
-                guard await store.hasSession() else { return onProgress(.signedOut) }
-                onProgress(.signedIn(detectedLeagueId: ids.leagueId, detectedTeamId: ids.teamId))
+        private func report(_ webView: WKWebView) {
+            Task { @MainActor [weak webView] in
+                guard let webView else { return }
+                await self.sample(webView)
             }
+        }
+
+        @MainActor
+        private func sample(_ webView: WKWebView) async {
+            let ids = EspnWebSignIn.leagueAndTeam(from: webView.url)
+            let diagnostic = await store.sessionDiagnostic()
+
+            guard await store.hasSession() else {
+                return onProgress(.signedOut(diagnostic: diagnostic))
+            }
+            onProgress(.signedIn(detectedLeagueId: ids.leagueId, detectedTeamId: ids.teamId))
+
+            // Just signed in, and sitting on a page that names no league — which on the entry URL
+            // means ESPN's "Invalid league ID" error. Move them somewhere useful, once.
+            guard ids.leagueId == nil, !didRedirectAfterSignIn else { return }
+            didRedirectAfterSignIn = true
+            webView.load(URLRequest(url: EspnWebSignIn.afterSignInURL))
         }
     }
 
@@ -189,6 +258,11 @@ protocol EspnCookieReading: AnyObject {
     func hasSession() async -> Bool
     /// Reads them out. Called once, at the moment the user presses Connect.
     func takeSession() async -> (espnS2: String, swid: String)?
+
+    /// Presence and domain only — **never a value**. Mirrors the diagnostic in
+    /// `extension/popup.js`, which exists for the same reason: "Omen can't see your session" is
+    /// a dead end unless you can tell *which* half is missing and where it was looked for.
+    func sessionDiagnostic() async -> String
 }
 
 /// Reads `espn_s2` and `SWID` from the sheet's own in-memory cookie jar.
@@ -205,6 +279,19 @@ final class EspnWebCookieStore: EspnCookieReading {
 
     func hasSession() async -> Bool {
         await takeSession() != nil
+    }
+
+    func sessionDiagnostic() async -> String {
+        let cookies = await dataStore.httpCookieStore.allCookies()
+        func describe(_ name: String) -> String {
+            let hosts = cookies
+                .filter { $0.name.caseInsensitiveCompare(name) == .orderedSame && !$0.value.isEmpty }
+                .map { Self.host($0) }
+            return hosts.isEmpty ? "\(name): not found" : "\(name): \(hosts.sorted().joined(separator: ", "))"
+        }
+        // Host names and a total count. No value, no length, no prefix — a length is a hint and
+        // a prefix is a leak, and neither helps diagnose anything.
+        return "\(describe("espn_s2")) · \(describe("SWID")) · \(cookies.count) cookies"
     }
 
     func takeSession() async -> (espnS2: String, swid: String)? {

@@ -16,7 +16,7 @@ final class ConnectViewModel: ObservableObject {
     @Published private(set) var espnCheckNotice: String?
 
     /// What the ESPN sign-in sheet has observed. Drives whether Connect is offered.
-    @Published private(set) var espnSignInProgress: EspnSignInProgress = .signedOut
+    @Published private(set) var espnSignInProgress: EspnSignInProgress = .signedOut(diagnostic: "")
 
     /// The league to connect. Pre-filled the moment ESPN's URL reveals one, and editable
     /// throughout — ESPN has no page Omen can rely on the user landing on, so a field the user
@@ -34,6 +34,14 @@ final class ConnectViewModel: ObservableObject {
     /// How many times the user has been offered a retry after an unreadable session. The Wave 1
     /// contract allows one, then routes to the desktop path rather than looping.
     private var espnUnreadableRetries = 0
+
+    /// The ESPN session, held only between sign-in and the connect that consumes it.
+    ///
+    /// Discovery made this necessary: the session has to survive from sign-in, through the
+    /// league lookup, to the connect the user picks. It is in memory only, never published, and
+    /// cleared on connect, cancel, failure, and start-over. `espnCookieStore` used to be the sole
+    /// holder; this is the same lifetime, moved one step later so the picker can exist.
+    private var espnSession: (espnS2: String, swid: String)?
 
     private let repository: ConnectRepository
     private let sessionManager: SessionManager
@@ -108,7 +116,7 @@ final class ConnectViewModel: ObservableObject {
 
     /// Consent accepted. Opens ESPN's own sign-in in the in-app web view.
     func beginEspnSignIn(cookieStore: EspnCookieReading? = nil) {
-        espnSignInProgress = .signedOut
+        espnSignInProgress = .signedOut(diagnostic: "")
         espnCookieStore = cookieStore ?? EspnWebCookieStore()
         state = .espnSigningIn
     }
@@ -134,6 +142,71 @@ final class ConnectViewModel: ObservableObject {
            espnLeagueId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             espnLeagueId = detected
         }
+
+        // The moment ESPN has a session, ask it what leagues the account plays in. This is what
+        // turns "go find your league id in a URL" into a list — the user should never have to
+        // hunt for an id we can simply ask for. Runs once; the guard is `espnSession`.
+        if progress.isSignedIn, espnSession == nil {
+            Task { await discoverEspnLeagues() }
+        }
+    }
+
+    /// Captures the session and asks ESPN for the account's leagues.
+    ///
+    /// A failure here is **not** a failed connection — nothing has been connected yet. It falls
+    /// back to the manual league-id field rather than throwing the user out of the flow, because
+    /// a lookup Omen could not perform is Omen's problem, not the user's.
+    func discoverEspnLeagues() async {
+        guard let cookieStore = espnCookieStore, espnSession == nil else { return }
+        guard let session = await cookieStore.takeSession() else { return }
+        espnSession = session
+        guard let accessToken = await bearer() else { return }
+
+        state = .discoveringEspnLeagues
+        switch await repository.discoverEspnLeagues(
+            espnS2: session.espnS2,
+            swid: session.swid,
+            accessToken: accessToken
+        ) {
+        case .success(let leagues) where !leagues.isEmpty:
+            state = .choosingEspnLeague(leagues)
+        case .success:
+            espnCheckNotice = EspnHandoffCopy.noLeaguesFound
+            state = .espnSigningIn
+        case .failure:
+            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
+            state = .espnSigningIn
+        }
+    }
+
+    /// The user picked a league from the list ESPN reported.
+    func connectEspnLeague(_ option: EspnLeagueOption) async {
+        guard let session = espnSession, !state.isBusy else { return }
+        guard let accessToken = await bearer() else { return }
+
+        state = .validatingEspnConnection(leagueId: option.id)
+        let capture = EspnCapture(
+            espnS2: session.espnS2,
+            swid: session.swid,
+            leagueId: option.id,
+            teamId: option.teamId
+        )
+
+        switch await repository.connectEspn(capture, accessToken: accessToken) {
+        case .success:
+            clearEspnSession()
+            await confirmEspnFromServer(leagueId: option.id)
+        case .failure(let failure):
+            failEspnSignIn(with: failure)
+        }
+    }
+
+    /// Drops every in-memory trace of the ESPN session. Called on success, failure, cancel, and
+    /// start-over — there is no path that keeps one.
+    private func clearEspnSession() {
+        espnSession = nil
+        espnCookieStore = nil
+        espnSignInProgress = .signedOut(diagnostic: "")
     }
 
     /// The user pressed Connect. This is the only moment the session is read, and the only
@@ -150,7 +223,10 @@ final class ConnectViewModel: ObservableObject {
 
         state = .validatingEspnConnection(leagueId: leagueId)
 
-        guard let session = await cookieStore.takeSession() else {
+        // `??` cannot be used here: its right side is an autoclosure, which may not be async.
+        var session = espnSession
+        if session == nil { session = await cookieStore.takeSession() }
+        guard let session else {
             return failEspnSignIn(with: .espnSessionUnreadable)
         }
 
@@ -165,8 +241,7 @@ final class ConnectViewModel: ObservableObject {
         case .success:
             // The sheet's jar is dropped the instant it is no longer needed. Nothing in the app
             // holds an ESPN session past this line.
-            espnCookieStore = nil
-            espnSignInProgress = .signedOut
+            clearEspnSession()
             await confirmEspnFromServer(leagueId: leagueId)
         case .failure(let failure):
             failEspnSignIn(with: failure)
@@ -189,8 +264,7 @@ final class ConnectViewModel: ObservableObject {
     /// Contract §W1-A failure table: one retry on an unreadable session, then the desktop path.
     /// Never a loop, and never copy that blames the user.
     private func failEspnSignIn(with failure: ConnectFailure) {
-        espnCookieStore = nil
-        espnSignInProgress = .signedOut
+        clearEspnSession()
 
         if failure == .espnSessionUnreadable {
             espnUnreadableRetries += 1
@@ -205,8 +279,7 @@ final class ConnectViewModel: ObservableObject {
 
     /// Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
     func cancelEspnSignIn() {
-        espnCookieStore = nil
-        espnSignInProgress = .signedOut
+        clearEspnSession()
         state = .canceled
     }
 
@@ -251,8 +324,7 @@ final class ConnectViewModel: ObservableObject {
     func startOver() {
         pendingRequestId = nil
         espnCheckNotice = nil
-        espnCookieStore = nil
-        espnSignInProgress = .signedOut
+        clearEspnSession()
         espnLeagueId = ""
         espnUnreadableRetries = 0
         selectedProvider = nil

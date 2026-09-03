@@ -1,5 +1,42 @@
 # Omen Decision Log
 
+## 2026-09-03 — W1-A connects a real ESPN league from a phone; league discovery added
+
+- **Device proof, the acceptance clause that mattered:** a real iPhone signed in to ESPN inside
+  Omen and connected *The Titans of Slopsilonia* end to end, **no computer involved**. That was
+  the whole point of Wave 1 and the repair of the only confirmed beta failure.
+  **Still open on W1-A acceptance:** the "`espn_s2`/`SWID` in zero emitted bytes, proved by
+  provoking a real failure and searching the bytes" clause, and Android parity. Do not mark the
+  item CLOSED on this entry.
+- **Three device-found defects, all from guessing at ESPN's page structure instead of observing
+  it.** `/football/team` serves "Invalid league ID" with no `leagueId`; `/football/welcome` is
+  ESPN's new-user signup pitch; and — the root cause of both — sign-in state and league detection
+  were modeled as one fact, so a signed-in user on a page with no league id was indistinguishable
+  from a signed-out one and the Connect button stayed dead forever.
+- **Cookie sampling was navigation-driven and had to become a poll.** ESPN's sign-in finishes via
+  redirects and XHR, so by the time the session cookies land the visible page has already finished
+  navigating and `didFinish` never fires again. The founder sat on a signed-in ESPN page — account
+  avatar visible — while Omen insisted he was signed out. WebKit also syncs cookies to the UI
+  process asynchronously, so navigation callbacks were never going to be sufficient.
+- **Decision: discover leagues instead of asking the user for an id.** Benchmarked against
+  WalterPicks, whose flow authenticates and then shows "Found 3 leagues". ESPN's fan API
+  (`fan.api.espn.com/apis/v2/fans/{SWID}`) is what their own site uses to render "My Teams" and is
+  the only endpoint that answers "which leagues does this user play in" — `lm-api-reads` can only
+  answer about a league you already name. Existence verified with a dummy id, which returns
+  `{"message":"fan not found"}` rather than 404-ing the route.
+  - New route `POST /api/platforms/espn/leagues`. **Stores nothing** — discovery returns labels;
+    only the user's pick reaches `/espn/connect`. This departs from W1-A's "no new backend", which
+    was written before discovery was in scope.
+  - Consequence accepted: the ESPN session is now held in memory from sign-in through the pick,
+    rather than being consumed immediately. Cleared on connect, cancel, failure, and start-over.
+  - The manual league-id field stays as the fallback for a failed or empty lookup.
+- **Light-mode defect fixed.** `ConnectView`/`SignInView` hardcoded a near-black tile surface, so
+  in light mode the provider cards rendered dark with dark `textPrimary` on them — the ESPN, Yahoo
+  and Sleeper names were invisible on a real phone. Both now use the trait-aware
+  `OmenColor.surface1`. `PrimitiveEnforcementTests` already banned `Color(red:` but reported only
+  the first violation per file, so this sat behind a `Button(` hit and was never surfaced; it now
+  has its own test that reports color literals independently.
+
 ## 2026-09-02 — §87 lifted for ESPN; W1-A built and shipping in the App Store build
 
 - **Founder decision, made with the exposure stated: build the in-app ESPN sign-in and ship it in

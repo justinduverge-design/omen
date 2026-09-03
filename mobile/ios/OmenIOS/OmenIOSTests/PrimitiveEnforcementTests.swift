@@ -18,6 +18,30 @@ import XCTest
 /// deletable when SwiftLint rules land later.
 final class PrimitiveEnforcementTests: XCTestCase {
 
+    /// A hardcoded near-black tile surface in `ConnectView`/`SignInView` shipped to a real phone
+    /// and rendered dark tiles with dark `textPrimary` text on a light background — the provider
+    /// names on the Connect screen were invisible in light mode. Both now use
+    /// `OmenColor.surface1`, which is trait-aware. This test already banned `Color(red:`; it was
+    /// reporting only the first violation per file, so the color literal sat behind a `Button(`
+    /// hit and was never surfaced.
+    func testNoAppSourceHardcodesAColorLiteralInsteadOfATraitAwareToken() throws {
+        let root = try repoAppSourcesRoot()
+        let pattern = try NSRegularExpression(pattern: #"\bColor\(red:"#)
+
+        var violations: [String] = []
+        let enumerator = FileManager.default.enumerator(atPath: root.path)
+        while let relative = enumerator?.nextObject() as? String {
+            guard relative.hasSuffix(".swift") else { continue }
+            let text = (try? String(contentsOf: root.appendingPathComponent(relative), encoding: .utf8)) ?? ""
+            let range = NSRange(text.startIndex..., in: text)
+            if pattern.firstMatch(in: text, range: range) != nil {
+                violations.append("\(relative): hardcoded Color(red:) — use an OmenColor token so light mode works")
+            }
+        }
+
+        XCTAssertEqual(violations, [], violations.joined(separator: "\n"))
+    }
+
     func testAppSourcesUseOmenPrimitivesInsteadOfRawSwiftUIOrColorLiterals() throws {
         let root = try repoAppSourcesRoot()
         let bannedPrimitives = [

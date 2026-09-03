@@ -52,6 +52,14 @@ protocol ConnectRepository {
     /// `verifyLeagueAccess()` and stores Vault secret references. The route sets
     /// `res.locals.__skipBodyLog`, so the body is excluded from request logging server-side.
     func connectEspn(_ capture: EspnCapture, accessToken: String) async -> Result<Void, ConnectFailure>
+
+    /// Asks ESPN which leagues the signed-in account plays in, via
+    /// `POST /api/platforms/espn/leagues`. Stores nothing — the connect call is what persists.
+    func discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String
+    ) async -> Result<[EspnLeagueOption], ConnectFailure>
 }
 
 struct ApiConnectRepository: ConnectRepository {
@@ -237,6 +245,31 @@ struct ApiConnectRepository: ConnectRepository {
         }
     }
 
+    func discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String
+    ) async -> Result<[EspnLeagueOption], ConnectFailure> {
+        let result = await client.post(
+            "api/platforms/espn/leagues",
+            accessToken: accessToken,
+            body: ["espn_s2": espnS2, "swid": swid],
+            as: EspnLeaguesResponse.self
+        )
+
+        switch result {
+        case .success(let response):
+            return .success(response.leagues.map(\.asOption))
+        case .failure(let error):
+            // 401 here is ESPN rejecting the session, not the Omen session — the route
+            // distinguishes them, and conflating the two would sign the user out of Omen over
+            // an expired ESPN cookie.
+            if case .unauthorized = error { return .failure(.espnSessionUnreadable) }
+            if case .server(let status) = error, status == 422 { return .failure(.espnSessionUnreadable) }
+            return .failure(Self.map(error, notFoundMeans: .server))
+        }
+    }
+
     private static func map(_ error: OmenApiError, notFoundMeans: ConnectFailure) -> ConnectFailure {
         switch error {
         case .network: return .network
@@ -288,6 +321,37 @@ private struct SleeperConnectResponse: Decodable {
 /// The connect route answers `{ status, platform, league_id, ... }`. Only the success of the call
 /// matters here — the directory read that follows is what tells the app what got connected — so
 /// this decodes the single field needed to confirm the shape and nothing else.
+/// `POST /api/platforms/espn/leagues` — labels only, never a credential.
+private struct EspnLeaguesResponse: Decodable {
+    let leagues: [League]
+
+    struct League: Decodable {
+        let leagueId: String
+        let leagueName: String?
+        let season: Int?
+        let teamId: String?
+        let teamName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case leagueId = "league_id"
+            case leagueName = "league_name"
+            case season
+            case teamId = "team_id"
+            case teamName = "team_name"
+        }
+
+        var asOption: EspnLeagueOption {
+            EspnLeagueOption(
+                id: leagueId,
+                name: leagueName,
+                season: season,
+                teamId: teamId,
+                teamName: teamName
+            )
+        }
+    }
+}
+
 private struct EspnConnectResponse: Decodable {
     let status: String?
 }
@@ -391,11 +455,13 @@ struct StubConnectRepository: ConnectRepository {
     var yahooBindResult: Result<Void, ConnectFailure> = .failure(.network)
     var espnConnectionResult: Result<EspnConnection?, ConnectFailure> = .success(nil)
     var espnConnectResult: Result<Void, ConnectFailure> = .failure(.network)
+    var espnDiscoverResult: Result<[EspnLeagueOption], ConnectFailure> = .success([])
     /// Records every request id the flow sent, so tests can prove idempotency behavior.
     final class Recorder {
         var requestIds: [String] = []
         var boundYahooLeagueIds: [String] = []
         var espnConnectionChecks = 0
+        var espnDiscoveries = 0
         var espnConnectAttempts: [(leagueId: String, teamId: String?, sentSession: Bool)] = []
     }
     var recorder = Recorder()
@@ -433,6 +499,15 @@ struct StubConnectRepository: ConnectRepository {
     func espnConnection(accessToken: String) async -> Result<EspnConnection?, ConnectFailure> {
         recorder.espnConnectionChecks += 1
         return espnConnectionResult
+    }
+
+    func discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String
+    ) async -> Result<[EspnLeagueOption], ConnectFailure> {
+        recorder.espnDiscoveries += 1
+        return espnDiscoverResult
     }
 
     func connectEspn(_ capture: EspnCapture, accessToken: String) async -> Result<Void, ConnectFailure> {

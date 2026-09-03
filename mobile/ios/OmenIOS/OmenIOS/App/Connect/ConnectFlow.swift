@@ -59,6 +59,10 @@ enum ConnectState: Equatable {
     case espnConsent
     /// ESPN's own sign-in is on screen in the in-app web view.
     case espnSigningIn
+    /// Signed in; asking ESPN which leagues this account plays in.
+    case discoveringEspnLeagues
+    /// ESPN answered with the user's leagues. They pick one.
+    case choosingEspnLeague([EspnLeagueOption])
     /// The user pressed Connect. Sending the one request that carries the session.
     case validatingEspnConnection(leagueId: String)
     /// Re-reading `GET /api/leagues` after the user says they finished on a computer.
@@ -83,6 +87,8 @@ enum ConnectState: Equatable {
             return "Checking that Omen can read this league…"
         case .checkingEspnConnection:
             return "Checking whether your ESPN league reached Omen…"
+        case .discoveringEspnLeagues:
+            return "Signed in. Finding your leagues…"
         case .validatingEspnConnection:
             return "Checking that Omen can read this league…"
         default:
@@ -97,7 +103,8 @@ enum ConnectState: Equatable {
         case .resolvingAccount, .validatingConnection,
              .startingYahooAuthorization, .awaitingYahooReturn,
              .confirmingYahooConnection, .bindingYahooLeague,
-             .checkingEspnConnection, .validatingEspnConnection:
+             .checkingEspnConnection, .validatingEspnConnection,
+             .discoveringEspnLeagues:
             return true
         default: return false
         }
@@ -229,6 +236,28 @@ struct EspnConnection: Equatable {
     }
 }
 
+/// One league ESPN reports for the signed-in account.
+///
+/// Carries labels and ids only — the shape `POST /api/platforms/espn/leagues` returns. No
+/// credential passes through this type, which is why it is safe to hold in `ConnectState`.
+struct EspnLeagueOption: Equatable, Identifiable {
+    let id: String
+    let name: String?
+    let season: Int?
+    let teamId: String?
+    let teamName: String?
+
+    /// ESPN routinely omits a league name. A neutral label beats an empty row the user cannot
+    /// tell apart from the one below it.
+    var displayName: String { name?.isEmpty == false ? name! : "Untitled ESPN league" }
+
+    /// Secondary line, omitting what ESPN did not supply rather than printing placeholders.
+    var subtitle: String? {
+        let parts = [teamName, season.map(String.init)].compactMap { $0?.isEmpty == false ? $0 : nil }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
 /// The ESPN handoff, written once so the app and its tests agree on what the user is told.
 ///
 /// Every line here has to survive App Store review reading it as store-facing copy: no
@@ -296,6 +325,17 @@ enum EspnHandoffCopy {
 
     /// Shown when the in-app sign-in has failed twice and the user is routed to the desktop path.
     static let signInFellBack = "We couldn't read your ESPN session on this phone. The desktop helper still works — here's how."
+
+    /// League-picker copy. Mirrors what the flow actually did rather than a generic heading:
+    /// the user did not choose these, ESPN reported them.
+    static func foundLeaguesTitle(_ count: Int) -> String {
+        count == 1 ? "Found your league" : "Found \(count) leagues"
+    }
+    static let foundLeaguesSubtitle = "Pick the one Omen should follow. You can connect another later."
+    /// Shown when ESPN accepts the session but reports no football leagues on the account.
+    static let noLeaguesFound = "ESPN didn't report any football leagues on this account. If you know the league ID, you can enter it."
+    /// Shown when discovery itself could not run. Not a failed connection — a failed lookup.
+    static let discoveryUnavailable = "Omen couldn't ask ESPN for your leagues. Enter the league ID and we'll connect it directly."
 
     static let openSetupTitle = "Open ESPN setup"
     static let checkConnectionTitle = "I connected ESPN"

@@ -1,6 +1,5 @@
 import SwiftUI
 
-private let canvasTileSurface = Color(red: 20 / 255, green: 20 / 255, blue: 22 / 255)
 
 enum AuthSignInCopy {
     static let oauthBrowserDisclosure = "Google and Discord open a secure Omen sign-in page. We only receive the sign-in result."
@@ -298,7 +297,7 @@ struct SignInView: View {
                         .omenTextStyle(OmenTypography.h2)
                         .foregroundStyle(OmenColor.textPrimary)
                         .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(digit.isEmpty ? canvasTileSurface : OmenColor.accentMuted)
+                        .background(digit.isEmpty ? OmenColor.surface1 : OmenColor.accentMuted)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
@@ -506,7 +505,7 @@ private struct CanvasAuthIconTile: View {
             .frame(width: 22, height: 22)
             .opacity(isInteractable ? 1 : 0.45)
             .frame(maxWidth: .infinity, minHeight: 54)
-            .background(canvasTileSurface)
+            .background(OmenColor.surface1)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)

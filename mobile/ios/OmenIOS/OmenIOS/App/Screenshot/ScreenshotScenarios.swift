@@ -369,6 +369,16 @@ private struct ScreenshotConnectRepository: ConnectRepository {
     func connectEspn(_ capture: EspnCapture, accessToken: String) async -> Result<Void, ConnectFailure> {
         .failure(.espnSessionUnreadable)
     }
+
+    /// Empty for the same reason `connectEspn` fails: screenshot mode signs in to nothing, and a
+    /// fixture that invented ESPN leagues would put fake league names into store screenshots.
+    func discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String
+    ) async -> Result<[EspnLeagueOption], ConnectFailure> {
+        .success([])
+    }
 }
 
 /// Faux tab shell — production `CommandCenterView` requires a real SessionManager;

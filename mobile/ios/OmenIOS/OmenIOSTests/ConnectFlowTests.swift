@@ -90,6 +90,7 @@ final class ConnectFlowTests: XCTestCase {
         }
 
         func hasSession() async -> Bool { session != nil }
+        func sessionDiagnostic() async -> String { session == nil ? "espn_s2: not found" : "espn_s2: www.espn.com" }
         func takeSession() async -> (espnS2: String, swid: String)? {
             takeCount += 1
             return session
@@ -103,11 +104,15 @@ final class ConnectFlowTests: XCTestCase {
     private func espnReadyViewModel(
         repository: StubConnectRepository,
         store: FakeEspnCookieStore? = nil
-    ) -> ConnectViewModel {
+    ) async -> ConnectViewModel {
         let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: store ?? FakeEspnCookieStore())
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        // Sign-in kicks discovery off in a detached Task, which makes ordering nondeterministic
+        // in a test. Awaiting it here settles that; the call is idempotent (it guards on
+        // `espnSession`), so it is a no-op if the Task already won the race.
+        await viewModel.discoverEspnLeagues()
         return viewModel
     }
 
@@ -119,7 +124,7 @@ final class ConnectFlowTests: XCTestCase {
             EspnConnection(leagueName: "Las Vegas PPR", teamName: "Team Slops")
         )
         let store = FakeEspnCookieStore()
-        let viewModel = espnReadyViewModel(repository: repository, store: store)
+        let viewModel = await espnReadyViewModel(repository: repository, store: store)
 
         await viewModel.confirmEspnConnection()
 
@@ -133,8 +138,86 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "123456")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.teamId, "7")
         XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.sentSession, true)
-        // The jar was read once, not polled.
+        // Read once by discovery and then reused for the connect — never re-read, and never
+        // polled. If this becomes 2, the session is being pulled out of the jar again after
+        // discovery already had it, which widens the window it exists in.
         XCTAssertEqual(store.takeCount, 1)
+    }
+
+    /// **The point of W1-A's second half.** Signing in should produce a list, not a homework
+    /// assignment — the user should never hunt for a league id in a URL when ESPN will tell us.
+    func testSigningInDiscoversTheAccountsLeaguesWithoutTheUserTypingAnything() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([
+            EspnLeagueOption(id: "1", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "The Titans of Slopsilonia"),
+            EspnLeagueOption(id: "2", name: "Everything Backwards", season: 2026, teamId: "5", teamName: "Justin's Scary Team"),
+        ])
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        guard case .choosingEspnLeague(let options) = viewModel.state else {
+            return XCTFail("expected a league picker, got \(viewModel.state)")
+        }
+        XCTAssertEqual(options.count, 2)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, 1)
+        // Nothing is connected yet — discovery must not bind a league on the user's behalf.
+        XCTAssertTrue(repository.recorder.espnConnectAttempts.isEmpty)
+    }
+
+    /// Picking from the list connects that league, with the team ESPN reported for it.
+    func testPickingADiscoveredLeagueConnectsThatLeagueAndItsTeam() async {
+        var repository = StubConnectRepository()
+        let option = EspnLeagueOption(id: "13338821", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "The Titans of Slopsilonia")
+        repository.espnDiscoverResult = .success([option])
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(EspnConnection(leagueName: "Slops Saloon FF Showdown", teamName: "The Titans of Slopsilonia"))
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        await viewModel.connectEspnLeague(option)
+
+        guard case .espnConnected = viewModel.state else {
+            return XCTFail("expected espnConnected, got \(viewModel.state)")
+        }
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.count, 1)
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "13338821")
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.teamId, "3")
+        XCTAssertNil(viewModel.espnCookieStore, "session must be dropped once connected")
+    }
+
+    /// Discovery failing is not a failed connection — nothing was connected. The user falls back
+    /// to typing an id rather than being thrown out of the flow for Omen's lookup problem.
+    func testDiscoveryFailingFallsBackToManualEntryRatherThanFailingTheConnection() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .failure(.network)
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertEqual(viewModel.state, .espnSigningIn)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.discoveryUnavailable)
+    }
+
+    /// An account with no football leagues is an honest empty answer, not an error.
+    func testAnAccountWithNoFootballLeaguesIsNotReportedAsAFailure() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([])
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        XCTAssertEqual(viewModel.state, .espnSigningIn)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.noLeaguesFound)
+    }
+
+    /// ESPN omits league names often enough that a blank row is a real outcome.
+    func testALeagueWithNoNameStillRendersSomethingTheUserCanPick() {
+        let unnamed = EspnLeagueOption(id: "7", name: nil, season: 2026, teamId: nil, teamName: nil)
+        XCTAssertEqual(unnamed.displayName, "Untitled ESPN league")
+        XCTAssertEqual(unnamed.subtitle, "2026")
+
+        let bare = EspnLeagueOption(id: "8", name: "Named", season: nil, teamId: nil, teamName: nil)
+        XCTAssertNil(bare.subtitle, "an empty subtitle must be absent, not a placeholder")
+    }
+
+    /// Header copy has to survive the one-league case without reading like a bug.
+    func testFoundLeaguesHeadingIsSingularForOneLeague() {
+        XCTAssertEqual(EspnHandoffCopy.foundLeaguesTitle(1), "Found your league")
+        XCTAssertEqual(EspnHandoffCopy.foundLeaguesTitle(3), "Found 3 leagues")
     }
 
     /// **The security assertion.** Once the connect returns, the app must be holding no ESPN
@@ -142,7 +225,7 @@ final class ConnectFlowTests: XCTestCase {
     func testTheEspnSessionIsDroppedAsSoonAsItHasBeenSent() async {
         var repository = StubConnectRepository()
         repository.espnConnectResult = .success(())
-        let viewModel = espnReadyViewModel(repository: repository)
+        let viewModel = await espnReadyViewModel(repository: repository)
 
         await viewModel.confirmEspnConnection()
 
@@ -230,7 +313,7 @@ final class ConnectFlowTests: XCTestCase {
     func testAnUnreadableSessionRetriesOnceThenRoutesToTheDesktopPath() async {
         var repository = StubConnectRepository()
         repository.espnConnectResult = .failure(.espnSessionUnreadable)
-        let viewModel = espnReadyViewModel(repository: repository)
+        let viewModel = await espnReadyViewModel(repository: repository)
 
         await viewModel.confirmEspnConnection()
         guard case .retryableError(let first) = viewModel.state else {
@@ -257,7 +340,7 @@ final class ConnectFlowTests: XCTestCase {
     func testAnUnreachableLeagueIsNotReportedAsASessionProblem() async {
         var repository = StubConnectRepository()
         repository.espnConnectResult = .failure(.espnLeagueUnreachable)
-        let viewModel = espnReadyViewModel(repository: repository)
+        let viewModel = await espnReadyViewModel(repository: repository)
 
         await viewModel.confirmEspnConnection()
 
@@ -269,8 +352,8 @@ final class ConnectFlowTests: XCTestCase {
     }
 
     /// Backing out of ESPN's sign-in is normal. No error state, and no session left behind.
-    func testCancellingEspnSignInIsNotAnError() {
-        let viewModel = espnReadyViewModel(repository: StubConnectRepository())
+    func testCancellingEspnSignInIsNotAnError() async {
+        let viewModel = await espnReadyViewModel(repository: StubConnectRepository())
 
         viewModel.cancelEspnSignIn()
 
@@ -300,7 +383,7 @@ final class ConnectFlowTests: XCTestCase {
         var repository = StubConnectRepository()
         repository.espnConnectResult = .success(())
         let store = FakeEspnCookieStore(session: ("SECRET_S2", "{SECRET_SWID}"))
-        let viewModel = espnReadyViewModel(repository: repository, store: store)
+        let viewModel = await espnReadyViewModel(repository: repository, store: store)
 
         let midFlight = "\(ConnectState.validatingEspnConnection(leagueId: "123456"))"
         XCTAssertFalse(midFlight.contains("SECRET_S2"))
@@ -310,6 +393,39 @@ final class ConnectFlowTests: XCTestCase {
         let final = "\(viewModel.state)"
         XCTAssertFalse(final.contains("SECRET_S2"))
         XCTAssertFalse(final.contains("SECRET_SWID"))
+    }
+
+    /// **The diagnostic must never carry a cookie value.** Run against a real WebKit jar rather
+    /// than a stub, because the stub is my own string and proves nothing — this puts an actual
+    /// HttpOnly cookie in front of the real reader and checks what comes out.
+    ///
+    /// A value, a prefix, or even a length would all be leaks: a length is a hint, and the whole
+    /// point of `facts-of-record #6` is that none of this reaches a screen or a log.
+    @MainActor
+    func testTheSessionDiagnosticReportsPresenceAndHostButNeverAValue() async {
+        let dataStore = WKWebsiteDataStore.nonPersistent()
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = dataStore
+        // Attached so the store starts its network process; without this the writes are dropped.
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+
+        let secret = "SENTINEL_SESSION_VALUE_9876543210"
+        let cookie = HTTPCookie.cookies(
+            withResponseHeaderFields: ["Set-Cookie": "espn_s2=\(secret); Path=/; Domain=www.espn.com; Secure; HttpOnly"],
+            for: URL(string: "https://www.espn.com/")!
+        ).first!
+        await dataStore.httpCookieStore.setCookie(cookie)
+
+        let diagnostic = await EspnWebCookieStore(dataStore: dataStore).sessionDiagnostic()
+
+        XCTAssertFalse(diagnostic.contains(secret), "diagnostic leaked the cookie value: \(diagnostic)")
+        XCTAssertFalse(diagnostic.contains(secret.prefix(6)), "diagnostic leaked a value prefix")
+        XCTAssertFalse(diagnostic.contains("\(secret.count)"), "diagnostic leaked the value length")
+        // It still has to be useful, or it is decoration.
+        XCTAssertTrue(diagnostic.contains("www.espn.com"), "diagnostic must name where it looked")
+        XCTAssertTrue(diagnostic.contains("SWID: not found"), "diagnostic must name the missing half")
+
+        withExtendedLifetime(webView) {}
     }
 
     // MARK: - ESPN page parsing
@@ -340,16 +456,27 @@ final class ConnectFlowTests: XCTestCase {
     /// `/football/team` was the first choice and a real device rejected it: with no `leagueId`,
     /// ESPN renders "Invalid league ID" right after a successful sign-in, so the flow dead-ended
     /// on ESPN's own error screen.
-    func testTheEntryPageDoesNotItselfRequireALeague() {
-        let entry = EspnWebSignIn.entryURL
+    /// The entry URL's job is to make ESPN ask for a sign-in; the after-sign-in URL's job is to
+    /// be somewhere useful once it has one. They must be different pages — collapsing them is the
+    /// mistake that produced "Invalid league ID" immediately after a successful login.
+    func testTheSignInEntryAndTheLandingPageAreDistinct() {
+        XCTAssertNotEqual(EspnWebSignIn.entryURL, EspnWebSignIn.afterSignInURL)
 
-        // Two entry URLs failed on a real phone before this one: `/football/team` needs a
-        // `leagueId` and serves "Invalid league ID" without one, and `/football/welcome` is the
-        // new-user signup page. Whatever this points at, it must not need a league to render.
-        XCTAssertNil(EspnWebSignIn.leagueAndTeam(from: entry).leagueId)
-        XCTAssertFalse(entry.path.contains("/team"))
-        XCTAssertFalse(entry.path.contains("welcome"))
-        XCTAssertEqual(entry.host, "www.espn.com")
+        // Neither may carry a league of its own — a hard-coded league id here would connect
+        // somebody else's league.
+        XCTAssertNil(EspnWebSignIn.leagueAndTeam(from: EspnWebSignIn.entryURL).leagueId)
+        XCTAssertNil(EspnWebSignIn.leagueAndTeam(from: EspnWebSignIn.afterSignInURL).leagueId)
+
+        // Both must be ESPN, or the sheet sends the user off-site to sign in.
+        for url in [EspnWebSignIn.entryURL, EspnWebSignIn.afterSignInURL] {
+            XCTAssertEqual(url.host?.hasSuffix("espn.com"), true, "\(url) is not an ESPN host")
+        }
+
+        // `/football/welcome` is ESPN's new-user signup pitch. It stranded an existing manager on
+        // a "Create a League" screen, and must not come back as either URL.
+        for url in [EspnWebSignIn.entryURL, EspnWebSignIn.afterSignInURL] {
+            XCTAssertFalse(url.path.contains("welcome"), "\(url) is the new-user signup page")
+        }
     }
 
     /// ESPN client-routes between fantasy pages and sometimes carries the ids in the fragment.

@@ -553,6 +553,67 @@ router.post("/sleeper/connect", requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * W1-A league discovery — "which ESPN leagues does this session belong to?"
+ *
+ * ESPN publishes no league list on `lm-api-reads`: that API can only answer about a league you
+ * already name, which is why every ESPN integration (ours and everyone else's) historically made
+ * the user hunt for a league id in a URL. The fan API is the endpoint ESPN's own site uses to
+ * render "My Teams", and it is the only way to answer this question.
+ *
+ * This route **stores nothing**. It takes a session, asks ESPN what it can see, and returns
+ * labels. Persistence happens only when the user picks a league and `POST /espn/connect` runs —
+ * so a user who discovers their leagues and then backs out leaves no connection behind.
+ *
+ * SECURITY: `__skipBodyLog` keeps the request body out of request logging, exactly as
+ * `/espn/connect` does. The response carries league and team labels only; no credential is
+ * echoed, and the adapter's failure reporter strips the query string.
+ */
+router.post("/espn/leagues", requireAuth, (req, res, next) => {
+  res.locals.__skipBodyLog = true;
+  return next();
+}, async (req, res, next) => {
+  try {
+    const espn_s2 = extractCookieValue(req.body?.espn_s2, "espn_s2");
+    const swid = normalizeSwidCookie(req.body?.swid);
+
+    if (!espn_s2 || !swid) {
+      return res.status(422).json({
+        status: "error",
+        code: "espn_cookies_required",
+        message: "ESPN_S2 and SWID are required.",
+      });
+    }
+
+    let leagues;
+    try {
+      leagues = await espnAdapter.fetchEspnFanLeagues(espn_s2, swid);
+    } catch (error) {
+      // ESPN rejecting the session is a normal outcome here, not a server fault: the usual cause
+      // is a session that expired between sign-in and this call.
+      const status = Number(error?.status);
+      if (status === 401 || status === 403) {
+        return res.status(401).json({
+          status: "error",
+          code: "espn_session_rejected",
+          message: "ESPN did not accept that session. Sign in again and retry.",
+        });
+      }
+      logger.warn("ESPN league discovery failed", { http_status: status || null });
+      return res.status(502).json({
+        status: "error",
+        code: "espn_discovery_unavailable",
+        message: "Omen could not reach ESPN to list your leagues. Try again shortly.",
+      });
+    }
+
+    return res.json({ status: "ok", platform: "espn", leagues });
+  } catch (e) {
+    logger.error("ESPN league discovery failed");
+    return next(e);
+  }
+});
+
 router.post("/espn/connect", requireAuth, (req, res, next) => {
   res.locals.__skipBodyLog = true;
   return next();

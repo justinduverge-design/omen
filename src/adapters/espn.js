@@ -756,6 +756,79 @@ async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
   });
 }
 
+
+const ESPN_FAN_HOSTNAME = "fan.api.espn.com";
+/** ESPN's fan preferences use numeric type ids; 9 is a fantasy team entry. */
+const ESPN_FAN_TEAM_TYPE_ID = 9;
+/** ESPN game ids. 1 is football — the fan payload also carries basketball, baseball, hockey. */
+const ESPN_FOOTBALL_GAME_ID = 1;
+
+/**
+ * Normalize ESPN's fan-preferences payload into the leagues a user actually plays in.
+ *
+ * Pure on purpose: the shape below is undocumented and ESPN has changed it before, so this is
+ * the half that gets fixture tests. It reads defensively — every field is optional in practice,
+ * and a preference whose league id cannot be resolved is dropped rather than guessed at.
+ *
+ * SECURITY: this touches only the response body. No credential reaches it and none is returned.
+ */
+function fanLeaguesFromPreferences(data, opts = {}) {
+  const preferences = Array.isArray(data?.preferences) ? data.preferences : [];
+  const wantedSeason = opts.season == null ? null : Number(opts.season);
+
+  const leagues = [];
+  const seen = new Set();
+
+  for (const preference of preferences) {
+    if (Number(preference?.typeId) !== ESPN_FAN_TEAM_TYPE_ID) continue;
+
+    const entry = preference?.metaData?.entry;
+    if (!entry) continue;
+    // The fan payload spans every fantasy sport the account plays. Filtering by game id keeps a
+    // basketball team from being offered as a football league.
+    if (Number(entry?.gameId) !== ESPN_FOOTBALL_GAME_ID) continue;
+
+    const group = Array.isArray(entry?.groups) ? entry.groups[0] : null;
+    const leagueId = group?.groupId ?? group?.id ?? entry?.leagueId;
+    if (leagueId == null || String(leagueId).trim() === "") continue;
+
+    const season = Number(entry?.seasonId ?? entry?.season);
+    if (wantedSeason != null && Number.isFinite(season) && season !== wantedSeason) continue;
+
+    const key = String(leagueId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    leagues.push({
+      league_id: key,
+      league_name: group?.groupName || group?.name || null,
+      season: Number.isFinite(season) ? season : null,
+      team_id: entry?.entryId == null ? null : String(entry.entryId),
+      team_name: entry?.name || entry?.teamName || null,
+    });
+  }
+
+  return leagues;
+}
+
+/**
+ * Ask ESPN which football leagues this session belongs to.
+ *
+ * This is the endpoint ESPN's own site uses to render "My Teams", and it is the only way to
+ * discover a user's leagues — `lm-api-reads` can only answer about a league you already name.
+ * Its existence was verified against a dummy id, which answers `{"message":"fan not found"}`
+ * rather than 404-ing the route.
+ *
+ * SECURITY: credentials travel in the request headers built by `makeEspnHeaders` and appear in
+ * no log, no error, and no return value. `reportEspnFailure` already strips the query string.
+ */
+async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
+  const fanId = encodeURIComponent(swidWithBraces(swid));
+  const path = `/apis/v2/fans/${fanId}?featureFlags=challengeEntries&showAirings=false&source=ESPN.COM&lang=en`;
+  const data = await doEspnRequest(ESPN_FAN_HOSTNAME, path, espn_s2, swid, 3, null);
+  return fanLeaguesFromPreferences(data, opts);
+}
+
 module.exports = {
   buildLeagueStandings,
   buildLeagueContext,
@@ -771,4 +844,6 @@ module.exports = {
   teamFromEspnData,
   rosterFromEspnData,
   waiverPoolFromEspnData,
+  fanLeaguesFromPreferences,
+  fetchEspnFanLeagues,
 };
