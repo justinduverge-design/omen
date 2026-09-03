@@ -79,12 +79,32 @@ test("ignores non-football fantasy teams on the same account", () => {
   assert.deepEqual(leagues.map((l) => l.league_id), ["ffl"]);
 });
 
-test("ignores preference rows that are not fantasy teams", () => {
-  const leagues = fanLeaguesFromPreferences({
-    preferences: [teamPreference({ typeId: 1 }), teamPreference({ typeId: 9, leagueId: "keep" })],
+test("a negative groupId is normalized the way ESPN's own client normalizes it", () => {
+  // ESPN's production bundle does `t.groupId = Math.abs(t.groupId)`. Without this the league id
+  // arrives as "-13338821" and every downstream call fails with nothing useful to show the user.
+  const [league] = fanLeaguesFromPreferences({
+    preferences: [teamPreference({ leagueId: -13338821 })],
   });
 
-  assert.deepEqual(leagues.map((l) => l.league_id), ["keep"]);
+  assert.equal(league.league_id, "13338821");
+});
+
+test("does not require an unverified typeId, so a real team is never silently dropped", () => {
+  // An earlier cut required `typeId === 9`. That number was assumed and appears nowhere in
+  // ESPN's client; if wrong it would empty every user's league list while looking like an
+  // account with no leagues. Structure is what identifies a team.
+  const noTypeId = teamPreference();
+  delete noTypeId.typeId;
+
+  assert.equal(fanLeaguesFromPreferences({ preferences: [noTypeId] }).length, 1);
+  assert.equal(fanLeaguesFromPreferences({ preferences: [teamPreference({ typeId: 42 })] }).length, 1);
+});
+
+test("keeps an entry whose gameId is absent rather than assuming it is not football", () => {
+  const noGame = teamPreference();
+  delete noGame.metaData.entry.gameId;
+
+  assert.equal(fanLeaguesFromPreferences({ preferences: [noGame] }).length, 1);
 });
 
 test("drops a preference with no resolvable league id rather than inventing one", () => {

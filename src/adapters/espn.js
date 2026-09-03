@@ -758,17 +758,39 @@ async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
 
 
 const ESPN_FAN_HOSTNAME = "fan.api.espn.com";
-/** ESPN's fan preferences use numeric type ids; 9 is a fantasy team entry. */
-const ESPN_FAN_TEAM_TYPE_ID = 9;
 /** ESPN game ids. 1 is football — the fan payload also carries basketball, baseball, hockey. */
 const ESPN_FOOTBALL_GAME_ID = 1;
 
 /**
+ * ESPN's fan payload can carry a **negative** `groupId`, and its own web client normalizes with
+ * `t.groupId = Math.abs(t.groupId)` — visible verbatim in ESPN's production bundle
+ * (`cdn1.espn.net/kona/.../static/commons/main-*.js`, 2026-09-03). Without this a league id
+ * arrives as "-13338821" and every downstream call fails with no useful reason.
+ */
+function normalizeFanGroupId(rawId) {
+  if (rawId == null) return "";
+  const asNumber = Number(rawId);
+  if (Number.isFinite(asNumber)) return String(Math.abs(asNumber));
+  const text = String(rawId).trim();
+  return text.startsWith("-") ? text.slice(1) : text;
+}
+
+/**
  * Normalize ESPN's fan-preferences payload into the leagues a user actually plays in.
  *
- * Pure on purpose: the shape below is undocumented and ESPN has changed it before, so this is
- * the half that gets fixture tests. It reads defensively — every field is optional in practice,
- * and a preference whose league id cannot be resolved is dropped rather than guessed at.
+ * Pure on purpose: the shape is undocumented, so this is the half that gets fixture tests.
+ *
+ * **Field shape verified against ESPN's own production bundle (2026-09-03)**, which contains
+ * `e.metaData.entry.groups && e.metaData.entry.groups[0]`, `groupId`, `groupName`,
+ * `metaData.entry.gameId` and `seasonId`. `entryId` and `entry.name` are *not* confirmed there
+ * and are read defensively — a missing team id is legal, since the connect route accepts an
+ * absent `espn_team_id`.
+ *
+ * **There is deliberately no `typeId` filter.** An earlier cut required `typeId === 9` for
+ * "fantasy team"; that number was assumed, appears nowhere in ESPN's client, and would have
+ * emptied every user's league list if wrong. The structural test — an entry with a resolvable
+ * group id, for the football game — is what actually identifies a fantasy team, so that is the
+ * only test applied.
  *
  * SECURITY: this touches only the response body. No credential reaches it and none is returned.
  */
@@ -780,27 +802,28 @@ function fanLeaguesFromPreferences(data, opts = {}) {
   const seen = new Set();
 
   for (const preference of preferences) {
-    if (Number(preference?.typeId) !== ESPN_FAN_TEAM_TYPE_ID) continue;
-
     const entry = preference?.metaData?.entry;
     if (!entry) continue;
-    // The fan payload spans every fantasy sport the account plays. Filtering by game id keeps a
-    // basketball team from being offered as a football league.
-    if (Number(entry?.gameId) !== ESPN_FOOTBALL_GAME_ID) continue;
+
+    // Football only when ESPN says which game it is. The fan payload spans every fantasy sport
+    // the account plays, so without this a basketball team is offered as a football league.
+    // Absent rather than mismatched is not treated as a rejection: `gameId` is confirmed present
+    // in ESPN's own code, but a missing field should not silently empty the user's league list.
+    const gameId = entry?.gameId;
+    if (gameId != null && Number(gameId) !== ESPN_FOOTBALL_GAME_ID) continue;
 
     const group = Array.isArray(entry?.groups) ? entry.groups[0] : null;
-    const leagueId = group?.groupId ?? group?.id ?? entry?.leagueId;
-    if (leagueId == null || String(leagueId).trim() === "") continue;
+    const leagueId = normalizeFanGroupId(group?.groupId ?? group?.id ?? entry?.leagueId);
+    if (!leagueId) continue;
 
     const season = Number(entry?.seasonId ?? entry?.season);
     if (wantedSeason != null && Number.isFinite(season) && season !== wantedSeason) continue;
 
-    const key = String(leagueId);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (seen.has(leagueId)) continue;
+    seen.add(leagueId);
 
     leagues.push({
-      league_id: key,
+      league_id: leagueId,
       league_name: group?.groupName || group?.name || null,
       season: Number.isFinite(season) ? season : null,
       team_id: entry?.entryId == null ? null : String(entry.entryId),
