@@ -49,6 +49,41 @@ test("EspnConnectGuide.jsx share/mailto/sms payloads never reference a cookie-sh
   assert.doesNotMatch(smsHrefLine, COOKIE_SHAPED_PATTERN);
 });
 
+test("EspnConnectGuide.jsx desktop actions point at the published store listings only", () => {
+  const src = read("frontend", "src", "pages", "EspnConnectGuide.jsx");
+
+  // The desktop half of the page exists to hand a user the install, so its destinations are
+  // asserted rather than trusted: a sideload/source-tree URL here would be telling a normal
+  // user to install unreviewed code.
+  const chrome = src.match(/const CHROME_STORE_URL = '([^']*)'/)?.[1];
+  const edge = src.match(/const EDGE_STORE_URL = '([^']*)'/)?.[1];
+  assert.equal(chrome, "https://chromewebstore.google.com/detail/omen-espn-connect/odfoahekibbfjipnofmfenabnnlgfljm");
+  assert.equal(edge, "https://microsoftedge.microsoft.com/addons/detail/omen-espn-connect/nkcbgdhpekbclicgcfbokjmcgkhfhddl");
+  assert.doesNotMatch(src, /github\.com/, "must not send users to the source tree to sideload");
+
+  // Surface detection decides ordering only. It must never gate the handoff away entirely —
+  // an unknown surface has to render both halves, since guessing wrong strands the user.
+  assert.match(src, /return 'unknown'/, "detectSurface must have an unknown answer");
+  assert.match(
+    src,
+    /surface === 'desktop' \? <>\{installHere\}\{handoff\}<\/> : <>\{handoff\}\{installHere\}<\/>/,
+    "both halves must render on every surface; only the order changes"
+  );
+});
+
+test("EspnConnectGuide.jsx never asks the reader for an ESPN credential", () => {
+  const src = read("frontend", "src", "pages", "EspnConnectGuide.jsx");
+
+  // The page describes a helper that reads the browser's own ESPN session on a computer. It
+  // must never instruct a reader to type, paste, or send anything from their ESPN account —
+  // that is the boundary the whole extension exists to keep.
+  assert.doesNotMatch(src, /password/i);
+  assert.doesNotMatch(src, /<input/i, "the guide collects nothing");
+  assert.doesNotMatch(src, /\bfetch\s*\(/, "the guide is static; it posts nothing anywhere");
+  // `espn_s2`/`SWID` are named on the authenticated connect page, never on this public one.
+  assert.doesNotMatch(src, COOKIE_SHAPED_PATTERN);
+});
+
 test("extension manifest.json keeps host_permissions and content-script scope tight", () => {
   const manifest = JSON.parse(read("extension", "manifest.json"));
 

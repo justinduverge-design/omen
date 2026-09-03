@@ -43,25 +43,21 @@ final class OmenContextualHelpTests: XCTestCase {
         }
     }
 
-    func testEspnIsOfferedAsAWebConnectionRatherThanAnInAppOne() {
-        // ESPN connects, and Omen wants people to connect it — the league is linked once on the
-        // website and then appears in the app. Only the *mechanism* differs from Sleeper, so the
-        // rule is about where help points, not whether ESPN is mentioned.
-        for text in claims where text.lowercased().contains("espn") {
-            XCTAssertTrue(
-                text.lowercased().contains("website"),
-                "Native help may only describe ESPN as a website connection: \"\(text)\""
-            )
-        }
-
-        // The check above would also pass if someone deleted ESPN outright to satisfy it. That
-        // would be the wrong fix: it would strand every ESPN user with no path at all. Pin the
-        // encouragement, not just the correction.
+    /// **Inverted 2026-09-02.** This asserted ESPN help must say "website", because ESPN was a
+    /// desktop-only connection. W1-A made it an in-app sign-in, so the same test now guards the
+    /// opposite error: help that still sends an ESPN user off to find a computer.
+    func testEspnHelpDescribesTheInAppSignInNowThatItExists() {
         let connect = OmenContextualHelpContent.topic(for: .connect)
-        XCTAssertTrue(
-            connect.tips.contains { $0.label == "ESPN" },
-            "Connect help must still tell ESPN users how to connect"
+        let espn = connect.tips.first { $0.label == "ESPN" }
+
+        XCTAssertEqual(ConnectProvider.espn.availability, .available)
+        XCTAssertNotNil(espn, "Connect help must still tell ESPN users how to connect")
+        XCTAssertFalse(
+            espn?.body.lowercased().contains("website") ?? true,
+            "ESPN connects in the app now; help must not route users to the website"
         )
+        // The promise that makes an in-app provider sign-in acceptable at all.
+        XCTAssertTrue(espn?.body.contains("never sees your ESPN password") ?? false)
     }
 
     func testNoDestinationAsksForAProviderPasswordOrCookie() {
@@ -79,13 +75,19 @@ final class OmenContextualHelpTests: XCTestCase {
         }
     }
 
-    func testProviderCopyMatchesActualNativeAvailability() {
+    /// A provider Omen *cannot* connect in the app must have help that is byte-identical to the
+    /// recorded reason in `ConnectProvider.availability`. Written as a loop over every provider
+    /// rather than a hard-coded ESPN assertion: when ESPN flipped to `.available` the old version
+    /// simply became untrue, and a rule that only ever checked one case was the reason help copy
+    /// drifted twice without anything failing.
+    func testUnavailableProviderHelpMatchesItsRecordedReason() {
         let connect = OmenContextualHelpContent.topic(for: .connect)
-        let espn = connect.tips.first { $0.label == "ESPN" }
 
-        // A web-only provider's help sentence IS the recorded reason in
-        // ConnectProvider.availability. If that changes, this fails and the copy follows.
-        XCTAssertEqual(espn?.body, Self.reason(ConnectProvider.espn.availability))
+        for provider in ConnectProvider.allCases {
+            guard let reason = Self.reason(provider.availability) else { continue }
+            let tip = connect.tips.first { $0.label == provider.displayName }
+            XCTAssertEqual(tip?.body, reason, "\(provider.displayName) help must state its recorded reason")
+        }
         XCTAssertEqual(ConnectProvider.sleeper.availability, .available)
     }
 

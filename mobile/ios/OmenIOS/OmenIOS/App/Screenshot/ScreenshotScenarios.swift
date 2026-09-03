@@ -356,6 +356,19 @@ private struct ScreenshotConnectRepository: ConnectRepository {
     func bindYahooLeague(id: String, accessToken: String) async -> Result<Void, ConnectFailure> {
         .success(())
     }
+
+    /// Nil, so a capture of the ESPN screen shows the handoff steps — the state a real user
+    /// arrives in — rather than a connected league they never connected.
+    func espnConnection(accessToken: String) async -> Result<EspnConnection?, ConnectFailure> {
+        .success(nil)
+    }
+
+    /// Screenshot mode never signs in to anything, so this is unreachable by construction. It
+    /// fails rather than succeeding: a fixture that reported a successful ESPN connect would put
+    /// a fake connected state into store screenshots.
+    func connectEspn(_ capture: EspnCapture, accessToken: String) async -> Result<Void, ConnectFailure> {
+        .failure(.espnSessionUnreadable)
+    }
 }
 
 /// Faux tab shell — production `CommandCenterView` requires a real SessionManager;

@@ -9,6 +9,7 @@ private let connectCanvasTileSurface = Color(red: 20 / 255, green: 20 / 255, blu
 /// carries a safe next action, and cancelling is never framed as a failure.
 struct ConnectView: View {
     @StateObject private var viewModel: ConnectViewModel
+    @Environment(\.openURL) private var openURL
     /// Called when a league is connected, so the shell can refresh and route on.
     let onConnected: () -> Void
     let onDismiss: () -> Void
@@ -59,6 +60,17 @@ struct ConnectView: View {
                         errorSection(failure)
                     case .needsReauth:
                         reauthSection
+                    case .espnConsent:
+                        espnConsentSection
+                    case .espnSigningIn:
+                        // Rendered as a full-screen cover below, not inline: ESPN's site needs the
+                        // whole screen, and nesting a web view inside this ScrollView would fight
+                        // it for scrolling.
+                        espnSignInPlaceholder
+                    case .checkingEspnConnection, .validatingEspnConnection:
+                        busySection
+                    case .espnConnected(let connection):
+                        espnConnectedSection(connection)
                     case .unsupportedOnMobile(let provider):
                         unsupportedSection(provider)
                     }
@@ -67,6 +79,12 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
             .background(OmenColor.bg.ignoresSafeArea())
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { viewModel.state == .espnSigningIn },
+            set: { if !$0 { viewModel.cancelEspnSignIn() } }
+        )) {
+            espnSignInSheet
         }
     }
 
@@ -145,9 +163,12 @@ struct ConnectView: View {
         switch provider.availability {
         case .available:
             if provider == .yahoo { return "Sign in with Yahoo" }
+            if provider == .espn { return "Sign in with ESPN" }
             return "Just your username — no password"
-        case .onHold: return "On hold"
-        case .useWeb: return "Needs a computer for now · we'll show you"
+        // The reason is read from `availability`, not restated. It was restated once, and the
+        // two copies drifted the moment the ESPN line was reworded — the picker row kept
+        // saying "needs a computer" while the destination screen said something else.
+        case .onHold(let reason), .useWeb(let reason): return reason
         }
     }
 
@@ -343,17 +364,218 @@ struct ConnectView: View {
     }
 
     /// A provider Omen cannot connect here. Never a dead end — it names the path that works.
+    @ViewBuilder
     private func unsupportedSection(_ provider: ConnectProvider) -> some View {
+        if provider == .espn {
+            espnSyncSection
+        } else {
+            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                OmenStateSurface(
+                    kind: .disconnected,
+                    title: "\(provider.displayName) can't be connected in the app yet",
+                    message: unsupportedMessage(provider)
+                )
+                OmenButton(
+                    title: "Choose another provider",
+                    action: { viewModel.startOver() },
+                    variant: .secondary,
+                    size: .md
+                )
+            }
+        }
+    }
+
+    // MARK: - ESPN sign-in (W1-A)
+
+    /// Consent, before anything opens.
+    ///
+    /// Its own screen rather than a line under a button, because that is what W1-A binds: the
+    /// user is told what is about to happen while they can still decline, and declining writes
+    /// nothing. The affiliation disclaimer is not decorative — Disney's Terms of Use §2.B.vii
+    /// bars use that suggests an association with their brands.
+    private var espnConsentSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            Text(EspnHandoffCopy.consentTitle)
+                .omenTextStyle(OmenTypography.h1)
+                .foregroundStyle(OmenColor.textPrimary)
+
+            Text(EspnHandoffCopy.consentBody)
+                .omenTextStyle(OmenTypography.body)
+                .foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            OmenButton(
+                title: EspnHandoffCopy.consentContinueTitle,
+                action: { viewModel.beginEspnSignIn() },
+                variant: .primary,
+                size: .md
+            )
+            OmenButton(
+                title: EspnHandoffCopy.consentDeclineTitle,
+                action: { viewModel.startOver() },
+                variant: .secondary,
+                size: .md
+            )
+        }
+    }
+
+    /// Inline stand-in while the cover is up, so the sheet's dismissal never reveals a blank
+    /// screen underneath.
+    private var espnSignInPlaceholder: some View {
+        OmenStateSurface(
+            kind: .loading,
+            title: "Just a moment",
+            message: EspnHandoffCopy.signInWaiting
+        )
+    }
+
+    private var espnSignInSheet: some View {
+        VStack(spacing: 0) {
+            if let store = viewModel.espnCookieStore {
+                EspnWebSignIn(store: store) { progress in
+                    viewModel.espnSignInProgressed(progress)
+                }
+                .ignoresSafeArea(edges: .bottom)
+            } else {
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                Text(viewModel.espnSignInProgress.isSignedIn
+                     ? EspnHandoffCopy.signInReady
+                     : EspnHandoffCopy.signInWaiting)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Shown only once ESPN has a session, so a signed-out user is not asked for a
+                // league id they cannot yet use. Pre-filled by detection when ESPN's URL happens
+                // to carry one; typed by the user when it does not. The desktop helper has had
+                // exactly this field since it shipped.
+                if viewModel.espnSignInProgress.isSignedIn {
+                    OmenTextField(
+                        value: $viewModel.espnLeagueId,
+                        label: "ESPN League ID",
+                        placeholder: "e.g. 156664",
+                        enabled: !viewModel.state.isBusy
+                    )
+                    Text(EspnHandoffCopy.leagueIdHint)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // Omen never submits on the user's behalf — the same rule the desktop helper
+                // follows. Disabled until there is both a session and a league.
+                OmenButton(
+                    title: EspnHandoffCopy.signInConnectTitle,
+                    action: { Task { await viewModel.confirmEspnConnection() } },
+                    variant: .primary,
+                    size: .md,
+                    enabled: viewModel.canConnectEspn
+                )
+                OmenButton(
+                    title: EspnHandoffCopy.signInCancelTitle,
+                    action: { viewModel.cancelEspnSignIn() },
+                    variant: .link,
+                    size: .sm
+                )
+            }
+            .padding(OmenSpacing.step16)
+            .background(OmenColor.bg)
+        }
+        .background(OmenColor.bg.ignoresSafeArea())
+    }
+
+    // MARK: - ESPN handoff
+
+    /// The ESPN screen is a **handoff**, not a connect flow, and it is built to read like one.
+    ///
+    /// It previously rendered as the generic `disconnected` state surface — one grey box saying
+    /// ESPN can't be connected in the app, which is accurate and useless. What a user needs is
+    /// the shape of the whole errand before they go and do it, so the steps are laid out up
+    /// front and the app tells them what to do when they come back.
+    ///
+    /// What it must never become: an ESPN sign-in. No password field, no cookie field, no
+    /// embedded provider login, no in-app credential capture of any kind (onboarding contract
+    /// §2 and §5). Every action here either opens Omen's own public guide in the system browser
+    /// or re-reads Omen's own API.
+    private var espnSyncSection: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                Text(EspnHandoffCopy.title)
+                    .omenTextStyle(OmenTypography.h1)
+                    .foregroundStyle(OmenColor.textPrimary)
+                Text(EspnHandoffCopy.subtitle)
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                ForEach(EspnHandoffCopy.steps) { step in
+                    EspnHandoffStepRow(step: step)
+                }
+            }
+            .padding(OmenSpacing.step16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(connectCanvasTileSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(OmenColor.border, lineWidth: 1)
+            )
+
+            OmenButton(
+                title: EspnHandoffCopy.openSetupTitle,
+                action: { openURL(ConnectProvider.espnSetupURL) },
+                variant: .primary,
+                size: .md
+            )
+
+            // The "did it work?" button. It exists because the alternative is worse: without
+            // it a user who finished on a computer has to guess whether to close the sheet,
+            // relaunch, or wait. It performs a read, never a connect.
+            OmenButton(
+                title: viewModel.espnCheckNotice == nil
+                    ? EspnHandoffCopy.checkConnectionTitle
+                    : EspnHandoffCopy.checkAgainTitle,
+                action: { Task { await viewModel.checkEspnConnection() } },
+                variant: .secondary,
+                size: .md,
+                enabled: !viewModel.state.isBusy
+            )
+
+            if let notice = viewModel.espnCheckNotice {
+                // A status line, not an error surface. Nothing has gone wrong when a user taps
+                // this before finishing the desktop steps, and the copy must not imply it has.
+                Text(notice)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+
+            espnConsentNote
+
+            OmenButton(
+                title: "Choose another provider",
+                action: { viewModel.startOver() },
+                variant: .link,
+                size: .sm
+            )
+        }
+    }
+
+    private func espnConnectedSection(_ connection: EspnConnection) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             OmenStateSurface(
-                kind: .disconnected,
-                title: "\(provider.displayName) can't be connected in the app yet",
-                message: unsupportedMessage(provider)
+                kind: .empty,
+                title: "\(connection.displayLeagueName) is connected",
+                message: EspnHandoffCopy.connectedMessage(connection)
             )
-            if provider == .espn {
-                espnConsentNote
-            }
-            OmenButton(title: "Choose another provider", action: { viewModel.startOver() }, variant: .secondary, size: .md)
+            connectedActions
         }
     }
 
@@ -370,8 +592,8 @@ struct ConnectView: View {
     }
 
     static let espnConsentText = """
-    Connecting ESPN uses your own ESPN session so Omen can read your league — your roster, scoring, \
-    and matchup. It is your account and your choice, and you can disconnect it any time in Account. \
+    The desktop helper fills Omen's ESPN form from your ESPN browser session. You review it and choose Connect yourself. \
+    It is your account and your choice, and you can disconnect it any time in Account. \
     Omen is not affiliated with or endorsed by ESPN.
     """
 
@@ -382,6 +604,41 @@ struct ConnectView: View {
         case .available:
             return ""
         }
+    }
+}
+
+/// One numbered line of the ESPN errand.
+///
+/// Not a `ListRow`: those are tappable navigation targets, and every one of these is a thing
+/// that happens somewhere else. Making them look tappable would be the lie.
+private struct EspnHandoffStepRow: View {
+    let step: EspnHandoffCopy.Step
+
+    var body: some View {
+        HStack(alignment: .top, spacing: OmenSpacing.step12) {
+            Text("\(step.index)")
+                .omenTextStyle(OmenTypography.bodySmall)
+                .fontWeight(.bold)
+                .foregroundStyle(OmenColor.textPrimary)
+                .frame(width: 24, height: 24)
+                .background(OmenColor.omen.opacity(0.18))
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+                Text(step.title)
+                    .omenTextStyle(OmenTypography.body)
+                    .foregroundStyle(OmenColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(step.detail)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Step \(step.index). \(step.title). \(step.detail)")
     }
 }
 

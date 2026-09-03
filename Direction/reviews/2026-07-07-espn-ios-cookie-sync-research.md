@@ -1,5 +1,24 @@
 # ESPN iOS Cookie-Sync Integration Research
 
+> ## ⛔ 2026-09-02 — §C's core inference is DISPROVEN. Read this before citing this memo.
+>
+> This memo inferred, from WebKit test fixtures, that `WKHTTPCookieStore.getAllCookies()` excludes
+> `HttpOnly` cookies "the same way `browser.cookies` does," and closed by recommending a
+> one-afternoon spike to confirm it before committing scope. **The spike was never run for two
+> months, and the plan rested on the guess.**
+>
+> It has now been run: `OmenIOSTests/HttpOnlyCookieSpikeTests.swift`, iOS 26.5 simulator. A
+> **server-set HttpOnly cookie was returned to the app in full**, with a passing control. §C is
+> wrong. `WKHTTPCookieStore` and the extension `browser.cookies` API are different APIs with
+> different rules; the 2026-08-15 real-iPhone finding that Safari *extensions* cannot read
+> HttpOnly remains true and is not affected.
+>
+> **What survives:** Candidate D (§D) is still the better design, now for security rather than
+> necessity — it never touches the cookie at all. **What changes:** Candidate C is technically
+> open, and the ESPN-on-iPhone blocker is permission (Disney ToU, Apple 5.2.2), not mechanism.
+> See `omen-wave1-contract-v1.md` §W1-A, 2026-09-02 addendum.
+
+
 ## Research Question
 
 What is the simplest, most reliable way to let iOS users connect their ESPN Fantasy Football league to Omen, given ESPN has no public OAuth/API and the current method requires manually copying the `espn_s2` and `SWID` cookie values from browser DevTools? Specifically: does a browser extension (the path Justin wants to build) actually solve this on iOS, or does iOS have a platform-level blocker that no extension can route around?

@@ -1,3 +1,4 @@
+import WebKit
 import XCTest
 @testable import Omen
 
@@ -21,41 +22,536 @@ final class ConnectFlowTests: XCTestCase {
 
     // MARK: - Provider policy
 
-    /// Sleeper and Yahoo both connect natively. ESPN is research-gated by the onboarding
-    /// contract §5 and stays on the web path.
-    ///
-    /// Yahoo read `.useWeb` here until native OAuth was wired: the entitlement had been granted
-    /// on 2026-08-28, but the client had browser plumbing only for Supabase sign-in, so a
-    /// Yahoo tester on a phone was told to go find a computer.
-    func testSleeperAndYahooAreConnectableInTheAppAndEspnIsNot() {
+    /// **All three providers now connect in the app.** ESPN was `.useWeb` until 2026-09-02, on
+    /// two grounds that both fell: the mechanism (disproven by `HttpOnlyCookieSpikeTests` —
+    /// `WKHTTPCookieStore` does return HttpOnly values) and the §87 WebView ban (lifted for ESPN
+    /// by the founder, with the guideline 5.2.2 exposure accepted).
+    func testAllThreeProvidersConnectInTheApp() {
         XCTAssertEqual(ConnectProvider.sleeper.availability, .available)
         XCTAssertEqual(ConnectProvider.yahoo.availability, .available)
-
-        guard case .useWeb = ConnectProvider.espn.availability else {
-            return XCTFail("ESPN must route to the web, not offer in-app connection")
-        }
+        XCTAssertEqual(ConnectProvider.espn.availability, .available)
     }
 
-    /// An unavailable provider must never dead-end: selecting it explains why and offers a way on.
-    func testSelectingAnUnavailableProviderExplainsRatherThanFailing() {
+    /// Choosing ESPN must land on consent — never straight into ESPN's sign-in. W1-A binds this:
+    /// the user is told what is about to open while they can still decline.
+    func testChoosingEspnShowsConsentBeforeAnythingOpens() {
         let viewModel = ConnectViewModel(repository: StubConnectRepository(), sessionManager: sessionManager())
 
         viewModel.selectProvider(.espn)
 
-        guard case .unsupportedOnMobile(let provider) = viewModel.state else {
-            return XCTFail("expected unsupportedOnMobile")
-        }
-        XCTAssertEqual(provider, .espn)
-        // Not modeled as a failure state — copy must not read as an error the user caused.
-        XCTAssertNil(viewModel.state.progressLabel)
+        XCTAssertEqual(viewModel.state, .espnConsent)
+        // Nothing has been created yet — declining here must leave no trace.
+        XCTAssertNil(viewModel.espnCookieStore)
     }
 
-    /// ESPN copy must be the approved native row copy: no sheet, no logo, no endorsement.
-    func testEspnCopyUsesTheApprovedComputerOnlyLine() {
-        guard case .useWeb(let reason) = ConnectProvider.espn.availability else {
-            return XCTFail("expected useWeb")
+    /// Declining consent returns to the picker and writes nothing.
+    func testDecliningEspnConsentWritesNoState() {
+        let viewModel = ConnectViewModel(repository: StubConnectRepository(), sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+
+        viewModel.startOver()
+
+        XCTAssertEqual(viewModel.state, .notStarted)
+        XCTAssertNil(viewModel.selectedProvider)
+        XCTAssertNil(viewModel.espnCookieStore)
+    }
+
+    /// The consent sentence is what App Review reads. It must name who the user signs in to, and
+    /// carry the non-affiliation disclaimer Disney's ToU §2.B.vii requires.
+    func testEspnConsentCopySaysWhoTheUserSignsInToAndDisclaimsAffiliation() {
+        let copy = EspnHandoffCopy.consentBody
+
+        XCTAssertTrue(copy.contains("ESPN's own sign-in"))
+        XCTAssertTrue(copy.contains("never sees your ESPN password"))
+        XCTAssertTrue(copy.lowercased().contains("not affiliated with"))
+        XCTAssertTrue(copy.lowercased().contains("disconnect"))
+        // No claim that ESPN knows about, approves of, or partnered with Omen.
+        for banned in ["partner", "endorsed by omen", "approved", "official"] {
+            XCTAssertFalse(copy.lowercased().contains(banned), "consent must not imply association: \(banned)")
         }
-        XCTAssertEqual(reason, "Needs a computer for now · we'll show you")
+    }
+
+    func testEspnSetupURLPointsToThePublicHandoffGuide() {
+        XCTAssertEqual(ConnectProvider.espnSetupURL.absoluteString, "https://slopssaloon.com/espn-connect")
+    }
+
+    // MARK: - ESPN in-app sign-in (W1-A)
+
+    /// Test double for the sheet's cookie jar. Holds fixed values so a test can assert what was
+    /// sent without a live ESPN session.
+    @MainActor
+    private final class FakeEspnCookieStore: EspnCookieReading {
+        var session: (espnS2: String, swid: String)?
+        private(set) var takeCount = 0
+        let dataStore = WKWebsiteDataStore.nonPersistent()
+
+        init(session: (espnS2: String, swid: String)? = ("S2VALUE", "{SWIDVALUE}")) {
+            self.session = session
+        }
+
+        func hasSession() async -> Bool { session != nil }
+        func takeSession() async -> (espnS2: String, swid: String)? {
+            takeCount += 1
+            return session
+        }
+    }
+
+    /// `store` is optional rather than defaulted for the same reason `ConnectViewModel.init`
+    /// documents: a default argument is evaluated in the *caller's* context, which is not
+    /// guaranteed to be the main actor, and `FakeEspnCookieStore` is main-actor isolated.
+    @MainActor
+    private func espnReadyViewModel(
+        repository: StubConnectRepository,
+        store: FakeEspnCookieStore? = nil
+    ) -> ConnectViewModel {
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: store ?? FakeEspnCookieStore())
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
+        return viewModel
+    }
+
+    /// The happy path: consent → sign-in → user presses Connect → connected.
+    func testConnectingEspnSendsTheSessionOnceAndReportsTheLeague() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        repository.espnConnectionResult = .success(
+            EspnConnection(leagueName: "Las Vegas PPR", teamName: "Team Slops")
+        )
+        let store = FakeEspnCookieStore()
+        let viewModel = espnReadyViewModel(repository: repository, store: store)
+
+        await viewModel.confirmEspnConnection()
+
+        guard case .espnConnected(let connection) = viewModel.state else {
+            return XCTFail("expected espnConnected, got \(viewModel.state)")
+        }
+        XCTAssertEqual(connection.teamName, "Team Slops")
+
+        // Exactly one attempt, carrying the league and team the page named, with a session.
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.count, 1)
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "123456")
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.teamId, "7")
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.sentSession, true)
+        // The jar was read once, not polled.
+        XCTAssertEqual(store.takeCount, 1)
+    }
+
+    /// **The security assertion.** Once the connect returns, the app must be holding no ESPN
+    /// session at all — not for a retry, not for convenience.
+    func testTheEspnSessionIsDroppedAsSoonAsItHasBeenSent() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        let viewModel = espnReadyViewModel(repository: repository)
+
+        await viewModel.confirmEspnConnection()
+
+        XCTAssertNil(viewModel.espnCookieStore, "the app must not retain an ESPN session after connecting")
+    }
+
+    /// Omen never submits for the user, and a half-formed request is worse than no request.
+    /// Neither half alone is enough: a signed-out user with a league id typed in has nothing to
+    /// authenticate with, and a signed-in user with no league has nothing to connect to.
+    func testConnectDoesNothingWithoutBothASessionAndALeague() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: FakeEspnCookieStore())
+
+        // Signed out, league id typed anyway.
+        viewModel.espnLeagueId = "123456"
+        XCTAssertFalse(viewModel.canConnectEspn)
+        await viewModel.confirmEspnConnection()
+        XCTAssertTrue(repository.recorder.espnConnectAttempts.isEmpty)
+
+        // Signed in, no league anywhere — the state a real phone reached on ESPN's own pages.
+        viewModel.espnLeagueId = "   "
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: nil, detectedTeamId: nil))
+        XCTAssertFalse(viewModel.canConnectEspn)
+        await viewModel.confirmEspnConnection()
+        XCTAssertTrue(repository.recorder.espnConnectAttempts.isEmpty)
+        XCTAssertEqual(viewModel.state, .espnSigningIn)
+    }
+
+    /// **The fix for the two dead ends found on a real phone.** ESPN's landing pages do not carry
+    /// a `leagueId`, so a signed-in user could be stranded with a permanently disabled button.
+    /// Typing the id must be enough on its own.
+    func testASignedInUserCanConnectByTypingTheLeagueIdWhenEspnRevealsNothing() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: FakeEspnCookieStore())
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: nil, detectedTeamId: nil))
+
+        viewModel.espnLeagueId = " 998877 "
+        XCTAssertTrue(viewModel.canConnectEspn)
+        await viewModel.confirmEspnConnection()
+
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.count, 1)
+        // Trimmed — a trailing space from a paste must not become part of the id.
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "998877")
+    }
+
+    /// Detection pre-fills an empty field and must never overwrite what the user typed.
+    func testDetectionPreFillsButNeverOverwritesTheUsersOwnEntry() {
+        let viewModel = ConnectViewModel(repository: StubConnectRepository(), sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: FakeEspnCookieStore())
+
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "111", detectedTeamId: nil))
+        XCTAssertEqual(viewModel.espnLeagueId, "111")
+
+        viewModel.espnLeagueId = "222"
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "333", detectedTeamId: nil))
+        XCTAssertEqual(viewModel.espnLeagueId, "222", "ESPN navigating must not swap the user's entry")
+    }
+
+    /// A detected team belongs to the league it was detected in. If the user connects a different
+    /// league, sending that team would silently bind the wrong one.
+    func testADetectedTeamIsDroppedWhenTheUserConnectsADifferentLeague() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        viewModel.beginEspnSignIn(cookieStore: FakeEspnCookieStore())
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "111", detectedTeamId: "7"))
+
+        viewModel.espnLeagueId = "999"
+        await viewModel.confirmEspnConnection()
+
+        XCTAssertEqual(repository.recorder.espnConnectAttempts.first?.leagueId, "999")
+        XCTAssertNil(repository.recorder.espnConnectAttempts.first?.teamId)
+    }
+
+    /// Contract §W1-A failure table: an unreadable session gets **one** retry, then the desktop
+    /// path. Never a loop, and the copy never blames the user.
+    func testAnUnreadableSessionRetriesOnceThenRoutesToTheDesktopPath() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .failure(.espnSessionUnreadable)
+        let viewModel = espnReadyViewModel(repository: repository)
+
+        await viewModel.confirmEspnConnection()
+        guard case .retryableError(let first) = viewModel.state else {
+            return XCTFail("first unreadable session should be retryable, got \(viewModel.state)")
+        }
+        XCTAssertEqual(first, .espnSessionUnreadable)
+        XCTAssertFalse(first.message.lowercased().contains("you didn't"), "must not blame the user")
+
+        // Second attempt: same failure, and now it hands over to the desktop helper rather than
+        // offering the same broken button again.
+        viewModel.beginEspnSignIn(cookieStore: FakeEspnCookieStore())
+        viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: nil))
+        await viewModel.confirmEspnConnection()
+
+        guard case .unsupportedOnMobile(let provider) = viewModel.state else {
+            return XCTFail("second failure should route to the desktop path, got \(viewModel.state)")
+        }
+        XCTAssertEqual(provider, .espn)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.signInFellBack)
+    }
+
+    /// A league ESPN will not serve is a different problem from an unreadable session, and gets
+    /// its own sentence and its own next action.
+    func testAnUnreachableLeagueIsNotReportedAsASessionProblem() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .failure(.espnLeagueUnreachable)
+        let viewModel = espnReadyViewModel(repository: repository)
+
+        await viewModel.confirmEspnConnection()
+
+        guard case .retryableError(let failure) = viewModel.state else {
+            return XCTFail("expected retryableError, got \(viewModel.state)")
+        }
+        XCTAssertEqual(failure, .espnLeagueUnreachable)
+        XCTAssertNotEqual(failure.message, ConnectFailure.espnSessionUnreadable.message)
+    }
+
+    /// Backing out of ESPN's sign-in is normal. No error state, and no session left behind.
+    func testCancellingEspnSignInIsNotAnError() {
+        let viewModel = espnReadyViewModel(repository: StubConnectRepository())
+
+        viewModel.cancelEspnSignIn()
+
+        XCTAssertEqual(viewModel.state, .canceled)
+        XCTAssertNil(viewModel.espnCookieStore)
+    }
+
+    /// **`EspnCapture` must never render its session values.** It is the one type in the app that
+    /// holds them, and anything that stringifies it — a `print`, a crash frame, an `XCTAssert`
+    /// message — would otherwise put a live ESPN session into a log.
+    func testEspnCaptureRedactsItselfWhenPrinted() {
+        let capture = EspnCapture(espnS2: "SECRET_S2", swid: "{SECRET_SWID}", leagueId: "123456", teamId: "7")
+
+        for rendered in ["\(capture)", capture.description, capture.debugDescription, String(describing: capture)] {
+            XCTAssertFalse(rendered.contains("SECRET_S2"), "capture leaked espn_s2: \(rendered)")
+            XCTAssertFalse(rendered.contains("SECRET_SWID"), "capture leaked SWID: \(rendered)")
+            XCTAssertTrue(rendered.contains("redacted"))
+        }
+        // The non-secret half is still there, because a redacted type nobody can debug gets
+        // replaced with one that logs everything.
+        XCTAssertTrue(capture.description.contains("123456"))
+    }
+
+    /// The session must never reach `ConnectState`, which is `Equatable` and gets interpolated
+    /// into test-failure messages and crash frames.
+    func testConnectStateNeverCarriesTheEspnSession() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectResult = .success(())
+        let store = FakeEspnCookieStore(session: ("SECRET_S2", "{SECRET_SWID}"))
+        let viewModel = espnReadyViewModel(repository: repository, store: store)
+
+        let midFlight = "\(ConnectState.validatingEspnConnection(leagueId: "123456"))"
+        XCTAssertFalse(midFlight.contains("SECRET_S2"))
+        XCTAssertFalse(midFlight.contains("SECRET_SWID"))
+
+        await viewModel.confirmEspnConnection()
+        let final = "\(viewModel.state)"
+        XCTAssertFalse(final.contains("SECRET_S2"))
+        XCTAssertFalse(final.contains("SECRET_SWID"))
+    }
+
+    // MARK: - ESPN page parsing
+
+    func testLeagueAndTeamAreReadFromTheEspnPageUrl() {
+        let url = URL(string: "https://fantasy.espn.com/football/team?leagueId=123456&teamId=7&seasonId=2026")
+        let ids = EspnWebSignIn.leagueAndTeam(from: url)
+
+        XCTAssertEqual(ids.leagueId, "123456")
+        XCTAssertEqual(ids.teamId, "7")
+    }
+
+    /// ESPN's sign-in redirects through identity hosts. A league id on one of those must never be
+    /// treated as a league page — the host check is what makes that impossible.
+    func testANonEspnHostIsNeverTreatedAsALeaguePage() {
+        let cases = [
+            "https://evil.example.com/x?leagueId=123456",
+            "https://espn.com.evil.example/x?leagueId=123456",
+        ]
+        for raw in cases {
+            let ids = EspnWebSignIn.leagueAndTeam(from: URL(string: raw))
+            XCTAssertNil(ids.leagueId, "must ignore \(raw)")
+        }
+    }
+
+    /// The entry page must not itself be a league page.
+    ///
+    /// `/football/team` was the first choice and a real device rejected it: with no `leagueId`,
+    /// ESPN renders "Invalid league ID" right after a successful sign-in, so the flow dead-ended
+    /// on ESPN's own error screen.
+    func testTheEntryPageDoesNotItselfRequireALeague() {
+        let entry = EspnWebSignIn.entryURL
+
+        // Two entry URLs failed on a real phone before this one: `/football/team` needs a
+        // `leagueId` and serves "Invalid league ID" without one, and `/football/welcome` is the
+        // new-user signup page. Whatever this points at, it must not need a league to render.
+        XCTAssertNil(EspnWebSignIn.leagueAndTeam(from: entry).leagueId)
+        XCTAssertFalse(entry.path.contains("/team"))
+        XCTAssertFalse(entry.path.contains("welcome"))
+        XCTAssertEqual(entry.host, "www.espn.com")
+    }
+
+    /// ESPN client-routes between fantasy pages and sometimes carries the ids in the fragment.
+    func testLeagueIdIsAlsoReadFromTheUrlFragment() {
+        let url = URL(string: "https://fantasy.espn.com/football/welcome#/team?leagueId=4242&teamId=3")
+        let ids = EspnWebSignIn.leagueAndTeam(from: url)
+
+        XCTAssertEqual(ids.leagueId, "4242")
+        XCTAssertEqual(ids.teamId, "3")
+    }
+
+    /// The server accepts `league_id` as well as `leagueId` (`normalizeEspnLeagueId`), and ESPN
+    /// has used both shapes. A page with neither yields nothing rather than a guess.
+    func testLeagueIdParsingMatchesTheServersAcceptedShapes() {
+        XCTAssertEqual(
+            EspnWebSignIn.leagueAndTeam(from: URL(string: "https://www.espn.com/x?league_id=99")).leagueId,
+            "99"
+        )
+        XCTAssertNil(
+            EspnWebSignIn.leagueAndTeam(from: URL(string: "https://fantasy.espn.com/football/team")).leagueId
+        )
+    }
+
+    /// A stale cookie under one ESPN domain scope can coexist with a valid one under another, and
+    /// the server rejects the stale value without saying why. Preference order must match the
+    /// extension's, or the phone and the desktop helper disagree about the same account.
+    func testCookieSelectionPrefersTheSameDomainOrderAsTheDesktopHelper() {
+        func cookie(_ domain: String, _ value: String) -> HTTPCookie {
+            HTTPCookie(properties: [
+                .name: "espn_s2", .value: value, .domain: domain, .path: "/",
+            ])!
+        }
+        let jar = [
+            cookie(".espn.com", "STALE"),
+            cookie("fantasy.espn.com", "ALSO_STALE"),
+            cookie("www.espn.com", "FRESH"),
+        ]
+
+        XCTAssertEqual(EspnWebCookieStore.best(named: "espn_s2", in: jar), "FRESH")
+        // Case-insensitive, because ESPN sends `SWID` and callers say `swid`.
+        XCTAssertNil(EspnWebCookieStore.best(named: "SWID", in: jar))
+    }
+
+    /// An empty-valued cookie is not a session. Treating one as present is how a user gets
+    /// "connected" with credentials the server will reject.
+    func testAnEmptyCookieValueIsNotTreatedAsASession() {
+        let empty = HTTPCookie(properties: [
+            .name: "espn_s2", .value: "", .domain: "www.espn.com", .path: "/",
+        ])!
+        XCTAssertNil(EspnWebCookieStore.best(named: "espn_s2", in: [empty]))
+    }
+
+    // MARK: - ESPN handoff
+
+    /// The ESPN screen is store-facing copy. Apple reads it, and so does anyone deciding
+    /// whether Omen is asking for their ESPN account. Onboarding contract §2/§5: no password,
+    /// no raw cookie entry, no credential vocabulary at all.
+    func testEspnHandoffCopyNeverUsesCredentialVocabulary() {
+        let surfaces = [EspnHandoffCopy.title, EspnHandoffCopy.subtitle,
+                        EspnHandoffCopy.openSetupTitle, EspnHandoffCopy.checkConnectionTitle,
+                        EspnHandoffCopy.checkAgainTitle, EspnHandoffCopy.notConnectedYet,
+                        EspnHandoffCopy.checkUnavailable, EspnHandoffCopy.consentTitle,
+                        EspnHandoffCopy.consentBody, EspnHandoffCopy.consentContinueTitle,
+                        EspnHandoffCopy.signInWaiting, EspnHandoffCopy.signInReady,
+                        EspnHandoffCopy.signInConnectTitle, EspnHandoffCopy.signInFellBack]
+            + EspnHandoffCopy.steps.flatMap { [$0.title, $0.detail] }
+
+        for copy in surfaces {
+            let lowered = copy.lowercased()
+            for banned in ["cookie", "espn_s2", "swid", "token", "session value", "credential"] {
+                XCTAssertFalse(lowered.contains(banned), "\(banned) must not appear in: \(copy)")
+            }
+            // The single permitted use of "password" is the promise that Omen never sees one —
+            // the same carve-out `OmenContextualHelpTests` makes, for the same reason.
+            if lowered.contains("password") {
+                XCTAssertTrue(
+                    lowered.contains("never"),
+                    "the only permitted password sentence is the promise Omen never sees one: \(copy)"
+                )
+            }
+        }
+    }
+
+    /// The steps have to describe the whole errand, including the part that happens on a
+    /// computer and the part that happens back in the app. A step list that stops at "install
+    /// the helper" is what sent testers back to the picker not knowing if it had worked.
+    func testEspnHandoffStepsCoverTheWholeErrandInOrder() {
+        let steps = EspnHandoffCopy.steps
+
+        XCTAssertEqual(steps.map(\.index), Array(1...steps.count))
+        XCTAssertTrue(steps.contains { $0.detail.contains("slopssaloon.com/espn-connect") })
+        XCTAssertTrue(steps.contains { $0.title.lowercased().contains("helper") })
+        // The user presses Connect, not Omen.
+        XCTAssertTrue(steps.contains { $0.detail.lowercased().contains("yourself") })
+        XCTAssertTrue(steps.last?.title.contains(EspnHandoffCopy.checkConnectionTitle) == true)
+    }
+
+    /// A connected ESPN league routes on. `EspnConnection` is the only ESPN shape the app
+    /// holds, and it carries a league label and a team label — never an id or a secret.
+    func testCheckingEspnConnectionRoutesOnWhenTheServerReportsATeam() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectionResult = .success(
+            EspnConnection(leagueName: "Slops Invitational", teamName: "Team Slops")
+        )
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+
+        await viewModel.checkEspnConnection()
+
+        guard case .espnConnected(let connection) = viewModel.state else {
+            return XCTFail("expected espnConnected, got \(viewModel.state)")
+        }
+        XCTAssertEqual(connection.teamName, "Team Slops")
+        XCTAssertNil(viewModel.espnCheckNotice)
+        XCTAssertEqual(repository.recorder.espnConnectionChecks, 1)
+    }
+
+    /// ESPN does not expose a league list to Omen, so `league_name` is routinely null on a
+    /// perfectly healthy connection. The headline must not render empty.
+    func testEspnConnectedHeadlineFallsBackWhenEspnGivesNoLeagueName() {
+        XCTAssertEqual(
+            EspnConnection(leagueName: nil, teamName: "Team Slops").displayLeagueName,
+            "Your ESPN league"
+        )
+        XCTAssertEqual(
+            EspnConnection(leagueName: "Slops Invitational", teamName: nil).displayLeagueName,
+            "Slops Invitational"
+        )
+    }
+
+    /// Tapping the check button before finishing on a computer is the *expected* case, not a
+    /// failure. The steps must stay on screen with a status line — being dumped on the error
+    /// surface would lose the instructions the user is following.
+    func testCheckingTooEarlyKeepsTheStepsOnScreenWithAnHonestStatus() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectionResult = .success(nil)
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+
+        await viewModel.checkEspnConnection()
+
+        guard case .unsupportedOnMobile(let provider) = viewModel.state else {
+            return XCTFail("expected to stay on the ESPN handoff, got \(viewModel.state)")
+        }
+        XCTAssertEqual(provider, .espn)
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.notConnectedYet)
+    }
+
+    /// A failed *check* is not a failed connection. Reporting it as one would tell a user their
+    /// ESPN setup broke when in fact Omen could not be reached.
+    func testAFailedCheckReportsTheCheckFailingRatherThanTheConnection() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectionResult = .failure(.network)
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+
+        await viewModel.checkEspnConnection()
+
+        guard case .unsupportedOnMobile = viewModel.state else {
+            return XCTFail("expected to stay on the ESPN handoff, got \(viewModel.state)")
+        }
+        XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.checkUnavailable)
+    }
+
+    /// Re-selecting ESPN clears a stale "not yet" line, so a fresh visit does not open on the
+    /// result of a check the user made minutes ago.
+    func testReturningToTheEspnStepsClearsAStaleStatusLine() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectionResult = .success(nil)
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+        await viewModel.checkEspnConnection()
+        XCTAssertNotNil(viewModel.espnCheckNotice)
+
+        viewModel.startOver()
+        XCTAssertNil(viewModel.espnCheckNotice)
+
+        viewModel.selectProvider(.espn)
+        XCTAssertNil(viewModel.espnCheckNotice)
+    }
+
+    /// The check is a read. It must never reach a connect route — an ESPN connection is made
+    /// on the web form by the user, and the app has no path that could create one.
+    func testCheckingEspnNeverCallsAConnectRoute() async {
+        var repository = StubConnectRepository()
+        repository.espnConnectionResult = .success(nil)
+        let viewModel = ConnectViewModel(repository: repository, sessionManager: sessionManager())
+        viewModel.selectProvider(.espn)
+
+        await viewModel.checkEspnConnection()
+
+        XCTAssertTrue(repository.recorder.requestIds.isEmpty)
+        XCTAssertTrue(repository.recorder.boundYahooLeagueIds.isEmpty)
+    }
+
+    /// Spec §6: no bare "Loading…". The ESPN check is a wait like any other and says so.
+    func testEspnCheckIsBusyAndNamesWhatItIsDoing() {
+        XCTAssertTrue(ConnectState.checkingEspnConnection.isBusy)
+        XCTAssertEqual(
+            ConnectState.checkingEspnConnection.progressLabel,
+            "Checking whether your ESPN league reached Omen\u{2026}"
+        )
     }
 
     // MARK: - Resolve
@@ -222,6 +718,18 @@ final class ConnectFlowTests: XCTestCase {
             XCTAssertFalse(lowered.contains("cookie"))
             XCTAssertFalse(lowered.contains("token"))
         }
+    }
+
+    func testEspnNativeCopyDoesNotAskForCredentialsOrCookies() {
+        let copy = ConnectView.espnConsentText.lowercased()
+
+        XCTAssertTrue(copy.contains("desktop helper"))
+        XCTAssertTrue(copy.contains("review"))
+        XCTAssertFalse(copy.contains("password"))
+        XCTAssertFalse(copy.contains("cookie"))
+        XCTAssertFalse(copy.contains("espn_s2"))
+        XCTAssertFalse(copy.contains("swid"))
+        XCTAssertFalse(copy.contains("token"))
     }
 
     func testLeagueSubtitleOmitsMissingFieldsRatherThanPrintingPlaceholders() {

@@ -1041,10 +1041,26 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 - **Priority:** P0 — the only confirmed beta failure on record
 - **Cost:** medium
 - **Agent-buildable:** yes, client-only
-- **Scope:** consent screen → native web auth sheet against ESPN's own sign-in → read the session
-  → existing league-selection step. **No new backend.** `POST /api/platforms/espn/connect` already
-  accepts `{leagueId, espn_s2, swid, espnTeamId}`, validates through `verifyLeagueAccess()`, and
-  stores Vault secret references. Omen renders no credential fields of its own at any point.
+- **⚠️ SCOPE IS WRONG AS WRITTEN — corrected 2026-09-02, read before pulling.** "native web auth
+  sheet ... → read the session" is not buildable: `ASWebAuthenticationSession` has no cookie API,
+  and `ProviderAuthSession.swift` can only return a callback URL, a cancel, or a failure. The only
+  in-app mechanism is `WKWebView` + `WKHTTPCookieStore`, i.e. **an embedded ESPN login**, which
+  onboarding-connection contract §87 bans outright. That substitution is a founder decision, not an
+  implementation choice. Full correction: `omen-wave1-contract-v1.md` §W1-A, 2026-09-02 addendum.
+- **Feasibility is settled and was never the blocker.** `OmenIOSTests/HttpOnlyCookieSpikeTests.swift`
+  (2026-09-02, iOS 26.5 sim) shows `WKHTTPCookieStore.allCookies()` returns a **server-set HttpOnly
+  cookie in full**, control passing — disproving the inference in `2026-07-07-espn-ios-cookie-sync-
+  research.md` §C that it would redact like the extension API. The 2026-08-15 real-iPhone finding
+  that Safari *extensions* cannot read HttpOnly still stands; different API. **The blocker is
+  permission, not mechanism**, so `W1-REVIEW` sequencing is unchanged.
+- **Scope:** consent screen → ESPN sign-in surface (mechanism undecided per above) → read the
+  session → existing league-selection step. **No new backend.** `POST /api/platforms/espn/connect`
+  already accepts `{leagueId, espn_s2, swid, espnTeamId}`, validates through `verifyLeagueAccess()`,
+  and stores Vault secret references. Omen renders no credential fields of its own at any point.
+- **Prefer Candidate D if this is ever approved** (`2026-07-07` §D): inject a script into the
+  logged-in web view, relay ESPN's JSON, never read the cookie at all. Strictly better on security —
+  no cookie reaches Omen's server or Vault — and identical on App Review exposure, since a reviewer
+  sees the same ESPN login either way.
 - **Done when:** a founder-run **device** test connects a real ESPN league end-to-end on an iPhone
   with no computer involved; `espn_s2`/`SWID` appear in zero emitted bytes outside the single
   connect request, proved by provoking a real failure and searching the bytes; Android at parity.

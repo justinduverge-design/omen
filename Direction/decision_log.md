@@ -1,5 +1,64 @@
 # Omen Decision Log
 
+## 2026-09-02 — §87 lifted for ESPN; W1-A built and shipping in the App Store build
+
+- **Founder decision, made with the exposure stated: build the in-app ESPN sign-in and ship it in
+  the App Store build.** Presented alongside the alternative of a beta-only build flag and the
+  option to hold for `W1-REVIEW`; the founder chose to ship. Mechanism chosen: **cookie extraction
+  (W1-A as scoped)** over Candidate D's JSON relay, on speed — it is client-only against
+  `POST /api/platforms/espn/connect`, which is already in production.
+- **Onboarding contract §87's WebView ban is lifted for ESPN only.** Yahoo keeps
+  `ASWebAuthenticationSession`. The ban's stated reason — an app-controlled web view *can* read
+  what a user types into a provider's form — is unchanged and still true, so the mitigations are
+  written into `EspnWebSignIn.swift` and tested: no script injection of any kind into ESPN pages,
+  a non-persistent data store, the session dropped the instant the one request returns, and
+  `EspnCapture` redacting itself under `print`/interpolation.
+- **Accepted risk, stated plainly.** Apple guideline 5.2.2 asks whether Omen is *specifically
+  permitted* under ESPN's terms. It is not — `W1-GATE` answered that **no** on 2026-08-31 (Disney
+  ToU §2.B.viii, §2.B.x, §1.F), and ESPN publishes no program that could issue permission. A
+  reviewer now sees an ESPN login inside the app, which puts **the whole listing**, not just this
+  feature, on 5.2.2. The prepared answer in `omen-wave1-contract-v1.md` §W1-A ships with it and
+  answers "why is this reasonable", not "are you permitted". No one should be surprised by a
+  rejection on this ground.
+- **`W1-REVIEW` sequencing is now moot in one direction.** Its whole rationale was to learn whether
+  ESPN survives review *before* spending Wave 1's largest build. The build is spent. The submission
+  still has to happen, but it is no longer a cheap probe — it now carries the feature.
+- **Bug found by a test, worth recording because it bites twice.** The cookie-domain matcher first
+  accepted a dot-prefixed `.espn.com` cookie for the `www.espn.com` slot, because that domain is a
+  suffix of the preferred host. That is exactly the stale-value failure `extension/popup.js` exists
+  to diagnose — ESPN rejects the stale cookie and gives no reason. Exact-host matching now runs as
+  a full pass before any suffix fallback.
+- **Kept from the desktop path:** `/espn-connect`, the browser extension, and the in-app handoff
+  screen all stay. They are the documented fallback after a second unreadable session, and the only
+  ESPN path on Android until it reaches parity.
+
+## 2026-09-02 — The ESPN iPhone blocker is permission, not mechanism (spike run)
+
+- **Finding: `WKHTTPCookieStore` returns HttpOnly cookie values to the app, in full.** Measured on
+  iOS 26.5 simulator by `OmenIOSTests/HttpOnlyCookieSpikeTests.swift` — both an app-injected cookie
+  and, more importantly, one **set by a real server over a real navigation**, with a passing control
+  proving the harness. The first run of this spike returned "not readable" and was **wrong**: a
+  `WKWebsiteDataStore` does not start its network process until a `WKWebView` is attached, so the
+  writes were silently dropped. The control caught it. Without the control this session would have
+  filed a false negative confirming what everyone already believed.
+- **This disproves `2026-07-07-espn-ios-cookie-sync-research.md` §C**, which inferred the opposite
+  from WebKit test fixtures and closed by recommending exactly this spike "before any real scope is
+  committed." It went unrun for two months. The 2026-08-15 real-iPhone finding that Safari
+  *extensions* cannot read HttpOnly is a different API and remains true.
+- **Decision: do not start Candidate D or `W1-A` on this result.** Founder's condition was explicit
+  — do not build it if it will be rejected — and feasibility was never what made it uncertain.
+  Disney ToU §2.B.viii/x and §1.F were answered **no** on 2026-08-31, and Apple 5.2.2 asks whether
+  Omen is *specifically permitted*, which no spike can answer. `W1-REVIEW` stays the instrument and
+  the critical path is unchanged.
+- **Defect found: `W1-A`'s written flow is not buildable.** Its step 2 (`ASWebAuthenticationSession`)
+  has no cookie API, so its step 3 (read the session from the sheet) cannot happen. The only in-app
+  mechanism is `WKWebView`, i.e. an embedded ESPN login, which onboarding contract §87 bans. That
+  substitution is a founder decision, not an implementation detail. Corrected in
+  `omen-wave1-contract-v1.md` §W1-A and in the `current_sprint.md` item.
+- **Preference recorded for if approval ever arrives:** Candidate D (relay ESPN's JSON from inside
+  the logged-in web view, never read the cookie) over cookie extraction. Same App Review exposure,
+  strictly better security — no cookie reaches Omen's server or Vault.
+
 ## 2026-09-02 — Nine skills, a reconciled queue, one read order, and a red `main` nobody was watching
 
 - **Decision: research is not finished until it reaches a terminal state.** A review or research
