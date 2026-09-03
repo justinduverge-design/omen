@@ -1,6 +1,6 @@
 # Omen Known Issues
 
-Last updated: 2026-08-21
+Last updated: 2026-09-03
 
 ## ✅ RESOLVED — FULLY, verified in production 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
 

@@ -1,5 +1,39 @@
 # Omen Decision Log
 
+## 2026-09-03 — Android parity, disconnect, and a shorter deletion word
+
+- **W1-A reaches Android parity.** Same flow as iOS: consent → ESPN's own sign-in in an
+  app-controlled WebView → ESPN reports the account's leagues → the user picks one → connected.
+  ESPN availability flips `UseWeb` → `Available` on both platforms.
+- **The mechanism was measured before the port was written.** `HttpOnlyCookieSpikeTest`
+  (androidTest, emulator) shows `CookieManager` returns HttpOnly cookie values. This question has
+  been answered wrongly twice in this repo by inference; it is now measured on both platforms and
+  guarded by a test on each.
+- **Android has no per-WebView cookie store.** iOS gets isolation free from a non-persistent
+  `WKWebsiteDataStore`; Android's jar is process-wide, so clearing on entry *and* exit is explicit
+  code with a test on the cancel path. Worth knowing before anyone "simplifies" it.
+- **Decision: shorten the account-deletion phrase from `DELETE MY OMEN DATA` to `delete`**
+  (founder). The long phrase made an already-deliberate action tedious and fought autocapitalize
+  on a phone; the founder hit it trying to reset an account for testing. Matching is now
+  case-insensitive and trimmed — with one short word, strictness stops being a safety property and
+  becomes a way to fail someone who typed "Delete". The guardrail was never the casing; it is that
+  a word is typed at all rather than one tap.
+  - **The server still accepts the legacy phrase, deliberately, with a test saying not to tidy it
+    away.** Every already-installed app and the deployed web bundle send the old one, and this is
+    the App Store 5.1.1 deletion path — a window where a stale client cannot delete their own
+    account is worse than a long phrase ever was. Retire it once no shipped client sends it.
+- **Account can now disconnect a platform, closing a promise the app had been making falsely.**
+  The ESPN consent screen — the copy App Review reads — has said "you can disconnect it any time
+  in Account" since it shipped, and Account had no disconnect. `DELETE /api/platforms/:platform`
+  had shipped months earlier and no client ever called it. After a disconnect the directory is
+  re-read rather than the row removed locally, because a local removal the server did not perform
+  would be the same class of false statement.
+- **Found and not fixed: no CI workflow runs Android unit tests.** `deploy.yml` runs backend,
+  `ios-ci.yml` runs iOS, and the only workflow naming `gradlew` is `native-visual-evidence.yml`.
+  That is why `core:designsystem`'s `PrimitiveEnforcementTest` has been failing on pre-existing
+  violations with nothing reporting it — the same class of gap as the `WelcomeView` scaffold test,
+  which also only surfaced when something finally pushed. Queued as a known issue.
+
 ## 2026-09-03 — W1-A connects a real ESPN league from a phone; league discovery added
 
 - **Device proof, the acceptance clause that mattered:** a real iPhone signed in to ESPN inside

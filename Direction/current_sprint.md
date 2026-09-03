@@ -1030,9 +1030,51 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 - **Status:** CLOSED — **Closure:** COMPLETED 2026-08-31. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
+### W1-ANDROID-CI — Nothing runs Android unit tests
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — a design-system guard is red today and nothing is reporting it
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Source:** found 2026-09-03 during the W1-A Android port. `deploy.yml` runs backend tests,
+  `ios-ci.yml` runs iOS, `ui-quality.yml` watches `frontend/src/**`, and the **only** workflow
+  naming `gradlew` is `native-visual-evidence.yml`. Nothing runs `./gradlew testDebugUnitTest`.
+- **What it has already cost:** `core:designsystem`'s `PrimitiveEnforcementTest` fails today on
+  pre-existing raw `TextButton` / `Color(0x…)` in `app/auth/OmenAuthFlow.kt` and
+  `app/feature/connect/ConnectScreen.kt` — byte-identical to `main`. Red, unreported, for an
+  unknown length of time.
+- **Same class as the `WelcomeView` scaffold failure** on the same day: a check that only runs
+  when someone remembers is a check that does not exist. That one at least sat in a suite CI ran;
+  this one is not run at all.
+- **Scope:** an Android job mirroring `ios-ci.yml` — `./gradlew testDebugUnitTest` on PRs touching
+  `mobile/android/**`. Then decide the `PrimitiveEnforcementTest` violations **separately**:
+  either fix the two files, or allowlist them with a written reason and retirement plan, which the
+  test's own doctrine requires and which is a design-steward call, not a build fix.
+- **Done when:** an Android PR touching `mobile/android/**` runs its unit tests in CI and fails
+  correctly on an injected violation.
+- **Do not touch:** the enforcement test itself. Making the suite green by weakening the guard is
+  the one wrong fix.
+
 ### W1-A — ESPN in-app connect sheet (iOS + Android)
 
-- **Status:** BLOCKED
+- **Status:** IN REVIEW — built and working on both platforms; **two acceptance clauses unmet**
+- **Claim:** a real iPhone signs in to ESPN inside Omen and connects a league end to end, no
+  computer involved. Android is at parity in code and on an emulator.
+- **Evidence:** founder device test 2026-09-03 — *The Titans of Slopsilonia* connected from a
+  phone. iOS: 398 unit tests. Android: 21 new unit tests, APK installed on `medium_phone`.
+  Mechanism proven on both platforms before the port
+  (`HttpOnlyCookieSpikeTests.swift`, `HttpOnlyCookieSpikeTest.kt`).
+  Commits `b2f348a` → `8e9ae4e`.
+- **Still unmet — do not close on the above:**
+  1. **The "zero emitted bytes" clause.** `espn_s2`/`SWID` must be proved absent from every emitted
+     byte outside the single connect request, "the way the scrubber failures were proved — by
+     provoking a real failure and searching the bytes, not by review". Not done on either platform.
+  2. **Android has never run against a real ESPN account.** Fixtures and a cookie spike only.
+- **Also open:** ESPN's `entryId` / `entry.name` are not confirmed in ESPN's own client bundle, so
+  team names in the picker are the likeliest thing to come back blank. Cosmetic; the league id is
+  verified.
+- **Superseded blocker (kept for the record):** BLOCKED
 - **Blocked by:** TASK-W1-REVIEW — do not spend Wave 1's largest build on an ESPN path Apple has
   never seen. See the sequencing note on `W1-REVIEW`.
 - **Unblock:** 2026-08-31 CLEARED — `TASK-W1-GATE` CLOSED. The terms answer was negative and the
