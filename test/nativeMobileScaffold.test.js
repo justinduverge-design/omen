@@ -32,21 +32,39 @@ test("native app-shell scaffold keeps platform projects, safe environment seams,
   // (M3A-iOS, #159). M4 moved signed-in Command content into the feature-layer
   // OmenCommandCenterScreen. The shell must wire that composition in; it must
   // not retain copy from the retired placeholder implementation.
+  //
+  // Updated 2026-09-03: this asserted `WelcomeView(` and read `Auth/WelcomeView.swift`.
+  // `feat(native): match onboarding screens to canvas` (5936142) deleted that type and folded
+  // the welcome surface into `SignInView`, so the assertion referenced a file that no longer
+  // exists and the read would have thrown. The commit sat unpushed on local main, so CI never
+  // saw it until 2026-09-03 — the first push after it went red on this test.
+  //
+  // What is pinned now is the *contract*, not the filenames: onboarding-connection contract §4
+  // requires the signed-out surface to offer two honest paths — try the demo, or get started —
+  // and the shell to route the signed-in one to Command Center. Copy is deliberately not
+  // asserted verbatim; it has been reworded twice and the rule is that both paths exist.
   const appShellSource = read("mobile/ios/OmenIOS/OmenIOS/App/AppShellView.swift");
-  assert.match(appShellSource, /WelcomeView\(/);
+  assert.match(appShellSource, /SignInView\(/);
   assert.match(appShellSource, /CommandCenterView\(/);
+  // The demo path must be wired from the shell, not merely rendered — a demo button with no
+  // session behind it is the dead end this line exists to prevent.
+  assert.match(appShellSource, /onTryDemo:/);
 
-  const welcomeSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/WelcomeView.swift");
-  assert.match(welcomeSource, /Try Demo/);
-  assert.match(welcomeSource, /Get started/);
+  const signInSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/SignInView.swift");
+  assert.match(signInSource, /onTryDemo/, "the signed-out surface must offer a demo path");
+  assert.match(signInSource, /demoModeEnabled/, "the demo path must be gated by environment");
 
   const commandCenterSource = read("mobile/ios/OmenIOS/OmenIOS/App/Auth/CommandCenterView.swift");
   assert.match(commandCenterSource, /OmenCommandCenterScreen\(/);
   assert.match(commandCenterSource, /OmenStateSurface\(/);
 
+  // Android carried the same stale copy assertions as iOS, for the same reason: the onboarding
+  // rework moved the welcome surface into the auth flow and reworded both paths. Pinning the
+  // seam (`onTryDemo` wired, gated by `demoModeEnabled`) survives a rewording; pinning the
+  // marketing string did not, twice.
   const androidShell = read("mobile/android/app/src/main/kotlin/com/slopssaloon/omen/app/OmenAndroidApp.kt");
-  assert.match(androidShell, /Try Demo/);
-  assert.match(androidShell, /Get started/);
+  assert.match(androidShell, /onTryDemo/, "the signed-out surface must offer a demo path");
+  assert.match(androidShell, /demoModeEnabled/, "the demo path must be gated by environment");
   assert.match(androidShell, /OmenCommandCenterScreen\(/);
   assert.match(androidShell, /OmenStateSurface\(/);
   assert.match(androidShell, /NavigationBar/);
