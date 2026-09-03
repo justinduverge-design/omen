@@ -171,10 +171,14 @@ class YahooConnectFlowTest {
      * for something that had happened.
      */
     @Test
-    fun `sleeper and yahoo are connectable and espn is not`() {
+    fun `all three providers are connectable in the app`() {
+        // ESPN read `UseWeb` here until 2026-09-03, on two grounds that both fell: the mechanism
+        // (disproven by `HttpOnlyCookieSpikeTest` — `CookieManager` does return HttpOnly values)
+        // and onboarding contract §87's WebView ban, lifted for ESPN by the founder with the
+        // guideline 5.2.2 exposure accepted. `EspnConnectFlowTest` owns the ESPN flow itself.
         assertTrue(ConnectProvider.Sleeper.availability is ConnectAvailability.Available)
         assertTrue(ConnectProvider.Yahoo.availability is ConnectAvailability.Available)
-        assertTrue(ConnectProvider.Espn.availability is ConnectAvailability.UseWeb)
+        assertTrue(ConnectProvider.Espn.availability is ConnectAvailability.Available)
     }
 
     /** Every waiting state names what is happening (contract §6: never a bare "Loading…"). */

@@ -48,6 +48,30 @@ interface ConnectRepository {
 
     /** Binds the chosen league to the Yahoo connection. */
     suspend fun bindYahooLeague(id: String, accessToken: String): Result<Unit>
+
+    // ---- ESPN (W1-A) ----
+
+    /**
+     * Asks ESPN which leagues the signed-in account plays in, via
+     * `POST /api/platforms/espn/leagues`. Stores nothing — the connect call is what persists.
+     */
+    suspend fun discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String,
+    ): Result<List<EspnLeagueOption>>
+
+    /**
+     * The one request that carries the ESPN session, and the only one that ever will.
+     *
+     * `POST /api/platforms/espn/connect` already shipped and is unchanged: it validates through
+     * `verifyLeagueAccess()` and stores Vault secret references. The route sets
+     * `res.locals.__skipBodyLog`, so the body is excluded from request logging server-side.
+     */
+    suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit>
+
+    /** Reads back what the server says is connected. Labels only, never a credential. */
+    suspend fun espnConnection(accessToken: String): Result<EspnConnection?>
 }
 
 /** Carries a [ConnectFailure] so callers get actionable copy rather than a raw throwable. */
@@ -108,6 +132,67 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
             }
         }
     }
+
+    // ---- ESPN (W1-A) ----
+
+    override suspend fun discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String,
+    ): Result<List<EspnLeagueOption>> {
+        val body = JSONObject().put("espn_s2", espnS2).put("swid", swid).toString()
+        return when (
+            val result = client.post("api/platforms/espn/leagues", accessToken, body, ::parseEspnLeagues)
+        ) {
+            is OmenApiResult.Success -> Result.success(result.value)
+            is OmenApiResult.Failure -> {
+                val error = result.error
+                // 401 here is ESPN rejecting the session, not the Omen session — the route
+                // distinguishes them, and conflating the two would sign the user out of Omen
+                // over an expired ESPN cookie.
+                val failure = when {
+                    error is OmenApiError.Unauthorized -> ConnectFailure.EspnSessionUnreadable
+                    error is OmenApiError.Server && error.status == 422 -> ConnectFailure.EspnSessionUnreadable
+                    else -> map(error, ConnectFailure.Server)
+                }
+                Result.failure(ConnectException(failure))
+            }
+        }
+    }
+
+    override suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit> {
+        // Snake_case, because that is what the route reads. The Wave 1 contract wrote these as
+        // camelCase and was wrong; a camelCase body 422s with `espn_cookies_required`, which
+        // reads as "your session is bad" and is not.
+        val body = JSONObject()
+            .put("espn_s2", capture.espnS2)
+            .put("swid", capture.swid)
+            .put("league_id", capture.leagueId)
+            .apply { capture.teamId?.takeIf { it.isNotEmpty() }?.let { put("espn_team_id", it) } }
+            .toString()
+
+        return when (val result = client.post("api/platforms/espn/connect", accessToken, body) { it }) {
+            is OmenApiResult.Success -> Result.success(Unit)
+            is OmenApiResult.Failure -> {
+                val error = result.error
+                // 422 is the route's own "we didn't get a session"; 400 is `espnValidationError`
+                // — the session was fine and ESPN would not serve that league. Different
+                // sentences, different next actions, so they are not collapsed.
+                val failure = when {
+                    error is OmenApiError.Server && error.status == 422 -> ConnectFailure.EspnSessionUnreadable
+                    error is OmenApiError.Server && error.status == 400 -> ConnectFailure.EspnLeagueUnreachable
+                    else -> map(error, ConnectFailure.EspnLeagueUnreachable)
+                }
+                Result.failure(ConnectException(failure))
+            }
+        }
+    }
+
+    override suspend fun espnConnection(accessToken: String): Result<EspnConnection?> =
+        when (val result = client.get("api/leagues", accessToken, ::parseEspnConnection)) {
+            is OmenApiResult.Success -> Result.success(result.value)
+            is OmenApiResult.Failure -> Result.failure(ConnectException(map(result.error, ConnectFailure.Server)))
+        }
 
     // ---- Yahoo ----
 
@@ -196,6 +281,57 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
         }
     }.getOrNull()
 
+    private fun parseEspnLeagues(json: String): List<EspnLeagueOption>? = runCatching {
+        val rows = JSONObject(json).optJSONArray("leagues")
+        buildList {
+            for (i in 0 until (rows?.length() ?: 0)) {
+                val row = rows?.optJSONObject(i) ?: continue
+                val id = row.optStringOrNull("league_id") ?: continue
+                add(
+                    EspnLeagueOption(
+                        id = id,
+                        // Nulls stay null. ESPN omits league names routinely, and a placeholder
+                        // beside a real value is worse than an absent line.
+                        name = row.optStringOrNull("league_name"),
+                        season = row.optInt("season").takeIf { it > 0 },
+                        teamId = row.optStringOrNull("team_id"),
+                        teamName = row.optStringOrNull("team_name"),
+                    ),
+                )
+            }
+        }
+    }.getOrNull()
+
+    /**
+     * Reduces the whole `league-directory.v1` payload to the ESPN group's labels.
+     *
+     * ESPN counts as connected only when the group says `connected` **and** a league carries
+     * usable team context: `espnLeagues()` reports `bound_only` and can return a row whose team
+     * lookup failed, and routing someone onward from that produces a dashboard with no team in
+     * it. `omenReadiness` draws the same line, so this is the existing rule, not a new one.
+     */
+    private fun parseEspnConnection(json: String): EspnConnection? = runCatching {
+        val platforms = JSONObject(json).optJSONArray("platforms")
+        for (i in 0 until (platforms?.length() ?: 0)) {
+            val group = platforms?.optJSONObject(i) ?: continue
+            if (group.optStringOrNull("platform") != "espn") continue
+            if (group.optStringOrNull("connection_state") != "connected") return@runCatching null
+            val leagues = group.optJSONArray("leagues")
+            for (j in 0 until (leagues?.length() ?: 0)) {
+                val league = leagues?.optJSONObject(j) ?: continue
+                val teamId = league.optStringOrNull("team_id")
+                val teamName = league.optStringOrNull("team_name")
+                if (teamId != null || teamName != null) {
+                    return@runCatching EspnConnection(
+                        leagueName = league.optStringOrNull("league_name"),
+                        teamName = teamName,
+                    )
+                }
+            }
+        }
+        null
+    }.getOrNull()
+
     private fun map(error: OmenApiError, notFoundMeans: ConnectFailure): ConnectFailure = when (error) {
         is OmenApiError.Network -> ConnectFailure.Network
         is OmenApiError.Unauthorized, is OmenApiError.Decode -> ConnectFailure.Server
@@ -265,4 +401,34 @@ class StubConnectRepository(
         requestIds.add(requestId)
         return connectResult
     }
+
+    // ---- ESPN ----
+
+    var espnDiscoverResult: Result<List<EspnLeagueOption>> = Result.success(emptyList())
+    var espnConnectResult: Result<Unit> = Result.failure(ConnectException(ConnectFailure.Network))
+    var espnConnectionResult: Result<EspnConnection?> = Result.success(null)
+
+    var espnDiscoveries = 0
+
+    /** Records the non-secret shape only — a double that stored the session values would put
+     * them in a test fixture, which is the same leak with a friendlier name. */
+    val espnConnectAttempts = mutableListOf<Triple<String, String?, Boolean>>()
+
+    override suspend fun discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String,
+    ): Result<List<EspnLeagueOption>> {
+        espnDiscoveries++
+        return espnDiscoverResult
+    }
+
+    override suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit> {
+        espnConnectAttempts.add(
+            Triple(capture.leagueId, capture.teamId, capture.espnS2.isNotEmpty() && capture.swid.isNotEmpty()),
+        )
+        return espnConnectResult
+    }
+
+    override suspend fun espnConnection(accessToken: String): Result<EspnConnection?> = espnConnectionResult
 }

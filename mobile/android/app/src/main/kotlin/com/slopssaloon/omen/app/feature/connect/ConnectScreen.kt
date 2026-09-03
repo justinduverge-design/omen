@@ -273,6 +273,146 @@ fun ConnectScreen(
                 OmenButton("Close", onDismiss, variant = OmenButtonVariant.Secondary)
             }
 
+            // ---- ESPN (W1-A) ----
+
+            // Consent, before anything opens. Its own step rather than a line under a button,
+            // because that is what W1-A binds: the user is told what is about to happen while
+            // they can still decline, and declining writes nothing. The affiliation disclaimer is
+            // not decorative — Disney's Terms of Use §2.B.vii bars use suggesting association.
+            is ConnectState.EspnConsent -> {
+                Text(
+                    EspnHandoffCopy.CONSENT_TITLE,
+                    style = OmenTheme.typography.h2.toTextStyle(),
+                    color = OmenTheme.color.textPrimary,
+                )
+                Text(
+                    EspnHandoffCopy.CONSENT_BODY,
+                    style = OmenTheme.typography.body.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+                OmenButton(EspnHandoffCopy.CONSENT_CONTINUE, { viewModel.beginEspnSignIn() })
+                OmenButton(
+                    EspnHandoffCopy.CONSENT_DECLINE,
+                    { viewModel.startOver() },
+                    variant = OmenButtonVariant.Secondary,
+                )
+            }
+
+            is ConnectState.EspnSigningIn -> {
+                viewModel.espnCookieReader?.let { reader ->
+                    EspnWebSignInView(
+                        reader = reader,
+                        onProgress = { progress -> scope.launch { viewModel.espnSignInProgressed(progress) } },
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
+                }
+                Text(
+                    if (viewModel.espnSignInProgress.isSignedIn) {
+                        EspnHandoffCopy.SIGN_IN_READY
+                    } else {
+                        EspnHandoffCopy.SIGN_IN_WAITING
+                    },
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+                // Presence and host names only — the same thing `extension/popup.js` shows, for
+                // the same reason. No cookie value ever reaches this string.
+                viewModel.espnSignInProgress.diagnosticOrNull
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { diagnostic ->
+                        Text(
+                            diagnostic,
+                            style = OmenTheme.typography.bodySmall.toTextStyle(),
+                            color = OmenTheme.color.textTertiary,
+                        )
+                    }
+                if (viewModel.espnSignInProgress.isSignedIn) {
+                    OmenTextField(
+                        value = viewModel.espnLeagueId,
+                        onValueChange = { viewModel.espnLeagueId = it },
+                        label = "ESPN League ID",
+                        placeholder = "e.g. 156664",
+                        enabled = !state.isBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        EspnHandoffCopy.LEAGUE_ID_HINT,
+                        style = OmenTheme.typography.bodySmall.toTextStyle(),
+                        color = OmenTheme.color.textTertiary,
+                    )
+                }
+                viewModel.espnNotice?.let { notice ->
+                    Text(
+                        notice,
+                        style = OmenTheme.typography.bodySmall.toTextStyle(),
+                        color = OmenTheme.color.textSecondary,
+                    )
+                }
+                // Omen never submits on the user's behalf — the rule the desktop helper follows.
+                OmenButton(
+                    EspnHandoffCopy.SIGN_IN_CONNECT,
+                    { scope.launch { viewModel.confirmEspnConnection() } },
+                    enabled = viewModel.canConnectEspn,
+                )
+                OmenButton(
+                    EspnHandoffCopy.SIGN_IN_CANCEL,
+                    { viewModel.cancelEspnSignIn() },
+                    variant = OmenButtonVariant.Secondary,
+                )
+            }
+
+            // The leagues ESPN reported, in Omen's own list — the user is out of ESPN's web view
+            // by the time they see this.
+            is ConnectState.ChoosingEspnLeague -> {
+                Text(
+                    EspnHandoffCopy.foundLeaguesTitle(state.options.size),
+                    style = OmenTheme.typography.h2.toTextStyle(),
+                    color = OmenTheme.color.textPrimary,
+                )
+                Text(
+                    EspnHandoffCopy.FOUND_LEAGUES_SUBTITLE,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+                state.options.forEach { option ->
+                    OmenListRow(
+                        title = option.displayName,
+                        subtitle = option.subtitle,
+                        onClick = { scope.launch { viewModel.connectEspnLeague(option) } },
+                    )
+                }
+                OmenButton(
+                    "Choose another provider",
+                    { viewModel.startOver() },
+                    variant = OmenButtonVariant.Secondary,
+                )
+            }
+
+            is ConnectState.EspnConnected -> {
+                OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Empty,
+                    title = "${state.connection.displayLeagueName} is connected",
+                    message = EspnHandoffCopy.connectedMessage(state.connection),
+                )
+                OmenButton("Go to Command Center", onConnected)
+                OmenButton(
+                    "Connect another league",
+                    { viewModel.startOver() },
+                    variant = OmenButtonVariant.Secondary,
+                )
+            }
+
+            is ConnectState.DiscoveringEspnLeagues,
+            is ConnectState.ValidatingEspnConnection,
+            -> {
+                OmenStateSurface(
+                    kind = OmenStateSurfaceKind.Loading,
+                    title = "Just a moment",
+                    // Spec §6: never a bare "Loading…" — say what is happening.
+                    message = state.progressLabel ?: "Working…",
+                )
+            }
+
             // Never a dead end — name the path that works.
             is ConnectState.UnsupportedOnMobile -> {
                 OmenStateSurface(

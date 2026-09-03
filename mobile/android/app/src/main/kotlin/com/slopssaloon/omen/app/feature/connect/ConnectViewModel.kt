@@ -34,6 +34,39 @@ class ConnectViewModel(
      */
     private var pendingRequestId: String? = null
 
+    // ---- ESPN (W1-A) ----
+
+    /** What the ESPN sign-in sheet has observed. Drives whether Connect is offered. */
+    var espnSignInProgress: EspnSignInProgress by mutableStateOf(EspnSignInProgress.SignedOut())
+        private set
+
+    /**
+     * The league to connect. Pre-filled the moment ESPN's URL reveals one, editable throughout —
+     * ESPN has no page Omen can rely on the user landing on, so a field the user can fill is the
+     * floor this flow stands on rather than a fallback bolted to the side.
+     */
+    var espnLeagueId: String by mutableStateOf("")
+
+    /** A status line under the sign-in sheet — "not yet", or "we couldn't check". */
+    var espnNotice: String? by mutableStateOf(null)
+        private set
+
+    /** The cookie jar for the current sheet. Recreated per attempt. */
+    var espnCookieReader: EspnCookieReader? by mutableStateOf(null)
+        private set
+
+    /**
+     * The ESPN session, held only between sign-in and the connect that consumes it.
+     *
+     * Discovery made this necessary: the session has to survive from sign-in, through the league
+     * lookup, to the connect the user picks. In memory only, never exposed as state, and cleared
+     * on connect, cancel, failure and start-over.
+     */
+    private var espnSession: Pair<String, String>? = null
+
+    /** Contract §W1-A allows one retry on an unreadable session, then the desktop path. */
+    private var espnUnreadableRetries = 0
+
     val canSubmitUsername: Boolean
         get() = username.trim().isNotEmpty() && !state.isBusy
 
@@ -42,12 +75,23 @@ class ConnectViewModel(
             // Sleeper's next step is the username field the picker already renders beneath
             // itself; Yahoo's is a browser round trip that has to be started explicitly.
             is ConnectAvailability.Available ->
-                if (provider == ConnectProvider.Yahoo) {
-                    selectedProvider = provider
-                    connectYahoo()
-                } else {
-                    selectedProvider = provider
-                    state = ConnectState.NotStarted
+                when (provider) {
+                    ConnectProvider.Yahoo -> {
+                        selectedProvider = provider
+                        connectYahoo()
+                    }
+                    // Consent first, always. W1-A's binding constraint: the user is told what is
+                    // about to open before it opens, and declining writes no state.
+                    ConnectProvider.Espn -> {
+                        selectedProvider = provider
+                        espnNotice = null
+                        espnUnreadableRetries = 0
+                        state = ConnectState.EspnConsent
+                    }
+                    else -> {
+                        selectedProvider = provider
+                        state = ConnectState.NotStarted
+                    }
                 }
             // Not an error and not a dead end — the screen renders the provider's own reason
             // and a safe next action.
@@ -61,13 +105,192 @@ class ConnectViewModel(
     /** Spec §6: "Cancellation is normal, not an error." */
     fun cancel() {
         pendingRequestId = null
+        clearEspnSession()
         state = ConnectState.Canceled
     }
 
     fun startOver() {
         pendingRequestId = null
+        clearEspnSession()
+        espnNotice = null
+        espnLeagueId = ""
+        espnUnreadableRetries = 0
         selectedProvider = null
         state = ConnectState.NotStarted
+    }
+
+    // ---- ESPN (W1-A) ----
+
+    /** Consent accepted. Opens ESPN's own sign-in in the in-app web view. */
+    fun beginEspnSignIn(reader: EspnCookieReader = AndroidEspnCookieReader()) {
+        espnSignInProgress = EspnSignInProgress.SignedOut()
+        espnCookieReader = reader
+        state = ConnectState.EspnSigningIn
+    }
+
+    /**
+     * Connect is offered once ESPN has a session and a league has been named — by detection or by
+     * the user. Both halves are required: a league id without a session cannot connect, and a
+     * session without a league has nothing to connect to.
+     */
+    val canConnectEspn: Boolean
+        get() = espnSignInProgress.isSignedIn && espnLeagueId.trim().isNotEmpty() && !state.isBusy
+
+    /**
+     * Reported by the sheet as the user moves through ESPN. Never auto-connects.
+     *
+     * Signed-in-ness and league detection are separate facts. Collapsing them stranded a
+     * signed-in iOS user on a page with no league id, indistinguishable from signed out, with a
+     * permanently dead button.
+     */
+    suspend fun espnSignInProgressed(progress: EspnSignInProgress) {
+        if (state !is ConnectState.EspnSigningIn) return
+        espnSignInProgress = progress
+
+        // Pre-fill, never overwrite. Once the user has typed or corrected a league id, ESPN
+        // navigating elsewhere must not silently swap it out from under them.
+        progress.detectedLeagueIdOrNull?.let { detected ->
+            if (espnLeagueId.trim().isEmpty()) espnLeagueId = detected
+        }
+
+        // The moment ESPN has a session, ask what leagues the account plays in. This is what
+        // turns "go find your league id in a URL" into a list.
+        if (progress.isSignedIn && espnSession == null) discoverEspnLeagues()
+    }
+
+    /**
+     * Captures the session and asks ESPN for the account's leagues.
+     *
+     * A failure here is **not** a failed connection — nothing has been connected yet. It falls
+     * back to the manual league-id field rather than throwing the user out of the flow, because a
+     * lookup Omen could not perform is Omen's problem, not the user's.
+     */
+    suspend fun discoverEspnLeagues() {
+        val reader = espnCookieReader ?: return
+        if (espnSession != null) return
+        val session = reader.takeSession() ?: return
+        espnSession = session
+        val accessToken = bearer() ?: return
+
+        state = ConnectState.DiscoveringEspnLeagues
+        repository.discoverEspnLeagues(session.first, session.second, accessToken)
+            .onSuccess { leagues ->
+                if (leagues.isNotEmpty()) {
+                    state = ConnectState.ChoosingEspnLeague(leagues)
+                } else {
+                    espnNotice = EspnHandoffCopy.NO_LEAGUES_FOUND
+                    state = ConnectState.EspnSigningIn
+                }
+            }
+            .onFailure {
+                espnNotice = EspnHandoffCopy.DISCOVERY_UNAVAILABLE
+                state = ConnectState.EspnSigningIn
+            }
+    }
+
+    /** The user picked a league from the list ESPN reported. */
+    suspend fun connectEspnLeague(option: EspnLeagueOption) {
+        val session = espnSession ?: return
+        if (state.isBusy) return
+        val accessToken = bearer() ?: return
+
+        state = ConnectState.ValidatingEspnConnection(option.id)
+        sendEspnConnect(
+            EspnCapture(session.first, session.second, option.id, option.teamId),
+        )
+    }
+
+    /**
+     * The user pressed Connect on the manual league-id field. The only moment the session is read
+     * when discovery did not run, and the only request it is ever placed in.
+     */
+    suspend fun confirmEspnConnection() {
+        if (!canConnectEspn) return
+        val reader = espnCookieReader ?: return
+        val leagueId = espnLeagueId.trim()
+        // Only trust a detected team when it belongs to the league actually being connected.
+        // Sending a team from a league the user browsed away from binds the wrong team silently.
+        val teamId = if (espnSignInProgress.detectedLeagueIdOrNull == leagueId) {
+            espnSignInProgress.detectedTeamIdOrNull
+        } else {
+            null
+        }
+        val accessToken = bearer() ?: return
+
+        state = ConnectState.ValidatingEspnConnection(leagueId)
+        val session = espnSession ?: reader.takeSession() ?: run {
+            failEspnSignIn(ConnectFailure.EspnSessionUnreadable)
+            return
+        }
+        sendEspnConnect(EspnCapture(session.first, session.second, leagueId, teamId))
+    }
+
+    private suspend fun sendEspnConnect(capture: EspnCapture) {
+        val accessToken = bearer() ?: return
+        repository.connectEspn(capture, accessToken)
+            .onSuccess {
+                // The session is dropped the instant it is no longer needed. Nothing in the app
+                // holds an ESPN session past this line.
+                clearEspnSession()
+                confirmEspnFromServer()
+            }
+            .onFailure { error ->
+                failEspnSignIn((error as? ConnectException)?.failure ?: ConnectFailure.Server)
+            }
+    }
+
+    /**
+     * After a successful connect the league label comes from the server rather than from anything
+     * the client scraped.
+     */
+    private suspend fun confirmEspnFromServer() {
+        val accessToken = bearer() ?: return
+        repository.espnConnection(accessToken)
+            .onSuccess { connection ->
+                state = ConnectState.EspnConnected(connection ?: EspnConnection(null, null))
+            }
+            // The connect itself succeeded, so this is not a failure the user should see as one.
+            .onFailure { state = ConnectState.EspnConnected(EspnConnection(null, null)) }
+    }
+
+    /**
+     * Contract §W1-A failure table: one retry on an unreadable session, then the desktop path.
+     * Never a loop, and never copy that blames the user.
+     */
+    private fun failEspnSignIn(failure: ConnectFailure) {
+        clearEspnSession()
+
+        if (failure == ConnectFailure.EspnSessionUnreadable) {
+            espnUnreadableRetries++
+            if (espnUnreadableRetries > 1) {
+                espnNotice = EspnHandoffCopy.SIGN_IN_FELL_BACK
+                state = ConnectState.UnsupportedOnMobile(ConnectProvider.Espn)
+                return
+            }
+        }
+        state = ConnectState.RetryableError(failure)
+    }
+
+    /**
+     * Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
+     *
+     * Guarded: the sheet is shown while the state is [ConnectState.EspnSigningIn], so any move
+     * off that state dismisses it, and an unguarded cancel meant a **successful** discovery
+     * cancelled itself — on a real iPhone the ESPN sheet flashed for a second and the user landed
+     * on "Nothing was connected" with their leagues already fetched and thrown away.
+     */
+    fun cancelEspnSignIn() {
+        if (state !is ConnectState.EspnSigningIn) return
+        clearEspnSession()
+        state = ConnectState.Canceled
+    }
+
+    /** Drops every in-memory trace of the ESPN session. */
+    private fun clearEspnSession() {
+        espnSession = null
+        espnCookieReader?.clear()
+        espnCookieReader = null
+        espnSignInProgress = EspnSignInProgress.SignedOut()
     }
 
     suspend fun resolveUsername() {

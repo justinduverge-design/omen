@@ -39,9 +39,14 @@ import com.slopssaloon.omen.app.feature.api.TradePlayer
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
+import com.slopssaloon.omen.app.feature.connect.ConnectException
+import com.slopssaloon.omen.app.feature.connect.ConnectFailure
 import com.slopssaloon.omen.app.feature.connect.ConnectRepository
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
+import com.slopssaloon.omen.app.feature.connect.EspnCapture
+import com.slopssaloon.omen.app.feature.connect.EspnConnection
+import com.slopssaloon.omen.app.feature.connect.EspnLeagueOption
 import com.slopssaloon.omen.app.feature.connect.ProviderAuthOutcome
 import com.slopssaloon.omen.app.feature.connect.ResolvedSleeperAccount
 import com.slopssaloon.omen.app.feature.connect.SleeperLeague
@@ -352,6 +357,25 @@ private class ScreenshotConnectRepository : ConnectRepository {
 
     override suspend fun bindYahooLeague(id: String, accessToken: String): Result<Unit> =
         Result.success(Unit)
+
+    // ---- ESPN ----
+    //
+    // All three deliberately refuse or return nothing. Screenshot mode signs in to nothing, and a
+    // fixture that invented ESPN leagues or reported a successful connect would put fake league
+    // names and a fake connected state into store screenshots.
+
+    override suspend fun discoverEspnLeagues(
+        espnS2: String,
+        swid: String,
+        accessToken: String,
+    ): Result<List<EspnLeagueOption>> = Result.success(emptyList())
+
+    override suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit> =
+        Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable))
+
+    override suspend fun espnConnection(accessToken: String): Result<EspnConnection?> =
+        Result.success(null)
+
 }
 
 /**
