@@ -46,6 +46,26 @@ enum ConnectState: Equatable {
     /// and never a dead end: the copy routes to the path that does work.
     case unsupportedOnMobile(provider: ConnectProvider)
 
+    // MARK: ESPN — handoff, not a connect flow.
+    //
+    // The app never performs the ESPN connection: the desktop helper fills Omen's own web
+    // form and the user presses Connect there. These two cases exist only so the app can
+    // *read back* what the server already knows, which is why there is no ESPN equivalent of
+    // `authorizing` or `choosingLeague`. Onboarding contract §5/§10: no in-app credential
+    // capture, no embedded provider login, and no ESPN connect UI.
+
+    /// Consent, shown before ESPN's sign-in is opened. W1-A makes this a required step, not a
+    /// footnote: the user is told what is about to open and what Omen will read, before it opens.
+    case espnConsent
+    /// ESPN's own sign-in is on screen in the in-app web view.
+    case espnSigningIn
+    /// The user pressed Connect. Sending the one request that carries the session.
+    case validatingEspnConnection(leagueId: String)
+    /// Re-reading `GET /api/leagues` after the user says they finished on a computer.
+    case checkingEspnConnection
+    /// The server reports a bound ESPN league with usable team context.
+    case espnConnected(EspnConnection)
+
     /// Spec §6: "Every waiting screen says what is happening and what the user can do."
     var progressLabel: String? {
         switch self {
@@ -61,6 +81,10 @@ enum ConnectState: Equatable {
             return "Checking what Yahoo shared with Omen…"
         case .bindingYahooLeague:
             return "Checking that Omen can read this league…"
+        case .checkingEspnConnection:
+            return "Checking whether your ESPN league reached Omen…"
+        case .validatingEspnConnection:
+            return "Checking that Omen can read this league…"
         default:
             return nil
         }
@@ -72,7 +96,8 @@ enum ConnectState: Equatable {
         switch self {
         case .resolvingAccount, .validatingConnection,
              .startingYahooAuthorization, .awaitingYahooReturn,
-             .confirmingYahooConnection, .bindingYahooLeague:
+             .confirmingYahooConnection, .bindingYahooLeague,
+             .checkingEspnConnection, .validatingEspnConnection:
             return true
         default: return false
         }
@@ -96,6 +121,12 @@ enum ConnectFailure: Error, Equatable {
     /// cause is the user approving in the browser and the token exchange failing behind it.
     case providerNotConnected
 
+    /// Signed in, but the session was not where Omen could read it. Contract §W1-A's failure
+    /// table names this one explicitly and forbids blaming the user for it.
+    case espnSessionUnreadable
+    /// The session read fine and ESPN refused the league — wrong league, or no access to it.
+    case espnLeagueUnreachable
+
     var message: String {
         switch self {
         case .usernameNotFound:
@@ -112,6 +143,10 @@ enum ConnectFailure: Error, Equatable {
             return "Yahoo connections are paused right now. Sleeper still works, or try again later."
         case .providerNotConnected:
             return "Yahoo didn't finish connecting. Try again, and make sure you tap Agree in the Yahoo screen."
+        case .espnSessionUnreadable:
+            return "Omen couldn't read your ESPN session. That's on us, not you — try once more, or finish on a computer."
+        case .espnLeagueUnreachable:
+            return "Omen signed in but couldn't reach that league. Open the league you want in ESPN, then try again."
         }
     }
 }
@@ -122,6 +157,8 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
     case espn
     case yahoo
     case sleeper
+
+    static let espnSetupURL = URL(string: "https://slopssaloon.com/espn-connect")!
 
     var id: String { rawValue }
 
@@ -159,13 +196,123 @@ enum ConnectProvider: String, CaseIterable, Identifiable {
             // phone and being told to go find a computer.
             return .available
         case .espn:
-            // Onboarding contract §5: ESPN is research-gated on native and a store build must
-            // not ask for a password or raw cookie entry. §10 blocks any "ESPN connected" UI
-            // until the ESPN mobile feasibility memo is resolved.
-            return .useWeb(
-                reason: "Needs a computer for now · we'll show you"
-            )
+            // **Was `.useWeb` until 2026-09-02.** W1-A: ESPN now signs in inside the app.
+            //
+            // Two things had to be true and both now are. The mechanism: `HttpOnlyCookieSpikeTests`
+            // proved `WKHTTPCookieStore` returns server-set HttpOnly cookies, killing the standing
+            // assumption — inherited from `2026-07-07-espn-ios-cookie-sync-research.md` §C — that
+            // iOS could not reach them. The permission: onboarding contract §87's WebView ban was
+            // lifted for ESPN by the founder on 2026-09-02, with the guideline 5.2.2 exposure
+            // stated and accepted, since ESPN publishes no authorization to satisfy it.
+            //
+            // The desktop helper and `/espn-connect` stay exactly as they are. They are the
+            // documented fallback for `espnSessionUnreadable`, and the only path on Android.
+            return .available
         }
+    }
+}
+
+/// What the server reports about the user's ESPN connection, reduced to the two things the
+/// app is allowed to show.
+///
+/// Deliberately narrow. `GET /api/leagues` returns a whole directory contract; this carries
+/// the league label and the team label and nothing else — no secret ids, no credential
+/// fields, no raw provider payload (onboarding contract §7).
+struct EspnConnection: Equatable {
+    let leagueName: String?
+    let teamName: String?
+
+    /// ESPN does not expose a league list to Omen, so `league_name` is routinely null even on
+    /// a healthy connection. A neutral label beats an empty headline.
+    var displayLeagueName: String {
+        leagueName?.isEmpty == false ? leagueName! : "Your ESPN league"
+    }
+}
+
+/// The ESPN handoff, written once so the app and its tests agree on what the user is told.
+///
+/// Every line here has to survive App Store review reading it as store-facing copy: no
+/// password, no cookie, no token, no `espn_s2`, no `SWID`. The app is describing a helper
+/// that runs somewhere else, and it says so.
+enum EspnHandoffCopy {
+    static let title = "Sync ESPN"
+    static let subtitle = "ESPN doesn't offer Omen a phone sign-in yet. One setup on a computer, and your league syncs here from then on."
+
+    struct Step: Equatable, Identifiable {
+        let index: Int
+        let title: String
+        let detail: String
+        var id: Int { index }
+    }
+
+    static let steps: [Step] = [
+        Step(
+            index: 1,
+            title: "Open the setup page on a computer",
+            detail: "Send yourself the link, or open slopssaloon.com/espn-connect in Chrome or Edge."
+        ),
+        Step(
+            index: 2,
+            title: "Add the free Omen helper",
+            detail: "It reads espn.com only, and it never submits anything for you."
+        ),
+        Step(
+            index: 3,
+            title: "Sign in to ESPN Fantasy there",
+            detail: "You sign in on ESPN's own site, in your own browser. Omen never sees that step."
+        ),
+        Step(
+            index: 4,
+            title: "Review the form and choose Connect",
+            detail: "The helper fills Omen's form. You check it and press Connect yourself."
+        ),
+        Step(
+            index: 5,
+            title: "Come back and tap I connected ESPN",
+            detail: "Omen re-checks your leagues and takes you straight to Command Center."
+        ),
+    ]
+
+    /// Consent, shown before ESPN's own sign-in opens. W1-A's binding constraint, and the
+    /// sentence App Review will read: it says what opens, who the user signs in to, what Omen
+    /// reads, and what Omen never sees.
+    static let consentTitle = "Connect ESPN"
+    static let consentBody = """
+    Next, ESPN's own sign-in page opens. You sign in to ESPN directly — Omen never sees your ESPN \
+    password and never asks you to type it here. Afterwards Omen reads only what it needs to \
+    follow your league: your roster, your scoring settings, and your matchup. It is your account \
+    and your choice, and you can disconnect it any time in Account. Omen is not affiliated with \
+    or endorsed by ESPN.
+    """
+    static let consentContinueTitle = "Continue to ESPN"
+    static let consentDeclineTitle = "Not now"
+
+    /// The sign-in sheet's own guidance while it waits.
+    static let signInWaiting = "Sign in to ESPN above. Omen picks up from there."
+    static let signInReady = "Signed in. Open your league so Omen can fill this in — or type the ID yourself."
+    static let leagueIdHint = "It's the number in your league's web address, after leagueId=. Pasting the whole address works too."
+    static let signInConnectTitle = "Connect this league"
+    static let signInCancelTitle = "Cancel"
+
+    /// Shown when the in-app sign-in has failed twice and the user is routed to the desktop path.
+    static let signInFellBack = "We couldn't read your ESPN session on this phone. The desktop helper still works — here's how."
+
+    static let openSetupTitle = "Open ESPN setup"
+    static let checkConnectionTitle = "I connected ESPN"
+    static let checkAgainTitle = "Check again"
+
+    /// Shown when the re-check finds nothing yet. A status line, not an error: the user has
+    /// done nothing wrong, they are most likely mid-way through the desktop steps.
+    static let notConnectedYet = "No ESPN league yet. Finish the steps on a computer, then tap Check again."
+
+    /// Shown when the re-check itself could not run.
+    static let checkUnavailable = "We couldn't reach Omen to check. Try again in a moment."
+
+    static func connectedMessage(_ connection: EspnConnection) -> String {
+        guard let team = connection.teamName, !team.isEmpty else {
+            return "Omen can now read this league's roster, scoring, and matchup."
+        }
+        return "Omen is reading \(team) — roster, scoring, and matchup."
     }
 }
 

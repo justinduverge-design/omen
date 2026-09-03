@@ -8,6 +8,33 @@ final class ConnectViewModel: ObservableObject {
     @Published private(set) var selectedProvider: ConnectProvider?
     @Published var username: String = ""
 
+    /// A status line under the ESPN steps — "not yet", or "we couldn't check".
+    ///
+    /// Deliberately not a `retryableError` state: the ESPN handoff finishes on a computer, so
+    /// "no league yet" is almost always a user who is mid-way through, not a failure. Pushing
+    /// them to the error screen would lose the steps they are following.
+    @Published private(set) var espnCheckNotice: String?
+
+    /// What the ESPN sign-in sheet has observed. Drives whether Connect is offered.
+    @Published private(set) var espnSignInProgress: EspnSignInProgress = .signedOut
+
+    /// The league to connect. Pre-filled the moment ESPN's URL reveals one, and editable
+    /// throughout — ESPN has no page Omen can rely on the user landing on, so a field the user
+    /// can fill is the floor this flow stands on rather than a fallback bolted to the side.
+    ///
+    /// The server's `normalizeEspnLeagueId` accepts a bare id, a `leagueId=` fragment, or a whole
+    /// league URL, so anything a user can plausibly paste here works.
+    @Published var espnLeagueId: String = ""
+
+    /// The ESPN cookie jar for the current sign-in sheet. Recreated per attempt so a cancelled
+    /// attempt leaves nothing behind, and held here rather than in view state so the read happens
+    /// at the moment of the tap.
+    private(set) var espnCookieStore: EspnCookieReading?
+
+    /// How many times the user has been offered a retry after an unreadable session. The Wave 1
+    /// contract allows one, then routes to the desktop path rather than looping.
+    private var espnUnreadableRetries = 0
+
     private let repository: ConnectRepository
     private let sessionManager: SessionManager
     private let authSession: ProviderAuthSessionPresenting
@@ -57,6 +84,13 @@ final class ConnectViewModel: ObservableObject {
             if provider == .yahoo {
                 selectedProvider = provider
                 Task { await connectYahoo() }
+            } else if provider == .espn {
+                // Consent first, always. W1-A's binding constraint: the user is told what is about
+                // to open before it opens, and declining writes no state.
+                selectedProvider = provider
+                espnCheckNotice = nil
+                espnUnreadableRetries = 0
+                state = .espnConsent
             } else {
                 selectedProvider = provider
                 state = .notStarted
@@ -65,19 +99,162 @@ final class ConnectViewModel: ObservableObject {
             // Not an error and not a dead end — the view renders the provider's own reason and
             // a safe next action from `availability`.
             selectedProvider = provider
+            espnCheckNotice = nil
             state = .unsupportedOnMobile(provider: provider)
+        }
+    }
+
+    // MARK: - ESPN
+
+    /// Consent accepted. Opens ESPN's own sign-in in the in-app web view.
+    func beginEspnSignIn(cookieStore: EspnCookieReading? = nil) {
+        espnSignInProgress = .signedOut
+        espnCookieStore = cookieStore ?? EspnWebCookieStore()
+        state = .espnSigningIn
+    }
+
+    /// Connect is offered once ESPN has a session and a league has been named — by detection or
+    /// by the user. Both halves are required: a league id without a session cannot connect, and a
+    /// session without a league has nothing to connect to.
+    var canConnectEspn: Bool {
+        espnSignInProgress.isSignedIn
+            && !espnLeagueId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !state.isBusy
+    }
+
+    /// Reported by the sheet as the user moves through ESPN. Never auto-connects: reaching
+    /// `.ready` only enables the button.
+    func espnSignInProgressed(_ progress: EspnSignInProgress) {
+        guard case .espnSigningIn = state else { return }
+        espnSignInProgress = progress
+
+        // Pre-fill, never overwrite. Once the user has typed or corrected a league id, ESPN
+        // navigating somewhere else must not silently swap it out from under them.
+        if let detected = progress.detectedLeagueId,
+           espnLeagueId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            espnLeagueId = detected
+        }
+    }
+
+    /// The user pressed Connect. This is the only moment the session is read, and the only
+    /// request it is ever placed in.
+    func confirmEspnConnection() async {
+        guard canConnectEspn, let cookieStore = espnCookieStore else { return }
+        let leagueId = espnLeagueId.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Only trust a detected team when it belongs to the league actually being connected.
+        // Sending team 3 from a league the user browsed away from binds the wrong team silently.
+        let teamId = espnSignInProgress.detectedLeagueId == leagueId
+            ? espnSignInProgress.detectedTeamId
+            : nil
+        guard let accessToken = await bearer() else { return }
+
+        state = .validatingEspnConnection(leagueId: leagueId)
+
+        guard let session = await cookieStore.takeSession() else {
+            return failEspnSignIn(with: .espnSessionUnreadable)
+        }
+
+        let capture = EspnCapture(
+            espnS2: session.espnS2,
+            swid: session.swid,
+            leagueId: leagueId,
+            teamId: teamId
+        )
+
+        switch await repository.connectEspn(capture, accessToken: accessToken) {
+        case .success:
+            // The sheet's jar is dropped the instant it is no longer needed. Nothing in the app
+            // holds an ESPN session past this line.
+            espnCookieStore = nil
+            espnSignInProgress = .signedOut
+            await confirmEspnFromServer(leagueId: leagueId)
+        case .failure(let failure):
+            failEspnSignIn(with: failure)
+        }
+    }
+
+    /// After a successful connect, the league label comes from the server rather than from
+    /// anything the client scraped — the same read the "I connected ESPN" button uses.
+    private func confirmEspnFromServer(leagueId: String) async {
+        guard let accessToken = await bearer() else { return }
+        switch await repository.espnConnection(accessToken: accessToken) {
+        case .success(let connection):
+            state = .espnConnected(connection ?? EspnConnection(leagueName: nil, teamName: nil))
+        case .failure:
+            // The connect itself succeeded, so this is not a failure the user should see as one.
+            state = .espnConnected(EspnConnection(leagueName: nil, teamName: nil))
+        }
+    }
+
+    /// Contract §W1-A failure table: one retry on an unreadable session, then the desktop path.
+    /// Never a loop, and never copy that blames the user.
+    private func failEspnSignIn(with failure: ConnectFailure) {
+        espnCookieStore = nil
+        espnSignInProgress = .signedOut
+
+        if failure == .espnSessionUnreadable {
+            espnUnreadableRetries += 1
+            if espnUnreadableRetries > 1 {
+                espnCheckNotice = EspnHandoffCopy.signInFellBack
+                state = .unsupportedOnMobile(provider: .espn)
+                return
+            }
+        }
+        state = .retryableError(failure)
+    }
+
+    /// Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
+    func cancelEspnSignIn() {
+        espnCookieStore = nil
+        espnSignInProgress = .signedOut
+        state = .canceled
+    }
+
+    /// "I connected ESPN" — re-reads the server after the user finished on a computer.
+    ///
+    /// This is a **read**, not a connect. The app has no ESPN credential path and never asks
+    /// for one (onboarding contract §2/§5); the whole action is `GET /api/leagues` plus a
+    /// decision about where to send the user next. A connection with usable team context
+    /// routes on; anything else leaves the steps on screen with an honest status line, so a
+    /// user who tapped too early is not thrown back to the provider picker.
+    func checkEspnConnection() async {
+        guard !state.isBusy else { return }
+        espnCheckNotice = nil
+        guard let accessToken = await bearer() else { return }
+
+        state = .checkingEspnConnection
+        switch await repository.espnConnection(accessToken: accessToken) {
+        case .success(let connection):
+            if let connection {
+                state = .espnConnected(connection)
+            } else {
+                espnCheckNotice = EspnHandoffCopy.notConnectedYet
+                state = .unsupportedOnMobile(provider: .espn)
+            }
+        case .failure:
+            // The reason is never shown verbatim: `ConnectFailure` messages are written for
+            // provider operations the user started, and none of them is true here.
+            espnCheckNotice = EspnHandoffCopy.checkUnavailable
+            state = .unsupportedOnMobile(provider: .espn)
         }
     }
 
     /// Spec §6: "Cancellation is normal, not an error."
     func cancel() {
         pendingRequestId = nil
+        espnCheckNotice = nil
+        espnCookieStore = nil
         state = .canceled
     }
 
     /// Returns to the provider picker without treating the exit as a failure.
     func startOver() {
         pendingRequestId = nil
+        espnCheckNotice = nil
+        espnCookieStore = nil
+        espnSignInProgress = .signedOut
+        espnLeagueId = ""
+        espnUnreadableRetries = 0
         selectedProvider = nil
         state = .notStarted
     }

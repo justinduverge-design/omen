@@ -81,6 +81,50 @@ If either answer is no, the fallback is the workshop's third option — mark ESP
 desktop-only **at the provider-choice step, before the user invests any effort** — and the rest of
 this section is not built.
 
+### 2026-09-02 — mechanism correction. Read before pulling W1-A.
+
+**The native flow below, as written, cannot be built.** Steps 2 and 3 contradict each other:
+
+> 2. **Sheet** — native web authentication session against ESPN's own sign-in.
+> 3. **Session capture** — read `espn_s2` and `SWID` from the sheet's cookie store.
+
+`ASWebAuthenticationSession` has **no cookie API**. It returns a callback URL, a cancellation,
+or a failure, and nothing else — visible in `ProviderAuthSession.swift`, whose entire outcome
+type is `.returned(URL) / .canceled / .failed`. There is no cookie store to read. Whoever pulls
+`W1-A` against this text will discover that after building step 2.
+
+**The only in-app mechanism that works is `WKWebView` + `WKHTTPCookieStore`** — an app-controlled
+web view hosting ESPN's login. That is a materially different thing from a system auth sheet,
+and §87 of the onboarding-connection contract bans it in terms that were written about Yahoo but
+apply here verbatim: "an app-controlled web view can read what the user types into the provider's
+form." Substituting `WKWebView` for `ASWebAuthenticationSession` is therefore **not** an
+implementation detail. It reverses a standing safety rule and needs its own founder decision.
+
+**Does that mechanism actually work? Yes — measured, not inferred.**
+`OmenIOSTests/HttpOnlyCookieSpikeTests.swift`, run 2026-09-02 on iOS 26.5 simulator:
+`WKHTTPCookieStore.allCookies()` returned a **server-set HttpOnly cookie in full**, with a
+passing control proving the harness. This **disproves** the inference in
+`Direction/reviews/2026-07-07-espn-ios-cookie-sync-research.md` §C, which reasoned from WebKit
+test fixtures that `WKHTTPCookieStore` would redact HttpOnly like the extension `browser.cookies`
+API does. It does not. That memo's own closing recommendation was to run exactly this spike
+before committing scope; it went unrun for two months while the plan rested on its guess.
+
+The 2026-08-15 real-iPhone finding that **Safari *extensions* cannot read HttpOnly** is untouched
+and still true. Two different APIs, two different answers. Do not collapse them again.
+
+**So the blocker on W1-A was never feasibility. It is permission**, and nothing here changes it:
+the gate above answered ESPN's terms **no**, and Apple 5.2.2 asks whether you are *specifically
+permitted*, which no spike can answer. `W1-REVIEW` remains the instrument, and the sequencing
+rationale in `current_sprint.md` is unaffected — arguably strengthened, since the feature is now
+known to be buildable and therefore genuinely expensive to build on a rejected path.
+
+**Candidate D** (`2026-07-07` §D — inject a script into the logged-in `WKWebView`, relay ESPN's
+JSON, never touch the cookie) is now also known-viable, and is strictly better on security: the
+cookie never leaves WebKit, never reaches Omen's server, and never enters Vault. It carries
+**identical App Review exposure**, because what a reviewer sees is the same in both — an ESPN
+login inside the Omen app. Choose it over cookie extraction *if* the login is ever approved;
+do not treat it as a way around the approval question.
+
 ### What already exists (verified, do not rebuild)
 
 `POST /api/platforms/espn/connect` accepts `{ leagueId, espn_s2, swid, espnTeamId }`, validates via

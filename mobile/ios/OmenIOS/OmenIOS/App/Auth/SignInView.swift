@@ -2,6 +2,10 @@ import SwiftUI
 
 private let canvasTileSurface = Color(red: 20 / 255, green: 20 / 255, blue: 22 / 255)
 
+enum AuthSignInCopy {
+    static let oauthBrowserDisclosure = "Google and Discord open a secure Omen sign-in page. We only receive the sign-in result."
+}
+
 /// First-run sign-in and re-auth surface. The cold-start path is provider first; email OTP
 /// remains the recovery path and moves to its own six-digit screen after the email is submitted.
 struct SignInView: View {
@@ -135,6 +139,15 @@ struct SignInView: View {
                     )
                 }
                 .accessibilityElement(children: .contain)
+
+                if viewModel.googleSignInAvailable || viewModel.discordSignInAvailable {
+                    Text(AuthSignInCopy.oauthBrowserDisclosure)
+                        .omenTextStyle(OmenTypography.bodySmall)
+                        .foregroundStyle(OmenColor.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, OmenSpacing.step16)
+                }
 
                 if emailEntryVisible {
                     emailEntry

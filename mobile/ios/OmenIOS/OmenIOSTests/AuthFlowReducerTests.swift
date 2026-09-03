@@ -7,6 +7,15 @@ import XCTest
 final class AuthFlowReducerTests: XCTestCase {
     private let session = Session(userID: "u1", accessToken: "a", refreshToken: "r", expiresAtEpochSeconds: 9_999)
 
+    func testOAuthBrowserDisclosureDoesNotNameTheSupabaseProjectHost() {
+        XCTAssertEqual(
+            AuthSignInCopy.oauthBrowserDisclosure,
+            "Google and Discord open a secure Omen sign-in page. We only receive the sign-in result."
+        )
+        XCTAssertFalse(AuthSignInCopy.oauthBrowserDisclosure.lowercased().contains("supabase"))
+        XCTAssertFalse(AuthSignInCopy.oauthBrowserDisclosure.lowercased().contains("xyudxf"))
+    }
+
     func testEmailHappyPathReachesAuthenticated() {
         var state: AuthFlowState = .idle
 

@@ -69,7 +69,7 @@ enum OmenContextualHelpContent {
                     OmenHelpTip(
                         label: "Needs a connected league",
                         // Native provider truth, not the web's. See ConnectProvider.availability.
-                        body: "Omen reads your roster from a connected league. Sleeper connects in the app; ESPN connects on the Omen website."
+                        body: "Omen reads your roster from a connected league. Sleeper, Yahoo, and ESPN all connect in the app."
                     ),
                     OmenHelpTip(
                         label: "Confidence",
@@ -141,7 +141,10 @@ enum OmenContextualHelpContent {
                     ),
                     OmenHelpTip(
                         label: "ESPN",
-                        body: "ESPN needs your browser to connect securely. Connect it once on the Omen website and it'll show up here."
+                        // ESPN became an in-app connection on 2026-09-02 (W1-A). This said "connect
+                        // it once on the Omen website" through two reworks; help that contradicts
+                        // the app is worse than no help, which is why a test now pins it.
+                        body: "Sign in to ESPN and pick your league. Omen never sees your ESPN password, and you can disconnect any time in Account."
                     ),
                     OmenHelpTip(
                         label: "Changing later",
