@@ -8,13 +8,18 @@ import kotlin.test.assertTrue
 class AccountDeletionTest {
 
     @Test fun confirmsOnlyExactPhrase() {
-        assertTrue(AccountDeletion.isConfirmed("DELETE MY OMEN DATA"))
+        assertTrue(AccountDeletion.isConfirmed("delete"))
     }
 
     @Test fun rejectsNearMisses() {
         assertFalse(AccountDeletion.isConfirmed("delete my omen data"))
-        assertFalse(AccountDeletion.isConfirmed("DELETE MY OMEN DATA "))
-        assertFalse(AccountDeletion.isConfirmed(" DELETE MY OMEN DATA"))
+        // Trimmed and case-insensitive since 2026-09-03 — autocapitalize makes "Delete" the
+        // likeliest thing a phone user types. A different word must still fail.
+        assertTrue(AccountDeletion.isConfirmed(" Delete "))
+        assertTrue(AccountDeletion.isConfirmed("DELETE"))
+        assertFalse(AccountDeletion.isConfirmed(""))
+        assertFalse(AccountDeletion.isConfirmed("del"))
+        assertFalse(AccountDeletion.isConfirmed("delete my account"))
         assertFalse(AccountDeletion.isConfirmed("DELETE MY DATA"))
         assertFalse(AccountDeletion.isConfirmed(""))
     }

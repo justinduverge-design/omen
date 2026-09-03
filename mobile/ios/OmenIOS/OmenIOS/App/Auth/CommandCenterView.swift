@@ -17,6 +17,10 @@ struct CommandCenterView: View {
     @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
     @StateObject private var leagueSwitcherViewModel: LeagueSwitcherViewModel
     private let connectRepository: ConnectRepository
+    /// Held as well as consumed into `leagueSwitcherViewModel`: Account's connected-leagues
+    /// section needs the same seam, and it owns its own view model rather than sharing the
+    /// switcher's — the two read the same route for different reasons and fail independently.
+    private let leagueDirectoryRepository: LeagueDirectoryRepository
     @State private var showAccountSheet: Bool = false
     @State private var showConnectSheet: Bool = false
     @State private var showSwitcherSheet: Bool = false
@@ -64,6 +68,7 @@ struct CommandCenterView: View {
             repository: leagueDirectoryRepository,
             sessionManager: sessionManager
         ))
+        self.leagueDirectoryRepository = leagueDirectoryRepository
     }
 
     var body: some View {
@@ -215,7 +220,12 @@ struct CommandCenterView: View {
         }
         .sheet(isPresented: $showAccountSheet) {
             NavigationStack {
-                AccountView(userID: userID, sessionManager: sessionManager, authViewModel: authViewModel)
+                AccountView(
+                    userID: userID,
+                    sessionManager: sessionManager,
+                    authViewModel: authViewModel,
+                    leagueDirectoryRepository: leagueDirectoryRepository
+                )
                     .navigationTitle("Account")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

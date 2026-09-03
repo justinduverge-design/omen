@@ -1,13 +1,20 @@
 import Foundation
 
-/// Mirrors Android `core/auth/AccountDeletion.kt`. The confirmation phrase is an exact,
-/// case-sensitive match with no trimming — mirrors the backend's strict `!==` check in
-/// `src/routes/userPrivacy.js`. Changing this phrase needs a fresh founder decision (M0c §2.3).
+/// Mirrors Android `core/auth/AccountDeletion.kt` and the backend check in
+/// `src/routes/userPrivacy.js`. All three move together — the server is the enforcer, so a
+/// client that disagrees with it simply cannot delete an account.
+///
+/// **Shortened from "DELETE MY OMEN DATA" on 2026-09-03 (founder).** The long phrase made an
+/// already-deliberate action tedious, and on a phone it fought autocapitalize and autocorrect
+/// the whole way. Matching is now case-insensitive and trimmed, which the long phrase
+/// deliberately was not: with one short word, strictness stops being a safety property and
+/// becomes a way to fail someone who typed "Delete". The guardrail was never the casing — it is
+/// that the user types a word at all rather than tapping once.
 enum AccountDeletion {
-    static let requiredPhrase = "DELETE MY OMEN DATA"
+    static let requiredPhrase = "delete"
 
     static func isConfirmed(_ input: String) -> Bool {
-        input == requiredPhrase
+        input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == requiredPhrase
     }
 }
 

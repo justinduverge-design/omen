@@ -6,6 +6,8 @@ struct AccountView: View {
     let userID: String
     @ObservedObject var sessionManager: SessionManager
     @ObservedObject var authViewModel: AuthViewModel
+    /// Nil in demo mode and in previews — there are no real connections to manage there.
+    var leagueDirectoryRepository: LeagueDirectoryRepository?
     @State private var showingDeleteConfirmation = false
 
     private var isDemo: Bool { userID == SessionManager.demoUserID }
@@ -36,6 +38,15 @@ struct AccountView: View {
                 .accessibilityHint("Double tap to open Help and Support")
 
                 OmenButton(title: "Sign out", action: { sessionManager.signOut() }, variant: .secondary, size: .lg)
+
+                if !isDemo, let leagueDirectoryRepository {
+                    // The ESPN consent screen promises a disconnect "any time in Account".
+                    // Until this section existed, that sentence was false.
+                    ConnectedPlatformsSection(
+                        repository: leagueDirectoryRepository,
+                        sessionManager: sessionManager
+                    )
+                }
 
                 if !isDemo {
                     passkeysSection

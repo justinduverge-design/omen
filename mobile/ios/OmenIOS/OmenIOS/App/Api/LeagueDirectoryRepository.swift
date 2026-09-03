@@ -12,6 +12,13 @@ protocol LeagueDirectoryRepository {
         leagueID: String,
         teamID: String?
     ) async -> Result<LeagueSelectionResult, OmenApiError>
+
+    /// Disconnects a platform entirely — `DELETE /api/platforms/:platform`.
+    ///
+    /// The ESPN consent screen tells the user they can disconnect any time in Account. Until
+    /// this existed that sentence was false: the route has shipped for months, and no client
+    /// ever called it.
+    func disconnect(accessToken: String, platform: String) async -> Result<Void, OmenApiError>
 }
 
 struct ApiLeagueDirectoryRepository: LeagueDirectoryRepository {
@@ -42,6 +49,21 @@ struct ApiLeagueDirectoryRepository: LeagueDirectoryRepository {
             as: LeagueSelectionResult.self
         )
     }
+
+    func disconnect(accessToken: String, platform: String) async -> Result<Void, OmenApiError> {
+        let result = await client.delete(
+            "api/platforms/\(platform)",
+            accessToken: accessToken,
+            as: PlatformDisconnectResult.self
+        )
+        return result.map { _ in () }
+    }
+}
+
+/// `DELETE /api/platforms/:platform` → `{ disconnected, platform }`.
+private struct PlatformDisconnectResult: Decodable {
+    let disconnected: Bool?
+    let platform: String?
 }
 
 /// Test/preview double, matching the `Stub*Repository` convention already in this folder.
@@ -53,12 +75,15 @@ struct StubLeagueDirectoryRepository: LeagueDirectoryRepository {
     /// sent rather than only that the UI changed.
     final class Recorder: @unchecked Sendable {
         private(set) var calls: [(platform: String, leagueID: String, teamID: String?)] = []
+        private(set) var disconnected: [String] = []
         func record(_ platform: String, _ leagueID: String, _ teamID: String?) {
             calls.append((platform, leagueID, teamID))
         }
+        func recordDisconnect(_ platform: String) { disconnected.append(platform) }
     }
 
     var recorder: Recorder?
+    var disconnectResult: Result<Void, OmenApiError> = .success(())
 
     func fetchDirectory(accessToken: String) async -> Result<LeagueDirectory, OmenApiError> {
         directory
@@ -72,5 +97,10 @@ struct StubLeagueDirectoryRepository: LeagueDirectoryRepository {
     ) async -> Result<LeagueSelectionResult, OmenApiError> {
         recorder?.record(platform, leagueID, teamID)
         return selection
+    }
+
+    func disconnect(accessToken: String, platform: String) async -> Result<Void, OmenApiError> {
+        recorder?.recordDisconnect(platform)
+        return disconnectResult
     }
 }

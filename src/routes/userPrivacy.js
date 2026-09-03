@@ -9,7 +9,26 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
-const DELETE_CONFIRMATION = "DELETE MY OMEN DATA";
+// Shortened from "DELETE MY OMEN DATA" on 2026-09-03 (founder). The long phrase made an
+// already-deliberate action tedious, and on a phone it fought autocapitalize and autocorrect
+// the whole way — the founder hit it while trying to reset an account for testing.
+//
+// Matched case-insensitively and trimmed, which the long phrase deliberately was not. With one
+// short word, strictness stops being a safety property and becomes a way to fail someone who
+// typed "Delete". The guardrail was never the exact casing — it is that the user must type a
+// word at all rather than tap once.
+const DELETE_CONFIRMATION = "delete";
+
+// **Kept accepted deliberately.** Every already-installed app and the currently-deployed web
+// bundle still send the old phrase, and this route is the App Store 5.1.1 deletion path — a
+// window where a stale client cannot delete their own account is the one outcome worse than a
+// long phrase. Retire this only once no shipped client sends it.
+const LEGACY_DELETE_CONFIRMATION = "DELETE MY OMEN DATA";
+
+function isDeleteConfirmed(raw) {
+  const text = String(raw ?? "").trim();
+  return text.toLowerCase() === DELETE_CONFIRMATION || text === LEGACY_DELETE_CONFIRMATION;
+}
 const LEGAL_VERSION = "2026-08-02";
 const LEGAL_CONSENT_TYPES = [
   `age_13_plus:${LEGAL_VERSION}`,
@@ -189,9 +208,9 @@ router.post("/legal-acceptance", requireAuth, async (req, res, next) => {
 
 router.delete("/delete", requireAuth, async (req, res, next) => {
   try {
-    if (req.body?.confirmation !== DELETE_CONFIRMATION) {
+    if (!isDeleteConfirmed(req.body?.confirmation)) {
       return res.status(400).json({
-        error: `confirmation must exactly equal "${DELETE_CONFIRMATION}"`,
+        error: `confirmation must equal "${DELETE_CONFIRMATION}"`,
       });
     }
 
@@ -243,5 +262,7 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.DELETE_CONFIRMATION = DELETE_CONFIRMATION;
+module.exports.LEGACY_DELETE_CONFIRMATION = LEGACY_DELETE_CONFIRMATION;
+module.exports.isDeleteConfirmed = isDeleteConfirmed;
 module.exports.LEGAL_VERSION = LEGAL_VERSION;
 module.exports.redactPlatformConnection = redactPlatformConnection;

@@ -3,15 +3,21 @@ package com.slopssaloon.omen.core.auth
 /**
  * In-app account deletion (App Store Review Guideline 5.1.1, M0c §2.3).
  *
- * Tied to the existing authenticated web flow `DELETE /api/user/delete`, which requires the
- * confirmation phrase to **exactly** equal [REQUIRED_PHRASE]. The phrase is a product guardrail
- * (facts-of-record / sprint guardrails) — do not change it without fresh founder approval.
+ * Tied to the authenticated flow `DELETE /api/user/delete`. The server is the enforcer, so this
+ * and the iOS mirror must agree with `src/routes/userPrivacy.js` — a client that disagrees
+ * simply cannot delete an account.
+ *
+ * **Shortened from "DELETE MY OMEN DATA" on 2026-09-03 (founder).** The long phrase made an
+ * already-deliberate action tedious, and on a phone it fought autocapitalize and autocorrect the
+ * whole way. Matching is now case-insensitive and trimmed, which the long phrase deliberately
+ * was not: with one short word, strictness stops being a safety property and becomes a way to
+ * fail someone who typed "Delete". The guardrail was never the casing — it is that the user
+ * types a word at all rather than tapping once.
  */
 object AccountDeletion {
-    const val REQUIRED_PHRASE: String = "DELETE MY OMEN DATA"
+    const val REQUIRED_PHRASE: String = "delete"
 
-    /** Exact match — mirrors the backend's strict `!==` check (no trimming, case-sensitive). */
-    fun isConfirmed(input: String): Boolean = input == REQUIRED_PHRASE
+    fun isConfirmed(input: String): Boolean = input.trim().lowercase() == REQUIRED_PHRASE
 }
 
 /** Result of a deletion request. Opaque and safe — never carries raw provider/server text. */

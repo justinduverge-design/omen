@@ -94,6 +94,16 @@ struct OmenApiClient {
         )
     }
 
+    /// Authenticated DELETE. Added for `DELETE /api/platforms/:platform` — the disconnect the
+    /// ESPN consent screen has been promising since it shipped, with no client behind it.
+    ///
+    /// Returns the decoded body like the others rather than discarding it: the route answers
+    /// `{ disconnected, platform }`, and a caller that ignores the body cannot tell a real
+    /// disconnect from a 200 that did nothing.
+    func delete<T: Decodable>(_ path: String, accessToken: String, as type: T.Type) async -> Result<T, OmenApiError> {
+        await send(makeRequest(path: path, method: "DELETE", accessToken: accessToken, body: nil), as: type)
+    }
+
     private func makeRequest(
         path: String,
         method: String,

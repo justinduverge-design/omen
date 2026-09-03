@@ -8,6 +8,8 @@ const test = require("node:test");
 
 const {
   DELETE_CONFIRMATION,
+  LEGACY_DELETE_CONFIRMATION,
+  isDeleteConfirmed,
   redactPlatformConnection,
 } = require("../src/routes/userPrivacy");
 
@@ -42,5 +44,26 @@ test("privacy export redacts raw tokens and Vault secret identifiers from platfo
 });
 
 test("privacy deletion requires an explicit product-specific confirmation phrase", () => {
-  assert.equal(DELETE_CONFIRMATION, "DELETE MY OMEN DATA");
+  assert.equal(DELETE_CONFIRMATION, "delete");
+});
+
+test("account deletion accepts the short phrase however a phone capitalizes it", () => {
+  // Shortened from "DELETE MY OMEN DATA" on 2026-09-03. Autocapitalize makes "Delete" the
+  // likeliest thing typed on a phone, and a trailing space is one fat-finger away; failing a
+  // user there protects nothing. The guardrail is that a word is typed at all.
+  for (const accepted of ["delete", "Delete", "DELETE", "  delete  "]) {
+    assert.equal(isDeleteConfirmed(accepted), true, `should accept ${JSON.stringify(accepted)}`);
+  }
+  for (const rejected of ["", "   ", "del", "delete my account", "remove", null, undefined]) {
+    assert.equal(isDeleteConfirmed(rejected), false, `should reject ${JSON.stringify(rejected)}`);
+  }
+});
+
+test("account deletion still accepts the legacy phrase shipped clients send", () => {
+  // **Do not delete this test to tidy up.** Every already-installed app and the deployed web
+  // bundle send the old phrase, and this is the App Store 5.1.1 deletion path — a window where
+  // a stale client cannot delete their own account is worse than a long phrase ever was.
+  // Retire the legacy branch only once no shipped client sends it.
+  assert.equal(LEGACY_DELETE_CONFIRMATION, "DELETE MY OMEN DATA");
+  assert.equal(isDeleteConfirmed("DELETE MY OMEN DATA"), true);
 });
