@@ -351,6 +351,30 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertNotEqual(failure.message, ConnectFailure.espnSessionUnreadable.message)
     }
 
+    /// **Regression: a successful discovery used to cancel itself.** The sheet is bound to
+    /// `state == .espnSigningIn`, so moving to `.discoveringEspnLeagues` dismisses it — and
+    /// SwiftUI reports that dismissal through the same setter as a user swipe. The result on a
+    /// real phone was the ESPN sheet flashing red for a second and the user landing on "Nothing
+    /// was connected", with their leagues already fetched and thrown away.
+    func testDismissalCausedByMovingOnDoesNotCancelTheFlow() async {
+        var repository = StubConnectRepository()
+        repository.espnDiscoverResult = .success([
+            EspnLeagueOption(id: "1", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "Titans"),
+        ])
+        let viewModel = await espnReadyViewModel(repository: repository)
+
+        guard case .choosingEspnLeague = viewModel.state else {
+            return XCTFail("expected the picker, got \(viewModel.state)")
+        }
+
+        // Exactly what the dismissing cover does on its way out.
+        viewModel.cancelEspnSignIn()
+
+        guard case .choosingEspnLeague = viewModel.state else {
+            return XCTFail("a dismissal caused by moving on must not cancel: \(viewModel.state)")
+        }
+    }
+
     /// Backing out of ESPN's sign-in is normal. No error state, and no session left behind.
     func testCancellingEspnSignInIsNotAnError() async {
         let viewModel = await espnReadyViewModel(repository: StubConnectRepository())

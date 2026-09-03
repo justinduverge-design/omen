@@ -278,7 +278,22 @@ final class ConnectViewModel: ObservableObject {
     }
 
     /// Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
+    ///
+    /// **Guarded, and the guard is the whole point.** The sign-in sheet is a `fullScreenCover`
+    /// bound to `state == .espnSigningIn`, so *any* move off that state dismisses it — and
+    /// SwiftUI reports every dismissal through the same setter, with no way to tell the user
+    /// swiping it away from the app navigating onward. Ungurded, a **successful** discovery
+    /// dismissed the sheet and then immediately cancelled itself: on a real phone the ESPN
+    /// sheet flashed red for a second and the user landed on "Nothing was connected."
+    ///
+    /// It hid until the discovery route was deployed, because before that discovery failed and
+    /// fell back to `.espnSigningIn` — the sheet never closed, so the setter never fired.
+    ///
+    /// Cancelling a sign-in that is no longer on screen is meaningless, so this is a no-op then.
+    /// The guard lives here rather than in the view's binding so no future call site can get it
+    /// wrong, and so it is testable without a view.
     func cancelEspnSignIn() {
+        guard state == .espnSigningIn else { return }
         clearEspnSession()
         state = .canceled
     }
