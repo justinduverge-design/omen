@@ -2,9 +2,9 @@
 
 **Date:** 2026-09-03
 **Session:** Claude Code, founder-directed, single sitting
-**Commits:** `b2f348a` → `8e9ae4e` on `main` (plus `feat/espn-in-app-connect`)
-**Headline:** a real iPhone signed in to ESPN inside Omen and connected a real league, with no
-computer involved. Android is at parity in code and on an emulator.
+**Commits:** `b2f348a` → `cb83423` on `main` (plus `feat/espn-in-app-connect`)
+**Headline:** ESPN connects from a phone on both platforms, with the founder's own account.
+**W1-A acceptance is complete** — see the addendum, and its one recorded residual.
 
 ---
 
@@ -56,7 +56,33 @@ rendered dark-on-dark and were invisible in light mode on a real phone.
 
 ---
 
-## What is NOT done, and must not be assumed
+## ADDENDUM, same day — W1-A acceptance is now COMPLETE
+
+Written after the section below, which is left intact because the sequence is the useful part.
+
+- **The zero-emitted-bytes clause is met on both platforms.**
+  `OmenIOSTests/EspnEmittedBytesTests.swift` (6) and `EspnEmittedBytesTest.kt` (5) drive the real
+  repository and view model through a full connect including a provoked 500 and its retry, then
+  search every URL, header, bearer and body handed to the transport. **Each suite was verified by
+  injecting a deliberate leak** — 5 of 6 failed on iOS, 4 of 5 on Android — and verified per
+  platform, because the seams differ.
+  - **Amendment needing ratification:** the clause says "the *single* connect request"; there are
+    now two authorized carriers, since `/espn/leagues` was added for discovery after the contract
+    was written.
+- **Android connected a real ESPN league**, founder's own account, on the `medium_phone` AVD.
+  - **Residual:** emulator, not hardware. The iOS clause forbids a simulator pass; the Android
+    clause says only "reaches parity", which is met. Do not read VERIFIED as "proven on an Android
+    handset".
+- **Still true and unchanged:** `entryId` / `entry.name` unconfirmed in ESPN's bundle (blank team
+  names are the likely cosmetic surprise); guideline 5.2.2 exposure sits on the whole listing; no
+  CI runs Android unit tests (`W1-ANDROID-CI`).
+
+---
+
+## What was NOT done at the time this handoff was first written
+
+*(Items 1 and 2 are now closed — see the addendum above. Kept because the order in which they
+closed is the record.)*
 
 1. **W1-A's "zero emitted bytes" clause is unmet on both platforms.** `espn_s2`/`SWID` must be
    proved absent from every emitted byte outside the single connect request — "by provoking a real

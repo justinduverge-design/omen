@@ -178,9 +178,18 @@ This is a client-only build against a route already in production.
     which are the only channels the app emits through — no analytics SDK, and the sole `NSLog` is
     a status code in `SentryEnvelopeReporter`. It does **not** cover the WebView's own traffic to
     ESPN, which necessarily carries the cookie: that is the browser being a browser.
-- ⚠️ **Android reaches parity in the same wave** (workshop Part 3: platforms move together). Code
-  parity met 2026-09-03 and proven on an emulator; **Android has never run against a real ESPN
-  account.** Fixtures and a cookie spike only. This is the remaining gate.
+- ✅ **Android reaches parity in the same wave** (workshop Part 3: platforms move together). Met
+  2026-09-03: the founder signed in with his own MyDisney/ESPN account on the `medium_phone` AVD
+  and completed the flow end to end.
+  - **Residual, stated rather than buried:** that pass was on an **emulator**, not physical Android
+    hardware. The iOS clause above is explicit that a simulator pass does not satisfy it; this
+    clause says only "reaches parity", which is met — but nobody should later read this as "proven
+    on an Android handset". It is not. A physical-device pass is cheap once one is at hand.
+
+**W1-A acceptance is complete as of 2026-09-03.** The mechanism was measured before it was built
+on both platforms, the emitted-bytes proof was itself verified by injecting a leak, and both
+platforms have now connected a real ESPN league from a phone-shaped surface with no computer
+involved.
 
 ---
 

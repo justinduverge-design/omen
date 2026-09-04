@@ -1058,7 +1058,7 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-A — ESPN in-app connect sheet (iOS + Android)
 
-- **Status:** IN REVIEW — built and working on both platforms; **two acceptance clauses unmet**
+- **Status:** VERIFIED — 2026-09-03. All acceptance clauses met; one residual noted below.
 - **Claim:** a real iPhone signs in to ESPN inside Omen and connects a league end to end, no
   computer involved. Android is at parity in code and on an emulator.
 - **Evidence:** founder device test 2026-09-03 — *The Titans of Slopsilonia* connected from a
@@ -1077,11 +1077,16 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
     request"; there are now **two** authorized carriers, because `POST /api/platforms/espn/leagues`
     was added for discovery after the contract was written. The tests encode the amended version.
     See `omen-wave1-contract-v1.md` §W1-A Acceptance.
-- **Still unmet — do not close on the above:**
-  1. **Android has never run against a real ESPN account.** Fixtures, unit tests and a cookie spike
-     only. **FOUNDER_DEVICE** — needs a real ESPN sign-in on an Android device or emulator; the
-     debug APK is at `mobile/android/app/build/outputs/apk/debug/app-debug.apk` and installs on the
-     `medium_phone` AVD.
+- **✅ Android verified against a real ESPN account, 2026-09-03.** Founder signed in with his own
+  MyDisney/ESPN account on the `medium_phone` AVD and completed the flow. This was the last open
+  clause.
+- **Residual, stated rather than buried:** that pass was on an **emulator**, not physical Android
+  hardware. The contract's iOS clause is explicit that "a simulator pass does not satisfy it"; the
+  Android clause says only "reaches parity", which this meets. Nobody should later read VERIFIED as
+  "proven on an Android handset" — it is not. A physical-device pass is cheap once one is at hand:
+  the debug APK is at `mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
+- **Also still true:** `entryId` / `entry.name` remain unconfirmed in ESPN's own client bundle, so
+  blank team names in the picker are the likeliest cosmetic surprise. The league id is verified.
 - **Also open:** ESPN's `entryId` / `entry.name` are not confirmed in ESPN's own client bundle, so
   team names in the picker are the likeliest thing to come back blank. Cosmetic; the league id is
   verified.

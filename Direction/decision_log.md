@@ -1,5 +1,30 @@
 # Omen Decision Log
 
+## 2026-09-03 (close) — W1-A acceptance is complete
+
+- **Android connected a real ESPN league.** The founder signed in with his own MyDisney/ESPN
+  account on the `medium_phone` AVD and completed the flow end to end. That was the last open
+  clause; **W1-A acceptance is now complete on both platforms.**
+- **Residual recorded rather than buried: the Android pass was on an emulator, not hardware.** The
+  contract's iOS clause is explicit that "a simulator pass does not satisfy it"; the Android clause
+  says only "reaches parity", which this meets. The distinction is written into the sprint item and
+  the contract so nobody later reads VERIFIED as "proven on an Android handset" — it is not.
+- **What the whole wave actually turned on, worth keeping:** every load-bearing claim in it was
+  wrong at some point and was corrected by measurement, not argument.
+  - `WKHTTPCookieStore` redacting HttpOnly — **wrong**, inferred from WebKit test fixtures and
+    unchecked for two months.
+  - The first cookie spike reporting "not readable" — **wrong**, and only its control test caught
+    that the store had dropped every write.
+  - Three ESPN entry URLs chosen from client-rendered markup — **all three wrong** on a real device.
+  - `typeId === 9` as the fantasy-team filter — **invented**, and it would have emptied every
+    user's league list while looking like an account with no leagues.
+  - The parser ignoring negative `groupId` — **wrong**, caught by reading ESPN's own bundle, which
+    normalizes with `Math.abs`.
+  - The emitted-bytes suites passing — **unproven** until a leak was injected and they failed.
+  The pattern is one thing: a claim about someone else's system is worth nothing until that
+  system's own behavior is observed. Reading ESPN's production bundle settled in minutes what two
+  months of inference had backwards.
+
 ## 2026-09-03 (later) — the zero-emitted-bytes clause is met, and it needed amending
 
 - **W1-A's "`espn_s2`/`SWID` in zero emitted bytes" clause is MET on both platforms**, proved the
