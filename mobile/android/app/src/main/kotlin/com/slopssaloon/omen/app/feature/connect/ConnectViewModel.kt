@@ -34,6 +34,128 @@ class ConnectViewModel(
      */
     private var pendingRequestId: String? = null
 
+    // ---- Multiselect ----
+    //
+    // A user with three ESPN leagues used to connect once and lose two of them: every picker
+    // took a single tap and bound one league, and there was nowhere else to say the others
+    // existed. The pickers now toggle, and the confirm step does two things — binds the first
+    // pick as the ACTIVE league (the one Omen reasons about) and follows all of them (the ones
+    // the carousel can swipe to). iOS mirror: `ConnectViewModel` multiselect section.
+
+    /**
+     * League ids ticked in the current picker. Empty means "nothing chosen yet", which is why
+     * confirm is disabled rather than defaulting to the first row.
+     */
+    var selectedLeagueIds: Set<String> by mutableStateOf(emptySet())
+        private set
+
+    /**
+     * Set after a multiselect the server accepted but could not store, so the copy can say
+     * which leagues survive this session rather than claiming a save that did not happen.
+     */
+    var followsNotPersisted: Boolean by mutableStateOf(false)
+        private set
+
+    fun toggleLeague(id: String) {
+        selectedLeagueIds = if (id in selectedLeagueIds) selectedLeagueIds - id else selectedLeagueIds + id
+    }
+
+    fun isLeagueSelected(id: String): Boolean = id in selectedLeagueIds
+
+    /** At least one league, and nothing already in flight. */
+    val canConfirmLeagueSelection: Boolean
+        get() = selectedLeagueIds.isNotEmpty() && !state.isBusy
+
+    /**
+     * The confirm button's label. Says how many, because the count is the whole point of the
+     * change and a bare "Connect" would hide it.
+     */
+    val confirmLeagueSelectionLabel: String
+        get() = when (selectedLeagueIds.size) {
+            0 -> "Pick a league"
+            1 -> "Connect this league"
+            else -> "Connect ${selectedLeagueIds.size} leagues"
+        }
+
+    private fun clearLeagueSelection() {
+        selectedLeagueIds = emptySet()
+    }
+
+    /**
+     * Records the followed set after the active league is bound.
+     *
+     * Runs AFTER the connect, never instead of it: following a league on a provider with no
+     * stored credentials would be a row pointing at something Omen cannot read. A failure here
+     * is deliberately not surfaced as a connect failure — the connection genuinely succeeded,
+     * and turning a working connection into an error screen over the follow set would be the
+     * worse outcome.
+     */
+    private suspend fun recordFollows(platform: String, leagues: List<FollowedLeague>) {
+        if (leagues.size <= 1) return
+        val accessToken = bearer() ?: return
+        repository.followLeagues(platform, leagues, accessToken)
+            .onSuccess { followsNotPersisted = !it }
+    }
+
+    /**
+     * Confirms the Sleeper multiselect.
+     *
+     * The first ticked league in the picker's own order becomes the active one. "First in the
+     * list the user was looking at" is the only ordering rule that needs no explanation on
+     * screen — any other choice (most recent, alphabetical, largest) would have to be taught.
+     */
+    suspend fun confirmSleeperSelection() {
+        val account = (state as? ConnectState.ChoosingLeague)?.account ?: return
+        if (!canConfirmLeagueSelection) return
+        val chosen = account.leagues.filter { it.id in selectedLeagueIds }
+        val primary = chosen.firstOrNull() ?: return
+
+        pendingRequestId = makeRequestId()
+        connect(primary, account.username)
+
+        // Only once the connection actually exists.
+        if (state is ConnectState.Connected) {
+            recordFollows(
+                "sleeper",
+                chosen.map { FollowedLeague(it.id, null, it.name, it.season) },
+            )
+        }
+    }
+
+    /** Confirms the ESPN multiselect. Same rule as Sleeper: first ticked becomes active. */
+    suspend fun confirmEspnSelection() {
+        val options = (state as? ConnectState.ChoosingEspnLeague)?.options ?: return
+        if (!canConfirmLeagueSelection) return
+        val chosen = options.filter { it.id in selectedLeagueIds }
+        val primary = chosen.firstOrNull() ?: return
+
+        connectEspnLeague(primary)
+
+        if (state is ConnectState.EspnConnected) {
+            recordFollows(
+                "espn",
+                chosen.map { FollowedLeague(it.id, it.teamId, it.name, it.season) },
+            )
+        }
+    }
+
+    /** Confirms the Yahoo multiselect. Same rule: first ticked becomes active. */
+    suspend fun confirmYahooSelection() {
+        val leagues = (state as? ConnectState.ChoosingYahooLeague)?.leagues ?: return
+        if (!canConfirmLeagueSelection) return
+        val chosen = leagues.filter { it.id in selectedLeagueIds }
+        val primary = chosen.firstOrNull() ?: return
+
+        bindYahooLeague(primary)
+
+        if (state is ConnectState.YahooConnected) {
+            recordFollows(
+                "yahoo",
+                chosen.map { FollowedLeague(it.id, null, it.name, it.season) },
+            )
+        }
+    }
+
     // ---- ESPN (W1-A) ----
 
     /** What the ESPN sign-in sheet has observed. Drives whether Connect is offered. */
@@ -176,6 +298,7 @@ class ConnectViewModel(
         repository.discoverEspnLeagues(session.first, session.second, accessToken)
             .onSuccess { leagues ->
                 if (leagues.isNotEmpty()) {
+                    clearLeagueSelection()
                     state = ConnectState.ChoosingEspnLeague(leagues)
                 } else {
                     espnNotice = EspnHandoffCopy.NO_LEAGUES_FOUND
@@ -300,7 +423,7 @@ class ConnectViewModel(
 
         state = ConnectState.ResolvingAccount
         repository.resolveSleeper(trimmed, accessToken)
-            .onSuccess { state = ConnectState.ChoosingLeague(it) }
+            .onSuccess { clearLeagueSelection(); state = ConnectState.ChoosingLeague(it) }
             .onFailure { state = ConnectState.RetryableError(it.asConnectFailure()) }
     }
 
@@ -397,7 +520,14 @@ class ConnectViewModel(
                 // One league is not a choice. Binding it directly removes a screen whose only
                 // possible answer was already known.
                 val only = leagues.singleOrNull()
-                if (only != null) bindYahooLeague(only) else state = ConnectState.ChoosingYahooLeague(leagues)
+                if (only != null) {
+                    bindYahooLeague(only)
+                } else {
+                    // Clear first, so a second run through the picker never inherits the
+                    // ticks from the first.
+                    clearLeagueSelection()
+                    state = ConnectState.ChoosingYahooLeague(leagues)
+                }
             }
             .onFailure { state = ConnectState.RetryableError(it.asConnectFailure()) }
     }

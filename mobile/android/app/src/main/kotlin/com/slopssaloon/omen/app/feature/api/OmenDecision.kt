@@ -113,7 +113,7 @@ data class OmenDecisionEnvelope(
             "Omen could not verify whether this recommendation is live. Refresh or update before acting."
 
 
-        private fun JSONObject.optIntOrNull(key: String): Int? = if (isNull(key)) null else optInt(key)
+        
 
         private fun JSONObject.optDoubleOrNull(key: String): Double? =
             if (isNull(key)) null else optDouble(key).takeIf { !it.isNaN() }

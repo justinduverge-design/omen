@@ -60,6 +60,22 @@ protocol ConnectRepository {
         swid: String,
         accessToken: String
     ) async -> Result<[EspnLeagueOption], ConnectFailure>
+
+    /// `POST /api/leagues/follows` — the multiselect write.
+    ///
+    /// Separate from the per-provider connect calls on purpose. Connecting establishes the
+    /// CREDENTIALS and binds one active league; following records which of that account's
+    /// leagues the user actually wants to see. A user with three ESPN leagues connects once
+    /// and follows three times, and collapsing the two would mean re-authorising per league.
+    ///
+    /// Returns whether the set persisted. `false` is not a failure — it is the server saying
+    /// `league_follows` does not exist yet, and the copy must not claim a save that did not
+    /// happen.
+    func followLeagues(
+        platform: String,
+        leagues: [FollowedLeague],
+        accessToken: String
+    ) async -> Result<Bool, ConnectFailure>
 }
 
 struct ApiConnectRepository: ConnectRepository {
@@ -270,6 +286,26 @@ struct ApiConnectRepository: ConnectRepository {
         }
     }
 
+    func followLeagues(
+        platform: String,
+        leagues: [FollowedLeague],
+        accessToken: String
+    ) async -> Result<Bool, ConnectFailure> {
+        let result = await client.post(
+            "api/leagues/follows",
+            accessToken: accessToken,
+            body: ["platform": platform, "leagues": leagues.map(\.wireBody)],
+            as: FollowsResponse.self
+        )
+
+        switch result {
+        case .success(let response):
+            return .success(response.followPersistence == "explicit")
+        case .failure(let error):
+            return .failure(Self.map(error, notFoundMeans: .server))
+        }
+    }
+
     private static func map(_ error: OmenApiError, notFoundMeans: ConnectFailure) -> ConnectFailure {
         switch error {
         case .network: return .network
@@ -281,6 +317,34 @@ struct ApiConnectRepository: ConnectRepository {
 }
 
 // MARK: - Wire shapes
+
+/// One league in a multiselect. Labels ride along so the server can store them for a
+/// carousel page whose provider is momentarily failing to describe it; they are display
+/// only and are never treated as identity.
+struct FollowedLeague: Equatable {
+    let leagueID: String
+    var teamID: String?
+    var leagueName: String?
+    var season: Int?
+
+    var wireBody: [String: Any] {
+        var body: [String: Any] = ["league_id": leagueID]
+        // Absent rather than null: the server treats a missing key as "nothing to record"
+        // and an explicit null as a value, and they must not be confused.
+        if let teamID, !teamID.isEmpty { body["team_id"] = teamID }
+        if let leagueName, !leagueName.isEmpty { body["league_name"] = leagueName }
+        if let season { body["season"] = season }
+        return body
+    }
+}
+
+private struct FollowsResponse: Decodable {
+    let followPersistence: String?
+
+    enum CodingKeys: String, CodingKey {
+        case followPersistence = "follow_persistence"
+    }
+}
 
 private struct SleeperResolveResponse: Decodable {
     let username: String?
@@ -456,6 +520,7 @@ struct StubConnectRepository: ConnectRepository {
     var espnConnectionResult: Result<EspnConnection?, ConnectFailure> = .success(nil)
     var espnConnectResult: Result<Void, ConnectFailure> = .failure(.network)
     var espnDiscoverResult: Result<[EspnLeagueOption], ConnectFailure> = .success([])
+    var followResult: Result<Bool, ConnectFailure> = .success(true)
     /// Records every request id the flow sent, so tests can prove idempotency behavior.
     final class Recorder {
         var requestIds: [String] = []
@@ -463,6 +528,9 @@ struct StubConnectRepository: ConnectRepository {
         var espnConnectionChecks = 0
         var espnDiscoveries = 0
         var espnConnectAttempts: [(leagueId: String, teamId: String?, sentSession: Bool)] = []
+        /// What the multiselect actually asked to follow, so a test can prove the extra
+        /// leagues were sent rather than only that the UI let them be ticked.
+        var followed: [(platform: String, leagueIDs: [String])] = []
     }
     var recorder = Recorder()
 
@@ -517,5 +585,14 @@ struct StubConnectRepository: ConnectRepository {
             (leagueId: capture.leagueId, teamId: capture.teamId, sentSession: !capture.espnS2.isEmpty && !capture.swid.isEmpty)
         )
         return espnConnectResult
+    }
+
+    func followLeagues(
+        platform: String,
+        leagues: [FollowedLeague],
+        accessToken: String
+    ) async -> Result<Bool, ConnectFailure> {
+        recorder.followed.append((platform: platform, leagueIDs: leagues.map(\.leagueID)))
+        return followResult
     }
 }

@@ -2,6 +2,8 @@ package com.slopssaloon.omen.app
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
+import com.slopssaloon.omen.app.feature.commandcenter.OmenTeamPicker
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +65,7 @@ import com.slopssaloon.omen.core.auth.SupabaseOAuthProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredGoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.UnconfiguredSupabaseOAuthProvider
 import com.slopssaloon.omen.app.feature.api.ApiLeagueDirectoryRepository
+import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.api.LeagueSwitcherViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueSwitcherSheet
 import com.slopssaloon.omen.app.feature.api.ApiDashboardRepository
@@ -167,6 +170,17 @@ fun OmenAndroidApp() {
     val leagueSwitcherViewModel = remember {
         LeagueSwitcherViewModel(
             repository = ApiLeagueDirectoryRepository(OmenApiClient(env.apiBaseUrl)),
+            sessionManager = sessionManager,
+        )
+    }
+
+    // The Command Center carousel. Its own view model rather than the switcher's: the two read
+    // the same route for different reasons, cache different things, and must fail
+    // independently — the same reasoning already recorded for the switcher above.
+    val leagueCarouselViewModel = remember {
+        LeagueCarouselViewModel(
+            directoryRepository = ApiLeagueDirectoryRepository(OmenApiClient(env.apiBaseUrl)),
+            leagueRepository = ApiLeagueRepository(OmenApiClient(env.apiBaseUrl)),
             sessionManager = sessionManager,
         )
     }
@@ -474,6 +488,7 @@ fun OmenAndroidApp() {
                             omenDecisionViewModel = omenDecisionViewModel,
                             leagueViewModel = leagueViewModel,
                             tradeViewModel = tradeViewModel,
+                            leagueCarouselViewModel = leagueCarouselViewModel,
                             onConnect = { showConnectSheet = true },
                             onOpenAccount = { showAccountSheet = true },
                             onSwitchContext = { showSwitcherSheet = true },
@@ -665,6 +680,7 @@ private fun SignedInDestination(
     omenDecisionViewModel: OmenDecisionViewModel,
     leagueViewModel: LeagueViewModel,
     tradeViewModel: TradeViewModel,
+    leagueCarouselViewModel: LeagueCarouselViewModel,
     onConnect: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenOmen: () -> Unit,
@@ -707,6 +723,13 @@ private fun SignedInDestination(
                     onOpenOmen = onOpenOmen,
                     onOpenLedger = { onOpenOmen() },
                     onOpenLeague = onOpenLeague,
+                    carousel = leagueCarouselViewModel,
+                    userId = userId,
+                    // §10.3: the server names the surfaces a context change invalidates, and
+                    // the client re-reads them rather than deciding for itself. The Omen and
+                    // League destinations reload on their own LaunchedEffect, so the shell is
+                    // the one that has to be told.
+                    onContextChanged = { scope.launch { commandCenterViewModel.load(userId) } },
                 )
             }
         }
@@ -718,11 +741,22 @@ private fun SignedInDestination(
                 omenDecisionViewModel.onConnect = onConnect
                 omenDecisionViewModel.load(userId)
             }
-            OmenDecisionScreen(
-                state = omenDecisionViewModel.briefState(
-                    onReload = { scope.launch { omenDecisionViewModel.reload() } },
-                ),
-            )
+            WithTeamPicker(leagueCarouselViewModel, userId, onContextChanged = {
+                    scope.launch {
+                        // Every personalized surface, not just the visible one — a user who
+                        // switches on Trade and then taps League must not find the old team
+                        // there.
+                        commandCenterViewModel.load(userId)
+                        leagueViewModel.load(userId)
+                        omenDecisionViewModel.load(userId)
+                    }
+                }) {
+                OmenDecisionScreen(
+                    state = omenDecisionViewModel.briefState(
+                        onReload = { scope.launch { omenDecisionViewModel.reload() } },
+                    ),
+                )
+            }
         }
         // M5 slice G: the Trade destination now renders `trade-compare.v2`.
         NavDestination.Trade -> {
@@ -734,29 +768,81 @@ private fun SignedInDestination(
                 val loaded = leagueState as? LeagueViewModel.ViewState.Loaded
                 tradeViewModel.useLeague(loaded?.overview?.platform, loaded?.overview?.leagueId)
             }
-            OmenTradeScreen(
-                state = tradeViewModel.viewState,
-                offer = tradeViewModel.offer,
-                searchState = tradeViewModel.searchState,
-                searchingSide = tradeViewModel.searchingSide,
-                onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
-                onAdd = { name, side -> tradeViewModel.add(name, side) },
-                onAddResult = { player, side -> tradeViewModel.add(player, side) },
-                onRemove = { index, side -> tradeViewModel.remove(index, side) },
-                onCompare = { scope.launch { tradeViewModel.compare(userId) } },
-            )
+            WithTeamPicker(leagueCarouselViewModel, userId, onContextChanged = {
+                    scope.launch {
+                        // Every personalized surface, not just the visible one — a user who
+                        // switches on Trade and then taps League must not find the old team
+                        // there.
+                        commandCenterViewModel.load(userId)
+                        leagueViewModel.load(userId)
+                        omenDecisionViewModel.load(userId)
+                    }
+                }) {
+                OmenTradeScreen(
+                    state = tradeViewModel.viewState,
+                    offer = tradeViewModel.offer,
+                    searchState = tradeViewModel.searchState,
+                    searchingSide = tradeViewModel.searchingSide,
+                    onQueryChanged = { text, side -> tradeViewModel.search(text, side) },
+                    onAdd = { name, side -> tradeViewModel.add(name, side) },
+                    onAddResult = { player, side -> tradeViewModel.add(player, side) },
+                    onRemove = { index, side -> tradeViewModel.remove(index, side) },
+                    onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+                )
+            }
         }
         // M5 slice F: the League destination now renders `league-overview.v1`. It replaced an
         // honest "landing next" placeholder, which was correct while the screen contract was
         // unratified and is no longer.
         NavDestination.League -> {
             LaunchedEffect(userId) { leagueViewModel.load(userId) }
-            OmenLeagueScreen(
-                state = leagueViewModel.viewState,
-                onRetry = { scope.launch { leagueViewModel.reload() } },
-                onConnect = onConnect,
-            )
+            WithTeamPicker(leagueCarouselViewModel, userId, onContextChanged = {
+                    scope.launch {
+                        // Every personalized surface, not just the visible one — a user who
+                        // switches on Trade and then taps League must not find the old team
+                        // there.
+                        commandCenterViewModel.load(userId)
+                        leagueViewModel.load(userId)
+                        omenDecisionViewModel.load(userId)
+                    }
+                }) {
+                OmenLeagueScreen(
+                    state = leagueViewModel.viewState,
+                    onRetry = { scope.launch { leagueViewModel.reload() } },
+                    onConnect = onConnect,
+                )
+            }
         }
+    }
+}
+
+
+/**
+ * Wraps a destination in the team picker.
+ *
+ * Omen, Trade and League each answer a question about one league, so each gets the row that
+ * changes which one. Command Center does not — its carousel already IS the picker, and two of
+ * them on one screen would be a control competing with itself.
+ * iOS mirror: `CommandCenterView.withTeamPicker`.
+ */
+@Composable
+private fun WithTeamPicker(
+    viewModel: LeagueCarouselViewModel,
+    userId: String,
+    onContextChanged: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize().background(OmenTheme.color.bg)) {
+        OmenTeamPicker(
+            viewModel = viewModel,
+            userId = userId,
+            onContextChanged = { onContextChanged() },
+            modifier = Modifier.padding(
+                horizontal = OmenTheme.spacing.step16,
+                vertical = OmenTheme.spacing.step12,
+            ),
+        )
+        content()
     }
 }
 

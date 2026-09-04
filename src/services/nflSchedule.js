@@ -284,9 +284,120 @@ function __clearCache() {
   _cache.clear();
 }
 
+
+/**
+ * The NFL **game week** — Tuesday-anchored, and the phase within it.
+ *
+ * ## Why this exists beside `getCurrentNflWeekContext`
+ *
+ * That function anchors on a fixed `Date.UTC(season, 8, 5)` and steps in 7-day blocks, so its
+ * week boundary lands on whatever weekday September 5 happens to be. In 2026 that is a
+ * **Saturday**, which means it reports the wrong week on the Sunday and Monday of every NFL
+ * week — the two days most people open a fantasy app:
+ *
+ *   Sun 2026-09-13 is the Sunday of **NFL Week 1**; `getCurrentNflWeekContext` says week 2.
+ *
+ * The real NFL week runs Thursday night to Monday night and turns over on Tuesday, which is
+ * also when fantasy waivers clear and when Omen's own scoring cron runs. So Tuesday is the
+ * correct boundary, and the Saturday one is a defect — not a second valid convention.
+ *
+ * **This function is deliberately NOT wired into `getCurrentNflWeekContext`.** That value feeds
+ * Tuesday scoring, the Omen engine, waiver analysis and every provider matchup read; changing
+ * its boundary days before Week 1 is a founder decision with real blast radius, not a drive-by
+ * fix. Reconciling the two is tracked as its own task. Until then this serves display copy
+ * only, and the two WILL disagree on Sat/Sun/Mon — which is stated here so nobody later reads
+ * the difference as drift.
+ *
+ * ## The anchor
+ *
+ * Week 1 kicks off the Thursday after Labor Day (first Monday in September), so game week 1
+ * opens on the Tuesday before it — Labor Day + 1. Derived rather than hardcoded, so it stays
+ * correct every season without an edit.
+ *
+ * ## The timezone
+ *
+ * Days are read in **America/New_York**, the league's own operating timezone, not UTC and not
+ * the caller's. A user in Los Angeles at 9pm Monday is still on Monday in the league's week,
+ * and a UTC boundary would have already moved them to Tuesday.
+ */
+
+const GAME_WEEK_PHASES = Object.freeze({
+  PREPARING: "preparing",
+  READY: "ready",
+  LIVE: "live",
+  OFF_SEASON: "off_season",
+});
+
+/** Calendar day in the league's timezone, as a UTC-midnight Date so date math is clean. */
+function easternCalendarDay(now) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (type) => Number(parts.find((part) => part.type === type)?.value);
+  return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
+}
+
+/** First Monday in September of `year`, as a UTC-midnight Date. */
+function laborDay(year) {
+  const first = new Date(Date.UTC(year, 8, 1));
+  // getUTCDay: 0=Sun, 1=Mon. Advance to the first Monday.
+  const offset = (8 - first.getUTCDay()) % 7;
+  return new Date(Date.UTC(year, 8, 1 + offset));
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+const DAY_NAMES = Object.freeze([
+  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+]);
+
+/**
+ * `{ week, phase, day, is_off_season }`.
+ *
+ * - `phase` is `preparing` on Tuesday (waivers cleared, last week scored, this week's plan
+ *   being built), `ready` on Wednesday, and `live` Thursday through Monday.
+ * - `week` is the week the phase refers to, which on Tuesday and Wednesday is the week about
+ *   to be played — the same number the user will see on Sunday.
+ * - `day` is the day in the league's timezone, so copy can vary across the live window.
+ *
+ * Off-season returns `week: null` rather than a clamped 1. The clamp on
+ * `getCurrentNflWeekContext` is exactly what let a session record "the season floor is
+ * cleared" nine days before kickoff (see that function's note), and display copy has no
+ * reason to repeat the mistake — a headline naming a week that has not arrived is a lie the
+ * user can see.
+ */
+function getNflGameWeek(now = new Date()) {
+  const today = easternCalendarDay(now);
+  const day = DAY_NAMES[today.getUTCDay()];
+
+  // Which season are we in? Before September, the season that started last year.
+  const year = today.getUTCFullYear();
+  const seasonYear = today.getUTCMonth() <= 1 ? year - 1 : year;
+  const opensAt = new Date(laborDay(seasonYear).getTime() + DAY_MS); // the Tuesday
+
+  const rawWeek = Math.floor((today.getTime() - opensAt.getTime()) / WEEK_MS) + 1;
+  const offSeason = rawWeek < 1 || rawWeek > 18;
+
+  if (offSeason) {
+    return { season: seasonYear, week: null, phase: GAME_WEEK_PHASES.OFF_SEASON, day, is_off_season: true };
+  }
+
+  let phase;
+  if (day === "tuesday") phase = GAME_WEEK_PHASES.PREPARING;
+  else if (day === "wednesday") phase = GAME_WEEK_PHASES.READY;
+  else phase = GAME_WEEK_PHASES.LIVE;
+
+  return { season: seasonYear, week: rawWeek, phase, day, is_off_season: false };
+}
+
 module.exports = {
   getGameInfo,
   getCurrentNflWeekContext,
+  getNflGameWeek,
+  GAME_WEEK_PHASES,
   isOffSeason,
   week1PreviewEnabled,
   suppressLiveFootballData,

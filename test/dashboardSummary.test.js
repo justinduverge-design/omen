@@ -47,6 +47,7 @@ function loadDashboardRouter({
   userRows = [],
   requireAuth,
   context,
+  gameWeek,
   offSeason = false,
   sleeperAdapter,
   yahooAdapter,
@@ -92,6 +93,15 @@ function loadDashboardRouter({
           season: 2026,
           week: 1,
           season_type: "regular",
+        },
+        // Fixed rather than "now": a headline that rotates with the real calendar would make
+        // these assertions pass or fail depending on the weekday the suite runs.
+        getNflGameWeek: () => gameWeek || {
+          season: 2026,
+          week: 1,
+          phase: "live",
+          day: "sunday",
+          is_off_season: false,
         },
         isOffSeason: () => offSeason,
         // The six user-facing gates now call suppressLiveFootballData(). Mirroring the

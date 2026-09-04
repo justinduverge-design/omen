@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
@@ -179,7 +181,7 @@ fun ConnectScreen(
             is ConnectState.ChoosingYahooLeague -> {
                 Text("Choose a league", style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
                 Text(
-                    "Yahoo is connected. Pick the league Omen should read.",
+                    "Yahoo is connected. Pick every league Omen should follow.",
                     style = OmenTheme.typography.bodySmall.toTextStyle(),
                     color = OmenTheme.color.textSecondary,
                 )
@@ -187,14 +189,25 @@ fun ConnectScreen(
                     OmenListRow(
                         title = league.name,
                         subtitle = league.subtitle,
-                        onClick = { scope.launch { viewModel.bindYahooLeague(league) } },
+                        enabled = !viewModel.state.isBusy,
+                        onClick = { viewModel.toggleLeague(league.id) },
                         leadingContent = {
                             OmenPlatformBadge(
                                 platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Yahoo,
                             )
                         },
+                        trailingContent = { SelectionTick(viewModel.isLeagueSelected(league.id)) },
+                        modifier = Modifier.semantics {
+                            contentDescription = selectionDescription(league.name, viewModel.isLeagueSelected(league.id))
+                        },
                     )
                 }
+                MultiselectFooter(viewModel)
+                OmenButton(
+                    viewModel.confirmLeagueSelectionLabel,
+                    { scope.launch { viewModel.confirmYahooSelection() } },
+                    enabled = viewModel.canConfirmLeagueSelection,
+                )
                 OmenButton("Choose another provider", { viewModel.startOver() }, variant = OmenButtonVariant.Link)
             }
 
@@ -218,10 +231,21 @@ fun ConnectScreen(
                     OmenListRow(
                         title = league.name,
                         subtitle = league.subtitle.ifEmpty { null },
-                        onClick = { scope.launch { viewModel.selectLeague(league) } },
+                        enabled = !viewModel.state.isBusy,
+                        onClick = { viewModel.toggleLeague(league.id) },
                         leadingContent = { OmenPlatformBadge(platform = com.slopssaloon.omen.core.designsystem.component.OmenPlatform.Sleeper) },
+                        trailingContent = { SelectionTick(viewModel.isLeagueSelected(league.id)) },
+                        modifier = Modifier.semantics {
+                            contentDescription = selectionDescription(league.name, viewModel.isLeagueSelected(league.id))
+                        },
                     )
                 }
+                MultiselectFooter(viewModel)
+                OmenButton(
+                    viewModel.confirmLeagueSelectionLabel,
+                    { scope.launch { viewModel.confirmSleeperSelection() } },
+                    enabled = viewModel.canConfirmLeagueSelection,
+                )
                 OmenButton("Use a different username", { viewModel.startOver() }, variant = OmenButtonVariant.Link)
             }
 
@@ -378,9 +402,20 @@ fun ConnectScreen(
                     OmenListRow(
                         title = option.displayName,
                         subtitle = option.subtitle,
-                        onClick = { scope.launch { viewModel.connectEspnLeague(option) } },
+                        enabled = !viewModel.state.isBusy,
+                        onClick = { viewModel.toggleLeague(option.id) },
+                        trailingContent = { SelectionTick(viewModel.isLeagueSelected(option.id)) },
+                        modifier = Modifier.semantics {
+                            contentDescription = selectionDescription(option.displayName, viewModel.isLeagueSelected(option.id))
+                        },
                     )
                 }
+                MultiselectFooter(viewModel)
+                OmenButton(
+                    viewModel.confirmLeagueSelectionLabel,
+                    { scope.launch { viewModel.confirmEspnSelection() } },
+                    enabled = viewModel.canConfirmLeagueSelection,
+                )
                 OmenButton(
                     "Choose another provider",
                     { viewModel.startOver() },
@@ -547,3 +582,48 @@ private const val ESPN_CONSENT_TEXT =
     "Connecting ESPN uses your own ESPN session so Omen can read your league — your roster, " +
         "scoring, and matchup. It is your account and your choice, and you can disconnect it " +
         "any time in Account. Omen is not affiliated with or endorsed by ESPN."
+
+
+/**
+ * The tick shown on a chosen row. A glyph, never colour alone — the same rule §10.2 applies to
+ * the switcher's selected row, and for the same reason: a colour-only tick is invisible to a
+ * large share of the people who need it most. iOS mirror: `selectionTick`.
+ */
+@Composable
+private fun SelectionTick(selected: Boolean) {
+    Text(
+        if (selected) "\u2713" else "\u25CB",
+        style = OmenTheme.typography.body.toTextStyle(),
+        color = if (selected) OmenTheme.color.accent else OmenTheme.color.textTertiary,
+    )
+}
+
+private fun selectionDescription(title: String, selected: Boolean): String =
+    "$title, ${if (selected) "selected" else "not selected"}"
+
+/**
+ * The sentence that tells the user what picking several actually does. Without it a multiselect
+ * looks like it might connect several accounts, or replace one with another — the count alone
+ * does not say which league Omen will reason about.
+ */
+@Composable
+private fun MultiselectFooter(viewModel: ConnectViewModel) {
+    if (viewModel.selectedLeagueIds.size > 1) {
+        Text(
+            "Omen will follow all ${viewModel.selectedLeagueIds.size} and start on the first one. " +
+                "You can swipe between them on Command Center.",
+            style = OmenTheme.typography.bodySmall.toTextStyle(),
+            color = OmenTheme.color.textSecondary,
+        )
+    }
+    if (viewModel.followsNotPersisted) {
+        // The server accepted the choice and told us it could not store it. Saying nothing here
+        // would be claiming a save that did not happen.
+        OmenStateSurface(
+            kind = OmenStateSurfaceKind.Stale,
+            title = "Only the first league will stick for now",
+            message = "Omen connected all of them, but can't yet remember a multi-league choice " +
+                "between sessions.",
+        )
+    }
+}

@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import com.slopssaloon.omen.R
+import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStrip
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.app.feature.help.OmenHelpButton
@@ -87,10 +88,27 @@ fun OmenCommandCenterScreen(
     onOpenLedger: ((OmenLedgerEntry) -> Unit)? = null,
     onOpenLeague: (() -> Unit)? = null,
     onConnectPlatform: ((OmenPlatform) -> Unit)? = null,
+    /**
+     * The league carousel — provider chips over a swipeable matchup-per-league stack.
+     *
+     * Null keeps this composition working exactly as before, which is what every fixture,
+     * preview and screenshot scenario passes. When supplied it REPLACES the context strip and
+     * the single Matchup Hero, because those two were the halves the carousel merges: the
+     * strip named one league, the hero showed that league's week, and the swipe now does both
+     * for every league at once. iOS mirror: `OmenCommandCenterScreen.carousel`.
+     */
+    carousel: LeagueCarouselViewModel? = null,
+    userId: String? = null,
+    /** Only meaningful alongside [carousel]. Re-reads the surfaces the server named. */
+    onContextChanged: ((List<String>) -> Unit)? = null,
 ) {
     // Drives the tap-through detail sheet. The sheet carries the existing
     // OmenPlatformConnectionCard content — that content is moved off the main surface, not new.
     var detailRow by remember { mutableStateOf<OmenPlatformRowState?>(null) }
+    // Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
+    // one of the three that is ever time-critical, and a user who never swipes should land on
+    // the page that can expire.
+    var widgetPage by remember { mutableStateOf(OmenWidgetPage.Waiver) }
 
     Column(
         modifier = modifier
@@ -106,25 +124,72 @@ fun OmenCommandCenterScreen(
         verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.sectionStack),
     ) {
         HeaderBlock(state.greeting, onOpenAccount)
-        OmenContextStrip(state = state.context, onSwitch = onSwitchContext)
-        // Visual brief §1.1 position 3 (amended 2026-08-14) · Figma `73:2`. Capped at ~2
-        // row-heights so the Matchup Hero keeps the fold.
-        OmenPlatformCompactStrip(
-            rows = state.platforms,
-            onOpenDetail = { detailRow = it },
-            onConnect = onConnectPlatform?.let { handler -> { row -> handler(row.platform) } },
-        )
-        OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
+        // The vertical platform status strip is suppressed when the carousel is present.
+        // Founder, 2026-09-04: "you still have Sleeper, Yahoo and ESPN going down on three
+        // columns — it should just be horizontal, and the icons should represent the leagues
+        // that are connected. If they don't have that, then it doesn't pop up."
+        //
+        // The strip listed all three providers unconditionally, so two thirds of it was
+        // usually the word "Disconnected" occupying the fold above the matchup. The carousel's
+        // chip row answers the same question better: it names only what the user actually has,
+        // horizontally, and each chip filters to that provider's leagues rather than merely
+        // reporting a status.
+        //
+        // What the strip also carried, and where it went: last-sync time and
+        // reconnect-required now surface on the affected league's own carousel page (a page
+        // that cannot read says so on its own card), and full connection management stays in
+        // Account, which is where the ESPN consent copy already sends users to disconnect.
+        if (carousel == null) {
+            // Visual brief §1.1 position 3 (amended 2026-08-14) · Figma `73:2`.
+            OmenPlatformCompactStrip(
+                rows = state.platforms,
+                onOpenDetail = { detailRow = it },
+                onConnect = onConnectPlatform?.let { handler -> { row -> handler(row.platform) } },
+            )
+        }
+        // Both branches are real: fixtures, previews and the screenshot workflow have no
+        // session and must keep rendering their labelled honest states.
+        if (carousel != null) {
+            OmenLeagueCarousel(
+                viewModel = carousel,
+                userId = userId,
+                demoMatchup = state.matchup,
+                onOpenMatchup = onOpenMatchup,
+                onConnect = onConnect,
+                onAddLeague = onConnect,
+                onContextChanged = { onContextChanged?.invoke(it) },
+            )
+        } else {
+            OmenContextStrip(state = state.context, onSwitch = onSwitchContext)
+            OmenMatchupHero(state = state.matchup, onOpen = onOpenMatchup)
+        }
         // Honest-state doctrine: the screen already tells a disconnected user to connect a
         // league. Before M5-NativeConnect there was no way to act on it. Shown only when the
         // shell has no verified context AND a connect path exists, so it cannot advertise a
-        // dead end or sit beside a real league name.
-        if (onConnect != null && state.context is OmenContextStripState.Empty) {
+        // dead end or sit beside a real league name. The carousel subsumes it — it has its own
+        // empty state with the same button — so it is suppressed rather than shown twice.
+        if (onConnect != null && carousel == null && state.context is OmenContextStripState.Empty) {
             OmenButton(text = "Connect a league", onClick = onConnect)
         }
-        WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
-        LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
-        LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
+        // Founder sketch, 2026-09-04: the three sections below the matchup become one paged
+        // widget. Paged only when the carousel is live — every fixture, preview and screenshot
+        // scenario keeps the stacked layout, which is what those captures are of, and a paged
+        // screenshot would show one third of the page.
+        if (carousel != null) {
+            OmenWidgetPager(
+                selection = widgetPage,
+                onSelect = { widgetPage = it },
+                // Each page keeps its existing composition verbatim — this change moves the
+                // sections, it does not rewrite them.
+                waiver = { WaiverWatch(state.waiverWatch, onOpenOmen, showLabel = false) },
+                ledger = { LedgerPreview(state.ledger, onOpenLedger, showLabel = false) },
+                pulse = { LeaguePulse(state.leaguePulse, onOpenLeague, showLabel = false) },
+            )
+        } else {
+            WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
+            LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
+            LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
+        }
     }
 
     // Figma `73:2`: "Android opens the detail sheet as a ModalBottomSheet".
@@ -195,9 +260,15 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
 }
 
 @Composable
-private fun WaiverWatch(state: OmenWaiverWatchState, onOpenOmen: (() -> Unit)?) {
+private fun WaiverWatch(
+    state: OmenWaiverWatchState,
+    onOpenOmen: (() -> Unit)?,
+    // False inside the widget pager, which supplies the heading itself — two headings stacked
+    // would read as two sections.
+    showLabel: Boolean = true,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-        SectionLabel("Waiver Watch")
+        if (showLabel) SectionLabel("Waiver Watch")
         when (state) {
             is OmenWaiverWatchState.Urgent -> UrgentWaiverBriefing(state, onOpenOmen)
             is OmenWaiverWatchState.Calm -> CalmWaiverList(state, onOpenOmen)
@@ -317,14 +388,20 @@ private fun OmenWaiverOpportunity.accessibilityLabel(rank: Int?): String = listO
 ).joinToString(", ")
 
 @Composable
-private fun LedgerPreview(state: OmenLedgerPreviewState, onOpenLedger: ((OmenLedgerEntry) -> Unit)?) {
+private fun LedgerPreview(
+    state: OmenLedgerPreviewState,
+    onOpenLedger: ((OmenLedgerEntry) -> Unit)?,
+    showLabel: Boolean = true,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            // "See all" survives into the paged layout — it is the only route from the preview
+            // to the full Ledger, and dropping it in the move would strand the section.
+            horizontalArrangement = if (showLabel) Arrangement.SpaceBetween else Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SectionLabel("The Ledger")
+            if (showLabel) SectionLabel("The Ledger")
             if (state is OmenLedgerPreviewState.Entries && state.entries.isNotEmpty() && onOpenLedger != null) {
                 OmenButton(
                     text = "See all →",
@@ -378,14 +455,18 @@ private fun LedgerPreview(state: OmenLedgerPreviewState, onOpenLedger: ((OmenLed
 }
 
 @Composable
-private fun LeaguePulse(state: OmenLeaguePulseState, onOpenLeague: (() -> Unit)?) {
+private fun LeaguePulse(
+    state: OmenLeaguePulseState,
+    onOpenLeague: (() -> Unit)?,
+    showLabel: Boolean = true,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (showLabel) Arrangement.SpaceBetween else Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SectionLabel("League Pulse")
+            if (showLabel) SectionLabel("League Pulse")
             if (onOpenLeague != null) {
                 OmenButton(
                     text = "League →",
@@ -545,7 +626,7 @@ data class OmenWaiverOpportunity(
  */
 object OmenCommandCenterFixtures {
     val demoConnected: OmenCommandCenterState = OmenCommandCenterState(
-        greeting = "Demo · this week's move is ready.",
+        greeting = "Demo · Sunday. Week 7 is in play.",
         context = OmenContextStripState.Selected(
             platform = OmenPlatform.Sleeper,
             leagueName = "Demo Slate (mock league)",
@@ -557,8 +638,10 @@ object OmenCommandCenterFixtures {
             OmenPlatformRowState(OmenPlatform.Espn, OmenConnectionStatus.Disconnected),
         ),
         matchup = OmenMatchupHeroState.Live(
-            selectedTeam = OmenMatchupTeam(name = "Demo Titans", record = "6–1", scoreText = "64.8"),
-            opponent = OmenMatchupTeam(name = "Demo Rivals", record = "5–2", scoreText = "58.1"),
+            // Both columns populated, because a live matchup is exactly when PROJ and SCORE
+            // together are the point.
+            selectedTeam = OmenMatchupTeam("Demo Titans", "6–1", "64.8", projectedText = "119.6"),
+            opponent = OmenMatchupTeam("Demo Rivals", "5–2", "58.1", projectedText = "114.2"),
             projectedFinish = "119.6–114.2",
             whatToWatch = "Opponent has two demo players remaining Monday night.",
         ),
@@ -598,7 +681,7 @@ object OmenCommandCenterFixtures {
      * sees. No fabricated provider status, no fake matchup, no "manage league" no-op CTA.
      */
     val realDisconnected: OmenCommandCenterState = OmenCommandCenterState(
-        greeting = "Connect a league to see your matchup.",
+        greeting = "No game plan yet.",
         context = OmenContextStripState.Empty,
         platforms = listOf(
             OmenPlatformRowState(OmenPlatform.Sleeper, OmenConnectionStatus.Disconnected),

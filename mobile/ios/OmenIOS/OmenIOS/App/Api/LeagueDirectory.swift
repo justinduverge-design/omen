@@ -20,6 +20,13 @@ struct LeagueDirectory: Decodable, Equatable {
     /// until then. The sheet reads this to avoid promising a cross-provider choice that
     /// the server has told us it cannot yet persist.
     let selectionPersistence: String?
+    /// `"explicit"` once `league_follows` exists, `"unavailable"` until then. The
+    /// multiselect picker reads this to avoid telling the user a choice was saved when
+    /// the server has just told us it could not be.
+    ///
+    /// Optional, and absent means `"unavailable"`: a server that predates follows is not
+    /// claiming persistence, and decoding must not fail on its response.
+    let followPersistence: String?
     let active: Active?
     let platforms: [PlatformGroup]
 
@@ -27,7 +34,11 @@ struct LeagueDirectory: Decodable, Equatable {
         case contractVersion = "contract_version"
         case season, active, platforms
         case selectionPersistence = "selection_persistence"
+        case followPersistence = "follow_persistence"
     }
+
+    /// True when a multiselect the user makes will survive the session.
+    var followChoicePersists: Bool { followPersistence == "explicit" }
 
     /// True when the server has told us a cross-provider choice cannot persist AND the user
     /// actually has more than one provider to choose between. One provider has nothing to
@@ -85,6 +96,14 @@ struct LeagueDirectory: Decodable, Equatable {
         let teamID: String?
         let teamName: String?
         let isActive: Bool
+        /// Whether the user follows this league — the carousel's page filter.
+        ///
+        /// Distinct from `isActive`, and the distinction is the whole multi-league feature:
+        /// **one** league is active (the one Omen is reasoning about), and **many** can be
+        /// followed (the ones you can swipe to). Defaults to `true` when the server omits
+        /// it, because a server without follows has discovered these leagues and the user
+        /// has had no way to deselect any of them.
+        let isFollowed: Bool
 
         var id: String { leagueID }
 
@@ -96,6 +115,41 @@ struct LeagueDirectory: Decodable, Equatable {
             case teamID = "team_id"
             case teamName = "team_name"
             case isActive = "is_active"
+            case isFollowed = "is_followed"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            leagueID = try c.decode(String.self, forKey: .leagueID)
+            leagueName = try c.decodeIfPresent(String.self, forKey: .leagueName)
+            season = try c.decodeIfPresent(Int.self, forKey: .season)
+            scoringFormat = try c.decodeIfPresent(String.self, forKey: .scoringFormat)
+            teamID = try c.decodeIfPresent(String.self, forKey: .teamID)
+            teamName = try c.decodeIfPresent(String.self, forKey: .teamName)
+            isActive = try c.decodeIfPresent(Bool.self, forKey: .isActive) ?? false
+            isFollowed = try c.decodeIfPresent(Bool.self, forKey: .isFollowed) ?? true
+        }
+
+        /// Memberwise construction for tests and previews, which the custom `init(from:)`
+        /// otherwise suppresses.
+        init(
+            leagueID: String,
+            leagueName: String? = nil,
+            season: Int? = nil,
+            scoringFormat: String? = nil,
+            teamID: String? = nil,
+            teamName: String? = nil,
+            isActive: Bool = false,
+            isFollowed: Bool = true
+        ) {
+            self.leagueID = leagueID
+            self.leagueName = leagueName
+            self.season = season
+            self.scoringFormat = scoringFormat
+            self.teamID = teamID
+            self.teamName = teamName
+            self.isActive = isActive
+            self.isFollowed = isFollowed
         }
     }
 }

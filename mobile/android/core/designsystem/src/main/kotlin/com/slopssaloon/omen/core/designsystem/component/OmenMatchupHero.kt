@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -82,11 +85,46 @@ sealed interface OmenMatchupHeroState {
  * @param scoreText the strongest number on the row. For [OmenMatchupHeroState.BeforeGames]
  * this is a projection and the caller should format it as such (e.g. "119.6 proj").
  */
+/**
+ * One side of the matchup spine.
+ *
+ * [scoreText] is the live/final number. [projectedText] is the projection, and when it is
+ * supplied the row renders **two labelled columns** — `PROJ` and `SCORE` — instead of one
+ * number, per the founder's 2026-09-04 sketch. Both numbers matter at once during a game:
+ * where you are, and where you are heading. A single slot forced a choice between them and
+ * the projection always lost.
+ *
+ * [projectedText] is null for a caller with no projection (or one that does not want the
+ * columns), and the row falls back to the single-number layout it had before. Absent, not
+ * zero — a column of dashes beside real numbers is noise, and "0.0" would read as a real
+ * projection of nothing. iOS mirror: `OmenMatchupTeam`.
+ */
 data class OmenMatchupTeam(
     val name: String,
     val record: String,
     val scoreText: String,
+    val projectedText: String? = null,
 )
+
+/**
+ * True when either side carries a projection. Both rows share one layout so the numbers line
+ * up into actual columns — a row with columns above a row without would put the opponent's
+ * score under your projection, which is worse than showing neither.
+ */
+private fun OmenMatchupHeroState.showsColumns(): Boolean = when (this) {
+    is OmenMatchupHeroState.BeforeGames ->
+        selectedTeam.projectedText != null || opponent.projectedText != null
+    is OmenMatchupHeroState.Live ->
+        selectedTeam.projectedText != null || opponent.projectedText != null
+    is OmenMatchupHeroState.Final ->
+        selectedTeam.projectedText != null || opponent.projectedText != null
+    is OmenMatchupHeroState.NoMatchup -> false
+}
+
+// Column widths are fixed and shared so `123` and `50` sit under `PROJ` and `SCORE` rather
+// than drifting with the length of a team name.
+private val PROJ_COLUMN_WIDTH = 64.dp
+private val SCORE_COLUMN_WIDTH = 72.dp
 
 @Composable
 fun OmenMatchupHero(
@@ -133,9 +171,11 @@ fun OmenMatchupHero(
             val spine = @Composable {
                 Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
                     MatchupEyebrow(text = eyebrowText)
-                    TeamRow(state.selectedTeam, semanticLabel = "Your team")
+                    val columns = state.showsColumns()
+                    if (columns) ColumnHeader()
+                    TeamRow(state.selectedTeam, semanticLabel = "Your team", columns = columns)
                     ConnectingRule(state)
-                    TeamRow(state.opponent, semanticLabel = "Opponent")
+                    TeamRow(state.opponent, semanticLabel = "Opponent", columns = columns)
                     if (onOpen != null) {
                         Text(
                             text = "View matchup →",
@@ -173,7 +213,36 @@ private fun MatchupEyebrow(text: String) {
 }
 
 @Composable
-private fun TeamRow(team: OmenMatchupTeam, semanticLabel: String) {
+private fun ColumnHeader() {
+    val type = OmenTheme.typography
+    val colors = OmenTheme.color
+    Row(
+        // The headers are read once in each row's own label instead, so a screen reader hears
+        // "Demo Titans, 6-1, projected 123, scoring 50" rather than a stray "proj score".
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "PROJ",
+            style = type.eyebrow.toTextStyle(),
+            color = colors.textSecondary,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(PROJ_COLUMN_WIDTH),
+        )
+        Spacer(Modifier.width(OmenTheme.spacing.step8))
+        Text(
+            text = "SCORE",
+            style = type.eyebrow.toTextStyle(),
+            color = colors.textSecondary,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(SCORE_COLUMN_WIDTH),
+        )
+    }
+}
+
+@Composable
+private fun TeamRow(team: OmenMatchupTeam, semanticLabel: String, columns: Boolean = false) {
     val colors = OmenTheme.color
     val type = OmenTheme.typography
     // Layout: name (strong) + record (muted, beside name — never beneath, per brief §1.2)
@@ -183,7 +252,7 @@ private fun TeamRow(team: OmenMatchupTeam, semanticLabel: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { contentDescription = semanticLabel },
+            .semantics { contentDescription = rowDescription(team, semanticLabel, columns) },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -202,22 +271,58 @@ private fun TeamRow(team: OmenMatchupTeam, semanticLabel: String) {
                 color = colors.textSecondary,
             )
         }
-        Text(
-            text = team.scoreText,
-            style = type.numeric.copy(size = 28.sp).toTextStyle(),
-            color = colors.textPrimary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (columns) {
+                Text(
+                    text = team.projectedText ?: "—",
+                    // Smaller than the score: the projection is context, the score is the
+                    // fact. Same size would make the reader work out which is which.
+                    style = type.numeric.copy(size = 20.sp).toTextStyle(),
+                    color = colors.textSecondary,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(PROJ_COLUMN_WIDTH),
+                )
+                Spacer(Modifier.width(OmenTheme.spacing.step8))
+            }
+            Text(
+                text = team.scoreText,
+                style = type.numeric.copy(size = 28.sp).toTextStyle(),
+                color = colors.textPrimary,
+                textAlign = if (columns) TextAlign.End else TextAlign.Start,
+                modifier = if (columns) Modifier.width(SCORE_COLUMN_WIDTH) else Modifier,
+            )
+        }
     }
 }
+
+private fun rowDescription(
+    team: OmenMatchupTeam,
+    semanticLabel: String,
+    columns: Boolean,
+): String = buildList {
+    add(semanticLabel)
+    add(team.name)
+    if (team.record.isNotEmpty()) add(team.record)
+    if (columns) team.projectedText?.let { add("projected $it") }
+    add("scoring ${team.scoreText}")
+}.joinToString(", ")
 
 @Composable
 private fun ConnectingRule(state: OmenMatchupHeroState) {
     val brass = OmenTheme.color.accent
+    // Both pre-game and live cases used to restate the two projections here. Once PROJ became
+    // its own column that is the same pair of numbers printed twice, three lines apart — so the
+    // rule stands down and says what the columns cannot: which phase you are in. Without
+    // columns it keeps its old job, because then it is the only place a projection appears.
+    val columns = state.showsColumns()
     val contextText = when (state) {
         is OmenMatchupHeroState.BeforeGames ->
-            "Projected: ${state.selectedTeam.scoreText}–${state.opponent.scoreText}"
+            if (columns) "Not started"
+            else "Projected: ${state.selectedTeam.scoreText}–${state.opponent.scoreText}"
         is OmenMatchupHeroState.Live ->
-            state.projectedFinish?.let { "Projected finish: $it" } ?: "Live score"
+            if (columns) "Live score"
+            else state.projectedFinish?.let { "Projected finish: $it" } ?: "Live score"
+        // Never redundant: the columns carry no result, and a projection is gone by now.
         is OmenMatchupHeroState.Final ->
             state.resultSummary
         is OmenMatchupHeroState.NoMatchup -> ""

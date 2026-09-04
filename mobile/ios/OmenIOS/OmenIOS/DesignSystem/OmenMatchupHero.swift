@@ -1,12 +1,29 @@
 import SwiftUI
 
 /// One side of the matchup spine.
-/// `scoreText` is the strongest number on the row. For `BeforeGames` this is a projection
-/// and the caller should format it as such (e.g. "119.6 proj").
+///
+/// `scoreText` is the live/final number. `projectedText` is the projection, and when it is
+/// supplied the row renders **two labelled columns** — `PROJ` and `SCORE` — instead of one
+/// number, per the founder's 2026-09-04 sketch. Both numbers matter at once during a game:
+/// where you are, and where you are heading. A single slot forced a choice between them and
+/// the projection always lost.
+///
+/// `projectedText` is nil for a caller that has no projection (or does not want the columns),
+/// and the row falls back to the single-number layout it had before. Absent, not zero — a
+/// column of dashes beside real numbers is noise, and "0.0" would read as a real projection
+/// of nothing.
 struct OmenMatchupTeam {
     let name: String
     let record: String
     let scoreText: String
+    var projectedText: String?
+
+    init(name: String, record: String, scoreText: String, projectedText: String? = nil) {
+        self.name = name
+        self.record = record
+        self.scoreText = scoreText
+        self.projectedText = projectedText
+    }
 }
 
 /// Registry §3.2 MatchupHero (Matchup Spine, Figma node `25:26`, approved 2026-07-20).
@@ -86,6 +103,7 @@ struct OmenMatchupHero: View {
     private var spine: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             eyebrow(eyebrowText)
+            if showsColumns { columnHeader }
             teamRow(team: selectedTeam, semanticLabel: "Your team")
             connectingRule
             teamRow(team: opponent, semanticLabel: "Opponent")
@@ -97,23 +115,78 @@ struct OmenMatchupHero: View {
         }
     }
 
+    /// True when either side carries a projection. Both rows share one layout so the numbers
+    /// line up into actual columns — a row with columns above a row without would put the
+    /// opponent's score under your projection, which is worse than showing neither.
+    private var showsColumns: Bool {
+        selectedTeam.projectedText != nil || opponent.projectedText != nil
+    }
+
+    /// Column widths are fixed and shared so `123` and `50` sit under `PROJ` and `SCORE`
+    /// rather than drifting with the length of a team name.
+    private static let projColumnWidth: CGFloat = 64
+    private static let scoreColumnWidth: CGFloat = 72
+
+    private var columnHeader: some View {
+        HStack(spacing: OmenSpacing.step8) {
+            Spacer(minLength: 0)
+            Text("PROJ")
+                .omenTextStyle(OmenTypography.eyebrow)
+                .foregroundStyle(OmenColor.textSecondary)
+                .frame(width: Self.projColumnWidth, alignment: .trailing)
+            Text("SCORE")
+                .omenTextStyle(OmenTypography.eyebrow)
+                .foregroundStyle(OmenColor.textSecondary)
+                .frame(width: Self.scoreColumnWidth, alignment: .trailing)
+        }
+        // The headers are read once in each row's own label instead, so VoiceOver hears
+        // "Demo Titans, 6-1, projected 123, scoring 50" rather than a stray "proj score".
+        .accessibilityHidden(true)
+    }
+
     private func teamRow(team: OmenMatchupTeam, semanticLabel: String) -> some View {
-        HStack {
+        HStack(spacing: OmenSpacing.step8) {
             HStack(spacing: OmenSpacing.step8) {
                 Text(team.name)
                     .omenTextStyle(OmenTypography.h2)
                     .foregroundStyle(OmenColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(team.record)
                     .omenTextStyle(OmenTypography.bodySmall)
                     .foregroundStyle(OmenColor.textSecondary)
             }
             Spacer(minLength: OmenSpacing.step8)
+            if showsColumns {
+                Text(team.projectedText ?? "—")
+                    // Smaller than the score: the projection is context, the score is the
+                    // fact. Same size would make the reader work out which is which.
+                    .font(.system(size: 20, weight: .regular, design: .default))
+                    .monospacedDigit()
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .frame(width: Self.projColumnWidth, alignment: .trailing)
+            }
             Text(team.scoreText)
-                .font(.system(size: 28, weight: .medium, design: .monospaced))
+                .font(.system(size: 28, weight: .medium))
+                .monospacedDigit()
                 .foregroundStyle(OmenColor.textPrimary)
+                .frame(
+                    width: showsColumns ? Self.scoreColumnWidth : nil,
+                    alignment: .trailing
+                )
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(semanticLabel)
+        .accessibilityLabel(rowAccessibilityLabel(team: team, semanticLabel: semanticLabel))
+    }
+
+    private func rowAccessibilityLabel(team: OmenMatchupTeam, semanticLabel: String) -> String {
+        var parts = [semanticLabel, team.name]
+        if !team.record.isEmpty { parts.append(team.record) }
+        if showsColumns, let projected = team.projectedText {
+            parts.append("projected \(projected)")
+        }
+        parts.append("scoring \(team.scoreText)")
+        return parts.joined(separator: ", ")
     }
 
     private var connectingRule: some View {
@@ -191,13 +264,22 @@ struct OmenMatchupHero: View {
         }
     }
 
+    /// The line on the connecting rule.
+    ///
+    /// Both pre-game and live cases used to restate the two projections here. Once PROJ became
+    /// its own column that is the same pair of numbers printed twice, three lines apart — so
+    /// the rule stands down and says what the columns cannot: which phase you are in. Without
+    /// columns it keeps its old job, because then it is the only place a projection appears.
     private var ruleText: String {
         switch state {
         case let .beforeGames(s, o, _, _):
+            if showsColumns { return "Not started" }
             return "Projected: \(s.scoreText)–\(o.scoreText)"
         case let .live(_, _, projectedFinish, _):
+            if showsColumns { return "Live score" }
             return projectedFinish.map { "Projected finish: \($0)" } ?? "Live score"
         case let .final(_, _, resultSummary, _):
+            // Never redundant: the columns carry no result, and a projection is gone by now.
             return resultSummary
         case .noMatchup:
             return ""

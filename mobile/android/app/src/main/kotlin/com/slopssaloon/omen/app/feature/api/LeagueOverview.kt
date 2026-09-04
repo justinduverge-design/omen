@@ -159,8 +159,8 @@ data class LeagueOverview(
      */
     val matchupHero: OmenMatchupHeroState?
         get() {
-            val mine = heroTeam(matchup.you) ?: return null
-            val theirs = heroTeam(matchup.opponent) ?: return null
+            val mine = heroTeam(matchup.you, matchup.status) ?: return null
+            val theirs = heroTeam(matchup.opponent, matchup.status) ?: return null
 
             return when (matchup.status) {
                 // No kickoff time is carried by this contract. Say what is true.
@@ -170,10 +170,12 @@ data class LeagueOverview(
                     startTime = "Not started",
                     whatToWatch = watchLine,
                 )
+                // `projectedFinish` was hardwired to null — the hero has always had a slot
+                // for it and the contract has always carried the numbers.
                 Matchup.Status.Live -> OmenMatchupHeroState.Live(
                     selectedTeam = mine,
                     opponent = theirs,
-                    projectedFinish = null,
+                    projectedFinish = projectedFinishText,
                     whatToWatch = watchLine,
                 )
                 Matchup.Status.Final -> OmenMatchupHeroState.Final(
@@ -190,23 +192,75 @@ data class LeagueOverview(
      * `OmenMatchupTeam` takes non-null strings, so absence renders as an empty record (the row
      * omits it) and an em dash for a score we were not given — never a zero, which would read
      * as "they scored nothing".
+     *
+     * **`projected` was parsed and then thrown away.** The contract has carried it since
+     * `league-overview.v1` shipped and nothing read it, so before the week started every hero
+     * showed an em dash on both sides — the one moment a projection is the ONLY number that
+     * exists. Which number leads depends on the phase:
+     *
+     *  - `Pregame`: the projection IS the score, suffixed `proj` so it can never read as
+     *    points already earned;
+     *  - `Live`: real points lead and the projected finish rides the centre rule instead
+     *    (see [projectedFinishText]) — two numbers in one slot would be unreadable;
+     *  - `Final`: points only. A projection after the whistle is noise.
+     *
+     * iOS mirror: `LeagueOverview.scoreText(for:phase:)`.
      */
-    private fun heroTeam(side: Matchup.Side?): OmenMatchupTeam? {
+    private fun heroTeam(side: Matchup.Side?, phase: Matchup.Status): OmenMatchupTeam? {
         val name = side?.teamName?.takeIf { it.isNotEmpty() } ?: return null
         return OmenMatchupTeam(
             name = name,
             record = side.record.orEmpty(),
-            scoreText = side.points?.let { formatPoints(it) } ?: "—",
+            scoreText = scoreText(side, phase),
+            projectedText = projectedText(side, phase),
         )
     }
+
+    private fun scoreText(side: Matchup.Side, phase: Matchup.Status): String {
+        // An em dash, never "0.0". Before kickoff nobody has scored, and a zero states as fact
+        // that they scored nothing.
+        if (phase == Matchup.Status.Pregame) return "—"
+        return side.points?.let { formatPoints(it) } ?: "—"
+    }
+
+    /**
+     * Null past the whistle and whenever the provider gave no projection — which is what
+     * removes the column entirely rather than drawing an empty one.
+     */
+    private fun projectedText(side: Matchup.Side, phase: Matchup.Status): String? {
+        if (phase == Matchup.Status.Final) return null
+        return side.projected?.let { formatPoints(it) }
+    }
+
+    /**
+     * The centre rule during a live game: where both teams are heading, not where they are.
+     *
+     * Null unless the provider gave a projection for BOTH sides. One-sided is worse than none
+     * — a rule reading "119.6–" invites the reader to fill in the blank themselves.
+     */
+    private val projectedFinishText: String?
+        get() {
+            val mine = matchup.you?.projected ?: return null
+            val theirs = matchup.opponent?.projected ?: return null
+            return "${formatPoints(mine)}–${formatPoints(theirs)} proj"
+        }
 
     /** Deterministic and checkable against the payload it came from. */
     private val watchLine: String?
         get() {
             if (matchup.status != Matchup.Status.Live) return null
+            // Prefer the PROJECTED margin, which is what "projected within" actually means.
+            // This line used to compute the margin from `points` — the current score — and
+            // label it "Projected", which described the present and called it the future.
+            val myProjected = matchup.you?.projected
+            val theirProjected = matchup.opponent?.projected
+            if (myProjected != null && theirProjected != null) {
+                return "Projected within ${formatPoints(abs(myProjected - theirProjected))} points."
+            }
             val mine = matchup.you?.points ?: return null
             val theirs = matchup.opponent?.points ?: return null
-            return "Projected within ${formatPoints(abs(mine - theirs))} points."
+            // Relabelled to say what it really is.
+            return "Within ${formatPoints(abs(mine - theirs))} points right now."
         }
 
     private val resultSummary: String

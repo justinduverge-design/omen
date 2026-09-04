@@ -68,7 +68,9 @@ final class CommandCenterViewModelTests: XCTestCase {
         await viewModel.load(userID: "user-1")
 
         XCTAssertNil(viewModel.failure)
-        XCTAssertEqual(viewModel.commandCenterState.greeting, "This week's move is ready.")
+        // No `game_week` in this fixture, so the headline cannot name a week and says so
+        // without one rather than inventing a number.
+        XCTAssertEqual(viewModel.commandCenterState.greeting, "Your game plan is ready.")
     }
 
     /// The critical honesty guarantee: a failed read must surface as a failure, never as a
@@ -214,7 +216,11 @@ extension CommandCenterViewModelTests {
                 calls += 1
                 return .failure(.network)
             }
-            func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+            func fetchOverview(
+                accessToken: String,
+                platform: String?,
+                leagueID: String?
+            ) async -> Result<LeagueOverview, OmenApiError> {
                 calls += 1
                 return .failure(.network)
             }

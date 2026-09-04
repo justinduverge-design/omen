@@ -43,7 +43,23 @@ protocol LeagueRepository {
     /// `league-overview.v1`. Supersedes `fetchStandings` for callers that need the matchup and
     /// activity sections too. `fetchStandings` stays because the Command Center context strip
     /// consumes that narrower contract and must not be disturbed.
-    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError>
+    ///
+    /// `platform`/`leagueID` name ONE of the user's leagues. Both nil means "whichever league
+    /// is active", which is every pre-existing caller. The league carousel names one per page,
+    /// because a carousel that could only ever read the active league would show the same
+    /// matchup on all of them.
+    func fetchOverview(
+        accessToken: String,
+        platform: String?,
+        leagueID: String?
+    ) async -> Result<LeagueOverview, OmenApiError>
+}
+
+extension LeagueRepository {
+    /// The active league. Keeps every existing call site unchanged.
+    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
+        await fetchOverview(accessToken: accessToken, platform: nil, leagueID: nil)
+    }
 }
 
 struct ApiLeagueRepository: LeagueRepository {
@@ -57,8 +73,19 @@ struct ApiLeagueRepository: LeagueRepository {
         await client.get("api/league/standings", accessToken: accessToken, as: LeagueStandings.self)
     }
 
-    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
-        await client.get("api/league/overview", accessToken: accessToken, as: LeagueOverview.self)
+    func fetchOverview(
+        accessToken: String,
+        platform: String?,
+        leagueID: String?
+    ) async -> Result<LeagueOverview, OmenApiError> {
+        var path = "api/league/overview"
+        // Both or neither. A league id without its platform makes the server search every
+        // connected provider for it, which is a slower way to reach the same answer.
+        if let platform, let leagueID,
+           let encoded = leagueID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path += "?platform=\(platform)&leagueId=\(encoded)"
+        }
+        return await client.get(path, accessToken: accessToken, as: LeagueOverview.self)
     }
 }
 
@@ -66,8 +93,19 @@ struct StubLeagueRepository: LeagueRepository {
     let result: Result<LeagueStandings, OmenApiError>
     var overviewResult: Result<LeagueOverview, OmenApiError>?
 
-    func fetchOverview(accessToken: String) async -> Result<LeagueOverview, OmenApiError> {
-        overviewResult ?? .failure(.network)
+    /// Per-league answers when a test supplies them, keyed `"platform:leagueID"`; otherwise
+    /// the single `overviewResult`, which is what the active-league callers get.
+    var overviewByLeague: [String: Result<LeagueOverview, OmenApiError>] = [:]
+
+    func fetchOverview(
+        accessToken: String,
+        platform: String?,
+        leagueID: String?
+    ) async -> Result<LeagueOverview, OmenApiError> {
+        if let platform, let leagueID, let keyed = overviewByLeague["\(platform):\(leagueID)"] {
+            return keyed
+        }
+        return overviewResult ?? .failure(.network)
     }
 
     func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {

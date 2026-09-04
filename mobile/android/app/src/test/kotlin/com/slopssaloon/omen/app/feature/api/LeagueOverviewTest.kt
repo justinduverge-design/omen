@@ -57,9 +57,9 @@ class LeagueOverviewTest {
         assertEquals("88.4", hero.selectedTeam.scoreText)
         assertEquals("Top Dogs", hero.opponent.name)
         assertEquals("91.1", hero.opponent.scoreText)
-        // This contract carries no projection, so the field stays empty rather than guessing.
+        // This FIXTURE carries no projection, so the field stays empty rather than guessing.
         assertNull(hero.projectedFinish)
-        assertEquals("Projected within 2.7 points.", hero.whatToWatch)
+        assertEquals("Within 2.7 points right now.", hero.whatToWatch)
     }
 
     @Test
@@ -236,5 +236,107 @@ class LeagueOverviewTest {
 
         assertNull(overview.standings.teams.first().pointsFor)
         assertNull(overview.standings.teams.first().pointsAgainst)
+    }
+
+    // ---- Projected points ----
+    //
+    // `projected` has been in `league-overview.v1` since it shipped and nothing read it, so
+    // before kickoff every hero showed an em dash on both sides — the one moment a projection
+    // is the only number that exists. iOS mirror: `LeagueOverviewTests` projected section.
+
+    private fun projectedSides(
+        status: String,
+        you: String = "0.0",
+        them: String = "0.0",
+        youProjected: String = "119.6",
+        themProjected: String = "114.2",
+    ) = """
+        {"status":"$status",
+         "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":$you,"projected":$youProjected},
+         "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":$them,"projected":$themProjected},
+         "unavailable_reason":null}
+    """.trimIndent()
+
+    @Test
+    fun `pregame puts the projection in its own column and leaves score empty`() {
+        val hero = parse(projectedSides("pregame")).matchupHero as OmenMatchupHeroState.BeforeGames
+
+        // Founder sketch 2026-09-04: PROJ and SCORE are two columns. Before kickoff the
+        // projection is real and the score is not — an em dash, never "0.0", which would state
+        // as fact that they scored nothing.
+        assertEquals("119.6", hero.selectedTeam.projectedText)
+        assertEquals("—", hero.selectedTeam.scoreText)
+        assertEquals("114.2", hero.opponent.projectedText)
+        assertEquals("—", hero.opponent.scoreText)
+    }
+
+    @Test
+    fun `live shows both columns`() {
+        val hero = parse(projectedSides("live", you = "88.4", them = "91.1")).matchupHero
+            as OmenMatchupHeroState.Live
+
+        // Where you are AND where you are heading. The pair is the whole point of the columns.
+        assertEquals("119.6", hero.selectedTeam.projectedText)
+        assertEquals("88.4", hero.selectedTeam.scoreText)
+    }
+
+    @Test
+    fun `final drops the projection column entirely`() {
+        val hero = parse(projectedSides("final", you = "120.0", them = "99.5")).matchupHero
+            as OmenMatchupHeroState.Final
+
+        // Null rather than a dash: it removes the column instead of drawing an empty one.
+        assertNull(hero.selectedTeam.projectedText)
+        assertEquals("120.0", hero.selectedTeam.scoreText)
+    }
+
+    @Test
+    fun `pregame with no projection still refuses to print a zero`() {
+        val matchup = """
+            {"status":"pregame",
+             "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":null,"projected":null},
+             "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":null,"projected":null},
+             "unavailable_reason":null}
+        """.trimIndent()
+        val hero = parse(matchup).matchupHero as OmenMatchupHeroState.BeforeGames
+
+        // An em dash, never "0.0" — a zero would read as "they scored nothing".
+        assertEquals("—", hero.selectedTeam.scoreText)
+    }
+
+    @Test
+    fun `live leads with real points and puts the projection on the centre rule`() {
+        val hero = parse(projectedSides("live", you = "88.4", them = "91.1")).matchupHero
+            as OmenMatchupHeroState.Live
+
+        // Points lead once they exist; two numbers in one slot would be unreadable.
+        assertEquals("88.4", hero.selectedTeam.scoreText)
+        assertEquals("91.1", hero.opponent.scoreText)
+        assertEquals("119.6–114.2 proj", hero.projectedFinish)
+        // "Projected within" now means the projected margin, not the current one relabelled.
+        assertEquals("Projected within 5.4 points.", hero.whatToWatch)
+    }
+
+    @Test
+    fun `a one-sided projection is no projection at all`() {
+        val matchup = """
+            {"status":"live",
+             "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":88.4,"projected":119.6},
+             "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":91.1,"projected":null},
+             "unavailable_reason":null}
+        """.trimIndent()
+        val hero = parse(matchup).matchupHero as OmenMatchupHeroState.Live
+
+        // A rule reading "119.6–" invites the reader to fill in the blank themselves.
+        assertNull(hero.projectedFinish)
+    }
+
+    @Test
+    fun `final ignores the projection entirely`() {
+        val hero = parse(projectedSides("final", you = "120.0", them = "99.5")).matchupHero
+            as OmenMatchupHeroState.Final
+
+        // A projection after the whistle is noise.
+        assertEquals("120.0", hero.selectedTeam.scoreText)
     }
 }

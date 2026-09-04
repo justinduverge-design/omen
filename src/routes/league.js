@@ -24,6 +24,7 @@ const {
   SELECTION_COLUMN,
   readConnectionsWithSelection,
 } = require("../services/activeSelection");
+const { connectionForLeague } = require("../services/leagueDiscovery");
 const ERROR_COPY = Object.freeze({
   invalid_platform: {
     error: "Invalid platform",
@@ -84,6 +85,35 @@ function selectConnections(rows, { platform, leagueId }) {
 
 function selectConnection(rows, options) {
   return selectConnections(rows, options)[0] || null;
+}
+
+/**
+ * Candidates for a request, widened to leagues the user follows but has not bound.
+ *
+ * `selectConnections` filters on `row.league_id`, so it can only ever match the ONE
+ * league bound on a connection. That was fine while a user had one league per provider.
+ * The Command Center carousel swipes across every league the user follows, and asking
+ * for the second one used to 404 — not because Omen could not read it, but because no
+ * row named it. Provider credentials are per-account, so the adapters can read any
+ * league the account belongs to.
+ *
+ * Only reached when the ordinary lookup found nothing AND the caller named a league, so
+ * the common path costs no extra provider call. The widened lookup asks the provider to
+ * confirm the league genuinely belongs to the account before serving it — a client id is
+ * never trusted on its own.
+ */
+async function candidatesForRequest(rows, { platform, leagueId, userId, season }) {
+  const bound = selectConnections(rows, { platform, leagueId });
+  if (bound.length || !leagueId) return bound;
+
+  const widened = await connectionForLeague(rows, {
+    platform,
+    leagueId,
+    userId,
+    season,
+    isUsable: connectionUsable,
+  });
+  return widened ? [widened] : [];
 }
 
 async function getConnectionRows(userId) {
@@ -209,7 +239,9 @@ router.get("/standings", requireAuth, async (req, res, next) => {
   try {
     const context = getCurrentNflWeekContext();
     const rows = await getConnectionRows(req.user.id);
-    const candidates = selectConnections(rows, { platform, leagueId });
+    const candidates = await candidatesForRequest(rows, {
+      platform, leagueId, userId: req.user.id, season: context.season,
+    });
 
     if (!candidates.length) {
       const result = errorEnvelope({ code: "league_not_connected", status: 404 });
@@ -579,7 +611,9 @@ router.get("/overview", requireAuth, async (req, res, next) => {
   try {
     const context = getCurrentNflWeekContext();
     const rows = await getConnectionRows(req.user.id);
-    const candidates = selectConnections(rows, { platform, leagueId });
+    const candidates = await candidatesForRequest(rows, {
+      platform, leagueId, userId: req.user.id, season: context.season,
+    });
 
     if (!candidates.length) {
       const result = errorEnvelope({ code: "league_not_connected", status: 404 });

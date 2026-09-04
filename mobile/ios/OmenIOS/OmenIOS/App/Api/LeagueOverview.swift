@@ -203,8 +203,8 @@ extension LeagueOverview {
         guard
             let you = matchup.you,
             let them = matchup.opponent,
-            let mine = heroTeam(you),
-            let theirs = heroTeam(them)
+            let mine = heroTeam(you, phase: matchup.status),
+            let theirs = heroTeam(them, phase: matchup.status)
         else { return nil }
 
         switch matchup.status {
@@ -218,7 +218,14 @@ extension LeagueOverview {
                 whatToWatch: watchLine
             )
         case .live:
-            return .live(selectedTeam: mine, opponent: theirs, projectedFinish: nil, whatToWatch: watchLine)
+            // `projectedFinish` was hardwired to `nil` — the hero has always had a slot for
+            // it and the contract has always carried the numbers.
+            return .live(
+                selectedTeam: mine,
+                opponent: theirs,
+                projectedFinish: projectedFinishText,
+                whatToWatch: watchLine
+            )
         case .final:
             return .final(
                 selectedTeam: mine,
@@ -234,26 +241,74 @@ extension LeagueOverview {
     /// `OmenMatchupTeam` takes non-optional strings, so absence is rendered as an empty
     /// record (the row simply omits it) and an em dash for a score we were not given —
     /// never a zero, which would read as "they scored nothing".
-    private func heroTeam(_ side: Matchup.Side) -> OmenMatchupTeam? {
+    ///
+    /// **`projected` was decoded and then thrown away.** The contract has carried it since
+    /// `league-overview.v1` shipped and nothing read it, so before the week started every
+    /// hero showed an em dash on both sides — the one moment a projection is the ONLY number
+    /// that exists. Which number leads depends on the phase, and the hero's own doc comment
+    /// already said so: "For `BeforeGames` this is a projection and the caller should format
+    /// it as such."
+    ///
+    /// Founder sketch, 2026-09-04: the hero shows **PROJ and SCORE as two columns**, both
+    /// visible at once. Which are populated depends on the phase:
+    ///
+    /// - `pregame`: PROJ carries the projection, SCORE shows an em dash. Nobody has scored
+    ///   yet, and a `0.0` there would read as a real score of nothing.
+    /// - `live`: both. Where you are, and where you are heading — the pair is the whole point.
+    /// - `final`: SCORE only, no columns. A projection after the whistle is noise.
+    ///
+    /// A side with no projection simply has no `projectedText`; the hero falls back to its
+    /// single-number layout when neither side has one.
+    private func heroTeam(_ side: Matchup.Side, phase: Matchup.Status) -> OmenMatchupTeam? {
         guard let name = side.teamName, !name.isEmpty else { return nil }
         return OmenMatchupTeam(
             name: name,
             record: side.record ?? "",
-            scoreText: side.points.map { String(format: "%.1f", $0) } ?? "—"
+            scoreText: Self.scoreText(for: side, phase: phase),
+            projectedText: Self.projectedText(for: side, phase: phase)
         )
+    }
+
+    static func scoreText(for side: Matchup.Side, phase: Matchup.Status) -> String {
+        // An em dash, never "0.0". Before kickoff nobody has scored, and a zero states as
+        // fact that they scored nothing.
+        if phase == .pregame { return "—" }
+        return side.points.map { String(format: "%.1f", $0) } ?? "—"
+    }
+
+    /// `nil` past the whistle and whenever the provider gave no projection — which is what
+    /// removes the columns entirely rather than drawing an empty one.
+    static func projectedText(for side: Matchup.Side, phase: Matchup.Status) -> String? {
+        guard phase != .final, let projected = side.projected else { return nil }
+        return String(format: "%.1f", projected)
+    }
+
+    /// The centre rule during a live game: where both teams are heading, not where they are.
+    ///
+    /// `nil` unless the provider gave a projection for BOTH sides. One-sided is worse than
+    /// none — a rule reading "119.6–" invites the reader to fill in the blank themselves.
+    private var projectedFinishText: String? {
+        guard
+            let mine = matchup.you?.projected,
+            let theirs = matchup.opponent?.projected
+        else { return nil }
+        return String(format: "%.1f–%.1f proj", mine, theirs)
     }
 
     /// Deterministic and checkable against the payload it came from. Anything requiring
     /// players-remaining or lineup risk needs data this contract does not carry.
     private var watchLine: String? {
-        guard
-            let mine = matchup.you?.points,
-            let theirs = matchup.opponent?.points,
-            matchup.status == .live
-        else { return nil }
+        guard matchup.status == .live else { return nil }
 
-        let margin = abs(mine - theirs)
-        return String(format: "Projected within %.1f points.", margin)
+        // Prefer the PROJECTED margin, which is what "projected within" actually means.
+        // This line used to compute the margin from `points` — the current score — and
+        // label it "Projected", which described the present and called it the future.
+        // Falls back to the live margin, relabelled to say what it really is.
+        if let mine = matchup.you?.projected, let theirs = matchup.opponent?.projected {
+            return String(format: "Projected within %.1f points.", abs(mine - theirs))
+        }
+        guard let mine = matchup.you?.points, let theirs = matchup.opponent?.points else { return nil }
+        return String(format: "Within %.1f points right now.", abs(mine - theirs))
     }
 
     private func resultSummary(you: Matchup.Side, opponent: Matchup.Side) -> String {

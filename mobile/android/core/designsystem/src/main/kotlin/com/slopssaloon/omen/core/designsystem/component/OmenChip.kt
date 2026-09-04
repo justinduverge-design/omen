@@ -14,7 +14,14 @@ import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /** Registry §3.1 Chip tones: position, platform brand, and explicitly labeled demo mode. */
-enum class OmenChipTone { Rb, Wr, Qb, Te, Def, K, Sleeper, Yahoo, Espn, Demo }
+/**
+ * [Neutral] was added 2026-09-03 for the Command Center league carousel's "All" chip, which
+ * sits beside the three platform chips and must not borrow any one platform's colour — an All
+ * chip tinted Sleeper-green reads as a fourth Sleeper filter. Additive: no existing tone or
+ * call site changes. **Flagged for design sign-off** in the session handoff rather than
+ * treated as settled. iOS mirror: `OmenChipTone.neutral`.
+ */
+enum class OmenChipTone { Rb, Wr, Qb, Te, Def, K, Sleeper, Yahoo, Espn, Demo, Neutral }
 
 @Composable
 fun OmenChip(
@@ -37,6 +44,7 @@ fun OmenChip(
         OmenChipTone.Yahoo -> colors.data.platformYahoo
         OmenChipTone.Espn -> colors.data.platformEspn
         OmenChipTone.Demo -> colors.data.demoText
+        OmenChipTone.Neutral -> colors.textSecondary
     }
     val shape = RoundedCornerShape(999.dp)
     val chipLabel: @Composable () -> Unit = { Text(label, style = OmenTheme.typography.chip.toTextStyle()) }

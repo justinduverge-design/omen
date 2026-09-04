@@ -16,9 +16,48 @@ const CONNECTION_SELECT_WITH_SELECTION = /is_selected/;
  * schema as it stands today — no `is_selected` column — so the degraded path is
  * exercised as the default rather than as an afterthought.
  */
-function fakeSupabase({ rows = [], missingSelectionColumn = true, updates = [], updateError = null } = {}) {
+const MISSING_FOLLOWS_TABLE = Object.freeze({
+  code: "PGRST205",
+  message: "Could not find the table 'public.league_follows' in the schema cache",
+});
+
+function fakeFollowsTable({ follows, followWrites }) {
+  const answer = (resolve, reject, data) => (follows === null
+    ? Promise.resolve({ data: null, error: MISSING_FOLLOWS_TABLE }).then(resolve, reject)
+    : Promise.resolve({ data, error: null }).then(resolve, reject));
+
+  const chain = (data) => {
+    const query = {
+      eq() { return query; },
+      then(resolve, reject) { return answer(resolve, reject, data); },
+    };
+    return query;
+  };
+
+  return {
+    select: () => chain(follows || []),
+    delete: () => chain([]),
+    upsert(rowsToWrite) {
+      if (follows !== null) followWrites.push(...rowsToWrite);
+      return chain([]);
+    },
+  };
+}
+
+function fakeSupabase({
+  rows = [],
+  missingSelectionColumn = true,
+  updates = [],
+  updateError = null,
+  follows = null,
+  followWrites = [],
+} = {}) {
   return {
     from(table) {
+      // `league_follows` is review-only SQL and absent from production, so the double
+      // answers the way PostgREST does for an unknown table by default. Passing
+      // `follows` opts a test into the applied-migration world.
+      if (table === "league_follows") return fakeFollowsTable({ follows, followWrites });
       assert.equal(table, "platform_connections");
       return {
         select(columns) {
@@ -82,6 +121,9 @@ function defaultSleeperAdapter(overrides = {}) {
 function defaultEspnAdapter(overrides = {}) {
   return {
     verifyLeagueAccess: async () => ({ team_id: 9, team_name: "ESPN Team" }),
+    // Discovery unavailable by default, so every pre-existing ESPN test keeps
+    // exercising the bound-league fallback it was written for.
+    fetchEspnFanLeagues: async () => { throw new Error("fan api unavailable"); },
     ...overrides,
   };
 }
@@ -184,7 +226,7 @@ test("GET /api/leagues lists Sleeper leagues alphabetically with team, scoring f
   assert.equal(body.active.scoring_format, "standard");
 });
 
-test("GET /api/leagues resolves the ESPN bound league and team through the ESPN adapter", async () => {
+test("GET /api/leagues falls back to the bound ESPN league when fan discovery cannot run", async () => {
   const app = buildApp({ supabase: { rows: [ESPN_ROW], missingSelectionColumn: false } });
   const { body } = await request(app);
 
@@ -195,7 +237,7 @@ test("GET /api/leagues resolves the ESPN bound league and team through the ESPN 
   assert.equal(espn.leagues[0].league_id, "12345");
   assert.equal(espn.leagues[0].team_name, "ESPN Team");
   assert.equal(espn.leagues[0].is_active, true);
-  assert.match(espn.notice, /does not expose a league list/);
+  assert.match(espn.notice, /couldn't ask ESPN for your full league list/);
   assert.equal(body.active.platform, "espn");
 });
 
@@ -440,4 +482,189 @@ test("POST /api/leagues/active still binds the league, and says so honestly, whe
   assert.equal(updates.length, 1);
   assert.equal(Object.hasOwn(updates[0].patch, "is_selected"), false);
   assert.equal(updates[0].patch.league_id, "L-zeta");
+});
+
+
+// --- Multi-league: discovery, follow-count ordering, and the multiselect write ---
+
+const ESPN_FAN_LEAGUES = [
+  { league_id: "77", league_name: "Zeta Office", season: 2026, team_id: "4", team_name: "Zeta Squad" },
+  { league_id: "12345", league_name: "Alpha Dynasty", season: 2026, team_id: "9", team_name: "ESPN Team" },
+  { league_id: "88", league_name: "Mid Money", season: 2026, team_id: "2", team_name: "Mid Squad" },
+];
+
+function espnWithDiscovery() {
+  return defaultEspnAdapter({ fetchEspnFanLeagues: async () => ESPN_FAN_LEAGUES });
+}
+
+test("ESPN reports every league the fan API returns, not just the bound one", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
+    espnAdapter: espnWithDiscovery(),
+  });
+  const { body } = await request(app);
+
+  const espn = body.platforms.find((p) => p.platform === "espn");
+  assert.equal(espn.discovery, "full");
+  assert.equal(espn.notice, null);
+  // Sorted alphabetically by league name within the platform, per §10.2.
+  assert.deepEqual(espn.leagues.map((l) => l.league_name), ["Alpha Dynasty", "Mid Money", "Zeta Office"]);
+  // Per-league team ids: the whole point. `espn_team_id` could only ever describe one.
+  assert.deepEqual(espn.leagues.map((l) => l.team_id), ["9", "2", "4"]);
+  // Only the bound league is active; the other two are followed but not selected.
+  assert.deepEqual(espn.leagues.map((l) => l.is_active), [true, false, false]);
+});
+
+test("providers are ordered most-leagues-first, ties alphabetical", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW, SLEEPER_ROW, YAHOO_ROW], missingSelectionColumn: false },
+    espnAdapter: espnWithDiscovery(),
+  });
+  const { body } = await request(app);
+
+  // ESPN 3, Sleeper 2, Yahoo 1.
+  assert.deepEqual(body.platforms.map((p) => p.platform), ["espn", "sleeper", "yahoo"]);
+});
+
+test("a tie in league count breaks alphabetically, not by connection order", async () => {
+  const app = buildApp({
+    supabase: { rows: [YAHOO_ROW, SLEEPER_ROW], missingSelectionColumn: false },
+    yahooClient: {
+      getUserLeagues: async () => ([
+        { league_id: "449.l.1", name: "Work League", season: 2026 },
+        { league_id: "449.l.2", name: "Home League", season: 2026 },
+      ]),
+    },
+  });
+  const { body } = await request(app);
+
+  // Both have two leagues, so "sleeper" < "yahoo" decides it. Unconnected ESPN has
+  // zero leagues and keeps a stable tail — the chip row still has to render it.
+  assert.deepEqual(body.platforms.map((p) => p.platform), ["sleeper", "yahoo", "espn"]);
+});
+
+test("every discovered league counts as followed while the follows table is absent", async () => {
+  const app = buildApp({
+    supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false },
+  });
+  const { body } = await request(app);
+
+  assert.equal(body.follow_persistence, "unavailable");
+  const sleeper = body.platforms.find((p) => p.platform === "sleeper");
+  assert.ok(sleeper.leagues.every((l) => l.is_followed === true));
+});
+
+test("with the follows table applied, only stored leagues are marked followed", async () => {
+  const app = buildApp({
+    supabase: {
+      rows: [SLEEPER_ROW],
+      missingSelectionColumn: false,
+      follows: [{ platform: "sleeper", league_id: "L-alpha", team_id: "3", sort_order: 0 }],
+    },
+  });
+  const { body } = await request(app);
+
+  assert.equal(body.follow_persistence, "explicit");
+  const sleeper = body.platforms.find((p) => p.platform === "sleeper");
+  const followed = sleeper.leagues.filter((l) => l.is_followed).map((l) => l.league_id);
+  assert.deepEqual(followed, ["L-alpha"]);
+});
+
+test("POST /api/leagues/follows stores a verified multiselect", async () => {
+  const followWrites = [];
+  const app = buildApp({
+    supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, follows: [], followWrites },
+  });
+
+  const { status, body } = await request(app, {
+    path: "/api/leagues/follows",
+    method: "POST",
+    body: {
+      platform: "sleeper",
+      leagues: [
+        { league_id: "L-alpha", team_id: "3", league_name: "Alpha League" },
+        { league_id: "L-zeta", team_id: "7", league_name: "Zeta League" },
+      ],
+    },
+  });
+
+  assert.equal(status, 200);
+  assert.equal(body.contract_version, "league-follows.v1");
+  assert.equal(body.follow_persistence, "explicit");
+  assert.deepEqual(body.followed, ["L-alpha", "L-zeta"]);
+  assert.deepEqual(body.refresh, ["command_center", "omen", "league", "waiver_watch", "ledger"]);
+  assert.deepEqual(followWrites.map((r) => r.league_id), ["L-alpha", "L-zeta"]);
+  // Submission order is preserved so the carousel can honour it later.
+  assert.deepEqual(followWrites.map((r) => r.sort_order), [0, 1]);
+});
+
+test("POST /api/leagues/follows rejects the whole set when one league is not on the account", async () => {
+  const followWrites = [];
+  const app = buildApp({
+    supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false, follows: [], followWrites },
+  });
+
+  const { status, body } = await request(app, {
+    path: "/api/leagues/follows",
+    method: "POST",
+    body: {
+      platform: "sleeper",
+      leagues: [{ league_id: "L-alpha" }, { league_id: "not-mine" }],
+    },
+  });
+
+  assert.equal(status, 400);
+  assert.equal(body.code, "league_not_in_account");
+  // Nothing partial was written — the message promises that and it has to be true.
+  assert.equal(followWrites.length, 0);
+});
+
+test("POST /api/leagues/follows accepts the choice but says it did not persist without the table", async () => {
+  const app = buildApp({ supabase: { rows: [SLEEPER_ROW], missingSelectionColumn: false } });
+
+  const { status, body } = await request(app, {
+    path: "/api/leagues/follows",
+    method: "POST",
+    body: { platform: "sleeper", leagues: [{ league_id: "L-alpha" }] },
+  });
+
+  assert.equal(status, 200);
+  assert.equal(body.follow_persistence, "unavailable");
+});
+
+test("POST /api/leagues/follows can follow several ESPN leagues once discovery works", async () => {
+  const followWrites = [];
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, follows: [], followWrites },
+    espnAdapter: espnWithDiscovery(),
+  });
+
+  const { status, body } = await request(app, {
+    path: "/api/leagues/follows",
+    method: "POST",
+    body: {
+      platform: "espn",
+      leagues: [{ league_id: "12345", team_id: "9" }, { league_id: "88", team_id: "2" }],
+    },
+  });
+
+  assert.equal(status, 200);
+  assert.deepEqual(body.followed, ["12345", "88"]);
+  assert.deepEqual(followWrites.map((r) => r.team_id), ["9", "2"]);
+});
+
+test("no ESPN cookie value reaches a follows response or its rejection", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, follows: [] },
+    espnAdapter: espnWithDiscovery(),
+  });
+
+  const { body } = await request(app, {
+    path: "/api/leagues/follows",
+    method: "POST",
+    body: { platform: "espn", leagues: [{ league_id: "nope" }] },
+  });
+
+  const serialized = JSON.stringify(body);
+  assert.doesNotMatch(serialized, /espn-cookie-secret|swid-secret/);
 });

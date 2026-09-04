@@ -372,6 +372,17 @@ private struct ScreenshotConnectRepository: ConnectRepository {
 
     /// Empty for the same reason `connectEspn` fails: screenshot mode signs in to nothing, and a
     /// fixture that invented ESPN leagues would put fake league names into store screenshots.
+    /// Screenshot mode never writes, so the follow set is reported as accepted and stored —
+    /// the "did not persist" disclosure is a real-server state and must not appear in a
+    /// marketing capture describing something that did not happen.
+    func followLeagues(
+        platform: String,
+        leagues: [FollowedLeague],
+        accessToken: String
+    ) async -> Result<Bool, ConnectFailure> {
+        .success(true)
+    }
+
     func discoverEspnLeagues(
         espnS2: String,
         swid: String,

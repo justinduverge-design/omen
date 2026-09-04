@@ -1,5 +1,111 @@
 # Omen Decision Log
 
+## 2026-09-04 — The Command Center sketch: a game-week headline, PROJ/SCORE columns, a second pager
+
+Founder brought a hand-drawn Command Center layout. Built the same session.
+
+**The headline is now day-aware, not a static line.** Founder direction: "have them rotate
+throughout the game week… on Tuesdays it should be preparing gameplan for week ___, on Wednesday
+it should refer to having the gameplan ready, Thursday to Monday something referent to being in
+game mode." So the phase drives the copy: `preparing` Tuesday, `ready` Wednesday, `live`
+Thursday–Monday, with a different line per day inside the live window. Keyed to the day, never
+randomised — a headline that changes on every pull-to-refresh reads as a bug and cannot be
+tested. **The live-window lines are a first draft still in workshop**; Tuesday and Wednesday are
+the founder's own words. Two rules hold whatever the wording: **status beats the calendar** (a
+disconnected user is never told "Sunday, Week 3 is in play"), and **no week number means no week
+in the copy**.
+
+**`getCurrentNflWeekContext()` reports the wrong week on Saturday, Sunday and Monday — found
+while building the above, and NOT fixed.** It anchors on a fixed `Date.UTC(season, 8, 5)`, whose
+weekday moves every year; September 5 2026 is a Saturday, so Sunday 2026-09-13 — the Sunday of
+NFL Week 1 — reports week 2. The two days most people open a fantasy app. A correct
+Tuesday-anchored `getNflGameWeek()` was added beside it (derived from Labor Day so it needs no
+edit each season, read in America/New_York because a phone in LA at 9pm Monday is still on
+Monday in the league's week, `week: null` off-season rather than clamped). It serves display
+copy **only**. Changing the global one touches Tuesday scoring and the Omen engine days before
+Week 1, and a wrong week in scoring rewrites Ledger history — that is a founder call, tracked
+separately. `test/nflSchedule.test.js` pins the disagreement deliberately, with a note to delete
+that assertion rather than "fix" it when the reconciliation lands.
+
+**The matchup hero shows PROJ and SCORE as two columns**, per the sketch. Both numbers matter at
+once during a game — where you are and where you are heading — and one slot forced a choice in
+which the projection always lost. Pregame fills PROJ and shows an em dash for SCORE, never
+`0.0`. The centre rule had been restating the same two projections three lines away, so with
+columns present it now names the phase instead.
+
+**Fixed a facts-of-record #21 violation found in passing:** the hero's score used
+`design: .monospaced` — a mono family — where the rule is `.monospacedDigit()` on the normal
+face. DM Mono is retired app-wide and must not return to fix column alignment.
+
+**The three sections below the matchup became one paged widget with a labelled tab row**, not
+dots. The sketch asked for the swipe; the tabs are the addition. Paging buys back roughly two
+screens of vertical space and costs discoverability, and dots make that worse — they say "there
+is more" without saying what. Naming all three keeps the two that are hidden known to exist, and
+the tabs double as the control so it works for someone who never swipes.
+
+**`optIntOrNull` promoted to Android's `JsonExt.kt`** and its three private copies deleted —
+that file's own doc comment warns about exactly this drift, having been written after the same
+thing happened to `optStringOrNull`.
+
+Evidence: `Blueprints/handoffs/2026-09-03-multi-league-carousel.md` (addendum). Backend 973/973;
+iOS 425 tests with one pre-existing unrelated failure; Android unit suite green; verified on the
+iPhone 17 Pro simulator.
+
+
+## 2026-09-03 — Multi-league follows, the Command Center carousel, and the greeting family
+
+Founder-directed session. Three asks: multiselect on the provider league pickers, a swipeable
+league widget merging the switcher with the matchup hero, and "give it life" — projected points,
+and a headline that is not "This week's move is ready."
+
+**The greeting is now a scouting-report family, chosen over a military one.** Ready reads
+**"Your week is scouted."** The old line was a status announcement *about Omen* at the top of a
+page whose job is now to be a Small Council of short reads (facts-of-record #16). All five lines
+in the family are about the same subject — how much of your week Omen has read — so the headline
+stays coherent as the status changes underneath it.
+
+**The Command Center carousel replaces the context strip + Matchup Hero pair.** The swipe IS the
+switch: the page you rest on becomes the league Omen uses. Provider chips (All · ESPN · Yahoo ·
+Sleeper) filter it. **Provider order is by followed-league count, most first, ties alphabetical**,
+and `orderPlatformsByFollowCount` in `src/services/leagueFollows.js` is the single authority —
+both clients render that order and neither re-sorts, so a change to the rule is one edit, not
+three. The switcher sheet was deliberately left working rather than removed in the same change
+that introduced its replacement.
+
+**ESPN league discovery was available the whole time and nobody had asked.** `espnLeagues()`
+reported `bound_only` on the claim that "ESPN does not expose a league list to Omen". True of
+`lm-api-reads`; never true of the fan API, which W1-A had *already wired up* for the connect flow
+against web-view cookies. The same call works against the cookies in Vault. ESPN now reports
+`discovery: "full"` with per-league team ids — **no schema change required.** Same pattern as the
+whole W1-A wave: a load-bearing claim that was wrong and went unchecked.
+
+**`GET /api/league/overview?leagueId=` now serves any league the user genuinely plays in.** It
+used to 404 on anything but the bound league, because `selectConnections` filtered on
+`row.league_id` — the one-row-per-provider shape leaking into the API. Provider credentials are
+per-ACCOUNT, so the adapters could always read any league the account belongs to.
+
+**Multi-league PERSISTENCE is gated and was not applied.**
+`sql/2026-09-03_multi_league_follows_review.sql` (new `league_follows` join table) is authored
+review-only per facts-of-record #8. Chosen over widening `platform_connections`: its credential
+columns are per-account facts, and a row per league would duplicate the Vault pointers. Until it
+is applied, `POST /api/leagues/follows` accepts and verifies but reports
+`follow_persistence: "unavailable"`, every discovered league counts as followed, and the picker
+**says so** rather than claiming a save that did not happen.
+
+**`projected` was in `league-overview.v1` from the start and nothing read it** — so before
+kickoff every matchup hero showed an em dash on both sides, at the one moment a projection is the
+only number that exists. Now pregame leads with it (suffixed `proj`), live puts it on the centre
+rule, final ignores it. Also corrected a quiet lie: the live "what to watch" line computed the
+margin from the *current score* and labelled it "Projected within…".
+
+**`OmenChipTone.neutral` added on both platforms and flagged for design sign-off**, not treated
+as settled. The "All" chip must not borrow a platform's colour — an All chip tinted Sleeper-green
+reads as a fourth Sleeper filter.
+
+Evidence: `Blueprints/handoffs/2026-09-03-multi-league-carousel.md`. Backend 967/967; iOS 418
+tests with one pre-existing unrelated failure; Android unit suite green.
+
+
 ## 2026-09-03 (close) — W1-A acceptance is complete
 
 - **Android connected a real ESPN league.** The founder signed in with his own MyDisney/ESPN

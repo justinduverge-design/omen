@@ -47,9 +47,9 @@ final class LeagueOverviewTests: XCTestCase {
         XCTAssertEqual(mine.scoreText, "88.4")
         XCTAssertEqual(theirs.name, "Top Dogs")
         XCTAssertEqual(theirs.scoreText, "91.1")
-        // This contract carries no projection, so the field stays empty rather than guessing.
+        // This FIXTURE carries no projection, so the field stays empty rather than guessing.
         XCTAssertNil(projectedFinish)
-        XCTAssertEqual(whatToWatch, "Projected within 2.7 points.")
+        XCTAssertEqual(whatToWatch, "Within 2.7 points right now.")
     }
 
     func testFinalMatchupStatesTheResultFromPointsRatherThanInferringAWinner() throws {
@@ -237,5 +237,127 @@ final class LeagueOverviewTests: XCTestCase {
         )
         XCTAssertNil(team.pointsFor)
         XCTAssertNil(team.pointsAgainst)
+    }
+
+    // MARK: - Projected points
+    //
+    // `projected` has been in `league-overview.v1` since it shipped and nothing read it, so
+    // before kickoff every hero showed an em dash on both sides — the one moment a
+    // projection is the only number that exists.
+
+    private func projectedSides(
+        status: String,
+        youPoints: String = "0.0",
+        themPoints: String = "0.0",
+        youProjected: String = "119.6",
+        themProjected: String = "114.2"
+    ) -> String {
+        """
+        {"status":"\(status)",
+         "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":\(youPoints),"projected":\(youProjected)},
+         "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":\(themPoints),"projected":\(themProjected)},
+         "unavailable_reason":null}
+        """
+    }
+
+    func testPregamePutsTheProjectionInItsOwnColumnAndLeavesScoreEmpty() throws {
+        let overview = try decode(matchup: projectedSides(status: "pregame"))
+
+        guard case let .beforeGames(mine, theirs, _, _) = overview.matchupHero else {
+            return XCTFail("a pregame matchup must reach the beforeGames hero state.")
+        }
+        // Founder sketch 2026-09-04: PROJ and SCORE are two columns. Before kickoff the
+        // projection is real and the score is not — an em dash, never "0.0", which would
+        // state as fact that they scored nothing.
+        XCTAssertEqual(mine.projectedText, "119.6")
+        XCTAssertEqual(mine.scoreText, "—")
+        XCTAssertEqual(theirs.projectedText, "114.2")
+        XCTAssertEqual(theirs.scoreText, "—")
+    }
+
+    func testLiveShowsBothColumns() throws {
+        let overview = try decode(
+            matchup: projectedSides(status: "live", youPoints: "88.4", themPoints: "91.1")
+        )
+
+        guard case let .live(mine, _, _, _) = overview.matchupHero else {
+            return XCTFail("a live matchup must reach the live hero state.")
+        }
+        // Where you are AND where you are heading. The pair is the whole point of the columns.
+        XCTAssertEqual(mine.projectedText, "119.6")
+        XCTAssertEqual(mine.scoreText, "88.4")
+    }
+
+    func testFinalDropsTheProjectionColumnEntirely() throws {
+        let overview = try decode(
+            matchup: projectedSides(status: "final", youPoints: "120.0", themPoints: "99.5")
+        )
+
+        guard case let .final(mine, _, _, _) = overview.matchupHero else {
+            return XCTFail("a final matchup must reach the final hero state.")
+        }
+        // `nil` rather than a dash: it removes the column instead of drawing an empty one.
+        XCTAssertNil(mine.projectedText)
+        XCTAssertEqual(mine.scoreText, "120.0")
+    }
+
+    func testPregameWithNoProjectionStillRefusesToPrintAZero() throws {
+        let matchup = """
+        {"status":"pregame",
+         "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":null,"projected":null},
+         "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":null,"projected":null},
+         "unavailable_reason":null}
+        """
+        let overview = try decode(matchup: matchup)
+
+        guard case let .beforeGames(mine, _, _, _) = overview.matchupHero else {
+            return XCTFail("a pregame matchup must reach the beforeGames hero state.")
+        }
+        // An em dash, never "0.0" — a zero would read as "they scored nothing".
+        XCTAssertEqual(mine.scoreText, "—")
+    }
+
+    func testLiveLeadsWithRealPointsAndPutsTheProjectionOnTheCentreRule() throws {
+        let overview = try decode(
+            matchup: projectedSides(status: "live", youPoints: "88.4", themPoints: "91.1")
+        )
+
+        guard case let .live(mine, theirs, projectedFinish, whatToWatch) = overview.matchupHero else {
+            return XCTFail("a live matchup must reach the live hero state.")
+        }
+        // Points lead once they exist; two numbers in one slot would be unreadable.
+        XCTAssertEqual(mine.scoreText, "88.4")
+        XCTAssertEqual(theirs.scoreText, "91.1")
+        XCTAssertEqual(projectedFinish, "119.6–114.2 proj")
+        // "Projected within" now means the projected margin, not the current one relabelled.
+        XCTAssertEqual(whatToWatch, "Projected within 5.4 points.")
+    }
+
+    func testAOneSidedProjectionIsNoProjectionAtAll() throws {
+        let matchup = """
+        {"status":"live",
+         "you":{"team_id":"7","team_name":"Team Slops","record":"6-2","points":88.4,"projected":119.6},
+         "opponent":{"team_id":"3","team_name":"Top Dogs","record":"7-1","points":91.1,"projected":null},
+         "unavailable_reason":null}
+        """
+        let overview = try decode(matchup: matchup)
+
+        guard case let .live(_, _, projectedFinish, _) = overview.matchupHero else {
+            return XCTFail("a live matchup must reach the live hero state.")
+        }
+        // A rule reading "119.6–" invites the reader to fill in the blank themselves.
+        XCTAssertNil(projectedFinish)
+    }
+
+    func testFinalIgnoresTheProjectionEntirely() throws {
+        let overview = try decode(
+            matchup: projectedSides(status: "final", youPoints: "120.0", themPoints: "99.5")
+        )
+
+        guard case let .final(mine, _, _, _) = overview.matchupHero else {
+            return XCTFail("a final matchup must reach the final hero state.")
+        }
+        // A projection after the whistle is noise.
+        XCTAssertEqual(mine.scoreText, "120.0")
     }
 }

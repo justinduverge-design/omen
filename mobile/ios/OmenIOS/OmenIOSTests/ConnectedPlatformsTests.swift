@@ -21,6 +21,7 @@ final class ConnectedPlatformsTests: XCTestCase {
             contractVersion: "league-directory.v1",
             season: 2026,
             selectionPersistence: "explicit",
+            followPersistence: "explicit",
             active: nil,
             platforms: groups
         )
