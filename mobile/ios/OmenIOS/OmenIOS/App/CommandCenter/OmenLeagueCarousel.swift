@@ -42,6 +42,7 @@ struct OmenLeagueCarousel: View {
     /// so they belong directly under the page header, and the matchup is what they act on.
     var body: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            addLeagueRow
             chipRow
             matchupHeader
             content
@@ -139,44 +140,46 @@ struct OmenLeagueCarousel: View {
 
     /// All · then each provider that actually has a followed league, in the server's
     /// order — most leagues first, ties alphabetical.
-    /// One horizontal row naming **only the providers the user actually has**, plus Add
-    /// League. Founder, 2026-09-04: "if they don't have that, then it doesn't pop up."
+    /// Add League on its own row, **above** the provider filters. Founder, 2026-09-04:
+    /// "I like the league, but it should go above ESPN and Sleeper" — which is also where the
+    /// original sketch put it.
+    ///
+    /// It was a trailing chip in the filter row for one build, and that was a category error:
+    /// the provider chips are a *filter* (they change what you are looking at) and this is an
+    /// *action* (it changes what you have). Sitting them in one row invited the reading that
+    /// `+ League` was a fourth filter.
+    @ViewBuilder
+    private var addLeagueRow: some View {
+        if viewModel.hasLoadedLeagues, let onAddLeague {
+            OmenChip(label: "+ Add League", tone: .neutral, selected: false, action: onAddLeague)
+                .accessibilityLabel("Add a league")
+        }
+    }
+
+    /// One horizontal row naming **only the providers the user actually has**. Founder,
+    /// 2026-09-04: "if they don't have that, then it doesn't pop up."
     ///
     /// This replaced a vertical strip that listed all three providers unconditionally, so a
     /// user with one connection spent two rows of the fold reading the word "Disconnected"
     /// about products they do not use.
     @ViewBuilder
     private var chipRow: some View {
-        // The filter chips need two or more providers to mean anything, but Add League is
-        // useful to a user with one — so the row renders whenever either half has something
-        // to say, and each half decides for itself. Never in a state with neither.
-        if viewModel.hasLoadedLeagues, viewModel.chips.count > 2 || onAddLeague != nil {
+        // Two or more providers for the filter to mean anything — one provider has nothing to
+        // filter between, and a lone chip beside "All" is a control with no second state.
+        if viewModel.hasLoadedLeagues, viewModel.chips.count > 2 {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: OmenSpacing.step8) {
-                    if viewModel.chips.count > 2 {
-                        ForEach(viewModel.chips, id: \.self) { chip in
-                            OmenChip(
-                                label: chipLabel(chip),
-                                tone: chipTone(chip),
-                                selected: viewModel.selectedPlatform == chip,
-                                action: {
-                                    viewModel.selectedPlatform = chip
-                                    Task { await viewModel.loadCurrentPage() }
-                                }
-                            )
-                            .accessibilityLabel(chipAccessibilityLabel(chip))
-                        }
-                    }
-                    if let onAddLeague {
-                        // "+ League" rather than a bare "+": a lone glyph beside three named
-                        // filters reads as a fourth filter, and the label costs one word.
+                    ForEach(viewModel.chips, id: \.self) { chip in
                         OmenChip(
-                            label: "+ League",
-                            tone: .neutral,
-                            selected: false,
-                            action: onAddLeague
+                            label: chipLabel(chip),
+                            tone: chipTone(chip),
+                            selected: viewModel.selectedPlatform == chip,
+                            action: {
+                                viewModel.selectedPlatform = chip
+                                Task { await viewModel.loadCurrentPage() }
+                            }
                         )
-                        .accessibilityLabel("Add a league")
+                        .accessibilityLabel(chipAccessibilityLabel(chip))
                     }
                 }
                 .padding(.vertical, OmenSpacing.step4)

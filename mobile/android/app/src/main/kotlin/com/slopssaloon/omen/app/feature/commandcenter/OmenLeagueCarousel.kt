@@ -90,7 +90,21 @@ fun OmenLeagueCarousel(
         verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
     ) {
         if (viewModel.viewState is LeagueCarouselViewModel.ViewState.Loaded) {
-            ChipRow(viewModel = viewModel, onAddLeague = onAddLeague)
+            // Add League on its own row, ABOVE the provider filters. Founder, 2026-09-04:
+            // "I like the league, but it should go above ESPN and Sleeper" — which is also
+            // where the original sketch put it. It was a trailing chip in the filter row for
+            // one build, and that was a category error: the provider chips are a *filter* and
+            // this is an *action*. Sitting them in one row invited the reading that
+            // "+ League" was a fourth filter.
+            if (onAddLeague != null) {
+                OmenChip(
+                    label = "+ Add League",
+                    tone = OmenChipTone.Neutral,
+                    onClick = onAddLeague,
+                    modifier = Modifier.semantics { contentDescription = "Add a league" },
+                )
+            }
+            ChipRow(viewModel = viewModel)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -228,12 +242,11 @@ private fun LoadedCarousel(
  * they do not use. iOS mirror: `OmenLeagueCarousel.chipRow`.
  */
 @Composable
-private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit)?) {
+private fun ChipRow(viewModel: LeagueCarouselViewModel) {
     val scope = rememberCoroutineScope()
-    // The filter chips need two or more providers to mean anything, but Add League is useful to
-    // a user with one — so the row renders whenever either half has something to say, and each
-    // half decides for itself.
-    if (viewModel.chips.size <= 2 && onAddLeague == null) return
+    // Two or more providers for the filter to mean anything — one provider has nothing to
+    // filter between, and a lone chip beside "All" is a control with no second state.
+    if (viewModel.chips.size <= 2) return
 
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -241,7 +254,7 @@ private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit
     ) {
         // All · then each provider that actually has a followed league, in the server's order
         // — most leagues first, ties alphabetical.
-        if (viewModel.chips.size > 2) viewModel.chips.forEach { chip ->
+        viewModel.chips.forEach { chip ->
             val count = viewModel.leagueCountFor(chip)
             val noun = if (count == 1) "league" else "leagues"
             OmenChip(
@@ -255,16 +268,6 @@ private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit
                 modifier = Modifier.semantics {
                     contentDescription = "${chipLabel(chip)}, $count $noun"
                 },
-            )
-        }
-        if (onAddLeague != null) {
-            // "+ League" rather than a bare "+": a lone glyph beside three named filters reads
-            // as a fourth filter, and the label costs one word.
-            OmenChip(
-                label = "+ League",
-                tone = OmenChipTone.Neutral,
-                onClick = onAddLeague,
-                modifier = Modifier.semantics { contentDescription = "Add a league" },
             )
         }
     }

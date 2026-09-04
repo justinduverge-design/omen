@@ -78,14 +78,24 @@ struct ApiLeagueRepository: LeagueRepository {
         platform: String?,
         leagueID: String?
     ) async -> Result<LeagueOverview, OmenApiError> {
-        var path = "api/league/overview"
         // Both or neither. A league id without its platform makes the server search every
         // connected provider for it, which is a slower way to reach the same answer.
-        if let platform, let leagueID,
-           let encoded = leagueID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            path += "?platform=\(platform)&leagueId=\(encoded)"
+        //
+        // Passed as `query`, never appended to the path: `appendingPathComponent` treats a
+        // built query string as one path segment and percent-encodes the `?`. This shipped
+        // wrong on 2026-09-04 and made every carousel page say "Omen couldn't read this
+        // league's week" while the server answered 200 to the same request made correctly.
+        var query: [String: String] = [:]
+        if let platform, let leagueID {
+            query["platform"] = platform
+            query["leagueId"] = leagueID
         }
-        return await client.get(path, accessToken: accessToken, as: LeagueOverview.self)
+        return await client.get(
+            "api/league/overview",
+            accessToken: accessToken,
+            query: query,
+            as: LeagueOverview.self
+        )
     }
 }
 
