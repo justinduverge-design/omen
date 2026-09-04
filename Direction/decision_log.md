@@ -1,5 +1,33 @@
 # Omen Decision Log
 
+## 2026-09-03 (later) — the zero-emitted-bytes clause is met, and it needed amending
+
+- **W1-A's "`espn_s2`/`SWID` in zero emitted bytes" clause is MET on both platforms**, proved the
+  way the clause demands: by provoking a real failure and searching the bytes. Both suites drive
+  the **real** repository and view model through a whole connect — discovery, a provoked 500, and
+  the retry after it — with a recorder wired in where the HTTP client normally sits, then search
+  every URL, header, bearer and body.
+- **Both suites were verified to fail before being trusted.** A leak was deliberately injected —
+  the session appended to the directory read's query string — and 5 of 6 iOS tests and 4 of 5
+  Android tests failed, each naming the offending request. This was done **per platform** rather
+  than assuming the iOS result transfers, because the seams genuinely differ: Android's fetcher
+  records the bearer separately and exposes no header map at that layer.
+  - The reason for the discipline is on the record: the first run of the iOS cookie spike returned
+    a confident false negative that only its control test caught. A passing safety test that has
+    never been shown to fail is a decoration.
+- **Amendment needing founder ratification: the clause is one request out of date.** It says
+  "outside the **single** connect request". There are now two authorized carriers —
+  `POST /api/platforms/espn/connect`, which always was, and `POST /api/platforms/espn/leagues`,
+  added earlier the same day for league discovery, after the contract was written. Discovery is
+  what replaced making the user hunt for a league id in a URL, so the second carrier is deliberate
+  — but the contract sentence was not updated when it landed, and the tests encode the amended
+  version. Recorded rather than absorbed.
+- **Scope stated rather than implied:** the proof covers Omen's own HTTP emissions and the crash
+  envelope, which are the app's only emission channels — there is no analytics SDK, and the sole
+  `NSLog` is a status code in `SentryEnvelopeReporter`. It does **not** cover the WebView's own
+  traffic to ESPN, which necessarily carries the cookie; that is the mechanism, not a leak.
+- **Still open on W1-A:** Android has never run against a real ESPN account. FOUNDER_DEVICE.
+
 ## 2026-09-03 — Android parity, disconnect, and a shorter deletion word
 
 - **W1-A reaches Android parity.** Same flow as iOS: consent → ESPN's own sign-in in an

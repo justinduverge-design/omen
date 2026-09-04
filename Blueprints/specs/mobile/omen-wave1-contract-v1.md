@@ -158,12 +158,29 @@ This is a client-only build against a route already in production.
 
 ### Acceptance
 
-- A founder-run device test connects a real ESPN league end-to-end on an iPhone with **no computer
-  involved**. This is the whole point of the wave; a simulator pass does not satisfy it.
-- `espn_s2` and `SWID` appear in **zero** emitted bytes outside the single connect request. Proved
-  the way the scrubber failures were proved — by provoking a real failure and searching the emitted
-  bytes, not by review.
-- Android reaches parity in the same wave (workshop Part 3: platforms move together).
+- ✅ **A founder-run device test connects a real ESPN league end-to-end on an iPhone with no
+  computer involved.** Met 2026-09-03 — *The Titans of Slopsilonia*, founder's own iPhone.
+- ✅ **`espn_s2` and `SWID` appear in zero emitted bytes outside the requests authorized to carry
+  them.** Met 2026-09-03 on both platforms: `OmenIOSTests/EspnEmittedBytesTests.swift` and
+  `EspnEmittedBytesTest.kt` drive the real repository and view model through a full connect
+  including a provoked 500 and its retry, then search every URL, header, bearer and body handed to
+  the transport. **Each suite was itself verified by injecting a deliberate leak** — the session
+  appended to the directory read's query string — which failed 5 of 6 on iOS and 4 of 5 on
+  Android, each naming the offending request. Verified on both rather than assuming the iOS result
+  transfers, because the seams differ.
+  - ⚠️ **Amended, and it needs founder ratification.** This clause said "outside the **single**
+    connect request". There are now **two** authorized paths: `POST /api/platforms/espn/connect`,
+    which always was, and `POST /api/platforms/espn/leagues`, added 2026-09-03 for league discovery
+    — after this contract was written. Discovery is what replaced "go find your league id in a
+    URL", so the second carrier is deliberate, but the clause as written is one request out of
+    date and the tests encode the amended version. Naming it rather than absorbing it.
+  - **Scope, stated honestly:** this covers Omen's own HTTP emissions and the crash envelope,
+    which are the only channels the app emits through — no analytics SDK, and the sole `NSLog` is
+    a status code in `SentryEnvelopeReporter`. It does **not** cover the WebView's own traffic to
+    ESPN, which necessarily carries the cookie: that is the browser being a browser.
+- ⚠️ **Android reaches parity in the same wave** (workshop Part 3: platforms move together). Code
+  parity met 2026-09-03 and proven on an emulator; **Android has never run against a real ESPN
+  account.** Fixtures and a cookie spike only. This is the remaining gate.
 
 ---
 

@@ -1066,11 +1066,22 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
   Mechanism proven on both platforms before the port
   (`HttpOnlyCookieSpikeTests.swift`, `HttpOnlyCookieSpikeTest.kt`).
   Commits `b2f348a` → `8e9ae4e`.
+- **✅ "Zero emitted bytes" clause MET 2026-09-03, both platforms.**
+  `OmenIOSTests/EspnEmittedBytesTests.swift` (6) and `EspnEmittedBytesTest.kt` (5) drive the real
+  repository and view model through a full connect including a **provoked 500 and its retry**,
+  then search every URL, header, bearer and body handed to the transport. **Each suite was itself
+  verified by injecting a deliberate leak** (session appended to the directory read's query
+  string): 5 of 6 failed on iOS, 4 of 5 on Android, each naming the offending request. Verified on
+  both platforms rather than assuming the iOS result transfers — the seams differ.
+  - ⚠️ **Deviation needing founder ratification:** the clause says "the **single** connect
+    request"; there are now **two** authorized carriers, because `POST /api/platforms/espn/leagues`
+    was added for discovery after the contract was written. The tests encode the amended version.
+    See `omen-wave1-contract-v1.md` §W1-A Acceptance.
 - **Still unmet — do not close on the above:**
-  1. **The "zero emitted bytes" clause.** `espn_s2`/`SWID` must be proved absent from every emitted
-     byte outside the single connect request, "the way the scrubber failures were proved — by
-     provoking a real failure and searching the bytes, not by review". Not done on either platform.
-  2. **Android has never run against a real ESPN account.** Fixtures and a cookie spike only.
+  1. **Android has never run against a real ESPN account.** Fixtures, unit tests and a cookie spike
+     only. **FOUNDER_DEVICE** — needs a real ESPN sign-in on an Android device or emulator; the
+     debug APK is at `mobile/android/app/build/outputs/apk/debug/app-debug.apk` and installs on the
+     `medium_phone` AVD.
 - **Also open:** ESPN's `entryId` / `entry.name` are not confirmed in ESPN's own client bundle, so
   team names in the picker are the likeliest thing to come back blank. Cosmetic; the league id is
   verified.
