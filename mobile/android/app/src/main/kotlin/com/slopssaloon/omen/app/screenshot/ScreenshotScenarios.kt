@@ -42,6 +42,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.connect.ConnectException
 import com.slopssaloon.omen.app.feature.connect.ConnectFailure
 import com.slopssaloon.omen.app.feature.connect.ConnectRepository
+import com.slopssaloon.omen.app.feature.connect.FollowedLeague
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
 import com.slopssaloon.omen.app.feature.connect.ConnectViewModel
 import com.slopssaloon.omen.app.feature.connect.EspnCapture
@@ -372,6 +373,15 @@ private class ScreenshotConnectRepository : ConnectRepository {
 
     override suspend fun connectEspn(capture: EspnCapture, accessToken: String): Result<Unit> =
         Result.failure(ConnectException(ConnectFailure.EspnSessionUnreadable))
+
+    // Screenshot mode never writes, so the follow set is reported as accepted and stored — the
+    // "did not persist" disclosure is a real-server state and must not appear in a marketing
+    // capture describing something that did not happen.
+    override suspend fun followLeagues(
+        platform: String,
+        leagues: List<FollowedLeague>,
+        accessToken: String,
+    ): Result<Boolean> = Result.success(true)
 
     override suspend fun espnConnection(accessToken: String): Result<EspnConnection?> =
         Result.success(null)

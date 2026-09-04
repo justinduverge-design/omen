@@ -30,15 +30,25 @@ const {
   resolveActiveConnection,
   usableLeagueId,
 } = require("../services/activeSelection");
+const {
+  readFollows,
+  replaceFollows,
+  orderPlatformsByFollowCount,
+} = require("../services/leagueFollows");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const DIRECTORY_CONTRACT = "league-directory.v1";
 const SELECTION_CONTRACT = "league-active-selection.v1";
+const FOLLOWS_CONTRACT = "league-follows.v1";
 const ERROR_CONTRACT = "league-directory-error.v1";
 
-// §10.2: "Keep platform-group order stable across visits."
+// Which providers exist. NOT the order they render in — that is now derived from the
+// user's own leagues by `orderPlatformsByFollowCount`, per the Command Center carousel
+// rule: most leagues first, ties alphabetical. §10.2 asks for an order that is stable
+// across visits, and a count-plus-alphabet order is: it moves only when the user's
+// leagues do.
 const PLATFORM_GROUP_ORDER = Object.freeze(["sleeper", "espn", "yahoo"]);
 const VALID_PLATFORMS = new Set(PLATFORM_GROUP_ORDER);
 
@@ -154,30 +164,90 @@ async function yahooLeagues(row, userId) {
 }
 
 /**
- * ESPN publishes no league-discovery endpoint Omen is entitled to use, so the
- * directory can only show the league the user bound at connect time. Reported as
- * `bound_only` rather than presented as a complete list.
+ * ESPN league discovery, from credentials already stored at connect time.
+ *
+ * **This used to be `bound_only` and it no longer has to be.** The old comment here
+ * said "ESPN publishes no league-discovery endpoint Omen is entitled to use", and that
+ * was true of `lm-api-reads`, which can only answer about a league you already name. It
+ * was never true of the fan API — the endpoint ESPN's own site uses to render "My
+ * Teams" — which W1-A wired up for the connect flow as `POST /platforms/espn/leagues`.
+ * That route takes cookies straight from the sign-in web view. The same call works just
+ * as well against the cookies already in Vault, which is what this does.
+ *
+ * The practical consequence: an ESPN user with three leagues now sees three rows here,
+ * not one, and the Command Center carousel can swipe across them. Nothing about that
+ * needed a schema change — the leagues were always discoverable, nothing had asked.
+ *
+ * Falls back to the bound league, and to the old `bound_only` notice, whenever
+ * discovery cannot run. A failed lookup must not shrink a working connection to zero
+ * leagues.
+ *
+ * SECURITY: credentials are read to make the call and never returned or logged
+ * (facts-of-record #6). The adapter strips query strings from its failure reports.
  */
 async function espnLeagues(row, userId, season) {
-  if (!usableLeagueId(row)) {
+  const boundId = usableLeagueId(row) ? String(row.league_id) : null;
+
+  let credentials;
+  try {
+    credentials = await getAuthenticatedEspnCredentials(userId);
+  } catch {
+    credentials = null;
+  }
+
+  if (credentials) {
+    try {
+      const discovered = await espnAdapter.fetchEspnFanLeagues(
+        credentials.espn_s2,
+        credentials.swid,
+        { season }
+      );
+      if (discovered.length) {
+        return {
+          discovery: "full",
+          leagues: discovered.map((league) => leagueEntry({
+            leagueId: league.league_id,
+            leagueName: league.league_name,
+            season: league.season || season,
+            // ESPN's scoring rules are a separate read Omen has not mapped. Null, not
+            // guessed — guessing PPR here is the A6 defect.
+            scoringFormat: null,
+            teamId: league.team_id,
+            teamName: league.team_name,
+          })),
+          notice: null,
+        };
+      }
+    } catch {
+      // Discovery is best-effort. The bound league below is still a true answer.
+    }
+  }
+
+  if (!boundId) {
     return { discovery: "bound_only", leagues: [], notice: "ESPN has no league bound to this connection yet." };
   }
 
   let teamId = row.espn_team_id == null ? null : String(row.espn_team_id);
   let teamName = null;
-  try {
-    const credentials = await getAuthenticatedEspnCredentials(userId);
-    const team = await espnAdapter.verifyLeagueAccess(row.league_id, credentials.espn_s2, credentials.swid, row.espn_team_id || null);
-    teamId = team?.team_id == null ? teamId : String(team.team_id);
-    teamName = team?.team_name || null;
-  } catch {
-    // Never surface the ESPN failure detail here; the state field carries it.
+  if (credentials) {
+    try {
+      const team = await espnAdapter.verifyLeagueAccess(
+        row.league_id,
+        credentials.espn_s2,
+        credentials.swid,
+        row.espn_team_id || null
+      );
+      teamId = team?.team_id == null ? teamId : String(team.team_id);
+      teamName = team?.team_name || null;
+    } catch {
+      // Never surface the ESPN failure detail here; the state field carries it.
+    }
   }
 
   return {
     discovery: "bound_only",
     leagues: [leagueEntry({ leagueId: row.league_id, leagueName: null, season, teamId, teamName })],
-    notice: "ESPN does not expose a league list to Omen, so only the connected league is shown.",
+    notice: "Omen couldn't ask ESPN for your full league list, so only the connected league is shown.",
   };
 }
 
@@ -192,7 +262,7 @@ function discoveryFailure(platform, error) {
   };
 }
 
-async function platformGroup(platform, row, userId, season) {
+async function platformGroup(platform, row, userId, season, followed) {
   const state = connectionState(row);
   if (state !== "connected") {
     return { platform, connection_state: state, discovery: "unavailable", notice: null, leagues: [] };
@@ -208,9 +278,14 @@ async function platformGroup(platform, row, userId, season) {
   }
 
   const boundLeagueId = usableLeagueId(row) ? String(row.league_id) : null;
+  // `followed` is null when the follow table is absent, which means "the user has not
+  // been able to choose a subset yet". Everything discovered is then followed — the
+  // honest reading, and exactly what every surface did before follows existed. An empty
+  // Set is a different fact: the user chose nothing, and nothing is followed.
   const leagues = sortLeagues(result.leagues).map((league) => ({
     ...league,
     is_active: boundLeagueId != null && league.league_id === boundLeagueId,
+    is_followed: followed == null ? true : followed.has(league.league_id),
   }));
 
   return { platform, connection_state: state, discovery: result.discovery, notice: result.notice, leagues };
@@ -239,10 +314,27 @@ router.get("/", requireAuth, async (req, res, next) => {
     const season = getCurrentNflWeekContext().season;
     const { rows, selectionPersisted } = await readConnectionsWithSelection(supabase, req.user.id, CONNECTION_COLUMNS);
     const byPlatform = new Map(rows.map((row) => [row.platform, row]));
+    const { follows, followsPersisted } = await readFollows(supabase, req.user.id);
+
+    // Per platform: the followed set, or null meaning "no stored choice exists".
+    const followedByPlatform = new Map();
+    if (followsPersisted) {
+      for (const platform of PLATFORM_GROUP_ORDER) followedByPlatform.set(platform, new Set());
+      for (const follow of follows) {
+        const set = followedByPlatform.get(follow.platform);
+        if (set) set.add(String(follow.league_id));
+      }
+    }
 
     const groups = [];
     for (const platform of PLATFORM_GROUP_ORDER) {
-      groups.push(await platformGroup(platform, byPlatform.get(platform), req.user.id, season));
+      groups.push(await platformGroup(
+        platform,
+        byPlatform.get(platform),
+        req.user.id,
+        season,
+        followedByPlatform.get(platform) ?? null
+      ));
     }
 
     return res.json({
@@ -250,8 +342,14 @@ router.get("/", requireAuth, async (req, res, next) => {
       generated_at: nowIso(),
       season,
       selection_persistence: selectionPersisted ? "explicit" : "provider_binding_only",
+      // Whether a multiselect the user makes will survive the session. `false` until
+      // `sql/2026-09-03_multi_league_follows_review.sql` is applied, and the picker says
+      // so rather than pretending a choice stuck.
+      follow_persistence: followsPersisted ? "explicit" : "unavailable",
       active: activeSummary(rows, groups),
-      platforms: groups,
+      // Providers ordered most-leagues-first, ties alphabetical. The client renders its
+      // filter chips and its carousel in this order and does not re-sort.
+      platforms: orderPlatformsByFollowCount(groups),
     });
   } catch (e) {
     logger.error("League directory lookup failed", { err: e.message });
@@ -259,22 +357,44 @@ router.get("/", requireAuth, async (req, res, next) => {
   }
 });
 
-/** The league must be one the user genuinely has — never trust the client's id. */
-async function assertLeagueBelongsToUser(platform, row, leagueId, userId, season) {
+/**
+ * Every league id the provider says this account actually plays in.
+ *
+ * One provider round trip serves any number of ids to check, which is what makes the
+ * multiselect endpoint below affordable: verifying five leagues one at a time would be
+ * five identical discovery calls.
+ *
+ * ESPN now participates like the others — `fetchEspnFanLeagues` is the same fan-API read
+ * `espnLeagues` uses. When it cannot run, ESPN falls back to the one verifiable claim
+ * there has always been: the bound league.
+ */
+async function discoverLeagueIds(platform, row, userId, season) {
   if (platform === "yahoo") {
     const { client } = await getAuthenticatedYahooClient(userId);
     const leagues = await client.getUserLeagues();
-    return (leagues || []).some((league) => String(league.league_id) === leagueId);
+    return new Set((leagues || []).map((league) => String(league.league_id)));
   }
   if (platform === "sleeper") {
     const sleeperUserId = row.platform_user_id
       || (row.platform_username ? (await sleeperAdapter.fetchSleeperUser(row.platform_username)).user_id : null);
-    if (!sleeperUserId) return false;
+    if (!sleeperUserId) return new Set();
     const leagues = await sleeperAdapter.fetchSleeperLeagues(sleeperUserId, season);
-    return (leagues || []).some((league) => String(league.league_id || league.id) === leagueId);
+    return new Set((leagues || []).map((league) => String(league.league_id || league.id)));
   }
-  // ESPN has no discovery list, so the only verifiable claim is the bound league.
-  return usableLeagueId(row) && String(row.league_id) === leagueId;
+
+  try {
+    const credentials = await getAuthenticatedEspnCredentials(userId);
+    const leagues = await espnAdapter.fetchEspnFanLeagues(credentials.espn_s2, credentials.swid, { season });
+    if (leagues.length) return new Set(leagues.map((league) => String(league.league_id)));
+  } catch {
+    // Fall through to the bound league rather than rejecting a connection that works.
+  }
+  return usableLeagueId(row) ? new Set([String(row.league_id)]) : new Set();
+}
+
+/** The league must be one the user genuinely has — never trust the client's id. */
+async function assertLeagueBelongsToUser(platform, row, leagueId, userId, season) {
+  return (await discoverLeagueIds(platform, row, userId, season)).has(leagueId);
 }
 
 async function persistSelection(userId, platform, leagueId, teamId) {
@@ -390,6 +510,108 @@ router.post("/active", requireAuth, async (req, res, next) => {
     });
   } catch (e) {
     logger.error("Active league selection failed", { err: e.message });
+    return next(e);
+  }
+});
+
+/**
+ * `POST /api/leagues/follows` → `league-follows.v1`.
+ *
+ * The multiselect league picker's write. Replaces the followed set for ONE platform,
+ * scoped so choosing three ESPN leagues cannot drop the Sleeper league chosen last week.
+ *
+ * Every submitted id is verified against the provider in a single discovery call before
+ * anything is written. An id the account does not play in is rejected outright rather
+ * than stored and quietly ignored later — a stored league Omen cannot read is a carousel
+ * page that can only ever render an error.
+ *
+ * The response always reports `follow_persistence`, so a client can tell "saved" apart
+ * from "accepted but not stored yet" while
+ * `sql/2026-09-03_multi_league_follows_review.sql` is still review-only.
+ */
+router.post("/follows", requireAuth, async (req, res, next) => {
+  const platform = String(req.body?.platform || "").trim().toLowerCase();
+  const submitted = Array.isArray(req.body?.leagues) ? req.body.leagues : null;
+
+  if (!VALID_PLATFORMS.has(platform)) {
+    return res.status(400).json(errorBody({
+      code: "invalid_platform",
+      message: "Choose Sleeper, ESPN, or Yahoo.",
+      action: "retry",
+    }));
+  }
+  if (!submitted) {
+    return res.status(400).json(errorBody({
+      code: "leagues_required",
+      message: "Pick at least one league to follow.",
+      action: "retry",
+      platform,
+    }));
+  }
+
+  const entries = submitted
+    .map((entry) => ({
+      league_id: String(entry?.league_id ?? entry?.leagueId ?? "").trim(),
+      team_id: entry?.team_id ?? entry?.teamId ?? null,
+      league_name: entry?.league_name ?? entry?.leagueName ?? null,
+      team_name: entry?.team_name ?? entry?.teamName ?? null,
+      season: entry?.season ?? null,
+    }))
+    .filter((entry) => entry.league_id);
+
+  try {
+    const season = getCurrentNflWeekContext().season;
+    const { rows } = await readConnectionsWithSelection(supabase, req.user.id, CONNECTION_COLUMNS);
+    const row = rows.find((candidate) => candidate.platform === platform);
+
+    if (connectionState(row) !== "connected") {
+      return res.status(404).json(errorBody({
+        code: "platform_not_connected",
+        message: "Connect this platform before choosing which of its leagues to follow.",
+        action: "connect",
+        platform,
+      }));
+    }
+
+    let owned;
+    try {
+      owned = await discoverLeagueIds(platform, row, req.user.id, season);
+    } catch (error) {
+      logger.warn("Follow verification failed", { platform, err: error.message });
+      return res.status(502).json(errorBody({
+        code: "league_verification_unavailable",
+        message: "Omen could not confirm those leagues with the platform. Try again shortly.",
+        action: "retry",
+        platform,
+      }));
+    }
+
+    const rejected = entries.filter((entry) => !owned.has(entry.league_id));
+    if (rejected.length) {
+      return res.status(400).json(errorBody({
+        code: "league_not_in_account",
+        message: rejected.length === entries.length
+          ? "Omen can't see those leagues on your connected account."
+          : "One of those leagues isn't on your connected account. Nothing was changed.",
+        action: "retry",
+        platform,
+      }));
+    }
+
+    const persisted = await replaceFollows(supabase, req.user.id, platform, entries);
+
+    return res.json({
+      contract_version: FOLLOWS_CONTRACT,
+      generated_at: nowIso(),
+      platform,
+      follow_persistence: persisted ? "explicit" : "unavailable",
+      followed: entries.map((entry) => entry.league_id),
+      // §10.3's rule, applied to a multiselect: the caller re-reads the surfaces a
+      // changed league set affects, and the server stays the authority on which.
+      refresh: ["command_center", "omen", "league", "waiver_watch", "ledger"],
+    });
+  } catch (e) {
+    logger.error("Follow update failed", { err: e.message });
     return next(e);
   }
 });

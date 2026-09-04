@@ -90,7 +90,7 @@ final class DashboardSummaryTests: XCTestCase {
         guard case .notConnected = state.waiverWatch else { return XCTFail("expected notConnected waiver") }
         guard case .notConnected = state.ledger else { return XCTFail("expected notConnected ledger") }
         guard case .notConnected = state.leaguePulse else { return XCTFail("expected notConnected pulse") }
-        XCTAssertEqual(state.greeting, "Connect a league to see your matchup.")
+        XCTAssertEqual(state.greeting, "No game plan yet.")
     }
 
     func testOffSeasonMapsToOffSeasonSectionsNotDisconnected() throws {
@@ -98,7 +98,7 @@ final class DashboardSummaryTests: XCTestCase {
 
         guard case .offSeason = state.waiverWatch else { return XCTFail("expected offSeason waiver") }
         guard case .offSeason = state.leaguePulse else { return XCTFail("expected offSeason pulse") }
-        XCTAssertEqual(state.greeting, "The season hasn't started yet.")
+        XCTAssertEqual(state.greeting, "No game plan until kickoff.")
     }
 
     /// F2: `pending_live_engine` means the connection lacks provider-specific context, NOT
@@ -153,5 +153,76 @@ final class DashboardSummaryTests: XCTestCase {
         // being filled with a plausible-sounding sentence.
         XCTAssertNil(cutLine)
         XCTAssertNil(activity)
+    }
+
+    // MARK: - The game-week headline
+    //
+    // Founder direction 2026-09-04: the headline moves with the NFL week — Tuesday prepares
+    // the plan, Wednesday has it ready, Thursday through Monday is game mode. Kotlin twin:
+    // `DashboardSummaryTest`.
+
+    private func gameWeek(
+        _ phase: DashboardSummary.GameWeek.Phase,
+        day: String?,
+        week: Int? = 3
+    ) -> DashboardSummary.GameWeek {
+        DashboardSummary.GameWeek(week: week, phase: phase, day: day, isOffSeason: week == nil)
+    }
+
+    func testTuesdayPreparesAndWednesdayIsReady() {
+        XCTAssertEqual(
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: gameWeek(.preparing, day: "tuesday")),
+            "Preparing your Week 3 game plan."
+        )
+        XCTAssertEqual(
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: gameWeek(.ready, day: "wednesday")),
+            "Your Week 3 game plan is ready."
+        )
+    }
+
+    func testTheLiveWindowReadsDifferentlyEachDay() {
+        let lines = ["thursday", "friday", "saturday", "sunday", "monday"].map {
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: gameWeek(.live, day: $0))
+        }
+
+        XCTAssertEqual(lines[0], "Week 3 is live. Thursday night is on.")
+        XCTAssertEqual(lines[3], "Sunday. Week 3 is in play.")
+        XCTAssertEqual(lines[4], "Monday night closes out Week 3.")
+        // Rotation is the point — five identical lines would be the static headline again.
+        XCTAssertEqual(Set(lines).count, 5)
+    }
+
+    func testAnUnknownDayStillGetsATrueSentence() {
+        // The contract may grow, and one unrecognised string must not blank the headline.
+        XCTAssertEqual(
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: gameWeek(.live, day: "caturday")),
+            "Week 3 is live."
+        )
+    }
+
+    /// Status beats the calendar. A disconnected user must never be told "Sunday, Week 3 is in
+    /// play" — that is a claim about a week Omen cannot see for them.
+    func testSetupStatusOutranksTheGameWeek() {
+        for status in [DashboardSummary.ToolStatus.needsPlatform, .offSeason, .unknown, .pendingLiveEngine] {
+            let line = OmenCommandCenterState.greeting(
+                for: status, gameWeek: gameWeek(.live, day: "sunday")
+            )
+            XCTAssertFalse(line.contains("Week 3"), "\(status) leaked a week number")
+            XCTAssertFalse(line.contains("Sunday"), "\(status) leaked a game-week day")
+        }
+    }
+
+    /// A headline naming a week that has not arrived is a lie the user can see — the same
+    /// class of error as the clamped `week: 1` that made the off-season look like Week 1.
+    func testNoWeekNumberMeansNoWeekInTheCopy() {
+        XCTAssertEqual(
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: gameWeek(.live, day: "sunday", week: nil)),
+            "Your game plan is ready."
+        )
+        // An older server sends no `game_week` at all; same outcome, no invented number.
+        XCTAssertEqual(
+            OmenCommandCenterState.greeting(for: .ready, gameWeek: nil),
+            "Your game plan is ready."
+        )
     }
 }

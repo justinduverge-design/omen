@@ -21,7 +21,17 @@ interface LeagueRepository {
      * activity sections too. [fetchStandings] stays because the Command Center context strip
      * consumed that narrower contract and it must not be disturbed.
      */
-    suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview>
+    /**
+     * [platform] / [leagueId] name ONE of the user's leagues. Both null means "whichever
+     * league is active", which is every pre-existing caller. The league carousel names one
+     * per page, because a carousel that could only ever read the active league would show
+     * the same matchup on all of them.
+     */
+    suspend fun fetchOverview(
+        accessToken: String,
+        platform: String? = null,
+        leagueId: String? = null,
+    ): OmenApiResult<LeagueOverview>
 }
 
 class ApiDashboardRepository(private val client: OmenApiClient) : DashboardRepository {
@@ -33,8 +43,20 @@ class ApiLeagueRepository(private val client: OmenApiClient) : LeagueRepository 
     override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> =
         client.get("api/league/standings", accessToken, LeagueStandings::parse)
 
-    override suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview> =
-        client.get("api/league/overview", accessToken, LeagueOverview::parse)
+    override suspend fun fetchOverview(
+        accessToken: String,
+        platform: String?,
+        leagueId: String?,
+    ): OmenApiResult<LeagueOverview> {
+        // Both or neither. A league id without its platform makes the server search every
+        // connected provider for it, which is a slower way to reach the same answer.
+        val path = if (platform != null && leagueId != null) {
+            "api/league/overview?platform=$platform&leagueId=${java.net.URLEncoder.encode(leagueId, "UTF-8")}"
+        } else {
+            "api/league/overview"
+        }
+        return client.get(path, accessToken, LeagueOverview::parse)
+    }
 }
 
 /**
@@ -55,8 +77,22 @@ class StubLeagueRepository(
 ) : LeagueRepository {
     override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> = result
 
-    override suspend fun fetchOverview(accessToken: String): OmenApiResult<LeagueOverview> =
-        overviewResult
+    /**
+     * Per-league answers when a test supplies them, keyed `"platform:leagueId"`; otherwise the
+     * single [overviewResult], which is what the active-league callers get.
+     */
+    var overviewByLeague: Map<String, OmenApiResult<LeagueOverview>> = emptyMap()
+
+    override suspend fun fetchOverview(
+        accessToken: String,
+        platform: String?,
+        leagueId: String?,
+    ): OmenApiResult<LeagueOverview> {
+        if (platform != null && leagueId != null) {
+            overviewByLeague["$platform:$leagueId"]?.let { return it }
+        }
+        return overviewResult
+    }
 }
 
 /**

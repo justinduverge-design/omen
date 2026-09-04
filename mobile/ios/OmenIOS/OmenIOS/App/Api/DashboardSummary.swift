@@ -13,11 +13,55 @@ struct DashboardSummary: Decodable, Equatable {
     let user: User
     let platforms: Platforms
     let tools: Tools
+    /// Where we are in the NFL game week. Optional because it is additive and a server that
+    /// predates it must not fail the decode — the headline falls back to a status-only line.
+    let gameWeek: GameWeek?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case isMock = "is_mock"
+        case gameWeek = "game_week"
         case user, platforms, tools
+    }
+
+    /// `game_week` — the Command Center headline's clock.
+    ///
+    /// **Comes from the server, never from the device.** NFL week rollover is a league fact in
+    /// the league's own timezone: a phone in Los Angeles at 9pm Monday is still on Monday in
+    /// the league's week while UTC has already moved it to Tuesday. Computing this client-side
+    /// would give two users the same week and different headlines.
+    struct GameWeek: Decodable, Equatable {
+        /// Where in the week we are. Unknown values degrade to `.live` rather than failing —
+        /// the contract may grow a phase, and one new string must not blank a headline.
+        enum Phase: String, Decodable {
+            /// Tuesday. Waivers cleared, last week scored, this week's plan being built.
+            case preparing
+            /// Wednesday. The plan is done and waiting.
+            case ready
+            /// Thursday through Monday. Games are on.
+            case live
+            case offSeason = "off_season"
+
+            init(from decoder: Decoder) throws {
+                let raw = try decoder.singleValueContainer().decode(String.self)
+                self = Phase(rawValue: raw) ?? .live
+            }
+        }
+
+        /// The week the phase refers to — on Tuesday and Wednesday that is the week about to
+        /// be played, the same number the user will see on Sunday. `nil` in the off-season,
+        /// deliberately: a headline naming a week that has not arrived is a lie the user can
+        /// see, so absence is modelled rather than clamped to 1.
+        let week: Int?
+        let phase: Phase
+        /// Day in the league's timezone, so copy can vary across the live window.
+        let day: String?
+        let isOffSeason: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case week, phase, day
+            case isOffSeason = "is_off_season"
+        }
     }
 
     struct User: Decodable, Equatable {
@@ -110,7 +154,7 @@ extension OmenCommandCenterState {
         let connected = summary.platforms.anyConnected
 
         return OmenCommandCenterState(
-            greeting: greeting(for: omenStatus),
+            greeting: greeting(for: omenStatus, gameWeek: summary.gameWeek),
             context: context ?? .empty,
             // A real matchup always wins. The shell can only ever say why there isn't one.
             matchup: matchup ?? .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
@@ -120,18 +164,92 @@ extension OmenCommandCenterState {
         )
     }
 
-    private static func greeting(for status: DashboardSummary.ToolStatus) -> String {
+    /// The Command Center headline.
+    ///
+    /// **The line moves with the NFL game week**, because the week itself has a rhythm and a
+    /// headline that ignores it reads the same on the Tuesday after a loss as it does at
+    /// kickoff. Founder direction, 2026-09-04: Tuesday prepares the plan, Wednesday has it
+    /// ready, and Thursday through Monday is game mode.
+    ///
+    /// ## Precedence
+    ///
+    /// **Status wins over the calendar.** A disconnected user must not be told "Sunday, Week 3
+    /// is in play" — that is a claim about a week Omen cannot see for them. The phase lines
+    /// are reached only once the tools are actually usable.
+    ///
+    /// ## The lines
+    ///
+    /// | When | Line |
+    /// | --- | --- |
+    /// | Tue | Preparing your Week 3 game plan. |
+    /// | Wed | Your Week 3 game plan is ready. |
+    /// | Thu | Week 3 is live. Thursday night is on. |
+    /// | Fri | Week 3 in progress. Lineups still open. |
+    /// | Sat | Week 3 in progress. Lineups lock tomorrow. |
+    /// | Sun | Sunday. Week 3 is in play. |
+    /// | Mon | Monday night closes out Week 3. |
+    ///
+    /// This table and `gameWeekLine` are one thing; edit both together. **Still in workshop** —
+    /// the founder asked to rotate copy through the game week and these are the first draft of
+    /// the live-window lines, not a settled set.
+    ///
+    /// Superseded twice in two days, which is worth recording: `"This week's move is ready."`
+    /// was a status announcement about Omen at the top of a page whose job is to be a Small
+    /// Council of short reads (facts-of-record #16); `"Your week is scouted."` fixed the
+    /// subject but was still one static line for a seven-day rhythm.
+    static func greeting(
+        for status: DashboardSummary.ToolStatus,
+        gameWeek: DashboardSummary.GameWeek? = nil
+    ) -> String {
+        // Facts about the user's own setup outrank the calendar — they are why the rest of the
+        // screen is empty, and the headline is where that gets said.
         switch status {
-        case .ready:
-            return "This week's move is ready."
-        case .pendingLiveEngine:
-            return "Your league needs a little more setup."
         case .needsPlatform:
-            return "Connect a league to see your matchup."
+            return "No game plan yet."
         case .offSeason:
-            return "The season hasn't started yet."
+            return "No game plan until kickoff."
         case .unknown:
-            return "Omen is checking your leagues."
+            return "Omen is reading your leagues."
+        case .pendingLiveEngine:
+            return "Omen needs more on your league."
+        case .ready:
+            break
+        }
+
+        guard let gameWeek, let week = gameWeek.week, gameWeek.isOffSeason != true else {
+            // Tools are ready but the server told us nothing about the week — an older build,
+            // or the off-season. Neither can name a week, so neither does.
+            return "Your game plan is ready."
+        }
+        return gameWeekLine(phase: gameWeek.phase, day: gameWeek.day, week: week)
+    }
+
+    /// The table above, in code. Separated so a copy change is one function.
+    static func gameWeekLine(
+        phase: DashboardSummary.GameWeek.Phase,
+        day: String?,
+        week: Int
+    ) -> String {
+        switch phase {
+        case .preparing:
+            return "Preparing your Week \(week) game plan."
+        case .ready:
+            return "Your Week \(week) game plan is ready."
+        case .offSeason:
+            return "No game plan until kickoff."
+        case .live:
+            // Rotates across the live window so the page reads differently on Thursday night
+            // and Monday night. Keyed to the day rather than randomised: a headline that
+            // changes on every pull-to-refresh reads as a bug, and cannot be tested.
+            switch day {
+            case "thursday": return "Week \(week) is live. Thursday night is on."
+            case "friday":   return "Week \(week) in progress. Lineups still open."
+            case "saturday": return "Week \(week) in progress. Lineups lock tomorrow."
+            case "sunday":   return "Sunday. Week \(week) is in play."
+            case "monday":   return "Monday night closes out Week \(week)."
+            // An unrecognised day still gets a true sentence rather than no headline.
+            default:         return "Week \(week) is live."
+            }
         }
     }
 

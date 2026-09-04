@@ -24,7 +24,56 @@ data class DashboardSummary(
     val platforms: Platforms,
     val omenStatus: ToolStatus,
     val waiverStatus: ToolStatus,
+    /**
+     * Where we are in the NFL game week. Null because it is additive and a server that
+     * predates it must not fail the parse — the headline falls back to a status-only line.
+     */
+    val gameWeek: GameWeek? = null,
 ) {
+    /**
+     * `game_week` — the Command Center headline's clock.
+     *
+     * **Comes from the server, never from the device.** NFL week rollover is a league fact in
+     * the league's own timezone: a phone in Los Angeles at 9pm Monday is still on Monday in
+     * the league's week while UTC has already moved it to Tuesday. Computing this client-side
+     * would give two users the same week and different headlines.
+     * iOS mirror: `DashboardSummary.GameWeek`.
+     */
+    data class GameWeek(
+        /**
+         * The week the phase refers to — on Tuesday and Wednesday that is the week about to be
+         * played, the same number the user will see on Sunday. Null in the off-season,
+         * deliberately: a headline naming a week that has not arrived is a lie the user can
+         * see, so absence is modelled rather than clamped to 1.
+         */
+        val week: Int?,
+        val phase: Phase,
+        /** Day in the league's timezone, so copy can vary across the live window. */
+        val day: String?,
+        val isOffSeason: Boolean,
+    ) {
+        enum class Phase(val wire: String) {
+            /** Tuesday. Waivers cleared, last week scored, this week's plan being built. */
+            Preparing("preparing"),
+
+            /** Wednesday. The plan is done and waiting. */
+            Ready("ready"),
+
+            /** Thursday through Monday. Games are on. */
+            Live("live"),
+            OffSeason("off_season"),
+            ;
+
+            companion object {
+                /**
+                 * An unknown phase degrades to [Live] rather than failing — the contract may
+                 * grow one, and a new string must not blank a headline.
+                 */
+                fun from(wire: String): Phase =
+                    entries.firstOrNull { it.wire == wire } ?: Live
+            }
+        }
+    }
     data class Platforms(
         val yahooConnected: Boolean,
         val sleeperConnected: Boolean,
@@ -76,6 +125,14 @@ data class DashboardSummary(
                 ),
                 omenStatus = status("omen_of_the_week"),
                 waiverStatus = status("waiver_wire"),
+                gameWeek = root.optJSONObject("game_week")?.let { gw ->
+                    GameWeek(
+                        week = gw.optIntOrNull("week"),
+                        phase = GameWeek.Phase.from(gw.optStringOrNull("phase").orEmpty()),
+                        day = gw.optStringOrNull("day"),
+                        isOffSeason = gw.optBoolean("is_off_season", false),
+                    )
+                },
             )
         }.getOrNull()
     }
@@ -98,7 +155,7 @@ fun DashboardSummary.toCommandCenterState(
     leaguePulse: OmenLeaguePulseState? = null,
     matchup: OmenMatchupHeroState? = null,
 ): OmenCommandCenterState = OmenCommandCenterState(
-    greeting = greetingFor(omenStatus),
+    greeting = greetingFor(omenStatus, gameWeek),
     context = context ?: OmenContextStripState.Empty,
     // A real matchup always wins. The shell can only ever say why there isn't one.
     matchup = matchup ?: OmenMatchupHeroState.NoMatchup(
@@ -118,12 +175,84 @@ fun DashboardSummary.toCommandCenterState(
     leaguePulse = leaguePulse ?: leaguePulseFor(omenStatus),
 )
 
-private fun greetingFor(status: DashboardSummary.ToolStatus): String = when (status) {
-    DashboardSummary.ToolStatus.Ready -> "This week's move is ready."
-    DashboardSummary.ToolStatus.PendingLiveEngine -> "Your league needs a little more setup."
-    DashboardSummary.ToolStatus.NeedsPlatform -> "Connect a league to see your matchup."
-    DashboardSummary.ToolStatus.OffSeason -> "The season hasn't started yet."
-    DashboardSummary.ToolStatus.Unknown -> "Omen is checking your leagues."
+/**
+ * The Command Center headline.
+ *
+ * **The line moves with the NFL game week**, because the week itself has a rhythm and a
+ * headline that ignores it reads the same on the Tuesday after a loss as it does at kickoff.
+ * Founder direction, 2026-09-04: Tuesday prepares the plan, Wednesday has it ready, Thursday
+ * through Monday is game mode. Swift twin: `OmenCommandCenterState.greeting(for:gameWeek:)`.
+ *
+ * ## Precedence
+ *
+ * **Status wins over the calendar.** A disconnected user must not be told "Sunday, Week 3 is
+ * in play" — that is a claim about a week Omen cannot see for them. The phase lines are
+ * reached only once the tools are actually usable.
+ *
+ * ## The lines
+ *
+ * | When | Line |
+ * | --- | --- |
+ * | Tue | Preparing your Week 3 game plan. |
+ * | Wed | Your Week 3 game plan is ready. |
+ * | Thu | Week 3 is live. Thursday night is on. |
+ * | Fri | Week 3 in progress. Lineups still open. |
+ * | Sat | Week 3 in progress. Lineups lock tomorrow. |
+ * | Sun | Sunday. Week 3 is in play. |
+ * | Mon | Monday night closes out Week 3. |
+ *
+ * This table and [gameWeekLine] are one thing; edit both together. **Still in workshop** — the
+ * founder asked to rotate copy through the game week and these are the first draft of the
+ * live-window lines, not a settled set.
+ *
+ * Superseded twice in two days, which is worth recording: `"This week's move is ready."` was a
+ * status announcement about Omen at the top of a page whose job is to be a Small Council of
+ * short reads (facts-of-record #16); `"Your week is scouted."` fixed the subject but was still
+ * one static line for a seven-day rhythm.
+ */
+internal fun greetingFor(
+    status: DashboardSummary.ToolStatus,
+    gameWeek: DashboardSummary.GameWeek? = null,
+): String {
+    // Facts about the user's own setup outrank the calendar — they are why the rest of the
+    // screen is empty, and the headline is where that gets said.
+    when (status) {
+        DashboardSummary.ToolStatus.NeedsPlatform -> return "No game plan yet."
+        DashboardSummary.ToolStatus.OffSeason -> return "No game plan until kickoff."
+        DashboardSummary.ToolStatus.Unknown -> return "Omen is reading your leagues."
+        DashboardSummary.ToolStatus.PendingLiveEngine -> return "Omen needs more on your league."
+        DashboardSummary.ToolStatus.Ready -> Unit
+    }
+
+    val week = gameWeek?.week
+    // Tools are ready but the server told us nothing about the week — an older build, or the
+    // off-season. Neither can name a week, so neither does.
+    if (gameWeek == null || week == null || gameWeek.isOffSeason) return "Your game plan is ready."
+
+    return gameWeekLine(gameWeek.phase, gameWeek.day, week)
+}
+
+/** The table above, in code. Separated so a copy change is one function. */
+internal fun gameWeekLine(
+    phase: DashboardSummary.GameWeek.Phase,
+    day: String?,
+    week: Int,
+): String = when (phase) {
+    DashboardSummary.GameWeek.Phase.Preparing -> "Preparing your Week $week game plan."
+    DashboardSummary.GameWeek.Phase.Ready -> "Your Week $week game plan is ready."
+    DashboardSummary.GameWeek.Phase.OffSeason -> "No game plan until kickoff."
+    // Rotates across the live window so the page reads differently on Thursday night and
+    // Monday night. Keyed to the day rather than randomised: a headline that changes on every
+    // pull-to-refresh reads as a bug, and cannot be tested.
+    DashboardSummary.GameWeek.Phase.Live -> when (day) {
+        "thursday" -> "Week $week is live. Thursday night is on."
+        "friday" -> "Week $week in progress. Lineups still open."
+        "saturday" -> "Week $week in progress. Lineups lock tomorrow."
+        "sunday" -> "Sunday. Week $week is in play."
+        "monday" -> "Monday night closes out Week $week."
+        // An unrecognised day still gets a true sentence rather than no headline.
+        else -> "Week $week is live."
+    }
 }
 
 private fun matchupReasonFor(status: DashboardSummary.ToolStatus, connected: Boolean): String =

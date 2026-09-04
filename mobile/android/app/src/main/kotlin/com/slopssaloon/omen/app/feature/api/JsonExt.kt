@@ -20,3 +20,15 @@ import org.json.JSONObject
 fun JSONObject.optStringOrNull(key: String): String? =
     if (isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
 
+/**
+ * Reads a nullable JSON integer, treating absent and JSON `null` as absent.
+ *
+ * Promoted here 2026-09-04 from a private copy in `LeagueDirectory.kt`, when a second caller
+ * needed it. Same reasoning as [optStringOrNull]: a helper that lives wherever the bug was
+ * last noticed grows one private copy per file until the copies disagree.
+ *
+ * The distinction matters most where zero is a real value. `optInt` returns `0` for an absent
+ * key, and a week, a season or a score of zero is not the same fact as no answer at all.
+ */
+fun JSONObject.optIntOrNull(key: String): Int? =
+    if (has(key) && !isNull(key)) optInt(key) else null

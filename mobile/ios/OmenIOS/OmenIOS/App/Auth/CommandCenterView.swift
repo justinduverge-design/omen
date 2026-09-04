@@ -16,6 +16,10 @@ struct CommandCenterView: View {
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
     @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
     @StateObject private var leagueSwitcherViewModel: LeagueSwitcherViewModel
+    /// The Command Center carousel. Its own view model rather than the switcher's: the two
+    /// read the same route for different reasons, cache different things, and must fail
+    /// independently — the same reasoning already recorded for `leagueDirectoryRepository`.
+    @StateObject private var leagueCarouselViewModel: LeagueCarouselViewModel
     private let connectRepository: ConnectRepository
     /// Held as well as consumed into `leagueSwitcherViewModel`: Account's connected-leagues
     /// section needs the same seam, and it owns its own view model rather than sharing the
@@ -68,7 +72,48 @@ struct CommandCenterView: View {
             repository: leagueDirectoryRepository,
             sessionManager: sessionManager
         ))
+        _leagueCarouselViewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
+            directoryRepository: leagueDirectoryRepository,
+            leagueRepository: leagueRepository,
+            sessionManager: sessionManager
+        ))
         self.leagueDirectoryRepository = leagueDirectoryRepository
+    }
+
+
+    /// Wraps a destination in the team picker.
+    ///
+    /// Omen, Trade and League each answer a question about one league, so each gets the row
+    /// that changes which one. Command Center does not — its carousel already IS the picker,
+    /// and two of them on one screen would be a control competing with itself.
+    ///
+    /// Reloading is driven from `refresh`, which the server supplies: the picker returns the
+    /// surfaces a context change invalidated, and this reloads exactly those rather than
+    /// deciding for itself which screens went stale.
+    @ViewBuilder
+    private func withTeamPicker<Content: View>(
+        @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            OmenTeamPicker(
+                viewModel: leagueCarouselViewModel,
+                userID: userID,
+                onContextChanged: { _ in
+                    Task {
+                        // Every personalized surface, not just the visible one — a user who
+                        // switches on Trade and then taps League must not find the old team
+                        // there.
+                        await commandCenterViewModel.load(userID: userID)
+                        await leagueViewModel.load(userID: userID)
+                        await omenDecisionViewModel.load(userID: userID)
+                    }
+                }
+            )
+            .padding(.horizontal, OmenSpacing.step16)
+            .padding(.top, OmenSpacing.step12)
+            content()
+        }
+        .background(OmenColor.bg.ignoresSafeArea())
     }
 
     var body: some View {
@@ -106,7 +151,16 @@ struct CommandCenterView: View {
                         onConnect: { showConnectSheet = true },
                         onOpenOmen: { selectedTab = .omen },
                         onOpenLedger: { _ in selectedTab = .omen },
-                        onOpenLeague: { selectedTab = .league }
+                        onOpenLeague: { selectedTab = .league },
+                        carousel: leagueCarouselViewModel,
+                        userID: userID,
+                        // §10.3: the server names the surfaces a context change invalidates,
+                        // and the client re-reads them rather than deciding for itself. The
+                        // Omen and League destinations reload lazily on their own `.task`,
+                        // so the shell is the one that has to be told.
+                        onContextChanged: { _ in
+                            Task { await commandCenterViewModel.load(userID: userID) }
+                        }
                     )
                 }
             }
@@ -117,7 +171,7 @@ struct CommandCenterView: View {
             // M5 slice D: the Omen destination now renders the live engine's answer.
             // Previously this picked a fixture — `realDisconnected` for every real
             // signed-in user, regardless of their actual leagues.
-            OmenDecisionScreen(state: omenDecisionViewModel.briefState)
+            withTeamPicker { OmenDecisionScreen(state: omenDecisionViewModel.briefState) }
             .task {
                 omenDecisionViewModel.onConnect = { showConnectSheet = true }
                 await omenDecisionViewModel.load(userID: userID)
@@ -126,17 +180,19 @@ struct CommandCenterView: View {
             .tag(CommandCenterTab.omen)
 
             // M5 slice G: the Trade destination now renders `trade-compare.v2`.
-            OmenTradeScreen(
-                state: tradeViewModel.viewState,
-                offer: tradeViewModel.offer,
-                searchState: tradeViewModel.searchState,
-                searchingSide: tradeViewModel.searchingSide,
-                onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
-                onAdd: { name, side in tradeViewModel.add(name, to: side) },
-                onAddResult: { player, side in tradeViewModel.add(player, to: side) },
-                onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
-                onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
-            )
+            withTeamPicker {
+                OmenTradeScreen(
+                    state: tradeViewModel.viewState,
+                    offer: tradeViewModel.offer,
+                    searchState: tradeViewModel.searchState,
+                    searchingSide: tradeViewModel.searchingSide,
+                    onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
+                    onAdd: { name, side in tradeViewModel.add(name, to: side) },
+                    onAddResult: { player, side in tradeViewModel.add(player, to: side) },
+                    onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
+                    onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
+                )
+            }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
             // two screens can never disagree about which league the user is in.
@@ -150,11 +206,13 @@ struct CommandCenterView: View {
             // M5 slice F: the League destination now renders `league-overview.v1`. It
             // replaced an honest "landing next" placeholder, which was correct while the
             // screen contract was unratified and is no longer.
-            OmenLeagueScreen(
-                state: leagueViewModel.viewState,
-                onRetry: { Task { await leagueViewModel.reload() } },
-                onConnect: { showConnectSheet = true }
-            )
+            withTeamPicker {
+                OmenLeagueScreen(
+                    state: leagueViewModel.viewState,
+                    onRetry: { Task { await leagueViewModel.reload() } },
+                    onConnect: { showConnectSheet = true }
+                )
+            }
             .task { await leagueViewModel.load(userID: userID) }
             .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)

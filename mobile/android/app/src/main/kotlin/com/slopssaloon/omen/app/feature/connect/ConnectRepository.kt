@@ -4,6 +4,7 @@ import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.app.feature.api.OmenApiResult
 import com.slopssaloon.omen.app.feature.api.optStringOrNull
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
 
@@ -72,6 +73,24 @@ interface ConnectRepository {
 
     /** Reads back what the server says is connected. Labels only, never a credential. */
     suspend fun espnConnection(accessToken: String): Result<EspnConnection?>
+
+    /**
+     * `POST /api/leagues/follows` — the multiselect write.
+     *
+     * Separate from the per-provider connect calls on purpose. Connecting establishes the
+     * CREDENTIALS and binds one active league; following records which of that account's
+     * leagues the user actually wants to see. A user with three ESPN leagues connects once and
+     * follows three times, and collapsing the two would mean re-authorising per league.
+     *
+     * Returns whether the set persisted. `false` is not a failure — it is the server saying
+     * `league_follows` does not exist yet, and the copy must not claim a save that did not
+     * happen. iOS mirror: `ConnectRepository.followLeagues`.
+     */
+    suspend fun followLeagues(
+        platform: String,
+        leagues: List<FollowedLeague>,
+        accessToken: String,
+    ): Result<Boolean>
 }
 
 /** Carries a [ConnectFailure] so callers get actionable copy rather than a raw throwable. */
@@ -193,6 +212,24 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
             is OmenApiResult.Success -> Result.success(result.value)
             is OmenApiResult.Failure -> Result.failure(ConnectException(map(result.error, ConnectFailure.Server)))
         }
+
+    override suspend fun followLeagues(
+        platform: String,
+        leagues: List<FollowedLeague>,
+        accessToken: String,
+    ): Result<Boolean> {
+        val body = JSONObject()
+            .put("platform", platform)
+            .put("leagues", JSONArray().apply { leagues.forEach { put(it.toJson()) } })
+            .toString()
+
+        return when (val result = client.post("api/leagues/follows", accessToken, body) { it }) {
+            is OmenApiResult.Success ->
+                Result.success(JSONObject(result.value).optString("follow_persistence") == "explicit")
+            is OmenApiResult.Failure ->
+                Result.failure(ConnectException(map(result.error, ConnectFailure.Server)))
+        }
+    }
 
     // ---- Yahoo ----
 
@@ -365,6 +402,26 @@ class ApiConnectRepository(private val client: OmenApiClient) : ConnectRepositor
     }.getOrNull()
 }
 
+/**
+ * One league in a multiselect. Labels ride along so the server can store them for a carousel
+ * page whose provider is momentarily failing to describe it; they are display only and are
+ * never treated as identity. iOS mirror: `FollowedLeague`.
+ */
+data class FollowedLeague(
+    val leagueId: String,
+    val teamId: String? = null,
+    val leagueName: String? = null,
+    val season: Int? = null,
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("league_id", leagueId)
+        // Absent rather than null: the server treats a missing key as "nothing to record" and
+        // an explicit null as a value, and they must not be confused.
+        .apply { teamId?.takeIf { it.isNotEmpty() }?.let { put("team_id", it) } }
+        .apply { leagueName?.takeIf { it.isNotEmpty() }?.let { put("league_name", it) } }
+        .apply { season?.let { put("season", it) } }
+}
+
 /** Test double. Records request ids so tests can prove idempotency behavior. */
 class StubConnectRepository(
     private val resolveResult: Result<ResolvedSleeperAccount> =
@@ -380,6 +437,22 @@ class StubConnectRepository(
 ) : ConnectRepository {
     val requestIds = mutableListOf<String>()
     val boundYahooLeagueIds = mutableListOf<String>()
+
+    /**
+     * What the multiselect actually asked to follow, so a test can prove the extra leagues
+     * were sent rather than only that the UI let them be ticked.
+     */
+    val followed = mutableListOf<Pair<String, List<String>>>()
+    var followResult: Result<Boolean> = Result.success(true)
+
+    override suspend fun followLeagues(
+        platform: String,
+        leagues: List<FollowedLeague>,
+        accessToken: String,
+    ): Result<Boolean> {
+        followed.add(platform to leagues.map { it.leagueId })
+        return followResult
+    }
 
     override suspend fun startYahooAuthorization(accessToken: String) = yahooAuthResult
 

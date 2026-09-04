@@ -26,6 +26,13 @@ data class LeagueDirectory(
      * told us it cannot yet persist.
      */
     val selectionPersistence: String?,
+    /**
+     * `"explicit"` once `league_follows` exists, `"unavailable"` until then. The multiselect
+     * picker reads this so it never tells the user a choice was saved when the server has
+     * just said it could not be. Absent means `"unavailable"` — a server predating follows
+     * is not claiming persistence.
+     */
+    val followPersistence: String?,
     val active: Active?,
     val platforms: List<PlatformGroup>,
 ) {
@@ -40,6 +47,10 @@ data class LeagueDirectory(
     val crossProviderChoiceCannotPersist: Boolean
         get() = selectionPersistence == "provider_binding_only" &&
             platforms.count { it.leagues.isNotEmpty() } > 1
+
+    /** True when a multiselect the user makes will survive the session. */
+    val followChoicePersists: Boolean
+        get() = followPersistence == "explicit"
 
     data class Active(
         val platform: String?,
@@ -72,6 +83,16 @@ data class LeagueDirectory(
         val teamId: String?,
         val teamName: String?,
         val isActive: Boolean,
+        /**
+         * Whether the user follows this league — the carousel's page filter.
+         *
+         * Distinct from [isActive], and the distinction is the whole multi-league feature:
+         * **one** league is active (the one Omen reasons about) and **many** can be followed
+         * (the ones you can swipe to). Defaults to `true` when the server omits it, because a
+         * server without follows has discovered these leagues and the user has had no way to
+         * deselect any of them.
+         */
+        val isFollowed: Boolean = true,
     )
 
     companion object {
@@ -98,6 +119,7 @@ data class LeagueDirectory(
                                     teamId = row.optStringOrNull("team_id"),
                                     teamName = row.optStringOrNull("team_name"),
                                     isActive = row.optBoolean("is_active", false),
+                                    isFollowed = row.optBoolean("is_followed", true),
                                 ),
                             )
                         }
@@ -119,6 +141,7 @@ data class LeagueDirectory(
                 contractVersion = root.optStringOrNull("contract_version"),
                 season = root.optIntOrNull("season"),
                 selectionPersistence = root.optStringOrNull("selection_persistence"),
+                followPersistence = root.optStringOrNull("follow_persistence"),
                 active = activeJson?.let {
                     Active(
                         platform = it.optStringOrNull("platform"),
@@ -174,4 +197,4 @@ data class LeagueSelectionResult(
  * `OmenDecision.kt` are file-private; hoisting them is a separate tidy-up.
  */
 
-private fun JSONObject.optIntOrNull(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
+// `optIntOrNull` moved to JsonExt.kt on 2026-09-04 when a second caller needed it.

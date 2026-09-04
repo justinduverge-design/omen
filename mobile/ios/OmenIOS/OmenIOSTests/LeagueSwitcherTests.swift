@@ -121,6 +121,7 @@ final class LeagueSwitcherTests: XCTestCase {
             contractVersion: directory.contractVersion,
             season: directory.season,
             selectionPersistence: "explicit",
+            followPersistence: directory.followPersistence,
             active: directory.active,
             platforms: directory.platforms
         )
@@ -136,6 +137,7 @@ final class LeagueSwitcherTests: XCTestCase {
             contractVersion: directory.contractVersion,
             season: directory.season,
             selectionPersistence: "provider_binding_only",
+            followPersistence: directory.followPersistence,
             active: directory.active,
             platforms: directory.platforms.filter { !$0.leagues.isEmpty }.prefix(1).map { $0 }
         )

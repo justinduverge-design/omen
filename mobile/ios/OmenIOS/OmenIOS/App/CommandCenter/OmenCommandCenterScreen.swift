@@ -29,9 +29,26 @@ struct OmenCommandCenterScreen: View {
     let onOpenLeague: (() -> Void)?
     let onConnectPlatform: ((OmenPlatform) -> Void)?
 
+    /// The league carousel — provider chips over a swipeable matchup-per-league stack.
+    ///
+    /// Optional so this composition keeps working exactly as before when it is nil, which is
+    /// what every fixture, preview and screenshot scenario passes. When supplied it REPLACES
+    /// the context strip and the single Matchup Hero, because those two were the halves the
+    /// carousel merges: the strip named one league, the hero showed that league's week, and
+    /// the swipe now does both for every league at once.
+    let carousel: LeagueCarouselViewModel?
+    /// Only meaningful alongside `carousel`. Re-reads the surfaces the server named after a
+    /// swipe changed which league is active.
+    let onContextChanged: (([String]) -> Void)?
+    var userID: String?
+
     /// Drives the tap-through detail sheet. The sheet carries the existing
     /// `OmenPlatformConnectionCard` content — that content is moved off the main surface, not new.
     @State private var detailRow: OmenPlatformRowState?
+    /// Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
+    /// one of the three that is ever time-critical, and a user who never swipes should land on
+    /// the page that can expire.
+    @State private var widgetPage: OmenWidgetPager.Page = .waiver
 
     init(
         state: OmenCommandCenterState,
@@ -42,8 +59,14 @@ struct OmenCommandCenterScreen: View {
         onOpenOmen: (() -> Void)? = nil,
         onOpenLedger: ((OmenLedgerEntry) -> Void)? = nil,
         onOpenLeague: (() -> Void)? = nil,
-        onConnectPlatform: ((OmenPlatform) -> Void)? = nil
+        onConnectPlatform: ((OmenPlatform) -> Void)? = nil,
+        carousel: LeagueCarouselViewModel? = nil,
+        userID: String? = nil,
+        onContextChanged: (([String]) -> Void)? = nil
     ) {
+        self.carousel = carousel
+        self.userID = userID
+        self.onContextChanged = onContextChanged
         self.onConnectPlatform = onConnectPlatform
         self.state = state
         self.onSwitchContext = onSwitchContext
@@ -59,19 +82,33 @@ struct OmenCommandCenterScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
                 header
-                OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
-                platformsStrip
-                OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
-                if let onConnect, showsConnectCallToAction {
+                // The vertical platform status strip is suppressed when the carousel is
+                // present. Founder, 2026-09-04: "you still have Sleeper, Yahoo and ESPN going
+                // down on three columns — it should just be horizontal, and the icons should
+                // represent the leagues that are connected. If they don't have that, then it
+                // doesn't pop up."
+                //
+                // The strip listed all three providers unconditionally, so two thirds of it
+                // was usually the word "Disconnected" occupying the fold above the matchup.
+                // The carousel's chip row answers the same question better: it names only what
+                // the user actually has, horizontally, and each chip filters to that
+                // provider's leagues instead of merely reporting a status.
+                //
+                // What the strip also carried, and where it went: last-sync time and
+                // reconnect-required now surface on the affected league's own carousel page
+                // (a page that cannot read says so on its own card), and full connection
+                // management stays in Account, which is where the ESPN consent copy already
+                // tells users to go to disconnect.
+                if carousel == nil { platformsStrip }
+                leagueSection
+                if let onConnect, showsConnectCallToAction, carousel == nil {
                     // Honest-state doctrine: the screen already tells a disconnected user to
                     // connect a league. Before M5-NativeConnect there was no way to act on
                     // that. The button appears only when the shell has no usable context AND
                     // a connect path exists, so it can never advertise a dead end.
                     OmenButton(title: "Connect a league", action: onConnect, variant: .primary, size: .md)
                 }
-                waiverWatch
-                ledgerPreview
-                leaguePulse
+                secondaryWidgets
             }
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step24)
@@ -80,6 +117,62 @@ struct OmenCommandCenterScreen: View {
         .background(OmenColor.bg.ignoresSafeArea())
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)
+        }
+    }
+
+    /// Founder sketch, 2026-09-04: the three sections below the matchup become one paged
+    /// widget. Paged only when the carousel is live — every fixture, preview and screenshot
+    /// scenario keeps the stacked layout, which is what those captures are of, and a paged
+    /// screenshot would show one third of the page.
+    @ViewBuilder
+    private var secondaryWidgets: some View {
+        if carousel != nil {
+            OmenWidgetPager(
+                selection: $widgetPage,
+                // Each page keeps its existing composition verbatim — this change moves the
+                // sections, it does not rewrite them.
+                waiver: AnyView(waiverWatchBody),
+                // The section links ride along into the paged layout as trailing rows. They
+                // are the only route from each preview to its full screen, and dropping them
+                // in the move would have stranded both sections.
+                ledger: AnyView(VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                    ledgerPreviewBody
+                    ledgerSeeAll
+                }),
+                pulse: AnyView(VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                    leaguePulseBody
+                    leaguePulseLink
+                })
+            )
+        } else {
+            waiverWatch
+            ledgerPreview
+            leaguePulse
+        }
+    }
+
+    /// The carousel when the caller supplied one, and the pre-carousel composition
+    /// otherwise. Both branches are real: fixtures, previews and the screenshot workflow
+    /// have no session and must keep rendering their labelled honest states.
+    ///
+    /// The carousel subsumes the connect call-to-action too — it has its own empty state
+    /// with the same button — which is why the shell's copy of that button is suppressed
+    /// above rather than shown twice.
+    @ViewBuilder
+    private var leagueSection: some View {
+        if let carousel {
+            OmenLeagueCarousel(
+                viewModel: carousel,
+                userID: userID,
+                demoMatchup: state.matchup,
+                onOpenMatchup: onOpenMatchup,
+                onConnect: onConnect,
+                onAddLeague: onConnect,
+                onContextChanged: { onContextChanged?($0) }
+            )
+        } else {
+            OmenContextStrip(state: state.context, onSwitch: onSwitchContext)
+            OmenMatchupHero(state: state.matchup, onOpen: onOpenMatchup)
         }
     }
 
@@ -142,10 +235,20 @@ struct OmenCommandCenterScreen: View {
         }
     }
 
+    /// Label plus body, for the stacked (non-paged) layout.
     @ViewBuilder
     private var waiverWatch: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             sectionLabel("Waiver Watch")
+            waiverWatchBody
+        }
+    }
+
+    /// The section without its own heading — the widget pager supplies that, and two headings
+    /// stacked would read as two sections.
+    @ViewBuilder
+    private var waiverWatchBody: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             switch state.waiverWatch {
             case let .urgent(deadlineText, bestMove, longHorizonMoves):
                 urgentWaiverBriefing(deadlineText: deadlineText, bestMove: bestMove, longHorizonMoves: longHorizonMoves)
@@ -260,10 +363,24 @@ struct OmenCommandCenterScreen: View {
             HStack {
                 sectionLabel("The Ledger")
                 Spacer()
-                if case .entries = state.ledger, let first = state.ledger.entries.first, let onOpenLedger {
-                    OmenButton(title: "See all →", action: { onOpenLedger(first) }, variant: .link, size: .md)
-                }
+                ledgerSeeAll
             }
+            ledgerPreviewBody
+        }
+    }
+
+    /// "See all" survives into the paged layout as a trailing row — it is the only route from
+    /// the preview to the full Ledger, and dropping it would strand the section.
+    @ViewBuilder
+    private var ledgerSeeAll: some View {
+        if case .entries = state.ledger, let first = state.ledger.entries.first, let onOpenLedger {
+            OmenButton(title: "See all →", action: { onOpenLedger(first) }, variant: .link, size: .md)
+        }
+    }
+
+    @ViewBuilder
+    private var ledgerPreviewBody: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             switch state.ledger {
             case .entries(let entries):
                 VStack(spacing: 0) {
@@ -303,10 +420,22 @@ struct OmenCommandCenterScreen: View {
             HStack {
                 sectionLabel("League Pulse")
                 Spacer()
-                if let onOpenLeague {
-                    OmenButton(title: "League →", action: onOpenLeague, variant: .link, size: .md)
-                }
+                leaguePulseLink
             }
+            leaguePulseBody
+        }
+    }
+
+    @ViewBuilder
+    private var leaguePulseLink: some View {
+        if let onOpenLeague {
+            OmenButton(title: "League →", action: onOpenLeague, variant: .link, size: .md)
+        }
+    }
+
+    @ViewBuilder
+    private var leaguePulseBody: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             switch state.leaguePulse {
             case let .available(position, cutLine, activity):
                 OmenCard(variant: .outlined) {
@@ -451,7 +580,7 @@ struct OmenWaiverOpportunity: Identifiable {
 /// context sees `realDisconnected` until live wiring exists.
 enum OmenCommandCenterFixtures {
     static let demoConnected = OmenCommandCenterState(
-        greeting: "Demo · this week's move is ready.",
+        greeting: "Demo · Sunday. Week 7 is in play.",
         context: .selected(platform: .sleeper, leagueName: "Demo Slate (mock league)", teamName: "Demo Titans"),
         platforms: [
             OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago"),
@@ -459,8 +588,11 @@ enum OmenCommandCenterFixtures {
             OmenPlatformRowState(platform: .espn, status: .disconnected)
         ],
         matchup: .live(
-            selectedTeam: OmenMatchupTeam(name: "Demo Titans", record: "6–1", scoreText: "64.8"),
-            opponent: OmenMatchupTeam(name: "Demo Rivals", record: "5–2", scoreText: "58.1"),
+            // Both columns populated, because a live matchup is exactly when PROJ and SCORE
+            // together are the point — and demo is the path App Review is told to take, so it
+            // has to show the real design rather than a simpler one.
+            selectedTeam: OmenMatchupTeam(name: "Demo Titans", record: "6–1", scoreText: "64.8", projectedText: "119.6"),
+            opponent: OmenMatchupTeam(name: "Demo Rivals", record: "5–2", scoreText: "58.1", projectedText: "114.2"),
             projectedFinish: "119.6–114.2",
             whatToWatch: "Opponent has two demo players remaining Monday night."
         ),
@@ -496,7 +628,7 @@ enum OmenCommandCenterFixtures {
     /// Honest disconnected state — what a real signed-in user without a connected
     /// league sees. No fabricated provider status, no fake matchup, no no-op CTA.
     static let realDisconnected = OmenCommandCenterState(
-        greeting: "Connect a league to see your matchup.",
+        greeting: "No game plan yet.",
         context: .empty,
         platforms: [
             OmenPlatformRowState(platform: .sleeper, status: .disconnected),

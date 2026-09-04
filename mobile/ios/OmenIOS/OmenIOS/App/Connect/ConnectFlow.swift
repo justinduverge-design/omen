@@ -331,7 +331,7 @@ enum EspnHandoffCopy {
     static func foundLeaguesTitle(_ count: Int) -> String {
         count == 1 ? "Found your league" : "Found \(count) leagues"
     }
-    static let foundLeaguesSubtitle = "Pick the one Omen should follow. You can connect another later."
+    static let foundLeaguesSubtitle = "Pick every league Omen should follow. You can change this later in Account."
     /// Shown when ESPN accepts the session but reports no football leagues on the account.
     static let noLeaguesFound = "ESPN didn't report any football leagues on this account. If you know the league ID, you can enter it."
     /// Shown when discovery itself could not run. Not a failed connection — a failed lookup.

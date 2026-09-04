@@ -176,7 +176,6 @@ data class MovesHistory(
  * exactly how a missing grade becomes a fabricated one. These read null as null.
  */
 
-private fun JSONObject.optIntOrNull(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
 
 private fun JSONObject.optDoubleOrNull(key: String): Double? =
     if (has(key) && !isNull(key)) optDouble(key).takeIf { !it.isNaN() } else null

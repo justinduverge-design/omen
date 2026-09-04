@@ -190,3 +190,74 @@ describe("nflSchedule.suppressLiveFootballData — the Week-1 preview kill switc
     assert.equal(isOffSeason(OFF), true);
   });
 });
+
+// --- The NFL game week: Tuesday-anchored, phase-aware ---
+//
+// This exists because `getCurrentNflWeekContext` is anchored on a fixed September 5, whose
+// weekday moves every year. In 2026 it is a Saturday, so that function reports the wrong week
+// on the Sunday and Monday of every NFL week. The Command Center headline names the week, so
+// it cannot use a number that is wrong on the two days most people open the app.
+
+const { getNflGameWeek } = require("../src/services/nflSchedule");
+
+describe("NFL game week", () => {
+/** Noon Eastern, so a test never straddles a day boundary in the league's timezone. */
+function easternNoon(isoDate) {
+  return new Date(`${isoDate}T16:00:00Z`);
+}
+
+it("the game week turns over on Tuesday, not Saturday", () => {
+  // NFL 2026 Week 1 runs Thu Sep 10 through Mon Sep 14. Every one of those days is Week 1.
+  for (const date of ["2026-09-10", "2026-09-11", "2026-09-13", "2026-09-14"]) {
+    assert.equal(getNflGameWeek(easternNoon(date)).week, 1, date);
+  }
+  // Tuesday Sep 15 opens Week 2, whose games start Thursday Sep 17.
+  assert.equal(getNflGameWeek(easternNoon("2026-09-15")).week, 2);
+  assert.equal(getNflGameWeek(easternNoon("2026-09-20")).week, 2);
+});
+
+it("the Sunday of Week 1 is Week 1 — the case the clamped context gets wrong", () => {
+  const sunday = easternNoon("2026-09-13");
+  assert.equal(getNflGameWeek(sunday).week, 1);
+  // Pinned deliberately: the two DO disagree, and that disagreement is a known defect in the
+  // older function, not drift introduced here. If this assertion ever fails it means the
+  // reconciliation landed, and this test should be deleted rather than "fixed".
+  assert.equal(getCurrentNflWeekContext(sunday).week, 2);
+});
+
+it("phases follow the founder's game-week rhythm", () => {
+  assert.equal(getNflGameWeek(easternNoon("2026-09-15")).phase, "preparing"); // Tuesday
+  assert.equal(getNflGameWeek(easternNoon("2026-09-16")).phase, "ready");     // Wednesday
+  for (const date of ["2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21"]) {
+    assert.equal(getNflGameWeek(easternNoon(date)).phase, "live", date);
+  }
+});
+
+it("the day is read in the league's timezone, not UTC", () => {
+  // 9pm Monday in Los Angeles is already Tuesday in UTC. The league week has not turned over,
+  // and a user watching Monday Night Football must not be told the week is over.
+  const mondayNightPacific = new Date("2026-09-15T04:00:00Z"); // Mon Sep 14, 9pm PT / 12am ET
+  const answer = getNflGameWeek(mondayNightPacific);
+  assert.equal(answer.day, "tuesday");
+  // Midnight ET has in fact turned over — this pins that the boundary is Eastern midnight,
+  // which is the league's own boundary, rather than the caller's local one.
+  assert.equal(answer.week, 2);
+});
+
+it("the off-season names no week rather than clamping to 1", () => {
+  const august = getNflGameWeek(easternNoon("2026-08-30"));
+  assert.equal(august.is_off_season, true);
+  // The clamp on `getCurrentNflWeekContext` is what let a session record "the season floor is
+  // cleared" nine days before kickoff. A headline naming a week that has not arrived is a lie
+  // the user can see, so display copy gets a null and has to handle it.
+  assert.equal(august.week, null);
+  assert.equal(august.phase, "off_season");
+});
+
+it("the anchor is derived from Labor Day, so it needs no edit each season", () => {
+  // 2027: Labor Day is Mon Sep 6, so game week 1 opens Tue Sep 7 and Week 1 kicks off Thu Sep 9.
+  assert.equal(getNflGameWeek(easternNoon("2027-09-07")).week, 1);
+  assert.equal(getNflGameWeek(easternNoon("2027-09-12")).week, 1);
+  assert.equal(getNflGameWeek(easternNoon("2027-09-14")).week, 2);
+});
+});

@@ -5,7 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../middleware/logging");
-const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
+const { getCurrentNflWeekContext, getNflGameWeek, suppressLiveFootballData } = require("../services/nflSchedule");
 const { getOmenReadiness, isOmenReadyConnection } = require("../services/omenReadiness");
 const { getAuthenticatedYahooClient } = require("../services/yahooAuth");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
@@ -260,6 +260,16 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       contract_version: "dashboard-summary.v1",
       generated_at: nowIso(),
       is_mock: false,
+      // Additive. The Command Center headline rotates with the NFL game week — "preparing"
+      // on Tuesday, "ready" on Wednesday, "live" Thursday through Monday — and the client
+      // must not derive that from the phone's clock. NFL week rollover is a league fact in
+      // the league's own timezone, and a device in Los Angeles at 9pm Monday is still on
+      // Monday in the league's week while UTC has already moved it to Tuesday.
+      //
+      // `week` here is TUESDAY-anchored and deliberately disagrees with the clamped
+      // `getCurrentNflWeekContext().week` on Saturday, Sunday and Monday — see
+      // `getNflGameWeek` for why that one is wrong on exactly the days that matter most.
+      game_week: getNflGameWeek(),
       user: userProfile,
       platforms: await buildPlatformSummaryForUser(rows, req.user.id),
       tools: {
