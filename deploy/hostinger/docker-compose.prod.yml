@@ -20,6 +20,16 @@ services:
       # Localhost only. Nginx is the public HTTPS front door.
       - "127.0.0.1:3000:3000"
     restart: unless-stopped
+    # KVM1 has exactly ONE core. An unbounded runaway loop in this container does
+    # not merely slow the box down, it starves everything else on it - nginx, the
+    # deploy runner, and any watchdog that might restart this container. Capping
+    # below 1.0 is what keeps the host responsive enough to heal itself.
+    # Sized against measured steady state: ~391 MiB RSS and near-zero CPU at rest.
+    # Proven necessary 2026-09-05, when a request loop pegged this container at
+    # 99.31% for 13 minutes and the process could not even write a log line.
+    cpus: 0.85
+    mem_limit: 1g
+    pids_limit: 256
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -41,6 +51,11 @@ services:
       NODE_ENV: production
       TZ: America/New_York
     restart: unless-stopped
+    # Same one-core reasoning as the api service. A runaway cron job must not be
+    # able to take the public site down with it.
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 128
     # No ports: this is a scheduled worker, not an HTTP service.
     logging:
       driver: json-file
