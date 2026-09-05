@@ -204,4 +204,144 @@ final class LeagueCarouselTests: XCTestCase {
         // Same threshold the picker checks.
         XCTAssertFalse(viewModel.allPages.count > 1)
     }
+
+    // MARK: - The commit feedback loop (2026-09-05 production outage)
+
+    /// No league marked active. Not a contrived fixture: it is what the server returns
+    /// before any selection has been stored, and the state the carousel and the server were
+    /// in during the outage.
+    private func noActiveLeague() throws -> LeagueDirectory {
+        try decode("""
+        {"contract_version":"league-directory.v1","season":2026,"follow_persistence":"explicit",
+         "platforms":[{"platform":"sleeper","connection_state":"connected","discovery":"full",
+           "leagues":[
+             {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":false},
+             {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":false}]}]}
+        """)
+    }
+
+    /// Same two leagues, reordered, still with nothing marked active. Re-reading the
+    /// directory after a write legitimately returns a different order — the server decides
+    /// it — and that reorder is what moves the pager underneath the user.
+    private func noActiveLeagueReordered() throws -> LeagueDirectory {
+        try decode("""
+        {"contract_version":"league-directory.v1","season":2026,"follow_persistence":"explicit",
+         "platforms":[{"platform":"sleeper","connection_state":"connected","discovery":"full",
+           "leagues":[
+             {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":false},
+             {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":false}]}]}
+        """)
+    }
+
+    /// Serves a different directory on the second read, which the shared stub cannot do.
+    /// The reorder is the whole mechanism: without it the resting page keeps its index,
+    /// nothing moves, and the loop never closes.
+    private struct ReorderingDirectoryRepository: LeagueDirectoryRepository {
+        let first: LeagueDirectory
+        let second: LeagueDirectory
+        let selection: Result<LeagueSelectionResult, OmenApiError>
+        let recorder: StubLeagueDirectoryRepository.Recorder
+        let reads = Counter()
+
+        final class Counter: @unchecked Sendable {
+            private(set) var value = 0
+            func next() -> Int { value += 1; return value }
+        }
+
+        func fetchDirectory(accessToken: String) async -> Result<LeagueDirectory, OmenApiError> {
+            .success(reads.next() == 1 ? first : second)
+        }
+
+        func selectLeague(
+            accessToken: String, platform: String, leagueID: String, teamID: String?
+        ) async -> Result<LeagueSelectionResult, OmenApiError> {
+            recorder.record(platform, leagueID, teamID)
+            return selection
+        }
+
+        func disconnect(accessToken: String, platform: String) async -> Result<Void, OmenApiError> {
+            .success(())
+        }
+    }
+
+    /// The regression test for the outage.
+    ///
+    /// A real swipe commits, and the commit re-reads the directory. When that re-read comes
+    /// back in a different order, `reloadDirectoryPreservingPages` moves the pager to keep
+    /// the user on the same league — and in SwiftUI that write fires the carousel's
+    /// `.onChange(of: selectedIndex)`, which calls `commitSelection()` again. The only brake
+    /// was `guard !page.isActive`, which holds solely if the re-read reports that league
+    /// active. When it does not, the cycle runs unbounded: on 2026-09-05 it emitted 28
+    /// requests in nine seconds from one phone, oscillating between two leagues, and pegged
+    /// the single-core production API at 99% CPU until it was restarted by hand.
+    ///
+    /// One user swipe must produce exactly one write, whatever the server reports.
+    @MainActor
+    func testAReorderedRereadDoesNotTurnOneSwipeIntoACommitLoop() async throws {
+        let recorder = StubLeagueDirectoryRepository.Recorder()
+        let viewModel = LeagueCarouselViewModel(
+            directoryRepository: ReorderingDirectoryRepository(
+                first: try noActiveLeague(),
+                second: try noActiveLeagueReordered(),
+                selection: .success(LeagueSelectionResult(
+                    contractVersion: "league-active-selection.v1",
+                    selectionPersistence: "explicit",
+                    active: nil,
+                    refresh: ["command_center"]
+                )),
+                recorder: recorder
+            ),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "user-1", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 2_000
+                )),
+                nowEpochSeconds: { 1_000 }
+            )
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        // The user swipes to Beta and rests there. One write is correct and expected.
+        viewModel.selectedIndex = 1
+        let refresh = await viewModel.commitSelection()
+        XCTAssertEqual(refresh, ["command_center"])
+        XCTAssertEqual(recorder.calls.count, 1)
+
+        // The re-read reordered the list, so the view model moved the pager to keep the user
+        // on Beta. That move fires `.onChange` exactly as SwiftUI would.
+        XCTAssertEqual(viewModel.selectedIndex, 0, "reload should have followed Beta to its new index")
+        XCTAssertEqual(viewModel.currentPage?.leagueID, "L2")
+        _ = await viewModel.commitSelection()
+
+        XCTAssertEqual(
+            recorder.calls.count, 1,
+            "the view model's own pager move was committed back to the server — this is the loop"
+        )
+    }
+
+    /// The guard must not be so broad that it eats the real thing. A user resting on a
+    /// different league still has to be written, or the carousel silently does nothing.
+    @MainActor
+    func testAGenuineUserSwipeStillCommits() async throws {
+        let recorder = StubLeagueDirectoryRepository.Recorder()
+        let viewModel = makeViewModel(
+            directory: try noActiveLeague(),
+            selection: .success(LeagueSelectionResult(
+                contractVersion: "league-active-selection.v1",
+                selectionPersistence: "explicit",
+                active: nil,
+                refresh: ["command_center"]
+            )),
+            recorder: recorder
+        )
+
+        await viewModel.load(userID: "user-1")
+        viewModel.selectedIndex = 1
+        let refresh = await viewModel.commitSelection()
+
+        XCTAssertEqual(refresh, ["command_center"])
+        XCTAssertEqual(recorder.calls.count, 1)
+        XCTAssertEqual(recorder.calls.first?.leagueID, "L2")
+    }
 }

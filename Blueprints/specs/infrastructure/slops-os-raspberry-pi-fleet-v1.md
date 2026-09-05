@@ -12,10 +12,40 @@
 | Command Center | Raspberry Pi 4 Model B, 4 GB RAM, 128 GB microSD | `100.98.81.0` | Coordination/observability hub. The only device that runs Docker workloads. |
 | Steward | Raspberry Pi Zero 2 W, 512 MB RAM (~415 MiB usable), 64 GB microSD | `100.118.42.54` | Lightweight recurring operational automation. Native binaries only, no Docker. |
 | Sentinel | Raspberry Pi Zero 2 W, 512 MB RAM (~415 MiB usable), 64 GB microSD | `100.109.57.11` | Passive network/security observation. Native binaries only, no Docker. |
-| KVM1 | Hostinger VPS, Ubuntu 24.04, ~3.8 GB RAM | `100.115.155.19` (hostname `srv1737978`) | Omen production: `omen_api`, `omen_cron`, Nginx, self-hosted GitHub Actions deploy runner. |
-| KVM2 | Hostinger VPS, Ubuntu 22.04, ~7.8 GB RAM | `100.67.187.57` (hostname `srv1647690`) | Private Ollama/Gemma AI bridge (`ollama` as a systemd service, bound to the Tailscale IP only, not `0.0.0.0`). Also runs a public Nginx serving `openclaw.slopssaloon.com` → `127.0.0.1:3200` — confirmed intentional, not stray; ownership/retirement is tracked separately in `Direction/decision_log.md` ("openclaw is retired" / `S6`). |
+| KVM1 | Hostinger VPS, Ubuntu 24.04, **2 vCPU / ~7.9 GB RAM** (upgraded from 1 vCPU / 3.8 GB on 2026-09-05) | `100.115.155.19` (hostname `srv1737978`) | Omen production: `omen_api`, `omen_cron`, Nginx, self-hosted GitHub Actions deploy runner, `omen-watchdog.timer`. |
+| KVM2 | Hostinger VPS, Ubuntu 22.04, ~7.8 GB RAM | `100.67.187.57` (hostname `srv1647690`) | Private Ollama/Gemma AI bridge (`ollama` as a systemd service, bound to the Tailscale IP only, not `0.0.0.0`). Also the **encrypted Restic backup target** for Omen's database over chroot-confined SFTP (Layer 3 below) — KVM2 is not a spare machine. **openclaw was fully removed on 2026-09-05**; Nginx remains installed with **no enabled sites**. |
 
 All device-to-device management traffic runs over Tailscale exclusively. No cross-device service is bound to `0.0.0.0`; every dashboard/API is bound to its device's specific Tailscale IPv4 address.
+
+### openclaw retirement — completed 2026-09-05
+
+`S6` tracked openclaw as retired-in-principle; it was still running. Removed on founder
+instruction: `openclaw-gateway.service` stopped, disabled and its unit deleted; the
+`ai-subdomains` Nginx vhost unlinked and deleted; the `openclaw` npm package, `/opt/openclaw`,
+`/etc/openclaw`, `/home/openclaw`, the `/usr/bin/openclaw` symlink and the `openclaw` service
+user all removed; the Let's Encrypt certificate deleted via `certbot delete`. Config and state
+are archived at `/root/openclaw-removal-20260905/` on KVM2.
+
+**Two things this surfaced, worth keeping.** The certificate had been **expired since
+2026-08-06** — `openclaw.slopssaloon.com` served a browser-blocking TLS error for a month and
+nothing reported it, because Uptime Kuma monitors Omen's endpoints and not this one. A retired
+service still holding a public DNS name, a public port and an expiring certificate is
+unattended attack surface, not a harmless leftover.
+
+Verified after removal: `nginx -t` passes, `nginx` and `ollama` are active, `sshd -t` passes,
+and the Restic repository at `/srv/restic/omen` still holds a snapshot written the same
+morning — the backup path shares this host and was deliberately checked rather than assumed.
+
+**DNS needs nothing — verified, after first being claimed wrongly.** This entry originally said
+the `openclaw.slopssaloon.com` record still resolved and that deleting it at the registrar was
+the remaining step. That was asserted from a failed `curl` (exit 000) without querying DNS, and
+it was wrong: `dig openclaw.slopssaloon.com` returns **NXDOMAIN**, with no A record, no CNAME and
+no wildcard covering the name. Nothing is outstanding at the registrar.
+
+Worth keeping as a method note, since it is the same mistake pattern as `O8` and the Yahoo
+parsers: **a connection failure is not evidence of which layer failed.** `000` is equally
+consistent with "DNS did not resolve" and "the host refused the connection", and picking one
+without a second measurement is a guess wearing a result's clothing. One `dig` separates them.
 
 ## Constitution — guardrails that apply across every layer
 
@@ -84,6 +114,43 @@ Five pillars for what "healthy" should eventually mean for Omen, beyond uptime: 
 3. **Authentication/security events** (every 5 min) — cursor-based incremental `journald` parsing, so each event is evaluated exactly once. Worth keeping as a lesson: real OpenSSH rejection grammar on this host turned out to be **three different log patterns** depending on the rejection type (invalid-user anchor, known-user wrong-key preauth-close, and OpenSSH's own connection-penalty drop after repeated failures) — a naive single-pattern detector under-counted a real 5-attempt burst until all three were combined. HEALTHY → SUSPICIOUS → CRITICAL was proven with real controlled SSH rejection tests, including the 5-signal burst escalating correctly to CRITICAL once the combined pattern was in place.
 
 **Design boundary, explicitly verified, not assumed:** Sentinel does not act as the household's router or DNS server — `net.ipv4.ip_forward=0`, no process listening on port 53, default route still through the household eero gateway. It is a passive observer, and this was checked, not just intended.
+
+## Network firewall — public SSH closed 2026-09-05
+
+Both VPS instances share Hostinger network-firewall profile `287557`, which is enforced
+**upstream of the OS** and is therefore independent of `ufw`/`iptables` inside Ubuntu. It now
+reads, in order:
+
+| Action | Protocol | Port | Source |
+|---|---|---|---|
+| Accept | TCP | 80 | Any |
+| Accept | TCP | 443 | Any |
+| **Drop** | Any | Any | Any |
+
+**Public TCP 22 was removed from both boxes.** The decision was made on measured evidence, not
+policy preference: across the retained journal window every successful SSH login on both hosts
+came from a `100.x` Tailscale address — Command Center, Steward, KVM1 (the backup client) and
+the founder's MacBook. **Zero legitimate logins arrived over the public internet.** The port was
+serving nobody and exposing everything.
+
+**Checked before the change, because one of these would have been silent and expensive:** the
+Restic backup job on KVM1 reads `RESTIC_REPOSITORY="sftp:100.67.187.57:repository"` — KVM2's
+**Tailscale** address, not its public one. Closing public 22 therefore cannot break the only
+off-host database copy. `tailscaled` is `enabled` at boot on both hosts.
+
+**Verified after:** SSH over Tailscale works on both; public `2.25.182.1:22` **times out**;
+public `:443` still connects; `slopssaloon.com/api/health` returns 200. The drop-all rule does
+not affect Tailscale, which is outbound-initiated and falls back to a DERP relay if a direct
+path is unavailable.
+
+Honest scope note: this is defense in depth, not a rescue. SSH was already key-only
+(`passwordauthentication no`, `permitrootlogin no`) with `fail2ban` active. It removes the
+surface rather than fixing an active compromise. Also worth recording — **the journal only
+retained ~6 days**, not the 30 first assumed when counting logins; the conclusion held, but the
+window was a quarter of what was claimed before it was checked.
+
+**Recovery path if Tailscale is ever lost:** Hostinger's browser console (hPanel → VPS → the
+instance), which does not depend on SSH.
 
 ## Layer 5 — Alerting
 

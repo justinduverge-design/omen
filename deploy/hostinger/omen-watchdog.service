@@ -1,0 +1,20 @@
+[Unit]
+Description=Omen container watchdog (restarts wedged-but-running containers)
+Documentation=file:/opt/omen/deploy/hostinger/omen-watchdog.sh
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/omen/omen-watchdog.sh
+
+# The script sleeps for its confirmation grace period and again after the
+# restart, so it must be allowed to outlive both plus the evidence capture.
+TimeoutStartSec=180
+
+# Restarting the container is the whole point, so this cannot be sandboxed away
+# from the Docker socket - but it needs nothing else.
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/omen-watchdog
+NoNewPrivileges=yes

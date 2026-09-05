@@ -389,6 +389,41 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
 
+### M13-PrimitiveDebt — Move the auth/connect button components into `DesignSystem/`
+
+**Founder decision 2026-09-05: queue this as a sprint item rather than fix it inline.**
+
+`PrimitiveEnforcementTests.testAppSourcesUseOmenPrimitivesInsteadOfRawSwiftUIOrColorLiterals`
+**fails on `main`** and has since `5936142`. Six violations in two files:
+
+| File | What it is |
+|---|---|
+| `App/Auth/SignInView.swift` | `CanvasAuthPrimaryButton`, `CanvasAuthIconTile`, `CanvasTextAction` |
+| `App/Connect/ConnectView.swift` | `ConnectProviderCard`, `CanvasTextAction` (**duplicated** from SignInView) |
+| `App/Auth/SignInView.swift:310` | an **invisible** `TextField` — see below |
+
+**The work is a move, not a refactor.** These are primitive-layer components sitting in feature
+folders; `DesignSystem/` is explicitly allowed to touch raw SwiftUI because it *is* the primitive
+layer. Relocating them is architecturally correct and **changes no pixels**. It needs
+`project.pbxproj` edits — the iOS project does **not** use file-system synchronized groups, so
+files cannot simply be `git mv`d. `CanvasTextAction` being defined `private` in both files is its
+own small argument for the move.
+
+**Do NOT convert these to `OmenButton`.** It has no icon + loading-state variant today, so that
+path means extending a shared primitive and re-reviewing sign-in — a much larger change than the
+enforcement failure justifies.
+
+**`SignInView.swift:310` must be allowlisted permanently, not moved.** It is a deliberately
+invisible `TextField` (`.foregroundStyle(.clear)`, `.tint(.clear)`, `.opacity(0.02)`) that captures
+one-time-code input behind the custom-drawn OTP digit boxes. Converting it to `OmenTextField`
+**breaks the OTP screen**. This is a correct exception, not debt, and its allowlist entry should
+say so.
+
+**Until this lands, `main` ships a red suite.** That is the real cost: a permanently-failing test
+trains everyone to ignore failures and stops CI gating anything. If this cannot be scheduled soon,
+the interim move is an allowlist entry naming this item as the retirement plan — which the test's
+own comment says is **a design-steward decision, not a build fix**, and therefore the founder's.
+
 ### M5-Native-API-Client — Wire native screens to the existing Omen API
 
 - **Status:** **VERIFIED (slices A + B + C + D + E, both platforms).** A+B+C 2026-08-15; **D 2026-08-16**; **E 2026-08-17**. The beta-minimum client (A+B+C+D) plus the Ledger is complete. F/G stay design-gated behind the M1 screen contracts, which are proposed but not ratified; this item is not closed.

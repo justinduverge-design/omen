@@ -1,0 +1,15 @@
+[Unit]
+Description=Run the Omen container watchdog every minute
+
+[Timer]
+# Docker's healthcheck needs 3 failures at 30s to declare a container unhealthy,
+# so the fault is already ~90s old before this can possibly see it. A one-minute
+# poll keeps the added detection delay smaller than that existing floor; polling
+# faster would only sharpen a number that Docker's own interval dominates.
+OnBootSec=3min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=omen-watchdog.service
+
+[Install]
+WantedBy=timers.target

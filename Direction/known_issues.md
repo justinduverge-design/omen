@@ -1,6 +1,245 @@
 # Omen Known Issues
 
-Last updated: 2026-09-03
+Last updated: 2026-09-05
+
+## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05
+
+**Cloudflare is live as the DNS provider. The proxy (orange cloud) is OFF for the web records,
+deliberately.** `slopssaloon.com` and `www` are `dns-only` and resolve straight to `2.25.182.1`.
+
+Nameservers moved to Cloudflare (`jasmine`/`mario.ns.cloudflare.com`) and Universal SSL issued
+without incident. With the web records **proxied**, production developed an intermittent
+**HTTP 522** (Cloudflare cannot reach the origin) at roughly **4% of requests** — measured
+across ~90 requests in several samples, on both the apex and `www`, and still ~3% twenty
+minutes after the change, so not settling propagation.
+
+**The origin was eliminated as the cause, with evidence:**
+
+| Test | Result |
+|---|---|
+| 20 HTTPS requests **direct to origin**, bypassing Cloudflare | **20/20 200** |
+| 10 raw TCP connects to `2.25.182.1:443` | 10/10 ok |
+| nginx error log during the failures | **nothing** — the requests never arrived |
+| `TcpExtListenOverflows` / `ListenDrops` / `TCPBacklogDrop` | all **0** |
+| conntrack | 211 of 262144 |
+| fail2ban | one `sshd` jail, **0 banned** |
+| `ufw` | plain `ALLOW` on 80/443 — no `limit` rule |
+| origin certificate | valid, SANs cover **both** `slopssaloon.com` and `www` |
+
+So the loss is **upstream of the operating system**, where the box cannot see it: Hostinger's
+own network firewall (or its DDoS protection) reacting to connections from Cloudflare's many
+edge IPs, or the transit path between a Cloudflare PoP and Hostinger. Reverting to `dns-only`
+returned production to **40/40 clean**.
+
+**Why reverted rather than left to investigate:** a 4% error rate is strictly worse than the
+exposure the proxy was meant to fix, and the product has live beta testers with NFL Week 1 days
+away. The revert is one API call to undo.
+
+**To resume, in this order:** ask Hostinger support whether the network firewall or DDoS
+protection on `2.25.182.1` throttles or drops connections from Cloudflare's IP ranges — that is
+the one layer no test from inside the VPS can reach. Only then re-enable the proxy, and measure
+the 522 rate again over at least 100 requests before trusting it.
+
+**Zone settings already applied and correct for when the proxy returns** (they are inert while
+`dns-only`): `ssl=strict` (was `full`, which encrypted the Cloudflare→origin hop **without
+validating the certificate**), `always_use_https=on` (was off), `min_tls_version=1.2` (was
+**1.0**).
+
+**Not yet done — the origin lockdown.** Restricting Hostinger's firewall to Cloudflare IP ranges
+is what makes the proxy worth having; without it the origin IP is still reachable directly. It
+must not be attempted until the 522 issue is resolved, or the two failures become
+indistinguishable.
+
+### The mail records, and a correction
+
+Cloudflare's zone import turned **proxying on for mail records**, which breaks them — a proxied
+CNAME resolves to Cloudflare's anycast IPs instead of the mail host. `bounce` and `autoconfig`
+were measurably returning `172.67.170.83`. Inbound mail was never affected (`MX` →
+`smtp.google.com` was imported `dns-only`), but the bounce/return-path and mail autoconfig were
+broken until set back to `dns-only`. **An orange cloud is only ever correct for web traffic.**
+
+**Correction worth keeping:** the DKIM records were first reported as broken too. They were
+fine. The check queried `hostingermail-a.slopssaloon.com` when the actual record is
+`hostingermail-a._domainkey.slopssaloon.com` — the query was wrong, not the DNS. Same failure
+shape as the NXDOMAIN mistake above: **an empty result is only evidence when you are certain you
+asked the right question.**
+
+## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2026-05-06 — noted 2026-09-05
+
+**Not urgent. Easy to forget. Expensive if forgotten.**
+
+KVM2 (`srv1647690`) holds the encrypted Restic repository at `/srv/restic/omen` — per Layer 3 of
+the fleet spec, the **only** off-host copy of Omen's database. Hostinger reports that plan's
+**auto-renewal as disabled**, scheduled to expire **2026-05-06** (~8 months of runway). Neither
+VPS has Hostinger automatic snapshots enabled either, so there is no provider-side safety net
+underneath it.
+
+The founder's reasoning is sound and this is **not** a recommendation to simply renew: VPS
+hosting may move to a different provider, and paying to renew a box you intend to leave is
+waste. The point is narrower — **the backup repository has to move before or with that
+decision, never after it.** A migration that relocates the app and leaves the backups on an
+expiring box converts a planned move into an unplanned data-loss window.
+
+Whatever is decided, one of these must be true before 2026-05-06:
+
+1. KVM2 renews, or
+2. the Restic repository has an equivalent home elsewhere, with a **restore drill proven on the
+   new target** — the fleet spec's existing drill was proven against KVM2 specifically, and a
+   backup that has never been restored from its new home is a hope, not a backup.
+
+## 🔴 OPEN — the API can be driven into an unrecoverable 100% CPU spin by ordinary traffic — found 2026-09-05
+
+**This is the serious half of the 2026-09-05 outage and it is NOT fixed.** The client loop
+below has been fixed; this has not. Do not treat the outage as closed.
+
+**Measured, not inferred.** `omen_api` was `Up 14 hours (unhealthy)` while serving nothing:
+
+```
+CPU 99.31%   MEM 391.2MiB / 3.823GiB (9.99%)   PIDS 12
+```
+
+Memory was **flat**, so this is not a leak or an exhausted pool — it is a synchronous spin
+that never yields the event loop. The process could not even write a log line: the last entry
+was `11:04:27`, and it was still pegged at `11:17`. Every Docker healthcheck in between
+returned `Health check exceeded timeout (10s)`. nginx returned its own `504` after exactly
+`proxy_read_timeout 60s`; a *crashed* container would have given an instant `502`, which is
+how "wedged" was distinguished from "dead" without guessing.
+
+**The trigger was 28 requests in nine seconds from a single phone.** Baseline was 5-6
+requests/minute. That is not load — a fault this cheap to provoke is reachable by any user
+with two leagues and a normal thumb.
+
+**Where it is.** morgan logs on response *finish*, so every logged request completed. The
+last completed request was `GET /api/league/overview`; the spin is in whatever ran next and
+never returned, which the repeating cycle puts at `GET /api/leagues` or
+`POST /api/leagues/active`. `src/routes/leagues.js` and `src/services/activeSelection.js` are
+the surface. No unbounded `while` exists in `src/` (the two present are provably bounded), so
+the likely shapes are a runaway regex over a provider payload, an unterminated recursion, or
+a promise chain that starves the macrotask queue — the last of which would look exactly like
+this and survive the client disconnecting, as this did.
+
+**How to find it, next session.** Do not guess from reading. Capture a CPU profile *while
+wedged*. A spin at 99% names its own function in one profile. Everything above is measurement;
+the specific line is not yet known and must not be claimed until a profile shows it.
+
+### Hunt attempt 1 — 2026-09-05 — FAILED to reproduce. What is now ruled out.
+
+Recorded so the next attempt does not re-walk this ground. **None of this found the bug.**
+
+**Reproduction attempted properly and did not trigger it.** A shadow container was run from the
+same image on KVM1 (port 3001, capped `0.5` CPU / `1g`, `--inspect`), fed a real access token
+minted through Supabase admin for a founder account with **eight leagues across all three
+providers** — a superset of the two-league state that triggered production. Two replays were
+driven against it: 72 requests at the production burst rate, then **225 requests at high
+concurrency**, both interleaving `POST /api/leagues/active` between providers with
+`/api/leagues`, `/api/dashboard/summary`, `/api/moves` and `/api/league/overview`, exactly the
+observed cycle. Peak CPU after: **0.37%**, then **0.04%**. Never wedged. Shadow and token were
+destroyed afterwards; production was never touched.
+
+**Static search, all negative:**
+
+- No `setInterval` anywhere in `src/` — so there is **no periodic background work**, and the
+  spin must be request-triggered. Every `setTimeout` found is a one-shot abort/timeout.
+- Only two `while` loops exist in `src/`, both provably terminating (`systemContracts.js:167`
+  pushes until a length is reached; `sleeperDraftAccess.js:18` deletes a Map's first key).
+- No `for(;;)`, no unbounded `for`. Every loop in the in-flight routes (`dashboard`, `moves`,
+  `league`, `leagues`, `activeSelection`, `leagueFollows`) is `for...of` over a finite array.
+- **No catastrophic-backtracking regex.** A search for nested quantifiers across `src/` returned
+  one candidate, `parseVersion`'s `/^(\d+(?:\.\d+)*)/`, which is linear — `\d+` and `\.` cannot
+  match the same character, so there is no ambiguity to backtrack through. The other two
+  regexes in the path are simple literals.
+- **The ESPN adapter and services contain no regex at all**, so the unusual SWID/cookie shape
+  (`{48917711-FC65-...}`) is not being parsed by one.
+
+**A correction to the original finding above.** The first write-up narrowed the spin to
+`GET /api/leagues` or `POST /api/leagues/active`, reasoning that morgan logs on response finish
+so the culprit must be whatever ran *after* the last logged request. That is wrong: the client
+fired these **concurrently**, so any of the in-flight requests could be the one that never
+returned. The candidate set is all five endpoints, not two.
+
+**What to do differently next time.** Reading and load-replay have both been spent; do not
+repeat them. Make the *next natural occurrence* diagnosable instead:
+
+1. Add `--perf-basic-prof` to the production node command so V8 emits a JIT symbol map, and
+   install `linux-perf` on KVM1.
+2. Extend `omen-watchdog.sh` to run `perf record -F 99 -g -p <pid> -- sleep 10` **before** its
+   `docker restart`, alongside the log capture it already does.
+3. The next wedge then produces a profile naming the function, instead of only a restart.
+
+Note the trade-offs before doing this: `--perf-basic-prof` carries some overhead and writes a
+growing `/tmp/perf-<pid>.map`, and enabling `--inspect` on production would be a remote-code-
+execution surface if ever reachable — `SIGUSR1` opens the inspector on demand and is the safer
+variant. **This is a deliberate production change and should not be made in the week before
+NFL Week 1 without the founder deciding the overhead is acceptable.**
+
+**Mitigated, not fixed.** Three things now limit the blast radius, and none of them address
+the cause:
+
+1. `cpus: 0.85` / `mem_limit: 1g` / `pids_limit: 256` on `omen_api` (`cpus: 0.5` / `512m` on
+   `omen_cron`) in `deploy/hostinger/docker-compose.prod.yml`. **KVM1 has exactly one core**,
+   so an uncapped spin starves nginx and any watchdog along with it — the cap is what keeps
+   the host able to heal itself.
+2. `deploy/hostinger/omen-watchdog.{sh,service,timer}` on KVM1: restarts a container that is
+   unhealthy-but-running, captures evidence *before* restarting, and **stops after 3 heals in
+   an hour** so a crash loop escalates instead of hiding. Both paths were proven against a
+   throwaway container, not assumed.
+3. The client loop below no longer supplies the trigger.
+
+### Why it stayed down all night, which is the more important lesson
+
+Every detection layer worked. Kuma flagged all three monitors, GlitchTip opened issues #7
+(`write EPIPE`) and #8 (`Request aborted`), and Discord delivered every alert. The site stayed
+down anyway, because **nothing on the box could act on any of it.**
+
+`restart: unless-stopped` restarts a container that EXITS. It does nothing for one that is
+running and wedged. Docker's own healthcheck detects precisely that case and then only records
+it. The gap was never detection — it was that detection had no remediator. **A healthcheck
+nothing acts on is documentation, not availability.**
+
+## ✅ FIXED 2026-09-05 — the Command Center carousel could turn one swipe into an unbounded commit loop
+
+**The client half of the outage above.** `.onChange(of: selectedIndex)` in
+`OmenLeagueCarousel.swift` committed the rested-on page; `commit()` then called
+`reloadDirectoryPreservingPages()`, which **wrote `selectedIndex` again** to keep the user on
+the same league across a reordered re-read — firing `.onChange` again.
+
+The only brake was `guard !page.isActive`, which holds solely if the re-read reports that
+league active. When it did not, the cycle ran unbounded. Production logs show it oscillating
+between two leagues (alternating `league/overview` response sizes, `POST /api/leagues/active`
+every ~1.3s).
+
+**Fix:** `programmaticSelections`, a counter of pager moves the view model made *itself*,
+consumed one per `.onChange` delivery. A counter rather than a boolean because `.onChange` is
+delivered asynchronously — a flag cleared at the end of the reload is easily false again by the
+time the change it caused arrives, which is exactly what makes this class of bug intermittent.
+All three internal `selectedIndex` writes (`load`, `reloadDirectoryPreservingPages`,
+`clampSelection`) now route through `selectIndexProgrammatically`.
+
+**Regression test:** `testAReorderedRereadDoesNotTurnOneSwipeIntoACommitLoop` — needed a
+purpose-built repository stub returning a *reordered* directory on the second read, because the
+shared stub returns a fixed one and the reorder is the whole mechanism. **Verified to fail on
+the unfixed code (2 writes instead of 1)**, not merely to pass on the fixed code.
+
+**Android was checked and does not share the defect.** Its carousel is driven by
+`pagerState.settledPage`, and the view model's `selectedIndex` does not feed back into the
+pager, so the cycle does not close. `LaunchedEffect(pagerState, pages.size)` re-collecting on a
+`pages.size` change is a nearby risk worth a look, but it is not this bug.
+
+### Two process notes worth more than the fix
+
+- **The first regression test was wrong and passed for the wrong reason.** It simulated
+  `.onChange` firing after `load()` on a fixture where the index never changed — an event
+  SwiftUI would never deliver. It failed, correctly, and rewriting it to reproduce the *reload*
+  path is what made it real. A test that cannot fail on the broken code proves nothing.
+- **The watchdog's own self-test found a bug in the watchdog.** Its heal counter was a single
+  global file, so the test container spent `omen_api`'s heal budget. A real outage would have
+  hit an exhausted brake and never been healed. The state file is now keyed per container.
+
+### Unrelated, but true as of 2026-09-05
+
+`PrimitiveEnforcementTests.testAppSourcesUseOmenPrimitivesInsteadOfRawSwiftUIOrColorLiterals`
+**fails on a clean `main`** (confirmed by stashing all local work at `5ff94e3`). It predates
+this session's changes and is not caused by them, but `main` currently ships a red suite.
 
 ## ✅ RESOLVED — FULLY, verified in production 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
 
