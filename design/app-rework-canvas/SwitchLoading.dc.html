@@ -26,14 +26,17 @@
 </helmet>
 <div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
   <div style="height: 54px; flex-shrink: 0;"></div>
-  <!-- Your Teams carousel + Switch - league-switcher contract v1.
-       Order is favourites in star order, then the rest. Switch is pinned; it never scrolls away. -->
+
+  <!-- The bar NEVER tears down during a switch. It flips to the new team on tap;
+       the content underneath is what catches up. -->
   <div style="display: flex; align-items: center; gap: 0; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
     <div style="flex: 1; min-width: 0; overflow: hidden; position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 0 10px 16px;">
-      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: #2A2118; border: 1px solid #A67C2E; color: #F5F0E8; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Gravediggers</div>
-      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Fourth &amp; Long</div>
-      <div class="chip" style="display: flex; align-items: center;  background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">Bone Orchard</div>
-      <div class="chip" style="display: flex; align-items: center;  background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">Public Enemy</div>
+      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid #3A3A3C; color: #6D6D72; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#5A5E63" stroke="none"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Gravediggers
+      </div>
+      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: #2A2118; border: 1px solid #A67C2E; color: #F5F0E8; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Fourth &amp; Long
+      </div>
       <div style="position: absolute; top: 0; right: 0; width: 28px; height: 100%; background: linear-gradient(to right, rgba(28,28,30,0), #1C1C1E); pointer-events: none;"></div>
     </div>
     <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 12px; background: #1C1C1E; border-left: 1px solid #2C2C2E;">
@@ -43,6 +46,10 @@
       </div>
     </div>
   </div>
+
+  <!-- Determinate 2px hairline. Motion reveals state; it never hides the wait. -->
+  <div style="height: 2px; background: #2C2C2E; flex-shrink: 0;"><div style="width: 62%; height: 2px; background: #A67C2E;"></div></div>
+
   <div style="flex: 1; overflow: hidden; padding: 24px 0 16px 0; display: flex; flex-direction: column; gap: 22px;">
     <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 16px;">
       <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -54,53 +61,40 @@
         <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="9" r="3.2"></circle><path d="M5 19.5a7 7 0 0 1 14 0"></path><circle cx="12" cy="12" r="9.2"></circle></svg>
       </div>
     </div>
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0;">
-      <div style="flex: 1; display: flex; align-items: stretch; gap: 12px; padding: 0 16px; min-height: 0;">
-      <div style="position: relative; width: 318px; flex-shrink: 0; background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; ">
-      <div style="position: absolute; top: -60px; left: -40px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(166,124,46,0.16) 0%, rgba(166,124,46,0) 68%); pointer-events: none;"></div>
-        <div style="position: relative; display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="eyebrow" style="color: #6D6D72; flex-grow: 1;">Waiver watch</div>
-          <div class="chip" style="color: #2F7D5B; border: 1px solid rgba(47,125,91,0.5); background: rgba(47,125,91,0.12); border-radius: 4px; padding: 3px 7px;">+6.4 proj</div><div class="chip" style="display: flex; align-items: center; gap: 4px; color: #FF9F0A; border: 1px solid rgba(255,159,10,0.5); background: rgba(255,159,10,0.10); border-radius: 4px; padding: 3px 7px;">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF9F0A" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>11:00 pm</div>
-        </div>
-          <div style="height: 3px; width: 44px; background: #A67C2E; border-radius: 2px;"></div>
-          <div class="h1" style="font-size: 27px; line-height: 1.15; letter-spacing: -0.01em;">Claim Jaylen Wright.</div>
-          <div class="h2" style="color: #AEAEB2; font-weight: 500; font-size: 18px;">Drop Roschon Johnson.</div>
-          <div class="body" style="color: #AEAEB2;">Achane is out three weeks and Wright takes the backfield outright. Johnson hasn't cleared eight touches since Week 2.</div>
-          <div style="flex-grow: 1;"></div>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #A67C2E; border-radius: 8px; height: 48px;">
-            <div style="font-size: 16px; font-weight: 600; color: #0A0A0B;">Review the analysis</div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A0A0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="13 6 19 12 13 18"></polyline></svg>
-          </div>
-        </div>
-      </div>
-      <div style="position: relative; width: 318px; flex-shrink: 0; background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; opacity: 0.55;">
 
-        <div style="position: relative; display: flex; flex-direction: column; gap: 14px; height: 100%;">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="eyebrow" style="color: #6D6D72; flex-grow: 1;">Your week</div>
-          <div class="chip" style="color: #6D6D72;">Sun 1:00 pm</div>
-        </div>
-          <div style="height: 3px; width: 44px; background: #2F7D5B; border-radius: 2px;"></div>
+    <!-- Same carousel geometry as the loaded state, so nothing jumps when data lands. -->
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px;">
+      <div style="flex: 1; min-height: 0; display: flex; gap: 12px; padding: 0 16px; align-items: stretch;">
+        <div style="width: 318px; flex-shrink: 0; background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div class="h3" style="font-size: 15px;">Reading Fourth &amp; Long</div>
+          <div style="display: flex; flex-direction: column; gap: 11px;">
+          <div style="display: flex; align-items: center; gap: 9px;"><span style="display: flex; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F7D5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="small" style="font-size: 13px; color: #6D6D72;">Reading the Fourth &amp; Long roster</span></div>
+          <div style="display: flex; align-items: center; gap: 9px;"><span style="display: flex; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F7D5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="small" style="font-size: 13px; color: #6D6D72;">Pulling ESPN scoring settings</span></div>
+          <div style="display: flex; align-items: center; gap: 9px;"><span style="display: flex; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 1-6.36 2.64"/></svg></span><span class="small" style="font-size: 13px; color: #F5F0E8;">Checking who the waiver wire forgot</span></div>
+          <div style="display: flex; align-items: center; gap: 9px;"><span style="display: flex; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" fill="#2C2C2E"/></svg></span><span class="small" style="font-size: 13px; color: #48484C;">Re-reading the Week 7 matchup</span></div>
+          </div>
+          <div style="height: 1px; background: #2C2C2E; margin: 2px 0;"></div>
           <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
-              <div class="h2" style="font-size: 19px;">Your Team</div>
-              <div class="h1 num" style="font-size: 30px; letter-spacing: -0.02em;">112.4</div>
-            </div>
-            <div style="height: 1px; background: #2C2C2E;"></div>
-            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
-              <div class="h2" style="font-size: 19px; color: #AEAEB2; font-weight: 500;">Mike's Marauders</div>
-              <div class="h1 num" style="font-size: 30px; color: #6D6D72; letter-spacing: -0.02em;">104.8</div>
-            </div>
+            <div style="width: 84%; height: 9px; border-radius: 4px; background: #2C2C2E;"></div>
+            <div style="width: 100%; height: 15px; border-radius: 4px; background: #232326;"></div>
+            <div style="width: 78%; height: 15px; border-radius: 4px; background: #232326;"></div>
+            <div style="width: 54%; height: 15px; border-radius: 4px; background: #202023;"></div>
           </div>
-          <div class="body" style="color: #AEAEB2;">Favored by 7.6. Your flex is the swing — Omen is watching Waddle's snap count.</div>
           <div style="flex-grow: 1;"></div>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #3A3A3C; border-radius: 8px; height: 48px;">
-            <div style="font-size: 16px; font-weight: 600; color: #F5F0E8;">Open the matchup</div>
-          </div>
+          <div class="small" style="font-size: 12px; color: #48484C;">Every line is a request we are actually making. No invented steps.</div>
+          <div style="height: 48px; border-radius: 8px; background: #232326;"></div>
         </div>
-      </div>
+        <div style="width: 318px; flex-shrink: 0; background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; opacity: 0.55;">
+          <div style="width: 60%; height: 9px; border-radius: 4px; background: #2C2C2E;"></div>
+          <div style="height: 3px; width: 44px; background: #2C2C2E; border-radius: 2px;"></div>
+          <div style="width: 72%; height: 19px; border-radius: 4px; background: #232326;"></div>
+          <div style="height: 1px; background: #2C2C2E;"></div>
+          <div style="width: 66%; height: 19px; border-radius: 4px; background: #232326;"></div>
+          <div style="width: 100%; height: 13px; border-radius: 4px; background: #202023;"></div>
+          <div style="width: 88%; height: 13px; border-radius: 4px; background: #202023;"></div>
+          <div style="flex-grow: 1;"></div>
+          <div style="height: 48px; border-radius: 8px; border: 1px solid #2C2C2E;"></div>
+        </div>
       </div>
       <div style="display: flex; align-items: center; justify-content: center; gap: 6px;"><div style="width: 20px; height: 6px; border-radius: 3px; background: #A67C2E;"></div><div style="width: 6px; height: 6px; border-radius: 3px; background: #3A3A3C;"></div><div style="width: 6px; height: 6px; border-radius: 3px; background: #3A3A3C;"></div></div>
     </div>

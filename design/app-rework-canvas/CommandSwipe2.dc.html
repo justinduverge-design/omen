@@ -26,16 +26,27 @@
 </helmet>
 <div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
   <div style="height: 54px; flex-shrink: 0;"></div>
-  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
-    <div class="chip" style="color: #AEAEB2;">Slop Bowl · Sleeper · Week 7</div>
-    <div class="chip" style="display: flex; align-items: center; gap: 4px; color: #A67C2E;">Switch
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  <!-- Your Teams carousel + Switch - league-switcher contract v1.
+       Order is favourites in star order, then the rest. Switch is pinned; it never scrolls away. -->
+  <div style="display: flex; align-items: center; gap: 0; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div style="flex: 1; min-width: 0; overflow: hidden; position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 0 10px 16px;">
+      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: #2A2118; border: 1px solid #A67C2E; color: #F5F0E8; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Gravediggers</div>
+      <div class="chip" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>Fourth &amp; Long</div>
+      <div class="chip" style="display: flex; align-items: center;  background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">Bone Orchard</div>
+      <div class="chip" style="display: flex; align-items: center;  background: transparent; border: 1px solid #3A3A3C; color: #AEAEB2; padding: 6px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;">Public Enemy</div>
+      <div style="position: absolute; top: 0; right: 0; width: 28px; height: 100%; background: linear-gradient(to right, rgba(28,28,30,0), #1C1C1E); pointer-events: none;"></div>
+    </div>
+    <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 12px; background: #1C1C1E; border-left: 1px solid #2C2C2E;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; border: 1px dashed #2F7D5B; flex-shrink: 0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2F7D5B" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+      <div class="chip" style="display: flex; align-items: center; gap: 4px; color: #A67C2E;">Switch
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
     </div>
   </div>
   <div style="flex: 1; overflow: hidden; padding: 24px 0 16px 0; display: flex; flex-direction: column; gap: 22px;">
     <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 16px;">
       <div style="display: flex; flex-direction: column; gap: 2px;">
-        <div class="eyebrow">The Small Council</div>
+        <div class="eyebrow" style="display: flex; align-items: center; gap: 7px;">The Small Council<span style="color: #48484C;">&#9679;</span><span style="color: #6D6D72;">Week 7</span></div>
         <div class="h1" style="font-size: 34px; letter-spacing: -0.01em;">Evening, Justin.</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; padding-top: 10px;">

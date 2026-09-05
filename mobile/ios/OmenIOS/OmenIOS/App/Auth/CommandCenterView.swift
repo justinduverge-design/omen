@@ -107,7 +107,11 @@ struct CommandCenterView: View {
                         await leagueViewModel.load(userID: userID)
                         await omenDecisionViewModel.load(userID: userID)
                     }
-                }
+                },
+                onAddLeague: { showConnectSheet = true },
+                // Command Center's Context Strip has its own "Switch". Both open this one
+                // sheet, so the order and the favourites cannot differ by entry point.
+                externalPresentation: $showSwitcherSheet
             )
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step12)
@@ -221,33 +225,6 @@ struct CommandCenterView: View {
         // screen used the Omen accent — found on device 2026-09-01. Android's NavigationBar
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
-        .sheet(isPresented: $showSwitcherSheet) {
-            OmenLeagueSwitcherSheet(
-                viewModel: leagueSwitcherViewModel,
-                userID: userID,
-                onSelected: { _ in
-                    // §10.3: apply the new context atomically across the personalized
-                    // surfaces. The server names them in `refresh`; the shell reload is
-                    // what actually re-reads them, so the sheet closes only after the
-                    // switch succeeded — a failed switch leaves it open with its reason.
-                    showSwitcherSheet = false
-                    Task {
-                        await commandCenterViewModel.load(userID: userID)
-                        await omenDecisionViewModel.load(userID: userID)
-                        await leagueViewModel.load(userID: userID)
-                    }
-                },
-                onConnectAnother: {
-                    showSwitcherSheet = false
-                    showConnectSheet = true
-                },
-                onManageConnections: {
-                    showSwitcherSheet = false
-                    showAccountSheet = true
-                },
-                onDismiss: { showSwitcherSheet = false }
-            )
-        }
         .sheet(isPresented: $showConnectSheet) {
             NavigationStack {
                 ConnectView(

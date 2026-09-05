@@ -1,7 +1,10 @@
 import SwiftUI
 
 /// Registry §3.1 IconButton: an icon-only native control with a required accessibility label.
-enum OmenIconButtonTone { case accent, neutral, danger }
+/// `omen` added 2026-09-05 for the league switcher's pinned "+". The bar's other controls are
+/// brass because they navigate among the teams you have; adding a league is the one action that
+/// changes what you have, and it carries Verdigris everywhere else it appears.
+enum OmenIconButtonTone { case accent, neutral, danger, omen }
 
 enum OmenIconButtonSize { case sm, md, lg }
 
@@ -27,6 +30,7 @@ struct OmenIconButton: View {
         case .accent: return OmenColor.accent
         case .neutral: return OmenColor.textPrimary
         case .danger: return OmenColor.Data.riskHigh
+        case .omen: return OmenColor.omen
         }
     }
 

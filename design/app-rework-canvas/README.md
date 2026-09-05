@@ -36,6 +36,8 @@ layout: positions, page grouping, and the sticky notes carrying each screen's de
 | `CommandNoLeague.dc.html` | Command Center — signed in, no league |
 | `EspnConnect.dc.html` | ESPN — consent before the sign-in sheet |
 | `ReportPill.dc.html` | Beta report pill and sheet |
+| `SwitchSheet.dc.html` | Switch — team sheet, provider filter, favourite stars |
+| `SwitchLoading.dc.html` | Switch — mid-switch, honest status lines |
 
 ## Built from real tokens, not from memory
 

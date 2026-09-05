@@ -6,7 +6,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "1 \u00b7 Sign in",
+      "title": "1 · Sign in",
       "page": "page-3"
     },
     {
@@ -15,7 +15,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "2 \u00b7 Email code",
+      "title": "2 · Email code",
       "page": "page-3"
     },
     {
@@ -24,7 +24,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "3 \u00b7 Connect your league",
+      "title": "3 · Connect your league",
       "page": "page-3"
     },
     {
@@ -33,7 +33,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Trade \u2014 build from rosters",
+      "title": "Trade — build from rosters",
       "page": "page-1"
     },
     {
@@ -42,7 +42,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Trade \u2014 the read + counter",
+      "title": "Trade — the read + counter",
       "page": "page-1"
     },
     {
@@ -51,7 +51,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Trade \u2014 share + poll",
+      "title": "Trade — share + poll",
       "page": "page-1"
     },
     {
@@ -60,7 +60,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Command \u2014 widget 1 of 3",
+      "title": "Command — widget 1 of 3",
       "page": "page-2"
     },
     {
@@ -69,7 +69,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Command \u2014 swiped to 2",
+      "title": "Command — swiped to 2",
       "page": "page-2"
     },
     {
@@ -78,7 +78,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Omen \u2014 the call",
+      "title": "Omen — the call",
       "page": "page-2"
     },
     {
@@ -87,7 +87,7 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "League \u2014 with Waiver",
+      "title": "League — with Waiver",
       "page": "page-2"
     },
     {
@@ -105,7 +105,7 @@
       "y": 1000,
       "w": 390,
       "h": 844,
-      "title": "Command \u2014 quiet week",
+      "title": "Command — quiet week",
       "page": "page-2"
     },
     {
@@ -114,7 +114,7 @@
       "y": 1000,
       "w": 390,
       "h": 844,
-      "title": "Command \u2014 no league (Abby)",
+      "title": "Command — no league (Abby)",
       "page": "page-2"
     },
     {
@@ -123,7 +123,7 @@
       "y": 1000,
       "w": 390,
       "h": 844,
-      "title": "ESPN \u2014 consent before the sheet",
+      "title": "ESPN — consent before the sheet",
       "page": "page-2"
     },
     {
@@ -133,6 +133,24 @@
       "w": 390,
       "h": 844,
       "title": "Beta report pill",
+      "page": "page-2"
+    },
+    {
+      "file": "SwitchSheet.dc.html",
+      "x": 1880,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Switch — the sheet",
+      "page": "page-2"
+    },
+    {
+      "file": "SwitchLoading.dc.html",
+      "x": 2350,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Switch — mid-switch",
       "page": "page-2"
     }
   ],
@@ -151,7 +169,7 @@
       "y": -190,
       "w": 390,
       "page": "page-1",
-      "text": "BUILD FROM ROSTERS \u2014 the path that doesn't exist today.\n\nReal assets from real rosters, so nothing can be traded that isn't owned. Third team is a chip, not a mode.\n\nThe dash on Kraft is deliberate: no provider rank Omen can stand behind, so it shows a dash and never invents one."
+      "text": "BUILD FROM ROSTERS — the path that doesn't exist today.\n\nReal assets from real rosters, so nothing can be traded that isn't owned. Third team is a chip, not a mode.\n\nThe dash on Kraft is deliberate: no provider rank Omen can stand behind, so it shows a dash and never invents one."
     },
     {
       "id": "n-tverdict",
@@ -159,7 +177,7 @@
       "y": -190,
       "w": 390,
       "page": "page-1",
-      "text": "THE READ \u2014 one screen, three separations.\n\n1. The verdict is blunt and scored ('Counter' + Confident band).\n2. The counter is CONCRETE, built from assets that actually exist.\n3. Private advice is fenced \u2014 Mike's RB thinness never leaves this screen.\n\n'Launch Sleeper' is demoted and labelled honestly: it opens the app and nothing more. Sleeper publishes no trade-write endpoint, so COPY is the real product."
+      "text": "THE READ — one screen, three separations.\n\n1. The verdict is blunt and scored ('Counter' + Confident band).\n2. The counter is CONCRETE, built from assets that actually exist.\n3. Private advice is fenced — Mike's RB thinness never leaves this screen.\n\n'Launch Sleeper' is demoted and labelled honestly: it opens the app and nothing more. Sleeper publishes no trade-write endpoint, so COPY is the real product."
     },
     {
       "id": "n-tshare",
@@ -167,7 +185,7 @@
       "y": -190,
       "w": 390,
       "page": "page-1",
-      "text": "SHARE CARD \u2014 the poll is CUT.\n\nNo vote endpoint or storage ever existed; the earlier '42 votes' was fiction at a scale a 10-team league never reaches. People argue in the group chat they're already in.\n\nWhat's left is the thing that travels: an image and a link carrying the trade and NOTHING else \u2014 no verdict, no leverage, no read on Mike."
+      "text": "SHARE CARD — the poll is CUT.\n\nNo vote endpoint or storage ever existed; the earlier '42 votes' was fiction at a scale a 10-team league never reaches. People argue in the group chat they're already in.\n\nWhat's left is the thing that travels: an image and a link carrying the trade and NOTHING else — no verdict, no leverage, no read on Mike."
     },
     {
       "id": "n-deck",
@@ -190,7 +208,7 @@
       "x": 940,
       "y": -190,
       "w": 390,
-      "text": "CONFIDENCE \u2014 bands, never a percentage.\n\nConfident / Leaning / Coin flip. The three-up strip is here to show the states side by side; the real screen shows only the active band.\n\nDrop the strip once you've picked the treatment.",
+      "text": "CONFIDENCE — bands, never a percentage.\n\nConfident / Leaning / Coin flip. The three-up strip is here to show the states side by side; the real screen shows only the active band.\n\nDrop the strip once you've picked the treatment.",
       "page": "page-2"
     },
     {
@@ -198,7 +216,7 @@
       "x": 1410,
       "y": -190,
       "w": 390,
-      "text": "WAIVER lives in League: Matchup - Standings - Waiver - Activity.\n\nEvery pickup names its drop. The engine picks it; the model only writes the sentence.\n\nThe deadline chip is load-bearing \u2014 under pure-impact ordering it is the ONLY warning a closing claim gets.",
+      "text": "WAIVER lives in League: Matchup - Standings - Waiver - Activity.\n\nEvery pickup names its drop. The engine picks it; the model only writes the sentence.\n\nThe deadline chip is load-bearing — under pure-impact ordering it is the ONLY warning a closing claim gets.",
       "page": "page-2"
     },
     {
@@ -206,7 +224,7 @@
       "x": 1880,
       "y": -190,
       "w": 390,
-      "text": "LEDGER \u2014 self-reported rows count, but are marked ('You told us').\n\nThat forces the record to disclose its own composition: '5-1 when you followed' sits beside 'two of these six are your own report.'\n\nNo blended number without that sentence.",
+      "text": "LEDGER — self-reported rows count, but are marked ('You told us').\n\nThat forces the record to disclose its own composition: '5-1 when you followed' sits beside 'two of these six are your own report.'\n\nNo blended number without that sentence.",
       "page": "page-2"
     },
     {
@@ -214,7 +232,7 @@
       "x": 0,
       "y": 1880,
       "w": 390,
-      "text": "QUIET WEEK \u2014 the playful register, fenced.\n\nNever after a loss, an injury, or an error. A single fixed line reads as a stuck screen by the fifth viewing; if it wears thin, rotate a small set in the same voice rather than going flat.",
+      "text": "QUIET WEEK — the playful register, fenced.\n\nNever after a loss, an injury, or an error. A single fixed line reads as a stuck screen by the fifth viewing; if it wears thin, rotate a small set in the same voice rather than going flat.",
       "page": "page-2"
     },
     {
@@ -222,7 +240,7 @@
       "x": 470,
       "y": 1880,
       "w": 390,
-      "text": "ABBY'S SCREEN \u2014 signed in, no league.\n\nThe context strip becomes the connect prompt and follows her everywhere until it's done. Providers by market share, per your call.\n\nDemo mode is gone, so there is no 'try it fake' escape hatch here.",
+      "text": "ABBY'S SCREEN — signed in, no league.\n\nThe context strip becomes the connect prompt and follows her everywhere until it's done. Providers by market share, per your call.\n\nDemo mode is gone, so there is no 'try it fake' escape hatch here.",
       "page": "page-2"
     },
     {
@@ -230,7 +248,7 @@
       "x": 940,
       "y": 1880,
       "w": 390,
-      "text": "THE HIGHEST-STAKES SCREEN IN THE APP.\n\nThree plain promises before the sheet opens \u2014 this is what separates 'signing into ESPN' from 'a scam asking for my password'. Modelled on Plaid Link.\n\nBLOCKED until the ESPN terms read and App Review answer are written down (W1-GATE).",
+      "text": "THE HIGHEST-STAKES SCREEN IN THE APP.\n\nThree plain promises before the sheet opens — this is what separates 'signing into ESPN' from 'a scam asking for my password'. Modelled on Plaid Link.\n\nBLOCKED until the ESPN terms read and App Review answer are written down (W1-GATE).",
       "page": "page-2"
     },
     {
@@ -238,7 +256,7 @@
       "x": 1410,
       "y": 1880,
       "w": 390,
-      "text": "BETA ONLY \u2014 compiled out of App Store builds by a build flag, not a runtime toggle.\n\nThe 'sent with your report' list is deliberately visible: people share more when they can see exactly what leaves their phone.",
+      "text": "BETA ONLY — compiled out of App Store builds by a build flag, not a runtime toggle.\n\nThe 'sent with your report' list is deliberately visible: people share more when they can see exactly what leaves their phone.",
       "page": "page-2"
     },
     {
@@ -256,6 +274,30 @@
       "w": 390,
       "page": "page-3",
       "text": "CONNECT - held to the sign-in standard.\n\nProviders by market share, per your call. Each row says what it will actually cost you before you tap it - and ESPN says 'needs a computer for now', because today it does. That line is what Abby needed and never got.\n\nWhen W1-A ships, the ESPN row changes to a normal tap and this screen barely moves.\n\nThe safety note is not filler: 'never posts or trades on your behalf' is the single most common fear about connecting a fantasy account."
+    },
+    {
+      "id": "n-switch",
+      "x": 1880,
+      "y": 1880,
+      "w": 390,
+      "page": "page-2",
+      "text": "SWITCH SHEET - league-switcher contract v1.\n\nHEIGHT IS CONTENT. The sheet grows to the number of teams. It is not a fixed detent with dead space under five rows. Past roughly seven rows the list scrolls and the sheet stops growing; the provider segment stays pinned.\n\nROW = TEAM NAME. Not the league name. The league and provider are the quiet second line. When the provider never gave us a team name, the league name takes the top line and the second line says 'unnamed team' - see the Money League row.\n\nSTAR is Platinum #C7CBD1, in its own tight column right beside the name, not shoved to the row's right edge. Outline #4A4A4E when off. Tapping the star toggles and re-sorts in place; it does NOT dismiss. Tapping anywhere else in the row switches and dismisses. Two targets in one row - the star needs its own 44pt hit area.\n\nORDER, one rule everywhere: favourites first in the order they were starred, then the rest. Applied to whatever the filter is showing. On All that is every favourite across providers; on ESPN it is just the ESPN favourites. The carousel on Command Center uses the identical order, so the sheet is the carousel opened up.\n\nPROVIDER FILTER shows only providers the user has actually connected. One connected provider = no segment at all, and no Switch entry point either.\n\nMEMORY: opens on All the very first time, to show we handle all four. After that it reopens on whatever they last left it on."
+    },
+    {
+      "id": "n-switchload",
+      "x": 2350,
+      "y": 1880,
+      "w": 390,
+      "page": "page-2",
+      "text": "MID-SWITCH - what a switch looks like while it lands.\n\nFast, not instant. The bar flips to the new team the moment it is tapped and NEVER tears down - no full-screen spinner, no blank screen. Content swaps underneath a stable header.\n\nThe status lines are the fun part and they have one rule: every line names a request we are actually making. 'Checking who the waiver wire forgot' is fine while we fetch the waiver wire. Inventing a step we do not perform is not, however good it reads.\n\nDeterminate 2px hairline under the bar, plus a skeleton shaped like the widget that lands there. brand-system says motion never hides loading - this narrates the wait instead of masking it.\n\nPrefetch the other connected teams so the common switch has nothing to wait for and this screen is rarely seen."
+    },
+    {
+      "id": "n-carousel",
+      "x": 0,
+      "y": 1880,
+      "w": 390,
+      "page": "page-2",
+      "text": "CAROUSEL - amended 2026-09-05, canvas was wrong.\n\nThe original bar here was one line, 'Slop Bowl / Sleeper / Week 7' plus Switch. The app shipped a carousel instead. Founder call: the carousel is right and stays. The canvas was the thing out of date, so the canvas moved.\n\nPills are TEAM names in favourite order. Active pill is brass-bordered on #2A2118. Favourites carry the platinum star. Trailing 'Add league' chip is Verdigris #2F7D5B - the only green in the bar, and it means 'add', nothing else.\n\nSWITCH IS PINNED outside the scroller with a hairline divider. It must not scroll off, which is exactly what went wrong in the shipped build.\n\nCarousel is Command Center only. Every other screen keeps the single-line context bar, now showing the team name.\n\nSTILL OPEN, not in this pass: the shipped screen is in LIGHT mode with red pills. Every artboard here is Raven Black. That is a separate call.\n\nProjections in the pill are parked, not forgotten."
     }
   ],
   "launch": {
@@ -269,7 +311,7 @@
     },
     {
       "id": "page-1",
-      "name": "Trade \u2014 the bar"
+      "name": "Trade — the bar"
     },
     {
       "id": "page-2",

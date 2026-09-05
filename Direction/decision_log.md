@@ -2414,3 +2414,48 @@ today. This changes only when the expensive part is built, not whether ESPN ship
 rejection — a delay and a lost feature — not litigation. ESPN's practical enforcement against
 third-party fantasy tools appears to be nil, though that observation is not exhaustively verified
 and is not a defense.
+
+## 2026-09-05 — The canvas was wrong, so the canvas moved: team switcher, favourites, and Platinum
+
+**Finding.** The founder's Omen-tab screenshot showed a "Your Teams" row of team chips that scrolled
+off the right edge with no pinned control. The canvas (`Main.dc.html` and eight sibling artboards)
+specified something else entirely: a single-line `League · Provider · Week` bar with a `Switch ›`
+affordance. Two switchers had grown in the app — that bar's sheet (`OmenLeagueSwitcherSheet`) and
+the chip row (`OmenTeamPicker`) — and neither matched the drawn screens.
+
+**Decision: the carousel is right and the canvas was out of date.** The founder kept the carousel
+explicitly ("I like the carousel, so we're gonna keep that"), so the nine artboards were amended to
+the built reality rather than the app being dragged back to a stale drawing. Design moved first;
+code followed the amended canvas. Recorded because the reflex is the opposite — treating the
+artifact of record as automatically correct would have deleted a feature the founder wanted.
+
+**One switcher, not two.** `OmenContextStrip`'s Switch and the bar's Switch now open the same sheet
+via a shared presentation binding. The legacy `OmenLeagueSwitcherSheet` is no longer presented in
+the app (it survives only in `ScreenshotScenarios`). Two implementations of "make this active"
+would eventually disagree about failure, which is the case that matters.
+
+**Favourites: multiple, ordered by when they were starred.** One sort rule applied to whatever is on
+screen — favourites first in star order, then the server's order — so `All` floats every favourite
+across providers and `ESPN` floats only the ESPN ones, with no second rule. The carousel and the
+sheet read the same sorted list by construction.
+
+**Persistence is local for now, and that is a real limit.** `league-directory.v1` has no favourite
+field. `is_followed` was deliberately **not** overloaded: followed and favourite are different sets,
+and reusing one would have changed which leagues appear in the carousel the moment a user starred
+one. v1 stores stars in `UserDefaults` keyed by user id. Cross-device sync needs a server field and
+is open.
+
+**Palette addition: Platinum `#C7CBD1`** (founder-approved live), for favourite/selection marks
+only. The cool metal against Aged Brass's warm metal, so a starred team reads as *marked* rather
+than as a second call to action. The light-mode value is `#78808A`, not the same hex — `#C7CBD1` is
+1.5:1 on white, which is precisely the dark-only-literal failure `PrimitiveEnforcementTests` exists
+to catch.
+
+**Light mode is not drift.** The shipped screenshot is light and every artboard is Raven Black, and
+that was flagged as an open question. It resolved on reading `OmenColor`: every token is already
+trait-aware and the app is deliberately light/dark. The canvas is dark-only; the app is not. Nothing
+to fix.
+
+**Still open, deliberately:** projections in the carousel pill (parked by the founder), cross-device
+favourites, and the Android twin. `PrimitiveEnforcementTests` fails on pre-existing raw `Button(`
+usage in `SignInView.swift` and `ConnectView.swift` — untouched by this change and not fixed here.
