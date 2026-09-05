@@ -43,9 +43,34 @@ function evidenceFileExists(relativePath) {
   return fs.existsSync(path.join(REPO_ROOT, relativePath));
 }
 
+/**
+ * Test-only clock override, so the season gate can be exercised on BOTH sides of
+ * kickoff without waiting for the calendar.
+ *
+ * Deliberately self-announcing: whenever it is set, the override is stamped into
+ * `season_started`'s own detail string and into the JSON output. This checker's whole
+ * job is to gate enabling production scoring, so a faked clock must never be able to
+ * produce a clean-looking record — anything generated under an override says so, in the
+ * same line a reader would quote as evidence.
+ *
+ * An unparseable value is a hard error rather than a silent fall back to the real clock:
+ * a typo that quietly re-reads `new Date()` is exactly how a test starts passing for the
+ * wrong reason.
+ */
+function resolveNow() {
+  const raw = process.env.OMEN_GATES_NOW;
+  if (!raw) return { now: new Date(), override: null };
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`OMEN_GATES_NOW is not a valid date: ${JSON.stringify(raw)}`);
+  }
+  return { now: parsed, override: raw };
+}
+
 async function checkGates() {
   const gates = [];
-  const context = getCurrentNflWeekContext();
+  const { now, override: nowOverride } = resolveNow();
+  const context = getCurrentNflWeekContext(now);
 
   // --- Gate A: the season has actually started -------------------------------
   // Read from is_off_season, never from the clamped week. That clamp is exactly what
@@ -55,6 +80,7 @@ async function checkGates() {
     "The NFL regular season has actually opened",
     context.is_off_season ? "FAIL" : "PASS",
     `season=${context.season} raw_week=${context.raw_week} is_off_season=${context.is_off_season}`
+      + (nowOverride ? ` now_override=${nowOverride}` : "")
       + (context.is_off_season ? " — grading before kickoff would score games that have not happened" : "")
   ));
 
