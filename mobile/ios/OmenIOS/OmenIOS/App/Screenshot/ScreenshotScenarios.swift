@@ -61,6 +61,10 @@ enum ScreenshotScenarios {
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected")) }
         ),
+        "switcher.team-sheet": ScreenshotScenario(
+            label: "Team switcher — pinned bar and the sheet, one favourite starred",
+            content: { AnyView(TeamSwitcherScreenshotHost()) }
+        ),
         // §10.2 switcher. Rendered against a deterministic in-app stub rather than a live
         // account, so the states are capturable without credentials — including the ones a
         // real account would rarely show on demand (an unreadable directory, an empty one).
@@ -580,6 +584,10 @@ struct LeagueSwitcherScreenshotHost: View {
         try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
     }
 
+    /// Shared with `TeamSwitcherScreenshotHost` so both switcher captures describe the
+    /// same user rather than drifting into two different fixture worlds.
+    static func screenshotDirectory() -> LeagueDirectory { sampleDirectory() }
+
     private static func sampleDirectory() -> LeagueDirectory {
         decode("""
         {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
@@ -603,5 +611,105 @@ struct LeagueSwitcherScreenshotHost: View {
           {"platform":"espn","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
           {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
         """)
+    }
+}
+
+/// Screenshot host for the 2026-09-05 team switcher: the pinned context bar and the sheet's
+/// body, rendered together against one deterministic directory.
+///
+/// Both are shown inline. A presented `.sheet` does not appear in a `simctl io screenshot` of
+/// the host window, and the bar is the half where the shipped defect lived — a scroll that ran
+/// off the right edge with no pinned control — so a capture that showed only the sheet would
+/// miss exactly what this change fixes.
+///
+/// One favourite is pre-seeded through the injected preferences store, because the ordering
+/// rule and the platinum star are the two things a reviewer needs to *see* rather than read.
+struct TeamSwitcherScreenshotHost: View {
+    @StateObject private var viewModel: LeagueCarouselViewModel
+
+    init() {
+        let preferences = InMemoryLeagueSwitcherPreferences(
+            // Sunday Scaries is the ESPN team and third in the server's order. Starring it
+            // proves the sort actually moved it, which a favourite that was already first
+            // could not.
+            favorites: ["screenshot": LeagueFavorites(ordered: ["espn:884411"])]
+        )
+        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
+            directoryRepository: StubLeagueDirectoryRepository(
+                directory: .success(LeagueSwitcherScreenshotHost.screenshotDirectory())
+            ),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
+                )),
+                nowEpochSeconds: { 0 }
+            ),
+            preferences: preferences
+        ))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step24) {
+            OmenTeamPicker(viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {})
+                .padding(.horizontal, OmenSpacing.step16)
+            OmenTeamSwitcherSheet(
+                teams: teams,
+                platformFilters: filters,
+                selectedFilter: viewModel.selectedPlatform,
+                notice: nil,
+                // Live, not inert: the capture doubles as the manual check that a tap on the
+                // star toggles without switching, and a tap on the row switches.
+                onSelectFilter: { viewModel.selectedPlatform = $0 },
+                onSelectTeam: { team in
+                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
+                    Task { _ = await viewModel.commit(page) }
+                },
+                onToggleFavorite: { team in
+                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
+                    viewModel.toggleFavorite(page)
+                },
+                onAddLeague: {}
+            )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(OmenColor.bg)
+        .task { await viewModel.load(userID: "screenshot") }
+    }
+
+    private var teams: [OmenSwitcherTeam] {
+        viewModel.pages.map { page in
+            OmenSwitcherTeam(
+                id: page.id,
+                platform: page.platform == "espn" ? .espn : (page.platform == "yahoo" ? .yahoo : .sleeper),
+                teamName: page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName,
+                subtitle: Self.subtitle(page),
+                isActive: page.isActive,
+                isFavorite: viewModel.isFavorite(page),
+                isCommitting: false
+            )
+        }
+    }
+
+    /// Mirrors `OmenTeamPicker.subtitle(_:)`. Kept in step deliberately: a capture that showed
+    /// a different second line than the real screen would be a screenshot of something that does
+    /// not exist.
+    private static func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
+        let provider = platformDisplayName(page.platform)
+        guard page.teamName?.isEmpty == false else { return "\(provider) · unnamed team" }
+        guard page.leagueName?.isEmpty == false else { return provider }
+        return "\(provider) · \(page.displayLeagueName)"
+    }
+
+    private var filters: [OmenSwitcherPlatformFilter] {
+        [OmenSwitcherPlatformFilter(id: LeagueCarouselViewModel.allPlatforms, label: "All", tone: .omen, count: viewModel.allPages.count)]
+            + viewModel.availablePlatforms.map { platform in
+                OmenSwitcherPlatformFilter(
+                    id: platform,
+                    label: platformDisplayName(platform),
+                    tone: platform == "espn" ? .espn : (platform == "yahoo" ? .yahoo : .sleeper),
+                    count: viewModel.allPages.filter { $0.platform == platform }.count
+                )
+            }
     }
 }

@@ -81,7 +81,10 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Chip order comes from the server's `platforms` order and is not re-sorted here.
     @Published private(set) var availablePlatforms: [String] = []
     @Published var selectedPlatform: String = LeagueCarouselViewModel.allPlatforms {
-        didSet { clampSelection() }
+        didSet {
+            clampSelection()
+            persistProviderFilter()
+        }
     }
     @Published var selectedIndex: Int = 0
     @Published private(set) var pageStates: [String: PageState] = [:]
@@ -89,9 +92,21 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// context is changing rather than appear to have changed already.
     @Published private(set) var committingPageID: String?
 
+    /// Starred teams, in star order. Contract §3.
+    @Published private(set) var favorites = LeagueFavorites()
+
     private let directoryRepository: LeagueDirectoryRepository
     private let leagueRepository: LeagueRepository
     private let sessionManager: SessionManager
+    private let preferences: LeagueSwitcherPreferencesStore
+    /// Whose favourites and filter are loaded. Held so a sign-out/sign-in on a shared device
+    /// cannot leave the previous user's stars on screen.
+    private var currentUserID: String?
+    /// Suppresses the `selectedPlatform` didSet write while the view model is *restoring* the
+    /// stored filter. Persisting during a restore is harmless today, but it would silently
+    /// convert "never chose a filter" into "chose All", and that flag is what the contract's
+    /// first-open-defaults-to-All rule reads.
+    private var isRestoringFilter = false
     /// Guards against a swipe-through: swiping across five pages must not fire five writes.
     private var commitTask: Task<Void, Never>?
 
@@ -128,11 +143,13 @@ final class LeagueCarouselViewModel: ObservableObject {
     init(
         directoryRepository: LeagueDirectoryRepository,
         leagueRepository: LeagueRepository,
-        sessionManager: SessionManager
+        sessionManager: SessionManager,
+        preferences: LeagueSwitcherPreferencesStore = UserDefaultsLeagueSwitcherPreferences()
     ) {
         self.directoryRepository = directoryRepository
         self.leagueRepository = leagueRepository
         self.sessionManager = sessionManager
+        self.preferences = preferences
     }
 
     // MARK: - Derived
@@ -142,7 +159,11 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// `is_followed` is the filter. The server reports every league it discovered and marks
     /// the ones the user chose; when no choice has been stored it marks them all, which is
     /// the honest reading of "the user has not been able to choose yet".
-    var allPages: [Page] {
+    var allPages: [Page] { Self.ordered(directoryPages, by: favorites) }
+
+    /// The server's own order, before favourites are applied. Kept separate so the sort has an
+    /// input that does not change under it, and so a test can prove the sort rather than the fetch.
+    private var directoryPages: [Page] {
         (directory?.platforms ?? []).flatMap { group in
             group.leagues
                 .filter { $0.isFollowed }
@@ -156,6 +177,29 @@ final class LeagueCarouselViewModel: ObservableObject {
                     )
                 }
         }
+    }
+
+    /// **The one ordering rule, contract §3:** favourites first in the order they were starred,
+    /// then everything else in the server's order.
+    ///
+    /// It is applied to `allPages`, which every surface derives from, so the carousel and the
+    /// switcher sheet cannot disagree — the sheet is the carousel opened up. Filtering to one
+    /// provider narrows the *input* to this same function rather than selecting a different
+    /// rule, which is why "ESPN's favourites at the top of the ESPN list" needs no code of its own.
+    ///
+    /// A partition, not `sorted(by:)`. Swift's sort is not guaranteed stable, and the non-favourite
+    /// tail must keep the server's provider order exactly — a sort that reshuffled ties would
+    /// quietly undo the "most leagues first, then alphabetical" rule the server owns.
+    /// `nonisolated` because it is pure: inputs in, order out, no view-model state touched.
+    /// That is what lets a test assert the rule directly instead of standing up a main-actor
+    /// view model and a fake network to observe it second-hand.
+    nonisolated static func ordered(_ pages: [Page], by favorites: LeagueFavorites) -> [Page] {
+        let starred = pages
+            .compactMap { page in favorites.rank(of: page.id).map { (rank: $0, page: page) } }
+            .sorted { $0.rank < $1.rank }
+            .map(\.page)
+        let rest = pages.filter { !favorites.contains($0.id) }
+        return starred + rest
     }
 
     /// The pages actually on screen, after the provider chip.
@@ -202,12 +246,23 @@ final class LeagueCarouselViewModel: ObservableObject {
             availablePlatforms = loaded.platforms
                 .filter { group in group.leagues.contains(where: { $0.isFollowed }) }
                 .map(\.platform)
+            // Favourites before anything reads `allPages`: they are the primary sort key, so
+            // loading them later would order the list once, then reorder it under the user.
+            loadFavorites(userID: userID)
+            restoreProviderFilter()
             // Open on the league Omen is actually using, not on page one. Landing on a
             // different league than the rest of the screen describes would make the
             // carousel disagree with the Ledger and the Omen call beneath it.
             // Opening on the active league is the view model's decision, not a user swipe,
             // so it must not write that same league straight back to the server.
-            selectIndexProgrammatically(allPages.firstIndex(where: { $0.isActive }) ?? 0)
+            //
+            // Indexed into `pages`, not `allPages`: `selectedIndex` addresses the *filtered*
+            // list. The two were the same list while the filter always started on All, so
+            // searching `allPages` was harmless; restoring a stored provider filter makes them
+            // differ, and the old lookup would have landed the pager on an unrelated league.
+            // Falls back to 0 when the active league is filtered out — the user is looking at
+            // one provider, and yanking them to another to chase the active flag would fight them.
+            selectIndexProgrammatically(pages.firstIndex(where: { $0.isActive }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
         case .failure(let error):
@@ -334,11 +389,91 @@ final class LeagueCarouselViewModel: ObservableObject {
         availablePlatforms = loaded.platforms
             .filter { group in group.leagues.contains(where: { $0.isFollowed }) }
             .map(\.platform)
+        // A switch can change what the directory reports, so stars are re-pruned here for the
+        // same reason they are pruned on load.
+        var pruned = favorites
+        pruned.pruned(toKnown: Set(directoryPages.map(\.id)))
+        if pruned != favorites {
+            favorites = pruned
+            persistFavorites()
+        }
         // Stay on the page the user is looking at, by identity. Keeping the index would
         // move them if the refreshed directory changed the list at all.
         if let restingID, let index = pages.firstIndex(where: { $0.id == restingID }) {
             selectIndexProgrammatically(index)
         }
+    }
+
+    // MARK: - Favourites and the remembered filter
+
+    /// Stars or unstars one team, and re-sorts in place.
+    ///
+    /// Deliberately does **not** switch to that team, dismiss anything, or touch the server:
+    /// the star and the row are two targets with two jobs (contract §3), and a star that also
+    /// navigated would make the list impossible to curate.
+    ///
+    /// `selectedIndex` is re-pointed at the page the user is resting on, by identity. Starring
+    /// reorders the list under the pager, so keeping the raw index would slide the carousel onto
+    /// a different league as a side effect of marking a favourite.
+    func toggleFavorite(_ page: Page) {
+        let restingID = currentPage?.id
+        favorites.toggle(page.id)
+        persistFavorites()
+        if let restingID, let index = pages.firstIndex(where: { $0.id == restingID }) {
+            selectIndexProgrammatically(index)
+        }
+    }
+
+    func isFavorite(_ page: Page) -> Bool { favorites.contains(page.id) }
+
+    /// Reads this user's stars and drops any for leagues the directory no longer reports.
+    ///
+    /// The prune is written back immediately rather than only held in memory, so a league the
+    /// user disconnected does not keep its star sitting in defaults waiting to reappear if they
+    /// ever reconnect it.
+    private func loadFavorites(userID: String?) {
+        guard let userID else {
+            // No identity, no stored preference to attribute. Signed-out and demo both land
+            // here, and neither may inherit the last signed-in user's stars.
+            currentUserID = nil
+            favorites = LeagueFavorites()
+            return
+        }
+        currentUserID = userID
+        var loaded = preferences.favorites(userID: userID)
+        loaded.pruned(toKnown: Set(directoryPages.map(\.id)))
+        favorites = loaded
+        preferences.setFavorites(loaded, userID: userID)
+    }
+
+    private func persistFavorites() {
+        guard let currentUserID else { return }
+        preferences.setFavorites(favorites, userID: currentUserID)
+    }
+
+    private func persistProviderFilter() {
+        guard !isRestoringFilter, let currentUserID else { return }
+        preferences.setProviderFilter(selectedPlatform, userID: currentUserID)
+    }
+
+    /// Contract §4: the very first open ever lands on **All**, deliberately, to show that Omen
+    /// handles every provider the user connected. Every open after that restores what they last
+    /// left it on.
+    ///
+    /// A stored provider that is no longer connected falls back to All rather than to an empty
+    /// list — the alternative is opening the switcher onto nothing and making the user work out why.
+    private func restoreProviderFilter() {
+        guard let currentUserID else { return }
+        let stored = preferences.providerFilter(userID: currentUserID)
+        let restored: String
+        if let stored, stored == Self.allPlatforms || availablePlatforms.contains(stored) {
+            restored = stored
+        } else {
+            restored = Self.allPlatforms
+        }
+        isRestoringFilter = true
+        selectedPlatform = restored
+        isRestoringFilter = false
     }
 
     /// Keeps `selectedIndex` inside the filtered list after a chip change. Filtering to a

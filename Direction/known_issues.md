@@ -56,6 +56,60 @@ accompanying claim that "the checker is correct" was not. The bug it was pointin
 this entry fixes. A test that starts failing on a date is not automatically an expired test;
 it can be the first thing to notice that a date-derived value went wrong.
 
+## 🔴 OPEN, PRODUCTION ROLLED BACK 2026-09-05 — `POST /api/omen/mvp-move` hangs forever and takes the whole API down
+
+**Symptom the founder saw:** "Omen couldn't reach the server", repeatedly, all day. It is not a
+network problem and not an Omen-tab problem — the entire site goes down, including the marketing
+page, because the API stops answering anything.
+
+**Mechanism.** `POST /api/omen/mvp-move` enters an **infinite synchronous loop** and never returns.
+Node's MainThread pins one core at 100% and the event loop is blocked completely, so every other
+route hangs too. TCP still accepts (nginx is alive), which is why it presents as a 20s timeout
+rather than a refused connection. The watchdog restarts the container minutes later; the next
+person to open the Omen tab kills it again.
+
+**Evidence, measured not inferred.** In three hours of production logs, **exactly three requests
+never completed, and all three were `POST /api/omen/mvp-move`.** No other endpoint ever hangs.
+At capture: `omen_api` 100% CPU, health `unhealthy`, load average 1.00 on a one-core box,
+**650 watchdog events in six hours**.
+
+**Where the loop is.** In both observed freezes the last thing logged is an ESPN response
+resolving, after which the process goes silent forever. `/api/leagues` itself completes normally
+(200, ~1.1s). So the loop is in the **synchronous recommendation build that runs after the awaited
+provider data returns**, not in any network call.
+
+**Prime suspect, not yet proven: PR #401.** It landed this morning, the same day the flapping
+started, and it changed the season anchor so that today evaluates as `raw_week=0,
+is_off_season=true` — which was not true yesterday. The schedule functions themselves were probed
+directly and are fast and correct, so they are not the loop; the suspicion is a *consumer* of that
+newly-zero week inside the recommendation build. **Unproven. Do not close this on the theory alone.**
+
+**Not implicated, checked:** the league switcher and its `/api/leagues` calls (client-side change,
+endpoint returns 200 every time), and PR #403.
+
+### What was done to production
+
+Evidence captured to `References/evidence/2026-09-05-mvp-move-hang/` (host snapshot + 6h of API
+logs), then rolled back to yesterday's image, which predates #401 (verified: `seasonOpensAt` absent
+from that image, present in the broken one).
+
+| Tag | Image | What it is |
+|---|---|---|
+| `omen:main` | `6803ccebced9` | **now serving** — 2026-09-04 21:00 build |
+| `omen:rollback-20260904` | `6803ccebced9` | same image, stable name |
+| `omen:broken-20260905-mvpmove` | `f30c63534bd3` | the wedging build, preserved for diagnosis |
+
+Verified after rollback: `/`, `/api/health`, `/api/ready` all 200 in ~150ms; CPU 0.01%.
+
+> ### ⚠️ THE ROLLBACK IS NOT STICKY
+> `:main` was **retagged locally on the box**. The next deploy that runs `docker compose pull` will
+> fetch the broken image from GHCR and reintroduce the outage. **Do not merge to `main` and deploy
+> until the loop is found**, or the rollback is undone silently. The watchdog only restarts and does
+> not pull, so it will not undo this on its own.
+
+**Still unverified:** whether mvp-move actually succeeds on the rolled-back build. It needs an
+authenticated request; the founder opening the Omen tab is the test.
+
 ## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05
 
 **Cloudflare is live as the DNS provider. The proxy (orange cloud) is OFF for the web records,

@@ -138,8 +138,10 @@ Plain English. No jargon without explanation. Be precise — vague language erod
 | ██ | Verdigris Green | `#2F7D5B` | Omen glow, intelligence, active signal |
 | ██ | Deep Crimson | `#7E1717` | Risk indicators, warnings, danger |
 | ██ | Weathered Umber | `#5A3A25` | Shadow accent, brown-metal depth |
+| ██ | Platinum | `#C7CBD1` | Favourite/starred markers, cool metal accent |
 
 **Removed:** Electric Violet `#5B2D8E` — retired with rebrand. Verdigris Green replaces it as the intelligence/signal color.
+**Added 2026-09-05:** Platinum `#C7CBD1` — founder-approved for the favourite star in the league switcher. It is the *cool* metal against Aged Brass's warm metal, so a starred team reads as marked rather than as a second call-to-action. 7.6:1 on Raven Black. Use it for favourite/selection marks only; it is not a text or border color.
 **Updated:** Aged Brass `#A67C2E` replaces Antique Gold `#B8952A` for a more weathered, premium feel.
 
 **Typography:**

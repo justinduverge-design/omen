@@ -25,6 +25,21 @@ enum OmenColor {
     static let omen = dynamic(dark: 0x2F7D5B, light: 0x1A5C3E)
     static let umber = dynamic(dark: 0x5A3A25, light: 0x5A3A25)
 
+    /// Favourite / starred marks. Founder-approved 2026-09-05 and recorded in
+    /// `Brand/brand-system.md` as Platinum `#C7CBD1`.
+    ///
+    /// The *cool* metal, deliberately, against `accent`'s warm brass. A starred team has to
+    /// read as **marked**, not as a second call to action sitting beside Switch — brass on
+    /// brass would have made the star look tappable-for-navigation, which is the one thing it
+    /// is not. 7.6:1 on `bg` in dark.
+    ///
+    /// The light value is not the same hex: `#C7CBD1` is a pale silver that all but vanishes
+    /// on a white surface (1.5:1), which is exactly the class of bug
+    /// `PrimitiveEnforcementTests` was written after — a dark-only literal that shipped and
+    /// went invisible in light mode. `#78808A` is the same cool-metal hue carried to 4.9:1 on
+    /// `surface1`.
+    static let platinum = dynamic(dark: 0xC7CBD1, light: 0x78808A)
+
     /// Derived from `accent`; solid stroke color for the focus-ring outline (registry §2.2, §4).
     static let focusRing = accent
     /// Soft halo layered behind `focusRing` — the "accent @ 40%" reading of the registry row.

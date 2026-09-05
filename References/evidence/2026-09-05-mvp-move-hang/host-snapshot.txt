@@ -1,0 +1,31 @@
+===== CAPTURED 2026-09-05T17:56:49Z =====
+===== docker ps =====
+omen_cron	Up About an hour	ghcr.io/justinduverge-design/omen-cron:main
+omen_api	Up 10 minutes (unhealthy)	ghcr.io/justinduverge-design/omen:main
+beszel-agent	Up 5 hours (healthy)	henrygd/beszel-agent:0.18.7
+beszel-docker-proxy	Up 5 hours	lscr.io/linuxserver/socket-proxy:latest
+===== stats =====
+omen_cron	0.00%	496KiB / 1GiB
+omen_api	99.62%	304.8MiB / 2GiB
+beszel-agent	0.00%	12.58MiB / 7.755GiB
+beszel-docker-proxy	0.00%	27.29MiB / 7.755GiB
+===== threads =====
+Mem: 1767896K used, 6363580K free, 27268K shrd, 93104K buff, 846528K cached
+CPU:  50% usr   4% sys   0% nic  45% idle   0% io   0% irq   0% sirq
+Load average: 1.00 0.91 0.56 3/289 129
+  PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    1     0 ssffmvp  R    9575m 117%   1  41% {MainThread} node src/server.js
+   12     0 ssffmvp  S    9575m 117%   0   0% {V8Worker} node src/server.js
+    9     0 ssffmvp  S    9575m 117%   0   0% {V8Worker} node src/server.js
+   10     0 ssffmvp  S    9575m 117%   0   0% {V8Worker} node src/server.js
+   11     0 ssffmvp  S    9575m 117%   0   0% {V8Worker} node src/server.js
+   18     0 ssffmvp  S    9575m 117%   1   0% {libuv-worker} node src/server.js
+   15     0 ssffmvp  S    9575m 117%   1   0% {libuv-worker} node src/server.js
+   17     0 ssffmvp  S    9575m 117%   1   0% {libuv-worker} node src/server.js
+===== uptime =====
+ 17:56:52 up  5:26,  1 user,  load average: 1.00, 0.91, 0.56
+===== container inspect =====
+image=ghcr.io/justinduverge-design/omen:main created=2026-09-05T16:56:24.864329592Z started=2026-09-05T17:46:27.278191851Z health=unhealthy
+===== available omen images (rollback candidates) =====
+ghcr.io/justinduverge-design/omen:main	f30c63534bd3	created=2026-09-05 15:02:16 +0000 UTC
+===== node report attempt =====
