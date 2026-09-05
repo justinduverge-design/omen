@@ -229,3 +229,122 @@ test("getLeagueMetadata returns {} and getCurrentWeek null on a malformed respon
   assert.deepEqual(await client.getLeagueMetadata("470.l.1"), {});
   assert.equal(await client.getCurrentWeek("470.l.1"), null);
 });
+
+// Yahoo rows in the switcher carried no team at all until 2026-09-05, so every Yahoo league
+// showed its league title where a team name belongs. `/leagues/teams` carries the team, but it
+// is a different endpoint and Yahoo returns materially different shapes from related endpoints
+// — the two fixtures above exist because exactly that assumption once emptied the league list
+// and broke every Yahoo bind. Hence: ask for more, fall back to what is verified.
+
+test("getUserLeaguesWithTeams reads the team the /teams sub-resource nests in each league", async () => {
+  const client = new YahooClient("token");
+  client.get = async (path) => {
+    assert.equal(path, "/users;use_login=1/games;game_keys=nfl/leagues/teams");
+    return {
+      fantasy_content: {
+        users: {
+          0: {
+            user: [
+              { guid: "user-guid" },
+              {
+                games: {
+                  0: {
+                    game: [
+                      { game_key: "470" },
+                      {
+                        leagues: {
+                          0: {
+                            league: [
+                              ...leagueAttrsFlat({ leagueKey: "470.l.1255365", name: "Yahoo H2H-Pts", season: 2026 }),
+                              { teams: { 0: { team: [[{ team_key: "470.l.1255365.t.4" }, { team_id: "4" }, { name: "Gravediggers" }]] }, count: 1 } },
+                            ],
+                          },
+                          count: 1,
+                        },
+                      },
+                    ],
+                  },
+                  count: 1,
+                },
+              },
+            ],
+          },
+          count: 1,
+        },
+      },
+    };
+  };
+
+  const leagues = await client.getUserLeaguesWithTeams();
+  assert.equal(leagues.length, 1);
+  assert.equal(leagues[0].league_id, "470.l.1255365");
+  assert.equal(leagues[0].team_name, "Gravediggers");
+  assert.equal(leagues[0].team_id, "4");
+});
+
+test("getUserLeaguesWithTeams falls back to the verified endpoint rather than losing the leagues", async () => {
+  const client = new YahooClient("token");
+  const asked = [];
+  client.get = async (path) => {
+    asked.push(path);
+    // The richer endpoint answers with a shape this parser cannot read.
+    if (path.endsWith("/teams")) return { fantasy_content: { users: {} } };
+    return {
+      fantasy_content: {
+        users: {
+          0: {
+            user: [
+              { guid: "user-guid" },
+              {
+                games: {
+                  0: {
+                    game: [
+                      { game_key: "470" },
+                      { leagues: { 0: { league: leagueAttrsFlat({ leagueKey: "470.l.1", name: "Fallback League", season: 2026 }) }, count: 1 } },
+                    ],
+                  },
+                  count: 1,
+                },
+              },
+            ],
+          },
+          count: 1,
+        },
+      },
+    };
+  };
+
+  const leagues = await client.getUserLeaguesWithTeams();
+
+  assert.deepEqual(asked, [
+    "/users;use_login=1/games;game_keys=nfl/leagues/teams",
+    "/users;use_login=1/games;game_keys=nfl/leagues",
+  ]);
+  // The league survives; only the team name is lost, which is the correct trade.
+  assert.equal(leagues.length, 1);
+  assert.equal(leagues[0].name, "Fallback League");
+  assert.equal(leagues[0].team_name, undefined);
+});
+
+test("a throwing /teams request still yields the user's leagues", async () => {
+  const client = new YahooClient("token");
+  client.get = async (path) => {
+    if (path.endsWith("/teams")) throw new Error("Yahoo 999");
+    return {
+      fantasy_content: {
+        users: {
+          0: {
+            user: [
+              { guid: "g" },
+              { games: { 0: { game: [{ game_key: "470" }, { leagues: { 0: { league: leagueAttrsFlat({ leagueKey: "470.l.2", name: "Still Here", season: 2026 }) }, count: 1 } }] }, count: 1 } },
+            ],
+          },
+          count: 1,
+        },
+      },
+    };
+  };
+
+  const leagues = await client.getUserLeaguesWithTeams();
+  assert.equal(leagues[0].name, "Still Here");
+});

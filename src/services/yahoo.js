@@ -157,7 +157,14 @@ class YahooClient {
    * ends up persisting the wrong one.
    */
   async getUserLeagues() {
-    const d = await this.get("/users;use_login=1/games;game_keys=nfl/leagues");
+    return this.#parseUserLeagues(await this.get("/users;use_login=1/games;game_keys=nfl/leagues"));
+  }
+
+  /**
+   * Shared by both league endpoints. One parser, so the `/teams` variant cannot quietly drift
+   * from the plain one — a second copy is how the two Yahoo shapes diverged before.
+   */
+  #parseUserLeagues(d) {
     const user = d?.fantasy_content?.users?.[0]?.user;
     const games = user?.[1]?.games;
     if (!games) return [];
@@ -172,14 +179,58 @@ class YahooClient {
         if (!entry) continue;
         const leagueKey = entry("league_key");
         if (!leagueKey) continue;
+        // The `/teams` sub-resource puts the user's team inside each league. Read defensively:
+        // this method is also used against the plain `/leagues` path, where it is simply absent.
+        const team = leagueEntry.league?.[1]?.teams?.[0]?.team?.[0];
+        const teamEntry = team ? yahooAttrReader(team) : null;
+
         leagues.push({
           league_id: leagueKey,
           name: entry("name"),
           season: Number(entry("season")) || null,
+          ...(teamEntry ? {
+            team_id: teamEntry("team_id") || null,
+            team_name: teamEntry("name") || null,
+          } : {}),
         });
       }
     }
     return leagues;
+  }
+
+  /**
+   * The user's leagues **with the user's own team in each**, falling back to `getUserLeagues()`.
+   *
+   * Yahoo rows in the switcher carried no team at all until 2026-09-05: `yahooLeagues` built
+   * them without a team id or name, so every Yahoo league showed its league title where a team
+   * name belongs and a user with two Yahoo teams could not tell them apart.
+   *
+   * ## Why this is a separate method rather than a change to `getUserLeagues`
+   *
+   * The `/teams` sub-resource is a **different endpoint**, and Yahoo returns materially
+   * different JSON shapes from endpoints that look related — the fixtures in `yahoo.test.js`
+   * exist because `league[0]` is a flat object on one path and an array of single-key objects
+   * on another, and a parser that assumed one shape returned `[]` for the other, which made
+   * every Yahoo bind fail.
+   *
+   * That failure mode is unacceptable here: losing a team name is cosmetic, losing the league
+   * list means the user cannot select a Yahoo league at all. So this asks for the richer
+   * response, and **if it yields nothing it falls back to the endpoint we have verified against
+   * real traffic**. The worst case is exactly today's behaviour.
+   *
+   * The `/teams` shape has NOT been confirmed against live Yahoo traffic — hence the fallback
+   * rather than a rewrite. Once it is, this can collapse into `getUserLeagues`.
+   */
+  async getUserLeaguesWithTeams() {
+    try {
+      const leagues = await this.#parseUserLeagues(
+        await this.get("/users;use_login=1/games;game_keys=nfl/leagues/teams")
+      );
+      if (leagues.length) return leagues;
+    } catch {
+      // Fall through: an unusable richer response must never cost the user their league list.
+    }
+    return this.getUserLeagues();
   }
 
   /** Get the current league week (used when /roster?week= isn't passed). */
