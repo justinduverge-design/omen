@@ -102,7 +102,7 @@ struct SignInView: View {
 
             VStack(alignment: .center, spacing: OmenSpacing.step12) {
                 if viewModel.appleSignInAvailable {
-                    CanvasAuthPrimaryButton(
+                    OmenAuthPrimaryButton(
                         title: "Continue with Apple",
                         icon: Image("AuthApple"),
                         action: { viewModel.signInWithApple() },
@@ -113,7 +113,7 @@ struct SignInView: View {
 
                 HStack(spacing: OmenSpacing.step12) {
                     if viewModel.googleSignInAvailable {
-                        CanvasAuthIconTile(
+                        OmenAuthIconTile(
                             contentDescription: "Continue with Google",
                             icon: Image("AuthGoogle"),
                             action: { viewModel.signInWithOAuth(providerId: "google") },
@@ -122,7 +122,7 @@ struct SignInView: View {
                         )
                     }
                     if viewModel.discordSignInAvailable {
-                        CanvasAuthIconTile(
+                        OmenAuthIconTile(
                             contentDescription: "Continue with Discord",
                             icon: Image("AuthDiscord"),
                             action: { viewModel.signInWithOAuth(providerId: "discord") },
@@ -130,7 +130,7 @@ struct SignInView: View {
                             loading: isDiscordBusy
                         )
                     }
-                    CanvasAuthIconTile(
+                    OmenAuthIconTile(
                         contentDescription: "Continue with email",
                         icon: Image("AuthEmail"),
                         action: { emailEntryVisible = true },
@@ -153,7 +153,7 @@ struct SignInView: View {
                 }
 
                 if demoModeEnabled, !reauthPrompt, let onTryDemo {
-                    CanvasTextAction(
+                    OmenCanvasTextAction(
                         title: "Look around without an account →",
                         action: onTryDemo,
                         color: OmenColor.accent,
@@ -254,7 +254,7 @@ struct SignInView: View {
 
             Color.clear.frame(height: OmenSpacing.step24)
 
-            CanvasAuthPrimaryButton(
+            OmenAuthPrimaryButton(
                 title: "Continue",
                 action: { viewModel.submitOtp() },
                 enabled: OtpCodeValidator.isValid(viewModel.otpField) && !isOtpBusy,
@@ -267,7 +267,7 @@ struct SignInView: View {
 
             Spacer(minLength: 0)
 
-            CanvasTextAction(
+            OmenCanvasTextAction(
                 title: "Use a different email",
                 action: resetEmailStep,
                 color: OmenColor.textTertiary,
@@ -289,47 +289,14 @@ struct SignInView: View {
     }
 
     private var codeEntry: some View {
-        ZStack {
-            HStack(spacing: OmenSpacing.step8) {
-                ForEach(0..<6, id: \.self) { index in
-                    let digit = digit(at: index)
-                    Text(digit)
-                        .omenTextStyle(OmenTypography.h2)
-                        .foregroundStyle(OmenColor.textPrimary)
-                        .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(digit.isEmpty ? OmenColor.surface1 : OmenColor.accentMuted)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(digit.isEmpty ? OmenColor.border : OmenColor.accent, lineWidth: 1)
-                        )
-                }
-            }
-            .accessibilityHidden(true)
-
-            TextField(
-                "6-digit code",
-                text: Binding(
-                    get: { viewModel.otpField },
-                    set: { viewModel.otpField = String(OtpCodeValidator.normalize($0).prefix(6)) }
-                )
-            )
-            .keyboardType(.numberPad)
-            .textContentType(.oneTimeCode)
-            .foregroundStyle(.clear)
-            .tint(.clear)
-            .opacity(0.02)
-            .frame(height: 60)
-            .disabled(isOtpBusy)
-            .accessibilityLabel("6-digit code")
-        }
+        OmenOtpCodeField(code: $viewModel.otpField, enabled: !isOtpBusy)
     }
 
     /// What to do when the code does not turn up.
     @ViewBuilder
     private var codeDeliveryHelp: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            CanvasTextAction(
+            OmenCanvasTextAction(
                 title: viewModel.otpResendSecondsRemaining > 0
                     ? "Send it again in \(viewModel.otpResendSecondsRemaining)s"
                     : "Send it again",
@@ -438,104 +405,5 @@ struct SignInView: View {
     private var emailErrorMessage: String? {
         guard case .failed(let reason) = viewModel.flowState, reason == .invalidEmail else { return nil }
         return reason.userMessage
-    }
-}
-
-private struct CanvasAuthPrimaryButton: View {
-    let title: String
-    var icon: Image? = nil
-    let action: () -> Void
-    var enabled = true
-    var loading = false
-
-    private var isInteractable: Bool { enabled && !loading }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: OmenSpacing.step8) {
-                if loading {
-                    ProgressView()
-                        .tint(isInteractable ? OmenColor.textOnAccent : OmenColor.textTertiary)
-                }
-                if let icon, !loading {
-                    icon
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 19, height: 19)
-                        .accessibilityHidden(true)
-                }
-                Text(title)
-                    .omenTextStyle(OmenTypography.h3)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(isInteractable ? OmenColor.textOnAccent : OmenColor.textTertiary)
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .background(isInteractable ? OmenColor.textPrimary : OmenColor.surface3)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(!isInteractable)
-        .accessibilityLabel(loading ? "\(title), loading" : title)
-    }
-}
-
-private struct CanvasAuthIconTile: View {
-    let contentDescription: String
-    let icon: Image
-    let action: () -> Void
-    var enabled = true
-    var loading = false
-
-    private var isInteractable: Bool { enabled && !loading }
-
-    var body: some View {
-        Button(action: action) {
-            Group {
-                if loading {
-                    ProgressView().tint(isInteractable ? OmenColor.textPrimary : OmenColor.textTertiary)
-                } else {
-                    icon
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .accessibilityHidden(true)
-                }
-            }
-            .frame(width: 22, height: 22)
-            .opacity(isInteractable ? 1 : 0.45)
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .background(OmenColor.surface1)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(OmenColor.border, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(!isInteractable)
-        .accessibilityLabel(contentDescription)
-        .accessibilityValue(loading ? "Loading" : "")
-    }
-}
-
-private struct CanvasTextAction: View {
-    let title: String
-    let action: () -> Void
-    let color: Color
-    let weight: Font.Weight
-    let height: CGFloat
-    var enabled = true
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 15, weight: weight))
-                .foregroundStyle(enabled ? color : OmenColor.textTertiary)
-                .frame(maxWidth: .infinity, minHeight: height, alignment: .center)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
     }
 }

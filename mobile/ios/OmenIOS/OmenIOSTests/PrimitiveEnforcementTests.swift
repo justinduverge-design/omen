@@ -96,8 +96,23 @@ final class PrimitiveEnforcementTests: XCTestCase {
     // MARK: helpers
 
     /// Files exempted from this check. Each entry MUST document why and when it will be
-    /// retired. Adding to this list is a design-steward decision, not a build fix. Empty
-    /// today; iOS app-shell code was already Omen*-only when P4 landed.
+    /// retired. Adding to this list is a design-steward decision, not a build fix.
+    ///
+    /// **Still empty, and there is now a precedent for keeping it that way.** This test was red
+    /// from `5936142` until 2026-09-05 over six violations in `SignInView` and `ConnectView`.
+    /// The obvious move was to allowlist both files. That was rejected: exempting a 541-line
+    /// file for one line also blanket-exempts every violation added to it later, so the
+    /// allowlist would have hidden more than it recorded.
+    ///
+    /// All six were primitives sitting in the wrong folder, and all six moved to
+    /// `DesignSystem/` — including the invisible one-time-code capture field, which looked
+    /// like the unavoidable exception and became `OmenOtpCodeField` instead. Two of them had
+    /// already been copy-pasted between the two files and **drifted**, which is the concrete
+    /// cost `private` primitives impose and the reason the move was worth more than the
+    /// exemption.
+    ///
+    /// Before adding an entry here, check whether the offender is a primitive in a feature
+    /// folder. It usually is.
     private static let allowlistedRelativePaths: Set<String> = []
 
     /// Locates `OmenIOS/OmenIOS/App` from this test file. Uses `#file` so this works from

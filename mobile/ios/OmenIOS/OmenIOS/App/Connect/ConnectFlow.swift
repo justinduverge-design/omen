@@ -399,3 +399,18 @@ struct SleeperLeague: Equatable, Identifiable {
             .joined(separator: " · ")
     }
 }
+
+extension ConnectProvider {
+    /// The design-system platform this provider renders as.
+    ///
+    /// The mapping lives on the feature type, not inside `OmenProviderCard`, so the design
+    /// system never has to know that `ConnectProvider` exists. A primitive that imports a
+    /// feature enum stops being reusable the moment a second feature needs it.
+    var omenPlatform: OmenPlatform {
+        switch self {
+        case .espn: return .espn
+        case .yahoo: return .yahoo
+        case .sleeper: return .sleeper
+        }
+    }
+}

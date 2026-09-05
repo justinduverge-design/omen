@@ -122,8 +122,9 @@ struct ConnectView: View {
             // rather than discovered by tapping into a dead end.
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(ConnectProvider.allCases) { provider in
-                    ConnectProviderCard(
-                        provider: provider,
+                    OmenProviderCard(
+                        platform: provider.omenPlatform,
+                        title: provider.displayName,
                         subtitle: availabilityLabel(provider),
                         action: { viewModel.selectProvider(provider) }
                     )
@@ -154,7 +155,7 @@ struct ConnectView: View {
                 )
 
             Color.clear.frame(height: 14)
-            CanvasTextAction(title: "I'll do this later", action: onDismiss)
+            OmenCanvasTextAction(title: "I'll do this later", action: onDismiss)
             Color.clear.frame(height: 22)
         }
     }
@@ -762,95 +763,4 @@ private struct EspnHandoffStepRow: View {
     }
 }
 
-private struct ConnectProviderCard: View {
-    let provider: ConnectProvider
-    let subtitle: String
-    let action: () -> Void
 
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: OmenSpacing.step12) {
-                providerMark
-                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                    Text(provider.displayName)
-                        .omenTextStyle(OmenTypography.h3)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text(subtitle)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: OmenSpacing.step8)
-                Image("CanvasChevronRight")
-                    .resizable()
-                    .renderingMode(.original)
-                    .frame(width: 20, height: 20)
-                    .accessibilityHidden(true)
-            }
-            .padding(OmenSpacing.step16)
-            .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
-            .background(OmenColor.surface1)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(OmenColor.border, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(provider.displayName), \(subtitle)")
-        .accessibilityHint("Double tap to open")
-    }
-
-    private var providerMark: some View {
-        Text(markText)
-            .omenTextStyle(OmenTypography.h2)
-            .fontWeight(.bold)
-            .foregroundStyle(markForeground)
-            .frame(width: 44, height: 44)
-            .background(markBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .accessibilityHidden(true)
-    }
-
-    private var markText: String {
-        switch provider {
-        case .espn: return "E"
-        case .yahoo: return "Y!"
-        case .sleeper: return "S"
-        }
-    }
-
-    private var markBackground: Color {
-        switch provider {
-        case .espn: return OmenColor.Data.platformEspnChip
-        case .yahoo: return OmenColor.Data.platformYahooChip
-        case .sleeper: return OmenColor.Data.platformSleeperChip
-        }
-    }
-
-    private var markForeground: Color {
-        switch provider {
-        case .espn: return OmenColor.Data.onPlatformEspn
-        case .yahoo: return OmenColor.Data.onPlatformYahoo
-        case .sleeper: return OmenColor.Data.onPlatformSleeper
-        }
-    }
-}
-
-private struct CanvasTextAction: View {
-    let title: String
-    let action: () -> Void
-    var enabled = true
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(enabled ? OmenColor.textTertiary : OmenColor.textTertiary.opacity(0.45))
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-    }
-}
