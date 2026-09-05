@@ -118,11 +118,59 @@ the likely shapes are a runaway regex over a provider payload, an unterminated r
 a promise chain that starves the macrotask queue — the last of which would look exactly like
 this and survive the client disconnecting, as this did.
 
-**How to find it, next session.** Do not guess from reading. Reproduce by replaying the
-request cycle against a local instance, and capture a CPU profile *while wedged*
-(`node --inspect` + a sampling profile, or `kill -SIGUSR1`). A spin at 99% names its own
-function in one profile. Everything above is measurement; the specific line is not yet known
-and should not be claimed until a profile shows it.
+**How to find it, next session.** Do not guess from reading. Capture a CPU profile *while
+wedged*. A spin at 99% names its own function in one profile. Everything above is measurement;
+the specific line is not yet known and must not be claimed until a profile shows it.
+
+### Hunt attempt 1 — 2026-09-05 — FAILED to reproduce. What is now ruled out.
+
+Recorded so the next attempt does not re-walk this ground. **None of this found the bug.**
+
+**Reproduction attempted properly and did not trigger it.** A shadow container was run from the
+same image on KVM1 (port 3001, capped `0.5` CPU / `1g`, `--inspect`), fed a real access token
+minted through Supabase admin for a founder account with **eight leagues across all three
+providers** — a superset of the two-league state that triggered production. Two replays were
+driven against it: 72 requests at the production burst rate, then **225 requests at high
+concurrency**, both interleaving `POST /api/leagues/active` between providers with
+`/api/leagues`, `/api/dashboard/summary`, `/api/moves` and `/api/league/overview`, exactly the
+observed cycle. Peak CPU after: **0.37%**, then **0.04%**. Never wedged. Shadow and token were
+destroyed afterwards; production was never touched.
+
+**Static search, all negative:**
+
+- No `setInterval` anywhere in `src/` — so there is **no periodic background work**, and the
+  spin must be request-triggered. Every `setTimeout` found is a one-shot abort/timeout.
+- Only two `while` loops exist in `src/`, both provably terminating (`systemContracts.js:167`
+  pushes until a length is reached; `sleeperDraftAccess.js:18` deletes a Map's first key).
+- No `for(;;)`, no unbounded `for`. Every loop in the in-flight routes (`dashboard`, `moves`,
+  `league`, `leagues`, `activeSelection`, `leagueFollows`) is `for...of` over a finite array.
+- **No catastrophic-backtracking regex.** A search for nested quantifiers across `src/` returned
+  one candidate, `parseVersion`'s `/^(\d+(?:\.\d+)*)/`, which is linear — `\d+` and `\.` cannot
+  match the same character, so there is no ambiguity to backtrack through. The other two
+  regexes in the path are simple literals.
+- **The ESPN adapter and services contain no regex at all**, so the unusual SWID/cookie shape
+  (`{48917711-FC65-...}`) is not being parsed by one.
+
+**A correction to the original finding above.** The first write-up narrowed the spin to
+`GET /api/leagues` or `POST /api/leagues/active`, reasoning that morgan logs on response finish
+so the culprit must be whatever ran *after* the last logged request. That is wrong: the client
+fired these **concurrently**, so any of the in-flight requests could be the one that never
+returned. The candidate set is all five endpoints, not two.
+
+**What to do differently next time.** Reading and load-replay have both been spent; do not
+repeat them. Make the *next natural occurrence* diagnosable instead:
+
+1. Add `--perf-basic-prof` to the production node command so V8 emits a JIT symbol map, and
+   install `linux-perf` on KVM1.
+2. Extend `omen-watchdog.sh` to run `perf record -F 99 -g -p <pid> -- sleep 10` **before** its
+   `docker restart`, alongside the log capture it already does.
+3. The next wedge then produces a profile naming the function, instead of only a restart.
+
+Note the trade-offs before doing this: `--perf-basic-prof` carries some overhead and writes a
+growing `/tmp/perf-<pid>.map`, and enabling `--inspect` on production would be a remote-code-
+execution surface if ever reachable — `SIGUSR1` opens the inspector on demand and is the safer
+variant. **This is a deliberate production change and should not be made in the week before
+NFL Week 1 without the founder deciding the overhead is acceptable.**
 
 **Mitigated, not fixed.** Three things now limit the blast radius, and none of them address
 the cause:
