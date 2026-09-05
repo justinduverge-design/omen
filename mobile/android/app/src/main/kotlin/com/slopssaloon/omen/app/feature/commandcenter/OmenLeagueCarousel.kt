@@ -4,7 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -99,7 +99,7 @@ fun OmenLeagueCarousel(
             if (onAddLeague != null) {
                 OmenChip(
                     label = "+ Add League",
-                    tone = OmenChipTone.Neutral,
+                    tone = OmenChipTone.Omen,
                     onClick = onAddLeague,
                     modifier = Modifier.semantics { contentDescription = "Add a league" },
                 )
@@ -218,7 +218,10 @@ private fun LoadedCarousel(
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 260.dp),
+            // A pager does not size to its content, so this height is load-bearing: too small
+            // and the page clips (the team-name row was cut off on device), too large and the
+            // widget pager below leaves the fold. Pages scroll internally, so nothing is lost.
+            modifier = Modifier.fillMaxWidth().height(250.dp),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             pages.getOrNull(index)?.let { page ->
@@ -347,13 +350,15 @@ private fun OmenListRowHeader(
     }
 }
 
-/** Each provider chip carries its own platform colour; All is neutral so it cannot be mistaken
- * for a fourth provider. */
+/**
+ * Provider chips carry their platform colour, so a user can find their ESPN team in a row of
+ * six. Everything else is Omen's own control and takes the brand tone.
+ */
 private fun chipTone(chip: String): OmenChipTone = when (chip) {
     "espn" -> OmenChipTone.Espn
     "yahoo" -> OmenChipTone.Yahoo
     "sleeper" -> OmenChipTone.Sleeper
-    else -> OmenChipTone.Neutral
+    else -> OmenChipTone.Omen
 }
 
 private fun chipLabel(chip: String): String =

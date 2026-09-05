@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
@@ -121,7 +122,12 @@ fun OmenCommandCenterScreen(
                     vertical = OmenTheme.spacing.step24,
                 )
             ),
-        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.sectionStack),
+        // `sectionStack` is right for a page of stacked sections and far too much for one
+        // with two carousels that both need to be on screen. The carousel layout uses a
+        // tighter rhythm; the legacy stacked layout keeps the original.
+        verticalArrangement = Arrangement.spacedBy(
+            if (carousel == null) OmenTheme.spacing.sectionStack else OmenTheme.spacing.step24,
+        ),
     ) {
         HeaderBlock(state.greeting, onOpenAccount)
         // The vertical platform status strip is suppressed when the carousel is present.
@@ -238,8 +244,14 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
             )
             Text(
                 text = greeting,
-                style = OmenTheme.typography.h1.toTextStyle(),
+                // `h2` on one line, not `h1` across two. At h1 the headline took roughly a
+                // quarter of the screen and pushed the second carousel off the fold — the
+                // founder wants the matchup AND the widget pager visible together, and the
+                // headline is the only block on this screen that is purely narration.
+                style = OmenTheme.typography.h2.toTextStyle(),
                 color = OmenTheme.color.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         // M6-ContextualHelp. Sits beside the profile control so help is reachable from the

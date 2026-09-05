@@ -73,6 +73,12 @@ struct OmenMatchupHero: View {
                         .foregroundStyle(OmenColor.textSecondary)
                 }
             }
+        } else if whatToWatch == nil {
+            // No rail to place, so no measuring and no reserved height. This branch used to go
+            // through the GeometryReader below, which always expands and carried a
+            // `minHeight: 220` — so a spine-only card reserved roughly 100pt of empty space
+            // under itself, on the exact screen where vertical room is scarcest.
+            OmenCard(variant: .solid) { spine }
         } else {
             OmenCard(variant: .solid) {
                 GeometryReader { proxy in
@@ -274,6 +280,11 @@ struct OmenMatchupHero: View {
         switch state {
         case let .beforeGames(s, o, _, _):
             if showsColumns { return "Not started" }
+            // Both sides carry an em dash before kickoff when the provider gave no projection,
+            // and "Projected: —–—" is a label with nothing behind it. Seen on a real ESPN
+            // league. Say the true thing instead.
+            let hasNumbers = s.scoreText != "—" || o.scoreText != "—"
+            guard hasNumbers else { return "Not started" }
             return "Projected: \(s.scoreText)–\(o.scoreText)"
         case let .live(_, _, projectedFinish, _):
             if showsColumns { return "Live score" }

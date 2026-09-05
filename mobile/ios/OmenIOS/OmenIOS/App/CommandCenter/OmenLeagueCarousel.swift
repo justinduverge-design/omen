@@ -151,7 +151,7 @@ struct OmenLeagueCarousel: View {
     @ViewBuilder
     private var addLeagueRow: some View {
         if viewModel.hasLoadedLeagues, let onAddLeague {
-            OmenChip(label: "+ Add League", tone: .neutral, selected: false, action: onAddLeague)
+            OmenChip(label: "+ Add League", tone: .omen, selected: false, action: onAddLeague)
                 .accessibilityLabel("Add a league")
         }
     }
@@ -196,7 +196,11 @@ struct OmenLeagueCarousel: View {
         // `.never` because this widget draws its own "2 of 5" line. The system dots are
         // colour-only, which §10.2's cue rule rules out for a selection indicator.
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(minHeight: 260)
+        // A paged TabView does not size to its content, so this height is load-bearing: too
+        // small and the page clips (the team-name row was being cut off on device), too large
+        // and the widget pager below leaves the fold. The card scrolls internally, so this is
+        // now a floor for the common case rather than a hard cap on what fits.
+        .frame(height: 250)
         .onChange(of: viewModel.selectedIndex) { _, _ in
             Task {
                 await viewModel.loadCurrentPage()
@@ -210,6 +214,15 @@ struct OmenLeagueCarousel: View {
     }
 
     private func pageCard(_ page: LeagueCarouselViewModel.Page) -> some View {
+        ScrollView {
+            pageCardBody(page)
+        }
+        // Never clips: a taller matchup (columns plus a what-to-watch rail) scrolls inside its
+        // own page instead of losing its header off the top, which is what it did on device.
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private func pageCardBody(_ page: LeagueCarouselViewModel.Page) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
             HStack(spacing: OmenSpacing.step8) {
                 OmenPlatformBadge(platform: omenPlatform(page.platform))
@@ -261,14 +274,14 @@ struct OmenLeagueCarousel: View {
         chip == LeagueCarouselViewModel.allPlatforms ? "All" : platformDisplayName(chip)
     }
 
-    /// Each provider chip carries its own platform colour; All is neutral so it cannot be
-    /// mistaken for a fourth provider.
+    /// Provider chips carry their platform colour, so a user can find their ESPN team in a row
+    /// of six. Everything else is Omen's own control and takes the brand tone.
     private func chipTone(_ chip: String) -> OmenChipTone {
         switch chip {
         case "espn": return .espn
         case "yahoo": return .yahoo
         case "sleeper": return .sleeper
-        default: return .neutral
+        default: return .omen
         }
     }
 

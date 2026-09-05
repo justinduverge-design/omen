@@ -3,7 +3,7 @@ package com.slopssaloon.omen.app.feature.commandcenter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -86,7 +86,7 @@ fun OmenWidgetPager(
             pages.forEachIndexed { index, page ->
                 OmenChip(
                     label = page.tabLabel,
-                    tone = OmenChipTone.Neutral,
+                    tone = OmenChipTone.Omen,
                     selected = selection == page,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     modifier = Modifier.semantics {
@@ -99,9 +99,10 @@ fun OmenWidgetPager(
 
         HorizontalPager(
             state = pagerState,
-            // Tall enough for the tallest of the three (an urgent waiver briefing with two
-            // long-horizon rows). A shorter frame would clip that one page and only that one.
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 340.dp),
+            // Sized so this pager and the matchup carousel above it share one screen — the
+            // founder wants both on the fold, and 340 put this one under it. Every page scrolls
+            // internally, so a tall waiver briefing is reachable rather than clipped.
+            modifier = Modifier.fillMaxWidth().height(260.dp),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             val page = pages[index]

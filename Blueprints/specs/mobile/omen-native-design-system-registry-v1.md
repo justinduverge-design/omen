@@ -125,7 +125,7 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **Card / Surface** | solid, outlined, empty, error, preview; tones neutral/omen/risk | n/a (container) | `surface-1`, `border`, `border-subtle`, `risk-high` | container view + material | `Card`/`Surface`/`OutlinedCard` |
 | **Alert** | info, success, warning, error | n/a | tone tokens | inline banner view | Material banner/`Card` |
 | **Badge** | success, neutral, risk, data-* tones | n/a | `data-*`, `risk-*` (15% opacity fills for AA) | `Text` capsule | `Badge`/`AssistChip` (display) |
-| **Chip** | position, brand, mode, **neutral**; interactive/display | default, selected, disabled | `chip` type, position/platform tokens, `text-secondary` (neutral) | capsule `Label` | `FilterChip`/`AssistChip` |
+| **Chip** | position, platform, mode, **omen**; interactive/display | default, selected, disabled | `chip` type, position/platform tokens, `accent` (omen) | capsule `Label` | `FilterChip`/`AssistChip` |
 | **SegmentedControl** | sizes sm/md/lg | default, selected, disabled | `accent`, `text-on-accent`, `surface-1`, `border` | `Picker(.segmented)` | `SegmentedButton` (M3) |
 | **TabNav** | underline | default, active | `accent`, `text-primary` | `TabView`/custom underline | `TabRow` |
 | **RadioCardGroup** | title+description cards | default, selected, disabled | `surface-1`, `accent`, `border` | selectable cards | `Card` + `selectable` |
@@ -137,15 +137,18 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **Stepper** | numeric | value, min, max, disabled | `surface-1`, `accent` | `Stepper` | custom stepper |
 | **State surfaces** | Empty, Loading, Error, Disconnected, Stale, Mock | the state itself | `border` (dashed empty), `risk-high` (error), `data-mock`/`data-stub` (mock/stale) | composed views + `ProgressView` | composed + `CircularProgressIndicator` |
 
-**Chip tones, and why `neutral` exists (added 2026-09-04).** The tone set was position
+**Chip tones, and why `omen` exists (added 2026-09-04).** The tone set was position
 (`rb`/`wr`/`qb`/`te`/`def`/`k`), platform (`sleeper`/`yahoo`/`espn`) and `demo` — every one of
-them *means* something about the thing it labels. The Command Center league row needed two
-chips that mean nothing about a position or a provider: **All**, which sits beside the three
-platform filters, and **+ Add League**, which is an action. Borrowing a platform tone for those
-reads as a fourth provider — an "All" chip tinted Sleeper-green is actively misleading — so
-`neutral` draws from `text-secondary` and claims nothing. It is additive; no existing tone or
-call site changed. **Still pending design sign-off**, recorded here rather than left implicit
-in two component files.
+them *means* something about the thing it labels. Omen's own controls had no tone: **All**,
+**+ Add League**, and the **Waiver / Ledger / Pulse** tabs are not a position and not a
+provider. Borrowing a platform tone for those reads as a fourth provider, so they needed one of
+their own.
+
+It shipped for one build as `neutral`, drawn from `text-secondary`, and that was **wrong on a
+device**: five grey chips beside a red ESPN and a blue Sleeper made Omen's own controls look
+like the disabled ones. Grey is not a neutral choice on this screen, it is an absent one. The
+tone now draws from `accent`, putting Omen's brass on Omen's controls, and provider chips keep
+their platform colours — that is how a user finds their ESPN team in a row of six.
 
 **Chips are filters OR actions, never both in one row.** `+ Add League` shipped for one build
 as a trailing chip inside the provider filter row and was pulled back out: the provider chips

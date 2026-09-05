@@ -64,7 +64,7 @@ struct OmenWidgetPager: View {
             ForEach(Page.allCases) { page in
                 OmenChip(
                     label: page.tabLabel,
-                    tone: .neutral,
+                    tone: .omen,
                     selected: selection == page,
                     action: { selection = page }
                 )
@@ -84,9 +84,10 @@ struct OmenWidgetPager: View {
         // `.never`: the tab row above already says where you are, and the system dots are a
         // colour-only cue, which §10.2 rules out as a selection indicator.
         .tabViewStyle(.page(indexDisplayMode: .never))
-        // Tall enough for the tallest of the three (an urgent waiver briefing with two
-        // long-horizon rows). A shorter frame would clip that one page and only that one.
-        .frame(minHeight: 340)
+        // Sized so this pager and the matchup carousel above it share one screen — the
+        // founder wants both on the fold, and 340 put this one under it. Every page scrolls
+        // internally, so a tall waiver briefing is reachable rather than clipped.
+        .frame(height: 260)
     }
 
     private func page(_ id: Page, content: AnyView) -> some View {

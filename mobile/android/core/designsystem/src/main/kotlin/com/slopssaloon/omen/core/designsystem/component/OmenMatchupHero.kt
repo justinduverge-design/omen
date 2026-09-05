@@ -317,8 +317,16 @@ private fun ConnectingRule(state: OmenMatchupHeroState) {
     val columns = state.showsColumns()
     val contextText = when (state) {
         is OmenMatchupHeroState.BeforeGames ->
-            if (columns) "Not started"
-            else "Projected: ${state.selectedTeam.scoreText}–${state.opponent.scoreText}"
+            // Both sides carry an em dash before kickoff when the provider gave no projection,
+            // and "Projected: —–—" is a label with nothing behind it. Seen on a real ESPN
+            // league. Say the true thing instead.
+            if (columns ||
+                (state.selectedTeam.scoreText == "—" && state.opponent.scoreText == "—")
+            ) {
+                "Not started"
+            } else {
+                "Projected: ${state.selectedTeam.scoreText}–${state.opponent.scoreText}"
+            }
         is OmenMatchupHeroState.Live ->
             if (columns) "Live score"
             else state.projectedFinish?.let { "Projected finish: $it" } ?: "Live score"

@@ -85,7 +85,7 @@ struct OmenTeamPicker: View {
         case "espn": return .espn
         case "yahoo": return .yahoo
         case "sleeper": return .sleeper
-        default: return .neutral
+        default: return .omen
         }
     }
 
