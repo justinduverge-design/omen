@@ -2,6 +2,68 @@
 
 Last updated: 2026-09-05
 
+## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05
+
+**Cloudflare is live as the DNS provider. The proxy (orange cloud) is OFF for the web records,
+deliberately.** `slopssaloon.com` and `www` are `dns-only` and resolve straight to `2.25.182.1`.
+
+Nameservers moved to Cloudflare (`jasmine`/`mario.ns.cloudflare.com`) and Universal SSL issued
+without incident. With the web records **proxied**, production developed an intermittent
+**HTTP 522** (Cloudflare cannot reach the origin) at roughly **4% of requests** — measured
+across ~90 requests in several samples, on both the apex and `www`, and still ~3% twenty
+minutes after the change, so not settling propagation.
+
+**The origin was eliminated as the cause, with evidence:**
+
+| Test | Result |
+|---|---|
+| 20 HTTPS requests **direct to origin**, bypassing Cloudflare | **20/20 200** |
+| 10 raw TCP connects to `2.25.182.1:443` | 10/10 ok |
+| nginx error log during the failures | **nothing** — the requests never arrived |
+| `TcpExtListenOverflows` / `ListenDrops` / `TCPBacklogDrop` | all **0** |
+| conntrack | 211 of 262144 |
+| fail2ban | one `sshd` jail, **0 banned** |
+| `ufw` | plain `ALLOW` on 80/443 — no `limit` rule |
+| origin certificate | valid, SANs cover **both** `slopssaloon.com` and `www` |
+
+So the loss is **upstream of the operating system**, where the box cannot see it: Hostinger's
+own network firewall (or its DDoS protection) reacting to connections from Cloudflare's many
+edge IPs, or the transit path between a Cloudflare PoP and Hostinger. Reverting to `dns-only`
+returned production to **40/40 clean**.
+
+**Why reverted rather than left to investigate:** a 4% error rate is strictly worse than the
+exposure the proxy was meant to fix, and the product has live beta testers with NFL Week 1 days
+away. The revert is one API call to undo.
+
+**To resume, in this order:** ask Hostinger support whether the network firewall or DDoS
+protection on `2.25.182.1` throttles or drops connections from Cloudflare's IP ranges — that is
+the one layer no test from inside the VPS can reach. Only then re-enable the proxy, and measure
+the 522 rate again over at least 100 requests before trusting it.
+
+**Zone settings already applied and correct for when the proxy returns** (they are inert while
+`dns-only`): `ssl=strict` (was `full`, which encrypted the Cloudflare→origin hop **without
+validating the certificate**), `always_use_https=on` (was off), `min_tls_version=1.2` (was
+**1.0**).
+
+**Not yet done — the origin lockdown.** Restricting Hostinger's firewall to Cloudflare IP ranges
+is what makes the proxy worth having; without it the origin IP is still reachable directly. It
+must not be attempted until the 522 issue is resolved, or the two failures become
+indistinguishable.
+
+### The mail records, and a correction
+
+Cloudflare's zone import turned **proxying on for mail records**, which breaks them — a proxied
+CNAME resolves to Cloudflare's anycast IPs instead of the mail host. `bounce` and `autoconfig`
+were measurably returning `172.67.170.83`. Inbound mail was never affected (`MX` →
+`smtp.google.com` was imported `dns-only`), but the bounce/return-path and mail autoconfig were
+broken until set back to `dns-only`. **An orange cloud is only ever correct for web traffic.**
+
+**Correction worth keeping:** the DKIM records were first reported as broken too. They were
+fine. The check queried `hostingermail-a.slopssaloon.com` when the actual record is
+`hostingermail-a._domainkey.slopssaloon.com` — the query was wrong, not the DNS. Same failure
+shape as the NXDOMAIN mistake above: **an empty result is only evidence when you are certain you
+asked the right question.**
+
 ## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2026-05-06 — noted 2026-09-05
 
 **Not urgent. Easy to forget. Expensive if forgotten.**
