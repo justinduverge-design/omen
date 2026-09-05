@@ -18,6 +18,64 @@ file plus the compose and nginx configs as the source of truth in the meantime).
 - The cron worker exposes no ports and should not receive inbound HTTP.
 - Runtime secrets live in `deploy/hostinger/.env.production` on the VPS. That file is ignored by `deploy/hostinger/.gitignore` (and also by the repo root `.gitignore`) and must not be committed.
 
+## ⚠️ `/opt/omen` on KVM1 is NOT a git checkout
+
+The deploy directory on KVM1 (`/opt/omen/deploy/hostinger/`) holds **hand-copied** files, not
+a clone — `git -C /opt/omen status` fails with "not a repository". The self-hosted runner
+rebuilds and restarts *containers*; it does not sync these files. So `docker-compose.prod.yml`,
+`nginx-omen.conf` and the watchdog units in this folder are **the source of truth in the repo
+only** — the box can silently diverge from them, and did (its compose file was unchanged from
+2026-06-23 until 2026-09-05 while this folder moved on).
+
+**Editing any of them means copying it up by hand and recreating**, always with a dated backup
+so the change is reversible and diffable:
+
+```bash
+scp deploy/hostinger/docker-compose.prod.yml justin@srv1737978.tailef1902.ts.net:/tmp/
+ssh justin@srv1737978.tailef1902.ts.net '
+  cd /opt/omen/deploy/hostinger
+  sudo cp docker-compose.prod.yml docker-compose.prod.yml.bak-$(date +%Y%m%d)
+  sudo cp /tmp/docker-compose.prod.yml docker-compose.prod.yml
+  sudo diff docker-compose.prod.yml.bak-$(date +%Y%m%d) docker-compose.prod.yml
+  sudo docker compose -f docker-compose.prod.yml config --quiet && \
+  sudo docker compose -f docker-compose.prod.yml up -d'
+```
+
+Read the `diff` before the `up -d`. It is the only thing standing between a one-line change and
+an unreviewed edit to production.
+
+## The container watchdog (`omen-watchdog.*`)
+
+`restart: unless-stopped` restarts a container that **exits**. It does nothing for one that is
+running but **wedged**, and Docker's healthcheck detects exactly that case and only records it.
+That gap kept Omen down all night on 2026-09-05 while every alerting layer fired correctly.
+
+`omen-watchdog.sh` + `.service` + `.timer` close it. Installed on KVM1 by hand (see the drift
+warning above) at:
+
+| Repo file | Installed path on KVM1 |
+|---|---|
+| `omen-watchdog.sh` | `/usr/local/lib/omen/omen-watchdog.sh` (mode 0755) |
+| `omen-watchdog.service` | `/etc/systemd/system/omen-watchdog.service` |
+| `omen-watchdog.timer` | `/etc/systemd/system/omen-watchdog.timer` |
+
+Enabled with `sudo systemctl enable --now omen-watchdog.timer`. State lives in
+`/var/lib/omen-watchdog/`, keyed per container.
+
+It captures evidence *before* restarting, and **stops after 3 heals in an hour**, escalating to
+Discord instead — a container that needs restarting repeatedly is a bug report, not a solved
+problem, and healing forever turns a loud outage into a silent flapping one. It is deliberately
+silent on the healthy path so it adds no journal noise.
+
+To test a change to it without touching production, point it at a throwaway container:
+
+```bash
+docker run -d --name watchdog-selftest --health-cmd "test -f /tmp/ok" \
+  --health-interval 5s --health-retries 2 alpine:3 sh -c "sleep 3600"
+sudo OMEN_WATCHDOG_CONTAINER=watchdog-selftest OMEN_WATCHDOG_GRACE=5 \
+  /usr/local/lib/omen/omen-watchdog.sh
+```
+
 ## GHCR Login
 
 The primary deploy workflow logs KVM1 into GHCR with the workflow-scoped

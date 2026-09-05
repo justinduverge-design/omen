@@ -13,9 +13,39 @@
 | Steward | Raspberry Pi Zero 2 W, 512 MB RAM (~415 MiB usable), 64 GB microSD | `100.118.42.54` | Lightweight recurring operational automation. Native binaries only, no Docker. |
 | Sentinel | Raspberry Pi Zero 2 W, 512 MB RAM (~415 MiB usable), 64 GB microSD | `100.109.57.11` | Passive network/security observation. Native binaries only, no Docker. |
 | KVM1 | Hostinger VPS, Ubuntu 24.04, ~3.8 GB RAM | `100.115.155.19` (hostname `srv1737978`) | Omen production: `omen_api`, `omen_cron`, Nginx, self-hosted GitHub Actions deploy runner. |
-| KVM2 | Hostinger VPS, Ubuntu 22.04, ~7.8 GB RAM | `100.67.187.57` (hostname `srv1647690`) | Private Ollama/Gemma AI bridge (`ollama` as a systemd service, bound to the Tailscale IP only, not `0.0.0.0`). Also runs a public Nginx serving `openclaw.slopssaloon.com` → `127.0.0.1:3200` — confirmed intentional, not stray; ownership/retirement is tracked separately in `Direction/decision_log.md` ("openclaw is retired" / `S6`). |
+| KVM2 | Hostinger VPS, Ubuntu 22.04, ~7.8 GB RAM | `100.67.187.57` (hostname `srv1647690`) | Private Ollama/Gemma AI bridge (`ollama` as a systemd service, bound to the Tailscale IP only, not `0.0.0.0`). Also the **encrypted Restic backup target** for Omen's database over chroot-confined SFTP (Layer 3 below) — KVM2 is not a spare machine. **openclaw was fully removed on 2026-09-05**; Nginx remains installed with **no enabled sites**. |
 
 All device-to-device management traffic runs over Tailscale exclusively. No cross-device service is bound to `0.0.0.0`; every dashboard/API is bound to its device's specific Tailscale IPv4 address.
+
+### openclaw retirement — completed 2026-09-05
+
+`S6` tracked openclaw as retired-in-principle; it was still running. Removed on founder
+instruction: `openclaw-gateway.service` stopped, disabled and its unit deleted; the
+`ai-subdomains` Nginx vhost unlinked and deleted; the `openclaw` npm package, `/opt/openclaw`,
+`/etc/openclaw`, `/home/openclaw`, the `/usr/bin/openclaw` symlink and the `openclaw` service
+user all removed; the Let's Encrypt certificate deleted via `certbot delete`. Config and state
+are archived at `/root/openclaw-removal-20260905/` on KVM2.
+
+**Two things this surfaced, worth keeping.** The certificate had been **expired since
+2026-08-06** — `openclaw.slopssaloon.com` served a browser-blocking TLS error for a month and
+nothing reported it, because Uptime Kuma monitors Omen's endpoints and not this one. A retired
+service still holding a public DNS name, a public port and an expiring certificate is
+unattended attack surface, not a harmless leftover.
+
+Verified after removal: `nginx -t` passes, `nginx` and `ollama` are active, `sshd -t` passes,
+and the Restic repository at `/srv/restic/omen` still holds a snapshot written the same
+morning — the backup path shares this host and was deliberately checked rather than assumed.
+
+**DNS needs nothing — verified, after first being claimed wrongly.** This entry originally said
+the `openclaw.slopssaloon.com` record still resolved and that deleting it at the registrar was
+the remaining step. That was asserted from a failed `curl` (exit 000) without querying DNS, and
+it was wrong: `dig openclaw.slopssaloon.com` returns **NXDOMAIN**, with no A record, no CNAME and
+no wildcard covering the name. Nothing is outstanding at the registrar.
+
+Worth keeping as a method note, since it is the same mistake pattern as `O8` and the Yahoo
+parsers: **a connection failure is not evidence of which layer failed.** `000` is equally
+consistent with "DNS did not resolve" and "the host refused the connection", and picking one
+without a second measurement is a guess wearing a result's clothing. One `dig` separates them.
 
 ## Constitution — guardrails that apply across every layer
 

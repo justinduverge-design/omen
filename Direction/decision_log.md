@@ -1,5 +1,53 @@
 # Omen Decision Log
 
+## 2026-09-05 — The outage that alerting caught and nobody could act on; and what a moat is actually for
+
+Omen was down overnight. Every detection layer worked perfectly — Kuma flagged all three
+monitors, GlitchTip opened issues #7/#8, Discord delivered every alert. **The site stayed down
+anyway**, because nothing on the box could act on any of it and the founder was asleep.
+
+**Decision: the first investment is autonomy, not observability.** The founder asked about
+Cloudflare and PostHog as a defensive moat. Neither would have prevented this outage or reported
+it sooner. Cloudflare is a shield against *outsiders*; last night's attacker was Omen's own iOS
+app. PostHog would have made the loop easier to *see* (one device emitting hundreds of
+`leagues/active` events) but would not have kept anyone awake. Both are still worth doing —
+Cloudflare especially, since KVM1's origin IP is public and takes raw internet traffic — but
+they rank **below** a watchdog that can restart a wedged container. Ordered: autoheal + resource
+limits → fix the client loop → profile the server spin → Cloudflare → staging → PostHog.
+
+**Decision: heal on the host, not in a container.** The standard answer (`willfarrell/autoheal`)
+mounts `docker.sock`, which is root-equivalent. KVM1 already runs a deliberately read-only
+Docker proxy for beszel (`POST=0`, `ALLOW_RESTARTS=0`); undoing that posture to gain a restart
+loop is a bad trade. systemd is already root and needs no new socket exposure.
+
+**Decision: cap CPU because KVM1 has exactly one core.** This is not tuning. An uncapped spin
+starves nginx *and* the watchdog meant to fix it, so the cap is what makes the host able to heal
+itself at all. `cpus: 0.85` / `mem_limit: 1g` on the API; `0.5` / `512m` on cron.
+
+**Decision: the watchdog stops after 3 heals in an hour.** Restarting forever hides a crash loop
+and converts a loud failure into a silent flapping one. After three it escalates to Discord and
+refuses to heal. It also captures evidence *before* restarting, because a restart destroys the
+only state that can explain the wedge.
+
+**Not decided, deliberately: `PrimitiveEnforcementTests` stays red.** Six raw `Button(`/
+`TextField(` uses in `SignInView`/`ConnectView` fail P4 enforcement, and have since
+`5936142`. The test's own allowlist says *"Adding to this list is a design-steward decision, not
+a build fix"* — so it was left failing rather than greened by an agent. The violations are
+genuine primitive-layer components in feature folders, plus one deliberately invisible OTP
+capture field that **cannot** become `OmenTextField`. Founder's call. See `known_issues.md`.
+
+**openclaw removed entirely** (founder instruction, same session). `S6` had tracked it as
+retired-in-principle while it was still running and holding a public DNS name, a public port,
+and a TLS certificate **that had been expired since 2026-08-06**. Nothing reported that, because
+Kuma watches Omen's endpoints and not this one. A retired service that still resolves is
+unattended attack surface, not a harmless leftover.
+
+**Correction to an earlier claim in this session:** KVM2 was described as "otherwise idle" and
+proposed as the staging host. It is not idle — it is the **encrypted Restic backup target** for
+Omen's database. It can still host staging, but that now carries a blast-radius question worth
+answering first. The backup repository was checked after the openclaw removal, not assumed:
+`/srv/restic/omen` holds a snapshot written the same morning.
+
 ## 2026-09-04 — The Command Center sketch: a game-week headline, PROJ/SCORE columns, a second pager
 
 Founder brought a hand-drawn Command Center layout. Built the same session.

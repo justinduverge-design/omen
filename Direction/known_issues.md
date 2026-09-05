@@ -1,6 +1,112 @@
 # Omen Known Issues
 
-Last updated: 2026-09-03
+Last updated: 2026-09-05
+
+## 🔴 OPEN — the API can be driven into an unrecoverable 100% CPU spin by ordinary traffic — found 2026-09-05
+
+**This is the serious half of the 2026-09-05 outage and it is NOT fixed.** The client loop
+below has been fixed; this has not. Do not treat the outage as closed.
+
+**Measured, not inferred.** `omen_api` was `Up 14 hours (unhealthy)` while serving nothing:
+
+```
+CPU 99.31%   MEM 391.2MiB / 3.823GiB (9.99%)   PIDS 12
+```
+
+Memory was **flat**, so this is not a leak or an exhausted pool — it is a synchronous spin
+that never yields the event loop. The process could not even write a log line: the last entry
+was `11:04:27`, and it was still pegged at `11:17`. Every Docker healthcheck in between
+returned `Health check exceeded timeout (10s)`. nginx returned its own `504` after exactly
+`proxy_read_timeout 60s`; a *crashed* container would have given an instant `502`, which is
+how "wedged" was distinguished from "dead" without guessing.
+
+**The trigger was 28 requests in nine seconds from a single phone.** Baseline was 5-6
+requests/minute. That is not load — a fault this cheap to provoke is reachable by any user
+with two leagues and a normal thumb.
+
+**Where it is.** morgan logs on response *finish*, so every logged request completed. The
+last completed request was `GET /api/league/overview`; the spin is in whatever ran next and
+never returned, which the repeating cycle puts at `GET /api/leagues` or
+`POST /api/leagues/active`. `src/routes/leagues.js` and `src/services/activeSelection.js` are
+the surface. No unbounded `while` exists in `src/` (the two present are provably bounded), so
+the likely shapes are a runaway regex over a provider payload, an unterminated recursion, or
+a promise chain that starves the macrotask queue — the last of which would look exactly like
+this and survive the client disconnecting, as this did.
+
+**How to find it, next session.** Do not guess from reading. Reproduce by replaying the
+request cycle against a local instance, and capture a CPU profile *while wedged*
+(`node --inspect` + a sampling profile, or `kill -SIGUSR1`). A spin at 99% names its own
+function in one profile. Everything above is measurement; the specific line is not yet known
+and should not be claimed until a profile shows it.
+
+**Mitigated, not fixed.** Three things now limit the blast radius, and none of them address
+the cause:
+
+1. `cpus: 0.85` / `mem_limit: 1g` / `pids_limit: 256` on `omen_api` (`cpus: 0.5` / `512m` on
+   `omen_cron`) in `deploy/hostinger/docker-compose.prod.yml`. **KVM1 has exactly one core**,
+   so an uncapped spin starves nginx and any watchdog along with it — the cap is what keeps
+   the host able to heal itself.
+2. `deploy/hostinger/omen-watchdog.{sh,service,timer}` on KVM1: restarts a container that is
+   unhealthy-but-running, captures evidence *before* restarting, and **stops after 3 heals in
+   an hour** so a crash loop escalates instead of hiding. Both paths were proven against a
+   throwaway container, not assumed.
+3. The client loop below no longer supplies the trigger.
+
+### Why it stayed down all night, which is the more important lesson
+
+Every detection layer worked. Kuma flagged all three monitors, GlitchTip opened issues #7
+(`write EPIPE`) and #8 (`Request aborted`), and Discord delivered every alert. The site stayed
+down anyway, because **nothing on the box could act on any of it.**
+
+`restart: unless-stopped` restarts a container that EXITS. It does nothing for one that is
+running and wedged. Docker's own healthcheck detects precisely that case and then only records
+it. The gap was never detection — it was that detection had no remediator. **A healthcheck
+nothing acts on is documentation, not availability.**
+
+## ✅ FIXED 2026-09-05 — the Command Center carousel could turn one swipe into an unbounded commit loop
+
+**The client half of the outage above.** `.onChange(of: selectedIndex)` in
+`OmenLeagueCarousel.swift` committed the rested-on page; `commit()` then called
+`reloadDirectoryPreservingPages()`, which **wrote `selectedIndex` again** to keep the user on
+the same league across a reordered re-read — firing `.onChange` again.
+
+The only brake was `guard !page.isActive`, which holds solely if the re-read reports that
+league active. When it did not, the cycle ran unbounded. Production logs show it oscillating
+between two leagues (alternating `league/overview` response sizes, `POST /api/leagues/active`
+every ~1.3s).
+
+**Fix:** `programmaticSelections`, a counter of pager moves the view model made *itself*,
+consumed one per `.onChange` delivery. A counter rather than a boolean because `.onChange` is
+delivered asynchronously — a flag cleared at the end of the reload is easily false again by the
+time the change it caused arrives, which is exactly what makes this class of bug intermittent.
+All three internal `selectedIndex` writes (`load`, `reloadDirectoryPreservingPages`,
+`clampSelection`) now route through `selectIndexProgrammatically`.
+
+**Regression test:** `testAReorderedRereadDoesNotTurnOneSwipeIntoACommitLoop` — needed a
+purpose-built repository stub returning a *reordered* directory on the second read, because the
+shared stub returns a fixed one and the reorder is the whole mechanism. **Verified to fail on
+the unfixed code (2 writes instead of 1)**, not merely to pass on the fixed code.
+
+**Android was checked and does not share the defect.** Its carousel is driven by
+`pagerState.settledPage`, and the view model's `selectedIndex` does not feed back into the
+pager, so the cycle does not close. `LaunchedEffect(pagerState, pages.size)` re-collecting on a
+`pages.size` change is a nearby risk worth a look, but it is not this bug.
+
+### Two process notes worth more than the fix
+
+- **The first regression test was wrong and passed for the wrong reason.** It simulated
+  `.onChange` firing after `load()` on a fixture where the index never changed — an event
+  SwiftUI would never deliver. It failed, correctly, and rewriting it to reproduce the *reload*
+  path is what made it real. A test that cannot fail on the broken code proves nothing.
+- **The watchdog's own self-test found a bug in the watchdog.** Its heal counter was a single
+  global file, so the test container spent `omen_api`'s heal budget. A real outage would have
+  hit an exhausted brake and never been healed. The state file is now keyed per container.
+
+### Unrelated, but true as of 2026-09-05
+
+`PrimitiveEnforcementTests.testAppSourcesUseOmenPrimitivesInsteadOfRawSwiftUIOrColorLiterals`
+**fails on a clean `main`** (confirmed by stashing all local work at `5ff94e3`). It predates
+this session's changes and is not caused by them, but `main` currently ships a red suite.
 
 ## ✅ RESOLVED — FULLY, verified in production 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
 
