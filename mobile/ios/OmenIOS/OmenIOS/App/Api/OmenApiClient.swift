@@ -47,8 +47,25 @@ struct OmenApiClient {
     ///
     /// `path` is contract-relative and must not start with a slash (`"api/dashboard/summary"`),
     /// matching how `URLSessionAccountRepository` builds its URL.
-    func get<T: Decodable>(_ path: String, accessToken: String, as type: T.Type) async -> Result<T, OmenApiError> {
-        await send(makeRequest(path: path, method: "GET", accessToken: accessToken, body: nil), as: type)
+    /// Authenticated GET.
+    ///
+    /// `query` exists so callers never build a query string into `path`. Doing that puts the
+    /// whole thing through `appendingPathComponent`, which percent-encodes the `?` and 404s —
+    /// see the note in `makeRequest`. That mistake shipped twice: once in player search, and
+    /// again on 2026-09-04 in the league carousel's per-league read, where every page reported
+    /// "Omen couldn't read this league's week" while the server was answering 200 to the same
+    /// request made correctly. The overload without a query is what made the wrong thing the
+    /// easy thing, so the parameter is defaulted here rather than added as a third variant.
+    func get<T: Decodable>(
+        _ path: String,
+        accessToken: String,
+        query: [String: String] = [:],
+        as type: T.Type
+    ) async -> Result<T, OmenApiError> {
+        await send(
+            makeRequest(path: path, method: "GET", accessToken: accessToken, body: nil, query: query),
+            as: type
+        )
     }
 
     /// GET where the token is genuinely optional. `/api/players/search` is public, like

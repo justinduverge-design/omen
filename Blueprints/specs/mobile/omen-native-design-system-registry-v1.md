@@ -125,7 +125,7 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **Card / Surface** | solid, outlined, empty, error, preview; tones neutral/omen/risk | n/a (container) | `surface-1`, `border`, `border-subtle`, `risk-high` | container view + material | `Card`/`Surface`/`OutlinedCard` |
 | **Alert** | info, success, warning, error | n/a | tone tokens | inline banner view | Material banner/`Card` |
 | **Badge** | success, neutral, risk, data-* tones | n/a | `data-*`, `risk-*` (15% opacity fills for AA) | `Text` capsule | `Badge`/`AssistChip` (display) |
-| **Chip** | position, brand, mode; interactive/display | default, selected, disabled | `chip` type, position/platform tokens | capsule `Label` | `FilterChip`/`AssistChip` |
+| **Chip** | position, platform, mode, **omen**; interactive/display | default, selected, disabled | `chip` type, position/platform tokens, `accent` (omen) | capsule `Label` | `FilterChip`/`AssistChip` |
 | **SegmentedControl** | sizes sm/md/lg | default, selected, disabled | `accent`, `text-on-accent`, `surface-1`, `border` | `Picker(.segmented)` | `SegmentedButton` (M3) |
 | **TabNav** | underline | default, active | `accent`, `text-primary` | `TabView`/custom underline | `TabRow` |
 | **RadioCardGroup** | title+description cards | default, selected, disabled | `surface-1`, `accent`, `border` | selectable cards | `Card` + `selectable` |
@@ -137,6 +137,24 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **Stepper** | numeric | value, min, max, disabled | `surface-1`, `accent` | `Stepper` | custom stepper |
 | **State surfaces** | Empty, Loading, Error, Disconnected, Stale, Mock | the state itself | `border` (dashed empty), `risk-high` (error), `data-mock`/`data-stub` (mock/stale) | composed views + `ProgressView` | composed + `CircularProgressIndicator` |
 
+**Chip tones, and why `omen` exists (added 2026-09-04).** The tone set was position
+(`rb`/`wr`/`qb`/`te`/`def`/`k`), platform (`sleeper`/`yahoo`/`espn`) and `demo` — every one of
+them *means* something about the thing it labels. Omen's own controls had no tone: **All**,
+**+ Add League**, and the **Waiver / Ledger / Pulse** tabs are not a position and not a
+provider. Borrowing a platform tone for those reads as a fourth provider, so they needed one of
+their own.
+
+It shipped for one build as `neutral`, drawn from `text-secondary`, and that was **wrong on a
+device**: five grey chips beside a red ESPN and a blue Sleeper made Omen's own controls look
+like the disabled ones. Grey is not a neutral choice on this screen, it is an absent one. The
+tone now draws from `accent`, putting Omen's brass on Omen's controls, and provider chips keep
+their platform colours — that is how a user finds their ESPN team in a row of six.
+
+**Chips are filters OR actions, never both in one row.** `+ Add League` shipped for one build
+as a trailing chip inside the provider filter row and was pulled back out: the provider chips
+change *what you are looking at*, and Add League changes *what you have*. In one row the latter
+reads as a fourth filter. Actions get their own row above the filters.
+
 **State surface rule:** Empty ≠ Error ≠ Loading ≠ Disconnected ≠ Stale ≠ Mock — six distinct treatments, each with honest copy (never "Loading…", never a dead dashboard). Loading uses contextual copy ("Analyzing your matchup…"). Reduced-motion swaps spinners for a static state.
 
 ### 3.2 Omen compositions (product components)
@@ -147,6 +165,9 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **OmenRecommendationCard** | single-move card inside DecisionBrief / lists | title, move, confidence, risk | success, mock | Card, Badge, ConfidenceBar |
 | **TradeResultCard** | trade verdict output | sides, verdict, delta, confidence | success, empty, error, mock | Card, MetricStrip, PlayerRow |
 | **ShareResultPanel** | shareable trade/verdict summary | safe summary only | default | Card (no cookie/PII in payload) |
+| **LeagueCarousel** | Command Center's league pager — provider filter chips over one swipeable matchup card per followed league; the rested-on page becomes the active league | followed leagues, per-league matchup, active league | loading, loaded, empty, error, demo; per-page loading/loaded/unavailable | Chip (platform + neutral), MatchupHero, PlatformBadge, StateSurface |
+| **WidgetPager** | Waiver / Ledger / Pulse as one paged widget behind a labelled tab row | the three section states | whatever each section carries | Chip (neutral) tabs + the three existing sections |
+| **TeamPicker** | one horizontal row of the user's teams on Omen / Trade / League; tap makes one active | followed leagues, active league | hidden below two leagues; committing | Chip (platform tones) |
 | **PlayerRow / PlayerChip** | player identity in rows/inline | name, team, position, meta | default, selected, disabled | ListRow/Chip, position tokens |
 | **PlayerCompareCard** | side-by-side player compare | two players, metrics | default, empty | Card, MetricStrip |
 | **MetricStrip** | labeled metric row w/ deltas | metrics, delta, confidence | default, empty | Text, ConfidenceBar, Tooltip |

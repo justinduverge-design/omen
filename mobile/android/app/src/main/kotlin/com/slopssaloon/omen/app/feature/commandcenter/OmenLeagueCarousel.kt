@@ -4,7 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -90,7 +90,21 @@ fun OmenLeagueCarousel(
         verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
     ) {
         if (viewModel.viewState is LeagueCarouselViewModel.ViewState.Loaded) {
-            ChipRow(viewModel = viewModel, onAddLeague = onAddLeague)
+            // Add League on its own row, ABOVE the provider filters. Founder, 2026-09-04:
+            // "I like the league, but it should go above ESPN and Sleeper" — which is also
+            // where the original sketch put it. It was a trailing chip in the filter row for
+            // one build, and that was a category error: the provider chips are a *filter* and
+            // this is an *action*. Sitting them in one row invited the reading that
+            // "+ League" was a fourth filter.
+            if (onAddLeague != null) {
+                OmenChip(
+                    label = "+ Add League",
+                    tone = OmenChipTone.Omen,
+                    onClick = onAddLeague,
+                    modifier = Modifier.semantics { contentDescription = "Add a league" },
+                )
+            }
+            ChipRow(viewModel = viewModel)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -204,7 +218,10 @@ private fun LoadedCarousel(
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 260.dp),
+            // A pager does not size to its content, so this height is load-bearing: too small
+            // and the page clips (the team-name row was cut off on device), too large and the
+            // widget pager below leaves the fold. Pages scroll internally, so nothing is lost.
+            modifier = Modifier.fillMaxWidth().height(250.dp),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             pages.getOrNull(index)?.let { page ->
@@ -228,12 +245,11 @@ private fun LoadedCarousel(
  * they do not use. iOS mirror: `OmenLeagueCarousel.chipRow`.
  */
 @Composable
-private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit)?) {
+private fun ChipRow(viewModel: LeagueCarouselViewModel) {
     val scope = rememberCoroutineScope()
-    // The filter chips need two or more providers to mean anything, but Add League is useful to
-    // a user with one — so the row renders whenever either half has something to say, and each
-    // half decides for itself.
-    if (viewModel.chips.size <= 2 && onAddLeague == null) return
+    // Two or more providers for the filter to mean anything — one provider has nothing to
+    // filter between, and a lone chip beside "All" is a control with no second state.
+    if (viewModel.chips.size <= 2) return
 
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -241,7 +257,7 @@ private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit
     ) {
         // All · then each provider that actually has a followed league, in the server's order
         // — most leagues first, ties alphabetical.
-        if (viewModel.chips.size > 2) viewModel.chips.forEach { chip ->
+        viewModel.chips.forEach { chip ->
             val count = viewModel.leagueCountFor(chip)
             val noun = if (count == 1) "league" else "leagues"
             OmenChip(
@@ -255,16 +271,6 @@ private fun ChipRow(viewModel: LeagueCarouselViewModel, onAddLeague: (() -> Unit
                 modifier = Modifier.semantics {
                     contentDescription = "${chipLabel(chip)}, $count $noun"
                 },
-            )
-        }
-        if (onAddLeague != null) {
-            // "+ League" rather than a bare "+": a lone glyph beside three named filters reads
-            // as a fourth filter, and the label costs one word.
-            OmenChip(
-                label = "+ League",
-                tone = OmenChipTone.Neutral,
-                onClick = onAddLeague,
-                modifier = Modifier.semantics { contentDescription = "Add a league" },
             )
         }
     }
@@ -344,13 +350,15 @@ private fun OmenListRowHeader(
     }
 }
 
-/** Each provider chip carries its own platform colour; All is neutral so it cannot be mistaken
- * for a fourth provider. */
+/**
+ * Provider chips carry their platform colour, so a user can find their ESPN team in a row of
+ * six. Everything else is Omen's own control and takes the brand tone.
+ */
 private fun chipTone(chip: String): OmenChipTone = when (chip) {
     "espn" -> OmenChipTone.Espn
     "yahoo" -> OmenChipTone.Yahoo
     "sleeper" -> OmenChipTone.Sleeper
-    else -> OmenChipTone.Neutral
+    else -> OmenChipTone.Omen
 }
 
 private fun chipLabel(chip: String): String =

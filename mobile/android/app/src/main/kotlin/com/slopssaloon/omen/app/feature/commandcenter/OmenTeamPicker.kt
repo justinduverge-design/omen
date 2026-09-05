@@ -109,5 +109,5 @@ private fun chipTone(platform: String): OmenChipTone = when (platform) {
     "espn" -> OmenChipTone.Espn
     "yahoo" -> OmenChipTone.Yahoo
     "sleeper" -> OmenChipTone.Sleeper
-    else -> OmenChipTone.Neutral
+    else -> OmenChipTone.Omen
 }

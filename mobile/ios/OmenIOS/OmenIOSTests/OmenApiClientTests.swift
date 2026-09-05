@@ -101,4 +101,58 @@ final class OmenApiClientTests: XCTestCase {
         XCTAssertEqual(fetcher.captured?.value(forHTTPHeaderField: "Content-Type"), "application/json")
         XCTAssertEqual(fetcher.captured?.httpBody, Data("{}".utf8))
     }
+
+    // MARK: - Query strings
+    //
+    // This has shipped wrong twice. Once in player search (`search?q=x` became `search%3Fq=x`),
+    // and again on 2026-09-04 in the league carousel, where every page told the user "Omen
+    // couldn't read this league's week" while the server answered 200 to the same request made
+    // correctly. Both times the cause was a query string built into `path` and then run through
+    // `appendingPathComponent`, which treats it as a single path segment.
+
+    func testAnAuthenticatedGetPutsQueryItemsInTheQueryNotThePath() async throws {
+        let fetcher = StubFetcher(result: .success((Data(#"{"ok":true}"#.utf8), response(200))))
+
+        _ = await client(fetcher).get(
+            "api/league/overview",
+            accessToken: "t",
+            query: ["platform": "espn", "leagueId": "13338821"],
+            as: Payload.self
+        )
+
+        let url = try XCTUnwrap(fetcher.captured?.url)
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(components.path, "/api/league/overview")
+        XCTAssertEqual(components.queryItems?.first(where: { $0.name == "platform" })?.value, "espn")
+        XCTAssertEqual(components.queryItems?.first(where: { $0.name == "leagueId" })?.value, "13338821")
+        // The failure mode, named so a regression is unmistakable in the diff.
+        XCTAssertFalse(url.absoluteString.contains("%3F"), "the ? was encoded into the path again")
+    }
+
+    func testAnEmptyQueryLeavesTheURLUntouched() async throws {
+        let fetcher = StubFetcher(result: .success((Data(#"{"ok":true}"#.utf8), response(200))))
+
+        _ = await client(fetcher).get("api/league/overview", accessToken: "t", as: Payload.self)
+
+        let url = try XCTUnwrap(fetcher.captured?.url)
+        // No stray "?" for the callers that pass nothing — every pre-existing GET is one.
+        XCTAssertEqual(url.absoluteString.hasSuffix("/api/league/overview"), true)
+    }
+
+    /// A Yahoo league key is `nfl.l.12345`, and ESPN ids are numeric, but a provider is free to
+    /// hand us something that needs escaping. `URLQueryItem` handles it; string building did not.
+    func testALeagueIdNeedingEscapingSurvivesTheRoundTrip() async throws {
+        let fetcher = StubFetcher(result: .success((Data(#"{"ok":true}"#.utf8), response(200))))
+
+        _ = await client(fetcher).get(
+            "api/league/overview",
+            accessToken: "t",
+            query: ["platform": "yahoo", "leagueId": "470.l.1358570"],
+            as: Payload.self
+        )
+
+        let url = try XCTUnwrap(fetcher.captured?.url)
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(components.queryItems?.first(where: { $0.name == "leagueId" })?.value, "470.l.1358570")
+    }
 }

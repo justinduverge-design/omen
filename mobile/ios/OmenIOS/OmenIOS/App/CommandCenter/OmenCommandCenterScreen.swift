@@ -80,7 +80,10 @@ struct OmenCommandCenterScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.sectionStack) {
+            // `sectionStack` is 48pt, which is right for a page of stacked sections and far
+            // too much for one with two carousels that both need to be on screen. The carousel
+            // layout uses a tighter rhythm; the legacy stacked layout keeps the original.
+            VStack(alignment: .leading, spacing: carousel == nil ? OmenSpacing.sectionStack : OmenSpacing.step24) {
                 header
                 // The vertical platform status strip is suppressed when the carousel is
                 // present. Founder, 2026-09-04: "you still have Sleeper, Yahoo and ESPN going
@@ -217,8 +220,16 @@ struct OmenCommandCenterScreen: View {
                     .omenTextStyle(OmenTypography.eyebrow)
                     .foregroundStyle(OmenColor.textSecondary)
                 Text(state.greeting)
-                    .omenTextStyle(OmenTypography.h1)
+                    // `h2` on one line, not `h1` across two. At 32pt the headline took roughly
+                    // a quarter of the screen and pushed the second carousel off the fold —
+                    // the founder wants the matchup AND the widget pager visible together, and
+                    // the headline is the only block on this screen that is purely narration.
+                    // `minimumScaleFactor` keeps the longest line ("Preparing your Week 12 game
+                    // plan.") on one row at large Dynamic Type instead of truncating it.
+                    .omenTextStyle(OmenTypography.h2)
                     .foregroundStyle(OmenColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             Spacer(minLength: OmenSpacing.step8)
             // M6-ContextualHelp. Sits beside the profile control so help is reachable from the

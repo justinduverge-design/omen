@@ -1,11 +1,21 @@
 import SwiftUI
 
-/// `neutral` was added 2026-09-03 for the Command Center league carousel's "All" chip,
-/// which sits beside the three platform chips and must not borrow any one platform's
-/// colour — an All chip tinted Sleeper-green reads as a fourth Sleeper filter. Additive:
-/// no existing tone or call site changes. **Flagged for design sign-off** in the session
-/// handoff rather than treated as settled.
-enum OmenChipTone { case rb, wr, qb, te, def, k, sleeper, yahoo, espn, demo, neutral }
+/// `omen` is the brand tone, added 2026-09-03 and corrected 2026-09-04.
+///
+/// It exists for the chips that are Omen's own rather than a provider's or a position's:
+/// **All**, **+ Add League**, and the **Waiver / Ledger / Pulse** tabs. Borrowing a platform
+/// tone for those reads as a fourth provider — an "All" chip tinted Sleeper-blue is actively
+/// misleading — so they needed a tone of their own.
+///
+/// It shipped for one build as `neutral`, drawn from `textSecondary`, and that was wrong: on a
+/// device it rendered five grey chips beside a red ESPN and a blue Sleeper, so the controls
+/// that belong to Omen looked like the disabled ones. Founder, seeing it: "you didn't put the
+/// buttons into theme." Grey is not a neutral choice on this screen, it is an absent one.
+/// Drawing from `accent` puts Omen's own brass on Omen's own controls.
+///
+/// Provider chips keep their platform colours, deliberately — that is how a user finds their
+/// ESPN team in a row of six.
+enum OmenChipTone { case rb, wr, qb, te, def, k, sleeper, yahoo, espn, demo, omen }
 
 /// Registry §3.1 position/platform/mode chip. `action == nil` produces a display chip.
 struct OmenChip: View {
@@ -27,7 +37,7 @@ struct OmenChip: View {
         case .yahoo: return OmenColor.Data.platformYahoo
         case .espn: return OmenColor.Data.platformEspn
         case .demo: return OmenColor.Data.demoText
-        case .neutral: return OmenColor.textSecondary
+        case .omen: return OmenColor.accent
         }
     }
 
