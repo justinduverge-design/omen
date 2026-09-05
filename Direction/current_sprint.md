@@ -389,7 +389,7 @@ attention, not task count. Five separate items needing one deploy approval is on
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
 
-### M13-PrimitiveDebt — Move the auth/connect button components into `DesignSystem/`
+### ✅ M13-PrimitiveDebt — DONE 2026-09-05 — auth/connect primitives moved into `DesignSystem/`
 
 **Founder decision 2026-09-05: queue this as a sprint item rather than fix it inline.**
 
