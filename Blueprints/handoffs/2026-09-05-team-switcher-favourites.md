@@ -82,3 +82,61 @@ behind `Switch` — the same defect this change exists to remove. Now pinned bes
 - `PrimitiveEnforcementTests` pre-existing failure.
 - The `Unable to build this recommendation` server error in the original screenshot is unrelated and
   untouched.
+
+---
+
+## Session close, 2026-09-05 — the day turned into an outage
+
+The switcher work above shipped, but the session was dominated by a production
+outage the founder surfaced mid-review ("Omen couldn't be reached").
+
+### What was wrong
+
+`findTradeCandidate` solves the optimal lineup **twice per (own player × opponent player)
+pair, per opponent** — ~5,600 exhaustive assignment searches in an eleven-team league.
+**177 seconds for two opponents**, ~15 minutes for a real league, synchronous, on the thread
+that serves every request. The API answered nothing — not Omen, not the marketing page.
+
+**Why that day:** everything in the module is gated on a finite `projected_points`, and ESPN
+published no 2026 projections until week 1 went live. The code did not change; the data did.
+
+### Two wrong theories, recorded so the mistake is not repeated
+
+1. **PR #401's season-anchor change** — blamed on timing. Disproved by a rollback that also wedged.
+2. **`POST /api/omen/mvp-move`** — blamed because it was the only request logged as never
+   completing. It was a *victim* of the freeze, not the cause.
+
+Both came from reading logs. A **CPU profile over the V8 inspector** named the function on the
+first attempt. Reach for the profiler first: a blocked event loop leaves logs that look like
+evidence and are not.
+
+### What shipped
+
+| PR | What |
+|---|---|
+| [#404](https://github.com/justinduverge-design/omen/pull/404) **merged** | 2s search budget. Returns **null**, never a partial ranking — a truncated lineup total is an underestimate of unknown size, so a trade ranked on one could make the team worse. Logs when it trips. |
+| [#405](https://github.com/justinduverge-design/omen/pull/405) open | Kuhn-Munkres assignment replaces the enumeration. **~15 min → 65 ms.** Property-tested against the old brute force over 400 randomised rosters (3,000 checked while developing, zero mismatches). |
+| [#406](https://github.com/justinduverge-design/omen/pull/406) open | The iOS switcher work, rebased onto `#403`. iOS **443/443**. |
+
+### Production state
+
+Restored and verified from outside (200s, ~150ms). An earlier rollback pinned `:main` on the
+box to the 2026-09-04 image; the `#404` deploy superseded it and the debug compose override has
+been removed. **Nothing temporary is left on the box.**
+
+### Next, in the founder's order
+
+1. Merge `#405`, then `#406`.
+2. **League/team naming** — prompt at connect, editable after. Needs decisions first: Omen-only
+   name vs write-back to the provider, and whether the connect-time prompt is skippable.
+   Recommendation: Omen-only and skippable. Needs a server field — same conversation as
+   cross-device favourites, so they likely ship together.
+3. Founder reviews on device.
+4. Android twin.
+
+### Standing concern the founder raised, worth its own pass
+
+Are there sibling algorithms like this one? The shape to hunt is **synchronous work on a request
+path whose cost grows faster than its inputs** — specifically code that is fast today only
+because some provider field is still empty. Distinct from the page-by-page design audit.
+Extending `#404`'s budget posture to the Trade and League paths is cheap insurance regardless.
