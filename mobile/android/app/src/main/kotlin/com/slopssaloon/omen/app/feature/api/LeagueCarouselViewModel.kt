@@ -184,7 +184,9 @@ class LeagueCarouselViewModel(
                 // Open on the league Omen is actually using, not on page one. Landing on a
                 // different league than the rest of the screen describes would make the
                 // carousel disagree with the Ledger and the Omen call beneath it.
-                selectedIndex = allPages.indexOfFirst { it.isActive }.takeIf { it >= 0 } ?: 0
+                // The view model's decision, not a user swipe, so it must not be written
+                // straight back to the server.
+                selectIndexProgrammatically(allPages.indexOfFirst { it.isActive }.takeIf { it >= 0 } ?: 0)
                 viewState = if (allPages.isEmpty()) ViewState.Empty else ViewState.Loaded
                 loadCurrentPage()
             }
@@ -198,6 +200,39 @@ class LeagueCarouselViewModel(
     }
 
     fun selectIndex(index: Int) {
+        selectedIndex = index
+    }
+
+    /**
+     * How many pending [selectedIndex] changes this view model made ITSELF, and which the
+     * carousel must therefore not treat as the user resting on a new page.
+     *
+     * Swift twin: `LeagueCarouselViewModel.programmaticSelections`.
+     *
+     * Android did not originally need this. Its pager was never driven from [selectedIndex],
+     * so `commit -> reload -> selectedIndex = it` simply terminated. The cost of that
+     * one-way flow was the opposite defect: after a reload the view model followed the
+     * resting league to its new index while the pager stayed put, so the two could drift and
+     * the carousel would load, label and commit a league the user was not looking at.
+     *
+     * Fixing the drift means the pager has to follow [selectedIndex] — which closes exactly
+     * the feedback path that took production down on iOS on 2026-09-05 (`.onChange ->
+     * commitSelection -> reload -> writes selectedIndex -> .onChange`). So the guard has to
+     * land in the same commit that adds the sync, not after it.
+     *
+     * A counter rather than a boolean, for the same reason as iOS: the pager settles
+     * asynchronously, so a flag cleared at the end of the reload can be false again by the
+     * time the change it caused is delivered.
+     */
+    private var programmaticSelections = 0
+
+    /**
+     * Moves the pager without arming a commit. Every [selectedIndex] write that is this view
+     * model's own decision rather than the user's must go through here.
+     */
+    private fun selectIndexProgrammatically(index: Int) {
+        if (selectedIndex == index) return
+        programmaticSelections += 1
         selectedIndex = index
     }
 
@@ -251,6 +286,12 @@ class LeagueCarouselViewModel(
      * context and calling it new is exactly the stale-context failure the contract names.
      */
     suspend fun commitSelection(): List<String>? {
+        // A selection this view model made itself is not the user resting on a page, and must
+        // not be written back to the server. See [programmaticSelections].
+        if (programmaticSelections > 0) {
+            programmaticSelections -= 1
+            return null
+        }
         val page = currentPage ?: return null
         // The carousel shows the page it is committing, so its matchup has to be in flight
         // before the write. The picker has no such page and skips this.
@@ -310,7 +351,7 @@ class LeagueCarouselViewModel(
         // Stay on the page the user is looking at, by identity. Keeping the index would move
         // them if the refreshed directory changed the list at all.
         if (restingId != null) {
-            pages.indexOfFirst { it.id == restingId }.takeIf { it >= 0 }?.let { selectedIndex = it }
+            pages.indexOfFirst { it.id == restingId }.takeIf { it >= 0 }?.let { selectIndexProgrammatically(it) }
         }
     }
 
@@ -320,11 +361,13 @@ class LeagueCarouselViewModel(
      * pointing past the end, which renders nothing at all.
      */
     private fun clampSelection() {
-        selectedIndex = when {
-            pages.isEmpty() -> 0
-            selectedIndex >= pages.size -> pages.size - 1
-            else -> selectedIndex
-        }
+        selectIndexProgrammatically(
+            when {
+                pages.isEmpty() -> 0
+                selectedIndex >= pages.size -> pages.size - 1
+                else -> selectedIndex
+            }
+        )
     }
 
     // endregion
