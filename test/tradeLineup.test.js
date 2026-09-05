@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   solveOptimalLineup,
+  solveOptimalLineupExhaustive,
   findTradeCandidate,
   createSearchBudget,
 } = require("../src/services/tradeLineup");
@@ -126,19 +127,36 @@ test("findTradeCandidate cannot block the event loop on a real league (2026-09-0
   const candidate = findTradeCandidate({ ownTeam, opponentTeams, rosterPositions: OUTAGE_SLOTS });
   const elapsed = Date.now() - startedAt;
 
-  // Generous ceiling: the point is "seconds, not minutes", not a precise timing assertion that
-  // would flake on a loaded CI box. Unguarded this call took roughly 15 minutes.
+  // Generous ceiling so this does not flake on a loaded CI box, but far below the budget's
+  // 2s trip: the point is that the search now *finishes on its merits* rather than being cut
+  // off. Measured locally at ~65ms, against roughly 15 minutes for the exhaustive version.
   assert.ok(
-    elapsed < 30_000,
-    `trade search took ${elapsed}ms; the budget is meant to stop it long before this`
+    elapsed < 5_000,
+    `trade search took ${elapsed}ms; the exact solver should finish this in well under a second`
   );
-  // Silence is the correct answer for a truncated search, never a guessed trade: every delta
-  // is a difference of two lineup totals, and a truncated total is an underestimate of unknown
-  // size, so a ranking built on one could recommend a trade that makes the team worse.
+  // These rosters are deliberately identical in shape, so no swap improves both teams and
+  // `null` here means "no good trade", not "gave up". The test above proves trades are still
+  // found when they exist.
   assert.equal(candidate, null);
 });
 
-test("a budget-truncated lineup reports itself as non-exhaustive", () => {
+test("the exhaustive solver still reports a truncated search honestly", () => {
+  // The budget machinery guards the *exhaustive* solver, which is now only the test oracle.
+  // Kept covered because it is what `findTradeCandidate` falls back on if the fast path is
+  // ever bypassed, and because "a truncated result must say so" is the property the whole
+  // no-suggestion-on-timeout rule rests on.
+  const spent = createSearchBudget({ budgetMs: -1 });
+  const result = solveOptimalLineupExhaustive({
+    players: outageRoster("own"),
+    rosterPositions: OUTAGE_SLOTS,
+    budget: spent,
+  });
+
+  assert.equal(result.exhaustive, false);
+  assert.equal(result.starters.length, OUTAGE_SLOTS.length);
+});
+
+test("the fast solver cannot be truncated, so it always answers exhaustively", () => {
   const spent = createSearchBudget({ budgetMs: -1 });
   const result = solveOptimalLineup({
     players: outageRoster("own"),
@@ -146,9 +164,49 @@ test("a budget-truncated lineup reports itself as non-exhaustive", () => {
     budget: spent,
   });
 
-  assert.equal(result.exhaustive, false);
-  // Still a usable, honest lineup shape — it just is not provably the best one.
+  // An already-spent budget changes nothing: assignment is polynomial and simply finishes.
+  assert.equal(result.exhaustive, true);
   assert.equal(result.starters.length, OUTAGE_SLOTS.length);
+});
+
+// The property that makes the replacement safe: the fast solver is not an approximation.
+// If these two ever disagree, the fast one is wrong — the exhaustive search is the definition
+// of the right answer, just far too slow to ship.
+test("the fast solver returns the exhaustive search's answer on randomised rosters", () => {
+  let seed = 12345;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
+  const SLOT_SETS = [
+    ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"],
+    ["QB", "RB", "WR", "WR", "REC_FLEX", "SUPER_FLEX"],
+    ["QB", "QB", "RB", "RB", "RB", "WR", "WR", "FLEX"],
+    ["RB", "WR", "FLEX", "FLEX"],
+    ["QB"],
+  ];
+
+  for (let trial = 0; trial < 400; trial += 1) {
+    const rosterPositions = pick(SLOT_SETS);
+    const players = Array.from({ length: 1 + Math.floor(rnd() * 8) }, (_, i) => {
+      const position = pick(POSITIONS);
+      return {
+        player_id: `p${i}`,
+        position,
+        // A quarter are multi-position, which is where a naive greedy solver goes wrong.
+        eligible_positions: rnd() < 0.25 ? [position, pick(POSITIONS)] : [position],
+        selected_position: rnd() < 0.1 ? pick(["IR", "TAXI", "BN"]) : "BN",
+        // Negative projections included on purpose: the correct answer leaves that slot empty.
+        projected_points: rnd() < 0.08 ? null : Math.round((rnd() * 40 - 5) * 10) / 10,
+      };
+    });
+
+    const fast = solveOptimalLineup({ players, rosterPositions });
+    const exhaustive = solveOptimalLineupExhaustive({ players, rosterPositions });
+    assert.ok(
+      Math.abs(fast.total - exhaustive.total) < 1e-6,
+      `trial ${trial}: fast=${fast.total} exhaustive=${exhaustive.total} slots=${JSON.stringify(rosterPositions)}`
+    );
+  }
 });
 
 test("an unbudgeted solve is unchanged and reports itself exhaustive", () => {
