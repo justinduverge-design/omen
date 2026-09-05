@@ -413,6 +413,24 @@ async function persistSelection(userId, platform, leagueId, teamId) {
     return !error;
   };
 
+  // **Clear first, then set.** `platform_connections_one_selected_per_user` is
+  // `UNIQUE (user_id) WHERE is_selected`, so a user may have at most one selected row. Setting
+  // the new platform before clearing the old one momentarily asks for two, and Postgres rejects
+  // the write.
+  //
+  // That is not theoretical: it 500'd every cross-provider switch in production. Sleeper to
+  // Sleeper worked, because the already-selected row is the one being set and no second true
+  // row is created — which is exactly why it looked like "ESPN is broken" rather than "switching
+  // providers is broken". Reversing the order is the whole fix.
+  //
+  // The two writes are not one transaction: PostgREST has no transaction across calls, and a
+  // stored procedure would need a gated SQL apply (facts-of-record #8). If the second write
+  // fails, the user is left with **no** selection rather than the wrong one — which
+  // `resolveActiveConnection` handles by falling back to the documented platform order. A
+  // missing selection is a recoverable state that the next switch repairs; two selected rows
+  // is not a state the schema permits at all.
+  const cleared = await clearOthers();
+
   const withSelection = await supabase
     .from("platform_connections")
     .update({ ...patch, [SELECTION_COLUMN]: true })
@@ -420,8 +438,9 @@ async function persistSelection(userId, platform, leagueId, teamId) {
     .eq("platform", platform);
 
   if (!withSelection.error) {
-    await clearOthers();
-    return "explicit";
+    // `clearOthers` returning false means the column is absent, so nothing was selected and
+    // nothing needed clearing; the write above then also had no column to set.
+    return cleared ? "explicit" : "provider_binding_only";
   }
   if (!isMissingColumnError(withSelection.error)) {
     throw new Error(`platform_connections update failed: ${withSelection.error.message}`);

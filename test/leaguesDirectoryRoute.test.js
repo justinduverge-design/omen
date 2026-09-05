@@ -377,9 +377,10 @@ test("POST /api/leagues/active binds a verified Sleeper league and names the sur
   assert.equal(body.selection_persistence, "explicit");
   assert.equal(body.active.league_id, "L-zeta");
   assert.deepEqual(body.refresh, ["command_center", "omen", "league", "waiver_watch", "ledger"]);
-  assert.equal(updates[0].patch.league_id, "L-zeta");
-  assert.equal(updates[0].patch.is_selected, true);
-  assert.equal(updates[1].patch.is_selected, false);
+  // Clear first, then set — see the regression test below for why the order is load-bearing.
+  assert.equal(updates[0].patch.is_selected, false);
+  assert.equal(updates[1].patch.league_id, "L-zeta");
+  assert.equal(updates[1].patch.is_selected, true);
 });
 
 test("POST /api/leagues/active accepts the bound ESPN league and records the team id", async () => {
@@ -391,7 +392,40 @@ test("POST /api/leagues/active accepts the bound ESPN league and records the tea
 
   assert.equal(status, 200);
   assert.equal(body.active.team_id, "9");
-  assert.equal(updates[0].patch.espn_team_id, "9");
+  assert.equal(updates[1].patch.espn_team_id, "9");
+});
+
+// `platform_connections_one_selected_per_user` is `UNIQUE (user_id) WHERE is_selected`, so a
+// user may have at most one selected row. Setting the new platform before clearing the old one
+// momentarily asks for two and Postgres rejects the write.
+//
+// In production on 2026-09-05 that 500'd **every cross-provider switch**. Sleeper-to-Sleeper
+// worked, because the row being set is the one already selected and no second true row is
+// created — which is why it presented as "ESPN is broken" rather than "switching providers is
+// broken", and why it survived review.
+test("POST /api/leagues/active clears the old selection before setting the new one", async () => {
+  const updates = [];
+  const app = buildApp({
+    supabase: { rows: [SLEEPER_ROW, ESPN_ROW], missingSelectionColumn: false, updates },
+  });
+
+  const { status } = await request(app, {
+    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+  });
+
+  assert.equal(status, 200);
+
+  // The clear must come first, and must exclude the platform being selected.
+  const [clear, set] = updates;
+  assert.equal(clear.patch.is_selected, false, "the first write must clear, not set");
+  assert.ok(
+    JSON.stringify(clear.filters).includes("espn"),
+    "the clear must be scoped away from the platform being selected"
+  );
+  assert.equal(set.patch.is_selected, true, "the second write is the one that selects");
+
+  // At no point may two writes both set is_selected true.
+  assert.equal(updates.filter((u) => u.patch.is_selected === true).length, 1);
 });
 
 test("POST /api/leagues/active verifies the Yahoo league against the user's own Yahoo account", async () => {
