@@ -148,7 +148,16 @@ function loadRouter(options = {}) {
       if (request === "../services/yahooAuth") {
         return {
           getAuthenticatedYahooClient: options.getAuthenticatedYahooClient
-            || (async () => ({ client: options.yahooClient || { getUserLeagues: async () => ([{ league_id: "449.l.1", name: "Work League", season: 2026 }]) } })),
+            || (async () => ({
+              client: options.yahooClient || {
+                // Both, because the real client has both and the directory calls the
+                // team-bearing one. A stub missing it is stub drift, not a route bug.
+                getUserLeagues: async () => ([{ league_id: "449.l.1", name: "Work League", season: 2026 }]),
+                getUserLeaguesWithTeams: async () => ([
+                  { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
+                ]),
+              },
+            })),
         };
       }
       if (request === "../services/espnAuth") {
@@ -560,11 +569,52 @@ test("providers are ordered most-leagues-first, ties alphabetical", async () => 
   assert.deepEqual(body.platforms.map((p) => p.platform), ["espn", "sleeper", "yahoo"]);
 });
 
+// Yahoo rows carried no team at all until 2026-09-05: `yahooLeagues` built them without a team
+// id or name, so every Yahoo league in the switcher showed its league title where a team name
+// belongs, and a user with two Yahoo teams could not tell them apart. The founder asked for this
+// directly — "we gotta make sure that Yahoo shows the team name too".
+test("GET /api/leagues carries the Yahoo team name, not just the league name", async () => {
+  const app = buildApp({
+    supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false },
+    yahooClient: {
+      getUserLeaguesWithTeams: async () => ([
+        { league_id: "449.l.1", name: "Work League", season: 2026, team_id: "7", team_name: "Desk Jockeys" },
+      ]),
+    },
+  });
+
+  const { body } = await request(app);
+  const yahoo = body.platforms.find((p) => p.platform === "yahoo");
+
+  assert.equal(yahoo.leagues[0].team_name, "Desk Jockeys");
+  assert.equal(yahoo.leagues[0].team_id, "7");
+  // The league name is still carried; the team is additional, not a replacement.
+  assert.equal(yahoo.leagues[0].league_name, "Work League");
+});
+
+// A team name Yahoo will not supply must not cost the user the league.
+test("a Yahoo league with no team still appears, with a null team name", async () => {
+  const app = buildApp({
+    supabase: { rows: [YAHOO_ROW], missingSelectionColumn: false },
+    yahooClient: {
+      getUserLeaguesWithTeams: async () => ([
+        { league_id: "449.l.1", name: "Work League", season: 2026 },
+      ]),
+    },
+  });
+
+  const { body } = await request(app);
+  const yahoo = body.platforms.find((p) => p.platform === "yahoo");
+
+  assert.equal(yahoo.leagues.length, 1);
+  assert.equal(yahoo.leagues[0].team_name, null);
+});
+
 test("a tie in league count breaks alphabetically, not by connection order", async () => {
   const app = buildApp({
     supabase: { rows: [YAHOO_ROW, SLEEPER_ROW], missingSelectionColumn: false },
     yahooClient: {
-      getUserLeagues: async () => ([
+      getUserLeaguesWithTeams: async () => ([
         { league_id: "449.l.1", name: "Work League", season: 2026 },
         { league_id: "449.l.2", name: "Home League", season: 2026 },
       ]),

@@ -148,7 +148,9 @@ async function sleeperLeagues(row, season) {
 
 async function yahooLeagues(row, userId) {
   const { client } = await getAuthenticatedYahooClient(userId);
-  const leagues = await client.getUserLeagues();
+  // The team-bearing variant, which falls back to `getUserLeagues()` if Yahoo does not
+  // describe teams on that path. A missing team name is cosmetic; a missing league list is not.
+  const leagues = await client.getUserLeaguesWithTeams();
   return {
     discovery: "full",
     leagues: (leagues || []).map((league) => leagueEntry({
@@ -158,6 +160,11 @@ async function yahooLeagues(row, userId) {
       // Yahoo scoring settings are a separate call and its Fantasy API is
       // entitlement-refused today (facts-of-record #11). Null, not guessed.
       scoringFormat: null,
+      // Yahoo rows carried no team at all until 2026-09-05, so every Yahoo league in the
+      // switcher fell back to its league name and a user with two Yahoo teams could not tell
+      // them apart. `getUserLeagues` now returns the team with the league, at no extra request.
+      teamId: league.team_id,
+      teamName: league.team_name,
     })),
     notice: null,
   };
@@ -185,6 +192,46 @@ async function yahooLeagues(row, userId) {
  * SECURITY: credentials are read to make the call and never returned or logged
  * (facts-of-record #6). The adapter strips query strings from its failure reports.
  */
+/**
+ * Fill in team names ESPN's fan endpoint did not supply.
+ *
+ * The fan payload carries `entry.name` for some accounts and not others — the founder's ESPN
+ * league came back with a league name and no team name, so the switcher fell back to showing
+ * the league title where a team belongs ("Fantasy Football 2026"). `verifyLeagueAccess` reads
+ * the league directly and does return a name, built from ESPN's `location` + `nickname`, so the
+ * data is reachable; discovery simply is not the endpoint that carries it.
+ *
+ * Best-effort and bounded on purpose:
+ *   - only leagues **missing** a name cost a request, so the common case adds nothing;
+ *   - the reads run in parallel, because they are independent and this is on a screen the user
+ *     is waiting on;
+ *   - a failure leaves the name null rather than rejecting the league. A league you can see but
+ *     cannot name is a worse row; a league that vanished is a worse bug.
+ */
+async function backfillEspnTeamNames(leagues, credentials) {
+  if (!credentials) return leagues;
+  return Promise.all(leagues.map(async (league) => {
+    if (league.team_name) return league;
+    try {
+      const team = await espnAdapter.verifyLeagueAccess(
+        league.league_id,
+        credentials.espn_s2,
+        credentials.swid,
+        league.team_id || null
+      );
+      if (!team?.team_name) return league;
+      return {
+        ...league,
+        team_id: team.team_id == null ? league.team_id : String(team.team_id),
+        team_name: team.team_name,
+      };
+    } catch {
+      // Never surface the ESPN failure detail here; the connection state field carries it.
+      return league;
+    }
+  }));
+}
+
 async function espnLeagues(row, userId, season) {
   const boundId = usableLeagueId(row) ? String(row.league_id) : null;
 
@@ -203,9 +250,10 @@ async function espnLeagues(row, userId, season) {
         { season }
       );
       if (discovered.length) {
+        const named = await backfillEspnTeamNames(discovered, credentials);
         return {
           discovery: "full",
-          leagues: discovered.map((league) => leagueEntry({
+          leagues: named.map((league) => leagueEntry({
             leagueId: league.league_id,
             leagueName: league.league_name,
             season: league.season || season,
