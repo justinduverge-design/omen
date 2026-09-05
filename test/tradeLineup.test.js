@@ -2,7 +2,11 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { solveOptimalLineup, findTradeCandidate } = require("../src/services/tradeLineup");
+const {
+  solveOptimalLineup,
+  findTradeCandidate,
+  createSearchBudget,
+} = require("../src/services/tradeLineup");
 
 function player(id, positions, points) {
   return {
@@ -79,4 +83,83 @@ test("findTradeCandidate keeps only a fair swap that improves both starting line
   assert.ok(result);
   assert.ok(result.userDelta > 0);
   assert.ok(result.opponentDelta > 0);
+});
+
+// --- 2026-09-05 outage regression -------------------------------------------
+//
+// `findTradeCandidate` solves the optimal lineup twice per (own player x opponent player)
+// pair, per opponent — ~5,600 exhaustive searches in an eleven-team league. Measured before
+// the budget landed: **177 seconds for two opponents** on a normal 16-player roster,
+// extrapolating to ~15 minutes for a real league, synchronously, on the thread that serves
+// every request. Production served nothing at all until a watchdog restarted it.
+//
+// It had never run before: everything is gated on a finite `projected_points`, and ESPN
+// published no 2026 projections until week 1 went live. The code did not change; the data did.
+
+const OUTAGE_SLOTS = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "K", "DEF"];
+
+function outageRoster(tag) {
+  const mk = (id, position) => ({
+    player_id: `${tag}-${id}`,
+    position,
+    eligible_positions: [position],
+    selected_position: "BN",
+    projected_points: 5 + (id.length % 9),
+  });
+  const players = [mk("qb", "QB")];
+  for (let i = 0; i < 5; i += 1) players.push(mk(`rb${i}`, "RB"));
+  for (let i = 0; i < 6; i += 1) players.push(mk(`wr${i}`, "WR"));
+  for (let i = 0; i < 2; i += 1) players.push(mk(`te${i}`, "TE"));
+  players.push(mk("k", "K"));
+  players.push(mk("def", "DEF"));
+  return players;
+}
+
+test("findTradeCandidate cannot block the event loop on a real league (2026-09-05 outage)", () => {
+  const ownTeam = { roster_id: 0, players: outageRoster("own") };
+  const opponentTeams = Array.from({ length: 11 }, (_, i) => ({
+    roster_id: i + 1,
+    players: outageRoster(`opp${i}`),
+  }));
+
+  const startedAt = Date.now();
+  const candidate = findTradeCandidate({ ownTeam, opponentTeams, rosterPositions: OUTAGE_SLOTS });
+  const elapsed = Date.now() - startedAt;
+
+  // Generous ceiling: the point is "seconds, not minutes", not a precise timing assertion that
+  // would flake on a loaded CI box. Unguarded this call took roughly 15 minutes.
+  assert.ok(
+    elapsed < 30_000,
+    `trade search took ${elapsed}ms; the budget is meant to stop it long before this`
+  );
+  // Silence is the correct answer for a truncated search, never a guessed trade: every delta
+  // is a difference of two lineup totals, and a truncated total is an underestimate of unknown
+  // size, so a ranking built on one could recommend a trade that makes the team worse.
+  assert.equal(candidate, null);
+});
+
+test("a budget-truncated lineup reports itself as non-exhaustive", () => {
+  const spent = createSearchBudget({ budgetMs: -1 });
+  const result = solveOptimalLineup({
+    players: outageRoster("own"),
+    rosterPositions: OUTAGE_SLOTS,
+    budget: spent,
+  });
+
+  assert.equal(result.exhaustive, false);
+  // Still a usable, honest lineup shape — it just is not provably the best one.
+  assert.equal(result.starters.length, OUTAGE_SLOTS.length);
+});
+
+test("an unbudgeted solve is unchanged and reports itself exhaustive", () => {
+  const result = solveOptimalLineup({
+    players: [
+      { player_id: "a", position: "QB", eligible_positions: ["QB"], projected_points: 20 },
+      { player_id: "b", position: "RB", eligible_positions: ["RB"], projected_points: 12 },
+    ],
+    rosterPositions: ["QB", "RB"],
+  });
+
+  assert.equal(result.exhaustive, true);
+  assert.equal(result.total, 32);
 });

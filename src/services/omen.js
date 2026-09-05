@@ -21,6 +21,7 @@ const {
 const { getCurrentNflWeekContext, suppressLiveFootballData } = require("./nflSchedule");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
+const { logger } = require("../middleware/logging");
 const { findTradeCandidate } = require("./tradeLineup");
 const { compareTrade } = require("./tradeValue");
 
@@ -995,6 +996,17 @@ async function buildTradeCandidateForConnection({ connection, roster }) {
     ownTeam,
     opponentTeams: teams,
     rosterPositions: leagueRosters.roster_positions,
+    // The budget tripping means a user silently lost their trade suggestion. That must be
+    // visible: the 2026-09-05 outage ran for most of a day partly because the only signal was
+    // a watchdog restarting a wedged container 650 times, which nobody was reading as a bug.
+    onBudgetExceeded: (stats) => {
+      logger.warn("Trade search budget exceeded; no suggestion issued", {
+        solves: stats.solves,
+        elapsed_ms: stats.elapsedMs,
+        opponents: teams.length,
+        own_players: ownTeam.players.length,
+      });
+    },
     fairnessGuard: ({ give, receive, userDelta }) => {
       const valuation = compareTrade({ send: [give], receive: [receive] });
       return Number.isFinite(valuation.net_value)
