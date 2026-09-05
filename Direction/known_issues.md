@@ -2,6 +2,60 @@
 
 Last updated: 2026-09-05
 
+## ✅ FIXED 2026-09-05 — two week calculations disagreed on every game day of the season
+
+**Found while sweeping for date-dependent tests, after the founder asked whether the week
+boundary respected the NFL's Tuesday-to-Monday week. It did not.**
+
+`src/services/nflSchedule.js` contained **two** week calculations with different anchors:
+
+| | Anchor | Rolls on |
+|---|---|---|
+| `getSeasonWeekInfo` / `getCurrentNflWeekContext` / `isOffSeason` | fixed `Date.UTC(season, 8, 5)`, UTC | whatever weekday Sept 5 is — **Saturday** in 2026 |
+| `getNflGameWeek` | Labor Day + 1 day, Eastern | **Tuesday**, correctly |
+
+**Measured, not estimated: they returned different week numbers on 33 of 78 in-season days —
+42% — and the disagreement was every Saturday, Sunday and Monday.** That is every day NFL
+games are played. A spot-check on a Tuesday agrees and misses the entire defect.
+
+**Second, worse symptom.** Because the fixed anchor is five days before the real 2026 opener
+(Thursday 09-10), `isOffSeason()` returned `false` on 2026-09-05, and the A4 scoring gate —
+whose stated purpose is *"grading before kickoff would score games that have not happened"* —
+reported **PASS five days early**. That is the same class of error as `facts-of-record.md` #10's
+2026-08-27 correction, reaching a recorded conclusion for the second time.
+
+**Fix:** one anchor. `seasonOpensAt(season)` returns the Tuesday after Labor Day, and both
+functions derive from it. Verified: **0 of 78 disagreements**, and the A4 gate now reports
+`FAIL — season=2026 raw_week=0 is_off_season=true`.
+
+**Two properties a fixed calendar date could never have**, both now covered by tests:
+
+1. An NFL week ends **Tuesday**, so Sunday's games belong to the week that is ending.
+2. September 5 is a Saturday in 2026 and a Sunday in 2027 — a fixed date rolls the week on a
+   different weekday every year, so the bug silently returns each season rather than staying
+   fixed. Tests pin the Monday/Tuesday boundary across 2026, 2027 and 2028.
+
+**Blast radius, checked rather than assumed.** Ten files call `getCurrentNflWeekContext`. Most
+read only `.season`, which was always correct. Six read `.week`: `league.js` and `waivers.js`
+use the safe `providerWeek || context.week` form, so the bad value was a fallback; `dashboard.js`
+used `Number(context.week)` directly. **The Tuesday cron was never at risk** — it grades on
+`move.week_num` stored at creation, and moves are stamped from the *provider's* reported week
+(`src/routes/omen.js:239`), not from this function.
+
+**Deliberate residual:** week 1's Tuesday and Wednesday precede Thursday kickoff, so this still
+reports "in season" up to two days early — down from five. Closing that needs a real kickoff
+timestamp, which is a schedule-data dependency rather than a calendar rule.
+
+### A correction about how this was found
+
+The A4 test that failed earlier the same day was written up as *"a time bomb that expired on
+schedule"* and its failure was dismissed as the test asserting a stale world. **That was wrong.
+The failing test was a true signal** — the gate really had flipped to PASS before kickoff — and
+PR #400 made the test clock-independent, which was correct on its own terms, while the
+accompanying claim that "the checker is correct" was not. The bug it was pointing at is what
+this entry fixes. A test that starts failing on a date is not automatically an expired test;
+it can be the first thing to notice that a date-derived value went wrong.
+
 ## 🟡 OPEN — proxying through Cloudflare costs ~4% of requests as 522s — found and reverted 2026-09-05
 
 **Cloudflare is live as the DNS provider. The proxy (orange cloud) is OFF for the web records,
