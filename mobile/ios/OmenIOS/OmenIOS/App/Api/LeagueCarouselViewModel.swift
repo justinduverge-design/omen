@@ -95,6 +95,36 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// Guards against a swipe-through: swiping across five pages must not fire five writes.
     private var commitTask: Task<Void, Never>?
 
+    /// How many pending `selectedIndex` changes this view model made ITSELF, and which the
+    /// carousel's `.onChange` must therefore not treat as a user resting on a new page.
+    ///
+    /// Without this, the carousel is a feedback loop with no brake:
+    ///
+    ///     .onChange(selectedIndex) -> commitSelection() -> POST /api/leagues/active
+    ///       -> reloadDirectoryPreservingPages() -> writes selectedIndex -> .onChange ...
+    ///
+    /// The only thing that stopped it was `guard !page.isActive`, which holds only if the
+    /// re-read directory comes back with that page marked active. When the server did not
+    /// report it - or reported a different league as active - the loop ran unbounded. On
+    /// 2026-09-05 it emitted 28 requests in nine seconds from one phone, oscillating
+    /// between two leagues, and pegged the single-core production API at 99% CPU until it
+    /// was restarted by hand.
+    ///
+    /// A counter rather than a boolean flag, because `.onChange` is delivered
+    /// asynchronously: a flag cleared at the end of the reload can easily be false again
+    /// by the time the change it caused is finally delivered, which is precisely the race
+    /// that makes this class of bug intermittent. Counting the writes and consuming one
+    /// per delivery does not depend on when the delivery lands.
+    private var programmaticSelections = 0
+
+    /// Moves the pager without arming a commit. Every `selectedIndex` write that is the
+    /// view model's own decision rather than the user's must go through here.
+    private func selectIndexProgrammatically(_ index: Int) {
+        guard selectedIndex != index else { return }
+        programmaticSelections += 1
+        selectedIndex = index
+    }
+
     init(
         directoryRepository: LeagueDirectoryRepository,
         leagueRepository: LeagueRepository,
@@ -175,7 +205,9 @@ final class LeagueCarouselViewModel: ObservableObject {
             // Open on the league Omen is actually using, not on page one. Landing on a
             // different league than the rest of the screen describes would make the
             // carousel disagree with the Ledger and the Omen call beneath it.
-            selectedIndex = allPages.firstIndex(where: { $0.isActive }) ?? 0
+            // Opening on the active league is the view model's decision, not a user swipe,
+            // so it must not write that same league straight back to the server.
+            selectIndexProgrammatically(allPages.firstIndex(where: { $0.isActive }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
         case .failure(let error):
@@ -233,6 +265,14 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// context and calling it new is exactly the stale-context failure the contract names.
     @discardableResult
     func commitSelection() async -> [String]? {
+        // A selection this view model made itself is not the user resting on a page, and
+        // must not be written back to the server. Consuming exactly one queued write per
+        // delivery is what breaks the commit -> reload -> commit loop; see
+        // `programmaticSelections`.
+        if programmaticSelections > 0 {
+            programmaticSelections -= 1
+            return nil
+        }
         commitTask?.cancel()
         guard let page = currentPage else { return nil }
         // The carousel shows the page it is committing, so its matchup has to be in flight
@@ -297,18 +337,21 @@ final class LeagueCarouselViewModel: ObservableObject {
         // Stay on the page the user is looking at, by identity. Keeping the index would
         // move them if the refreshed directory changed the list at all.
         if let restingID, let index = pages.firstIndex(where: { $0.id == restingID }) {
-            selectedIndex = index
+            selectIndexProgrammatically(index)
         }
     }
 
     /// Keeps `selectedIndex` inside the filtered list after a chip change. Filtering to a
     /// provider with fewer leagues than the current index would otherwise leave the pager
     /// pointing past the end, which renders nothing at all.
+    /// Also routed through `selectIndexProgrammatically`: changing the provider chip is
+    /// filtering, not choosing. Re-pointing the pager so it lands on something real must
+    /// not silently write a different active league to the server as a side effect.
     private func clampSelection() {
         if pages.isEmpty {
-            selectedIndex = 0
+            selectIndexProgrammatically(0)
         } else if selectedIndex >= pages.count {
-            selectedIndex = pages.count - 1
+            selectIndexProgrammatically(pages.count - 1)
         }
     }
 }
