@@ -22,14 +22,75 @@ const FETCH_TIMEOUT_MS = 5000;
 const _cache = new Map();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+
+/** Calendar day in the league's timezone, as a UTC-midnight Date so date math is clean. */
+function easternCalendarDay(now) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (type) => Number(parts.find((part) => part.type === type)?.value);
+  return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
+}
+
+/** First Monday in September of `year`, as a UTC-midnight Date. */
+function laborDay(year) {
+  const first = new Date(Date.UTC(year, 8, 1));
+  // getUTCDay: 0=Sun, 1=Mon. Advance to the first Monday.
+  const offset = (8 - first.getUTCDay()) % 7;
+  return new Date(Date.UTC(year, 8, 1 + offset));
+}
+
+/**
+ * When week 1 of `season` begins: the **Tuesday after Labor Day**.
+ *
+ * THE SINGLE ANCHOR. Every week number and every seasonality answer in this module derives
+ * from this one function, because for a while they did not, and the two disagreed:
+ *
+ *   `getSeasonWeekInfo` used a fixed `Date.UTC(season, 8, 5)` while `getNflGameWeek` used
+ *   this Tuesday. Measured across the 2026 regular season the two returned **different week
+ *   numbers on 42% of in-season days** — specifically every Saturday, Sunday and Monday,
+ *   which is to say every day games are actually played. On 2026-09-05 the fixed anchor also
+ *   reported `is_off_season: false` **five days before kickoff**, so the A4 gate whose entire
+ *   job is "grading before kickoff would score games that have not happened" reported PASS.
+ *   That is the second time that class of error reached a recorded conclusion; see
+ *   `Direction/facts-of-record.md` #10 and its 2026-08-27 correction.
+ *
+ * Two properties matter and a fixed calendar date has neither:
+ *
+ *   1. **An NFL week ends on Tuesday, not Sunday.** Sunday's games belong to the week that
+ *      is ending, so a boundary that rolls on any other weekday mis-attributes game day
+ *      itself. Anchoring on a Tuesday makes every subsequent 7-day boundary a Tuesday.
+ *   2. **It has to move with the calendar.** September 5 is a Saturday in 2026 and a Sunday
+ *      in 2027, so a fixed date rolls the week on a different weekday every year — a bug
+ *      that silently re-arrives each season rather than staying fixed.
+ *
+ * Labor Day is the first Monday in September and the league has opened on the Thursday
+ * after it since 2002, so the Tuesday before that opener is a stable, derivable start.
+ *
+ * Known and deliberate: weeks 1's Tuesday and Wednesday precede Thursday kickoff, so this
+ * reports "in season" up to two days before the first game. No games exist in that window,
+ * so nothing can be graded from it. Closing those two days requires asserting a real
+ * kickoff timestamp, which is a schedule-data dependency, not a calendar rule.
+ */
+function seasonOpensAt(season) {
+  return new Date(laborDay(season).getTime() + DAY_MS);
+}
+
 function getSeasonWeekInfo(now = new Date()) {
-  const current = new Date(now);
-  const year = current.getUTCFullYear();
-  const month = current.getUTCMonth();
-  const season = month <= 1 ? year - 1 : year;
-  const regularSeasonStart = Date.UTC(season, 8, 5);
-  const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const rawWeek = Math.floor((current.getTime() - regularSeasonStart) / weekMs) + 1;
+  // The league's own calendar day, not UTC. A UTC day boundary rolls the week at 8pm
+  // Eastern the evening before, which is mid-Sunday-night-game for the whole west coast.
+  const today = easternCalendarDay(now);
+  const year = today.getUTCFullYear();
+  const season = today.getUTCMonth() <= 1 ? year - 1 : year;
+
+  // One anchor, shared with `getNflGameWeek`. See `seasonOpensAt`.
+  const opensAt = seasonOpensAt(season);
+  const rawWeek = Math.floor((today.getTime() - opensAt.getTime()) / WEEK_MS) + 1;
   const week = Math.min(18, Math.max(1, rawWeek));
   const seasonType = rawWeek > 18 ? "postseason" : "regular";
 
@@ -328,28 +389,6 @@ const GAME_WEEK_PHASES = Object.freeze({
   OFF_SEASON: "off_season",
 });
 
-/** Calendar day in the league's timezone, as a UTC-midnight Date so date math is clean. */
-function easternCalendarDay(now) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const get = (type) => Number(parts.find((part) => part.type === type)?.value);
-  return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
-}
-
-/** First Monday in September of `year`, as a UTC-midnight Date. */
-function laborDay(year) {
-  const first = new Date(Date.UTC(year, 8, 1));
-  // getUTCDay: 0=Sun, 1=Mon. Advance to the first Monday.
-  const offset = (8 - first.getUTCDay()) % 7;
-  return new Date(Date.UTC(year, 8, 1 + offset));
-}
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_MS = 7 * DAY_MS;
 const DAY_NAMES = Object.freeze([
   "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
 ]);
@@ -376,7 +415,7 @@ function getNflGameWeek(now = new Date()) {
   // Which season are we in? Before September, the season that started last year.
   const year = today.getUTCFullYear();
   const seasonYear = today.getUTCMonth() <= 1 ? year - 1 : year;
-  const opensAt = new Date(laborDay(seasonYear).getTime() + DAY_MS); // the Tuesday
+  const opensAt = seasonOpensAt(seasonYear);
 
   const rawWeek = Math.floor((today.getTime() - opensAt.getTime()) / WEEK_MS) + 1;
   const offSeason = rawWeek < 1 || rawWeek > 18;

@@ -216,13 +216,60 @@ it("the game week turns over on Tuesday, not Saturday", () => {
   assert.equal(getNflGameWeek(easternNoon("2026-09-20")).week, 2);
 });
 
-it("the Sunday of Week 1 is Week 1 — the case the clamped context gets wrong", () => {
+// The reconciliation this file's previous assertion was waiting for. It read
+// `assert.equal(getCurrentNflWeekContext(sunday).week, 2)` and said, in its own comment, that
+// if it ever failed the reconciliation had landed and it should be deleted rather than fixed.
+// It landed on 2026-09-05; these replace it with the invariant it was standing in for.
+
+it("the Sunday of Week 1 is Week 1 in BOTH week functions", () => {
   const sunday = easternNoon("2026-09-13");
   assert.equal(getNflGameWeek(sunday).week, 1);
-  // Pinned deliberately: the two DO disagree, and that disagreement is a known defect in the
-  // older function, not drift introduced here. If this assertion ever fails it means the
-  // reconciliation landed, and this test should be deleted rather than "fixed".
-  assert.equal(getCurrentNflWeekContext(sunday).week, 2);
+  // Was 2 under the old fixed `Date.UTC(season, 8, 5)` anchor. Sunday is the day games are
+  // actually played, so mis-numbering it mis-attributes the entire slate.
+  assert.equal(getCurrentNflWeekContext(sunday).week, 1);
+});
+
+it("the two week functions agree on every day of the regular season", () => {
+  // The bug this replaces was not an edge case: measured across 2026 the two disagreed on
+  // 42% of in-season days — every Saturday, Sunday and Monday. A single spot-check would
+  // have passed on Tuesday and missed all of it, so sweep the whole season.
+  const start = Date.UTC(2026, 8, 8); // Tuesday after Labor Day 2026
+  let checked = 0;
+  for (let day = 0; day < 18 * 7; day += 1) {
+    const at = new Date(start + day * 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000); // ET noon
+    const game = getNflGameWeek(at);
+    if (game.is_off_season) continue;
+    checked += 1;
+    assert.equal(
+      getCurrentNflWeekContext(at).week,
+      game.week,
+      `week mismatch on ${at.toISOString().slice(0, 10)}`
+    );
+  }
+  assert.ok(checked > 120, `expected a full season of days, checked ${checked}`);
+});
+
+it("the season does not open before the season opens", () => {
+  // 2026 kickoff is Thursday 2026-09-10. The old anchor was the fixed date 2026-09-05, so on
+  // that Saturday `is_off_season` went false FIVE DAYS EARLY and the A4 scoring gate — whose
+  // whole purpose is "grading before kickoff would score games that have not happened" —
+  // reported PASS. That is the same class of error as facts-of-record #10's 2026-08-27
+  // correction, reaching a recorded conclusion for the second time.
+  assert.equal(isOffSeason(easternNoon("2026-09-05")), true, "Sept 5 is not the season");
+  assert.equal(isOffSeason(easternNoon("2026-09-07")), true, "Labor Day is not the season");
+  assert.equal(isOffSeason(easternNoon("2026-09-08")), false, "week 1 opens the Tuesday after");
+});
+
+it("the week boundary is Tuesday, in every season, not a fixed calendar date", () => {
+  // Sept 5 falls on a different weekday every year, so a fixed anchor rolled the week on a
+  // different day each season — a bug that silently returns rather than staying fixed.
+  // Labor Day: 2026-09-07 (Mon), 2027-09-06 (Mon), 2028-09-04 (Mon).
+  for (const [season, mondayAfterOpen] of [[2026, "2026-09-14"], [2027, "2027-09-13"], [2028, "2028-09-11"]]) {
+    const monday = easternNoon(mondayAfterOpen);
+    const tuesday = easternNoon(new Date(Date.parse(`${mondayAfterOpen}T12:00:00Z`) + 86400000).toISOString().slice(0, 10));
+    assert.equal(getCurrentNflWeekContext(monday).week, 1, `${season}: Monday still closes week 1`);
+    assert.equal(getCurrentNflWeekContext(tuesday).week, 2, `${season}: Tuesday opens week 2`);
+  }
 });
 
 it("phases follow the founder's game-week rhythm", () => {
