@@ -2,6 +2,29 @@
 
 Last updated: 2026-09-05
 
+## 🟡 OPEN — the only off-host database backup lives on a VPS scheduled to expire 2026-05-06 — noted 2026-09-05
+
+**Not urgent. Easy to forget. Expensive if forgotten.**
+
+KVM2 (`srv1647690`) holds the encrypted Restic repository at `/srv/restic/omen` — per Layer 3 of
+the fleet spec, the **only** off-host copy of Omen's database. Hostinger reports that plan's
+**auto-renewal as disabled**, scheduled to expire **2026-05-06** (~8 months of runway). Neither
+VPS has Hostinger automatic snapshots enabled either, so there is no provider-side safety net
+underneath it.
+
+The founder's reasoning is sound and this is **not** a recommendation to simply renew: VPS
+hosting may move to a different provider, and paying to renew a box you intend to leave is
+waste. The point is narrower — **the backup repository has to move before or with that
+decision, never after it.** A migration that relocates the app and leaves the backups on an
+expiring box converts a planned move into an unplanned data-loss window.
+
+Whatever is decided, one of these must be true before 2026-05-06:
+
+1. KVM2 renews, or
+2. the Restic repository has an equivalent home elsewhere, with a **restore drill proven on the
+   new target** — the fleet spec's existing drill was proven against KVM2 specifically, and a
+   backup that has never been restored from its new home is a hope, not a backup.
+
 ## 🔴 OPEN — the API can be driven into an unrecoverable 100% CPU spin by ordinary traffic — found 2026-09-05
 
 **This is the serious half of the 2026-09-05 outage and it is NOT fixed.** The client loop
