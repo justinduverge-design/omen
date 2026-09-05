@@ -174,6 +174,126 @@ class LeagueCarouselTest {
         ) to repo
     }
 
+    private val noActiveLeagueJson = """
+    {"contract_version":"league-directory.v1","season":2026,"follow_persistence":"explicit",
+     "platforms":[{"platform":"sleeper","connection_state":"connected","discovery":"full",
+       "leagues":[
+         {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":false},
+         {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":false}]}]}
+    """.trimIndent()
+
+    // Kotlin twin of `testAReorderedRereadDoesNotTurnOneSwipeIntoACommitLoop`.
+    //
+    // Android could not originally loop: the pager was never driven from `selectedIndex`, so
+    // the view model's own writes went nowhere. The cost was the opposite defect — after a
+    // reload the view model followed the resting league while the pager stayed put, and the
+    // two drifted. Fixing that drift means the pager now follows `selectedIndex`, which closes
+    // the same feedback path that took iOS production down on 2026-09-05. These pin the guard
+    // that makes the sync safe.
+
+    private val noActiveLeagueReorderedJson = """
+    {"contract_version":"league-directory.v1","season":2026,"follow_persistence":"explicit",
+     "platforms":[{"platform":"sleeper","connection_state":"connected","discovery":"full",
+       "leagues":[
+         {"league_id":"L2","league_name":"Beta","team_name":"Sentinels","is_active":false},
+         {"league_id":"L1","league_name":"Alpha","team_name":"Titans","is_active":false}]}]}
+    """.trimIndent()
+
+    /**
+     * Serves a different directory on the second read, which the shared stub cannot do. The
+     * list changing between reads is the whole mechanism: without it the resting league keeps
+     * its index, nothing moves, and the path under test is never taken.
+     */
+    private class ReorderingDirectoryRepository(
+        private val first: LeagueDirectory,
+        private val second: LeagueDirectory,
+        private val selection: OmenApiResult<LeagueSelectionResult>,
+    ) : LeagueDirectoryRepository {
+        val calls = mutableListOf<Triple<String, String, String?>>()
+        private var reads = 0
+
+        override suspend fun fetchDirectory(accessToken: String): OmenApiResult<LeagueDirectory> {
+            reads += 1
+            return OmenApiResult.Success(if (reads == 1) first else second)
+        }
+
+        override suspend fun selectLeague(
+            accessToken: String,
+            platform: String,
+            leagueId: String,
+            teamId: String?,
+        ): OmenApiResult<LeagueSelectionResult> {
+            calls += Triple(platform, leagueId, teamId)
+            return selection
+        }
+    }
+
+    private fun selectionSuccess() = OmenApiResult.Success(
+        LeagueSelectionResult(
+            contractVersion = "league-active-selection.v1",
+            selectionPersistence = "explicit",
+            activePlatform = null,
+            activeLeagueId = null,
+            refresh = listOf("command_center"),
+        ),
+    )
+
+    @Test
+    fun `a view model initiated move is not committed back to the server`() =
+        kotlinx.coroutines.runBlocking {
+            val repo = ReorderingDirectoryRepository(
+                first = requireNotNull(LeagueDirectory.parse(noActiveLeagueJson)),
+                second = requireNotNull(LeagueDirectory.parse(noActiveLeagueReorderedJson)),
+                selection = selectionSuccess(),
+            )
+            val vm = LeagueCarouselViewModel(
+                directoryRepository = repo,
+                leagueRepository = StubLeagueRepository(OmenApiResult.Failure(OmenApiError.Network)),
+                sessionManager = signedIn(),
+            )
+            vm.load("u1")
+
+            // The user rests on Beta. One write is correct and expected.
+            vm.selectIndex(1)
+            assertEquals(listOf("command_center"), vm.commitSelection())
+            assertEquals(1, repo.calls.size)
+
+            // The re-read reordered the list, so the view model moved itself to keep the user
+            // on Beta — and the pager now follows that move, delivering it back as if it were
+            // a swipe. It must not write again.
+            assertEquals("reload should have followed Beta to its new index", 0, vm.selectedIndex)
+            assertEquals("sleeper:L2", vm.currentPage?.id)
+            vm.commitSelection()
+            assertEquals(
+                "the view model's own pager move was committed back to the server",
+                1,
+                repo.calls.size,
+            )
+        }
+
+    @Test
+    fun `a genuine user swipe still commits`() = kotlinx.coroutines.runBlocking {
+        val (vm, repo) = viewModel(
+            json = noActiveLeagueJson,
+            selection = OmenApiResult.Success(
+                LeagueSelectionResult(
+                    contractVersion = "league-active-selection.v1",
+                    selectionPersistence = "explicit",
+                    activePlatform = null,
+                    activeLeagueId = null,
+                    refresh = listOf("command_center"),
+                ),
+            ),
+        )
+        vm.load("u1")
+
+        // The guard must not be so broad that it eats the real thing.
+        vm.selectIndex(1)
+        assertEquals(listOf("command_center"), vm.commitSelection())
+        assertEquals(1, repo.calls.size)
+        assertEquals("L2", repo.calls.first().second)
+    }
+
     @Test
     fun `committing the already active league writes nothing`() = kotlinx.coroutines.runBlocking {
         val (vm, repo) = viewModel()

@@ -207,11 +207,34 @@ private fun LoadedCarousel(
     // `settledPage` rather than `currentPage`: committing mid-drag would write a selection for
     // a league the user is still swiping past, and dragging across five pages would fire five
     // verified provider writes to land where one reaches.
-    LaunchedEffect(pagerState, pages.size) {
+    //
+    // Keyed on `pagerState` alone. It was previously keyed on `pages.size` too, which restarts
+    // the effect whenever the league list changes length — and a restarted `snapshotFlow`
+    // re-emits the current `settledPage` immediately, firing a redundant commit for a page the
+    // user had not touched. A provider returning a different league set between calls is
+    // enough to trigger that.
+    LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { index ->
             viewModel.selectIndex(index)
             viewModel.loadCurrentPage()
             viewModel.commitSelection()?.let(onContextChanged)
+        }
+    }
+
+    // The other half of the sync: when the view model moves itself — opening on the active
+    // league, or following the resting league across a refreshed directory — the pager has to
+    // follow, or the two silently drift and the carousel loads, labels and commits a league
+    // the user is not looking at.
+    //
+    // This deliberately closes a feedback path (view model -> pager -> settledPage ->
+    // commitSelection) that is exactly what took production down on iOS on 2026-09-05. It is
+    // only safe because `commitSelection` now consumes the view model's own moves rather than
+    // committing them; see `LeagueCarouselViewModel.programmaticSelections`. Do not remove
+    // that guard while this effect exists.
+    LaunchedEffect(viewModel.selectedIndex, pages.size) {
+        val target = viewModel.selectedIndex
+        if (target in pages.indices && pagerState.currentPage != target) {
+            pagerState.scrollToPage(target)
         }
     }
 
