@@ -92,6 +92,144 @@ function startingSlots(rosterPositions = []) {
 }
 
 /**
+ * Max-weight assignment of players to starting slots — the Hungarian algorithm (Kuhn-Munkres),
+ * in the O(n^3) shortest-augmenting-path form.
+ *
+ * ## Why this replaced the exhaustive search
+ *
+ * Picking a lineup is the **assignment problem**: each slot takes at most one player, each
+ * player fills at most one slot, maximise total projected points. The original implementation
+ * enumerated every assignment, which is exponential and took 177 seconds for two opponents
+ * inside `findTradeCandidate` (see `TRADE_SEARCH_BUDGET_MS`). This returns the *same answer* in
+ * microseconds, because the problem has a polynomial algorithm and always did.
+ *
+ * ## How empty slots and ineligibility are expressed
+ *
+ * Both fall out of the cost matrix rather than needing special cases:
+ *
+ *   - **Empty is allowed.** One dummy column per slot, cost 0. A slot matched to a dummy is
+ *     empty and contributes nothing. Because there are exactly as many dummies as slots, a
+ *     complete matching over slots always exists, so the algorithm can never fail to answer.
+ *   - **Negative projections leave a slot empty**, without a rule saying so: a player worth
+ *     -2 costs +2 against a dummy's 0, so the dummy wins. That matches the exhaustive search,
+ *     which would also decline to start him.
+ *   - **Ineligibility is priced, not forbidden.** `INELIGIBLE_COST` is large enough that a
+ *     dummy is always preferred, so an ineligible pairing is never chosen while the matrix
+ *     stays dense and the algorithm stays simple. Assignments are filtered afterwards anyway,
+ *     so a pathological matrix cannot put a kicker in the QB slot.
+ *
+ * Costs are negated projections because Kuhn-Munkres minimises.
+ */
+const INELIGIBLE_COST = 1e9;
+
+function hungarian(cost, rowCount, colCount) {
+  // 1-indexed, following the standard formulation; index 0 is the sentinel the augmenting
+  // path terminates on. Potentials `u`/`v` keep every reduced cost non-negative.
+  const INF = Infinity;
+  const u = new Float64Array(rowCount + 1);
+  const v = new Float64Array(colCount + 1);
+  const p = new Int32Array(colCount + 1);
+  const way = new Int32Array(colCount + 1);
+
+  for (let i = 1; i <= rowCount; i += 1) {
+    p[0] = i;
+    let j0 = 0;
+    const minv = new Float64Array(colCount + 1).fill(INF);
+    const used = new Uint8Array(colCount + 1);
+
+    do {
+      used[j0] = 1;
+      const i0 = p[j0];
+      let delta = INF;
+      let j1 = 0;
+
+      for (let j = 1; j <= colCount; j += 1) {
+        if (used[j]) continue;
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+
+      for (let j = 0; j <= colCount; j += 1) {
+        if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else { minv[j] -= delta; }
+      }
+
+      j0 = j1;
+    } while (p[j0] !== 0);
+
+    // Walk the alternating path back, flipping matched edges.
+    do {
+      const j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0);
+  }
+
+  // Invert: column -> row becomes row -> column.
+  const rowToCol = new Int32Array(rowCount).fill(-1);
+  for (let j = 1; j <= colCount; j += 1) {
+    if (p[j] > 0) rowToCol[p[j] - 1] = j - 1;
+  }
+  return rowToCol;
+}
+
+/**
+ * The optimal starting lineup. Exact, and fast enough to call thousands of times.
+ *
+ * `budget` is accepted and ignored: it exists so callers written against the exhaustive solver
+ * keep working, and because `findTradeCandidate` still threads one through as a backstop. This
+ * function no longer needs it — it cannot run long — so it always reports `exhaustive: true`.
+ */
+function solveOptimalLineup({ players = [], rosterPositions = [] } = {}) {
+  const slots = startingSlots(rosterPositions);
+  const eligiblePlayers = players
+    .filter((player) => lineupEligible(player) && finiteProjection(player) !== null)
+    .slice()
+    .sort((a, b) => String(a.player_id || a.player_key).localeCompare(String(b.player_id || b.player_key)));
+
+  if (!slots.length) return { total: 0, starters: [], exhaustive: true };
+
+  const rowCount = slots.length;
+  // Real players first, then one dummy per slot so "leave it empty" is always available.
+  const colCount = eligiblePlayers.length + slots.length;
+
+  const cost = Array.from({ length: rowCount }, (_, i) => {
+    const row = new Float64Array(colCount);
+    for (let j = 0; j < eligiblePlayers.length; j += 1) {
+      const player = eligiblePlayers[j];
+      row[j] = slotEligible(player, slots[i].slot)
+        ? -finiteProjection(player)
+        : INELIGIBLE_COST;
+    }
+    // Dummy columns stay 0.
+    return row;
+  });
+
+  const rowToCol = hungarian(cost, rowCount, colCount);
+
+  let total = 0;
+  const byIndex = new Map();
+  for (let i = 0; i < rowCount; i += 1) {
+    const col = rowToCol[i];
+    if (col < 0 || col >= eligiblePlayers.length) continue;
+    const player = eligiblePlayers[col];
+    // Belt and braces: never surface a pairing the eligibility rules forbid, whatever the
+    // arithmetic did.
+    if (!slotEligible(player, slots[i].slot)) continue;
+    const points = finiteProjection(player);
+    if (points === null) continue;
+    total += points;
+    byIndex.set(slots[i].index, player);
+  }
+
+  return {
+    total: Math.max(0, total),
+    starters: slots.map(({ slot, index }) => ({ slot, player: byIndex.get(index) || null })),
+    exhaustive: true,
+  };
+}
+
+/**
  * The optimal starting lineup, by exhaustive assignment.
  *
  * `budget` is optional. Without one the behaviour is exactly as before — callers that solve a
@@ -102,7 +240,7 @@ function startingSlots(rosterPositions = []) {
  * must never be differenced against another to value a trade. `findTradeCandidate` abandons the
  * whole search rather than doing that; see the comment there.
  */
-function solveOptimalLineup({ players = [], rosterPositions = [], budget = null } = {}) {
+function solveOptimalLineupExhaustive({ players = [], rosterPositions = [], budget = null } = {}) {
   const slots = startingSlots(rosterPositions);
   const eligiblePlayers = players
     .filter((player) => lineupEligible(player) && finiteProjection(player) !== null)
@@ -264,6 +402,8 @@ function findTradeCandidate({
 
 module.exports = {
   solveOptimalLineup,
+  // Exported for the property test that pins the fast solver to the old exhaustive one.
+  solveOptimalLineupExhaustive,
   findTradeCandidate,
   createSearchBudget,
   TRADE_SEARCH_BUDGET_MS,
