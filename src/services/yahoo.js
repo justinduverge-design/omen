@@ -253,6 +253,26 @@ class YahooClient {
     };
   }
 
+  /**
+   * Raw league settings, for waiver-system verification
+   * (league-aware-waiver-system-v1 Phase 0, Yahoo).
+   *
+   * Returns the RAW settings entity rather than a parsed shape. Nothing here
+   * has been seen in live traffic: Yahoo is entitlement-refused
+   * (facts-of-record #11), so this call has never run for real and its shape is
+   * unknown. Parsing it here would repeat the 2026-08-28 defect documented at
+   * the top of this file — three parsers written against an assumed shape,
+   * silently returning empty against the real one, with unit tests passing
+   * throughout because the fixtures were hand-built.
+   *
+   * The caller maps it and fails closed. Do not add parsing here until captured
+   * traffic exists.
+   */
+  async getLeagueSettings(leagueKey) {
+    const d = await this.get(`/league/${leagueKey}/settings`);
+    return d?.fantasy_content?.league ?? null;
+  }
+
   /** Roster for a team at a given week. Returns raw Yahoo response. */
   async getRoster(teamKey, week) {
     const path = week

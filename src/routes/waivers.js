@@ -168,10 +168,27 @@ async function loadYahoo(connection, userId, week) {
     pool = null;
   }
 
+  // §6.2 verification, provisional and unverifiable while the entitlement is
+  // refused. fromYahoo() fails closed, so Yahoo's output is unchanged until
+  // captured traffic confirms the shape.
+  let system = NOT_DETERMINED_PENDING_PROBE();
+  try {
+    const rawSettings = await client.getLeagueSettings(connection.league_id);
+    const myTeamKey = await client.getMyTeamKey(connection.league_id).catch(() => null);
+    system = waiverSystem.fromYahoo({
+      settings: Array.isArray(rawSettings) ? rawSettings[0] : rawSettings,
+      team: myTeamKey ? await client.get(`/team/${myTeamKey}`)
+        .then((d) => d?.fantasy_content?.team?.[0] ?? null)
+        .catch(() => null) : null,
+    });
+  } catch (_) {
+    // not_determined. A settings read must never break waiver advice.
+  }
+
   return {
     roster,
     pool,
-    waiverSystem: NOT_DETERMINED_PENDING_PROBE(),
+    waiverSystem: system,
     scoringFormat: null,
     // Yahoo's /players;status=A carries no projection, so every candidate is
     // unprojected and none is evidence-backed. Availability alone is not enough

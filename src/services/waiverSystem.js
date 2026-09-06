@@ -220,6 +220,103 @@ function fromEspn({ settings, team } = {}) {
   });
 }
 
+
+/**
+ * Read an attribute off a Yahoo entity in EITHER of its two serialisations —
+ * a flat object, or an array of single-key objects. Both are real and the
+ * choice is per-endpoint. See the note at the top of src/services/yahoo.js:
+ * assuming one shape is exactly how three parsers silently returned empty for
+ * every flat-object endpoint while their unit tests passed.
+ */
+function yahooAttr(raw, key) {
+  if (!raw || typeof raw !== "object") return undefined;
+  if (Array.isArray(raw)) {
+    const hit = raw.find((x) => x && typeof x === "object" && key in x);
+    return hit ? hit[key] : undefined;
+  }
+  return raw[key];
+}
+
+/**
+ * Yahoo — PROVISIONAL AND UNVERIFIABLE TODAY.
+ *
+ * Weaker evidence than ESPN, not stronger. Yahoo is entitlement-refused
+ * (facts-of-record #11), so the settings call has never run for real, no
+ * captured traffic exists, and the shape is unknown on two axes at once: which
+ * fields carry the waiver system, AND which of Yahoo's two serialisations the
+ * settings endpoint uses.
+ *
+ * It therefore FAILS CLOSED, hard. It requires an explicitly recognized value
+ * and returns not_determined for anything else, so §6.2 stays in force for
+ * every Yahoo league and their output is unchanged.
+ *
+ * DO NOT "verify" this with a hand-built fixture. That is precisely the
+ * 2026-08-28 failure recorded in src/services/yahoo.js: the fixtures matched
+ * the parser's assumption rather than reality, so the tests proved nothing and
+ * every affected endpoint was broken in production. The tests for this function
+ * assert only that it fails closed — never that a mapping is correct.
+ *
+ * Confirm against captured traffic when the entitlement is restored.
+ *
+ * @param {*} settings raw settings entity from YahooClient.getLeagueSettings
+ * @param {*} team raw team entity, for the user's FAAB balance
+ */
+function fromYahoo({ settings, team } = {}) {
+  if (!settings || typeof settings !== "object") {
+    return undetermined("yahoo settings unavailable — entitlement refused, shape unverified");
+  }
+
+  // Yahoo nests settings one level deeper on some endpoints. Try both without
+  // assuming either is the real one.
+  const direct = yahooAttr(settings, "settings");
+  const container = direct !== undefined
+    ? (Array.isArray(direct) ? direct[0] : direct)
+    : settings;
+
+  const usesFaab = yahooAttr(container, "uses_faab");
+  const waiverType = yahooAttr(container, "waiver_type");
+
+  // Yahoo serialises booleans as "1"/"0" strings on some endpoints and as
+  // booleans on others. Accept only values that are unambiguous.
+  const faabTrue = usesFaab === 1 || usesFaab === "1" || usesFaab === true;
+  const faabFalse = usesFaab === 0 || usesFaab === "0" || usesFaab === false;
+
+  if (faabTrue) {
+    const balance = yahooAttr(team, "faab_balance");
+    const remaining = isFiniteNumber(Number(balance)) && balance !== null && balance !== ""
+      ? Number(balance)
+      : null;
+    return Object.freeze({
+      version: MODEL_VERSION,
+      system: SYSTEMS.FAAB,
+      determined_from: SOURCES.PROVIDER,
+      reason: null,
+      // Yahoo exposes the remaining balance, not the season total. Reporting
+      // the balance as a total would overstate what is left after spending.
+      budget_total: null,
+      budget_remaining: remaining,
+      bid_min: null,
+      priority_position: null,
+    });
+  }
+
+  if (faabFalse && (waiverType === "R" || waiverType === "C" || waiverType === "S")) {
+    const rank = Number(yahooAttr(team, "waiver_priority"));
+    return Object.freeze({
+      version: MODEL_VERSION,
+      system: SYSTEMS.PRIORITY,
+      determined_from: SOURCES.PROVIDER,
+      reason: null,
+      budget_total: null,
+      budget_remaining: null,
+      bid_min: null,
+      priority_position: Number.isFinite(rank) && rank > 0 ? rank : null,
+    });
+  }
+
+  return undetermined("yahoo waiver system not recognized — no captured traffic to verify against");
+}
+
 /** §6.2 gates. A value may be shown only when its system was positively determined. */
 function mayShowFaab(model) {
   return Boolean(model) && model.system === SYSTEMS.FAAB && model.determined_from === SOURCES.PROVIDER;
@@ -240,6 +337,7 @@ module.exports = {
   SOURCES,
   fromSleeper,
   fromEspn,
+  fromYahoo,
   undetermined,
   mayShowFaab,
   mayShowPriority,

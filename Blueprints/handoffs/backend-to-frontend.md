@@ -4057,3 +4057,84 @@ again — check `available`/`status` instead.
 - **Frontend behavior:** `ConnectLeague.jsx`'s `YahooCard` now renders a league picker (fetches `GET /api/yahoo/leagues`, radio-selects, confirms via `POST /api/yahoo/league`) whenever a Yahoo connection is `connected: true` with `leagues: []` — i.e. whenever `GET /api/platforms/state` would report `choosing_league` for Yahoo. No other Yahoo response shape changed.
 - **Files:** `src/services/yahoo.js`, `src/routes/yahoo.js`, `src/routes/platforms.js`, `src/services/yahooAuth.js` (comment only), `frontend/src/pages/ConnectLeague.jsx`, `test/yahoo.test.js` (new), `test/yahooAuth.test.js`, `test/yahooAuthRoute.test.js`, `test/platforms.test.js`.
 - **Not yet done:** deployed to production; provider-proven against a real drafted Yahoo league (that's `F7`, still blocked on `P1-YahooReauth`'s founder-gated consent step). Tests hand-traced against fixtures in this session, not executed — no node/npm available in-session; run `npm test` before merge.
+
+## League-aware waiver system — 2026-09-05
+
+- **Status:** built and merged to `main`, not deployed. Backend only — **no native or web client
+  consumes any of this yet.** Spec `Blueprints/specs/league-aware-waiver-system-v1.md`, intent
+  `Direction/intents/2026-09-05-league-aware-waiver-wire.md`.
+- **What changed for the UI:** `waiver-analysis.v1` (`GET /api/waivers/analysis`) gains a
+  `waiver_system` block and an optional `best_move.bid`. Every other field is unchanged.
+
+```json
+{
+  "waiver_system": {
+    "system": "faab" | "priority" | "not_determined",
+    "determined_from": "provider_settings" | "not_determined",
+    "budget_total": 100,
+    "budget_remaining": 83,
+    "bid_min": 0,
+    "priority_position": null
+  },
+  "best_move": {
+    "bid": {
+      "model_version": "waiver-bid.v1",
+      "amount": 23,
+      "of_budget_remaining": 83,
+      "basis": "About 28% of your remaining $83, based on roughly 11 projected points gained over the next 4 weeks.",
+      "implies_claim_success": false
+    }
+  }
+}
+```
+
+### Rendering rules — these are §6.2 obligations, not preferences
+
+1. **Branch on `system`, never on field presence.** Every key is always present; the ones that do
+   not apply are `null`. Do not infer FAAB from a non-null `budget_total`, and do not infer
+   priority from a non-null `priority_position`. The backend already gated them; a client that
+   re-derives will eventually disagree with it.
+2. **`not_determined` renders exactly like today.** No budget, no priority, no bid, no "unknown"
+   badge, no empty state. The user is not told anything about a waiver system Omen did not verify.
+   This is the current state for **all ESPN and Yahoo leagues** — see provider status below.
+3. **`null` is not zero.** A FAAB league with `budget_remaining: null` means the remaining budget
+   is unknown, not that it is spent. Render the FAAB framing without a number. Showing `$0` states
+   the user cannot bid, which is a different and wrong claim.
+4. **Never render `bid.amount` without `bid.basis`.** The basis is why a number is permitted to
+   appear at all. It is written to be shown verbatim.
+5. **Never present the bid as a probability, a guarantee, or a winning bid.** It is a budget
+   allocation, not a forecast; `implies_claim_success` is `false` on every bid ever emitted.
+   §6.2: "Do not imply claim success."
+6. **Claim probability does not exist and is not coming in v1.** There is no field for it. It
+   remains forbidden for every league regardless of verification.
+7. **In `off_season`, render the off-season message only.** `waiver_system` is still populated
+   there — it is factual and the block is present in every state so clients never test for the
+   key — but a budget or priority on an off-season card implies there is a waiver decision to
+   make. There is not.
+8. **`bid` is absent (`null`) whenever any input was missing** — a non-FAAB league, an unknown
+   budget, an exhausted budget, a missing week. Absent means render nothing, not `$0`.
+
+### Provider status — what the UI will actually see today
+
+| Provider | `waiver_system.system` | Why |
+|---|---|---|
+| Sleeper | `faab` / `priority`, verified | Probed live 2026-09-05; value mapping evidenced against 298 real 2025 waiver transactions |
+| ESPN | `not_determined` | Mapping is provisional and fails closed until `scripts/probe-espn-waiver-settings.js` is run against a real league (needs a founder-device session) |
+| Yahoo | `not_determined` | Entitlement-refused; no captured traffic exists, so the mapping is unverifiable and fails closed |
+
+**Build the UI against all three `system` values now.** ESPN and Yahoo will start returning real
+values once their mappings are confirmed, with no further contract change — so a client that
+branches correctly today needs no rework then.
+
+- **Also changed:** Omen of the Week's waiver risk/warning language is now league-aware on the
+  same verified model, so one league can no longer describe its waiver system two different ways
+  on two screens. A verified FAAB league is told its remaining budget; a verified priority league
+  its position; anything unverified keeps the existing "not modeled" wording.
+- **Files:** `src/services/waiverSystem.js` (new), `src/services/waiverBid.js` (new),
+  `src/services/waiverAnalysis.js`, `src/services/omen.js`, `src/routes/waivers.js`,
+  `src/adapters/espn.js`, `src/services/yahoo.js`,
+  `scripts/probe-espn-waiver-settings.js` (new), plus tests.
+- **Not yet done:** deployed; native/web consumption; ESPN and Yahoo mapping confirmation. The two
+  bid constants (`SEASON_DEFINING_POINTS`, `VALUATION_HORIZON_WEEKS`) are judgement calls and are
+  **not founder-ratified** — they shape every bid and have never been checked against a real
+  waiver period.

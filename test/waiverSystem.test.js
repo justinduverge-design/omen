@@ -168,3 +168,60 @@ test("ESPN priority reports rank and never a budget", () => {
   assert.equal(m.priority_position, 5);
   assert.equal(m.budget_total, null);
 });
+
+// --- Yahoo: provisional, UNVERIFIABLE, must fail closed --------------------
+//
+// These tests assert ONLY that fromYahoo() fails closed. They deliberately do
+// NOT claim any mapping is correct. Yahoo is entitlement-refused, so no
+// captured traffic exists, and src/services/yahoo.js records what happened the
+// last time this repo trusted hand-built Yahoo fixtures: three parsers written
+// against an assumed shape returned empty for every real flat-object endpoint,
+// with unit tests passing throughout. A green test here is evidence of safety,
+// never of correctness.
+
+const { fromYahoo } = require("../src/services/waiverSystem");
+
+test("Yahoo with no settings is not_determined", () => {
+  assert.equal(fromYahoo({}).system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(fromYahoo({ settings: null }).system, SYSTEMS.NOT_DETERMINED);
+});
+
+test("Yahoo with an unrecognized shape fails closed", () => {
+  const m = fromYahoo({ settings: { some_other_field: 1 }, team: { faab_balance: 50 } });
+  assert.equal(m.system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(m.budget_remaining, null);
+});
+
+test("Yahoo rejects an ambiguous uses_faab value rather than coercing it", () => {
+  // "yes" is truthy. Treating it as FAAB would be exactly the assumption that
+  // broke the earlier Yahoo parsers.
+  assert.equal(fromYahoo({ settings: { uses_faab: "yes" } }).system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(fromYahoo({ settings: { uses_faab: 2 } }).system, SYSTEMS.NOT_DETERMINED);
+});
+
+test("Yahoo handles BOTH serialisations, since the endpoint's shape is unknown", () => {
+  const flat = fromYahoo({ settings: { uses_faab: "1" }, team: { faab_balance: "73" } });
+  const arr = fromYahoo({ settings: [{ uses_faab: 1 }], team: [{ faab_balance: 73 }] });
+  assert.equal(flat.system, SYSTEMS.FAAB);
+  assert.equal(arr.system, SYSTEMS.FAAB);
+  assert.equal(flat.budget_remaining, 73);
+  assert.equal(arr.budget_remaining, 73);
+});
+
+test("Yahoo FAAB reports remaining but NEVER a season total it does not have", () => {
+  const m = fromYahoo({ settings: { uses_faab: "1" }, team: { faab_balance: "40" } });
+  assert.equal(m.budget_remaining, 40);
+  assert.equal(m.budget_total, null);
+});
+
+test("Yahoo priority requires a recognized waiver_type, not merely non-FAAB", () => {
+  assert.equal(
+    fromYahoo({ settings: { uses_faab: "0", waiver_type: "R" }, team: { waiver_priority: 4 } }).priority_position,
+    4,
+  );
+  // non-FAAB but an unknown waiver_type is still unknown.
+  assert.equal(
+    fromYahoo({ settings: { uses_faab: "0", waiver_type: "ZZ" }, team: { waiver_priority: 4 } }).system,
+    SYSTEMS.NOT_DETERMINED,
+  );
+});
