@@ -48,6 +48,32 @@ Omen's database. It can still host staging, but that now carries a blast-radius 
 answering first. The backup repository was checked after the openclaw removal, not assumed:
 `/srv/restic/omen` holds a snapshot written the same morning.
 
+## 2026-09-05 (later) — Player photos in Omen of the Week: wanted, captured, deferred
+
+The founder wants the recommended player's face on the This Week's Omen lead card — "a little
+touch, to show the player that we're highlighting." Captured as
+`Direction/intents/2026-09-05-player-photo-in-omen-of-the-week.md`, the first file under
+`Direction/intents/`.
+
+**Decision: DEFERRED, not queued.** Week 1 is ~2026-09-10, `F6` (ESPN real-account QA) is still
+`BLOCKED` on founder-device execution, and this is polish by the originator's own description.
+Nothing about it is urgent enough to take a slot on the critical path five days out.
+
+**What reopens it:** `pre-build-research` answering whether a free, lawfully usable NFL player
+photo source exists at Omen's commercial posture. The intent is written on the founder's
+preference — "without paying for a headshot service *if we can avoid it*" — not on a finding.
+That was deliberate. This repo already has one unresolved commercial-use question with Sleeper
+(`A6`/`A7B`); assuming free imagery is lawful would be the same bet a second time. A spec written
+before that research lands would be designing against an unknown, so the research is marked a
+blocker on the design stage rather than a nicety.
+
+**Second gate, founder-only:** `Blueprints/specs/mobile/omen-mobile-visual-briefs-v1.md` §4.2's
+approved card anatomy has no photo element. A photo is not *forbidden* on the lead card the way
+it is on Matchup Hero (§1.2), Start/Sit (§5.1), and offer surfaces (§8.2) — but it is not
+approved either. That amendment is a founder call and no agent may make it.
+
+**Deferral, not waiver.** The intent stands as written; only its timing moved.
+
 ## 2026-09-04 — The Command Center sketch: a game-week headline, PROJ/SCORE columns, a second pager
 
 Founder brought a hand-drawn Command Center layout. Built the same session.
