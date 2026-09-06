@@ -1,6 +1,6 @@
 # Omen Known Issues
 
-Last updated: 2026-09-06
+Last updated: 2026-09-06 (both 2026-09-05 outage entries reconciled — same bug, fixed)
 
 ## ✅ FIXED 2026-09-05 — two week calculations disagreed on every game day of the season
 
@@ -107,7 +107,51 @@ while grading them wrong, which is strictly worse than deferring. ESPN ships ids
 Yahoo ships `stat_categories` with names and a `position_type` and is therefore the safer provider
 to extend first.
 
-## 🔴 OPEN, PRODUCTION ROLLED BACK 2026-09-05 — `POST /api/omen/mvp-move` hangs forever and takes the whole API down
+## ✅ FIXED 2026-09-05, verified 2026-09-06 — `POST /api/omen/mvp-move` hung forever and took the whole API down
+
+> **Status corrected 2026-09-06.** This entry stood as 🔴 OPEN for a day after it was actually
+> fixed. The write-up below was made during the hunt and its "prime suspect: PR #401" theory was
+> **wrong**; the cause was found and fixed the same afternoon in **#404** (a search budget) and
+> **#405** (a polynomial solver), and nobody came back to update the heading. The founder was right
+> to remember it as fixed. The diagnosis is recorded in `src/services/tradeLineup.js`.
+>
+> **Cause.** `findTradeCandidate` solved the optimal lineup twice for every
+> (own player × opponent player) pair, per opponent — ~5,600 exhaustive recursive searches in an
+> eleven-team league. Measured before the fix: **177 seconds for two opponents**, extrapolating to
+> roughly 15 minutes for a real league, all of it synchronous on the one thread Node uses to serve
+> every request. That is the 100% CPU, no-logs, event-loop-dead signature exactly.
+>
+> **Why it started that day and had never happened before.** Every path into it is gated on a
+> finite `projected_points`, and ESPN published no 2026 projections until week 1 went live. The
+> code did not change; the data did.
+>
+> **Reachability, checked rather than assumed:** `findTradeCandidate` →
+> `buildTradeCandidateForConnection` → `buildLiveOmenMvpMoveForUser` → `POST /api/omen/mvp-move`,
+> and nothing else in `src/` calls any of them. That matches this entry's own measurement — three
+> requests never completed and **all three were `mvp-move`** — and it is why the shadow-container
+> replay in the entry below could not reproduce: that replay never called `mvp-move`.
+>
+> **Re-measured 2026-09-06** against the current code, same worst-case shapes:
+>
+> | League | Before | Now |
+> |---|---|---|
+> | 2 opponents, 16-man | 177,000 ms | **18 ms** |
+> | 11 opponents, 16-man | ~15 min (extrapolated) | **61 ms** |
+> | 16-team, 20-man | — | **114 ms** |
+>
+> A single lineup solve went from ~30 ms to **0.25 ms**.
+>
+> **One real residual, found while re-measuring and fixed 2026-09-06.** `TRADE_SEARCH_MAX_SOLVES`
+> was left at **4,000**, a number sized against the *old* solver. At 0.25 ms per solve it tripped
+> after ~98 ms — 5% of the 2s clock budget — and a budget trip returns **no suggestion at all**.
+> A 16-team league on 20-man rosters needs 7,625 solves to search honestly, so the deepest leagues
+> silently lost their trade suggestion while shallow ones kept theirs. Raised to 200,000 so the
+> clock, which is what actually bounds event-loop blocking, is the binding constraint. The
+> 11-team regression test sat under the old cap and could never have caught it; a deep-league test
+> now pins it, and was verified to fail on the old value.
+
+### Original write-up, kept because the measurement in it is good and the theory in it was wrong
+
 
 **Symptom the founder saw:** "Omen couldn't reach the server", repeatedly, all day. It is not a
 network problem and not an Omen-tab problem — the entire site goes down, including the marketing
@@ -246,7 +290,35 @@ Whatever is decided, one of these must be true before 2026-05-06:
    new target** — the fleet spec's existing drill was proven against KVM2 specifically, and a
    backup that has never been restored from its new home is a hope, not a backup.
 
-## 🔴 OPEN — the API can be driven into an unrecoverable 100% CPU spin by ordinary traffic — found 2026-09-05
+## ✅ FIXED — the API could be driven into an unrecoverable 100% CPU spin — found 2026-09-05, closed 2026-09-06
+
+> **Status corrected 2026-09-06. This is the same bug as the entry above, not a second one.**
+> It was written up separately because the hunt narrowed the spin to the wrong endpoints, and that
+> mistake is worth keeping rather than deleting.
+>
+> **Where the endpoint list went wrong.** The reasoning was: morgan logs on response *finish*, so
+> the culprit is whatever ran after the last logged request — giving `GET /api/leagues` or
+> `POST /api/leagues/active`, later widened to five concurrent candidates. `POST /api/omen/mvp-move`
+> was never in that set, because the Command Center fires it alongside the others and its own log
+> line never arrived. The entry above had the measurement that settles it: three requests never
+> completed and all three were `mvp-move`.
+>
+> **This also explains the failed reproduction below.** The shadow container replayed
+> `/api/leagues`, `/api/dashboard/summary`, `/api/moves`, `/api/league/overview` and
+> `POST /api/leagues/active` — 225 requests at high concurrency, never wedged. It never called
+> `mvp-move`, which is the only route that reaches the exhaustive lineup search. The replay was
+> sound; it was aimed at the wrong endpoint.
+>
+> **The lesson worth keeping:** "the last request to *complete*" does not identify the request
+> that hung when the client fires several concurrently. The one that hung is the one with **no**
+> log line — which is exactly the one that is hardest to notice is missing.
+>
+> The three mitigations below (CPU/memory caps, the watchdog, the client carousel fix) are real
+> and stay. So does the "why it stayed down all night" section, which is the most valuable part of
+> this entry and is unaffected by the misattribution.
+
+### Original write-up, kept for the measurement and for the ruled-out list
+
 
 **This is the serious half of the 2026-09-05 outage and it is NOT fixed.** The client loop
 below has been fixed; this has not. Do not treat the outage as closed.

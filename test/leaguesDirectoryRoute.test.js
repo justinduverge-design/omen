@@ -118,9 +118,23 @@ function defaultSleeperAdapter(overrides = {}) {
   };
 }
 
+/**
+ * What ESPN's own league read says each team is. Deliberately disagrees with the fan payload's
+ * `entryId` below: that mismatch is the bug this fixture exists to catch.
+ */
+const ESPN_LEAGUE_TEAMS = Object.freeze({
+  "12345": { team_id: 9, team_name: "ESPN Team" },
+  "77": { team_id: 4, team_name: "Zeta Squad" },
+  "88": { team_id: 2, team_name: "Mid Squad" },
+});
+
 function defaultEspnAdapter(overrides = {}) {
   return {
-    verifyLeagueAccess: async () => ({ team_id: 9, team_name: "ESPN Team" }),
+    // Keyed by league so the directory's per-league resolution is actually observable;
+    // a constant here would have passed no matter which league was asked about.
+    verifyLeagueAccess: async (leagueId) => (
+      ESPN_LEAGUE_TEAMS[String(leagueId)] || { team_id: 9, team_name: "ESPN Team" }
+    ),
     // Discovery unavailable by default, so every pre-existing ESPN test keeps
     // exercising the bound-league fallback it was written for.
     fetchEspnFanLeagues: async () => { throw new Error("fan api unavailable"); },
@@ -576,10 +590,13 @@ test("POST /api/leagues/active still binds the league, and says so honestly, whe
 
 // --- Multi-league: discovery, follow-count ordering, and the multiselect write ---
 
+// Shaped the way the founder's real account answered: ESPN's fan endpoint carries a league name
+// but no team name, and its `entryId` is an entry identifier — not the 1..n `team.id` the rest of
+// the ESPN surface matches on. Both are wrong here on purpose.
 const ESPN_FAN_LEAGUES = [
-  { league_id: "77", league_name: "Zeta Office", season: 2026, team_id: "4", team_name: "Zeta Squad" },
-  { league_id: "12345", league_name: "Alpha Dynasty", season: 2026, team_id: "9", team_name: "ESPN Team" },
-  { league_id: "88", league_name: "Mid Money", season: 2026, team_id: "2", team_name: "Mid Squad" },
+  { league_id: "77", league_name: "Zeta Office", season: 2026, team_id: "900004", team_name: null },
+  { league_id: "12345", league_name: "Alpha Dynasty", season: 2026, team_id: "900009", team_name: null },
+  { league_id: "88", league_name: "Mid Money", season: 2026, team_id: "900002", team_name: null },
 ];
 
 function espnWithDiscovery() {
@@ -602,6 +619,41 @@ test("ESPN reports every league the fan API returns, not just the bound one", as
   assert.deepEqual(espn.leagues.map((l) => l.team_id), ["9", "2", "4"]);
   // Only the bound league is active; the other two are followed but not selected.
   assert.deepEqual(espn.leagues.map((l) => l.is_active), [true, false, false]);
+});
+
+// The only confirmed beta defect on the ESPN switcher: every discovered ESPN league rendered as
+// "Your team" because the fan payload carries no team name, and the row's `team_id` was ESPN's
+// entry id rather than the league-scoped `team.id` that `POST /api/leagues/active` stores and
+// every later roster read matches against.
+test("ESPN discovery resolves each league's real team name and league-scoped team id", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
+    espnAdapter: espnWithDiscovery(),
+  });
+  const { body } = await request(app);
+
+  const espn = body.platforms.find((p) => p.platform === "espn");
+  assert.deepEqual(espn.leagues.map((l) => l.team_name), ["ESPN Team", "Mid Squad", "Zeta Squad"]);
+  // Not the fan payload's 900009/900002/900004.
+  assert.deepEqual(espn.leagues.map((l) => l.team_id), ["9", "2", "4"]);
+});
+
+test("ESPN discovery keeps a league whose team read fails, rather than dropping it", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
+    espnAdapter: defaultEspnAdapter({
+      fetchEspnFanLeagues: async () => ESPN_FAN_LEAGUES,
+      verifyLeagueAccess: async (leagueId) => {
+        if (String(leagueId) === "88") throw new Error("ESPN team not found in this league");
+        return ESPN_LEAGUE_TEAMS[String(leagueId)];
+      },
+    }),
+  });
+  const { body } = await request(app);
+
+  const espn = body.platforms.find((p) => p.platform === "espn");
+  assert.deepEqual(espn.leagues.map((l) => l.league_name), ["Alpha Dynasty", "Mid Money", "Zeta Office"]);
+  assert.deepEqual(espn.leagues.map((l) => l.team_name), ["ESPN Team", null, "Zeta Squad"]);
 });
 
 test("providers are ordered most-leagues-first, ties alphabetical", async () => {

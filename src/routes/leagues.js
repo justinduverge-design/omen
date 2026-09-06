@@ -197,42 +197,56 @@ async function yahooLeagues(row, userId) {
  * (facts-of-record #6). The adapter strips query strings from its failure reports.
  */
 /**
- * Fill in team names ESPN's fan endpoint did not supply.
+ * Resolve each discovered ESPN league's team from the league itself.
  *
- * The fan payload carries `entry.name` for some accounts and not others — the founder's ESPN
- * league came back with a league name and no team name, so the switcher fell back to showing
- * the league title where a team belongs ("Fantasy Football 2026"). `verifyLeagueAccess` reads
- * the league directly and does return a name, built from ESPN's `location` + `nickname`, so the
- * data is reachable; discovery simply is not the endpoint that carries it.
+ * ## Why discovery's own team fields are not trusted
  *
- * Best-effort and bounded on purpose:
- *   - only leagues **missing** a name cost a request, so the common case adds nothing;
- *   - the reads run in parallel, because they are independent and this is on a screen the user
- *     is waiting on;
- *   - a failure leaves the name null rather than rejecting the league. A league you can see but
- *     cannot name is a worse row; a league that vanished is a worse bug.
+ * The fan payload's `entry.name` and `entry.entryId` were never confirmed in ESPN's own client
+ * bundle (see `fanLeaguesFromPreferences`), and the beta bore that out: ESPN rows arrived in the
+ * switcher with no team name, so every one of them rendered as "Your team".
+ *
+ * `entryId` is worse than cosmetic. It is an ESPN *entry* identifier, not the 1..n `team.id`
+ * scoped to a league, and `POST /api/leagues/active` writes whatever `team_id` this route
+ * published into `platform_connections.espn_team_id`. That column is then passed as `teamId` to
+ * every roster, waiver, matchup and start/sit read, where `findUserTeam` matches it strictly
+ * against `team.id`. A wrong id there does not degrade — it throws "ESPN team not found in this
+ * league" on a league the user can plainly see.
+ *
+ * So the league read is the authority for both fields. `verifyLeagueAccess` with a null team id
+ * matches on SWID — the same ownership test every other ESPN surface uses — and returns ESPN's
+ * own `location` + `nickname`.
+ *
+ * Bounded on purpose: one read per league, run in parallel because they are independent and a
+ * user is waiting on this screen, and a failure keeps discovery's values rather than dropping the
+ * league. A league you cannot name is a worse row; a league that vanished is a worse bug.
  */
-async function backfillEspnTeamNames(leagues, credentials) {
+async function resolveEspnTeams(leagues, credentials) {
   if (!credentials) return leagues;
   return Promise.all(leagues.map(async (league) => {
-    if (league.team_name) return league;
+    let team = null;
     try {
-      const team = await espnAdapter.verifyLeagueAccess(
-        league.league_id,
-        credentials.espn_s2,
-        credentials.swid,
-        league.team_id || null
+      team = await espnAdapter.verifyLeagueAccess(
+        league.league_id, credentials.espn_s2, credentials.swid, null
       );
-      if (!team?.team_name) return league;
-      return {
-        ...league,
-        team_id: team.team_id == null ? league.team_id : String(team.team_id),
-        team_name: team.team_name,
-      };
     } catch {
-      // Never surface the ESPN failure detail here; the connection state field carries it.
-      return league;
+      // SWID did not match a team — a shared or delegated account can do this. Discovery's id is
+      // the only other claim available, so it gets one attempt rather than none.
+      if (!league.team_id) return league;
+      try {
+        team = await espnAdapter.verifyLeagueAccess(
+          league.league_id, credentials.espn_s2, credentials.swid, league.team_id
+        );
+      } catch {
+        // Never surface the ESPN failure detail here; the connection state field carries it.
+        return league;
+      }
     }
+    if (!team) return league;
+    return {
+      ...league,
+      team_id: team.team_id == null ? league.team_id : String(team.team_id),
+      team_name: team.team_name || league.team_name || null,
+    };
   }));
 }
 
@@ -254,7 +268,7 @@ async function espnLeagues(row, userId, season) {
         { season }
       );
       if (discovered.length) {
-        const named = await backfillEspnTeamNames(discovered, credentials);
+        const named = await resolveEspnTeams(discovered, credentials);
         return {
           discovery: "full",
           leagues: named.map((league) => leagueEntry({
