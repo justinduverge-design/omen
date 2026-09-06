@@ -97,8 +97,18 @@ function statusFrom(value) {
     : value;
 }
 
+/**
+ * The first genuinely numeric value, or `null`.
+ *
+ * `null` and `""` are skipped rather than accepted, because `Number(null)` and `Number("")`
+ * are both **0** — a finite number. Without those guards an absent value becomes a confident
+ * zero, and a zero projection is not "unknown", it is "we expect this player to score nothing".
+ * That distinction is the difference between Omen staying quiet and Omen ranking a real player
+ * below an empty slot.
+ */
 function firstFinite(...values) {
   for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
     if (Number.isFinite(Number(value))) return Number(value);
   }
   return null;
@@ -226,7 +236,11 @@ function eligiblePositions(player, primaryPosition) {
   return primaryPosition === "UNK" ? [] : [primaryPosition];
 }
 
-function normalizePlayer(entry) {
+/**
+ * `week` is required to read a projection: ESPN ships them as rows in `player.stats`, keyed by
+ * `scoringPeriodId`, and there is no week-agnostic projection to fall back on.
+ */
+function normalizePlayer(entry, week) {
   const player = unwrapPlayer(entry);
   const id = playerId(entry, player);
   const selectedPosition = slotFromId(entry?.lineupSlotId ?? entry?.lineupSlot ?? entry?.slotId);
@@ -243,13 +257,25 @@ function normalizePlayer(entry) {
     team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
     opponent: null,
     status: statusFrom(player?.injuryStatus || player?.injury_status || player?.status),
+    // The `stats` lookup is last because the flat fields above are what ESPN's older shapes
+    // used and the fixtures still cover. It is also the only one that fires in production:
+    // `mRoster` ships projections as a `stats` row with `statSourceId: 1` and the week's
+    // `scoringPeriodId`, and none of the flat fields exist on that payload.
+    //
+    // Before this, every rostered player came back with `projected_points: null`. Combined
+    // with the `Number(null) === 0` coercion downstream, that made every ESPN player look
+    // like a confident zero, every lineup tie at 0.00, and Omen report "no move clears the
+    // recommendation threshold" — for a roster whose real week-1 projections were sitting
+    // unread in the same response. `projectedPointsForEspnPlayer` already existed and was
+    // wired only to the waiver pool.
     projected_points: firstFinite(
       entry?.projectedPoints,
       entry?.projected_points,
       player?.projectedPoints,
       player?.projected_points,
       player?.projectedRawStatsForScoringPeriod?.appliedTotal,
-      player?.projectedStats?.appliedTotal
+      player?.projectedStats?.appliedTotal,
+      projectedPointsForEspnPlayer(player, week)
     ),
     actual_points: firstFinite(entry?.totalPoints, entry?.actualPoints, player?.totalPoints, player?.actual_points),
     image_url: player?.headshotUrl || player?.imageUrl || null,
@@ -558,7 +584,7 @@ function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
 
   const slots = { starters: [], bench: [], ir: [] };
   for (const entry of rosterEntries(team)) {
-    const normalized = normalizePlayer(entry);
+    const normalized = normalizePlayer(entry, scoringPeriodId);
     if (normalized.selected_position === "IR") slots.ir.push(normalized);
     else if (normalized.selected_position === "BN") slots.bench.push(normalized);
     else slots.starters.push(normalized);
