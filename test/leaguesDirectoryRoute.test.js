@@ -392,6 +392,52 @@ test("POST /api/leagues/active binds a verified Sleeper league and names the sur
   assert.equal(updates[1].patch.is_selected, true);
 });
 
+// The founder's ESPN connection pointed at league 517756847 with `espn_team_id = 1` — his team
+// id in a *different* league (13338821) — while ESPN said he is team 8 there. Omen rendered
+// another manager's roster as his. `persistSelection` only wrote the team id when the client sent
+// one (`if (teamId != null)`), and both native clients send none, so a league switch changed
+// `league_id` and left the previous league's team behind.
+test("POST /api/leagues/active never carries a previous league's ESPN team id across a switch", async () => {
+  const updates = [];
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates },
+    // ESPN resolves the caller's own team from the SWID when asked without one.
+    espnAdapter: defaultEspnAdapter({
+      verifyLeagueAccess: async () => ({ team_id: "8", team_name: "Hall Be Thy Name" }),
+    }),
+  });
+
+  const { status } = await request(app, {
+    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+  });
+
+  assert.equal(status, 200);
+  const set = updates.find((u) => u.patch.is_selected === true);
+  // The field must be written, not omitted — omitting it is what let the stale value survive.
+  assert.equal(Object.hasOwn(set.patch, "espn_team_id"), true);
+  assert.equal(set.patch.espn_team_id, "8", "the team must come from ESPN, not from the old row");
+});
+
+// A stale id is worse than no id: only the stale one is confidently wrong, and the adapters
+// re-resolve a missing one from the SWID on the next read.
+test("POST /api/leagues/active clears the ESPN team id when ESPN cannot be reached", async () => {
+  const updates = [];
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates },
+    espnAdapter: defaultEspnAdapter({
+      verifyLeagueAccess: async () => { throw new Error("ESPN 401"); },
+    }),
+  });
+
+  const { status } = await request(app, {
+    path: "/api/leagues/active", method: "POST", body: { platform: "espn", league_id: "12345" },
+  });
+
+  assert.equal(status, 200);
+  const set = updates.find((u) => u.patch.is_selected === true);
+  assert.equal(set.patch.espn_team_id, null);
+});
+
 test("POST /api/leagues/active accepts the bound ESPN league and records the team id", async () => {
   const updates = [];
   const app = buildApp({ supabase: { rows: [ESPN_ROW], missingSelectionColumn: false, updates } });

@@ -449,9 +449,48 @@ async function assertLeagueBelongsToUser(platform, row, leagueId, userId, season
   return (await discoverLeagueIds(platform, row, userId, season)).has(leagueId);
 }
 
+/**
+ * The team this user owns in one ESPN league.
+ *
+ * A client-supplied id is trusted only after ESPN confirms it, because it is the field that was
+ * silently wrong. Everything else asks ESPN, which resolves the caller's own team from the SWID
+ * when given no team id.
+ *
+ * Returns `null` when ESPN cannot be reached. That is deliberate: an unknown team id is
+ * recoverable — the adapters resolve it again on the next read — while a stale one renders
+ * another manager's roster as the user's own.
+ */
+async function resolveEspnTeamId(userId, leagueId, requestedTeamId) {
+  try {
+    const credentials = await getAuthenticatedEspnCredentials(userId);
+    const team = await espnAdapter.verifyLeagueAccess(
+      leagueId,
+      credentials.espn_s2,
+      credentials.swid,
+      requestedTeamId ?? null
+    );
+    return team?.team_id == null ? null : String(team.team_id);
+  } catch {
+    // Never surface the ESPN failure detail here; the connection state field carries it.
+    return null;
+  }
+}
+
 async function persistSelection(userId, platform, leagueId, teamId) {
   const patch = { league_id: leagueId, updated_at: nowIso() };
-  if (platform === "espn" && teamId != null) patch.espn_team_id = teamId;
+  // **Always write the ESPN team id, including null.**
+  //
+  // This used to be `if (teamId != null)`, so a switch that supplied no team id left the
+  // previous league's team id in place. `league_id` changed and `espn_team_id` did not, and the
+  // connection then described a team the user does not own: the founder's row pointed at league
+  // 517756847 with team 1 — his team id in a *different* league, 13338821 — while ESPN said he
+  // is team 8 there. Omen rendered someone else's team as his.
+  //
+  // Writing `null` is safe and self-repairing: `verifyLeagueAccess` and `buildNormalizedRoster`
+  // both resolve the caller's own team from the SWID when no team id is given, which is exactly
+  // how the correct value is recovered. A stale id is worse than no id, because only the stale
+  // one is confidently wrong.
+  if (platform === "espn") patch.espn_team_id = teamId ?? null;
 
   const clearOthers = async () => {
     const { error } = await supabase
@@ -565,7 +604,15 @@ router.post("/active", requireAuth, async (req, res, next) => {
       }));
     }
 
-    const persistence = await persistSelection(req.user.id, platform, leagueId, teamId);
+    // Resolve the team the user actually owns in the league being selected, rather than trusting
+    // the client to send one. Both native clients call this with no team id today, which is what
+    // let a stale id survive a league change; making the server authoritative fixes every client
+    // at once and cannot be undone by a future one forgetting the field.
+    const resolvedTeamId = platform === "espn"
+      ? await resolveEspnTeamId(req.user.id, leagueId, teamId)
+      : teamId;
+
+    const persistence = await persistSelection(req.user.id, platform, leagueId, resolvedTeamId);
 
     return res.json({
       contract_version: SELECTION_CONTRACT,
