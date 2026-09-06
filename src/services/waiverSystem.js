@@ -76,6 +76,7 @@ function undetermined(reason) {
     reason: reason || "waiver system not recognized",
     budget_total: null,
     budget_remaining: null,
+    bid_min: null,
     priority_position: null,
   });
 }
@@ -119,6 +120,8 @@ function fromSleeper({ league, roster } = {}) {
       reason: null,
       budget_total: total,
       budget_remaining: remaining,
+      // League's minimum bid, when it states one. Floors any recommendation.
+      bid_min: isFiniteNumber(settings.waiver_bid_min) ? settings.waiver_bid_min : null,
       // Sleeper populates waiver_position on FAAB leagues too. It is a decoy
       // here and is deliberately dropped: §6.2 forbids showing a priority to a
       // league that does not run one.
@@ -140,6 +143,7 @@ function fromSleeper({ league, roster } = {}) {
     // is worse than silence.
     budget_total: null,
     budget_remaining: null,
+    bid_min: null,
     priority_position: position,
   });
 }
