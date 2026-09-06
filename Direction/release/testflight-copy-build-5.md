@@ -15,23 +15,27 @@ so **the reviewer path must stay Demo Mode**. Do not edit §3.
 
 ---
 
-## ⚠️ Read before you upload
+## ✅ Backend blockers — cleared 2026-09-06
 
-Two production faults are open in `Direction/known_issues.md` and both land on the surfaces this
-build asks testers to hammer:
+An earlier draft of this file held the build back over two 🔴 OPEN entries in
+`known_issues.md`. **Both were stale.** They were the same bug — the exhaustive lineup search in
+`findTradeCandidate` — fixed on 2026-09-05 by #404 and #405, and never marked closed. Re-measured
+on 2026-09-06: a 2-opponent search went from **177,000 ms to 18 ms**, a 16-team league completes
+in **114 ms**, and a single lineup solve from ~30 ms to 0.25 ms. `known_issues.md` is corrected.
 
-1. **`POST /api/omen/mvp-move` can hang forever and take the whole API down** (🔴 OPEN). That is
-   the Omen of the Week tab. Production is currently serving a **rolled-back image** and
-   *"the rollback is not sticky"* — the next `docker compose pull` reintroduces it.
-2. **The API can be spun to 100% CPU by ordinary traffic** (🔴 OPEN), traced to `GET /api/leagues`
-   or `POST /api/leagues/active` — which is the league switcher, and item 5 of "What to Test"
-   below points every tester straight at it. The trigger measured was 28 requests in nine seconds
-   from one phone.
+One real defect surfaced during that re-check and is fixed in the same branch: the solve cap was
+left at a value sized for the old solver, so leagues of 14+ teams silently got no trade suggestion.
 
-Neither is a client bug, so neither is fixed by shipping Build 5 — but a tester who hits either
-one sees *"Omen couldn't reach the server"* and cannot tell it apart from the app being broken.
-**Founder call:** ship anyway and warn testers in the description, or hold the build until the
-backend spin is found. The caveat paragraph in §1 assumes you ship; delete it if you hold.
+**Two things to confirm before you upload:**
+
+1. **Deploy `main` first, then cut the build.** Every push to `main` that touches `src/`
+   auto-deploys, and the last six runs are green — but the ESPN switcher fix in this branch is not
+   on `main` yet. Merge it, let the deploy go green, *then* archive.
+2. The "⚠️ THE ROLLBACK IS NOT STICKY" warning in `known_issues.md` is **spent**. It was
+   written when GHCR's `:main` held the broken image. It no longer does — pulling is now the thing
+   you want, not the thing to avoid.
+
+Health at the time of writing: `/api/health` and `/api/ready` both 200, root in 92 ms.
 
 ---
 
@@ -62,6 +66,9 @@ Ordered by how likely a tester is to notice.
 - **Command Center was rebuilt** to the founder's sketch, and it now swipes: one page per league.
 - **The league switcher shows favourites**, and **shows your actual team name** on ESPN and Yahoo
   rows. Before this they showed the league title, or "Your team", where a team name belongs.
+- **Switching ESPN leagues no longer shows you another manager's team.** The old code kept the
+  previous league's team id when you switched, so the app could render someone else's roster as
+  yours — observed on the founder's own account. The server now asks ESPN which team you own.
 - **Waivers are league-aware.** Omen now knows whether your league runs FAAB, rolling waivers or
   free agency, and says so in its own words rather than assuming. Verified against three real ESPN
   leagues and two real Yahoo leagues.
@@ -141,8 +148,7 @@ projections now read. "Nothing has been played yet" is.
 >    them
 >
 > Tell me anything that shows the wrong team, the wrong numbers, or a screen you cannot get out
-> of. If you see "Omen couldn't reach the server", that one is on me, not on you — but please tell
-> me what you were doing when it happened, because that is exactly what I need to catch it.
+> of.
 
 **Items 1, 2 and 4 are the point of this round.** ESPN/Yahoo in-app connect, multi-league
 discovery and the league-aware waiver read are the three things with real code behind them and
