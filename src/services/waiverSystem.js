@@ -148,6 +148,78 @@ function fromSleeper({ league, roster } = {}) {
   });
 }
 
+
+/**
+ * ESPN — PROVISIONAL AND UNVERIFIED.
+ *
+ * Unlike the Sleeper mapping, which was probed live and evidenced against 298
+ * real waiver transactions, NOTHING in this repository records ESPN's waiver
+ * settings shape. Spec Phase 0 for ESPN is gated on a founder-device session
+ * (S2/SWID), and no captured payload exists to read field names from.
+ *
+ * So this mapper FAILS CLOSED. It positively recognizes one documented shape
+ * and returns not_determined for everything else — including a payload that is
+ * present but shaped differently. §6.2 therefore stays in force for ESPN until
+ * the probe confirms the shape, and no wrong budget or position can reach a
+ * user in the meantime. An unrecognized ESPN league behaves exactly as it does
+ * today.
+ *
+ * `scripts/probe-espn-waiver-settings.js` confirms or refutes the mapping
+ * below. Until it has been run against a real league, treat every branch here
+ * as a hypothesis — do NOT widen it to "whatever field looks right".
+ *
+ * @param {object} args
+ * @param {object} args.settings raw `data.settings` from an mSettings view
+ * @param {object} args.team the user's team row, for budget spent
+ */
+function fromEspn({ settings, team } = {}) {
+  const acquisition = settings && settings.acquisitionSettings;
+  if (!acquisition || typeof acquisition !== "object") {
+    return undetermined("espn acquisition settings absent — probe not yet run");
+  }
+
+  // The single documented discriminator. Anything other than a real boolean is
+  // an unrecognized shape, not a "probably false".
+  const usesBudget = acquisition.isUsingAcquisitionBudget;
+  if (typeof usesBudget !== "boolean") {
+    return undetermined("espn waiver discriminator not recognized — probe required");
+  }
+
+  if (usesBudget) {
+    const total = isFiniteNumber(acquisition.acquisitionBudget) ? acquisition.acquisitionBudget : null;
+    const spent = isFiniteNumber(team?.transactionCounter?.acquisitionBudgetSpent)
+      ? team.transactionCounter.acquisitionBudgetSpent
+      : null;
+    // Same rule as Sleeper: remaining is derived, and missing input stays
+    // unknown rather than becoming zero.
+    const remaining = total !== null && spent !== null ? Math.max(0, total - spent) : null;
+    if (total === null) return undetermined("espn budget total unreadable — probe required");
+
+    return Object.freeze({
+      version: MODEL_VERSION,
+      system: SYSTEMS.FAAB,
+      determined_from: SOURCES.PROVIDER,
+      reason: null,
+      budget_total: total,
+      budget_remaining: remaining,
+      bid_min: null,
+      priority_position: null,
+    });
+  }
+
+  const position = isFiniteNumber(team?.waiverRank) ? team.waiverRank : null;
+  return Object.freeze({
+    version: MODEL_VERSION,
+    system: SYSTEMS.PRIORITY,
+    determined_from: SOURCES.PROVIDER,
+    reason: null,
+    budget_total: null,
+    budget_remaining: null,
+    bid_min: null,
+    priority_position: position,
+  });
+}
+
 /** §6.2 gates. A value may be shown only when its system was positively determined. */
 function mayShowFaab(model) {
   return Boolean(model) && model.system === SYSTEMS.FAAB && model.determined_from === SOURCES.PROVIDER;
@@ -167,6 +239,7 @@ module.exports = {
   SYSTEMS,
   SOURCES,
   fromSleeper,
+  fromEspn,
   undetermined,
   mayShowFaab,
   mayShowPriority,

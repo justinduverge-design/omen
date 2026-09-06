@@ -116,3 +116,55 @@ test("same league, different season, different system — never cache across yea
   assert.equal(y2025.system, SYSTEMS.PRIORITY);
   assert.equal(y2026.system, SYSTEMS.FAAB);
 });
+
+// --- ESPN: provisional mapping, must fail closed ---------------------------
+
+const { fromEspn } = require("../src/services/waiverSystem");
+
+test("ESPN with no acquisition settings is not_determined", () => {
+  assert.equal(fromEspn({}).system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(fromEspn({ settings: {} }).system, SYSTEMS.NOT_DETERMINED);
+});
+
+test("ESPN with an UNRECOGNIZED shape fails closed rather than guessing", () => {
+  // A payload that exists but is shaped differently must not be coerced. This
+  // is the whole safety property while the mapping is unverified.
+  const m = fromEspn({
+    settings: { acquisitionSettings: { acquisitionBudget: 100, someOtherFlag: "yes" } },
+    team: { waiverRank: 2 },
+  });
+  assert.equal(m.system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(m.budget_total, null);
+  assert.equal(m.priority_position, null);
+});
+
+test("ESPN budget flag must be a real boolean, not truthy", () => {
+  const m = fromEspn({ settings: { acquisitionSettings: { isUsingAcquisitionBudget: 1 } } });
+  assert.equal(m.system, SYSTEMS.NOT_DETERMINED);
+});
+
+test("ESPN FAAB derives remaining and never invents a total", () => {
+  const m = fromEspn({
+    settings: { acquisitionSettings: { isUsingAcquisitionBudget: true, acquisitionBudget: 100 } },
+    team: { transactionCounter: { acquisitionBudgetSpent: 30 } },
+  });
+  assert.equal(m.system, SYSTEMS.FAAB);
+  assert.equal(m.budget_remaining, 70);
+  assert.equal(m.priority_position, null);
+
+  const noTotal = fromEspn({
+    settings: { acquisitionSettings: { isUsingAcquisitionBudget: true } },
+    team: {},
+  });
+  assert.equal(noTotal.system, SYSTEMS.NOT_DETERMINED);
+});
+
+test("ESPN priority reports rank and never a budget", () => {
+  const m = fromEspn({
+    settings: { acquisitionSettings: { isUsingAcquisitionBudget: false, acquisitionBudget: 100 } },
+    team: { waiverRank: 5 },
+  });
+  assert.equal(m.system, SYSTEMS.PRIORITY);
+  assert.equal(m.priority_position, 5);
+  assert.equal(m.budget_total, null);
+});

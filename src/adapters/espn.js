@@ -853,6 +853,8 @@ async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
 }
 
 module.exports = {
+  // Exported for scripts/probe-espn-waiver-settings.js (spec Phase 0, ESPN).
+  fetchEspnApi,
   buildLeagueStandings,
   buildLeagueContext,
   leagueNameFromEspnData,

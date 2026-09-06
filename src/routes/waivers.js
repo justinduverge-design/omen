@@ -120,12 +120,33 @@ async function loadEspn(connection, userId, week) {
     .fetchEspnWaiverPool(connection.league_id, credentials.espn_s2, credentials.swid, week)
     .catch(() => null);
 
+  // §6.2 verification, provisional. fromEspn() fails closed: an unrecognized
+  // settings shape yields not_determined, so ESPN behaves exactly as it did
+  // before until scripts/probe-espn-waiver-settings.js confirms the mapping.
+  let system = NOT_DETERMINED_PENDING_PROBE();
+  try {
+    const data = await espnAdapter.fetchEspnApi(
+      connection.league_id,
+      credentials.espn_s2,
+      credentials.swid,
+      ["mTeam", "mSettings"],
+      null
+    );
+    const teams = Array.isArray(data?.teams) ? data.teams : [];
+    const team = connection.espn_team_id != null
+      ? teams.find((t) => String(t.id) === String(connection.espn_team_id)) || null
+      : null;
+    system = waiverSystem.fromEspn({ settings: data?.settings, team });
+  } catch (_) {
+    // not_determined. A settings read must never break waiver advice.
+  }
+
   return {
     roster,
     pool,
     // ESPN exposes no scoring-settings mapping Omen has verified, so this stays
     // null rather than defaulting to PPR — that default is the A6 defect.
-    waiverSystem: NOT_DETERMINED_PENDING_PROBE(),
+    waiverSystem: system,
     scoringFormat: null,
     availabilityConfirmed: pool != null,
     limitations: pool == null
