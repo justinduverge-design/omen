@@ -2549,3 +2549,36 @@ to either number. **A league scoring exactly is not the same as a league whose c
 decision. Yahoo retention stays `false` — not because it is blocked, since its entitlement was
 restored 2026-08-28 and its settings endpoint is readable, but because the Yahoo scoring mapping is
 unbuilt.
+
+## 2026-09-06 — Tuesday grading enabled, and the row that was holding it
+
+**The hold.** `OMEN_CRON_SCORING_ENABLED` was set to `false` on 2026-08-26 because the Tuesday
+cron graded every recommendation as PPR, so a half-PPR or standard league would be judged against
+points its rules never awarded — Omen calling its own advice wrong when it was not.
+
+**Why it could be lifted.** The fail-closed machinery landed with A6 and is what actually protects
+users: a row with `scoring_contract_required = true` whose contract cannot be reconciled is
+**deferred as pending**, never graded. Only rows predating A6 reach the legacy PPR fallback.
+
+**Measured rather than assumed.** `moves` held three rows. Two required a contract and would defer
+correctly. The third was the problem the hold was written about: created 2026-06-04, `season 2099`,
+no headline, no target player, no reasoning, no confidence, `scoring_contract_required` null — and
+`followed = true`, so the legacy fallback would have written an invented outcome into the Ledger
+for a row with nothing in it to grade.
+
+**Cleanup, founder-authorized.** That row was recorded in full to
+`References/evidence/2026-09-06-grading-enable/deleted-move-row.json` and deleted. `moves` now
+holds two rows, **zero of which can reach the PPR fallback**.
+
+**The change.** `.env.production` backed up as `.env.production.bak-20260906-grading-enable`,
+`OMEN_CRON_SCORING_ENABLED` flipped `false` to `true` — a one-line diff, verified — and only
+compose service `cron` force-recreated. The API was not touched and stayed healthy throughout.
+Reversal is the same two steps in the other direction.
+
+**What this does not do.** It does not make grading exact for every league. ESPN and Yahoo both
+land `ambiguous` today wherever a league uses points-allowed tiers or per-position scoring, and an
+ambiguous contract defers rather than grades. Enabling the cron means the rows that *can* be graded
+exactly now are, and the rest say so — it does not mean every recommendation gets an outcome.
+
+**Watch item:** the cron runs Tuesdays. The first real run is the first evidence that this is
+behaving; until then this entry records intent, not proof.

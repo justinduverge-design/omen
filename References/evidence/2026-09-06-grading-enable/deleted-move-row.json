@@ -1,0 +1,17 @@
+{
+  "why": "Deleted 2026-09-06 with founder authorization, immediately before enabling OMEN_CRON_SCORING_ENABLED. This is the row that caused the 2026-08-26 grading hold: it predates A6, so scoring_contract_required is null and the Tuesday cron would grade it through the legacy PPR fallback. It is marked followed=true, so that grade would have appeared in the Ledger as a real outcome. It has no headline, no target player, no reasoning, no confidence, and season 2099 -- there is nothing in it to grade.",
+  "row": {
+    "id": "7238d29e-1718-4e4e-b7ef-1af291012bc2",
+    "created_at": "2026-06-04 01:04:45.247325+00",
+    "season": 2099,
+    "week_num": 1,
+    "headline": null,
+    "target_player": null,
+    "reasoning": null,
+    "confidence": null,
+    "followed": true,
+    "outcome": "pending",
+    "scoring": null,
+    "scoring_contract_required": null
+  }
+}
