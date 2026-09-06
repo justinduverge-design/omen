@@ -19,6 +19,7 @@ const {
   readConnectionsWithSelection,
 } = require("./activeSelection");
 const { getCurrentNflWeekContext, suppressLiveFootballData } = require("./nflSchedule");
+const waiverSystemSvc = require("./waiverSystem");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
@@ -789,7 +790,26 @@ function preDraftMvpResponse({ connection, roster, connectedPlatforms }) {
  * honest, and they are also what keeps the cost near zero, since no pool is
  * ever fetched for a roster with no OUT starter.
  */
-function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup, waiverSignal = null }) {
+/**
+ * Describe the league's waiver system in one sentence, for the risk list and
+ * the warning. Says only what was verified: a determined FAAB league gets its
+ * budget, a determined priority league gets its position, and anything else
+ * keeps the original "not modeled" language, which stays true where nothing
+ * was read.
+ *
+ * Never claims the add will clear. §6.2: "Do not imply claim success."
+ */
+function waiverClearanceNote(model, platformLabel) {
+  if (waiverSystemSvc.mayShowFaab(model) && typeof model.budget_remaining === "number") {
+    return `This is a FAAB league and you have $${model.budget_remaining} left; the add still has to win its bid.`;
+  }
+  if (waiverSystemSvc.mayShowPriority(model) && typeof model.priority_position === "number") {
+    return `This is a waiver-priority league and you are number ${model.priority_position}; the add may not clear.`;
+  }
+  return `Waiver priority, FAAB budget, and drop candidates are not modeled — confirm the add is possible in ${platformLabel}.`;
+}
+
+function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outStarter, pickup, waiverSignal = null, waiverSystemModel = null }) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const slot = outStarter.selected_position || outStarter.position || "lineup";
@@ -828,12 +848,16 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
     risk: risk("medium", [
       `${outStarter.name} is ${statusLabel}, so the ${slot} slot is already compromised.`,
       `${pickup.name} is unrostered, which usually means limited or unproven volume.`,
-      "Waiver priority or FAAB cost is not modeled, so the add may not clear.",
+      waiverClearanceNote(waiverSystemModel, platformLabel),
     ]),
     explanation: {
       summary: `Your best live move is to add ${pickup.name} while ${outStarter.name} is ${statusLabel}.`,
       why_it_matters: `${outStarter.name} cannot produce in your ${slot} slot, and ${pickup.name} is the highest-projected available replacement at that position.`,
-      risk: `Risk is medium because ${pickup.name} is unrostered and waiver priority is not modeled.`,
+      risk: `Risk is medium because ${pickup.name} is unrostered and ${
+        waiverSystemSvc.mayShowFaab(waiverSystemModel) || waiverSystemSvc.mayShowPriority(waiverSystemModel)
+          ? "the add still has to clear waivers"
+          : "waiver priority is not modeled"
+      }.`,
       confidence: "Confidence is 70 out of 100.",
       data_used: [
         `${platformLabel} roster`,
@@ -843,9 +867,7 @@ function mapWaiverPickupToMvpMove({ roster, connection, connectedPlatforms, outS
       ],
     },
   };
-  response.warnings.push(
-    `Waiver priority, FAAB budget, and drop candidates are not modeled — confirm the add is possible in ${platformLabel}.`
-  );
+  response.warnings.push(waiverClearanceNote(waiverSystemModel, platformLabel));
   return { status: 200, body: response };
 }
 
@@ -929,6 +951,24 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     )
     : null;
 
+  // §6.2 verification for this surface. Omen of the Week previously told every
+  // user "FAAB budget is not modeled" — true then, but false for a Sleeper
+  // league once waiver analysis started modelling it. The same league must not
+  // describe its own waiver system two different ways on two screens.
+  //
+  // ESPN stays not_determined: its probe is spec Phase 0 and is not built.
+  let waiverSystemModel = waiverSystemSvc.undetermined("waiver system not read for this surface");
+  if (connection.platform === "sleeper") {
+    try {
+      const league = await sleeperAdapter.fetchSleeperLeague(connection.league_id);
+      const user = await sleeperAdapter.fetchSleeperUser(connection.platform_username);
+      const raw = await sleeperAdapter.fetchSleeperRoster(connection.league_id, user.user_id);
+      waiverSystemModel = waiverSystemSvc.fromSleeper({ league, roster: raw.roster });
+    } catch {
+      // not_determined. A settings read must never break the week's recommendation.
+    }
+  }
+
   const candidate = (Array.isArray(pool) ? pool : []).filter((player) => {
     // null projection means "unknown", not zero. An unprojected add is not
     // evidence-backed, so it never becomes a recommendation.
@@ -947,7 +987,7 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
     Number(right.projected_points) - Number(left.projected_points)
     || String(left.player_key).localeCompare(String(right.player_key))
   )[0];
-  if (!candidate) return { candidate: null, waiverSignal };
+  if (!candidate) return { candidate: null, waiverSignal, waiverSystemModel };
 
   // Same unit as a lineup swap's delta: expected points gained this week. An
   // OUT starter's own projection is subtracted rather than assumed to be zero,
@@ -956,6 +996,7 @@ async function buildWaiverCandidateForConnection({ connection, roster, espnCrede
   const starterPoints = finiteNumber(outStarter.projected_points) || 0;
 
   return {
+    waiverSystemModel,
     candidate: {
       id: `live_omen_waiver_${candidate.player_key || "unknown"}`,
       type: "waiver_pickup",
@@ -1602,6 +1643,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
   const waiverAnalysis = await buildWaiverCandidateForConnection({ connection, roster, espnCredentials });
   const waiverCandidate = waiverAnalysis.candidate;
   const waiverSignal = waiverAnalysis.waiverSignal;
+  const waiverSystemModel = waiverAnalysis.waiverSystemModel || null;
   if (waiverCandidate) candidates.push(waiverCandidate);
 
   // B2-D3-S: trade reads every public league roster only when lineup and
@@ -1687,6 +1729,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       outStarter: selected.outStarter,
       pickup: selected.pickup,
       waiverSignal,
+      waiverSystemModel,
     });
   }
 
@@ -1933,6 +1976,9 @@ function buildOmenMvpMoveResponse(body = {}) {
 }
 
 module.exports = {
+  // Exported for test: this is user-facing waiver language and it must never
+  // claim an add will clear.
+  waiverClearanceNote,
   authenticateOmenRequest,
   authRequiredMvpResponse,
   buildLiveOmenMvpMoveForUser,
