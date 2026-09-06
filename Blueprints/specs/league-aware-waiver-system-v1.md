@@ -1,6 +1,16 @@
 # League-Aware Waiver System v1
 
-**Status:** Draft spec — not approved, not queued
+**Status:** Phases 0-3 built and merged to `main` for Sleeper. ESPN/Yahoo Phase 0 outstanding.
+
+| Phase | State |
+|---|---|
+| 0 · Settings probe | **DONE (Sleeper)** — findings below. ESPN gated on founder device; Yahoo on API reapproval. |
+| 1 · Canonical model | **DONE** — `src/services/waiverSystem.js` |
+| 2 · Surfacing / §6.2 gate | **DONE** — `waiver-analysis.v1` carries `waiver_system`; wired through the route and Omen of the Week |
+| 3 · Bid recommendation | **BUILT, NOT RATIFIED** — `src/services/waiverBid.js`. `SEASON_DEFINING_POINTS` and `VALUATION_HORIZON_WEEKS` are judgement calls awaiting founder sign-off. Claim probability remains out of scope and forbidden. |
+
+**Not verified against a real waiver period.** No 2026 waivers have run. The first, ~2026-09-10,
+is the first genuine evidence the bid curve is sane.
 **Date:** 2026-09-05
 **Owner:** Backend / waiver analysis
 **Intent:** `Direction/intents/2026-09-05-league-aware-waiver-wire.md`
