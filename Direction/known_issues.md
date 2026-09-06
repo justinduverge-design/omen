@@ -1,6 +1,6 @@
 # Omen Known Issues
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ## ✅ FIXED 2026-09-05 — two week calculations disagreed on every game day of the season
 
@@ -55,6 +55,57 @@ PR #400 made the test clock-independent, which was correct on its own terms, whi
 accompanying claim that "the checker is correct" was not. The bug it was pointing at is what
 this entry fixes. A test that starts failing on a date is not automatically an expired test;
 it can be the first thing to notice that a date-derived value went wrong.
+
+## 🟡 OPEN — leagues that score defence or IDP cannot reach a `supported` scoring contract
+
+**Founder, 2026-09-06:** *"We just won't support leagues or draft defensive players right now.
+Plus it's beta. It's okay. We do need to add that as something that needs to be checked if we
+want to support every fantasy league."*
+
+### The distinction that matters
+
+**These leagues still score exactly.** ESPN keys a league's rules and each player's stat line by
+the same numeric `statId`, so recomputing a score is arithmetic and needs no semantic map —
+verified 15/15 players to three decimals on league 13338821. What they cannot reach is a
+**`supported` canonical contract**, which is what the Tuesday grading cron requires. Scoring a
+league and grading a league are different capabilities, and only the second is blocked.
+
+An `ambiguous` contract **defers** rather than guesses (`omen_tuesday_cron.js`), so the effect is a
+recommendation that never receives an outcome — not a wrong one.
+
+### Two separate causes
+
+**1. ESPN — per-position scoring has no canonical representation.** ESPN expresses defensive
+scoring as `pointsOverrides` on the same stat id: a stat worth `0` to offence and `2` to position
+`16` (D/ST). Every override observed across the founder's three leagues was position 16. The
+canonical contract has no position dimension, so such a rule is reported unmapped rather than
+flattened to either value — flattening is the A6 defect, which is exactly "score a rule the league
+did not award".
+
+**2. Both providers — points-allowed tiers are not in the vocabulary.** Yahoo stat ids 50-56
+(`Points Allowed 0`, `1-6`, `7-13`, …) and ESPN's equivalents have no `EVENT_KEYS` entry. Sleeper
+reaches the same state for the same reason, so this is a vocabulary gap rather than a provider one.
+Yahoo also has `Offensive Fumble Return TD` (57) and `Extra Point Returned` (82) unmapped.
+
+Measured 2026-09-06: both of the founder's Yahoo leagues derive **22 of 33 provider rules mapped**,
+`ambiguous`, unmapped `stat_50,51,52,53,55,56,57,82`.
+
+### What closing this needs
+
+1. A **position dimension** on a contract rule, or defence-scoped canonical event keys, so ESPN's
+   `pointsOverrides` can be expressed rather than reported.
+2. **Points-allowed tier events** added to `EVENT_KEYS` and mapped for all three providers —
+   probably banded, like the existing field-goal bands, which already solve the identical shape.
+3. **IDP** is a third case again: `SLEEPER_EVENT_MAP` carries `idp_*` keys, but neither ESPN nor
+   Yahoo is mapped for them.
+
+### Do not "fix" this by widening the map
+
+The governing rule from `scoringContract.js` holds: **an unknown provider key is never treated as a
+zero-point rule.** Naming a stat id without evidence would make these leagues report `supported`
+while grading them wrong, which is strictly worse than deferring. ESPN ships ids with no labels;
+Yahoo ships `stat_categories` with names and a `position_type` and is therefore the safer provider
+to extend first.
 
 ## 🔴 OPEN, PRODUCTION ROLLED BACK 2026-09-05 — `POST /api/omen/mvp-move` hangs forever and takes the whole API down
 
