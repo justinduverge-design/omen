@@ -7,9 +7,10 @@
  * answers the whole decision: the best move, the drop it costs, why that cost is
  * acceptable, and two or three credible alternatives.
  *
- * Provider-neutral on purpose. `GET /api/optimizer/waivers` was Yahoo-only, and
- * Yahoo's Fantasy API is entitlement-refused (facts-of-record #11), so a
- * Sleeper-only or ESPN-only user had no waiver surface at all. Everything here
+ * Provider-neutral on purpose. `GET /api/optimizer/waivers` was Yahoo-only, so a
+ * Sleeper-only or ESPN-only user had no waiver surface at all. (Yahoo's
+ * entitlement was also refused when that was written; it has been live since
+ * 2026-08-28 — facts-of-record #11.) Everything here
  * is a pure function over an already-normalized roster and pool, so provider
  * differences stay in the route and the maths stays testable without a network.
  *

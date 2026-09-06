@@ -157,8 +157,12 @@ async function yahooLeagues(row, userId) {
       leagueId: league.league_id,
       leagueName: league.name,
       season: league.season,
-      // Yahoo scoring settings are a separate call and its Fantasy API is
-      // entitlement-refused today (facts-of-record #11). Null, not guessed.
+      // Null, not guessed — the A6 rule. The reason is no longer entitlement:
+      // Yahoo's access has been live since 2026-08-28 (facts-of-record #11) and
+      // `/league/{key}/settings` demonstrably returns `scoring_type`,
+      // `stat_categories` and `stat_modifiers` (verified 2026-09-06). Nothing
+      // reads or maps them yet, so this stays null until something does.
+      // Making it real is a separate piece of work, not a comment fix.
       scoringFormat: null,
       // Yahoo rows carried no team at all until 2026-09-05, so every Yahoo league in the
       // switcher fell back to its league name and a user with two Yahoo teams could not tell

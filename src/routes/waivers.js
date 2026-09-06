@@ -168,9 +168,9 @@ async function loadYahoo(connection, userId, week) {
     pool = null;
   }
 
-  // §6.2 verification, provisional and unverifiable while the entitlement is
-  // refused. fromYahoo() fails closed, so Yahoo's output is unchanged until
-  // captured traffic confirms the shape.
+  // §6.2 verification. The priority branch is VERIFIED (2026-09-06, three real
+  // leagues); the FAAB branch is not — no Yahoo FAAB league was available to
+  // read, so fromYahoo() returns not_determined for one and it shows nothing.
   let system = NOT_DETERMINED_PENDING_PROBE();
   try {
     const rawSettings = await client.getLeagueSettings(connection.league_id);
