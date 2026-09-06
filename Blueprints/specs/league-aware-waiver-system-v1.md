@@ -4,7 +4,7 @@
 
 | Phase | State |
 |---|---|
-| 0 · Settings probe | **DONE (Sleeper + ESPN)** — both verified against real leagues. Yahoo still gated on API reapproval. |
+| 0 · Settings probe | **DONE — all three providers verified against real leagues.** |
 | 1 · Canonical model | **DONE** — `src/services/waiverSystem.js` |
 | 2 · Surfacing / §6.2 gate | **DONE** — `waiver-analysis.v1` carries `waiver_system`; wired through the route and Omen of the Week |
 | 3 · Bid recommendation | **BUILT, NOT RATIFIED** — `src/services/waiverBid.js`. `SEASON_DEFINING_POINTS` and `VALUATION_HORIZON_WEEKS` are judgement calls awaiting founder sign-off. Claim probability remains out of scope and forbidden. |
@@ -167,9 +167,35 @@ The founder's stated premise — one FAAB league on ESPN — was again incomplet
 three ESPN leagues run FAAB. Third time a league's real waiver system differed from what its
 owner believed.
 
-**Provider status after this probe:** Sleeper verified, ESPN verified, Yahoo **verifiable now** —
-its entitlement is live (facts-of-record #11) and two founder leagues are bound; the settings
-endpoint simply has not been read yet. `scripts/probe-yahoo-waiver-settings.js` closes it.
+### Phase 0 findings — Yahoo, verified 2026-09-06
+
+Probed through `getAuthenticatedYahooClient()` against two bound leagues:
+
+| League | `uses_faab` | `waiver_type` | `waiver_rule` | team `waiver_priority` | System |
+|---|---|---|---|---|---|
+| Yahoo H2H-Pts 1255365 | `"0"` | `"R"` | `gametime` | 5 | priority |
+| Fantasy Madness | `"0"` | `"R"` | `gametime` | 5 | priority |
+
+**The serialisation was the whole difficulty, not the field names.**
+`/league/{key}/settings` returns:
+
+```
+fantasy_content.league = [ {…34 metadata keys…}, { settings: [ {…} ] } ]
+```
+
+The settings container is the **second** element and is itself wrapped in a
+one-element array. The first probe run returned `not_determined` while the correct
+fields sat in the payload the whole time, because `league[0]` was passed. This is the
+defect `src/services/yahoo.js` documents from 2026-08-28, reproduced exactly — which is
+why the probe reports the shape separately from the fields, and why the mapper searches
+every element instead of indexing `[1]`.
+
+**Not yet observed:** a Yahoo FAAB league. `uses_faab: "1"` and `faab_balance` remain
+unconfirmed, and both founder leagues are priority. The FAAB branch stays a hypothesis
+that fails closed. `waiver_type` values beyond `"R"` are likewise unobserved.
+
+**Provider status: all three verified** — Sleeper (both branches), ESPN (both branches),
+Yahoo (priority branch only).
 
 ## Phase 1 · Canonical waiver-system model
 

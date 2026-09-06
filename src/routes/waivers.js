@@ -176,7 +176,8 @@ async function loadYahoo(connection, userId, week) {
     const rawSettings = await client.getLeagueSettings(connection.league_id);
     const myTeamKey = await client.getMyTeamKey(connection.league_id).catch(() => null);
     system = waiverSystem.fromYahoo({
-      settings: Array.isArray(rawSettings) ? rawSettings[0] : rawSettings,
+      // Pass the WHOLE league payload: the settings container is not league[0].
+      settings: rawSettings,
       team: myTeamKey ? await client.get(`/team/${myTeamKey}`)
         .then((d) => d?.fantasy_content?.team?.[0] ?? null)
         .catch(() => null) : null,

@@ -281,12 +281,25 @@ function fromYahoo({ settings, team } = {}) {
     return undetermined("yahoo settings unavailable — shape unverified");
   }
 
-  // Yahoo nests settings one level deeper on some endpoints. Try both without
-  // assuming either is the real one.
-  const direct = yahooAttr(settings, "settings");
-  const container = direct !== undefined
-    ? (Array.isArray(direct) ? direct[0] : direct)
-    : settings;
+  // VERIFIED 2026-09-06: `/league/{key}/settings` returns
+  //   fantasy_content.league = [ {…34 metadata keys…}, { settings: [ {…} ] } ]
+  // so the settings container is in the SECOND element, not the first, and is
+  // itself wrapped in a one-element array. Passing league[0] finds nothing —
+  // which is exactly what happened on the first probe run.
+  //
+  // Search every element rather than indexing [1]: element order is not
+  // guaranteed, and the array-vs-flat choice is per-endpoint.
+  const parts = Array.isArray(settings) ? settings : [settings];
+  let container = null;
+  for (const part of parts) {
+    const found = yahooAttr(part, "settings");
+    if (found !== undefined && found !== null) {
+      container = Array.isArray(found) ? found[0] : found;
+      break;
+    }
+  }
+  // A caller that already unwrapped the container is still supported.
+  if (!container) container = Array.isArray(settings) ? parts[0] : settings;
 
   const usesFaab = yahooAttr(container, "uses_faab");
   const waiverType = yahooAttr(container, "waiver_type");

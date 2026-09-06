@@ -224,6 +224,41 @@ test("ESPN priority reports rank and never a budget", () => {
 
 const { fromYahoo } = require("../src/services/waiverSystem");
 
+// The REAL payload shape, captured 2026-09-06 from two bound leagues:
+//   fantasy_content.league = [ {…34 metadata keys…}, { settings: [ {…} ] } ]
+// The settings container is in the SECOND element and is itself wrapped in a
+// one-element array. The first probe run returned not_determined purely because
+// league[0] was passed — the fields were recognized all along.
+const YAHOO_REAL = [
+  { league_key: "470.l.1255365", name: "Yahoo H2H-Pts 1255365", num_teams: 10 },
+  { settings: [{ waiver_type: "R", waiver_rule: "gametime", uses_faab: "0", waiver_time: "2" }] },
+];
+const YAHOO_REAL_TEAM = [{ team_key: "470.l.1255365.t.5" }, { waiver_priority: 5 }];
+
+test("Yahoo: the real captured payload maps to priority", () => {
+  const m = fromYahoo({ settings: YAHOO_REAL, team: YAHOO_REAL_TEAM });
+  assert.equal(m.system, SYSTEMS.PRIORITY);
+  assert.equal(m.priority_position, 5);
+  assert.equal(m.budget_total, null);
+  assert.equal(m.budget_remaining, null);
+});
+
+test("Yahoo: settings are found in league[1], not league[0]", () => {
+  // Regression for the first probe failure. Handing over only the metadata
+  // element must not silently succeed, and handing over the whole payload must.
+  const metadataOnly = fromYahoo({ settings: [YAHOO_REAL[0]], team: YAHOO_REAL_TEAM });
+  assert.equal(metadataOnly.system, SYSTEMS.NOT_DETERMINED);
+  assert.equal(fromYahoo({ settings: YAHOO_REAL, team: YAHOO_REAL_TEAM }).system, SYSTEMS.PRIORITY);
+});
+
+test("Yahoo: an already-unwrapped container is still accepted", () => {
+  const m = fromYahoo({
+    settings: { waiver_type: "R", uses_faab: "0" },
+    team: YAHOO_REAL_TEAM,
+  });
+  assert.equal(m.system, SYSTEMS.PRIORITY);
+});
+
 test("Yahoo with no settings is not_determined", () => {
   assert.equal(fromYahoo({}).system, SYSTEMS.NOT_DETERMINED);
   assert.equal(fromYahoo({ settings: null }).system, SYSTEMS.NOT_DETERMINED);

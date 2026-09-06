@@ -70,7 +70,10 @@ async function resolveUserId() {
 
   const { createClient } = require("@supabase/supabase-js");
   const config = require("../src/config");
-  const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY);
+  // Camel-case, matching src/services/yahooAuth.js. The env vars are
+  // SUPABASE_URL / SUPABASE_SERVICE_KEY; the config module exposes them under
+  // different names, and guessing produced "supabaseUrl is required".
+  const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
   const { data, error } = await supabase
     .from("platform_connections")
@@ -150,7 +153,8 @@ async function resolveUserId() {
       console.log(`  team read failed        : ${e?.message || e}`);
     }
 
-    const model = fromYahoo({ settings: first, team });
+    // Pass the WHOLE payload: the settings container is not league[0].
+    const model = fromYahoo({ settings: raw, team });
     console.log(`  MAPPING RESULT          : ${model.system}` + (model.reason ? ` (${model.reason})` : ""));
     if (model.system === "not_determined") {
       console.log("  VERDICT: did NOT hold. Yahoo stays §6.2-restricted, which is correct and safe.");
