@@ -50,6 +50,17 @@ const BASE = "https://fantasysports.yahooapis.com/fantasy/v2";
  * from the assumed array shape. Fixtures for anything Yahoo returns must come
  * from captured traffic, not from what the parser expects.
  */
+/**
+ * Yahoo returns numbers as strings, and `""` for a value it does not have. `Number("")` is 0,
+ * so a bare cast turns "no projection" into "projected to score nothing" — the same coercion
+ * that made every ESPN player look like a confident zero (#409).
+ */
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function yahooAttrReader(raw) {
   if (!raw || typeof raw !== "object") return null;
   return Array.isArray(raw)
@@ -231,6 +242,63 @@ class YahooClient {
       // Fall through: an unusable richer response must never cost the user their league list.
     }
     return this.getUserLeagues();
+  }
+
+  /**
+   * The user's matchup for a week, from `/league/{key}/scoreboard`.
+   *
+   * ## This endpoint was never blocked
+   *
+   * `league.js` returned `unavailable / provider_unsupported` for every Yahoo matchup, and the
+   * comment beside it said Yahoo was "an unavailable one while its entitlement story is
+   * unsettled". That was true when it was written and stopped being true on **2026-08-28**,
+   * when the Fantasy entitlement was granted and verified live (facts-of-record #11). The code
+   * kept refusing on a blocker that no longer existed.
+   *
+   * Probed live 2026-09-06 against a real league: scoreboard returns 12,955 bytes, and carries
+   * **more** than ESPN's equivalent — Yahoo gives a projected total and a win probability per
+   * side, where ESPN's `mMatchup` gives neither.
+   *
+   * Returns `null` when the week has no matchup for this team, so a bye reads as a bye rather
+   * than as a provider failure.
+   */
+  async getMatchup(leagueKey, teamKey, week) {
+    const d = await this.get(`/league/${leagueKey}/scoreboard;week=${week}`);
+    const league = d?.fantasy_content?.league;
+    const scoreboard = Array.isArray(league) ? league[1]?.scoreboard : league?.scoreboard;
+    const matchups = scoreboard?.["0"]?.matchups;
+    if (!matchups) return null;
+
+    const count = Number(matchups.count) || 0;
+    for (let i = 0; i < count; i += 1) {
+      const matchup = matchups[String(i)]?.matchup;
+      const teams = matchup?.["0"]?.teams;
+      if (!teams) continue;
+
+      const sides = [];
+      const teamCount = Number(teams.count) || 0;
+      for (let t = 0; t < teamCount; t += 1) {
+        const team = teams[String(t)]?.team;
+        if (!team) continue;
+        // `team[0]` is the attribute array; `team[1]` carries the week's points.
+        const attrs = yahooAttrReader(team[0]);
+        const stats = team[1] || {};
+        sides.push({
+          team_key: attrs?.("team_key") || null,
+          team_id: attrs?.("team_id") || null,
+          team_name: attrs?.("name") || null,
+          points: numberOrNull(stats?.team_points?.total),
+          projected: numberOrNull(stats?.team_projected_points?.total),
+          win_probability: numberOrNull(stats?.win_probability),
+        });
+      }
+
+      const mine = sides.find((side) => side.team_key === teamKey);
+      if (!mine) continue;
+      const opponent = sides.find((side) => side.team_key !== teamKey) || null;
+      return { status: matchup.status || null, week: Number(matchup.week) || Number(week), you: mine, opponent };
+    }
+    return null;
   }
 
   /** Get the current league week (used when /roster?week= isn't passed). */

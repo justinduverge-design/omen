@@ -565,29 +565,87 @@ async function espnOverview(connection, userId, context) {
 }
 
 /**
- * Yahoo is not a degraded provider on this screen — it is an unavailable one while its
- * entitlement story is unsettled. It returns standings through the existing path and an
- * explicitly unavailable matchup rather than a fabricated one.
+ * Yahoo's matchup, read from `/league/{key}/scoreboard`.
+ *
+ * This function used to return `unavailable / provider_unsupported` unconditionally, above a
+ * comment reading "Yahoo is not a degraded provider on this screen — it is an unavailable one
+ * while its entitlement story is unsettled". **That entitlement was granted on 2026-08-28**
+ * and verified live (facts-of-record #11); the refusal here outlived its cause by nine days,
+ * and the screen kept saying Yahoo could not answer while Yahoo was answering.
+ *
+ * Probed live 2026-09-06 before this was written, rather than assumed: the scoreboard returns
+ * a full matchup, and Yahoo supplies a **projected total and a win probability per side** —
+ * neither of which ESPN's `mMatchup` gives us.
+ *
+ * A failed read degrades to `provider_failed` like every other provider, and a week with no
+ * game degrades to `no_matchup`. Neither is `provider_unsupported` any more, because that
+ * statement is no longer true.
  */
 async function yahooOverview(connection, userId, context) {
   const standingsEnvelope = await yahooStandings(connection, userId, context);
+
+  let matchup = { status: "unavailable", you: null, opponent: null, unavailable_reason: "provider_failed" };
+  try {
+    const { client } = await getAuthenticatedYahooClient(userId);
+    const teamKey = await client.getMyTeamKey(connection.league_id);
+    const week = standingsEnvelope.week || context.week;
+    const read = teamKey ? await client.getMatchup(connection.league_id, teamKey, week) : null;
+    if (read) {
+      matchup = yahooMatchupEnvelope(read, standingsEnvelope.standings);
+    } else if (teamKey) {
+      // The scoreboard was readable and carried no game for this team — a bye, not a failure.
+      matchup = { status: "no_matchup", you: null, opponent: null };
+    }
+  } catch (e) {
+    logger.warn("League overview matchup read failed", { err: e.message, platform: "yahoo" });
+  }
+
   return overviewEnvelope(connection, context, {
     league_name: standingsEnvelope.league_name,
     season: standingsEnvelope.season,
     week: standingsEnvelope.week,
-    matchup: {
-      status: "unavailable",
-      you: null,
-      opponent: null,
-      unavailable_reason: "provider_unsupported",
-    },
+    matchup,
     standings: {
       status: standingsEnvelope.standings.length ? "available" : "off_season",
-      // Yahoo: unproven the same way, and its entitlement story is separate.
+      // Yahoo's playoff-team count is a separate settings read Omen has not mapped yet.
       playoff_picture: playoffPicture(standingsEnvelope.standings, undefined),
       teams: standingsEnvelope.standings,
     },
   });
+}
+
+/**
+ * Yahoo's own matchup status vocabulary, mapped to the contract's.
+ *
+ * `preevent` is Yahoo's word for "the week has not started", which is `pregame` here. Anything
+ * unrecognised falls to `live` only when points have actually been scored — inferring "live"
+ * from an unknown status alone would report a game in progress that may not have started.
+ */
+function yahooMatchupEnvelope(read, standings = []) {
+  const side = (raw) => {
+    if (!raw) return null;
+    const row = standings.find((team) => String(team?.team_id) === String(raw.team_id)) || null;
+    return {
+      team_id: raw.team_id,
+      team_name: raw.team_name || row?.team_name || null,
+      record: row && row.wins != null && row.losses != null ? `${row.wins}-${row.losses}` : null,
+      points: raw.points,
+      projected: raw.projected,
+    };
+  };
+
+  const you = side(read.you);
+  const opponent = side(read.opponent);
+  const status = String(read.status || "").toLowerCase();
+  const scored = (you?.points ?? 0) > 0 || (opponent?.points ?? 0) > 0;
+
+  let mapped;
+  if (status === "postevent") mapped = "final";
+  else if (status === "preevent") mapped = "pregame";
+  else if (status === "midevent") mapped = "live";
+  else mapped = scored ? "live" : "pregame";
+
+  return { status: mapped, you, opponent, game_id: `yahoo:${read.week}:${you?.team_id}:${opponent?.team_id}` };
 }
 
 function fetchOverview(connection, userId, context) {

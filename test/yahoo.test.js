@@ -348,3 +348,96 @@ test("a throwing /teams request still yields the user's leagues", async () => {
   const leagues = await client.getUserLeaguesWithTeams();
   assert.equal(leagues[0].name, "Still Here");
 });
+
+// --- Yahoo matchups -------------------------------------------------------
+//
+// `league.js` returned `unavailable / provider_unsupported` for every Yahoo matchup, above a
+// comment reading "Yahoo is not a degraded provider on this screen — it is an unavailable one
+// while its entitlement story is unsettled". The entitlement was granted **2026-08-28**
+// (facts-of-record #11); the refusal outlived its cause by nine days.
+//
+// Fixture captured from live traffic 2026-09-06, league 470.l.1255365, trimmed to the fields
+// the parser reads. Yahoo supplies a projected total and a win probability per side — neither
+// of which ESPN's `mMatchup` gives us.
+function scoreboardFixture({ status = "preevent", week = "1" } = {}) {
+  const team = (id, name, points, projected, winProb) => ({
+    team: [
+      [{ team_key: `470.l.1255365.t.${id}` }, { team_id: String(id) }, { name }],
+      {
+        win_probability: winProb,
+        team_points: { coverage_type: "week", week, total: points },
+        team_projected_points: { coverage_type: "week", week, total: projected },
+      },
+    ],
+  });
+
+  return {
+    fantasy_content: {
+      league: [
+        { league_key: "470.l.1255365", name: "Yahoo H2H-Pts" },
+        {
+          scoreboard: {
+            week,
+            0: {
+              matchups: {
+                count: 2,
+                // A matchup the user is NOT in must be skipped, not returned.
+                0: { matchup: { status, week, 0: { teams: { count: 2, 0: team(1, "Take me TUA Championship", "0.00", "103.03", 0.47), 1: team(2, "Other Team", "0.00", "99.10", 0.53) } } } },
+                1: { matchup: { status, week, 0: { teams: { count: 2, 0: team(6, "The Gridiron Corps", "0.00", "112.91", 0.56), 1: team(10, "Tyler's Tip-Top Team", "0.00", "106.75", 0.44) } } } },
+              },
+            },
+          },
+        },
+      ],
+    },
+  };
+}
+
+test("getMatchup finds the user's own matchup and reads both sides", async () => {
+  const client = new YahooClient("token");
+  client.get = async (path) => {
+    assert.equal(path, "/league/470.l.1255365/scoreboard;week=1");
+    return scoreboardFixture();
+  };
+
+  const m = await client.getMatchup("470.l.1255365", "470.l.1255365.t.6", 1);
+
+  assert.equal(m.status, "preevent");
+  assert.equal(m.week, 1);
+  assert.equal(m.you.team_name, "The Gridiron Corps");
+  assert.equal(m.you.projected, 112.91);
+  assert.equal(m.you.win_probability, 0.56);
+  assert.equal(m.opponent.team_name, "Tyler's Tip-Top Team");
+  assert.equal(m.opponent.projected, 106.75);
+});
+
+test("getMatchup returns null when the user's team has no game that week", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => scoreboardFixture();
+
+  // A bye must read as "no matchup", never as a provider failure.
+  assert.equal(await client.getMatchup("470.l.1255365", "470.l.1255365.t.99", 1), null);
+});
+
+// Yahoo returns numbers as strings and "" for absent. `Number("")` is 0, which is the exact
+// coercion that made every ESPN player look like a confident zero in #409.
+test("getMatchup reports an absent projection as null rather than as zero", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => {
+    const d = scoreboardFixture();
+    d.fantasy_content.league[1].scoreboard["0"].matchups["1"].matchup["0"].teams["0"].team[1]
+      .team_projected_points.total = "";
+    return d;
+  };
+
+  const m = await client.getMatchup("470.l.1255365", "470.l.1255365.t.6", 1);
+  assert.equal(m.you.projected, null);
+  // A real zero is still a real number.
+  assert.equal(m.you.points, 0);
+});
+
+test("getMatchup survives a scoreboard with no matchups rather than throwing", async () => {
+  const client = new YahooClient("token");
+  client.get = async () => ({ fantasy_content: { league: [{ league_key: "x" }, { scoreboard: { week: "1" } }] } });
+  assert.equal(await client.getMatchup("x", "x.t.1", 1), null);
+});
