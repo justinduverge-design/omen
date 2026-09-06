@@ -167,8 +167,9 @@ The founder's stated premise — one FAAB league on ESPN — was again incomplet
 three ESPN leagues run FAAB. Third time a league's real waiver system differed from what its
 owner believed.
 
-**Provider status after this probe:** Sleeper verified, ESPN verified, Yahoo unverifiable pending
-entitlement reapproval.
+**Provider status after this probe:** Sleeper verified, ESPN verified, Yahoo **verifiable now** —
+its entitlement is live (facts-of-record #11) and two founder leagues are bound; the settings
+endpoint simply has not been read yet. `scripts/probe-yahoo-waiver-settings.js` closes it.
 
 ## Phase 1 · Canonical waiver-system model
 

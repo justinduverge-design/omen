@@ -258,9 +258,8 @@ class YahooClient {
    * (league-aware-waiver-system-v1 Phase 0, Yahoo).
    *
    * Returns the RAW settings entity rather than a parsed shape. Nothing here
-   * has been seen in live traffic: Yahoo is entitlement-refused
-   * (facts-of-record #11), so this call has never run for real and its shape is
-   * unknown. Parsing it here would repeat the 2026-08-28 defect documented at
+   * has been seen in live traffic: this call has never been run, so its shape
+   * is unknown. (The entitlement itself is live — facts-of-record #11.) Parsing it here would repeat the 2026-08-28 defect documented at
    * the top of this file — three parsers written against an assumed shape,
    * silently returning empty against the real one, with unit tests passing
    * throughout because the fixtures were hand-built.

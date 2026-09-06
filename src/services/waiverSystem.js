@@ -251,11 +251,15 @@ function yahooAttr(raw, key) {
 /**
  * Yahoo — PROVISIONAL AND UNVERIFIABLE TODAY.
  *
- * Weaker evidence than ESPN, not stronger. Yahoo is entitlement-refused
- * (facts-of-record #11), so the settings call has never run for real, no
- * captured traffic exists, and the shape is unknown on two axes at once: which
- * fields carry the waiver system, AND which of Yahoo's two serialisations the
- * settings endpoint uses.
+ * Weaker evidence than ESPN, not stronger — but for a different reason than
+ * an access block. Yahoo's entitlement is GRANTED and LIVE (facts-of-record
+ * #11, verified 2026-08-28) and two founder leagues are bound. What is missing
+ * is simply that nobody has read `/league/{key}/settings` yet, so the shape is
+ * unknown on two axes at once: which fields carry the waiver system, AND which
+ * of Yahoo's two serialisations that endpoint uses.
+ *
+ * That makes this verifiable TODAY, unlike when it was written:
+ * `scripts/probe-yahoo-waiver-settings.js` closes it.
  *
  * It therefore FAILS CLOSED, hard. It requires an explicitly recognized value
  * and returns not_determined for anything else, so §6.2 stays in force for
@@ -267,14 +271,14 @@ function yahooAttr(raw, key) {
  * every affected endpoint was broken in production. The tests for this function
  * assert only that it fails closed — never that a mapping is correct.
  *
- * Confirm against captured traffic when the entitlement is restored.
+ * Confirm against captured traffic by running the probe script.
  *
  * @param {*} settings raw settings entity from YahooClient.getLeagueSettings
  * @param {*} team raw team entity, for the user's FAAB balance
  */
 function fromYahoo({ settings, team } = {}) {
   if (!settings || typeof settings !== "object") {
-    return undetermined("yahoo settings unavailable — entitlement refused, shape unverified");
+    return undetermined("yahoo settings unavailable — shape unverified");
   }
 
   // Yahoo nests settings one level deeper on some endpoints. Try both without

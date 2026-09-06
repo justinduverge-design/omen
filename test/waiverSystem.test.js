@@ -214,8 +214,9 @@ test("ESPN priority reports rank and never a budget", () => {
 // --- Yahoo: provisional, UNVERIFIABLE, must fail closed --------------------
 //
 // These tests assert ONLY that fromYahoo() fails closed. They deliberately do
-// NOT claim any mapping is correct. Yahoo is entitlement-refused, so no
-// captured traffic exists, and src/services/yahoo.js records what happened the
+// NOT claim any mapping is correct. No captured traffic exists for Yahoo's
+// settings endpoint yet (the entitlement is live — nobody has read it), and
+// src/services/yahoo.js records what happened the
 // last time this repo trusted hand-built Yahoo fixtures: three parsers written
 // against an assumed shape returned empty for every real flat-object endpoint,
 // with unit tests passing throughout. A green test here is evidence of safety,
