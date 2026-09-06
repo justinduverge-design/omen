@@ -74,6 +74,24 @@ approved either. That amendment is a founder call and no agent may make it.
 
 **Deferral, not waiver.** The intent stands as written; only its timing moved.
 
+## 2026-09-05 (founder queue) — Player photo research pulled out of deferral
+
+The founder, on being shown the deferral, instructed that the photo work be queued: "I was just
+trying to see if I can get headshots into the app ... it should queue up something in the sprint."
+
+**Decision: the RESEARCH half is queued as `X1-RESEARCH`, status READY, P2. The BUILD half stays
+deferred.** This is not a partial hearing of the instruction. The licensing question is the stated
+blocker on the design stage, so it is the only half that can be moved — queuing a build that
+cannot lawfully be specified would produce a blocked item, not progress. Answering it is what
+actually moves the founder's goal.
+
+**The two gates are unchanged.** A lawful photo source is still unverified, and visual briefs
+§4.2's card anatomy still has no photo element. The §4 amendment remains founder-only and no
+agent may make it. Queuing the research lifted neither gate.
+
+**P2, deliberately.** Week 1 is ~2026-09-10 and `F6` is still `BLOCKED` on founder-device
+execution. The research is cheap and parallel-safe, but it does not belong above a Week 1 item.
+
 ## 2026-09-04 — The Command Center sketch: a game-week headline, PROJ/SCORE columns, a second pager
 
 Founder brought a hand-drawn Command Center layout. Built the same session.

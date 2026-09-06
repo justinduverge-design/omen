@@ -179,7 +179,9 @@ attention, not task count. Five separate items needing one deploy approval is on
   stated preference to launch with footage he can sell — a preference he can reverse without asking
   anyone, not a technical gate.
 - **`O1c`** (product analytics) stays deferred to post-beta and is in no batch.
-- **`X1-PlayerPhotoOmenOfWeek`** (player photo on the This Week's Omen lead card) is **DEFERRED** and is in no batch. See lane X.
+- **`X1-PlayerPhotoOmenOfWeek`** (player photo on the This Week's Omen lead card): its research half
+  `X1-RESEARCH` is **READY** by founder instruction 2026-09-05. The build half stays deferred behind
+  the licensing answer and the §4.2 amendment. See lane X.
 
 
 # Active queue
@@ -1337,9 +1339,30 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 Items with a captured intent and a recorded deferral. They are **in no batch** and must not be
 auto-pulled. Each names what reopens it.
 
+### X1-RESEARCH — Is there a lawfully usable NFL player photo source?
+
+- **Status:** READY
+- **Pulled from deferral by founder instruction 2026-09-05.** The founder asked for the photo
+  work to be queued. This is the half that can be queued: the licensing question is the stated
+  blocker on the design stage, so answering it is the only work that moves the item.
+- **Intent:** `Direction/intents/2026-09-05-player-photo-in-omen-of-the-week.md`
+- **Decision:** `Direction/decision_log.md` 2026-09-05 (later), amended 2026-09-05 (founder queue)
+- **Skill:** `pre-build-research`
+- **Priority:** P2 — below every Week 1 item. Queued, not prioritized over the season gate.
+- **Cost:** small
+- **Agent-buildable:** yes, in full
+- **Scope:** answer whether a free, lawfully usable NFL player headshot source exists at Omen's
+  commercial posture. Record the licence terms, the attribution requirement if any, the
+  identifier the source keys on, and whether that identifier maps to the player ids Omen already
+  holds. If no free source qualifies, price the paid options rather than returning empty-handed.
+- **Done when:** a dated research artifact states a verified answer with its licence evidence,
+  and either names a usable source or records that none exists at this posture.
+- **Do not:** write the spec, choose a card layout, or touch §4. This item answers one question.
+- **Do not touch:** the headshot prohibitions in §1.2, §5.1, and §8.2.
+
 ### X1-PlayerPhotoOmenOfWeek — Player photo on the This Week's Omen lead card
 
-- **Status:** DEFERRED
+- **Status:** DEFERRED — build half only; see `X1-RESEARCH` above
 - **Intent:** `Direction/intents/2026-09-05-player-photo-in-omen-of-the-week.md`
 - **Decision:** `Direction/decision_log.md` 2026-09-05 (later)
 - **Priority:** none while deferred
@@ -1358,8 +1381,9 @@ auto-pulled. Each names what reopens it.
   a founder call.
 - **Open question, founder:** for a player with no photo yet (a Tuesday rookie add who may have
   one by Friday), does a later view pick it up, or does the card stay photoless for the week?
-- **Reopens when:** the research answers the licensing question **and** the founder rules on the
-  §4 amendment. Either answer landing alone is not enough to schedule this.
+- **Reopens when:** `X1-RESEARCH` answers the licensing question **and** the founder rules on the
+  §4 amendment. Either answer landing alone is not enough to schedule this. **Queuing the research
+  did not lift this gate** — the founder's 2026-09-05 instruction moved the research, not the build.
 - **Done when:** deferred items have no done-when. See the intent's acceptance list, which
   survives this deferral unchanged.
 - **Do not touch:** the headshot prohibitions in §1.2, §5.1, and §8.2. This item does not reopen
