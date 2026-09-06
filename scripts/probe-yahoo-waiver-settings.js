@@ -30,11 +30,14 @@ const [userId, leagueKeyArg] = process.argv.slice(2);
 // Argv is checked BEFORE the requires below: yahooAuth pulls the shared config,
 // which exits hard on missing SUPABASE_* env. Without this, running the script
 // anywhere but the container prints a config error instead of its usage.
-if (!userId || userId === "--help" || userId === "-h") {
-  console.error("usage: node scripts/probe-yahoo-waiver-settings.js <userId> [leagueKey]");
+if (userId === "--help" || userId === "-h") {
+  console.error("usage: node scripts/probe-yahoo-waiver-settings.js [userId] [leagueKey]");
   console.error("");
-  console.error("Reads the stored Yahoo token, so it must run where SUPABASE_URL and");
-  console.error("SUPABASE_SERVICE_KEY are set — i.e. inside the omen_api container.");
+  console.error("userId is optional: with exactly one Yahoo connection it is discovered");
+  console.error("automatically, so there is no id to look up by hand.");
+  console.error("");
+  console.error("Reads the stored Yahoo token, so it needs SUPABASE_URL and");
+  console.error("SUPABASE_SERVICE_KEY in the environment.");
   process.exit(2);
 }
 
@@ -58,8 +61,38 @@ function waiverish(obj) {
   return hits;
 }
 
+/**
+ * Find the user to probe. Asking a human to paste a UUID is a step that can go
+ * wrong for no benefit: with one Yahoo connection there is only one answer.
+ */
+async function resolveUserId() {
+  if (userId) return userId;
+
+  const { createClient } = require("@supabase/supabase-js");
+  const config = require("../src/config");
+  const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY);
+
+  const { data, error } = await supabase
+    .from("platform_connections")
+    .select("user_id")
+    .eq("platform", "yahoo");
+
+  if (error) throw new Error(`could not list Yahoo connections: ${error.message}`);
+  const ids = [...new Set((data || []).map((r) => r.user_id))];
+
+  if (!ids.length) throw new Error("no Yahoo connection exists. Connect Yahoo first.");
+  if (ids.length > 1) {
+    throw new Error(
+      `${ids.length} Yahoo connections exist. Re-run with one of:\n  ` + ids.join("\n  ")
+    );
+  }
+  console.log(`Using the only Yahoo connection: ${ids[0]}`);
+  return ids[0];
+}
+
 (async () => {
-  const { client } = await getAuthenticatedYahooClient(userId);
+  const resolvedUserId = await resolveUserId();
+  const { client } = await getAuthenticatedYahooClient(resolvedUserId);
 
   let leagueKeys = [];
   if (leagueKeyArg) {
