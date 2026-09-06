@@ -143,6 +143,48 @@ test("ESPN budget flag must be a real boolean, not truthy", () => {
   assert.equal(m.system, SYSTEMS.NOT_DETERMINED);
 });
 
+// Fixtures below are REAL payloads captured 2026-09-05 from the founder's three
+// ESPN leagues via an authenticated session — not hand-built from what the
+// parser expects. See the yahoo.js note on why that distinction matters.
+
+test("ESPN: verified FAAB league (Slops Saloon, WAIVERS_CONTINUOUS)", () => {
+  const m = fromEspn({
+    settings: { acquisitionSettings: { acquisitionType: "WAIVERS_CONTINUOUS", isUsingAcquisitionBudget: true, acquisitionBudget: 100, minimumBid: 0 } },
+    team: { waiverRank: 4, transactionCounter: { acquisitionBudgetSpent: 0 } },
+  });
+  assert.equal(m.system, SYSTEMS.FAAB);
+  assert.equal(m.budget_total, 100);
+  assert.equal(m.budget_remaining, 100);
+  assert.equal(m.bid_min, 0);
+  assert.equal(m.priority_position, null, "waiverRank 4 is a decoy on a FAAB league");
+});
+
+test("ESPN: acquisitionType is NOT the discriminator", () => {
+  // Both real leagues below are WAIVERS_TRADITIONAL. One is FAAB and one is
+  // not. Mapping on the type string gets the second exactly wrong.
+  const faab = fromEspn({
+    settings: { acquisitionSettings: { acquisitionType: "WAIVERS_TRADITIONAL", isUsingAcquisitionBudget: true, acquisitionBudget: 100, minimumBid: 0 } },
+    team: { waiverRank: 12, transactionCounter: { acquisitionBudgetSpent: 0 } },
+  });
+  const priority = fromEspn({
+    settings: { acquisitionSettings: { acquisitionType: "WAIVERS_TRADITIONAL", isUsingAcquisitionBudget: false, acquisitionBudget: 100, minimumBid: 1 } },
+    team: { waiverRank: 5, transactionCounter: { acquisitionBudgetSpent: 0 } },
+  });
+  assert.equal(faab.system, SYSTEMS.FAAB);
+  assert.equal(priority.system, SYSTEMS.PRIORITY);
+});
+
+test("ESPN: a non-FAAB league never shows the budget ESPN still sends", () => {
+  // acquisitionBudget: 100 is genuinely present on this priority league.
+  const m = fromEspn({
+    settings: { acquisitionSettings: { acquisitionType: "WAIVERS_TRADITIONAL", isUsingAcquisitionBudget: false, acquisitionBudget: 100, minimumBid: 1 } },
+    team: { waiverRank: 5 },
+  });
+  assert.equal(m.budget_total, null);
+  assert.equal(m.budget_remaining, null);
+  assert.equal(m.priority_position, 5);
+});
+
 test("ESPN FAAB derives remaining and never invents a total", () => {
   const m = fromEspn({
     settings: { acquisitionSettings: { isUsingAcquisitionBudget: true, acquisitionBudget: 100 } },

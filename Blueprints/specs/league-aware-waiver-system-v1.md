@@ -4,7 +4,7 @@
 
 | Phase | State |
 |---|---|
-| 0 · Settings probe | **DONE (Sleeper)** — findings below. ESPN gated on founder device; Yahoo on API reapproval. |
+| 0 · Settings probe | **DONE (Sleeper + ESPN)** — both verified against real leagues. Yahoo still gated on API reapproval. |
 | 1 · Canonical model | **DONE** — `src/services/waiverSystem.js` |
 | 2 · Surfacing / §6.2 gate | **DONE** — `waiver-analysis.v1` carries `waiver_system`; wired through the route and Omen of the Week |
 | 3 · Bid recommendation | **BUILT, NOT RATIFIED** — `src/services/waiverBid.js`. `SEASON_DEFINING_POINTS` and `VALUATION_HORIZON_WEEKS` are judgement calls awaiting founder sign-off. Claim probability remains out of scope and forbidden. |
@@ -142,6 +142,33 @@ own waiver system, and a season-cached value would have been wrong for this exac
 **ESPN league of record:** *Slops Saloon Fantasy Football Showdown*. Still required for ESPN
 Phase 0 and still gated on a founder-device session — but it now blocks only ESPN provider
 coverage, not the FAAB capability.
+
+### Phase 0 findings — ESPN, verified 2026-09-05
+
+Probed live through an authenticated browser session (`mSettings` + `mTeam`) against three real
+leagues on the founder's account:
+
+| League | `acquisitionType` | `isUsingAcquisitionBudget` | `acquisitionBudget` | `minimumBid` | `waiverRank` | System |
+|---|---|---|---|---|---|---|
+| Slops Saloon FF Showdown | `WAIVERS_CONTINUOUS` | **true** | 100 | 0 | 4 | FAAB |
+| Everything Backwards | `WAIVERS_TRADITIONAL` | **true** | 100 | 0 | 12 | FAAB |
+| Las Vegas Pro H2H PPR | `WAIVERS_TRADITIONAL` | **false** | 100 | 1 | 5 | priority |
+
+**`isUsingAcquisitionBudget` is the only discriminator.** Two traps, both confirmed here:
+
+1. **`acquisitionType` is not the discriminator, though it looks like one.**
+   `WAIVERS_TRADITIONAL` appears with the budget flag both true and false. Mapping on the type
+   string gets the third league exactly wrong.
+2. **`acquisitionBudget: 100` is present on the non-FAAB league**, and `waiverRank` is present on
+   every team of every league including both FAAB ones. Same decoy pattern as Sleeper: no field
+   is absent when it does not apply.
+
+The founder's stated premise — one FAAB league on ESPN — was again incomplete: **two** of his
+three ESPN leagues run FAAB. Third time a league's real waiver system differed from what its
+owner believed.
+
+**Provider status after this probe:** Sleeper verified, ESPN verified, Yahoo unverifiable pending
+entitlement reapproval.
 
 ## Phase 1 · Canonical waiver-system model
 

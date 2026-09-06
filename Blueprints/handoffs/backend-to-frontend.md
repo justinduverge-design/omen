@@ -4119,11 +4119,11 @@ again — check `available`/`status` instead.
 | Provider | `waiver_system.system` | Why |
 |---|---|---|
 | Sleeper | `faab` / `priority`, verified | Probed live 2026-09-05; value mapping evidenced against 298 real 2025 waiver transactions |
-| ESPN | `not_determined` | Mapping is provisional and fails closed until `scripts/probe-espn-waiver-settings.js` is run against a real league (needs a founder-device session) |
+| ESPN | `faab` / `priority`, verified | Probed live 2026-09-05 against three real leagues; `isUsingAcquisitionBudget` is the discriminator (**not** `acquisitionType`, which is the same value on both a FAAB and a non-FAAB league) |
 | Yahoo | `not_determined` | Entitlement-refused; no captured traffic exists, so the mapping is unverifiable and fails closed |
 
-**Build the UI against all three `system` values now.** ESPN and Yahoo will start returning real
-values once their mappings are confirmed, with no further contract change — so a client that
+**Build the UI against all three `system` values now.** Sleeper and ESPN return real values today;
+Yahoo starts once its entitlement is restored, with no further contract change — so a client that
 branches correctly today needs no rework then.
 
 - **Also changed:** Omen of the Week's waiver risk/warning language is now league-aware on the

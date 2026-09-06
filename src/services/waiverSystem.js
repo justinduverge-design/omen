@@ -150,23 +150,30 @@ function fromSleeper({ league, roster } = {}) {
 
 
 /**
- * ESPN — PROVISIONAL AND UNVERIFIED.
+ * ESPN — VERIFIED 2026-09-05 against three real leagues on the founder's account.
  *
- * Unlike the Sleeper mapping, which was probed live and evidenced against 298
- * real waiver transactions, NOTHING in this repository records ESPN's waiver
- * settings shape. Spec Phase 0 for ESPN is gated on a founder-device session
- * (S2/SWID), and no captured payload exists to read field names from.
+ * Probed live through an authenticated browser session (mSettings + mTeam):
  *
- * So this mapper FAILS CLOSED. It positively recognizes one documented shape
- * and returns not_determined for everything else — including a payload that is
- * present but shaped differently. §6.2 therefore stays in force for ESPN until
- * the probe confirms the shape, and no wrong budget or position can reach a
- * user in the meantime. An unrecognized ESPN league behaves exactly as it does
- * today.
+ *   Slops Saloon FF Showdown  acquisitionType WAIVERS_CONTINUOUS   isUsingAcquisitionBudget true   budget 100  minBid 0  waiverRank 4
+ *   Everything Backwards      acquisitionType WAIVERS_TRADITIONAL  isUsingAcquisitionBudget true   budget 100  minBid 0  waiverRank 12
+ *   Las Vegas Pro H2H PPR     acquisitionType WAIVERS_TRADITIONAL  isUsingAcquisitionBudget false  budget 100  minBid 1  waiverRank 5
  *
- * `scripts/probe-espn-waiver-settings.js` confirms or refutes the mapping
- * below. Until it has been run against a real league, treat every branch here
- * as a hypothesis — do NOT widen it to "whatever field looks right".
+ * TWO TRAPS, both confirmed in that data:
+ *
+ * 1. `acquisitionBudget: 100` is present on the NON-FAAB league. Same decoy as
+ *    Sleeper's `waiver_budget`. A budget read that is not gated first will show
+ *    a FAAB number to a league that does not use FAAB.
+ *
+ * 2. `acquisitionType` is NOT the discriminator, though it is the field that
+ *    looks like one. WAIVERS_TRADITIONAL appears with isUsingAcquisitionBudget
+ *    both true and false. Mapping on the type string gets the third league
+ *    above exactly wrong. `isUsingAcquisitionBudget` is the only discriminator.
+ *
+ * `waiverRank` is likewise populated on every team of every league, FAAB
+ * included, so it is a decoy too and is dropped for a FAAB league.
+ *
+ * Still fails closed: an unrecognized shape, or a discriminator that is not a
+ * real boolean, yields not_determined rather than a guess.
  *
  * @param {object} args
  * @param {object} args.settings raw `data.settings` from an mSettings view
@@ -175,14 +182,14 @@ function fromSleeper({ league, roster } = {}) {
 function fromEspn({ settings, team } = {}) {
   const acquisition = settings && settings.acquisitionSettings;
   if (!acquisition || typeof acquisition !== "object") {
-    return undetermined("espn acquisition settings absent — probe not yet run");
+    return undetermined("espn acquisition settings absent");
   }
 
   // The single documented discriminator. Anything other than a real boolean is
   // an unrecognized shape, not a "probably false".
   const usesBudget = acquisition.isUsingAcquisitionBudget;
   if (typeof usesBudget !== "boolean") {
-    return undetermined("espn waiver discriminator not recognized — probe required");
+    return undetermined("espn waiver discriminator not recognized");
   }
 
   if (usesBudget) {
@@ -193,7 +200,7 @@ function fromEspn({ settings, team } = {}) {
     // Same rule as Sleeper: remaining is derived, and missing input stays
     // unknown rather than becoming zero.
     const remaining = total !== null && spent !== null ? Math.max(0, total - spent) : null;
-    if (total === null) return undetermined("espn budget total unreadable — probe required");
+    if (total === null) return undetermined("espn budget total unreadable");
 
     return Object.freeze({
       version: MODEL_VERSION,
@@ -202,7 +209,11 @@ function fromEspn({ settings, team } = {}) {
       reason: null,
       budget_total: total,
       budget_remaining: remaining,
-      bid_min: null,
+      // Observed varying across real leagues (0, 0, 1), so it is read rather
+      // than assumed. Floors any bid recommendation.
+      bid_min: isFiniteNumber(acquisition.minimumBid) ? acquisition.minimumBid : null,
+      // waiverRank is populated on FAAB leagues too (4 and 12 on the two FAAB
+      // leagues probed). Decoy — dropped.
       priority_position: null,
     });
   }

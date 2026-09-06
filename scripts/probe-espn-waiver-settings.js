@@ -5,12 +5,13 @@
  * ESPN waiver-settings probe — spec Phase 0 for ESPN.
  * league-aware-waiver-system-v1.
  *
- * Confirms or refutes the PROVISIONAL ESPN mapping in
- * src/services/waiverSystem.js `fromEspn()`, which currently fails closed
- * because nothing in this repo records ESPN's waiver settings shape.
+ * The ESPN mapping in src/services/waiverSystem.js `fromEspn()` was VERIFIED
+ * 2026-09-05 against three real leagues — see the spec's Phase 0 findings.
+ * This script remains useful for re-confirming it against a new league, or
+ * after ESPN changes its payload.
  *
- * Needs a real league session. Run it yourself; it prints what ESPN actually
- * returns and whether the mapping holds.
+ * Needs a real league session. It prints what ESPN actually returns and
+ * whether the mapping holds.
  *
  *   node scripts/probe-espn-waiver-settings.js <leagueId> <espn_s2> <swid>
  *
@@ -74,9 +75,11 @@ function show(label, value) {
   console.log("");
 
   if (model.system === "not_determined") {
-    console.log("VERDICT: mapping did NOT hold. ESPN stays §6.2-restricted, which is correct");
-    console.log("and safe — no wrong value can reach a user. Use the raw dump above to fix");
-    console.log("fromEspn(), then re-run this probe. Record the result in the spec's Phase 0.");
+    console.log("VERDICT: mapping did NOT hold for this league. ESPN stays §6.2-restricted here,");
+    console.log("which is correct and safe — no wrong value can reach a user. The mapping was");
+    console.log("verified against three leagues on 2026-09-05, so this is either a league in an");
+    console.log("unusual configuration or a payload change. Use the raw dump above, then record");
+    console.log("what you found in the spec's Phase 0 findings.");
   } else {
     console.log(`VERDICT: mapping HELD — this league reads as ${model.system}.`);
     console.log("Confirm against ESPN's own league settings screen before trusting it, then");
