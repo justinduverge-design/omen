@@ -50,10 +50,10 @@ test("the matrix's retention column matches the code, whichever way a flag is se
 
   assert.equal((committed.match(/⛔ withheld/g) || []).length, withheld);
   assert.equal((committed.match(/✅ permitted/g) || []).length, permitted);
-  // ESPN and Yahoo are blocked by provider terms and entitlement respectively, not by a
-  // preference, so those two staying off is a real invariant.
-  assert.equal(RETAIN_RULE_BODY.espn, false);
-  assert.equal(RETAIN_RULE_BODY.yahoo, false);
+  // The old "ESPN and Yahoo must stay off" invariant is retired, not weakened. It encoded a
+  // posture — a rights position for ESPN, an entitlement refusal for Yahoo — and both changed
+  // on the record. What this test guards now is the property that actually matters: the
+  // committed document tracks the code, whichever way any flag is set.
 });
 
 test("every canonical event appears in the matrix exactly once", () => {

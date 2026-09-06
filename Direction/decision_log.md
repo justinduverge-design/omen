@@ -2503,3 +2503,82 @@ to fix.
 **Still open, deliberately:** projections in the carousel pill (parked by the founder), cross-device
 favourites, and the Android twin. `PrimitiveEnforcementTests` fails on pre-existing raw `Button(`
 usage in `SignInView.swift` and `ConnectView.swift` — untouched by this change and not fixed here.
+
+## 2026-09-06 — ESPN scoring: the restriction was a rights position, and the founder lifted it
+
+**How this came up.** The Omen tab told the founder "Exact ESPN scoring unavailable — Omen may
+recognize some league settings, but cannot yet verify every scoring rule." He asked whether that
+was still true. It was the sixth such claim tested that day, and five of the previous five were
+stale.
+
+**What was actually there.** `deriveScoringSnapshot` hardcoded `provider_restricted` for ESPN with
+the reason *"Omen has no provider-granted path to capture and retain this ESPN league's complete
+private scoring rules"*, and `RETAIN_RULE_BODY.espn` was `false`. Unlike the Yahoo and ESPN claims
+corrected the same day, **this one was not stale** — it was a deliberate rights position, recorded
+in this log on 2026-08-26 alongside the nflverse CC-BY allowlist and the no-paid-fallback decision.
+
+**What was measured before deciding.** ESPN serves the complete rule set to the league's own member
+through the same authenticated session Omen already uses to read that member's roster: 48
+`scoringItems` with per-position overrides, plus `playoffTeamCount` — which a separate code comment
+called "still unproven". More importantly, **scoring can be reproduced exactly with no stat-name
+map at all**: ESPN keys the league's rules and each player's stat line by the same numeric
+`statId`, so recomputing is arithmetic. Verified on league 13338821 — every rostered player's
+week-1 projection recomputed to ESPN's own `appliedTotal`, **15 of 15, exact to three decimals**.
+
+That removed the technical objection entirely and left only the rights question.
+
+**The concern raised before the decision, and the decision.** The founder was told this splits in
+two: reading settings in-flight (no retention, no rights exposure beyond the call already made)
+versus capturing and retaining a rule snapshot (the actual subject of the restriction) — and that
+the second feeds the grading pipeline currently held by `OMEN_CRON_SCORING_ENABLED=false`, which
+was disabled precisely because grading users under rules their league did not award is unsafe. He
+reaffirmed both halves: *"Do both. Let's finish this ESPN stuff."*
+
+**So `RETAIN_RULE_BODY.espn` is now `true`**, and ESPN coverage is derived from the league's real
+settings rather than asserted in advance.
+
+**What did not change, deliberately.** The governing rule from `scoringContract.js` still holds: an
+unknown provider key is never treated as a zero-point rule. `ESPN_EVENT_MAP` is intentionally
+partial — nine canonical events — and any stat id Omen cannot name drops that league's contract to
+`ambiguous` with the rule listed. ESPN's per-position scoring (all observed overrides are position
+16, D/ST) is not expressible as one canonical value and is reported unmapped rather than flattened
+to either number. **A league scoring exactly is not the same as a league whose contract is
+`supported`,** and this change does not conflate them.
+
+**Still open.** The grading hold (`OMEN_CRON_SCORING_ENABLED=false`) is unchanged and is a separate
+decision. Yahoo retention stays `false` — not because it is blocked, since its entitlement was
+restored 2026-08-28 and its settings endpoint is readable, but because the Yahoo scoring mapping is
+unbuilt.
+
+## 2026-09-06 — Tuesday grading enabled, and the row that was holding it
+
+**The hold.** `OMEN_CRON_SCORING_ENABLED` was set to `false` on 2026-08-26 because the Tuesday
+cron graded every recommendation as PPR, so a half-PPR or standard league would be judged against
+points its rules never awarded — Omen calling its own advice wrong when it was not.
+
+**Why it could be lifted.** The fail-closed machinery landed with A6 and is what actually protects
+users: a row with `scoring_contract_required = true` whose contract cannot be reconciled is
+**deferred as pending**, never graded. Only rows predating A6 reach the legacy PPR fallback.
+
+**Measured rather than assumed.** `moves` held three rows. Two required a contract and would defer
+correctly. The third was the problem the hold was written about: created 2026-06-04, `season 2099`,
+no headline, no target player, no reasoning, no confidence, `scoring_contract_required` null — and
+`followed = true`, so the legacy fallback would have written an invented outcome into the Ledger
+for a row with nothing in it to grade.
+
+**Cleanup, founder-authorized.** That row was recorded in full to
+`References/evidence/2026-09-06-grading-enable/deleted-move-row.json` and deleted. `moves` now
+holds two rows, **zero of which can reach the PPR fallback**.
+
+**The change.** `.env.production` backed up as `.env.production.bak-20260906-grading-enable`,
+`OMEN_CRON_SCORING_ENABLED` flipped `false` to `true` — a one-line diff, verified — and only
+compose service `cron` force-recreated. The API was not touched and stayed healthy throughout.
+Reversal is the same two steps in the other direction.
+
+**What this does not do.** It does not make grading exact for every league. ESPN and Yahoo both
+land `ambiguous` today wherever a league uses points-allowed tiers or per-position scoring, and an
+ambiguous contract defers rather than grades. Enabling the cron means the rows that *can* be graded
+exactly now are, and the rest say so — it does not mean every recommendation gets an outcome.
+
+**Watch item:** the cron runs Tuesdays. The first real run is the first evidence that this is
+behaving; until then this entry records intent, not proof.

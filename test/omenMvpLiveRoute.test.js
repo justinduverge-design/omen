@@ -339,12 +339,17 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
       // The rule body stays unretained until a provider's rights path is
       // evidenced (RETAIN_RULE_BODY). The hashes still pin which contract
       // version and which rule set produced the row, so provenance survives.
+      // Yahoo used to short-circuit to a synthetic "pending" snapshot and hash *that*, which
+      // produced stable hashes standing in for no rules at all. Since 2026-09-06 Yahoo reads
+      // the league's real settings; this fixture has no reachable Yahoo credentials, so the
+      // read fails and the hashes are null. Hashing an empty snapshot was provenance for
+      // nothing — the ruleset version below is the part that genuinely survives a failed read.
       scoring_contract: null,
-      scoring_contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
+      scoring_contract_hash: null,
       scoring_contract_version: "omen-scoring-contract-v1",
       scoring_contract_required: true,
       scoring_coverage_state: "pending",
-      provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
+      provider_rule_snapshot_hash: null,
       provider_final_outcome: null,
       reconciliation_state: "pending",
     },
@@ -356,8 +361,8 @@ test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized user
     format: null,
     contract_required: true,
     contract_version: "omen-scoring-contract-v1",
-    contract_hash: "f3476f0cca279785312d9d384d2f8c1b44936a9f358b1aa48f751bbe86553e69",
-    provider_rule_snapshot_hash: "45733e2a7bb7c152c8c92decf6342c2fd3c591a4b2f2edf068bd0841b336f78e",
+    contract_hash: null,
+    provider_rule_snapshot_hash: null,
     coverage_state: "pending",
     reconciliation_state: "pending",
   });
@@ -418,7 +423,11 @@ test("POST /api/omen/mvp-move returns the selected-context ESPN waiver envelope"
   assert.equal(res.body.recommendation.type, "waiver_pickup");
   assert.equal(res.body.recommendation.expected_value_delta.points, 13.2);
   assert.equal(res.body.signals.waivers.source, "espn_available_players");
-  assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "provider_restricted");
+  // ESPN was hardcoded `provider_restricted` until 2026-09-06, when the founder authorized
+  // capturing and retaining its rules. This fixture has no reachable ESPN credentials, so the
+  // settings read fails and the row records `pending` — the honest state for "we could not
+  // read the rules", and never a fabricated contract.
+  assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "pending");
   assert.deepEqual(state.liveRequests, [{
     userId: "user-1",
     options: { contextId: "context-espn-waiver" },

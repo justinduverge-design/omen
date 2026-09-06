@@ -65,12 +65,15 @@ test("a league Omen cannot fully reproduce is ambiguous and gets no format label
 
 // --- Rights gate ------------------------------------------------------------
 
-test("Sleeper retains the rule body; ESPN and Yahoo do not", async () => {
+test("every provider now retains the rule body", async () => {
   // Sleeper's own docs do not restrict storage — they instruct it. The single gate they
   // publish is commercial vs non-commercial, which does not distinguish reading from
   // retaining, so storing a league's rules adds no exposure beyond the call that already
   // fetched them. See Direction/reviews/2026-08-27-sleeper-retention-rights.md.
-  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: false, yahoo: false });
+  // ESPN and Yahoo both flipped to `true` on 2026-09-06 — ESPN by founder authorization
+  // lifting a rights position, Yahoo because the entitlement blocking it ended 2026-08-28 and
+  // the claim had simply outlived its cause. Recorded in the decision log.
+  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: true, yahoo: true });
 
   const sleeper = await resolveScoringPersistenceMetadata({
     platform: "sleeper", leagueId: "L1", deps: sleeperDeps({ scoring_settings: HALF_PPR }),
@@ -95,25 +98,88 @@ test("a restricted provider retains nothing, and its attestation carries no rule
 
 // --- ESPN and Yahoo: rights and entitlement facts, not data facts -----------
 
-test("ESPN is provider_restricted and makes no provider call at all", async () => {
-  let called = false;
+// ESPN used to short-circuit here as a rights fact, with no provider call. The founder
+// authorized capturing and retaining ESPN rules on 2026-09-06, so it now reads the league's
+// real settings with that user's own credentials.
+test("ESPN reads the league's real settings and retains the derived contract", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "espn", leagueId: "12345",
-    deps: { fetchSleeperLeague: async () => { called = true; return {}; } },
+    platform: "espn",
+    leagueId: "12345",
+    userId: "user-1",
+    deps: {
+      fetchEspnScoringSettings: async (leagueId, userId) => {
+        assert.equal(leagueId, "12345");
+        assert.equal(userId, "user-1", "ESPN settings are a credentialed read");
+        return { scoringSettings: { scoringItems: [{ statId: 53, points: 1, pointsOverrides: {} }] } };
+      },
+    },
   });
 
-  assert.equal(meta.coverage_state, "provider_restricted");
-  assert.equal(meta.contract, null);
-  assert.equal(meta.format, null);
-  assert.equal(called, false, "a rights fact needs no network call");
+  assert.equal(meta.coverage_state, "supported");
+  assert.equal(meta.format, "ppr");
+  assert.ok(meta.contract, "retention is now permitted for ESPN");
 });
 
-test("Yahoo is pending and makes no provider call at all", async () => {
-  const meta = await resolveScoringPersistenceMetadata({ platform: "yahoo", leagueId: "414.l.1" });
+// Without a user there are no credentials, so there is nothing to read. `pending` is the
+// honest answer — never a fabricated contract, and never the old blanket restriction.
+test("ESPN without a user is pending rather than restricted or invented", async () => {
+  const meta = await resolveScoringPersistenceMetadata({ platform: "espn", leagueId: "12345" });
 
   assert.equal(meta.coverage_state, "pending");
-  assert.equal(meta.format, null);
-  assert.equal(meta.legacy_label, null);
+  assert.equal(meta.contract, null);
+});
+
+// This path must never cost the user their recommendation.
+test("an ESPN settings read that throws degrades to pending instead of rejecting", async () => {
+  const meta = await resolveScoringPersistenceMetadata({
+    platform: "espn",
+    leagueId: "12345",
+    userId: "user-1",
+    deps: { fetchEspnScoringSettings: async () => { throw new Error("ESPN 401"); } },
+  });
+
+  assert.equal(meta.coverage_state, "pending");
+  assert.match(meta.reason, /could not be read/);
+});
+
+// Yahoo short-circuited here as an entitlement fact, with no provider call. That entitlement
+// was restored 2026-08-28 (facts-of-record #11), so it now reads the league's real settings.
+test("Yahoo reads the league's real settings and retains the derived contract", async () => {
+  const meta = await resolveScoringPersistenceMetadata({
+    platform: "yahoo",
+    leagueId: "470.l.1",
+    userId: "user-1",
+    deps: {
+      fetchYahooLeagueSettings: async (leagueId, userId) => {
+        assert.equal(leagueId, "470.l.1");
+        assert.equal(userId, "user-1", "Yahoo settings are a credentialed read");
+        return { stat_modifiers: { stats: [{ stat: { stat_id: 11, value: "1" } }] } };
+      },
+    },
+  });
+
+  assert.equal(meta.coverage_state, "supported");
+  assert.equal(meta.format, "ppr");
+  assert.ok(meta.contract, "retention is now permitted for Yahoo");
+});
+
+test("Yahoo without a user is pending rather than invented", async () => {
+  const meta = await resolveScoringPersistenceMetadata({ platform: "yahoo", leagueId: "470.l.1" });
+
+  assert.equal(meta.coverage_state, "pending");
+  assert.equal(meta.contract, null);
+});
+
+test("a Yahoo settings read that throws degrades to pending instead of rejecting", async () => {
+  const meta = await resolveScoringPersistenceMetadata({
+    platform: "yahoo",
+    leagueId: "470.l.1",
+    userId: "user-1",
+    deps: { fetchYahooLeagueSettings: async () => { throw new Error("Yahoo 999"); } },
+  });
+
+  assert.equal(meta.coverage_state, "pending");
+  assert.match(meta.reason, /could not be read/);
 });
 
 // --- The property that protects the user's recommendation -------------------

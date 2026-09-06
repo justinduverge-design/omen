@@ -140,3 +140,70 @@ Are there sibling algorithms like this one? The shape to hunt is **synchronous w
 path whose cost grows faster than its inputs** — specifically code that is fast today only
 because some provider field is still empty. Distinct from the page-by-page design audit.
 Extending `#404`'s budget posture to the Trade and League paths is cheap insurance regardless.
+
+---
+
+## 2026-09-06 — providers finished: what "we can't" actually meant
+
+A second day on the same thread. The founder's question — *"is that still accurate?"* about one
+error message — turned into an audit of every provider limitation in the codebase.
+
+### The pattern, and it is the finding
+
+**Six "we can't do this" claims were tested against the live APIs. Five were wrong.**
+
+| claim in code | reality |
+|---|---|
+| ESPN projections unavailable | shipped in `player.stats`, unread — **#409** |
+| Yahoo matchup `provider_unsupported` | scoreboard returns 12,955 bytes — **#410** |
+| Yahoo scoring `pending`, entitlement refused | settings returns 13,901 bytes — **#410** |
+| Yahoo waivers refused at entitlement level | teams + roster return 43KB |
+| ESPN playoff count "unproven" | `playoffTeamCount: 6`, right there in the payload |
+| ESPN exact scoring `provider_restricted` | **not stale** — a real rights position, lifted by the founder |
+
+Five shared one shape: **a true statement that stopped being true, written into code as a permanent
+fact.** Yahoo's entitlement was restored 2026-08-28 and nothing downstream noticed for nine days.
+`facts-of-record.md` already warns about exactly this — *"a correction was written where it was
+discovered rather than everywhere it was asserted"* — and it happened again anyway.
+
+**The mechanical lesson: provider limitations should be probed, not remembered.** A per-capability
+probe, in the shape of the existing `/api/yahoo/access-probe`, would have caught all five.
+
+### What shipped
+
+| PR | |
+|---|---|
+| [#409](https://github.com/justinduverge-design/omen/pull/409) merged | ESPN projections. 0 of 16 players projected → 16 of 16. Turned "nothing to recommend" into a real recommendation on the founder's phone. |
+| [#410](https://github.com/justinduverge-design/omen/pull/410) open | Yahoo matchups, exact ESPN scoring, Yahoo scoring rules. 1055/1055. |
+
+### Production changes, both founder-authorized
+
+- **ESPN rule retention lifted.** `RETAIN_RULE_BODY.espn` false → true. A deliberate rights
+  position from 2026-08-26, not a stale claim — the founder was told it split into read-in-flight
+  versus capture-and-retain, and that the second feeds a grading pipeline held off for safety, and
+  reaffirmed both. Decision log, 2026-09-06.
+- **Tuesday grading enabled.** `OMEN_CRON_SCORING_ENABLED` false → true, cron recreated, API
+  untouched. The row that caused the 2026-08-26 hold — `season 2099`, no player, `followed = true`
+  — was recorded to `References/evidence/2026-09-06-grading-enable/` and deleted. `moves` now holds
+  two rows and **zero can reach the legacy PPR fallback**.
+
+### Corrections owed, and one still open
+
+**My 2026-09-05 outage explanation was wrong.** #404, `known_issues.md` and the skill ledger all
+say the exhaustive trade search "had been dormant because ESPN published no projections". With
+`Number(null) === 0`, every player always passed the finite check — the search always had full
+input and was never gated on projections. **The real trigger for 2026-09-05 is not established.**
+Flagged in #409; those three documents still need correcting.
+
+Also corrected mid-session: a probe reporting "ESPN roster size 0" was my own bug — the adapter
+returns `slots.{starters,bench,ir}`, not `players`. I nearly reported ESPN as broken.
+
+### Open
+
+1. **Merge and deploy #410 before Tuesday** — grading is enabled and the cron runs weekly.
+2. **Correct the #404 outage claim** in three places.
+3. **Defensive/IDP leagues** cannot reach a `supported` contract — now written up in
+   `known_issues.md` with what closing it needs.
+4. **The algorithm pass** the founder has been steering toward: right math, cheapest path to the
+   most information.
+5. **Android switcher.**
