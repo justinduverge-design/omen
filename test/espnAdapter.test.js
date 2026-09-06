@@ -594,3 +594,80 @@ test("a league with no usable name is null, never the string 'null'", async () =
     assert.equal(context.league_name, null, `settings ${JSON.stringify(settings)} should yield null`);
   }
 });
+
+// --- 2026-09-06: rostered players came back with no projection at all -------
+//
+// `mRoster` ships projections as rows in `player.stats`, keyed by `scoringPeriodId` with
+// `statSourceId: 1`. `normalizePlayer` read six flat fields — `entry.projectedPoints`,
+// `player.projectedStats.appliedTotal` and friends — **none of which exist on that payload**,
+// so every rostered player normalized to `projected_points: null`.
+//
+// Downstream, `Number(null) === 0` turned every one of them into a confident zero. Every
+// lineup tied at 0.00, no swap could ever be an improvement, and Omen told the founder
+// "No move clears the recommendation threshold this week" about a roster whose real week-1
+// projections were sitting unread in the same HTTP response. Measured after the fix on a live
+// league: 16 of 16 players projected, and a 126.16-point starting lineup.
+//
+// `projectedPointsForEspnPlayer` already existed and did exactly this — it was wired only to
+// the waiver pool.
+test("normalizePlayer reads the projection ESPN ships in player.stats for the requested week", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  {
+    const data = {
+      teams: [{
+        id: 8,
+        owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+        roster: {
+          entries: [{
+            playerId: 4432622,
+            lineupSlotId: 2,
+            playerPoolEntry: {
+              player: {
+                id: 4432622,
+                fullName: "Jaxon Smith-Njigba",
+                defaultPositionId: 3,
+                eligibleSlots: [3, 4, 5, 23],
+                stats: [
+                  // The week we asked for.
+                  { scoringPeriodId: 1, statSourceId: 1, statSplitTypeId: 1, appliedTotal: 18.92226009, seasonId: 2026 },
+                  // Season-long projection — must NOT be mistaken for a weekly one.
+                  { scoringPeriodId: 0, statSourceId: 1, statSplitTypeId: 0, appliedTotal: 326.67, seasonId: 2026 },
+                  // Last season's actuals.
+                  { scoringPeriodId: 0, statSourceId: 0, statSplitTypeId: 0, appliedTotal: 359.9, seasonId: 2025 },
+                ],
+              },
+            },
+          }],
+        },
+      }],
+    };
+
+    const roster = adapter.rosterFromEspnData(data, "517756847", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
+    const player = [...roster.slots.starters, ...roster.slots.bench][0];
+
+    assert.equal(player.name, "Jaxon Smith-Njigba");
+    assert.equal(player.projected_points, 18.92226009);
+  }
+});
+
+// `Number(null)` and `Number("")` are both 0, so a bare `Number.isFinite` check accepts an
+// absent value as a real zero. A player we know nothing about must not outrank an empty slot.
+test("firstFinite treats null and empty string as absent rather than as zero", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  {
+    const data = (projected) => ({
+      teams: [{
+        id: 8,
+        owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+        roster: { entries: [{ playerId: 1, lineupSlotId: 2, playerPoolEntry: { player: { id: 1, fullName: "P", defaultPositionId: 3, projectedPoints: projected } } }] },
+      }],
+    });
+
+    const nulled = adapter.rosterFromEspnData(data(null), "1", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
+    assert.equal([...nulled.slots.starters, ...nulled.slots.bench][0].projected_points, null);
+
+    // A real zero is a real projection and survives.
+    const zeroed = adapter.rosterFromEspnData(data(0), "1", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
+    assert.equal([...zeroed.slots.starters, ...zeroed.slots.bench][0].projected_points, 0);
+  }
+});

@@ -72,8 +72,21 @@ function lineupEligible(player) {
   return location !== "IR" && location !== "TAXI";
 }
 
+/**
+ * A player's projection, or `null` when there is not one.
+ *
+ * `null` and `""` are rejected explicitly, because `Number(null)` and `Number("")` are both
+ * **0** — finite, and therefore accepted by a bare `Number.isFinite` check. That coercion made
+ * a player with no projection indistinguishable from a player projected to score nothing, so
+ * every lineup tied at 0.00 and no swap could ever look like an improvement. `startSit.js`
+ * already guarded this correctly with a `typeof` check; this did not.
+ *
+ * A real 0 is still a real projection and is kept.
+ */
 function finiteProjection(player) {
-  const points = Number(player?.projected_points);
+  const raw = player?.projected_points;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const points = Number(raw);
   return Number.isFinite(points) ? points : null;
 }
 
