@@ -13,10 +13,17 @@
  * is a pure function over an already-normalized roster and pool, so provider
  * differences stay in the route and the maths stays testable without a network.
  *
- * Deliberately NOT produced: FAAB amount, waiver priority, and claim
- * probability. §6.2 forbids them until Omen has verified the league's waiver
- * system, and it has not.
+ * FAAB amount and waiver priority ARE now produced, but only for a league whose
+ * waiver system was positively verified by `waiverSystem.js` (Phase 2 of
+ * league-aware-waiver-system-v1). A league that was not determined keeps the
+ * original system-blind output, unchanged.
+ *
+ * Claim probability remains deliberately NOT produced. §6.2 still forbids it
+ * for every league, determined or not.
  */
+
+const { mayShowFaab, mayShowPriority } = require("./waiverSystem");
+const { recommendBid } = require("./waiverBid");
 
 const CONTRACT_VERSION = "waiver-analysis.v1";
 const MAX_ALTERNATIVES = 3;
@@ -196,7 +203,24 @@ function playerView(player) {
   };
 }
 
-function envelope({ platform, leagueId, week, season, scoringFormat, availability, deadline, state, extra = {} }) {
+/**
+ * §6.2 surfacing gate. A value is emitted only when its system was positively
+ * determined. Sleeper populates every waiver field on every league, so reading
+ * the raw payload here instead of the model would emit a budget AND a priority
+ * for every league in the product.
+ */
+function waiverSystemView(model) {
+  if (!model) return null;
+  return {
+    system: model.system,
+    determined_from: model.determined_from,
+    budget_total: mayShowFaab(model) ? model.budget_total : null,
+    budget_remaining: mayShowFaab(model) ? model.budget_remaining : null,
+    priority_position: mayShowPriority(model) ? model.priority_position : null,
+  };
+}
+
+function envelope({ platform, leagueId, week, season, scoringFormat, availability, deadline, state, waiverSystem = null, extra = {} }) {
   return {
     contract_version: CONTRACT_VERSION,
     generated_at: new Date().toISOString(),
@@ -209,6 +233,7 @@ function envelope({ platform, leagueId, week, season, scoringFormat, availabilit
     availability_state: availability,
     deadline,
     state,
+    waiver_system: waiverSystemView(waiverSystem),
     best_move: null,
     cost: null,
     evidence: [],
@@ -234,6 +259,7 @@ function buildWaiverAnalysis({
   availabilityConfirmed = false,
   deadline = null,
   offSeason = false,
+  waiverSystem = null,
 } = {}) {
   const base = {
     platform,
@@ -244,6 +270,7 @@ function buildWaiverAnalysis({
     availability: availabilityConfirmed ? "confirmed" : "unconfirmed",
     // A deadline is only ever emitted when the provider actually confirmed one.
     deadline: availabilityConfirmed ? deadline : null,
+    waiverSystem,
   };
 
   if (offSeason) {
@@ -300,6 +327,14 @@ function buildWaiverAnalysis({
         why_now: best.solves_out_starter
           ? `${nameOf(best.displaced)} is unavailable, and ${nameOf(best.player)} is the strongest available option for that slot.`
           : `${nameOf(best.player)} projects above your weakest eligible starter for this week.`,
+        // Phase 3. Null unless the league was verified FAAB and every input is
+        // present. Never zero, never invented, never a claim forecast.
+        bid: recommendBid({
+          waiverSystem,
+          improvement: best.improvement,
+          week: base.week,
+          minBid: waiverSystem?.bid_min ?? null,
+        }),
       },
       cost: costFor(drop, best),
       evidence: evidenceFor(best, scoringFormat),

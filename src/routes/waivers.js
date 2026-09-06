@@ -25,6 +25,7 @@ const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../servi
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildWaiverAnalysis } = require("../services/waiverAnalysis");
+const waiverSystem = require("../services/waiverSystem");
 const rosterSvc = require("../services/roster");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
@@ -75,9 +76,22 @@ async function loadSleeper(connection, week, season) {
     .fetchSleeperAvailablePlayers(connection.league_id, week, String(season))
     .catch(() => null);
 
+  // §6.2 verification. Needs the RAW roster row, not the normalized one: the
+  // waiver fields live on roster.settings and normalization drops them. A
+  // failure here is not_determined, never a guess — the analysis still renders.
+  let system = waiverSystem.undetermined("sleeper waiver settings unavailable");
+  try {
+    const user = await sleeperAdapter.fetchSleeperUser(connection.platform_username);
+    const raw = await sleeperAdapter.fetchSleeperRoster(connection.league_id, user.user_id);
+    system = waiverSystem.fromSleeper({ league, roster: raw.roster });
+  } catch (_) {
+    // keep not_determined
+  }
+
   return {
     roster,
     pool,
+    waiverSystem: system,
     scoringFormat: scoringFormatFromSleeperLeague(league),
     // Sleeper's rosters endpoint is the league's own truth about who is rostered,
     // so an unrostered player really is a free agent in this league.
@@ -85,6 +99,13 @@ async function loadSleeper(connection, week, season) {
     limitations: [],
   };
 }
+
+// ESPN and Yahoo have no waiver-system probe yet (spec Phase 0 is Sleeper-only,
+// ESPN gated on a founder-device session and Yahoo on API reapproval). They
+// return not_determined, so §6.2 stays in force for them and their advice is
+// unchanged. This is deliberate, not an oversight.
+const NOT_DETERMINED_PENDING_PROBE = () =>
+  waiverSystem.undetermined("waiver system probe not implemented for this provider");
 
 async function loadEspn(connection, userId, week) {
   const credentials = await getAuthenticatedEspnCredentials(userId);
@@ -104,6 +125,7 @@ async function loadEspn(connection, userId, week) {
     pool,
     // ESPN exposes no scoring-settings mapping Omen has verified, so this stays
     // null rather than defaulting to PPR — that default is the A6 defect.
+    waiverSystem: NOT_DETERMINED_PENDING_PROBE(),
     scoringFormat: null,
     availabilityConfirmed: pool != null,
     limitations: pool == null
@@ -128,6 +150,7 @@ async function loadYahoo(connection, userId, week) {
   return {
     roster,
     pool,
+    waiverSystem: NOT_DETERMINED_PENDING_PROBE(),
     scoringFormat: null,
     // Yahoo's /players;status=A carries no projection, so every candidate is
     // unprojected and none is evidence-backed. Availability alone is not enough
@@ -206,6 +229,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       season: context.season,
       scoringFormat: loaded.scoringFormat,
       availabilityConfirmed: loaded.availabilityConfirmed,
+      waiverSystem: loaded.waiverSystem || null,
       deadline: null,
       offSeason: suppressLiveFootballData(),
     });
