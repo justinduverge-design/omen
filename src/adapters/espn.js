@@ -599,6 +599,122 @@ function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
   };
 }
 
+
+/**
+ * ESPN's own scoring rules for a league, as `statId -> points`, including per-position
+ * overrides.
+ *
+ * ## Why this needs no stat-name map to be exact
+ *
+ * ESPN keys both the league's scoring rules and each player's stat line by the same numeric
+ * `statId`. Reproducing a score is therefore arithmetic — multiply and sum — and requires no
+ * opinion about what stat 53 *means*. That matters: guessing stat semantics is precisely how
+ * A6 mis-scored leagues, and it is the one mistake available here.
+ *
+ * Verified live 2026-09-06 against league 13338821: recomputing every rostered player's week-1
+ * projection from these rules reproduced ESPN's own `appliedTotal` for **15 of 15 players**,
+ * exact to three decimals.
+ *
+ * `pointsOverrides` is keyed by ESPN position id. In the leagues measured, every override was
+ * position `16` (D/ST) — offence scores on base points, defence on the override — so the split
+ * is representable without giving the contract a position dimension.
+ */
+function espnScoringRules(settingsData) {
+  const items = settingsData?.settings?.scoringSettings?.scoringItems;
+  if (!Array.isArray(items) || !items.length) return null;
+
+  const byStatId = new Map();
+  for (const item of items) {
+    const statId = String(item?.statId ?? "");
+    if (!statId) continue;
+    const overrides = {};
+    for (const [positionId, value] of Object.entries(item?.pointsOverrides || {})) {
+      const points = Number(value);
+      if (Number.isFinite(points)) overrides[String(positionId)] = points;
+    }
+    byStatId.set(statId, { points: Number(item?.points) || 0, overrides });
+  }
+  return { byStatId, ruleCount: byStatId.size };
+}
+
+/** The points one stat is worth to one position, honouring a per-position override. */
+function espnPointsForStat(rules, statId, positionId) {
+  const rule = rules?.byStatId?.get(String(statId));
+  if (!rule) return null;
+  const override = rule.overrides[String(positionId)];
+  return override === undefined ? rule.points : override;
+}
+
+/**
+ * A player's score under the league's own rules, from a raw ESPN stat line.
+ *
+ * A stat the league does not score contributes nothing — which is correct rather than a
+ * silent drop: ESPN tracks stats it does not award (attempts, targets), and the reproduction
+ * test above holds precisely because those are worth zero.
+ */
+function espnAppliedPoints(statLine, positionId, rules) {
+  if (!statLine || !rules) return null;
+  let total = 0;
+  for (const [statId, value] of Object.entries(statLine)) {
+    const points = espnPointsForStat(rules, statId, positionId);
+    if (points === null || !points) continue;
+    const count = Number(value);
+    if (!Number.isFinite(count)) continue;
+    total += count * points;
+  }
+  // Rounded to ESPN's own two-decimal presentation; the raw sum carries float noise.
+  return Math.round(total * 100) / 100;
+}
+
+/**
+ * `ppr`, `half_ppr` or `standard`, from the league's actual reception rule.
+ *
+ * ESPN stat **53** is receptions. The directory previously reported `scoring_format: null` for
+ * every ESPN league with the comment "a separate read Omen has not mapped" — unimplemented
+ * rather than unavailable. A non-standard value (say 0.75) returns `unmapped` rather than being
+ * rounded to the nearest familiar label, because naming a league PPR when it is not is the A6
+ * defect in miniature.
+ */
+function espnScoringFormat(rules) {
+  const reception = rules?.byStatId?.get("53");
+  if (!reception) return null;
+  const points = reception.points;
+  if (points === 1) return "ppr";
+  if (points === 0.5) return "half_ppr";
+  if (points === 0) return "standard";
+  return "unmapped";
+}
+
+/**
+ * A league's scoring settings, cached.
+ *
+ * This sits on the recommendation-persistence path, so without a cache every recommendation
+ * would cost an extra ESPN round trip — measured at multiple seconds when ESPN is slow to
+ * answer. A league's scoring rules change at most between seasons, and a commissioner edit
+ * mid-week is exactly the kind of change an hour of staleness is acceptable for: the snapshot
+ * hash still records precisely which rules produced any given row, so a stale read is
+ * traceable rather than silent.
+ *
+ * Keyed by league only — never by the SWID cookie, which would put an ESPN credential in the
+ * cache key in plaintext.
+ */
+const SCORING_SETTINGS_TTL_S = 3600;
+
+async function fetchEspnScoringSettings(leagueId, espn_s2, swid, opts = {}) {
+  const season = opts.seasonId || activeSeason();
+  const cacheKey = `ssff:espn:scoring:${season}:${leagueId}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return { byStatId: new Map(cached.byStatId), ruleCount: cached.ruleCount };
+
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mSettings"], null, opts);
+  const rules = espnScoringRules(data);
+  if (rules) {
+    // A Map does not survive JSON, so entries are cached as an array and rehydrated above.
+    await writeCache(cacheKey, { byStatId: [...rules.byStatId], ruleCount: rules.ruleCount }, SCORING_SETTINGS_TTL_S);
+  }
+  return rules;
+}
+
 async function buildNormalizedRoster(leagueId, espn_s2, swid, week, opts = {}) {
   const scoringPeriodId = Number(week);
   const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mTeam", "mRoster"], scoringPeriodId, opts);
@@ -881,6 +997,11 @@ async function fetchEspnFanLeagues(espn_s2, swid, opts = {}) {
 module.exports = {
   // Exported for scripts/probe-espn-waiver-settings.js (spec Phase 0, ESPN).
   fetchEspnApi,
+  espnScoringRules,
+  espnPointsForStat,
+  espnAppliedPoints,
+  espnScoringFormat,
+  fetchEspnScoringSettings,
   buildLeagueStandings,
   buildLeagueContext,
   leagueNameFromEspnData,

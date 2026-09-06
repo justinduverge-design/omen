@@ -58,9 +58,14 @@ const RETAIN_RULE_BODY = Object.freeze({
   // reduced that exposure; it only degraded the product.
   // Analysis: Direction/reviews/2026-08-27-sleeper-retention-rights.md
   sleeper: true,
-  // Disney's terms restrict commercial and automated extraction absent written permission.
-  // Provider-restricted: no snapshot is derived at all, only a hashed attestation.
-  espn: false,
+  // **Founder-authorized 2026-09-06**, on the record, after being shown that the previous
+  // `provider_restricted` state was a rights position rather than a technical limit: ESPN
+  // serves the complete rule set to the league's own member, through the same authenticated
+  // session Omen already uses to read that member's roster. The concern raised before the
+  // decision — that this also feeds the grading pipeline currently held by
+  // `OMEN_CRON_SCORING_ENABLED=false` — was stated and the founder reaffirmed both halves.
+  // See the decision log entry of that date.
+  espn: true,
   // The API is refused at the application-entitlement level, so there is nothing to retain.
   yahoo: false,
 });
@@ -131,15 +136,49 @@ function pendingMetadata(reason) {
  *   without a network
  * @returns {Promise<object>} persistence metadata; never rejects
  */
-async function resolveScoringPersistenceMetadata({ platform, leagueId, deps = {} } = {}) {
+/**
+ * Reads an ESPN league's scoring settings with the connected user's own credentials.
+ *
+ * Required lazily so this module stays importable, and testable, without the ESPN adapter or
+ * a credential path present.
+ */
+async function defaultEspnSettingsReader(leagueId, userId) {
+  const { getAuthenticatedEspnCredentials } = require("./espnAuth");
+  const { fetchEspnApi } = require("../adapters/espn");
+  const credentials = await getAuthenticatedEspnCredentials(userId);
+  const data = await fetchEspnApi(leagueId, credentials.espn_s2, credentials.swid, ["mSettings"], null, {});
+  return data?.settings || null;
+}
+
+async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = null, deps = {} } = {}) {
   const name = String(platform || "").trim().toLowerCase();
   if (!name) return pendingMetadata("No platform was recorded on this recommendation.");
 
   const retain = RETAIN_RULE_BODY[name] === true;
 
-  // ESPN and Yahoo need no provider call at all — their coverage state is a
-  // rights and entitlement fact, not a data fact. Deriving without a fetch also
-  // means an outage at either provider cannot affect this path.
+  if (name === "espn") {
+    // Needs a credentialed read, so it needs to know whose credentials. Without a user this
+    // cannot fetch, and reporting `pending` is the honest answer — never a fabricated
+    // contract, and never the old blanket `provider_restricted`, which is no longer true.
+    if (!leagueId || !userId) {
+      return pendingMetadata("This ESPN league's scoring settings were not read when this recommendation was issued.");
+    }
+    const fetchEspnSettings = deps.fetchEspnScoringSettings || defaultEspnSettingsReader;
+    let settings;
+    try {
+      settings = await fetchEspnSettings(leagueId, userId);
+    } catch {
+      // Never surface the provider message, and never throw: this path must not cost the
+      // user their recommendation.
+      return pendingMetadata("ESPN league settings could not be read when this recommendation was issued.");
+    }
+    return metadataFrom(deriveScoringSnapshot({ platform: "espn", leagueSettings: settings }), { retain });
+  }
+
+  // Yahoo still derives without a provider call. Its entitlement was restored 2026-08-28
+  // (facts-of-record #11) and its settings endpoint is readable — measured 2026-09-06 — so
+  // this branch is stale in the same way ESPN's was. It is left alone here only because the
+  // Yahoo scoring mapping is separate work; see the decision log.
   if (name !== "sleeper") {
     return metadataFrom(deriveScoringSnapshot({ platform: name }), { retain });
   }

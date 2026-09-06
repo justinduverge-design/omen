@@ -50,9 +50,10 @@ test("the matrix's retention column matches the code, whichever way a flag is se
 
   assert.equal((committed.match(/⛔ withheld/g) || []).length, withheld);
   assert.equal((committed.match(/✅ permitted/g) || []).length, permitted);
-  // ESPN and Yahoo are blocked by provider terms and entitlement respectively, not by a
-  // preference, so those two staying off is a real invariant.
-  assert.equal(RETAIN_RULE_BODY.espn, false);
+  // Yahoo stays off because its scoring mapping is unbuilt, not because it is blocked — the
+  // entitlement was restored 2026-08-28. ESPN was turned on by founder authorization on
+  // 2026-09-06, so the old "these two must stay off" invariant is retired rather than
+  // weakened: what this test now guards is that the document tracks the code either way.
   assert.equal(RETAIN_RULE_BODY.yahoo, false);
 });
 

@@ -65,12 +65,15 @@ test("a league Omen cannot fully reproduce is ambiguous and gets no format label
 
 // --- Rights gate ------------------------------------------------------------
 
-test("Sleeper retains the rule body; ESPN and Yahoo do not", async () => {
+test("Sleeper and ESPN retain the rule body; Yahoo does not", async () => {
   // Sleeper's own docs do not restrict storage — they instruct it. The single gate they
   // publish is commercial vs non-commercial, which does not distinguish reading from
   // retaining, so storing a league's rules adds no exposure beyond the call that already
   // fetched them. See Direction/reviews/2026-08-27-sleeper-retention-rights.md.
-  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: false, yahoo: false });
+  // ESPN flipped to `true` on 2026-09-06 by founder authorization, recorded in the decision
+  // log. Yahoo is still withheld only because its scoring mapping is separate work — its
+  // entitlement was restored 2026-08-28 and its settings endpoint is readable.
+  assert.deepEqual(RETAIN_RULE_BODY, { sleeper: true, espn: true, yahoo: false });
 
   const sleeper = await resolveScoringPersistenceMetadata({
     platform: "sleeper", leagueId: "L1", deps: sleeperDeps({ scoring_settings: HALF_PPR }),
@@ -95,17 +98,48 @@ test("a restricted provider retains nothing, and its attestation carries no rule
 
 // --- ESPN and Yahoo: rights and entitlement facts, not data facts -----------
 
-test("ESPN is provider_restricted and makes no provider call at all", async () => {
-  let called = false;
+// ESPN used to short-circuit here as a rights fact, with no provider call. The founder
+// authorized capturing and retaining ESPN rules on 2026-09-06, so it now reads the league's
+// real settings with that user's own credentials.
+test("ESPN reads the league's real settings and retains the derived contract", async () => {
   const meta = await resolveScoringPersistenceMetadata({
-    platform: "espn", leagueId: "12345",
-    deps: { fetchSleeperLeague: async () => { called = true; return {}; } },
+    platform: "espn",
+    leagueId: "12345",
+    userId: "user-1",
+    deps: {
+      fetchEspnScoringSettings: async (leagueId, userId) => {
+        assert.equal(leagueId, "12345");
+        assert.equal(userId, "user-1", "ESPN settings are a credentialed read");
+        return { scoringSettings: { scoringItems: [{ statId: 53, points: 1, pointsOverrides: {} }] } };
+      },
+    },
   });
 
-  assert.equal(meta.coverage_state, "provider_restricted");
+  assert.equal(meta.coverage_state, "supported");
+  assert.equal(meta.format, "ppr");
+  assert.ok(meta.contract, "retention is now permitted for ESPN");
+});
+
+// Without a user there are no credentials, so there is nothing to read. `pending` is the
+// honest answer — never a fabricated contract, and never the old blanket restriction.
+test("ESPN without a user is pending rather than restricted or invented", async () => {
+  const meta = await resolveScoringPersistenceMetadata({ platform: "espn", leagueId: "12345" });
+
+  assert.equal(meta.coverage_state, "pending");
   assert.equal(meta.contract, null);
-  assert.equal(meta.format, null);
-  assert.equal(called, false, "a rights fact needs no network call");
+});
+
+// This path must never cost the user their recommendation.
+test("an ESPN settings read that throws degrades to pending instead of rejecting", async () => {
+  const meta = await resolveScoringPersistenceMetadata({
+    platform: "espn",
+    leagueId: "12345",
+    userId: "user-1",
+    deps: { fetchEspnScoringSettings: async () => { throw new Error("ESPN 401"); } },
+  });
+
+  assert.equal(meta.coverage_state, "pending");
+  assert.match(meta.reason, /could not be read/);
 });
 
 test("Yahoo is pending and makes no provider call at all", async () => {

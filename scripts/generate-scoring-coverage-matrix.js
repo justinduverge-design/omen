@@ -35,6 +35,11 @@ const GROUPS = [
   ["Individual defensive player (IDP)", (key) => key.startsWith("idp_")],
 ];
 
+function espnCoverage() {
+  const { ESPN_EVENT_MAP } = require("../src/services/scoringRuleSnapshot");
+  return new Set(Object.values(ESPN_EVENT_MAP).map((entry) => entry.event_key));
+}
+
 function sleeperCoverage() {
   const byEvent = new Map();
   for (const [providerKey, mapping] of Object.entries(SLEEPER_EVENT_MAP)) {
@@ -53,6 +58,7 @@ function groupOf(key) {
 
 function render() {
   const sleeper = sleeperCoverage();
+  const espn = espnCoverage();
   const keys = [...EVENT_KEYS].sort();
   const rows = [];
 
@@ -67,7 +73,7 @@ function render() {
       const sleeperCell = providerKeys
         ? `✅ \`${providerKeys.sort().join("`, `")}\``
         : "❌ not mapped";
-      rows.push(`| \`${key}\` | ${sleeperCell} | 🔒 restricted | ⏳ pending |`);
+      rows.push(`| \`${key}\` | ${sleeperCell} | ${espn.has(key) ? "✅" : "❌"} | ⏳ pending |`);
     }
   }
 
@@ -94,7 +100,7 @@ that provider's final result — that is the separate reconciliation state.
 |---|---|
 | ✅ | Mapped from a named provider key. Reproducible. |
 | ❌ | Not mapped. Any **non-zero** value for this rule forces the whole contract to \`ambiguous\` — it is never silently treated as zero. |
-| 🔒 | **Provider-restricted.** No provider-granted path to capture and retain the complete private rule set. Derives a hashed restriction attestation, never a snapshot. |
+| 🔒 | **Provider-restricted.** No provider-granted path to capture and retain the complete private rule set. Derives a hashed restriction attestation, never a snapshot. *(No provider is in this state as of 2026-09-06.)* |
 | ⏳ | **Pending.** The rules exist and Omen may be able to read them once access clears. |
 
 ## Provider status
@@ -102,7 +108,7 @@ that provider's final result — that is the separate reconciliation state.
 | Provider | Rule derivation | Rule-body retention | Blocker |
 |---|---|---|---|
 | Sleeper | ✅ ${mappedCount}/${keys.length} canonical events | ${RETAIN_RULE_BODY.sleeper ? "✅ permitted" : "⛔ withheld"} | Written commercial-use permission pending (requested 2026-08-22) |
-| ESPN | 🔒 none | ${RETAIN_RULE_BODY.espn ? "✅ permitted" : "⛔ withheld"} | Provider-restricted absent express permission |
+| ESPN | ✅ ${espn.size}/${EVENT_KEYS.size} canonical events | ${RETAIN_RULE_BODY.espn ? "✅ permitted" : "⛔ withheld"} | Founder-authorized 2026-09-06; unnamed stat ids force \`ambiguous\` |
 | Yahoo | ⏳ none | ${RETAIN_RULE_BODY.yahoo ? "✅ permitted" : "⛔ withheld"} | API refused at the app-entitlement level (issue #308) |
 
 **Retention is gated separately from derivation.** Deriving a snapshot in memory

@@ -140,12 +140,89 @@ test("absent Sleeper settings are pending, not silently PPR", () => {
 
 // --- ESPN and Yahoo: the external half, named rather than worked around ------
 
-test("ESPN is provider_restricted, and no rules are fabricated for it", () => {
-  const snapshot = deriveScoringSnapshot({ platform: "espn", leagueSettings: HALF_PPR });
+// ESPN was hardcoded `provider_restricted` on the reasoning that Omen had no provider-granted
+// path to capture and retain a league's private rules. **The founder authorized capturing and
+// retaining them on 2026-09-06**, after being shown the restriction was a rights position
+// rather than a technical limit. Coverage is now derived from the league's own settings.
+test("ESPN derives a real contract from the league's own scoring items", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "espn",
+    leagueSettings: {
+      scoringSettings: {
+        scoringItems: [
+          { statId: 53, points: 0.5, pointsOverrides: {} },
+          { statId: 42, points: 0.1, pointsOverrides: {} },
+          { statId: 4, points: 4, pointsOverrides: {} },
+        ],
+      },
+    },
+  });
 
-  assert.equal(snapshot.coverage_state, "provider_restricted");
+  assert.equal(snapshot.coverage_state, "supported");
+  const reception = snapshot.contract.rules.find((rule) => rule.event_key === "receiving_receptions");
+  assert.equal(reception.value, 0.5, "half PPR must be read from the league, not assumed");
+  assert.equal(snapshot.provider_rule_count, 3);
+});
+
+// The governing rule: an unknown provider key is never treated as a zero-point rule.
+test("an ESPN stat id Omen cannot name drops the contract to ambiguous rather than dropping the rule", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "espn",
+    leagueSettings: {
+      scoringSettings: {
+        scoringItems: [
+          { statId: 53, points: 1, pointsOverrides: {} },
+          { statId: 9999, points: 3, pointsOverrides: {} },
+        ],
+      },
+    },
+  });
+
+  assert.equal(snapshot.coverage_state, "ambiguous");
+  assert.deepEqual(snapshot.unmapped_rules, ["stat_9999"]);
+});
+
+// ESPN scores some stats differently per position (D/ST is position 16). That is not
+// expressible as one canonical number, so it is reported rather than flattened to either value.
+test("a position-specific ESPN rule is reported unmapped, never flattened", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "espn",
+    leagueSettings: {
+      scoringSettings: {
+        scoringItems: [
+          { statId: 53, points: 1, pointsOverrides: {} },
+          { statId: 95, points: 0, pointsOverrides: { 16: 2 } },
+        ],
+      },
+    },
+  });
+
+  assert.equal(snapshot.coverage_state, "ambiguous");
+  assert.ok(snapshot.unmapped_rules.includes("stat_95"));
+});
+
+// A rule worth nothing to anyone cannot change a score, so it is not ambiguity.
+test("an ESPN rule worth zero to every position does not make the contract ambiguous", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "espn",
+    leagueSettings: {
+      scoringSettings: {
+        scoringItems: [
+          { statId: 53, points: 1, pointsOverrides: {} },
+          { statId: 8888, points: 0, pointsOverrides: {} },
+        ],
+      },
+    },
+  });
+
+  assert.equal(snapshot.coverage_state, "supported");
+});
+
+test("an unreadable ESPN settings payload is unsupported, never fabricated", () => {
+  const snapshot = deriveScoringSnapshot({ platform: "espn", leagueSettings: null });
+
+  assert.equal(snapshot.coverage_state, "unsupported");
   assert.deepEqual(snapshot.contract.rules, []);
-  assert.match(snapshot.reason, /no provider-granted path/);
 });
 
 test("Yahoo is pending on its entitlement rather than unsupported", () => {

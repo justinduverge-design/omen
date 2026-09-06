@@ -418,7 +418,11 @@ test("POST /api/omen/mvp-move returns the selected-context ESPN waiver envelope"
   assert.equal(res.body.recommendation.type, "waiver_pickup");
   assert.equal(res.body.recommendation.expected_value_delta.points, 13.2);
   assert.equal(res.body.signals.waivers.source, "espn_available_players");
-  assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "provider_restricted");
+  // ESPN was hardcoded `provider_restricted` until 2026-09-06, when the founder authorized
+  // capturing and retaining its rules. This fixture has no reachable ESPN credentials, so the
+  // settings read fails and the row records `pending` — the honest state for "we could not
+  // read the rules", and never a fabricated contract.
+  assert.equal(state.moveUpserts[0].payload.scoring_coverage_state, "pending");
   assert.deepEqual(state.liveRequests, [{
     userId: "user-1",
     options: { contextId: "context-espn-waiver" },

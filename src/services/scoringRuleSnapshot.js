@@ -27,6 +27,33 @@ const { EVENT_KEYS, SCORING_CONTRACT_VERSION } = require("./scoringContract");
  * already reads to serve that league. Mapped key by key rather than by pattern,
  * so a new Sleeper key shows up as unmapped instead of being guessed at.
  */
+/**
+ * ESPN stat ids that map onto the canonical vocabulary with confidence.
+ *
+ * **Deliberately partial.** The governing rule from `scoringContract.js` applies here more
+ * than anywhere: an unknown provider key is never treated as a zero-point rule. A stat id
+ * whose meaning is not certain is left out, lands in `unmapped`, and drops the league's
+ * coverage to `ambiguous` — which is the honest answer, and the opposite of the A6 defect,
+ * where a rule Omen could not reproduce was silently scored as zero.
+ *
+ * Note the asymmetry this map does **not** control: reproducing a player's ESPN score needs
+ * no semantic map at all, because ESPN keys the league's rules and the player's stat line by
+ * the same numeric id (see `espnAppliedPoints`). This map exists only so ESPN rules can be
+ * expressed in the same vocabulary as Sleeper's and compared across providers. Exact scoring
+ * does not wait on it.
+ */
+const ESPN_EVENT_MAP = Object.freeze({
+  3: { event_key: "passing_yards", operator: "per_event" },
+  4: { event_key: "passing_touchdowns", operator: "per_event" },
+  20: { event_key: "passing_interceptions", operator: "per_event" },
+  24: { event_key: "rushing_yards", operator: "per_event" },
+  25: { event_key: "rushing_touchdowns", operator: "per_event" },
+  42: { event_key: "receiving_yards", operator: "per_event" },
+  43: { event_key: "receiving_touchdowns", operator: "per_event" },
+  53: { event_key: "receiving_receptions", operator: "per_event" },
+  72: { event_key: "fumbles_lost", operator: "per_event" },
+});
+
 const SLEEPER_EVENT_MAP = Object.freeze({
   pass_yd: { event_key: "passing_yards", operator: "per_event" },
   pass_td: { event_key: "passing_touchdowns", operator: "per_event" },
@@ -198,6 +225,52 @@ function deriveSleeperRules(settings) {
   return { rules: sortRules(rules), unmapped: [...new Set(unmapped)].sort() };
 }
 
+/**
+ * ESPN's `scoringItems` in the canonical vocabulary.
+ *
+ * A rule worth zero to every position changes no score and is not carried — matching the
+ * Sleeper derivation, which prunes zero-valued *unmapped* keys for the same reason. A
+ * zero-valued rule Omen **can** name is kept, because standard scoring is literally
+ * `receptions: 0` and that is a real league decision rather than an absence.
+ *
+ * `pointsOverrides` is ESPN's per-position scoring. Where an override disagrees with the base
+ * value, the rule is not reproducible as a single canonical number and is reported unmapped
+ * rather than flattened to one of the two values.
+ */
+function deriveEspnRules(settings) {
+  const items = settings?.scoringSettings?.scoringItems ?? settings?.scoringItems;
+  if (!Array.isArray(items) || !items.length) return null;
+
+  const rules = [];
+  const unmapped = [];
+
+  for (const item of items) {
+    const statId = String(item?.statId ?? "");
+    if (!statId) continue;
+    const base = finite(item?.points) ?? 0;
+    const overrides = Object.entries(item?.pointsOverrides || {})
+      .map(([position, value]) => [position, finite(value)])
+      .filter(([, value]) => value != null);
+
+    const conflicting = overrides.filter(([, value]) => value !== base);
+    const mapping = ESPN_EVENT_MAP[statId];
+
+    if (conflicting.length) {
+      // Position-specific scoring. Real, and not expressible as one canonical value.
+      unmapped.push(`stat_${statId}`);
+      continue;
+    }
+    if (mapping) {
+      rules.push({ event_key: mapping.event_key, operator: mapping.operator, value: base });
+      continue;
+    }
+    // Unnamed and worth nothing to anyone: cannot change a score, so it is not ambiguity.
+    if (base !== 0) unmapped.push(`stat_${statId}`);
+  }
+
+  return { rules, unmapped, ruleCount: items.length };
+}
+
 function snapshot({ platform, coverageState, rules = [], unmapped = [], reason = null, ruleCount = 0 }) {
   const contract = {
     ruleset_version: SCORING_CONTRACT_VERSION,
@@ -263,14 +336,37 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
   }
 
   if (platform === "espn") {
-    // A6's external blocker. ESPN is provider-restricted unless it grants
-    // express permission to capture and retain a complete private rule snapshot.
-    // Expanding extraction without that path is explicitly out of scope.
-    return snapshot({
-      platform,
-      coverageState: "provider_restricted",
-      reason: "Omen has no provider-granted path to capture and retain this ESPN league's complete private scoring rules.",
-    });
+    // Previously hardcoded `provider_restricted`, on the reasoning that Omen had no
+    // provider-granted path to capture and retain an ESPN league's private rules.
+    //
+    // **The founder authorized capturing and retaining these rules on 2026-09-06**, on the
+    // record and after being shown that the restriction was a rights position rather than a
+    // technical limit — ESPN serves the complete rule set to the league's own member through
+    // the same authenticated session Omen already uses to read that member's roster. See the
+    // decision log entry of that date.
+    //
+    // Coverage is now **derived, not asserted**: a league whose every scoring rule maps to the
+    // canonical vocabulary is `supported`; one carrying a rule Omen cannot name is `ambiguous`
+    // with that rule listed. Neither is decided in advance.
+    const rules = deriveEspnRules(leagueSettings);
+    if (!rules) {
+      return snapshot({
+        platform,
+        coverageState: "unsupported",
+        reason: "This ESPN league's scoring settings were not readable.",
+      });
+    }
+    if (rules.unmapped.length) {
+      return snapshot({
+        platform,
+        coverageState: "ambiguous",
+        rules: rules.rules,
+        unmapped: rules.unmapped,
+        ruleCount: rules.ruleCount,
+        reason: `Omen read this ESPN league's rules but cannot yet name ${rules.unmapped.length} of them, so it will not claim an exact contract.`,
+      });
+    }
+    return snapshot({ platform, coverageState: "supported", rules: rules.rules, ruleCount: rules.ruleCount });
   }
 
   if (platform === "yahoo") {
@@ -292,7 +388,9 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
 }
 
 module.exports = {
+  ESPN_EVENT_MAP,
   SLEEPER_EVENT_MAP,
+  deriveEspnRules,
   SLEEPER_FG_BANDS,
   SLEEPER_IGNORED_KEYS,
   canonicalize,

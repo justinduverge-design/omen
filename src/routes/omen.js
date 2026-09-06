@@ -115,8 +115,16 @@ function legacyScoringLabel(format) {
   return null;
 }
 
-function scoringCoverageState(response = {}) {
-  return response.platform?.name === "espn" ? "provider_restricted" : "pending";
+/**
+ * The pre-derivation placeholder, used before the real snapshot is resolved.
+ *
+ * ESPN used to be hardcoded `provider_restricted` here. That is no longer true — the founder
+ * authorized capturing and retaining ESPN rules on 2026-09-06 — so ESPN now starts `pending`
+ * like everyone else and its real coverage comes from `deriveScoringSnapshot`, which reads
+ * the league's actual settings.
+ */
+function scoringCoverageState() {
+  return "pending";
 }
 
 /**
@@ -156,11 +164,13 @@ function publicScoringView(scoring = {}) {
   };
 }
 
-async function scoringPersistenceMetadata(response = {}) {
+async function scoringPersistenceMetadata(response = {}, userId = null) {
   try {
     return await resolveScoringPersistenceMetadata({
       platform: response.platform?.name || null,
       leagueId: response.league?.id || null,
+      // ESPN's settings are a credentialed read, so the resolver needs to know whose.
+      userId,
     });
   } catch {
     return pendingMetadata("Scoring contract derivation failed unexpectedly.");
@@ -242,7 +252,7 @@ async function persistLiveRecommendation(user, response) {
     throw new Error("live recommendation persistence failed: missing league season/week");
   }
 
-  const scoring = await scoringPersistenceMetadata(response);
+  const scoring = await scoringPersistenceMetadata(response, user?.id || null);
   // The public envelope keeps exactly the shape #372 defined. The resolver's
   // internal fields — the derived rule body, the retention flag, the failure
   // reason — are persistence concerns and must not widen the public contract.
