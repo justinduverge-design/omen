@@ -54,6 +54,49 @@ const ESPN_EVENT_MAP = Object.freeze({
   72: { event_key: "fumbles_lost", operator: "per_event" },
 });
 
+/**
+ * Yahoo stat ids in the canonical vocabulary.
+ *
+ * Unlike ESPN's, this map is not an act of memory. Yahoo publishes `stat_categories` alongside
+ * `stat_modifiers`, giving each id a human name **and** a `position_type` — `O`, `K` or `DT` —
+ * so "Interceptions (O)" and "Interception (DT)" are distinguishable rather than a coin flip.
+ * Every entry below was read off a live league's own category list on 2026-09-06, with the
+ * name kept in the comment so a future reader can re-verify it against the same endpoint.
+ *
+ * That is why this map is materially larger than `ESPN_EVENT_MAP`: ESPN ships ids with no
+ * labels, so only ids certain from other evidence are named there.
+ */
+const YAHOO_STAT_MAP = Object.freeze({
+  4: { event_key: "passing_yards", operator: "per_event" },            // Passing Yards (O)
+  5: { event_key: "passing_touchdowns", operator: "per_event" },       // Passing Touchdowns (O)
+  6: { event_key: "passing_interceptions", operator: "per_event" },    // Interceptions (O)
+  9: { event_key: "rushing_yards", operator: "per_event" },            // Rushing Yards (O)
+  10: { event_key: "rushing_touchdowns", operator: "per_event" },      // Rushing Touchdowns (O)
+  11: { event_key: "receiving_receptions", operator: "per_event" },    // Receptions (O)
+  12: { event_key: "receiving_yards", operator: "per_event" },         // Receiving Yards (O)
+  13: { event_key: "receiving_touchdowns", operator: "per_event" },    // Receiving Touchdowns (O)
+  15: { event_key: "return_touchdowns", operator: "per_event" },       // Return Touchdowns (O)
+  16: { event_key: "two_point_conversions", operator: "per_event" },   // 2-Point Conversions (O)
+  18: { event_key: "fumbles_lost", operator: "per_event" },            // Fumbles Lost (O)
+  29: { event_key: "extra_points_made", operator: "per_event" },       // Point After Attempt Made (K)
+  32: { event_key: "defense_sacks", operator: "per_event" },           // Sack (DT)
+  33: { event_key: "defense_interceptions", operator: "per_event" },   // Interception (DT)
+  34: { event_key: "defense_fumble_recoveries", operator: "per_event" }, // Fumble Recovery (DT)
+  35: { event_key: "defense_touchdowns", operator: "per_event" },      // Touchdown (DT)
+  36: { event_key: "defense_safeties", operator: "per_event" },        // Safety (DT)
+  37: { event_key: "defense_blocks", operator: "per_event" },          // Block Kick (DT)
+  49: { event_key: "defense_return_touchdowns", operator: "per_event" }, // Kickoff and Punt Return TD (DT)
+});
+
+/** Yahoo's field-goal bands, resolved through the same canonical bands Sleeper uses. */
+const YAHOO_FG_BANDS = Object.freeze({
+  19: "field_goals_made_0_39",   // Field Goals 0-19 Yards
+  20: "field_goals_made_0_39",   // Field Goals 20-29 Yards
+  21: "field_goals_made_0_39",   // Field Goals 30-39 Yards
+  22: "field_goals_made_40_49",  // Field Goals 40-49 Yards
+  23: "field_goals_made_50_plus", // Field Goals 50+ Yards
+});
+
 const SLEEPER_EVENT_MAP = Object.freeze({
   pass_yd: { event_key: "passing_yards", operator: "per_event" },
   pass_td: { event_key: "passing_touchdowns", operator: "per_event" },
@@ -155,10 +198,10 @@ function sortRules(rules) {
  * both of which land in canonical `field_goals_made_0_39`. Omen cannot express that, and
  * the honest answer is `ambiguous` rather than picking one of the two values.
  */
-function fieldGoalRules(bands) {
+function fieldGoalRules(bands, bandMap = SLEEPER_FG_BANDS) {
   const byCanonical = new Map();
   for (const [providerKey, value] of Object.entries(bands)) {
-    const canonical = SLEEPER_FG_BANDS[providerKey];
+    const canonical = bandMap[providerKey];
     if (!byCanonical.has(canonical)) byCanonical.set(canonical, new Set());
     byCanonical.get(canonical).add(value);
   }
@@ -271,6 +314,61 @@ function deriveEspnRules(settings) {
   return { rules, unmapped, ruleCount: items.length };
 }
 
+/**
+ * Yahoo's `stat_modifiers` in the canonical vocabulary.
+ *
+ * Yahoo publishes the scored values (`stat_modifiers`) separately from what each id means
+ * (`stat_categories`). A category with no modifier is a stat the league tracks but does not
+ * score — Targets, Rushing Attempts — and contributes nothing, so it is not ambiguity.
+ */
+function deriveYahooRules(settings) {
+  const modifiers = settings?.stat_modifiers?.stats;
+  if (!Array.isArray(modifiers) && !modifiers) return null;
+
+  const list = Array.isArray(modifiers)
+    ? modifiers
+    : Object.values(modifiers).filter((entry) => entry && entry.stat);
+
+  const rules = [];
+  const unmapped = [];
+  const fieldGoalBands = {};
+  let ruleCount = 0;
+
+  for (const entry of list) {
+    const stat = entry?.stat || entry;
+    const statId = String(stat?.stat_id ?? "");
+    if (!statId) continue;
+    const value = finite(stat?.value);
+    if (value == null) continue;
+    ruleCount += 1;
+
+    if (YAHOO_FG_BANDS[statId]) {
+      fieldGoalBands[statId] = value;
+      continue;
+    }
+
+    const mapping = YAHOO_STAT_MAP[statId];
+    if (mapping) {
+      // A zero-valued mapped rule is a real league decision, kept for the same reason
+      // Sleeper's is: standard scoring is literally `receptions: 0`.
+      rules.push({ event_key: mapping.event_key, operator: mapping.operator, value });
+      continue;
+    }
+
+    // Points-allowed tiers and anything Yahoo adds later. Only a non-zero one changes a score,
+    // and it is named rather than silently dropped — the governing rule.
+    if (value !== 0) unmapped.push(`stat_${statId}`);
+  }
+
+  if (Object.keys(fieldGoalBands).length) {
+    const fg = fieldGoalRules(fieldGoalBands, YAHOO_FG_BANDS);
+    rules.push(...fg.rules);
+    unmapped.push(...fg.unreproducible);
+  }
+
+  return { rules: sortRules(rules), unmapped: [...new Set(unmapped)].sort(), ruleCount };
+}
+
 function snapshot({ platform, coverageState, rules = [], unmapped = [], reason = null, ruleCount = 0 }) {
   const contract = {
     ruleset_version: SCORING_CONTRACT_VERSION,
@@ -370,14 +468,29 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
   }
 
   if (platform === "yahoo") {
-    // Refused at the app-entitlement level (facts-of-record #11, issue #308).
-    // `pending` rather than `unsupported`: the rules exist and Omen may be able
-    // to read them once the entitlement is restored.
-    return snapshot({
-      platform,
-      coverageState: "pending",
-      reason: "Yahoo's Fantasy API is refused at the application-entitlement level, so its league rules cannot be read.",
-    });
+    // Was `pending` on the grounds that "Yahoo's Fantasy API is refused at the
+    // application-entitlement level". **That refusal ended 2026-08-28** (facts-of-record #11,
+    // issue #308 closed); the claim outlived its cause. `/league/{key}/settings` was measured
+    // returning 13,901 bytes on 2026-09-06 before this branch was written.
+    const rules = deriveYahooRules(leagueSettings);
+    if (!rules) {
+      return snapshot({
+        platform,
+        coverageState: "unsupported",
+        reason: "This Yahoo league's scoring settings were not readable.",
+      });
+    }
+    if (rules.unmapped.length) {
+      return snapshot({
+        platform,
+        coverageState: "ambiguous",
+        rules: rules.rules,
+        unmapped: rules.unmapped,
+        ruleCount: rules.ruleCount,
+        reason: `Omen read this Yahoo league's rules but cannot yet name ${rules.unmapped.length} of them, so it will not claim an exact contract.`,
+      });
+    }
+    return snapshot({ platform, coverageState: "supported", rules: rules.rules, ruleCount: rules.ruleCount });
   }
 
   return snapshot({
@@ -390,7 +503,9 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
 module.exports = {
   ESPN_EVENT_MAP,
   SLEEPER_EVENT_MAP,
+  YAHOO_STAT_MAP,
   deriveEspnRules,
+  deriveYahooRules,
   SLEEPER_FG_BANDS,
   SLEEPER_IGNORED_KEYS,
   canonicalize,

@@ -225,11 +225,95 @@ test("an unreadable ESPN settings payload is unsupported, never fabricated", () 
   assert.deepEqual(snapshot.contract.rules, []);
 });
 
-test("Yahoo is pending on its entitlement rather than unsupported", () => {
-  const snapshot = deriveScoringSnapshot({ platform: "yahoo", leagueSettings: HALF_PPR });
+// Yahoo was `pending` because "the Fantasy API is refused at the application-entitlement
+// level". That refusal ended 2026-08-28 (facts-of-record #11) and the claim outlived it.
+// Yahoo publishes stat_categories alongside stat_modifiers, so its ids carry human names and
+// a position_type — which is why its map is larger and better evidenced than ESPN's.
+test("Yahoo derives a real contract from the league's own stat modifiers", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "yahoo",
+    leagueSettings: {
+      stat_modifiers: {
+        stats: [
+          { stat: { stat_id: 11, value: "0.5" } },
+          { stat: { stat_id: 12, value: "0.1" } },
+          { stat: { stat_id: 5, value: "4" } },
+        ],
+      },
+    },
+  });
 
-  assert.equal(snapshot.coverage_state, "pending");
-  assert.match(snapshot.reason, /application-entitlement level/);
+  assert.equal(snapshot.coverage_state, "supported");
+  const reception = snapshot.contract.rules.find((rule) => rule.event_key === "receiving_receptions");
+  assert.equal(reception.value, 0.5, "half PPR read from the league, never assumed");
+});
+
+// Yahoo's offensive and defensive interceptions share a name and differ by position_type;
+// keying on the stat id keeps them distinct.
+test("Yahoo tells offensive interceptions apart from defensive ones", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "yahoo",
+    leagueSettings: {
+      stat_modifiers: { stats: [
+        { stat: { stat_id: 6, value: "-1" } },
+        { stat: { stat_id: 33, value: "2" } },
+      ] },
+    },
+  });
+
+  const keys = snapshot.contract.rules.map((rule) => rule.event_key).sort();
+  assert.deepEqual(keys, ["defense_interceptions", "passing_interceptions"]);
+});
+
+test("Yahoo field-goal bands resolve to the same canonical bands Sleeper uses", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "yahoo",
+    leagueSettings: {
+      stat_modifiers: { stats: [
+        { stat: { stat_id: 19, value: "3" } },
+        { stat: { stat_id: 20, value: "3" } },
+        { stat: { stat_id: 21, value: "3" } },
+        { stat: { stat_id: 22, value: "4" } },
+        { stat: { stat_id: 23, value: "5" } },
+      ] },
+    },
+  });
+
+  const fg = snapshot.contract.rules.filter((rule) => rule.event_key.startsWith("field_goals_made"));
+  assert.equal(fg.find((r) => r.event_key === "field_goals_made_0_39").value, 3);
+  assert.equal(fg.find((r) => r.event_key === "field_goals_made_50_plus").value, 5);
+});
+
+// Sub-bands that disagree cannot be expressed as one canonical band.
+test("Yahoo sub-bands that disagree make the contract ambiguous rather than picking one", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "yahoo",
+    leagueSettings: {
+      stat_modifiers: { stats: [
+        { stat: { stat_id: 19, value: "3" } },
+        { stat: { stat_id: 21, value: "5" } },
+      ] },
+    },
+  });
+
+  assert.equal(snapshot.coverage_state, "ambiguous");
+  assert.ok(snapshot.unmapped_rules.includes("field_goals_made_0_39"));
+});
+
+// Points-allowed tiers are unmapped for Yahoo exactly as they are for Sleeper.
+test("an unnamed non-zero Yahoo rule is reported, never silently dropped", () => {
+  const snapshot = deriveScoringSnapshot({
+    platform: "yahoo",
+    leagueSettings: {
+      stat_modifiers: { stats: [
+        { stat: { stat_id: 11, value: "1" } },
+        { stat: { stat_id: 50, value: "10" } },
+      ] },
+    },
+  });
+
+  assert.equal(snapshot.coverage_state, "ambiguous");
+  assert.deepEqual(snapshot.unmapped_rules, ["stat_50"]);
 });
 
 test("an unknown platform is unsupported, never defaulted", () => {

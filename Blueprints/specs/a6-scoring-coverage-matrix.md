@@ -27,7 +27,7 @@ that provider's final result — that is the separate reconciliation state.
 |---|---|---|---|
 | Sleeper | ✅ 32/37 canonical events | ✅ permitted | Written commercial-use permission pending (requested 2026-08-22) |
 | ESPN | ✅ 9/37 canonical events | ✅ permitted | Founder-authorized 2026-09-06; unnamed stat ids force `ambiguous` |
-| Yahoo | ⏳ none | ⛔ withheld | API refused at the app-entitlement level (issue #308) |
+| Yahoo | ✅ 22/37 canonical events | ✅ permitted | Entitlement restored 2026-08-28; points-allowed tiers force `ambiguous` |
 
 **Retention is gated separately from derivation.** Deriving a snapshot in memory
 to compute a hash is not the same act as retaining a provider's rules in the
@@ -64,55 +64,55 @@ These are canonical events Omen understands but has no Sleeper key for. `field_g
 
 | Canonical event | Sleeper | ESPN | Yahoo |
 |---|---|---|---|
-| `fumbles_lost` | ✅ `fum_lost` | ✅ | ⏳ pending |
-| `passing_interceptions` | ✅ `pass_int` | ✅ | ⏳ pending |
-| `passing_touchdowns` | ✅ `pass_td` | ✅ | ⏳ pending |
-| `passing_yards` | ✅ `pass_yd` | ✅ | ⏳ pending |
-| `receiving_receptions` | ✅ `rec` | ✅ | ⏳ pending |
-| `receiving_touchdowns` | ✅ `rec_td` | ✅ | ⏳ pending |
-| `receiving_yards` | ✅ `rec_yd` | ✅ | ⏳ pending |
-| `return_touchdowns` | ✅ `st_td` | ❌ | ⏳ pending |
-| `rushing_touchdowns` | ✅ `rush_td` | ✅ | ⏳ pending |
-| `rushing_yards` | ✅ `rush_yd` | ✅ | ⏳ pending |
-| `two_point_conversions` | ✅ `pass_2pt`, `rec_2pt`, `rush_2pt` | ❌ | ⏳ pending |
+| `fumbles_lost` | ✅ `fum_lost` | ✅ | ✅ |
+| `passing_interceptions` | ✅ `pass_int` | ✅ | ✅ |
+| `passing_touchdowns` | ✅ `pass_td` | ✅ | ✅ |
+| `passing_yards` | ✅ `pass_yd` | ✅ | ✅ |
+| `receiving_receptions` | ✅ `rec` | ✅ | ✅ |
+| `receiving_touchdowns` | ✅ `rec_td` | ✅ | ✅ |
+| `receiving_yards` | ✅ `rec_yd` | ✅ | ✅ |
+| `return_touchdowns` | ✅ `st_td` | ❌ | ✅ |
+| `rushing_touchdowns` | ✅ `rush_td` | ✅ | ✅ |
+| `rushing_yards` | ✅ `rush_yd` | ✅ | ✅ |
+| `two_point_conversions` | ✅ `pass_2pt`, `rec_2pt`, `rush_2pt` | ❌ | ✅ |
 
 ### Kicker
 
 | Canonical event | Sleeper | ESPN | Yahoo |
 |---|---|---|---|
-| `extra_points_made` | ✅ `xpm` | ❌ | ⏳ pending |
-| `extra_points_missed` | ✅ `xpmiss` | ❌ | ⏳ pending |
-| `field_goals_made` | ✅ `fgm_0_19`, `fgm_20_29`, `fgm_30_39`, `fgm_40_49`, `fgm_50p` | ❌ | ⏳ pending |
-| `field_goals_made_0_39` | ❌ not mapped | ❌ | ⏳ pending |
-| `field_goals_made_40_49` | ❌ not mapped | ❌ | ⏳ pending |
-| `field_goals_made_50_plus` | ❌ not mapped | ❌ | ⏳ pending |
-| `field_goals_missed` | ✅ `fgmiss` | ❌ | ⏳ pending |
+| `extra_points_made` | ✅ `xpm` | ❌ | ✅ |
+| `extra_points_missed` | ✅ `xpmiss` | ❌ | ❌ |
+| `field_goals_made` | ✅ `fgm_0_19`, `fgm_20_29`, `fgm_30_39`, `fgm_40_49`, `fgm_50p` | ❌ | ❌ |
+| `field_goals_made_0_39` | ❌ not mapped | ❌ | ✅ |
+| `field_goals_made_40_49` | ❌ not mapped | ❌ | ✅ |
+| `field_goals_made_50_plus` | ❌ not mapped | ❌ | ✅ |
+| `field_goals_missed` | ✅ `fgmiss` | ❌ | ❌ |
 
 ### Team defense / special teams
 
 | Canonical event | Sleeper | ESPN | Yahoo |
 |---|---|---|---|
-| `defense_blocks` | ✅ `blk_kick` | ❌ | ⏳ pending |
-| `defense_fumble_recoveries` | ✅ `fum_rec` | ❌ | ⏳ pending |
-| `defense_interceptions` | ✅ `int` | ❌ | ⏳ pending |
-| `defense_points_allowed` | ❌ not mapped | ❌ | ⏳ pending |
-| `defense_return_touchdowns` | ✅ `def_st_td` | ❌ | ⏳ pending |
-| `defense_sacks` | ✅ `sack` | ❌ | ⏳ pending |
-| `defense_safeties` | ✅ `safe` | ❌ | ⏳ pending |
-| `defense_touchdowns` | ✅ `def_td` | ❌ | ⏳ pending |
-| `defense_yards_allowed` | ❌ not mapped | ❌ | ⏳ pending |
+| `defense_blocks` | ✅ `blk_kick` | ❌ | ✅ |
+| `defense_fumble_recoveries` | ✅ `fum_rec` | ❌ | ✅ |
+| `defense_interceptions` | ✅ `int` | ❌ | ✅ |
+| `defense_points_allowed` | ❌ not mapped | ❌ | ❌ |
+| `defense_return_touchdowns` | ✅ `def_st_td` | ❌ | ✅ |
+| `defense_sacks` | ✅ `sack` | ❌ | ✅ |
+| `defense_safeties` | ✅ `safe` | ❌ | ✅ |
+| `defense_touchdowns` | ✅ `def_td` | ❌ | ✅ |
+| `defense_yards_allowed` | ❌ not mapped | ❌ | ❌ |
 
 ### Individual defensive player (IDP)
 
 | Canonical event | Sleeper | ESPN | Yahoo |
 |---|---|---|---|
-| `idp_assisted_tackles` | ✅ `idp_tkl_ast` | ❌ | ⏳ pending |
-| `idp_defensive_touchdowns` | ✅ `idp_def_td` | ❌ | ⏳ pending |
-| `idp_forced_fumbles` | ✅ `idp_ff` | ❌ | ⏳ pending |
-| `idp_fumble_recoveries` | ✅ `idp_fum_rec` | ❌ | ⏳ pending |
-| `idp_interceptions` | ✅ `idp_int` | ❌ | ⏳ pending |
-| `idp_passes_defended` | ✅ `idp_pass_def` | ❌ | ⏳ pending |
-| `idp_sacks` | ✅ `idp_sack` | ❌ | ⏳ pending |
-| `idp_safeties` | ✅ `idp_safe` | ❌ | ⏳ pending |
-| `idp_solo_tackles` | ✅ `idp_tkl_solo` | ❌ | ⏳ pending |
-| `idp_tackles_for_loss` | ✅ `idp_tkl_loss` | ❌ | ⏳ pending |
+| `idp_assisted_tackles` | ✅ `idp_tkl_ast` | ❌ | ❌ |
+| `idp_defensive_touchdowns` | ✅ `idp_def_td` | ❌ | ❌ |
+| `idp_forced_fumbles` | ✅ `idp_ff` | ❌ | ❌ |
+| `idp_fumble_recoveries` | ✅ `idp_fum_rec` | ❌ | ❌ |
+| `idp_interceptions` | ✅ `idp_int` | ❌ | ❌ |
+| `idp_passes_defended` | ✅ `idp_pass_def` | ❌ | ❌ |
+| `idp_sacks` | ✅ `idp_sack` | ❌ | ❌ |
+| `idp_safeties` | ✅ `idp_safe` | ❌ | ❌ |
+| `idp_solo_tackles` | ✅ `idp_tkl_solo` | ❌ | ❌ |
+| `idp_tackles_for_loss` | ✅ `idp_tkl_loss` | ❌ | ❌ |

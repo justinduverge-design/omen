@@ -36,6 +36,7 @@
  */
 
 const { deriveScoringSnapshot } = require("./scoringRuleSnapshot");
+const { SCORING_CONTRACT_VERSION } = require("./scoringContract");
 
 /**
  * Per-provider permission to persist the full rule body into `moves.scoring_contract`.
@@ -66,8 +67,11 @@ const RETAIN_RULE_BODY = Object.freeze({
   // `OMEN_CRON_SCORING_ENABLED=false` — was stated and the founder reaffirmed both halves.
   // See the decision log entry of that date.
   espn: true,
-  // The API is refused at the application-entitlement level, so there is nothing to retain.
-  yahoo: false,
+  // Was withheld because "the API is refused at the application-entitlement level, so there is
+  // nothing to retain". **That refusal ended 2026-08-28** (facts-of-record #11). Yahoo's
+  // settings endpoint reads fine — measured 2026-09-06 — and its rules are now derived, so
+  // retention follows the same founder authorization recorded for ESPN.
+  yahoo: true,
 });
 
 const LEGACY_FORMAT_LABEL = Object.freeze({
@@ -117,7 +121,11 @@ function pendingMetadata(reason) {
     format: null,
     legacy_label: null,
     contract_required: true,
-    contract_version: null,
+    // The ruleset version is a fact about Omen's contract vocabulary, not about the league, so
+    // it survives a failed read. Without it a row records that its rules were unavailable but
+    // not *which* contract system was in force when that happened, and the Tuesday cron's
+    // "scoring metadata must never be silently dropped" invariant loses its provenance.
+    contract_version: SCORING_CONTRACT_VERSION,
     contract_hash: null,
     provider_rule_snapshot_hash: null,
     coverage_state: "pending",
@@ -150,6 +158,21 @@ async function defaultEspnSettingsReader(leagueId, userId) {
   return data?.settings || null;
 }
 
+/**
+ * Reads a Yahoo league's settings with the connected user's own OAuth token.
+ *
+ * Yahoo nests settings under `league[1].settings[0]`, the same walk `getLeagueMetadata` uses.
+ * Required lazily so this module stays importable without the Yahoo auth path present.
+ */
+async function defaultYahooSettingsReader(leagueId, userId) {
+  const { getAuthenticatedYahooClient } = require("./yahooAuth");
+  const { client } = await getAuthenticatedYahooClient(userId);
+  const data = await client.get(`/league/${leagueId}/settings`);
+  const league = data?.fantasy_content?.league;
+  const settings = Array.isArray(league) ? league[1]?.settings : league?.settings;
+  return Array.isArray(settings) ? settings[0] : settings || null;
+}
+
 async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = null, deps = {} } = {}) {
   const name = String(platform || "").trim().toLowerCase();
   if (!name) return pendingMetadata("No platform was recorded on this recommendation.");
@@ -175,10 +198,21 @@ async function resolveScoringPersistenceMetadata({ platform, leagueId, userId = 
     return metadataFrom(deriveScoringSnapshot({ platform: "espn", leagueSettings: settings }), { retain });
   }
 
-  // Yahoo still derives without a provider call. Its entitlement was restored 2026-08-28
-  // (facts-of-record #11) and its settings endpoint is readable — measured 2026-09-06 — so
-  // this branch is stale in the same way ESPN's was. It is left alone here only because the
-  // Yahoo scoring mapping is separate work; see the decision log.
+  if (name === "yahoo") {
+    // Same shape as ESPN: a credentialed read, so it needs to know whose credentials.
+    if (!leagueId || !userId) {
+      return pendingMetadata("This Yahoo league's scoring settings were not read when this recommendation was issued.");
+    }
+    const fetchYahooSettings = deps.fetchYahooLeagueSettings || defaultYahooSettingsReader;
+    let settings;
+    try {
+      settings = await fetchYahooSettings(leagueId, userId);
+    } catch {
+      return pendingMetadata("Yahoo league settings could not be read when this recommendation was issued.");
+    }
+    return metadataFrom(deriveScoringSnapshot({ platform: "yahoo", leagueSettings: settings }), { retain });
+  }
+
   if (name !== "sleeper") {
     return metadataFrom(deriveScoringSnapshot({ platform: name }), { retain });
   }

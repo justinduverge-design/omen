@@ -35,6 +35,16 @@ const GROUPS = [
   ["Individual defensive player (IDP)", (key) => key.startsWith("idp_")],
 ];
 
+function yahooCoverage() {
+  const { YAHOO_STAT_MAP } = require("../src/services/scoringRuleSnapshot");
+  const keys = new Set(Object.values(YAHOO_STAT_MAP).map((entry) => entry.event_key));
+  // The field-goal bands are canonical events too, resolved through the shared band resolver.
+  for (const band of ["field_goals_made_0_39", "field_goals_made_40_49", "field_goals_made_50_plus"]) {
+    keys.add(band);
+  }
+  return keys;
+}
+
 function espnCoverage() {
   const { ESPN_EVENT_MAP } = require("../src/services/scoringRuleSnapshot");
   return new Set(Object.values(ESPN_EVENT_MAP).map((entry) => entry.event_key));
@@ -59,6 +69,7 @@ function groupOf(key) {
 function render() {
   const sleeper = sleeperCoverage();
   const espn = espnCoverage();
+  const yahoo = yahooCoverage();
   const keys = [...EVENT_KEYS].sort();
   const rows = [];
 
@@ -73,7 +84,7 @@ function render() {
       const sleeperCell = providerKeys
         ? `✅ \`${providerKeys.sort().join("`, `")}\``
         : "❌ not mapped";
-      rows.push(`| \`${key}\` | ${sleeperCell} | ${espn.has(key) ? "✅" : "❌"} | ⏳ pending |`);
+      rows.push(`| \`${key}\` | ${sleeperCell} | ${espn.has(key) ? "✅" : "❌"} | ${yahoo.has(key) ? "✅" : "❌"} |`);
     }
   }
 
@@ -109,7 +120,7 @@ that provider's final result — that is the separate reconciliation state.
 |---|---|---|---|
 | Sleeper | ✅ ${mappedCount}/${keys.length} canonical events | ${RETAIN_RULE_BODY.sleeper ? "✅ permitted" : "⛔ withheld"} | Written commercial-use permission pending (requested 2026-08-22) |
 | ESPN | ✅ ${espn.size}/${EVENT_KEYS.size} canonical events | ${RETAIN_RULE_BODY.espn ? "✅ permitted" : "⛔ withheld"} | Founder-authorized 2026-09-06; unnamed stat ids force \`ambiguous\` |
-| Yahoo | ⏳ none | ${RETAIN_RULE_BODY.yahoo ? "✅ permitted" : "⛔ withheld"} | API refused at the app-entitlement level (issue #308) |
+| Yahoo | ✅ ${yahoo.size}/${EVENT_KEYS.size} canonical events | ${RETAIN_RULE_BODY.yahoo ? "✅ permitted" : "⛔ withheld"} | Entitlement restored 2026-08-28; points-allowed tiers force \`ambiguous\` |
 
 **Retention is gated separately from derivation.** Deriving a snapshot in memory
 to compute a hash is not the same act as retaining a provider's rules in the
