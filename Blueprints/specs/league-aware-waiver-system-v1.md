@@ -190,9 +190,28 @@ defect `src/services/yahoo.js` documents from 2026-08-28, reproduced exactly —
 why the probe reports the shape separately from the fields, and why the mapper searches
 every element instead of indexing `[1]`.
 
-**Not yet observed:** a Yahoo FAAB league. `uses_faab: "1"` and `faab_balance` remain
-unconfirmed, and both founder leagues are priority. The FAAB branch stays a hypothesis
-that fails closed. `waiver_type` values beyond `"R"` are likewise unobserved.
+**Not observed, and searched for.** A Yahoo FAAB league does not exist in the founder's
+account. Every NFL game the account holds was enumerated — `423` (2023), `449` (2024, no
+leagues), `470` (2026) — and all three leagues found across them read `uses_faab: "0"`,
+`waiver_type: "R"`:
+
+| Season | League | `uses_faab` | `waiver_type` |
+|---|---|---|---|
+| 2026 | Yahoo H2H-Pts 1255365 | `"0"` | `"R"` |
+| 2026 | Fantasy Madness | `"0"` | `"R"` |
+| 2023 | TRH Fantasy League | `"0"` | `"R"` |
+
+So `uses_faab: "1"`, `faab_balance`, and every `waiver_type` value other than `"R"` remain
+unconfirmed. The Yahoo FAAB branch is a hypothesis and fails closed: a Yahoo FAAB league
+returns `not_determined` today and shows nothing, which is correct.
+
+**Closing it needs a Yahoo FAAB league to read.** Creating a throwaway one takes minutes
+and is the only clean route — no scanning of other people's leagues, which the read-only
+agreement does not contemplate and which would be indefensible regardless.
+
+**One behaviour confirmed incidentally:** the 2023 league's team read returned 400, and the
+model still resolved `priority` with a null `priority_position` rather than failing. Correct
+degradation, observed on real traffic rather than asserted.
 
 **Provider status: all three verified** — Sleeper (both branches), ESPN (both branches),
 Yahoo (priority branch only).
