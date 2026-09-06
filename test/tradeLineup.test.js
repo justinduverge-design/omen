@@ -140,6 +140,50 @@ test("findTradeCandidate cannot block the event loop on a real league (2026-09-0
   assert.equal(candidate, null);
 });
 
+// The 11-team case above needs ~2,600 solves and passed under the old 4,000 cap, so it could
+// never have caught this: the deepest leagues — the ones with the most trades to find — were the
+// only ones that tripped the cap, and a trip returns no suggestion at all. Nothing in the
+// response distinguished "no good trade exists" from "gave up 98ms in".
+test("a deep league finishes on its merits rather than tripping the solve cap", () => {
+  const deepRoster = (tag) => {
+    const players = outageRoster(tag);
+    // 20-man roster: the deep-bench shape a 16-team dynasty league actually has.
+    for (let i = 0; i < 5; i += 1) {
+      players.push({
+        player_id: `${tag}-deep${i}`,
+        position: i % 2 ? "WR" : "RB",
+        eligible_positions: [i % 2 ? "WR" : "RB"],
+        selected_position: "BN",
+        // Distinct from `outageRoster`'s projections so swaps actually change a lineup total —
+        // otherwise every team is interchangeable and the search short-circuits on fairness.
+        projected_points: 3 + i * 2.5,
+      });
+    }
+    return players;
+  };
+
+  const ownTeam = { roster_id: 0, players: deepRoster("own") };
+  const opponentTeams = Array.from({ length: 15 }, (_, i) => ({
+    roster_id: i + 1,
+    players: deepRoster(`opp${i}`),
+  }));
+
+  const budget = createSearchBudget();
+  const startedAt = Date.now();
+  findTradeCandidate({ ownTeam, opponentTeams, rosterPositions: OUTAGE_SLOTS, budget });
+  const elapsed = Date.now() - startedAt;
+
+  // The assertion that matters: the search ran to completion. Whether these particular rosters
+  // yield a trade is not the point — being cut off before the question is answered is.
+  assert.equal(
+    budget.stats.exceeded,
+    false,
+    `budget tripped after ${budget.stats.solves} solves in ${elapsed}ms; a 16-team league must be searchable`
+  );
+  // And it is still nowhere near the clock, which is the limit that protects the event loop.
+  assert.ok(elapsed < 5_000, `deep-league search took ${elapsed}ms`);
+});
+
 test("the exhaustive solver still reports a truncated search honestly", () => {
   // The budget machinery guards the *exhaustive* solver, which is now only the test oracle.
   // Kept covered because it is what `findTradeCandidate` falls back on if the fast path is

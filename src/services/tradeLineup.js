@@ -39,8 +39,26 @@ const NON_STARTER_SLOTS = new Set(["BN", "BENCH", "IR", "TAXI"]);
  * becomes "no trade suggestion" instead of "no website".
  */
 const TRADE_SEARCH_BUDGET_MS = 2000;
-/// Solves are the unit of work, checked between them; the clock is checked inside a solve.
-const TRADE_SEARCH_MAX_SOLVES = 4000;
+/**
+ * A fuse, not the working limit. **The clock is the constraint that matters** — it is what
+ * actually bounds how long the event loop is blocked, and it is checked both between solves and
+ * inside one every `DEADLINE_CHECK_INTERVAL` nodes.
+ *
+ * ## Why this is no longer 4,000
+ *
+ * 4,000 was chosen against the *exhaustive* solver, where a single solve cost ~30ms and 4,000 of
+ * them was already minutes of blocking. The assignment solver that replaced it costs ~0.25ms, so
+ * the same cap now trips after about **98ms — 5% of the 2s budget** — and a budget trip returns
+ * no suggestion at all. The effect was silent and shape-dependent: measured, a 16-team league on
+ * 20-man rosters needs **7,625 solves and 203ms** to search honestly, so exactly the deepest
+ * leagues lost their trade suggestion while shallow ones kept theirs, with nothing in the
+ * response to say why. The 11-team regression test below sits under the old cap and never saw it.
+ *
+ * Set so the clock trips first in every realistic shape (2,000ms at the measured ~0.027ms per
+ * solve is roughly 75,000), leaving this to catch only the pathological case the clock cannot:
+ * solves that become near-free but unbounded in count.
+ */
+const TRADE_SEARCH_MAX_SOLVES = 200000;
 /// Nodes between clock reads. `Date.now()` per node would itself dominate the search.
 const DEADLINE_CHECK_INTERVAL = 5000;
 
