@@ -514,3 +514,63 @@ Correction truth is deliberately bounded: two authentic upstream schedule revisi
 **Founder decision: accepted the risk explicitly** and chose to ship, keeping the live integration with a consent line. Recorded in `Direction/decision_log.md`, 2026-08-31.
 
 **Constraints carried into `W1-A`:** no association-implying ESPN branding, a consent screen, and the prepared App Review answer. `W1-A` remains `BLOCKED` on `TASK-W1-REVIEW` by the Wave 1 sequencing note — the gate cleared the terms question, not the review question.
+
+## Reconciliation — 2026-09-07
+
+A queue-vs-`git log` pass. **No item was closed by this pass and no `VERIFIED` item was advanced.**
+It removed bookkeeping that had gone false, and recorded two things that need a founder answer.
+
+### 30 CLOSED tombstone stubs removed from the active queue
+
+The 2026-09-02 pass filed these into this file and stamped each one *"Retired from the active
+queue 2026-09-02"* — but left the stub heading and status line sitting in `current_sprint.md`. They
+were removed on 2026-09-07 after each was checked against this file individually.
+
+`A5` (filed as `A5-NflversePath`), `A7B-OwnedFootballDataPipelineImplementation` (filed as § A7B),
+`R3`, `R3-BUILD-iOS`, `R4`, `R5`, `R7`, `M1-Screen-League`, `M1-Screen-Trade`, `M4-Auth-Providers-v1`,
+`M4-CC-PlatformsCompact`, `M4-CC-WaiverWatch`, `M4-Help-Support-Implementation`,
+`M5-Slice-E-Ledger`, `M8-EspnAndroidHelper`, `O1b`, `O2`, `O4`, `O5`, `O6`, `O7`, `O8`, `O9`,
+`P1-ConnectContinueRoute`, `P1-DraftAssistantSideline`, `S3`, `S4`, `S8`, `F9`, `W1-GATE`.
+
+### ⚠️ Open question — `R4` and `R5` were closed without a ledger row
+
+Both are marked `CLOSED — Closure: COMPLETED 2026-08-23` in `current_sprint.md`. **Neither has a
+closure record anywhere in this file.** They appear only inside *other* items' prose, and what that
+prose says is the opposite of closed:
+
+> "Android internal release remains unpublished with no testers; **R4/R5 still gate rollout**."
+> — § "Decision closeouts — 2026-08-22", written the day before they were marked complete.
+
+> "…and `R3`/`R4` are open." — § "O7 — the forced-update gate lands inert — 2026-08-19".
+
+- **R4** — Privacy nutrition labels and Data Safety form
+- **R5** — Age rating and gambling questionnaire
+
+These are **store-submission gates on the critical path**, and `W1-REVIEW` is the next thing in the
+queue that needs them. Two readings are possible and an agent cannot choose between them: either the
+forms were genuinely filled in on 2026-08-23 and nobody wrote the evidence down, or the closure was
+premature. **Founder call.** Not re-opened and not accepted by this pass.
+
+**This is the third and fourth instance of the same defect.** The 2026-09-02 pass caught `O2` and
+`W1-GATE` closed without ledger rows and wrote *"worth noting as a pattern"*. It was — the pattern
+had already happened twice more in the same file and that pass did not sweep for it. A closure that
+writes a status line without writing the evidence row is invisible to `check-sprint-staleness.js`,
+because the checker reads what the sprint file *claims*, not whether the claim is backed.
+
+### `W1-CONSENT` was in the file twice
+
+A `READY` copy carrying the scope, and a `VERIFIED` copy carrying the 2026-09-01 evidence, appended
+without retiring the original. Merged into one `VERIFIED` entry. The consequence was not cosmetic:
+the inbox selector reads `Status: READY`, so **the queue was advertising finished P0 work as
+available to pull**, and `W1-REVIEW` read as blocked on a task that was already done.
+
+### The 50 commits that had no queue entry
+
+Between `17806cf` (the 2026-09-02 reconciliation) and `origin/main` on 2026-09-07 there are 50
+non-merge commits, including a Command Center rebuild, a league-aware waiver system proven against
+five real leagues across two providers, all-provider projections, and two production outages fixed.
+
+**They were not undocumented** — `Direction/decision_log.md`, `Direction/known_issues.md` and seven
+dated handoffs cover them well. They were absent from the *status* surfaces: this file,
+`current_sprint.md`, `Blueprints/done/LEDGER.md`, `roadmap.md`, and `release_readiness.md`. The
+narrative record and the queue record came apart, and the queue was the half that was wrong.
