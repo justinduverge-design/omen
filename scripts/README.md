@@ -37,7 +37,7 @@ across branches, which is precisely how the two workstreams got mixed.
 | Script | What it does | Safe to run? |
 |---|---|---|
 | [`check-sprint-staleness.js`](check-sprint-staleness.js) | Orchestrator for the record-staleness checks. Flags direction files that disagree with `main`, merged PRs, and GitHub issues. **Never edits anything.** | Yes — read-only |
-| [`checks/`](checks/README.md) | The six domain checkers it dispatches to, and the contract for adding a seventh | — |
+| [`checks/`](checks/README.md) | The seven domain checkers it dispatches to, and the contract for adding an eighth | — |
 
 ```bash
 node scripts/check-sprint-staleness.js                          # full report + coverage
@@ -53,7 +53,7 @@ result is only meaningful against a stated scope — that is the whole reason it
 Exit code is 1 when there are findings, so it can gate a closeout step. `Blueprints/definition-of-done.md`
 and the close-out flow both reference it.
 
-### The six checkers, and the real miss each was built from
+### The seven checkers, and the real miss each was built from
 
 | id | Catches | Modelled on |
 |---|---|---|
@@ -63,6 +63,7 @@ and the close-out flow both reference it.
 | `known-issues-buried` | entry marked OPEN naming no GitHub issue | the four surfaced as #338–#341 |
 | `issue-state-conflicts` | wording contradicting a cited issue's state | Yahoo / #308 |
 | `known-issues-missing-paths` | entry naming a repo path that no longer exists | `src/omen_gdpr.js` |
+| `sprint-closed-without-ledger-row` | item declared CLOSED with no row in the completion ledger | `O2`, `W1-GATE`, `R4`, `R5` — four instances, all found by hand |
 
 Full contract for adding one: [`checks/README.md`](checks/README.md).
 

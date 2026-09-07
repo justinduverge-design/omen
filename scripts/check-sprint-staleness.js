@@ -45,6 +45,13 @@
  *   appliesWhen(ctx) -> { applies, reason?, detail? }   local checks only, no network
  *   run(ctx)         -> { findings[], informational[] }
  *
+ * Both arrays carry **objects with a `kind`**, and every `kind` gets a case in `describe()`
+ * or `describeInformational()`. This was not always true of `informational`: one checker
+ * emitted objects and another emitted bare strings, the reporter assumed the object shape,
+ * and the run crashed after printing its findings. A bare string is still accepted and
+ * normalised to `{ kind: "note", text }` — the shapes were never in conflict, only the
+ * unstated assumption that there was one of them.
+ *
  * ## Usage
  *
  *   node scripts/check-sprint-staleness.js
@@ -66,6 +73,7 @@ const CHECKERS = [
   require("./checks/known-issues-buried"),
   require("./checks/issue-state-conflicts"),
   require("./checks/known-issues-missing-paths"),
+  require("./checks/sprint-closed-without-ledger-row"),
 ];
 
 /**
@@ -116,7 +124,8 @@ function main() {
       const result = checker.run(ctx);
       ran.push({ id: checker.id, title: checker.title, detail: verdict.detail });
       findings.push(...(result.findings || []).map((f) => ({ ...f, checker: checker.id })));
-      informational.push(...(result.informational || []));
+      informational.push(
+        ...(result.informational || []).map((n) => normalizeNote(n, checker.id)));
     } catch (e) {
       // A network failure means this checker did not run. Reporting it as passing would be
       // the false all-clear this tool exists to prevent, so it is called out separately and
@@ -135,6 +144,18 @@ function main() {
 
   report({ ran, skipped, unavailable, findings, informational });
   process.exit(findings.length ? 1 : 0);
+}
+
+/**
+ * Informational items arrive in two shapes because two checkers had different things to say:
+ * `sprint-vs-merged-prs` reports a keyed item and its PRs, `issue-state-conflicts` reports a
+ * sentence about what it deliberately did not read. Neither is wrong — a note about
+ * suppressed references has no PRs to list, and inventing an empty `prs: []` for it would be
+ * the paper-over. What was wrong was the reporter reading every item as the first shape.
+ */
+function normalizeNote(note, checkerId) {
+  if (typeof note === "string") return { kind: "note", text: note, checker: checkerId };
+  return { kind: "note", ...note, checker: checkerId };
 }
 
 function describe(f) {
@@ -172,6 +193,14 @@ function describe(f) {
         `         ${f.heading}`,
         `         ${f.claim}, but issue #${f.issue} is ${f.issueState}`,
       ];
+    case "closed-without-ledger-row":
+      return [
+        `NO ROW   ${f.key}  (declared CLOSED, absent from Direction/sprints_completed.md)`,
+        `         ${f.source}`,
+        "         Closure and the ledger row are one step. Write the Done receipt, or",
+        "         reopen the item — a closed item with no evidence anywhere is the",
+        "         O2/W1-GATE/R4/R5 defect.",
+      ];
     case "missing-path":
       return [
         `STALE    ${f.file}:${f.line}`,
@@ -180,6 +209,18 @@ function describe(f) {
       ];
     default:
       return [`FINDING  ${JSON.stringify(f)}`];
+  }
+}
+
+function describeInformational(item) {
+  switch (item.kind) {
+    case "sprint-item":
+      return [
+        `  ${item.key} (${item.status}) — mentioned in merged docs/chore PR(s) ` +
+          `${item.prs.map((pr) => `#${pr.number}`).join(", ")}; probably fine.`,
+      ];
+    default:
+      return [`  ${item.text} [${item.checker}]`];
   }
 }
 
@@ -213,10 +254,9 @@ function report({ ran, skipped, unavailable, findings, informational }) {
   }
 
   if (informational.length > 0) {
-    console.log("Mentioned in merged docs/chore PRs — probably fine, shown for context:");
+    console.log("For context — not findings:");
     for (const item of informational) {
-      console.log(`  ${item.key} (${item.status}) — ` +
-        item.prs.map((pr) => `#${pr.number}`).join(", "));
+      describeInformational(item).forEach((l) => console.log(l));
     }
     console.log("");
   }
@@ -229,4 +269,8 @@ function report({ ran, skipped, unavailable, findings, informational }) {
   }
 }
 
-main();
+// Exported so the reporter's shape handling can be tested directly. The crash this guards
+// against only appeared on runs that reached GitHub, which a unit test must not do.
+module.exports = { normalizeNote, describe, describeInformational };
+
+if (require.main === module) main();

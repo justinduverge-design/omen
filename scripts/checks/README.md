@@ -39,6 +39,15 @@ module.exports = {
 Register it in the `CHECKERS` array in the orchestrator. Add a `describe()` case for any new
 `kind` you emit.
 
+**Both arrays carry objects with a `kind`.** `informational` did not, for a while:
+`sprint-vs-merged-prs` emitted `{ key, status, prs }` and `issue-state-conflicts` emitted a
+bare sentence about references it deliberately did not read. The reporter assumed the first
+shape and crashed on the second — *after* printing every finding, on every run that had
+informational output. Neither checker was wrong; a note about suppressed references has no
+PRs to list, and an empty `prs: []` would only have hidden the mismatch. A bare string is
+still accepted and normalised to `{ kind: "note", text }`, and `describeInformational()`
+renders by `kind` the way `describe()` already did.
+
 ### `ctx`
 
 | Accessor | Notes |
@@ -64,6 +73,7 @@ The orchestrator catches it and reports that checker as **DID NOT RUN** — neve
 | `known-issues-buried` | entry marked OPEN naming no GitHub issue | the four issues surfaced as #338–#341 |
 | `issue-state-conflicts` | wording that contradicts a cited issue's state | the Yahoo/#308 contradiction |
 | `known-issues-missing-paths` | entry naming a repo path that no longer exists | `src/omen_gdpr.js` |
+| `sprint-closed-without-ledger-row` | item declared CLOSED with no row in `sprints_completed.md` | `O2`, `W1-GATE`, `R4`, `R5` |
 
 ## Writing a checker that will actually get read
 
@@ -96,6 +106,18 @@ Three noise sources were fixed the day this was built, each after seeing real ou
    exclusion that quietly swallows real findings is worse than the false positives it
    removed** — so the skips are counted and printed, and `test/issueStateConflicts.test.js`
    tests both directions, with the live-claim cases carrying the weight.
+
+5. **A mention is not a record** *(added 2026-09-07)*. `sprint-closed-without-ledger-row`
+   asks whether a closed key has a row in the completion ledger. `R4` appears in that ledger
+   three times — every one a cross-reference inside another item's prose (*"R4/R5 still gate
+   rollout"*). A substring match would have read those as evidence and reported the exact
+   defect the checker exists to find as clean. It counts only **record positions**: the task-key
+   column of a table row, or a section heading that leads with the key.
+
+   The same check reads closure claims out of the queue's *prose*, not just from `Status:`
+   lines, because a closed stub gets swept out of the active queue in the next reconciliation
+   while the unblock line announcing its closure survives. That sweep is why `R4` and `R5`
+   went two weeks undetected, and the prose path is the only reason they are still visible.
 
 And treat `VERIFIED` as legitimate: several items are deliberately held there after merging
 because one `Done when:` clause is unevidenced. Gate on `READY`/`IN_PROGRESS` when you mean
