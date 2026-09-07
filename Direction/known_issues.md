@@ -472,6 +472,181 @@ pager, so the cycle does not close. `LaunchedEffect(pagerState, pages.size)` re-
 **fails on a clean `main`** (confirmed by stashing all local work at `5ff94e3`). It predates
 this session's changes and is not caused by them, but `main` currently ships a red suite.
 
+> **Partially superseded 2026-09-06.** The **iOS** half of this is fixed: a full
+> `-only-testing:OmenIOSTests` run on the Command Center typography pass is green, including
+> `PrimitiveEnforcementTests`. The **Android** twin is still red, was not recorded here, and is
+> broken out below.
+
+## ✅ FIXED 2026-09-07 — Android `PrimitiveEnforcementTest` fails on `main`
+
+`:core:designsystem:testDebugUnitTest` →
+`PrimitiveEnforcementTest."app + feature Kotlin sources compose Omen primitives instead of raw
+Material 3 or hex colors"` fails with **five** violations in **two** files, neither touched by the
+2026-09-06 Command Center work:
+
+- `app/auth/OmenAuthFlow.kt` — imports `material3.Button`, imports `material3.TextButton`, and
+  carries a raw `Color(0xNNNNNNNN)` literal.
+- `app/feature/connect/ConnectScreen.kt` — imports `material3.TextButton`, and carries a raw
+  `Color(0xNNNNNNNN)` literal.
+
+This is the **same defect class, in the same two screens**, that the iOS scanner caught in
+`SignInView` / `ConnectView` and that was fixed there on 2026-09-05 by moving the primitives into
+`DesignSystem/` rather than allowlisting the files. Android's fix is the mirror of that one: the
+buttons belong in `:core:designsystem` as `Omen*` primitives, and the hex literals belong in
+`OmenColor` where they get a light-mode value. **Do not allowlist either file** — the iOS
+precedent is recorded in `PrimitiveEnforcementTests.allowlistedRelativePaths` and the reasoning
+holds here: exempting a whole file for one line blanket-exempts every violation added to it later.
+
+The raw color literals are the sharper half. A dark-only hex that ships is exactly the bug the
+iOS scanner was written after — a near-black tile with dark text on a light background, which
+made the Connect screen's provider names invisible in light mode. Android's Connect screen is the
+same screen.
+
+> **Fixed 2026-09-07, exactly as the paragraph above predicted.** The allowlist stayed empty.
+> `OmenAuthPrimaryButton`, `OmenAuthTile` and `OmenCanvasTextAction` moved into
+> `:core:designsystem` (`component/OmenAuthPrimitives.kt`), mirroring the iOS files; both hex
+> literals became tokens (`Color(0xFF0A0A0B)` → `bg`, `Color(0xFF141416)` → `surface1`).
+> `:core:designsystem:testDebugUnitTest` and `:app:testDebugUnitTest` are green.
+>
+> **`CanvasTextAction` existed twice, privately, in `OmenAuthFlow.kt` and `ConnectScreen.kt`,
+> and the two copies had already drifted** — Auth's took `color`/`fontWeight`/`height`, Connect's
+> hardcoded them and used `textTertiary.copy(alpha = 0.45f)` for disabled where Auth used a flat
+> `textTertiary`. Character-for-character the same divergence the iOS merge found in
+> `SignInView.swift` / `ConnectView.swift`. `private` is what let each copy stay invisible to the
+> other author. Resolved to Auth's disabled colour, the same way iOS resolved it, so the two
+> platforms do not re-diverge at the moment of being unified.
+>
+> **Three real rendering bugs were behind the hex literals, and only became visible once they
+> were removed.** The `Color(0xFF0A0A0B)` background forced both screens dark regardless of the
+> device theme, which is *why* nobody had seen them:
+>
+> 1. Connect's provider cards were near-black tiles — dark text on them, on a light page.
+>    Now `surface1`. Evidence: `References/evidence/2026-09-07-espn-projections-and-android-primitives/android-connect-light-after.png`.
+> 2. The **email glyph** bakes in the cream `#F5F0E8` and sat on a now-white tile. Tinted with
+>    `textPrimary` at the call site — Discord and Google keep `Color.Unspecified` because they
+>    are brand marks and must not be tinted.
+> 3. **The same glyph bug exists on iOS, in two places**, found by looking rather than assumed:
+>    `AuthEmail` (cream on `surface1`) and `AuthApple` (`#0A0A0B` on a `textPrimary` button that
+>    is near-black in light mode — a black glyph on a black button). Both fixed with a
+>    `tintsIcon` flag on `OmenAuthPrimaryButton` / `OmenAuthIconTile`.
+> 4. **The back chevron was 2.12:1 in light mode** — under the 3:1 WCAG 1.4.11 floor for a
+>    control, on a navigation affordance. `ic_canvas_chevron_left` strokes itself `#AEAEB2`,
+>    which *is* `textSecondary`'s **dark** value; tinting with the token leaves dark
+>    pixel-identical and answers `#6B7280` (4.63:1) in light. Measured at the pixel across the
+>    two captures rather than judged by eye: `(174,174,178)` → `(107,114,128)` in light,
+>    `(174,174,178)` → `(174,174,178)` in dark. `ic_canvas_chevron_right` took the same tint
+>    (dark 3.31 → 7.69, light stays 4.83).
+>
+> A sweep for the rest of the class came back clean: no `Color.White`/`Color.Black`/named
+> literals, no six-digit `Color(0x…)`, no `MaterialTheme.colorScheme` escapes anywhere under
+> `app/src/main/kotlin`. The only remaining baked-theme drawable is `ic_launcher_monochrome`,
+> which is an adaptive-icon layer the OS tints — not a UI glyph.
+
+## ✅ FIXED 2026-09-07 — the Android primitive scanner could report a false PASS
+
+`PrimitiveEnforcementTest` walks `app/src/main/kotlin` from a test that lives in
+`:core:designsystem`. Gradle has no way to know that, so those files were **not task inputs** and
+`:core:designsystem:testDebugUnitTest` marked itself UP-TO-DATE after an `app/`-only edit.
+
+**Caught by tripping it.** A comment added to `OmenAuthFlow.kt` on 2026-09-07 contained a hex
+literal in the banned shape — a genuine violation, in prose. The next
+`:core:designsystem:testDebugUnitTest` reported **BUILD SUCCESSFUL**, because nothing in that
+module had changed. The guardrail was green while the thing it guards was red.
+
+Fixed in `core/designsystem/build.gradle.kts` by declaring the scanned trees as task inputs.
+Proven rather than assumed: a violation injected into `app/` only → `FAILED`; reverted →
+`SUCCESSFUL`. Before the fix both said `SUCCESSFUL`.
+
+Two notes for whoever touches this next:
+
+- `inputs.dir(...).optional(true)` **does not** tolerate a missing directory — Gradle still
+  validates the path and fails task configuration with "Input file does not exist". `feature/`
+  has no module yet, so the list is filtered to existing directories at configuration time and
+  will pick `feature/` up automatically on the day it appears.
+- The scanner matches banned literals **by pattern and cannot tell prose from code**, so a
+  comment that quotes a hex literal to explain a fix will fail the build. Describe it in words
+  instead. The comment in `OmenAuthFlow.kt` says so in place.
+
+## 🟡 OPEN — one ESPN connection row has no `espn_team_id`
+
+Surfaced 2026-09-07 by `scripts/espn-projection-live-proof.js` running over every connected ESPN
+league. One row (league `2114292181`) resolves to
+`status: "unavailable", unavailable_reason: "team_unknown"` and therefore `projected: null`, while
+the founder's other ESPN leagues return real projections.
+
+**The code is behaving correctly** — `matchupFromEspnSchedule` refuses to guess which side is
+yours without a team id, and says so rather than picking one. But a user with that row sees a
+league that never loads a matchup, for a reason no screen explains. Either the row is a stale
+duplicate that should be removed, or discovery failed to bind a team id and should be re-run.
+
+Needs a look at the founder's connection rows; it is data, not code.
+
+## 🟡 OPEN — an undrafted Sleeper league says the wrong true thing
+
+Founder on a real device, 2026-09-07: "Sleeper doesn't display the matchup on every league, which
+is funky... Oh, I think that's because that was not drafted."
+
+That is correct behaviour reported through unhelpful copy. A league with no draft has no matchup,
+so `matchupFromMatchups` returns `no_matchup` and the card reads **"No matchup scheduled for this
+league this week."** True, and it made the founder work out the actual reason himself.
+
+Sleeper's league object already carries a `status` field (`pre_draft`, `drafting`, `in_season`,
+`complete`) and `sleeperOverview` **already fetches that object** for `settings.playoff_teams`, so
+the information is in hand and thrown away. Saying "This league hasn't drafted yet" costs no extra
+request.
+
+Not done because it is a `league-overview.v1` contract addition, not a copy tweak: the reason has
+to reach the client as data, and the other two providers need a defined answer for the same field.
+Scoped, not skipped.
+
+## 🟡 OPEN — iOS `CanvasChevronLeft` has the Android chevron's bug, and `OmenIconButton` cannot fix it
+
+Found 2026-09-07 while fixing the Android twin; **not** fixed, to keep that session's change inside
+the founder's stated Android + ESPN scope.
+
+`Assets.xcassets/CanvasChevronLeft.imageset` strokes `#AEAEB2` — the same dark-only literal, the
+same 2.12:1 in light mode, on the same back-navigation control (`SignInView` ×2, `ConnectView`).
+
+**The interesting part is that `OmenIconButton` already tries to fix it and cannot.** It applies
+`.foregroundStyle(isInteractable ? tint : OmenColor.textTertiary)` to the glyph and exposes a
+`tone` enum — but the icon is rendered without `.renderingMode(.template)`, so an asset image
+keeps its baked stroke and the primitive's whole tone machinery silently does nothing for it. The
+tone works today only because the other call sites pass SF Symbols, which are template by default.
+
+The fix is small and was scoped out rather than skipped: render the glyph
+`.renderingMode(.template)`, add a `.secondary` tone mapping to `textSecondary`, and pass it at the
+three chevron call sites. `textSecondary` dark is `#AEAEB2`, so dark stays pixel-identical.
+Checked before proposing: `CanvasChevronLeft` is the **only** asset image passed to
+`OmenIconButton` — the other eleven call sites use SF Symbols — so template rendering cannot
+recolour a multicolour mark.
+
+
+
+## 🟡 OPEN — the stacked Omen lockup is a dark-only asset on both platforms
+
+Deliberately **not** fixed on 2026-09-07, because it is a brand decision and not a bug fix.
+
+`omen_lockup_stacked.png` (Android, `drawable-nodpi`) is **100% opaque** with a corner pixel of
+`#0A0A0B`; `OmenLockupStacked.imageset/omen-lockup-stacked.svg` (iOS) opens with a literal
+`<rect width="700" height="430" fill="#0A0A0B"/>`. Both bake the dark background into the mark.
+
+On a light background that renders as a **black rectangle floating on cream**. It is visible in
+`android-signin-light-after.png` and `ios-signin-light-after.png` in the evidence folder above.
+
+This was latent until 2026-09-07: both sign-in screens hardcoded a dark background, so the plate
+matched the page and nobody could see it. Tokenising the background is correct and exposed it.
+
+**The obvious fix is wrong.** Deleting the plate does not work: the wordmark is cream `#F5F0E8`,
+so a transparent lockup renders cream-on-cream and the word OMEN disappears in light mode. The
+plate is load-bearing. The two real options are a founder call:
+
+- **(a)** Keep a dark plate deliberately — give it a corner radius and padding so it reads as a
+  badge rather than as a clipping bug.
+- **(b)** Make the wordmark theme-aware — cream in dark, near-black in light — and drop the plate.
+  This is the design-system-correct answer and it costs a second brand asset.
+
+
+
 ## ✅ RESOLVED — FULLY, verified in production 2026-08-21 — production error reporting was silently dead — [#354](https://github.com/justinduverge-design/omen/issues/354)
 
 **Fixed on KVM1 the same day, with founder approval.** `/opt/omen/deploy/hostinger/.env.production` now carries the GlitchTip `omen-backend` DSN with the UUID dashes stripped; exactly one line changed, backup at `~/env.production.bak-20260821-o8-before-sentry-fix`, and a key-only diff confirmed no other assignment was touched. Both containers recreated. Verified from inside `omen_api`: `enabled: true`, **`transport: true`** (it was `false` before), and an event sent from the production container landed in GlitchTip as **issue 3**, tagged `environment: production`.

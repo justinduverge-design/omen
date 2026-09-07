@@ -1,6 +1,10 @@
 package com.slopssaloon.omen.core.designsystem.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,7 +21,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -123,8 +130,16 @@ private fun OmenMatchupHeroState.showsColumns(): Boolean = when (this) {
 
 // Column widths are fixed and shared so `123` and `50` sit under `PROJ` and `SCORE` rather
 // than drifting with the length of a team name.
-private val PROJ_COLUMN_WIDTH = 64.dp
-private val SCORE_COLUMN_WIDTH = 72.dp
+//
+// Narrowed from 64/72 on 2026-09-06, matching iOS. The numbers were already set in the
+// monospaced `numeric` role here, and mono digits at these sizes need less room than the old
+// reservation. Every point taken back goes to the team name beside it, which was truncating
+// on a phone-width card.
+private val PROJ_COLUMN_WIDTH = 58.dp
+private val SCORE_COLUMN_WIDTH = 78.dp
+
+/** The accent bar marking your own row. See [TeamRow]. */
+private val YOUR_ROW_MARKER_WIDTH = 3.dp
 
 @Composable
 fun OmenMatchupHero(
@@ -173,9 +188,9 @@ fun OmenMatchupHero(
                     MatchupEyebrow(text = eyebrowText)
                     val columns = state.showsColumns()
                     if (columns) ColumnHeader()
-                    TeamRow(state.selectedTeam, semanticLabel = "Your team", columns = columns)
+                    TeamRow(state.selectedTeam, semanticLabel = "Your team", columns = columns, isYours = true)
                     ConnectingRule(state)
-                    TeamRow(state.opponent, semanticLabel = "Opponent", columns = columns)
+                    TeamRow(state.opponent, semanticLabel = "Opponent", columns = columns, isYours = false)
                     if (onOpen != null) {
                         Text(
                             text = "View matchup →",
@@ -223,6 +238,10 @@ private fun ColumnHeader() {
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Matches the leading accent bar in `TeamRow` so `PROJ`/`SCORE` stay over their own
+        // columns rather than drifting left of them.
+        Spacer(Modifier.width(YOUR_ROW_MARKER_WIDTH))
+        Spacer(Modifier.weight(1f))
         Text(
             text = "PROJ",
             style = type.eyebrow.toTextStyle(),
@@ -241,57 +260,89 @@ private fun ColumnHeader() {
     }
 }
 
+/**
+ * [isYours] draws a short accent bar down the leading edge of your own row.
+ *
+ * Both rows were styled identically, so on a card showing two unfamiliar league names the
+ * reader had to already know their own team name to know which line was theirs — the position
+ * convention (yours on top) is real but invisible, and it was the *only* thing carrying it. A
+ * rule, not a colour swap on the text: the row keeps `textPrimary` at full contrast either way,
+ * and the semantics already say "Your team" first, so this adds a sighted cue to match one the
+ * screen-reader label always had.
+ *
+ * The record moved from beside the name to beneath it on 2026-09-06. The "never beneath" line
+ * in brief §1.2 was written before the PROJ column existed; with two numeric columns taking the
+ * trailing third of the row, name and record were competing for what was left and the **name**
+ * lost, truncating on a phone. It is also set in the numeric (monospaced) role now rather than
+ * the serif `bodySmall` — a record is a stat, not prose, and the serif was most of why this card
+ * read as three fonts arguing.
+ */
 @Composable
-private fun TeamRow(team: OmenMatchupTeam, semanticLabel: String, columns: Boolean = false) {
+private fun TeamRow(
+    team: OmenMatchupTeam,
+    semanticLabel: String,
+    columns: Boolean = false,
+    isYours: Boolean = false,
+) {
     val colors = OmenTheme.color
     val type = OmenTheme.typography
-    // Layout: name (strong) + record (muted, beside name — never beneath, per brief §1.2)
-    // on the leading side, and the score on the trailing side as the strongest numeric.
-    // Visual weight is identical between the two rows; semanticLabel distinguishes them
-    // for screen readers.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .semantics { contentDescription = rowDescription(team, semanticLabel, columns) },
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Box(
+            modifier = Modifier
+                .width(YOUR_ROW_MARKER_WIDTH)
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .background(if (isYours) colors.accent else Color.Transparent),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            // Two lines, not one. Founder on a real device, 2026-09-07: a long Yahoo team name
+            // still lost its ending, because a single line has to share the row with two numeric
+            // columns no matter how much the columns give back. Wrapping is the only thing that
+            // buys a long name more room. `maxLines = 2` wraps only when it must, so a short name
+            // is laid out exactly as before. iOS mirror: same change, same reason.
             Text(
                 text = team.name,
                 style = type.h2.toTextStyle(),
                 color = colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = team.record,
-                style = type.bodySmall.toTextStyle(),
-                color = colors.textSecondary,
-            )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (columns) {
+            if (team.record.isNotEmpty()) {
                 Text(
-                    text = team.projectedText ?: "—",
-                    // Smaller than the score: the projection is context, the score is the
-                    // fact. Same size would make the reader work out which is which.
-                    style = type.numeric.copy(size = 20.sp).toTextStyle(),
+                    text = team.record,
+                    style = type.numeric.copy(size = 13.sp).toTextStyle(),
                     color = colors.textSecondary,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.width(PROJ_COLUMN_WIDTH),
+                    maxLines = 1,
                 )
-                Spacer(Modifier.width(OmenTheme.spacing.step8))
             }
+        }
+        if (columns) {
             Text(
-                text = team.scoreText,
-                style = type.numeric.copy(size = 28.sp).toTextStyle(),
-                color = colors.textPrimary,
-                textAlign = if (columns) TextAlign.End else TextAlign.Start,
-                modifier = if (columns) Modifier.width(SCORE_COLUMN_WIDTH) else Modifier,
+                text = team.projectedText ?: "—",
+                // Smaller than the score: the projection is context, the score is the
+                // fact. Same size would make the reader work out which is which.
+                style = type.numeric.copy(size = 18.sp).toTextStyle(),
+                color = colors.textSecondary,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                modifier = Modifier.width(PROJ_COLUMN_WIDTH),
             )
         }
+        Text(
+            text = team.scoreText,
+            style = type.numeric.copy(size = 24.sp).toTextStyle(),
+            color = colors.textPrimary,
+            textAlign = if (columns) TextAlign.End else TextAlign.Start,
+            maxLines = 1,
+            modifier = if (columns) Modifier.width(SCORE_COLUMN_WIDTH) else Modifier,
+        )
     }
 }
 
@@ -320,15 +371,20 @@ private fun ConnectingRule(state: OmenMatchupHeroState) {
             // Both sides carry an em dash before kickoff when the provider gave no projection,
             // and "Projected: —–—" is a label with nothing behind it. Seen on a real ESPN
             // league. Say the true thing instead.
-            if (columns ||
-                (state.selectedTeam.scoreText == "—" && state.opponent.scoreText == "—")
-            ) {
+            // Empty, not "Not started", once the columns are present. The eyebrow directly
+            // above already reads "MATCHUP · NOT STARTED"; printing it again three lines down
+            // inside the rule put the same two words on screen twice with a hairline between
+            // them. With columns the rule has nothing left to say, so it stays a hairline.
+            if (columns) {
+                ""
+            } else if (state.selectedTeam.scoreText == "—" && state.opponent.scoreText == "—") {
                 "Not started"
             } else {
                 "Projected: ${state.selectedTeam.scoreText}–${state.opponent.scoreText}"
             }
         is OmenMatchupHeroState.Live ->
-            if (columns) "Live score"
+            // Same reason: the eyebrow says "LIVE", so "Live score" here is an echo.
+            if (columns) ""
             else state.projectedFinish?.let { "Projected finish: $it" } ?: "Live score"
         // Never redundant: the columns carry no result, and a projection is gone by now.
         is OmenMatchupHeroState.Final ->
@@ -390,8 +446,14 @@ private fun WhatToWatchRail(signal: String) {
 
 /** Publicly exposed for tests + accessibility auditing. */
 fun matchupHeroAccessibilityLabel(state: OmenMatchupHeroState): String = when (state) {
+    // `projectedText ?: scoreText`, not `scoreText`. Before kickoff `scoreText` is an em dash by
+    // design — nobody has scored, and a "0.0" there would read as a real score of nothing — so
+    // once the PROJ column shipped this label started announcing "projected —" while the screen
+    // showed 100.7. The number moved into its own field and the label was never re-pointed at
+    // it. Falls back to `scoreText` for a caller with no projection, which is the shape this
+    // label was written for and still the pre-column behaviour. iOS mirror: same fix.
     is OmenMatchupHeroState.BeforeGames ->
-        "Matchup starts at ${state.startTime}. Your team ${state.selectedTeam.name} (${state.selectedTeam.record}) projected ${state.selectedTeam.scoreText}. Opponent ${state.opponent.name} (${state.opponent.record}) projected ${state.opponent.scoreText}."
+        "Matchup starts at ${state.startTime}. Your team ${state.selectedTeam.name} (${state.selectedTeam.record}) projected ${state.selectedTeam.projectedText ?: state.selectedTeam.scoreText}. Opponent ${state.opponent.name} (${state.opponent.record}) projected ${state.opponent.projectedText ?: state.opponent.scoreText}."
     is OmenMatchupHeroState.Live ->
         "Live: ${state.selectedTeam.name} ${state.selectedTeam.scoreText}, ${state.opponent.name} ${state.opponent.scoreText}." +
             (state.projectedFinish?.let { " Projected finish: $it." } ?: "")

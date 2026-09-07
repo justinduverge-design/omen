@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -151,12 +152,20 @@ private fun Body(state: OmenContextStripState) {
                 color = colors.textPrimary,
             )
             // Omitted entirely when the provider gave no name — never a placeholder.
+            //
+            // `label`, not `bodySmall`. `bodySmall` is the **serif** reading role; a league name
+            // is a label, and in serif under a sans team name it read as the opening of a
+            // sentence. Same correction as `OmenLeagueCarousel` and `OmenMatchupHero`, made in
+            // the same 2026-09-06 pass — this strip sits directly above the matchup card, so
+            // leaving it behind would have kept the mixed-font effect visible in the next line.
             val leagueName = state.leagueName
             if (leagueName != null) {
                 Text(
                     text = leagueName,
-                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    style = OmenTheme.typography.label.toTextStyle(),
                     color = colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

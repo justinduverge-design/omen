@@ -17,6 +17,14 @@ struct OmenAuthPrimaryButton: View {
     let action: () -> Void
     var enabled = true
     var loading = false
+    /// Tint the glyph with the button's own foreground instead of keeping the asset's colours.
+    ///
+    /// Off by default, because a multicolour brand mark (Google) must never be tinted. On for a
+    /// **monochrome** one: `AuthApple` bakes in `#0A0A0B`, and this button's background is
+    /// `textPrimary` — cream in dark, near-black in light. So the Apple glyph rendered
+    /// near-black on near-black in light mode, i.e. invisible. Nobody had seen it because
+    /// `SignInView` forced its own dark background until that literal was tokenised.
+    var tintsIcon = false
 
     private var isInteractable: Bool { enabled && !loading }
 
@@ -29,7 +37,9 @@ struct OmenAuthPrimaryButton: View {
                 }
                 if let icon, !loading {
                     icon
-                        .renderingMode(.original)
+                        // Template when tinted, so the glyph inherits the HStack's
+                        // `textOnAccent` foreground applied below rather than its own colours.
+                        .renderingMode(tintsIcon ? .template : .original)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 19, height: 19)
@@ -58,6 +68,10 @@ struct OmenAuthIconTile: View {
     let action: () -> Void
     var enabled = true
     var loading = false
+    /// Same rule as `OmenAuthPrimaryButton.tintsIcon`: off for brand marks (Google, Discord),
+    /// on for a plain UI glyph. `AuthEmail` strokes itself in the cream `#F5F0E8` and this tile
+    /// sits on `surface1`, which is **white** in light mode — cream on white.
+    var tintsIcon = false
 
     private var isInteractable: Bool { enabled && !loading }
 
@@ -68,9 +82,10 @@ struct OmenAuthIconTile: View {
                     ProgressView().tint(isInteractable ? OmenColor.textPrimary : OmenColor.textTertiary)
                 } else {
                     icon
-                        .renderingMode(.original)
+                        .renderingMode(tintsIcon ? .template : .original)
                         .resizable()
                         .scaledToFit()
+                        .foregroundStyle(isInteractable ? OmenColor.textPrimary : OmenColor.textTertiary)
                         .accessibilityHidden(true)
                 }
             }

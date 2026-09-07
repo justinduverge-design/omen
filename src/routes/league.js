@@ -496,9 +496,20 @@ async function sleeperOverview(connection, context) {
   // `status: "unavailable"` beside live standings rather than failing the request.
   let matchup = { status: "unavailable", you: null, opponent: null, unavailable_reason: "provider_failed" };
   try {
-    const [roster, matchups] = await Promise.all([
+    // Projections are a THIRD failure domain inside the matchup read: Sleeper's matchup rows
+    // carry no projected total, so the PROJ column is summed from its per-player projections
+    // endpoint. That endpoint failing must cost the projection only — a matchup with real
+    // scores and no projection is still a matchup, so this catches to `{}` rather than
+    // dropping the whole read into `provider_failed`.
+    const [roster, matchups, projections] = await Promise.all([
       sleeperAdapter.fetchSleeperRoster(connection.league_id, sleeperUserId),
       sleeperAdapter.fetchSleeperMatchups(connection.league_id, context.week),
+      sleeperAdapter
+        .fetchSleeperProjections(Number(league?.season) || context.season, context.week)
+        .catch((e) => {
+          logger.warn("Sleeper matchup projections unavailable", { err: e.message });
+          return {};
+        }),
     ]);
     matchup = sleeperAdapter.matchupFromMatchups({
       leagueId: connection.league_id,
@@ -507,6 +518,7 @@ async function sleeperOverview(connection, context) {
       matchups,
       standings,
       isPastWeek: false,
+      projections,
     });
   } catch (e) {
     logger.warn("League overview matchup read failed", { err: e.message, platform: "sleeper" });
@@ -574,8 +586,13 @@ async function espnOverview(connection, userId, context) {
  * and the screen kept saying Yahoo could not answer while Yahoo was answering.
  *
  * Probed live 2026-09-06 before this was written, rather than assumed: the scoreboard returns
- * a full matchup, and Yahoo supplies a **projected total and a win probability per side** —
- * neither of which ESPN's `mMatchup` gives us.
+ * a full matchup, and Yahoo supplies a **projected total and a win probability per side**.
+ *
+ * The original of this paragraph added "neither of which ESPN's `mMatchup` gives us", and that
+ * is retracted the same day. It was true of the *request* Omen was making, not of ESPN: the
+ * projections live in `mMatchupScore`, which nothing had asked for. Yahoo being the only
+ * provider with a PROJ column was Omen's omission on two adapters, not a Yahoo advantage —
+ * see `espnMatchupProjected` and `projectedFromStarters`. Win probability is still Yahoo-only.
  *
  * A failed read degrades to `provider_failed` like every other provider, and a week with no
  * game degrades to `no_matchup`. Neither is `provider_unsupported` any more, because that

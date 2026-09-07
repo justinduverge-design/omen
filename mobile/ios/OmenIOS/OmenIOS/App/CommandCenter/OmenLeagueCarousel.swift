@@ -66,7 +66,9 @@ struct OmenLeagueCarousel: View {
     private var pageIndicator: some View {
         if viewModel.pages.count > 1 {
             Text("\(viewModel.selectedIndex + 1) of \(viewModel.pages.count)")
-                .omenTextStyle(OmenTypography.bodySmall)
+                // A count, so the numeric (mono) role — it was `bodySmall`, the serif reading
+                // role, which put a serif "1 of 2" opposite a mono "MATCHUP" on the same line.
+                .omenTextStyle(OmenTypography.numeric.at(size: 12))
                 .foregroundStyle(OmenColor.textSecondary)
                 .monospacedDigit()
                 .accessibilityHidden(true)
@@ -151,7 +153,10 @@ struct OmenLeagueCarousel: View {
     @ViewBuilder
     private var addLeagueRow: some View {
         if viewModel.hasLoadedLeagues, let onAddLeague {
-            OmenChip(label: "+ Add League", tone: .omen, selected: false, action: onAddLeague)
+            // Verdigris, not brass. Founder, 2026-09-06. It is also the reading this file
+            // already argued for in prose: the provider chips below are a *filter* and this is
+            // an *action*, and now the two families do not share a colour.
+            OmenChip(label: "+ Add League", tone: .verdigris, selected: false, action: onAddLeague)
                 .accessibilityLabel("Add a league")
         }
     }
@@ -231,10 +236,17 @@ struct OmenLeagueCarousel: View {
                         .omenTextStyle(OmenTypography.h2)
                         .foregroundStyle(OmenColor.textPrimary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .truncationMode(.tail)
+                    // `label`, not `bodySmall`. `bodySmall` is the **serif** reading role, and
+                    // a league name is a label — set in serif it read as the start of a
+                    // sentence under a sans team name, which is the mixed-font effect the
+                    // founder flagged on 2026-09-06.
                     Text(page.displayLeagueName)
-                        .omenTextStyle(OmenTypography.bodySmall)
+                        .omenTextStyle(OmenTypography.label)
                         .foregroundStyle(OmenColor.textSecondary)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
                 Spacer(minLength: OmenSpacing.step8)
                 if viewModel.committingPageID == page.id {

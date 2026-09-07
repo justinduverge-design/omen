@@ -409,7 +409,41 @@ function lastResultFromMatchups({ leagueId, week, rosterId, matchups }) {
  * Team names come from the standings rows the caller already fetched, so this adds no request.
  * Nothing here is inferred beyond `status`, whose derivation is documented on each branch.
  */
-function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [], isPastWeek = false }) {
+/**
+ * A side's projected total, summed from its **starters**.
+ *
+ * Sleeper's matchup rows carry no projected total of their own — which is why `projected` was
+ * hardwired to `null` here and why, on the Command Center, a Sleeper league showed an em dash
+ * in the PROJ column while the Yahoo league beside it showed a number. Sleeper *does* publish
+ * per-player projections, and this adapter has fetched and read them since M11 for the roster
+ * and waiver paths (`fetchSleeperProjections`). The matchup path simply never asked.
+ *
+ * Starters only. `players` is the whole roster and summing it would project the bench as if it
+ * played, which is not the number any fantasy site shows.
+ *
+ * `null`, never `0`, when **no** starter had a projection — that is "Sleeper had nothing to
+ * say", and a zero there would state as fact that the team is projected to score nothing. A
+ * starter Sleeper published no row for contributes 0 to a sum that has at least one real
+ * number in it: for the current week that means an empty slot or a player Sleeper is not
+ * projecting to play, which is what a 0 contribution means.
+ *
+ * Sleeper uses the string `"0"` for an unfilled starting slot; it is not a player id.
+ */
+function projectedFromStarters(row, projections) {
+  const starters = Array.isArray(row?.starters) ? row.starters : [];
+  let total = 0;
+  let found = false;
+  for (const id of starters) {
+    if (id == null || String(id) === "0") continue;
+    const points = projectionFor(projections, id);
+    if (points == null) continue;
+    total += points;
+    found = true;
+  }
+  return found ? Math.round(total * 100) / 100 : null;
+}
+
+function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [], isPastWeek = false, projections = null }) {
   const rows = Array.isArray(matchups) ? matchups : [];
   const mine = rows.find((row) => String(row?.roster_id) === String(rosterId));
   if (!mine?.matchup_id) return { status: "no_matchup", you: null, opponent: null };
@@ -432,8 +466,9 @@ function matchupFromMatchups({ leagueId, week, rosterId, matchups, standings = [
         ? `${standingsRow.wins}-${standingsRow.losses}`
         : null,
       points: Number.isFinite(points) ? points : null,
-      // Sleeper's matchup rows carry no projection. Null, never a guess.
-      projected: null,
+      // Summed from this side's starters. Null when the caller passed no projections or none
+      // of the starters had one — never a guess, and never a zero standing in for silence.
+      projected: projectedFromStarters(row, projections),
     };
   };
 

@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +40,8 @@ import com.slopssaloon.omen.core.designsystem.component.OmenPlatformBadge
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.component.OmenTextField
+import com.slopssaloon.omen.core.designsystem.component.OmenAuthTile
+import com.slopssaloon.omen.core.designsystem.component.OmenCanvasTextAction
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import kotlinx.coroutines.launch
 
@@ -62,7 +63,7 @@ fun ConnectScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0B)),
+            .background(OmenTheme.color.bg),
     ) {
         Column(
             modifier = Modifier
@@ -106,7 +107,12 @@ fun ConnectScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_canvas_chevron_left),
                                     contentDescription = null,
-                                    tint = Color.Unspecified,
+                                    // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
+                                    // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                                    // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
+                                    // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                                    // screen's hardcoded dark background was tokenised on 2026-09-07.
+                                    tint = OmenTheme.color.textSecondary,
                                     modifier = Modifier.size(24.dp),
                                 )
                             }
@@ -157,7 +163,7 @@ fun ConnectScreen(
                                 }
                             }
                             Spacer(Modifier.height(14.dp))
-                            CanvasTextAction("I'll do this later", onDismiss)
+                            OmenCanvasTextAction("I'll do this later", onDismiss)
                             Spacer(Modifier.height(22.dp))
                         }
                     }
@@ -475,12 +481,9 @@ fun ConnectScreen(
 
 @Composable
 private fun ConnectProviderCard(provider: ConnectProvider, onClick: () -> Unit) {
-    Surface(
+    OmenAuthTile(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = Color(0xFF141416),
-        contentColor = OmenTheme.color.textPrimary,
-        border = BorderStroke(1.dp, OmenTheme.color.border),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -496,37 +499,18 @@ private fun ConnectProviderCard(provider: ConnectProvider, onClick: () -> Unit) 
             Icon(
                 painter = painterResource(id = R.drawable.ic_canvas_chevron_right),
                 contentDescription = null,
-                tint = Color.Unspecified,
+                // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
+                // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
+                // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                // screen's hardcoded dark background was tokenised on 2026-09-07.
+                tint = OmenTheme.color.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }
     }
 }
 
-@Composable
-private fun CanvasTextAction(
-    text: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = OmenTheme.color.textTertiary,
-            disabledContentColor = OmenTheme.color.textTertiary.copy(alpha = 0.45f),
-        ),
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(
-            text = text,
-            style = OmenTheme.typography.label.toTextStyle(),
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
 
 @Composable
 private fun ProviderMark(provider: ConnectProvider) {

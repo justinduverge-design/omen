@@ -56,6 +56,40 @@ final class OmenMatchupHeroTests: XCTestCase {
         // yield empty strings so no fabricated score can appear.
     }
 
+    /// The PROJ column. `showsColumns` turns on when *either* side carries a projection, and
+    /// both rows then share the columned layout — a row with columns above a row without would
+    /// put the opponent's score under your projection.
+    func testProjectionAppearsInTheLabelForBothSidesWhenEitherSideHasOne() {
+        let state = OmenMatchupHeroState.beforeGames(
+            selectedTeam: OmenMatchupTeam(name: "Puk Around & Find Out", record: "0-0", scoreText: "—", projectedText: "100.7"),
+            opponent: OmenMatchupTeam(name: "Pregame Nick", record: "0-0", scoreText: "—", projectedText: "95.8"),
+            startTime: "Not started",
+            whatToWatch: nil
+        )
+        _ = OmenMatchupHero(state: state, onOpen: {})
+        let label = omenMatchupHeroAccessibilityLabel(state)
+        XCTAssertTrue(label.contains("100.7"))
+        XCTAssertTrue(label.contains("95.8"))
+    }
+
+    /// A side with no projection renders an em dash in its column rather than a fabricated
+    /// zero, and the card still constructs. This is the shape ESPN and Sleeper returned for
+    /// every league before the 2026-09-06 adapter fix, and the shape any provider still returns
+    /// before its season's projections publish.
+    func testOneSidedProjectionStillConstructsAndDoesNotInventTheOtherSide() {
+        let state = OmenMatchupHeroState.live(
+            selectedTeam: OmenMatchupTeam(name: "Mine", record: "1-0", scoreText: "64.8", projectedText: "119.6"),
+            opponent: OmenMatchupTeam(name: "Theirs", record: "0-1", scoreText: "58.1", projectedText: nil),
+            projectedFinish: nil,
+            whatToWatch: nil
+        )
+        _ = OmenMatchupHero(state: state, onOpen: {})
+        let label = omenMatchupHeroAccessibilityLabel(state)
+        XCTAssertTrue(label.contains("64.8"))
+        XCTAssertTrue(label.contains("58.1"))
+        XCTAssertFalse(label.contains("Projected finish"))
+    }
+
     func testShellConstructsForEveryStateWithAndWithoutOnOpen() {
         let states: [OmenMatchupHeroState] = [
             .live(selectedTeam: myTeam, opponent: theirTeam, projectedFinish: nil, whatToWatch: nil),

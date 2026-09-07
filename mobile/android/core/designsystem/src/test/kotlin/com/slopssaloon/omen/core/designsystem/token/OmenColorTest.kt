@@ -79,6 +79,26 @@ class OmenColorTest {
         assertEquals(OmenDarkColors.data.onPlatformEspn, OmenLightColors.data.onPlatformEspn)
     }
 
+    /**
+     * The Add League chip, 2026-09-06. `omenChip` is a legibility override on `omen` and belongs
+     * to the same family as the `platform*Chip` rows above.
+     *
+     * The values are load-bearing, not decorative: `omen`'s dark `#2F7D5B` is **3.96:1** on `bg`
+     * and chip type is 11sp, so the base verdigris fails AA at chip size. `#3A9A70` is the same
+     * hue at **5.69:1**. Light mode needs no lift — `#1A5C3E` is already 7.94:1 on `surface1` —
+     * so the two are equal there, and this test pins that asymmetry so a future "make them
+     * consistent" tidy-up has to argue with the contrast numbers first.
+     */
+    @Test
+    fun `the verdigris chip override lifts dark mode only`() {
+        assertEquals(Color(0xFF3A9A70), OmenDarkColors.omenChip)
+        assertEquals(Color(0xFF1A5C3E), OmenLightColors.omenChip)
+
+        // Dark is a real lift off the base; light is deliberately identical to it.
+        assertNotEquals(OmenDarkColors.omen, OmenDarkColors.omenChip)
+        assertEquals(OmenLightColors.omen, OmenLightColors.omenChip)
+    }
+
     @Test
     fun `on-platform foregrounds are pure white`() {
         assertEquals(Color(0xFFFFFFFF), OmenDarkColors.data.onPlatformSleeper)

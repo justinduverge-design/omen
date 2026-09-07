@@ -37,6 +37,34 @@ struct OmenTypeRoleSpec {
         let scaled = UIFontMetrics(forTextStyle: relativeTo).scaledFont(for: designed)
         return Font(scaled)
     }
+
+    /// The **same role at a display size**. Family, tracking, case and tabular-figure rule are
+    /// carried over unchanged; only the point size and weight move.
+    ///
+    /// This exists so a call site that needs a 24pt scoreboard number does not reach for
+    /// `.font(.system(size: 28, weight: .medium))` and silently leave the type system — which
+    /// is exactly what `OmenMatchupHero` did for two builds. A raw `.system` call resolves to
+    /// the platform sans no matter which family the role owns, so the scores rendered in a
+    /// different face from every other number in the app, and they would not have followed the
+    /// real Alegreya/DM Mono resources in when those land.
+    ///
+    /// `relativeTo` is kept, so a derived size still scales with Dynamic Type.
+    ///
+    /// This is not a new role and does not widen the registry §2.4 role map: the ten roles
+    /// below are still the only entry points, and a derivation is always traceable to one.
+    func at(size: CGFloat, weight: UIFont.Weight? = nil) -> OmenTypeRoleSpec {
+        OmenTypeRoleSpec(
+            design: design,
+            size: size,
+            weight: weight ?? self.weight,
+            relativeTo: relativeTo,
+            // Tracking is expressed in points at the role's own size, so a size change has to
+            // carry it proportionally or a 27pt number would wear a 12pt label's letter spacing.
+            tracking: self.size == 0 ? tracking : tracking * (size / self.size),
+            uppercase: uppercase,
+            tabularNumbers: tabularNumbers
+        )
+    }
 }
 
 /// The ten locked roles from the registry §2.4 / typography brief §2.

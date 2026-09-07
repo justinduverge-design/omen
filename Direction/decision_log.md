@@ -1,5 +1,162 @@
 # Omen Decision Log
 
+## 2026-09-07 — Reading ESPN's real client, and the Android primitives that were hiding three bugs
+
+Founder: "let's get you to read real ESPN code so that you can do mMatchupScore right" and
+"Android gotta get fixed". Both done. The ESPN half corrected work shipped the day before.
+
+### Reading the provider's own client beats reasoning about its API
+
+ESPN's production bundle is public and unauthenticated — `cdn1.espn.net/kona/<build>/_next/...`,
+the same source `normalizeFanGroupId` has cited since 2026-09-03. Reading it settled four things
+that had been careful guesses on 2026-09-06, and **one of them was wrong**:
+
+1. **`view=["mMatchup","mMatchupScore"]` is ESPN's own pair.** Its matchup fetch requests exactly
+   those two with a `scoringPeriodId`. Guessed right.
+2. **`totalProjectedPointsLive` is not a server field — ESPN's client computes it.** The boxscore
+   chunk sums `projectedPoints` over starters and assigns the result back onto the matchup-team
+   object. Reading it off an API response, which is what the 2026-09-06 code did *first*, would
+   have found it absent every time. The server field beside it is **`totalProjectedPoints`**,
+   which ESPN labels the "delayed" projection.
+3. **The starter sum is ESPN's headline number, not the fallback.** Its matchup header renders
+   `totalProjectedPointsLive` — the client-side sum. So the order was backwards: sum the starters
+   when a roster is present, fall back to the stated total when it is not.
+4. **`statSourceId: 1` is `Projected`** and `appliedTotal` is the number, per ESPN's own
+   `statSettings.sources` table. Guessed right, now proven.
+
+**Decision: ask ESPN's question about starters, not Omen's.** ESPN ships a 26-row football
+`lineupSlots` table with an explicit `starter` boolean per row, and decides membership with
+`lineupSlotsMap[lineupSlotId].starter`. Exactly four rows are `starter: false` — 20 BE, 21 IR,
+22 INV, 25 ALL. Omen's test was `slot !== "BN" && slot !== "IR"` against `LINEUP_SLOT_MAP`, which
+names **ten of ESPN's twenty-six** slots and answers `"UNK"` for the rest. So `INV` and `ALL`
+counted as starters. `ESPN_NON_STARTER_SLOT_IDS` is now a set of **ids**, transcribed from the
+table, and `isEspnStarterSlot` replaces the abbreviation test in `normalizePlayer` too. The
+transcribed table is committed as evidence rather than left as a comment.
+
+**`Number(null) === 0` bit again, and a test caught it.** The first `isEspnStarterSlot` did
+`Number.isFinite(Number(slotId))` — and `Number(null)` is `0`, which is **slot 0, QB**. A roster
+entry with no slot would have been counted as your quarterback and had its projection added.
+Third appearance of this exact coercion in this codebase (`firstFinite`, the `mvp-move` hang,
+now this). The guard rejects `null`/`undefined`/`""` before coercing.
+
+**Decision: no hardcoded `statSplitTypeId`.** ESPN resolves that id by lookup
+(`find(splitTypes, {gameSplit: true})`) rather than by literal, precisely because it is not
+stable across its sports. Requiring `scoringPeriodId === week` already excludes the season-long
+row, which is the only collision that matters. A second constant to keep true, for no gain.
+
+**What the bundle could NOT settle is now a script the founder can run.**
+`scripts/espn-projection-proof.sh` asks a real league whether `mMatchupScore` changes the payload,
+whether `totalProjectedPoints` is present and `totalProjectedPointsLive` absent as predicted, and
+whether matchup sides carry the roster the starter sum needs. It prints field names, types and
+counts only — never a point value, a team, or a player. Credentials stay in the founder's
+terminal, matching the existing `espn-shape-proof.sh` pattern.
+
+### Android: the enforcement failure was hiding three real rendering bugs
+
+`PrimitiveEnforcementTest` had five violations in `OmenAuthFlow.kt` and `ConnectScreen.kt`. The
+allowlist stayed empty, per the iOS precedent from 2026-09-05: exempting a 500-line file for one
+line blanket-exempts every violation added to it later.
+
+**`CanvasTextAction` existed twice, privately, and the copies had drifted** — Auth's took
+`color`/`fontWeight`/`height`; Connect's hardcoded them and rendered its disabled state
+differently. That is character-for-character the divergence the iOS merge found in the same two
+screens. `private` is what kept each copy invisible to the other author. One definition cannot
+disagree with itself.
+
+**Decision: the hex literals were the sharper half, and removing them is what exposed the bugs.**
+`Color(0xFF0A0A0B)` forced both screens dark regardless of device theme — which is *why* nobody
+had seen what was underneath. Tokenising it revealed: Connect's provider cards were near-black
+tiles carrying dark text on a light page; the **email glyph** bakes in cream `#F5F0E8` and sat on
+a now-white tile; and — found by looking rather than assumed — **the same glyph bug exists on
+iOS in two places**, `AuthEmail` (cream on white) and `AuthApple` (`#0A0A0B` on a button that is
+near-black in light mode). All fixed with a `tintsIcon` flag; Google and Discord keep their own
+colours because they are brand marks and must never be tinted.
+
+**Decision: the stacked lockup is a founder call, not a fix, and was deliberately left alone.**
+Both platforms bake `#0A0A0B` into the mark — Android's PNG is 100% opaque, iOS's SVG opens with
+a full-bleed `<rect fill="#0A0A0B"/>`. On a light page it is a black rectangle on cream. The
+obvious fix is wrong: the wordmark is cream, so a transparent lockup renders cream-on-cream and
+OMEN disappears. The plate is load-bearing. Recorded in `known_issues.md` with the two real
+options rather than resolved unilaterally — changing a brand mark is not a build fix.
+
+
+## 2026-09-06 — The matchup card, and the PROJ column that only Yahoo could fill
+
+Founder, looking at the Command Center on a real iPhone with two Yahoo leagues connected: the
+matchup card's font "isn't doing it for me, it looks weird", team names "could look better",
+Add League "should be verdigris green" — and, separately, "the matchup doesn't produce
+projections for all leagues, only Yahoo."
+
+**The font finding was one real defect wearing three hats.** `OmenTypography` splits three
+families by role — sans for UI, **serif for long-form reading**, mono for numbers. The matchup
+card was reaching for `bodySmall` (the serif role) for things that are not prose: the league
+name, the team record, the "1 of 2" page count, and the rule caption. Four serif fragments
+scattered through a sans-and-mono card is not a font choice, it is an absence of one, and it is
+what "looks weird" was pointing at. Each moved to the role it belonged in — `label` for labels,
+`numeric` for counts and records. The families themselves are unchanged.
+
+**Decision: a derived size is not a new role.** The two biggest numbers in the card — the score
+and the projection — were raw `.font(.system(size: 28))` literals on iOS, which resolve to the
+platform sans no matter which family the role owns. So the scoreboard was the only text in the
+app outside its own type system, and it would not have followed DM Mono in when the real font
+resources land. Rather than add roles (which would drift from the registry S2.4 role map of ten)
+`OmenTypeRoleSpec.at(size:weight:)` derives a display size from an existing role, carrying family,
+case, tracking and figure rule. **Android already did exactly this** (`numeric.copy(size = 20.sp)`);
+iOS was the platform that had drifted, and the seam restores parity rather than inventing one.
+
+**Decision: verdigris marks actions; brass marks filters.** `OmenChipTone.omen` was doing both
+jobs, so `+ Add League` and the `All` filter beside it rendered the same brass. The carousel's
+own source already argued the distinction in prose - Add League was moved out of the filter row
+in the 2026-09-04 pass precisely because "the provider chips are a *filter* and this is an
+*action*" - but colour still said they were one family. `verdigris` splits it. The chip uses a
+new `omenChip` token (`#3A9A70` dark), not `omen` (`#2F7D5B`): the base verdigris is **3.96:1**
+on `bg`, which is fine for a glow or a rule and short of AA for 11pt chip type. `#3A9A70` is the
+same hue at **5.69:1**. Light mode is unchanged at `#1A5C3E` (7.94:1), which already cleared.
+This follows the precedent `platformSleeperChip` / `platformEspnChip` already set.
+
+**Decision: stop printing the state twice.** The card's eyebrow read `MATCHUP - NOT STARTED` and
+the rule three lines below read `Not started`. Both were correct and one was redundant - an
+artifact of the PROJ column landing without the rule standing down. With columns present the
+rule now carries no caption at all and stays a hairline. Same for `LIVE` / "Live score".
+
+**Decision: mark your own row.** Both team rows were styled identically, so the only thing
+saying which team was yours was position (yours on top) - a real convention that is invisible,
+and the screen-reader label had a cue ("Your team") the sighted reader did not. A 3pt accent bar
+on the leading edge of your row, not a colour swap on the text, which would have cost contrast.
+
+### The projections finding was not a Yahoo capability. It was Omen's omission, twice.
+
+`league-overview.v1` has always carried `matchup.*.projected`. Yahoo filled it; Sleeper and ESPN
+hardwired `null`, each above a comment explaining why the provider could not answer:
+
+- **Sleeper** - "Sleeper's matchup rows carry no projection." True, and beside the point: Sleeper
+  publishes per-player projections and *this same adapter has fetched them since M11* for the
+  roster and waiver paths. The matchup path never asked. Now summed from **starters** (never
+  `players`, which would project the bench as if it played).
+- **ESPN** - "ESPN can carry projections in other views; this one does not." True of the request
+  Omen was making, not of ESPN. The projections are in `mMatchupScore`, and `fetchEspnMatchup`
+  asked only for `mMatchup`. It now asks for both and reads ESPN's own stated total, falling back
+  to summing starters via `projectedPointsForEspnPlayer`, which already existed for the waiver
+  pool.
+
+**Both comments were accurate about the code and were read as facts about the provider.** That is
+the general lesson worth keeping: a comment that says "the provider does not give us X" should
+say which *request* was made, because otherwise it hardens into a capability claim nobody
+re-tests. The same paragraph in `src/routes/league.js` had already generalised to
+"neither of which ESPN's `mMatchup` gives us" - written the same week, retracted here.
+
+**Absence still survives as absence.** Every path returns `null`, never `0`, when a provider has
+nothing to say. This is not fussiness: `Number(null) === 0` downstream is exactly what produced
+the 2026-09-05 `mvp-move` hang recorded in `known_issues.md`, where unprojected ESPN players read
+as confident zeros. Win probability remains Yahoo-only and is deliberately not in the contract.
+
+**Found by a test that failed for the right reason.** The new iOS cover for the PROJ column
+asserted the card's accessibility label mentions the projection, and it failed: the pre-game
+label read `scoreText`, which is an em dash before kickoff by design, so VoiceOver announced
+"projected -" while the screen showed `100.7`. The number had moved into its own field on
+2026-09-04 and the label was never re-pointed at it. Fixed on both platforms.
+
+
 ## 2026-09-05 — The outage that alerting caught and nobody could act on; and what a moat is actually for
 
 Omen was down overnight. Every detection layer worked perfectly — Kuma flagged all three

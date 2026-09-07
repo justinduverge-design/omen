@@ -1,0 +1,497 @@
+[
+  {
+    "abbrev": "QB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 1,
+    "eligiblePositions": [
+      1
+    ],
+    "id": 0,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Quarterback",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "TQB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 2,
+    "eligiblePositions": [
+      15
+    ],
+    "id": 1,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Team Quarterback",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "RB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 3,
+    "eligiblePositions": [
+      2
+    ],
+    "id": 2,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Running Back",
+    "parentId": 3,
+    "starter": true
+  },
+  {
+    "abbrev": "RB/WR",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 4,
+    "eligiblePositions": [
+      2,
+      3
+    ],
+    "id": 3,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Running Back/Wide Receiver",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "WR",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 5,
+    "eligiblePositions": [
+      3
+    ],
+    "id": 4,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Wide Receiver",
+    "parentId": 5,
+    "starter": true
+  },
+  {
+    "abbrev": "WR/TE",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 6,
+    "eligiblePositions": [
+      3,
+      4
+    ],
+    "id": 5,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Wide Receiver/Tight End",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "TE",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 7,
+    "eligiblePositions": [
+      4
+    ],
+    "id": 6,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Tight End",
+    "parentId": 5,
+    "starter": true
+  },
+  {
+    "abbrev": "OP",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 9,
+    "eligiblePositions": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "id": 7,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Offensive Player Utility",
+    "parentId": 25,
+    "starter": true
+  },
+  {
+    "abbrev": "DT",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 10,
+    "eligiblePositions": [
+      9
+    ],
+    "id": 8,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Defensive Tackle",
+    "parentId": 11,
+    "starter": true
+  },
+  {
+    "abbrev": "DE",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 11,
+    "eligiblePositions": [
+      10
+    ],
+    "id": 9,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Defensive End",
+    "parentId": 11,
+    "starter": true
+  },
+  {
+    "abbrev": "LB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 12,
+    "eligiblePositions": [
+      11
+    ],
+    "id": 10,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Linebacker",
+    "parentId": 11,
+    "starter": true
+  },
+  {
+    "abbrev": "DL",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 14,
+    "eligiblePositions": [
+      9,
+      10
+    ],
+    "id": 11,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Defensive Line",
+    "parentId": 15,
+    "starter": true
+  },
+  {
+    "abbrev": "CB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 15,
+    "eligiblePositions": [
+      12
+    ],
+    "id": 12,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Cornerback",
+    "parentId": 14,
+    "starter": true
+  },
+  {
+    "abbrev": "S",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 16,
+    "eligiblePositions": [
+      13
+    ],
+    "id": 13,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Safety",
+    "parentId": 14,
+    "starter": true
+  },
+  {
+    "abbrev": "DB",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 17,
+    "eligiblePositions": [
+      12,
+      13
+    ],
+    "id": 14,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Defensive Back",
+    "parentId": 15,
+    "starter": true
+  },
+  {
+    "abbrev": "DP",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 18,
+    "eligiblePositions": [
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "id": 15,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Defensive Player Utility",
+    "parentId": 25,
+    "starter": true
+  },
+  {
+    "abbrev": "D/ST",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 19,
+    "eligiblePositions": [
+      16
+    ],
+    "id": 16,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Team Defense/Special Teams",
+    "parentId": 25,
+    "starter": true
+  },
+  {
+    "abbrev": "K",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 20,
+    "eligiblePositions": [
+      5
+    ],
+    "id": 17,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Place Kicker",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "P",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 21,
+    "eligiblePositions": [
+      7
+    ],
+    "id": 18,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Punter",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "HC",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 22,
+    "eligiblePositions": [
+      14
+    ],
+    "id": 19,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Head Coach",
+    "parentId": 25,
+    "starter": true
+  },
+  {
+    "abbrev": "BE",
+    "active": false,
+    "bench": true,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 23,
+    "eligiblePositions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "id": 20,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Bench",
+    "parentId": 25,
+    "starter": false
+  },
+  {
+    "abbrev": "IR",
+    "active": false,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 24,
+    "eligiblePositions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "id": 21,
+    "injuryRequired": true,
+    "lineupSlotEligible": true,
+    "name": "Injured Reserve",
+    "parentId": 25,
+    "starter": false
+  },
+  {
+    "abbrev": "INV",
+    "active": false,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": false,
+    "displayOrder": 25,
+    "eligiblePositions": [],
+    "id": 22,
+    "injuryRequired": false,
+    "lineupSlotEligible": false,
+    "name": "Invalid Player",
+    "parentId": 25,
+    "starter": false
+  },
+  {
+    "abbrev": "FLEX",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": true,
+    "displayOrder": 8,
+    "eligiblePositions": [
+      2,
+      3,
+      4
+    ],
+    "id": 23,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Flex",
+    "parentId": 7,
+    "starter": true
+  },
+  {
+    "abbrev": "EDR",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": false,
+    "display": false,
+    "displayOrder": 13,
+    "eligiblePositions": [
+      17
+    ],
+    "id": 24,
+    "injuryRequired": false,
+    "lineupSlotEligible": true,
+    "name": "Edge Rusher",
+    "parentId": 15,
+    "starter": true
+  },
+  {
+    "abbrev": "ALL",
+    "active": true,
+    "bench": false,
+    "canApplyLimitIndividually": true,
+    "display": true,
+    "displayOrder": 0,
+    "eligiblePositions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "id": 25,
+    "injuryRequired": false,
+    "lineupSlotEligible": false,
+    "name": "All Players",
+    "parentId": 25,
+    "starter": false
+  }
+]

@@ -671,3 +671,208 @@ test("firstFinite treats null and empty string as absent rather than as zero", (
     assert.equal([...zeroed.slots.starters, ...zeroed.slots.bench][0].projected_points, 0);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Matchup projections. `matchupFromEspnSchedule` hardwired `projected: null` for every ESPN
+// side, so the Command Center's PROJ column showed an em dash for ESPN and Sleeper leagues
+// while the Yahoo league beside them showed a number. Founder, 2026-09-06: "the matchup
+// doesn't produce projections for all leagues, only Yahoo."
+// ---------------------------------------------------------------------------
+
+test("a matchup side falls back to ESPN's stated total when it ships no roster", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  // `totalProjectedPoints` — the server field. NOT `totalProjectedPointsLive`, which ESPN's own
+  // client computes and assigns onto the model rather than receiving from the API.
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: { teamId: 9, totalPoints: 61.2, totalProjectedPoints: 118.4 },
+    away: { teamId: 4, totalPoints: 58.0, totalProjectedPoints: 111.9 },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.status, "live");
+  assert.equal(matchup.you.projected, 118.4);
+  assert.equal(matchup.opponent.projected, 111.9);
+});
+
+// ESPN's matchup header renders the client-summed `totalProjectedPointsLive`, not the server's
+// `totalProjectedPoints`, so when both are available the sum is the number ESPN would show.
+test("the starter sum wins over the stated total, matching what ESPN displays", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const entry = (playerId, lineupSlotId, projected) => ({
+    playerId,
+    lineupSlotId,
+    playerPoolEntry: {
+      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
+        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
+      ] },
+    },
+  });
+
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: {
+      teamId: 9,
+      totalPoints: 10,
+      totalProjectedPoints: 999,
+      rosterForCurrentScoringPeriod: { entries: [entry(1, 2, 12.5), entry(2, 4, 9.25)] },
+    },
+    away: { teamId: 4, totalPoints: 8, totalProjectedPoints: 111.9 },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.you.projected, 21.75);
+  // The side with no roster still gets the stated total. Sides are resolved independently.
+  assert.equal(matchup.opponent.projected, 111.9);
+});
+
+// ESPN's football `lineupSlots` table marks exactly four rows `starter: false`: 20 BE, 21 IR,
+// 22 INV and 25 ALL. The previous test was `slot !== "BN" && slot !== "IR"` against an
+// abbreviation map that names ten of ESPN's twenty-six slots, so 22 and 25 counted as starters
+// and every IDP slot fell through as "UNK".
+test("only ESPN's own starter slots are summed", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const entry = (playerId, lineupSlotId, projected) => ({
+    playerId,
+    lineupSlotId,
+    playerPoolEntry: {
+      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
+        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
+      ] },
+    },
+  });
+
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: {
+      teamId: 9,
+      totalPoints: 0,
+      rosterForCurrentScoringPeriod: { entries: [
+        entry(1, 2, 12.5),    // RB     — starter
+        entry(2, 4, 9.25),    // WR     — starter
+        entry(3, 10, 4.0),    // LB     — starter (IDP; `LINEUP_SLOT_MAP` calls it "UNK")
+        entry(4, 23, 6.25),   // FLEX   — starter
+        entry(5, 20, 40.0),   // BE     — excluded
+        entry(6, 21, 30.0),   // IR     — excluded
+        entry(7, 22, 50.0),   // INV    — excluded (counted before this fix)
+        entry(8, 25, 60.0),   // ALL    — excluded (counted before this fix)
+      ] },
+    },
+    away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [entry(9, 2, 20.0)] } },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.you.projected, 32);
+  assert.equal(matchup.opponent.projected, 20);
+});
+
+// A roster entry with no slot is not evidence of a starter. Guessing "yes" would inflate a
+// projected total with a player ESPN is not counting — the one direction of error that produces
+// a confident wrong number rather than an honest absence.
+test("an entry with no lineup slot is not treated as a starter", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  assert.equal(adapter.isEspnStarterSlot(2), true);
+  assert.equal(adapter.isEspnStarterSlot(10), true);
+  assert.equal(adapter.isEspnStarterSlot(20), false);
+  assert.equal(adapter.isEspnStarterSlot(21), false);
+  assert.equal(adapter.isEspnStarterSlot(22), false);
+  assert.equal(adapter.isEspnStarterSlot(25), false);
+  assert.equal(adapter.isEspnStarterSlot(undefined), false);
+  assert.equal(adapter.isEspnStarterSlot(null), false);
+  assert.equal(adapter.isEspnStarterSlot("not-a-slot"), false);
+});
+
+// The whole reason `projected` stayed null for so long: ESPN publishes nothing before a
+// season's first week goes live. Absence has to survive as absence — `Number(null) === 0`
+// downstream turns a fabricated zero into a confident recommendation.
+test("a side ESPN has no projection for is null, never a zero", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: { teamId: 9, totalPoints: 0 },
+    away: { teamId: 4, totalPoints: 0 },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.you.projected, null);
+  assert.equal(matchup.opponent.projected, null);
+});
+
+// A roster present but entirely unprojected is still absence, not zero.
+test("a roster whose starters carry no projection is null, never a zero", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const bare = (playerId, lineupSlotId) => ({
+    playerId,
+    lineupSlotId,
+    playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [] } },
+  });
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: { teamId: 9, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(1, 2)] } },
+    away: { teamId: 4, totalPoints: 0, rosterForCurrentScoringPeriod: { entries: [bare(2, 2)] } },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.you.projected, null);
+});
+
+// `rosterForMatchupPeriod` is the other name ESPN's matchup-team model reads.
+test("rosterForMatchupPeriod is read when rosterForCurrentScoringPeriod is absent", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const entry = (playerId, lineupSlotId, projected) => ({
+    playerId,
+    lineupSlotId,
+    playerPoolEntry: {
+      player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3, stats: [
+        { statSourceId: 1, scoringPeriodId: 3, appliedTotal: projected },
+      ] },
+    },
+  });
+  const schedule = [{
+    matchupPeriodId: 3,
+    home: { teamId: 9, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(1, 2, 15.5)] } },
+    away: { teamId: 4, totalPoints: 0, rosterForMatchupPeriod: { entries: [entry(2, 2, 11.0)] } },
+  }];
+
+  const matchup = adapter.matchupFromEspnSchedule({ leagueId: "1", week: 3, teamId: "9", schedule });
+
+  assert.equal(matchup.you.projected, 15.5);
+  assert.equal(matchup.opponent.projected, 11);
+});
+
+// `rosterFromEspnData` bucketed with `else slots.starters.push(...)` — a catch-all. Any slot
+// `LINEUP_SLOT_MAP` did not name fell into starters, so ESPN's Invalid Player (22) and ALL (25)
+// pseudo-slot reached the lineup optimizer as part of the user's starting lineup.
+test("an Invalid Player or ALL slot is bucketed as bench, never as a starter", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const entry = (playerId, lineupSlotId) => ({
+    playerId,
+    lineupSlotId,
+    playerPoolEntry: { player: { id: playerId, fullName: `P${playerId}`, defaultPositionId: 3 } },
+  });
+  const data = {
+    teams: [{
+      id: 8,
+      owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"],
+      roster: { entries: [
+        entry(1, 2),   // RB  — starter
+        entry(2, 10),  // LB  — starter (IDP, unnamed in LINEUP_SLOT_MAP)
+        entry(3, 20),  // BE  — bench
+        entry(4, 21),  // IR  — ir
+        entry(5, 22),  // INV — bench, NOT a starter
+        entry(6, 25),  // ALL — bench, NOT a starter
+      ] },
+    }],
+  };
+
+  const roster = adapter.rosterFromEspnData(data, "1", "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}", 1, {});
+
+  assert.deepEqual(roster.slots.starters.map((p) => p.player_id).sort(), ["1", "2"]);
+  assert.deepEqual(roster.slots.ir.map((p) => p.player_id), ["4"]);
+  assert.deepEqual(roster.slots.bench.map((p) => p.player_id).sort(), ["3", "5", "6"]);
+});

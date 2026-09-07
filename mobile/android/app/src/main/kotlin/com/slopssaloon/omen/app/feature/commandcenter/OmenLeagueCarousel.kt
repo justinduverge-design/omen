@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiError
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
@@ -99,7 +100,11 @@ fun OmenLeagueCarousel(
             if (onAddLeague != null) {
                 OmenChip(
                     label = "+ Add League",
-                    tone = OmenChipTone.Omen,
+                    // Verdigris, not brass. Founder, 2026-09-06. It is also the reading the
+                    // comment directly above already argued for: the provider chips below are
+                    // a *filter* and this is an *action*, and now the two families differ in
+                    // colour as well as in position.
+                    tone = OmenChipTone.Verdigris,
                     onClick = onAddLeague,
                     modifier = Modifier.semantics { contentDescription = "Add a league" },
                 )
@@ -117,7 +122,10 @@ fun OmenLeagueCarousel(
             if (viewModel.pages.size > 1) {
                 Text(
                     "${viewModel.selectedIndex + 1} of ${viewModel.pages.size}",
-                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    // A count, so the numeric (monospaced) role — it was `bodySmall`, the serif
+                    // reading role, which put a serif "1 of 2" opposite a mono "MATCHUP" on the
+                    // same line.
+                    style = OmenTheme.typography.numeric.copy(size = 12.sp).toTextStyle(),
                     modifier = Modifier.clearAndSetSemantics { },
                 )
             }
@@ -358,7 +366,11 @@ private fun OmenListRowHeader(
             )
             Text(
                 page.displayLeagueName,
-                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                // `label`, not `bodySmall`. `bodySmall` is the **serif** reading role, and a
+                // league name is a label — set in serif it read as the start of a sentence
+                // under a sans team name, which is the mixed-font effect the founder flagged
+                // on 2026-09-06.
+                style = OmenTheme.typography.label.toTextStyle(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
