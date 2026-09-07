@@ -514,3 +514,79 @@ Correction truth is deliberately bounded: two authentic upstream schedule revisi
 **Founder decision: accepted the risk explicitly** and chose to ship, keeping the live integration with a consent line. Recorded in `Direction/decision_log.md`, 2026-08-31.
 
 **Constraints carried into `W1-A`:** no association-implying ESPN branding, a consent screen, and the prepared App Review answer. `W1-A` remains `BLOCKED` on `TASK-W1-REVIEW` by the Wave 1 sequencing note — the gate cleared the terms question, not the review question.
+
+## Reconciliation — 2026-09-07
+
+A queue-vs-`git log` pass. **No item was closed by this pass and no `VERIFIED` item was advanced.**
+It removed bookkeeping that had gone false, and recorded two things that need a founder answer.
+
+### 30 CLOSED tombstone stubs removed from the active queue
+
+The 2026-09-02 pass filed these into this file and stamped each one *"Retired from the active
+queue 2026-09-02"* — but left the stub heading and status line sitting in `current_sprint.md`. They
+were removed on 2026-09-07 after each was checked against this file individually. **27 of the 30
+have a real record here; three do not** — see the open question below.
+
+`A5` (filed as `A5-NflversePath`), `A7B-OwnedFootballDataPipelineImplementation` (filed as § A7B),
+`R3`, `R3-BUILD-iOS`, `R4`, `R5`, `R7`, `M1-Screen-League`, `M1-Screen-Trade`, `M4-Auth-Providers-v1`,
+`M4-CC-PlatformsCompact`, `M4-CC-WaiverWatch`, `M4-Help-Support-Implementation`,
+`M5-Slice-E-Ledger`, `M8-EspnAndroidHelper`, `O1b`, `O2`, `O4`, `O5`, `O6`, `O7`, `O8`, `O9`,
+`P1-ConnectContinueRoute`, `P1-DraftAssistantSideline`, `S3`, `S4`, `S8`, `F9`, `W1-GATE`.
+
+### ⚠️ Open question — `R4`, `R5` and `M8` were closed without a ledger row
+
+All three are marked `CLOSED` in `current_sprint.md`. **None has a closure record anywhere in this
+file.** Each appears only inside *another* item's prose, and in `R4`/`R5`'s case what that prose
+says is the opposite of closed:
+
+> "Android internal release remains unpublished with no testers; **R4/R5 still gate rollout**."
+> — § "Decision closeouts — 2026-08-22", written the day before they were marked complete.
+
+> "…and `R3`/`R4` are open." — § "O7 — the forced-update gate lands inert — 2026-08-19".
+
+- **R4** — Privacy nutrition labels and Data Safety form (closed 2026-08-23)
+- **R5** — Age rating and gambling questionnaire (closed 2026-08-23)
+- **M8-EspnAndroidHelper** — Decide the Android ESPN path. Its only mention here is a pointer inside
+  `M7-EspnSafariExtension`'s row: *"Android path is deferred separately as `M8-EspnAndroidHelper`"* —
+  which records a **deferral**, not a decision. Lower stakes than `R4`/`R5`, and the Android ESPN
+  path has since been built and proven (`W1-A`, 2026-09-03), so the likely answer is that reality
+  overtook the item. It still needs a receipt or a reopen.
+
+These are **store-submission gates on the critical path**, and `W1-REVIEW` is the next thing in the
+queue that needs them. Two readings are possible and an agent cannot choose between them: either the
+forms were genuinely filled in on 2026-08-23 and nobody wrote the evidence down, or the closure was
+premature. **Founder call.** Not re-opened and not accepted by this pass.
+
+**This is the third, fourth and fifth instance of the same defect.** The 2026-09-02 pass caught
+`O2` and `W1-GATE` closed without ledger rows and wrote *"worth noting as a pattern"*. It was — the
+pattern had already happened three more times in the same file and that pass did not sweep for it. A
+closure that writes a status line without writing the evidence row was invisible to
+`check-sprint-staleness.js`, because the checker read what the sprint file *claims*, not whether the
+claim is backed.
+
+**That gap is now closed in code.** `scripts/checks/sprint-closed-without-ledger-row.js` was written
+on 2026-09-07 and flags exactly this class. It found `M8`, which this pass's own manual sweep had
+missed — a substring search had matched the cross-reference in M7's row and cleared it. **Its
+current precision is 3 true positives out of 8 findings:** it also flags `A5`, `A7B`, `R3`,
+`M1-Screen-Trade` and `M1-Screen-League`, all of which *do* have records — filed under a variant key
+(`A5-NflversePath`), as a section heading rather than a key (`## A7B — …`), as a table row
+(`R3 signing and provisioning`), or in `Blueprints/done/LEDGER.md` rather than here. Worth tightening
+before the noise trains people to skip it, which is how the last checker's findings got ignored.
+
+### `W1-CONSENT` was in the file twice
+
+A `READY` copy carrying the scope, and a `VERIFIED` copy carrying the 2026-09-01 evidence, appended
+without retiring the original. Merged into one `VERIFIED` entry. The consequence was not cosmetic:
+the inbox selector reads `Status: READY`, so **the queue was advertising finished P0 work as
+available to pull**, and `W1-REVIEW` read as blocked on a task that was already done.
+
+### The 50 commits that had no queue entry
+
+Between `17806cf` (the 2026-09-02 reconciliation) and `origin/main` on 2026-09-07 there are 50
+non-merge commits, including a Command Center rebuild, a league-aware waiver system proven against
+five real leagues across two providers, all-provider projections, and two production outages fixed.
+
+**They were not undocumented** — `Direction/decision_log.md`, `Direction/known_issues.md` and seven
+dated handoffs cover them well. They were absent from the *status* surfaces: this file,
+`current_sprint.md`, `Blueprints/done/LEDGER.md`, `roadmap.md`, and `release_readiness.md`. The
+narrative record and the queue record came apart, and the queue was the half that was wrong.

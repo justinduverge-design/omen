@@ -1,6 +1,16 @@
 # Omen Release Readiness
 
 Last updated: **2026-08-26** (§"Not Deployed / Not Merged" reconciled to empty).
+
+> ⚠️ **Staleness notice added 2026-09-07.** This file is the named evidence record for the 1.0 plan
+> and it has not been updated in twelve days, during which 50 commits landed — including a Command
+> Center rebuild, a league-aware waiver system verified against five real leagues, ESPN proven
+> against a real connected account from a phone, and two production outages. **Treat every
+> readiness claim below as asserted-as-of-2026-08-26, not as current.** A full re-verification is a
+> separate pass and was deliberately not attempted here: re-stamping this file without re-running
+> its evidence would make it *look* current while being no more true, which is the exact failure the
+> 2026-09-07 reconciliation was cleaning up. See `Direction/sprints_completed.md` §
+> "Reconciliation — 2026-09-07".
 Previous update was 2026-08-12 (first local Mac/Xcode signed-device bring-up).
 Previous full reconciliation was 2026-08-05.
 
