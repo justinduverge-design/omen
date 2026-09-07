@@ -1,6 +1,6 @@
 # Omen Current Sprint
 
-**Last updated:** 2026-09-02 (reconciliation pass — 30 CLOSED items retired to `sprints_completed.md`; deadline table reconciled against what actually happened; `O2` and `W1-GATE` given the ledger rows they were missing)
+**Last updated:** 2026-09-07 (reconciliation pass against `git log` — 30 CLOSED tombstone stubs removed from the active queue; the duplicate `W1-CONSENT` merged; `W1-REVIEW`'s satisfied blockers annotated; 50 unrecorded commits filed; `R4`/`R5` raised as closed-without-evidence)
 **Structure last revised:** 2026-08-05 (revamped around the 1.0 plan — added Store/Release, Security, and Ops lanes; every lane now maps to a phase gate)
 **Purpose:** Active execution queue only — `READY`, `IN_PROGRESS`, `VERIFIED`, `BLOCKED`. Completed evidence belongs in `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md`, PRs, and dated handoffs.
 **Scope and sequence:** `Direction/omen-1.0-plan.md`. **Evidence record:** `Direction/release_readiness.md`.
@@ -15,28 +15,88 @@ Task states, `Claim:` and `Evidence:` requirements, `Blocked by:` / `Unblock:` g
 4. Keep implementation in small PRs. If an item needs more than about 80 words of implementation detail, write or use a spec and leave the sprint item as a pointer.
 5. On completion set `Status: VERIFIED` with an `Evidence:` pointer. Move to `Status: CLOSED` with a `Closure:` value (`COMPLETED` needs evidence, `SUPERSEDED` needs a successor, `DESCOPED` needs a reason) once the result is placed in `Direction/sprints_completed.md` with the appropriate Done receipt; update the decision log only when a decision changed, and record actual skill use. `CLOSED` is terminal — a regression creates a new linked task rather than reopening.
 
-## Reconciliation standing items — 2026-09-02
+## Reconciliation standing items — 2026-09-07
 
-**13 items sit in a terminal-adjacent state and need a closure judgement that is not an agent's to make.**
-Per this file's own rules, `VERIFIED` advances to `CLOSED` only once the result is placed in
-`sprints_completed.md` with a `Closure:` value. None of these were auto-closed.
+**This pass reconciled the queue against `git log`, not against its own prose.** Between the
+2026-09-02 pass (`17806cf`) and `origin/main` today there are **50 non-merge commits**. The queue
+described none of them.
 
-**`VERIFIED` — awaiting a `Closure:` value and a ledger row (8):**
-`A7-OwnedFootballDataPipeline`, `R2-Android`, `R3-BUILD-Android`, `M5-Native-API-Client`,
-`S5`, `W1-DEMO-NAMES`, `W1-TABBAR`, `W1-CONSENT`.
+### The record was split, and only half of it was stale
 
-**`READY_FOR_REVIEW` — awaiting review disposition (5):**
-`M9-BE-Switcher`, `M9-BE-WaiverAnalysis`, `M9-BE-StartSitDetail`, `M9-BE-LedgerDetail`,
-`B2-D3-S2`. `B2-D3-S2` is a known founder-judgement hold flagged by
-`check-sprint-staleness.js`; the inbox says do not auto-close it.
+Worth stating precisely, because "the docs are behind" was too broad when this pass started:
 
-**Two items were `CLOSED` without a ledger row** and were filed during this pass: `O2`
-(closed 2026-08-27) and `W1-GATE` (closed 2026-08-31). Both are now in
-`sprints_completed.md`. Worth noting as a pattern: `F9` had the identical bookkeeping gap
-and the staleness checker flagged it repeatedly for exactly that reason.
+- **Current and genuinely good:** `Direction/decision_log.md` (entries through 2026-09-07),
+  `Direction/known_issues.md` (34 references to this week), and seven dated handoffs covering
+  2026-09-02 → 2026-09-07. The *reasoning* for this week's work is written down and is not thin.
+- **Stale:** this file, `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md` (last row
+  2026-08-26), `Direction/roadmap.md` (2026-08-31), and `Direction/release_readiness.md`
+  (2026-08-26).
 
-**What this pass did not touch:** no `Done when:` clause was judged met, no item changed
-priority or blocker, and no `VERIFIED` item was advanced. Closure remains a human call.
+So the failure was **not** that work went undocumented. It is that the *status surfaces* — the ones
+an agent reads to pick a task and the founder reads to judge progress — were never advanced. The
+narrative record and the queue record came apart, and only the queue was wrong.
+
+### What was structurally broken in this file
+
+1. **30 `CLOSED` tombstone stubs** were still occupying the active queue, each already carrying
+   "Retired from the active queue 2026-09-02" while sitting in it. All 30 were verified against
+   `sprints_completed.md` before removal; **27 have a real record there.** Removed this pass.
+2. **`R4`, `R5` and `M8-EspnAndroidHelper` were closed with no ledger row.**
+   **`R4` and `R5` were verified complete in both consoles on 2026-09-07 and are resolved** — see
+   `sprints_completed.md`. The founder was right: the work was done, only the receipt was missing.
+   iOS App Privacy reads "Published 15 days ago", which lands exactly on the claimed 2026-08-23.
+   `M8` remains open. The original finding, kept because the defect was real: — the exact defect the
+   2026-09-02 pass flagged for `O2` and `W1-GATE`, recurring three more times and undetected. Each
+   appears in `sprints_completed.md` only as a cross-reference inside *another* item's prose
+   (*"R4/R5 still gate rollout"*; *"Android path is deferred separately as `M8-EspnAndroidHelper`"*),
+   never as a closure of its own. **Founder call, not an agent's:** either the evidence exists and
+   was not written down, or the closure was premature. Filed as an open question in
+   `sprints_completed.md` § "Reconciliation — 2026-09-07"; not silently re-opened and not silently
+   accepted.
+   **`M8` was missed on this pass's own first sweep** — a substring search matched the pointer inside
+   M7's row and cleared it. It was caught by the new `sprint-closed-without-ledger-row` check written
+   the same day. A cross-reference is not a receipt, and only an exact-key search can tell them
+   apart.
+3. **`W1-CONSENT` existed twice** — a `READY` copy with the scope and a `VERIFIED` copy with the
+   evidence, appended 2026-09-01 without retiring the original. The inbox selector reads `READY`, so
+   the queue was advertising finished P0 work as available. Merged into one `VERIFIED` entry.
+4. **`W1-REVIEW` read as triple-blocked when only one blocker was live.** Both task blockers
+   (`W1-CONSENT`, `W1-DEMO-NAMES`) were satisfied before 2026-09-02. The remaining blocker is
+   `FOUNDER`. Annotated rather than cleared, because neither blocker carries a `Closure:` value yet.
+
+### 🔴 Found while verifying `R4`/`R5` — the store listings are not built
+
+Neither store listing exists in a submittable state. **Google Play is 6 of 11 on "Set up your app"**
+— missing app category and contact details, the store listing itself, and the Government apps /
+**Financial features** / Health declarations; the app is `Draft` and internal testers currently see
+the temporary name `com.slopssaloon.omen (unreviewed)`. **iOS 1.0 has no screenshots, no
+description, no keywords, no support URL, no build attached, and no Primary Category.**
+
+**`W1-REVIEW` cannot succeed against either store in this state**, regardless of how good the build
+is. No item in this queue owns listing content — `R6` and `R7` both assume a listing already exists,
+and `R7` closed having found the metadata "already clean" when it was in fact empty. **Not minted as
+a task here; a new critical-path item is a founder call.**
+
+### Unchanged and still flagged — these are decisions, not edits
+
+- **`READY_FOR_REVIEW` is still not a state in `Direction/status-model.md`** and five items still sit
+  in it: `M9-BE-Switcher`, `M9-BE-WaiverAnalysis`, `M9-BE-StartSitDetail`, `M9-BE-LedgerDetail`,
+  `B2-D3-S2`. **The inbox selector cannot see any of them.** This is Batch 1 — five built and tested
+  PRs behind one approval — and it has now been invisible to the queue for a second consecutive
+  reconciliation. Flagged for the third time; still not rewritten, because changing it is a
+  status-model question.
+- **`P1-YahooReauth` carries `Status: ✅ DONE`**, which is likewise not a state in the status model.
+  Same treatment: recorded, not rewritten.
+- **Nine `VERIFIED` items await a `Closure:` value:** `A7-OwnedFootballDataPipeline`, `R2-Android`,
+  `R3-BUILD-Android`, `M5-Native-API-Client`, `S5`, `W1-A`, `W1-CONSENT`, `W1-DEMO-NAMES`,
+  `W1-TABBAR`. **No `VERIFIED` item was advanced by this pass.** Closure remains a human call.
+
+### What this pass did not touch
+
+No `Done when:` clause was judged met, no item changed priority, no blocker was cleared, and no
+status was upgraded on the strength of a commit message. Commits are evidence that work happened,
+not evidence that an acceptance clause is satisfied — and the gap between those two is where this
+file has gone wrong before.
 
 ## Product shape and the deadline
 
@@ -113,12 +173,22 @@ All native-agent work is governed by `Blueprints/specs/mobile/omen-native-agent-
 
 - Production is live on KVM1; `/api/health` and `/api/ready` healthy at the latest verified baseline.
 - Omen is free indefinitely. Stripe application code and residual checkout references were removed on `main`. The production Supabase table/column cleanup remains a separately gated database action.
-- Backend test baseline: **537/537 green** (`npm test`, 2026-08-15, PR #309). PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
-- Native test baseline: iOS **188** (Xcode 26.6, iPhone 17 Pro sim), Android **50** connected instrumentation on API 36, both after `M6-ContextualHelp` (#312).
+- Backend test baseline: **973/973** (`Direction/decision_log.md`, 2026-09-04; was 537/537 on 2026-08-15 and that stale number stood in this file for three weeks). PRs gated by `pr-quality.yml` (#253). The "Actions billing hold" was a misdiagnosis — two config bugs, fixed in #250.
+- Native test baseline: iOS **425** (Xcode 26.6, iPhone 17 Pro sim, 2026-09-04). The Android connected-instrumentation count has not been restated since `M6-ContextualHelp` (#312) and is **not** carried forward here as current — it needs a fresh run, not an assumption.
 - Native: Discord OAuth merged both platforms (#198). A signed-in native user can connect a Sleeper league and see real league state (#309, #310).
 - **Queue reconciled 2026-08-16.** 23 finished items moved to `Direction/sprints_completed.md` → "Sprint-queue reconciliation — 2026-08-16". This file now carries active work only.
-- **Provider proof — partially cleared 2026-08-28.** ~~No provider is proven with a real connected account.~~ **Yahoo now is:** entitlement live, two founder leagues bound, metadata / `current_week` / team key / a 15-player roster all returning on the deployed image (`P1-YahooReauth`). **Sleeper and ESPN remain unproven against a real connected account, and that is still the top beta risk** — `M11A` is the item that closes it.
-- **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. **Android record still to be created (R2-Android).** Next iOS gate is R3 signing, which is what a TestFlight build needs.
+- **Provider proof — substantially cleared, updated 2026-09-07.** **Yahoo:** entitlement live, two founder leagues bound, metadata / `current_week` / team key / a 15-player roster returning on the deployed image (`P1-YahooReauth`, 2026-08-28); waiver system verified against two real leagues (2026-09-06). **ESPN: now proven.** The founder connected a real ESPN league from an Android device with his own MyDisney account on 2026-09-03 (`Blueprints/handoffs/2026-09-03-espn-in-app-connect-both-platforms.md`), and the ESPN waiver system was verified against **three** real leagues on 2026-09-06. ~~Sleeper and ESPN remain unproven~~ — **that line was stale from 2026-09-03 and is retracted.** **Sleeper is the remaining gap**, and `M11A` is still the item that closes it.
+- **Store provisioning underway (2026-08-05).** iOS app record is **created** — `Omen — Fantasy Football Tool`, bundle `com.slopssaloon.omen`, "Prepare for Submission". Root cause of the earlier failure was agreements setup under the Valor Ventures entity, not the account transfer. `R2-Android` and `R3-BUILD-Android` are both `VERIFIED` and awaiting a `Closure:` value, so the "Android record still to be created" phrasing this bullet carried is retired. iOS signing (`R3-BUILD-iOS`) closed 2026-08-19; a Release archive at version `0.1.0` build `4` exists against production. **The live store gate is now `W1-REVIEW`, and its only remaining blocker is founder action.**
+- **Shipped 2026-09-03 → 2026-09-07 and not previously reflected here (50 commits).** Command Center
+  rebuilt to the founder's sketch (#397) with its screen contract (#396); the multi-league carousel
+  and iOS team/league switcher with favourites (#398, #402, #406, #407, #408, #412); a league-aware
+  waiver system, Phases 0–3, verified against real ESPN and Yahoo leagues; projections for ESPN and
+  Sleeper plus Yahoo matchups and exact ESPN scoring (#409, #410, #418); ESPN in-app connect at
+  parity on Android (`W1-A`); and platform disconnect in Account. **Two production outages were
+  fixed in this window** — a carousel loop (#399) and an unbounded trade search that took production
+  down for a day (#404, with the performance rewrite in #405) — plus two test failures that were
+  blocking every deploy (#400, #401). Reasoning is in `Direction/decision_log.md` and seven dated
+  handoffs. **None of this is claimed as closing any queue item**; see the reconciliation section.
 - Tuesday scoring is on the founder-authorized A6 safety hold. The running `omen_cron` has both scoring flags `false`; re-enable only after the A6 persistence repair/new-row proof and O2.
 
 ## Execution plan — batches and order (founder decision 2026-08-28)
@@ -215,10 +285,6 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Done when:** dry-run validates real rows without writes; production flag is explicitly approved and changed; readiness and cron health pass; rollback owner is named; and the founder-approved O2 rollback exercise is executed and evidenced.
 - **Do not touch:** the production flag before approval; never log provider credentials or raw user data.
 
-### A5 — Decide the Tuesday-scoring fallback data source
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### A6-MovesScoringFormat — Persist league scoring format on recommendations
 
 - **Status:** BLOCKED
@@ -292,10 +358,6 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Do not touch:** no scraping against unclear or prohibitive terms; no production deploy, cron enablement, paid commitment, new dependency, secret, SQL, migration, or provider credential; do not represent future ADP capability as built.
 - **External outreach 2026-08-22:** founder sent Sleeper a commercial-use permission/licensing request. A response may add an approved source option, but does not block the selected owned-pipeline research or authorize current commercial API use.
 
-### A7B-OwnedFootballDataPipelineImplementation — Implement the approved football-data pipeline only after its gates clear
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-26. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ## R. Store and release — critical path, founder-executed
 
 **Phase 1.** This lane is the longest pole and most of it is calendar time no agent can compress. Agents may prepare artifacts; **Justin executes every item here.** Run these first each week — everything else can proceed in parallel, these cannot.
@@ -322,10 +384,6 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Done when:** the organization developer account is verified and the app record exists with the application ID matching the Android build.
 - **Do not touch:** pricing, public availability, or release scheduling.
 
-### R3-BUILD-iOS — Establish an iOS build-and-signing path
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### R3-BUILD-Android — Fix the release build config and add signing
 
 - **Status:** **VERIFIED — 2026-08-18 (build config VERIFIED 2026-08-05; signing completed and independently confirmed 2026-08-18).**
@@ -347,18 +405,6 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Skills:** core implementation + `security-privacy-evidence`
 - **Done when:** `./gradlew bundleRelease` produces a signed AAB pointing at the real API with demo mode off; no keystore, password, or key is committed; a test or check asserts release ≠ demo mode.
 - **Do not touch:** committing the keystore or any password; the `debug` build's demo defaults.
-
-### R3 — Signing and provisioning
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### R4 — Privacy nutrition labels and Data Safety form
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-23. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### R5 — Age rating and gambling questionnaire
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-23. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### R6 — Internal testing tracks
 
@@ -383,10 +429,6 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Source:** use Google Play internal testing for Android. Reserve TestFlight Internal Testing for genuine App Store Connect team members; use External TestFlight, including first-build Beta App Review, for the real-user iOS cohort.
 - **Done when:** both apps are installable by invited testers on their approved beta tracks and 10+ real testers in real leagues have access.
 - **Do not touch:** public store release or production tracks before Phase 6.
-
-### R7 — Scrub store metadata of Draft Assistant claims
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## M. Native mobile execution lane
 
@@ -464,18 +506,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Beta-minimum is A + B + C + D.** That is a real signed-in user seeing their real connections and their real Omen. E is cheap once D lands. **F and G are not pure wiring** — they are new screens whose Figma slices do not exist yet (`M1` screen-contract items 4 and 5); do not pull them as part of this item, and keep the honest placeholders until those slices are approved.
 - **Done when:** each pulled slice decodes its contract into the existing native state types on both platforms; loading, error, and empty states route to `OmenStateSurface` rather than crashing or substituting fixtures; demo mode still renders fixtures via `SessionManager.demoUserID`; iOS `xcodebuild test` and Android `:app:assembleDebug` + primitive-enforcement scanner green, with `xcodebuild -version` recorded per the local-substitute rule in `Blueprints/definition-of-done.md`.
 - **Do not touch:** backend contracts — an unmet native need goes to `Blueprints/handoffs/frontend-to-backend.md`, not into `src/`. Do not invent state names; `omen-native-backend-state-contract-v1.md` §F2 is the mapping authority for `ready` / `pending_live_engine` / `needs_platform` / `off_season`. Do not collapse the demo path (facts-of-record #7 — mock stays labeled, never silently mixed with live). Never log bearer tokens or ESPN cookie values.
-
-### M5-Slice-E-Ledger — Wire the Ledger to `GET /api/moves`
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-17. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### M1-Screen-Trade — M1 screen contract: Trade builder + verdict
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-29. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### M1-Screen-League — M1 screen contract: League matchup + standings/activity
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-29. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### M1-QA-EvidenceGate — Close the M1 screen-contract pass acceptance gate
 
@@ -621,10 +651,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** `m1-league-screen-data-plan-v1.md` §1 has no remaining ⚠️ row that is merely inferred; **any claim that failed in `M11A` is degraded in the contract to the section it affects rather than the screen** (§2.5 gate 5 — no global parity claim from one provider); and no league name, roster, manager identity, cookie, or token value appears in the evidence.
 - **Do not touch:** no provider credential value in any artifact; no write to any provider; no production action.
 
-### M8-EspnAndroidHelper — Decide the Android ESPN path
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### M3A-QA — Native auth interactive real-device QA
 
 - **Status:** READY
@@ -639,18 +665,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Evidence:** sanitized QA matrix; no screenshots or logs containing credentials or tokens.
 - **Do not touch:** real credentials in agent logs or screenshots.
 
-### M4-CC-PlatformsCompact — Shrink Your-Platforms strip on Command Center
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### M4-Help-Support-Implementation — Build approved native Help + Support
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### M4-Auth-Providers-v1 — Discord OAuth (iOS passkeys promoted separately)
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### M4-Auth-Passkeys-iOS-Onramp — Complete native iOS passkey authorization
 
 - **Status:** READY
@@ -662,10 +676,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** `https://slopssaloon.com/.well-known/apple-app-site-association` serves the exact team/bundle association as JSON without redirect; a fresh physical-device install can add a passkey, list/remove it in Account, sign out, and sign back in with Face ID; sanitized evidence records the ceremony without credential material.
 - **Evidence:** merge `81878d0`; `Blueprints/handoffs/2026-08-12-m3a-ios-authorization-passkeys.md`; `Blueprints/handoffs/2026-08-13-native-auth-completion.md`; public `https://slopssaloon.com/.well-known/apple-app-site-association` read-only check 2026-08-22; `/private/tmp/omen-m3a-full-simulator-final.log`; `/private/tmp/omen-m3a-device-build-final.log` (local-only command logs, no credentials).
 - **Do not touch:** Android passkeys, Xcode Cloud, archive/TestFlight, production deployment, provider secrets, UI redesign, or Figma in this item.
-
-### M4-CC-WaiverWatch — Waiver Watch composition + wiring
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## B. Backend / recommendation lane
 
@@ -744,14 +754,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** any credential that touched local branch work is rotated or explicitly cleared as never-exposed, with the decision recorded.
 - **Do not touch:** credential values in any written record.
 
-### S3 — Rate limits on the three hot routes
-
-- **Status:** CLOSED — **Closure:** COMPLETED. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### S4 — Confirm no provider credentials reachable in logs on error paths
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-18. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### S6 — KVM2 public Nginx exposure (`openclaw.slopssaloon.com`)
 
 - **Status:** READY
@@ -765,10 +767,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Skills:** `security-privacy-evidence`, `rbac-risk-review`
 - **Done when:** the `openclaw.slopssaloon.com` vhost no longer serves publicly, its Certbot renewal is removed so no cert renews for a dead name, the `127.0.0.1:3200` upstream is confirmed stopped, DNS for the subdomain is retired, and KVM2's remaining public 80/443 listeners are inventoried and shown to be either intended or also removed. Record before/after listener state.
 - **Do not touch:** do not disable Nginx wholesale or alter other KVM2 configuration as part of Omen work — the Pi tracker explicitly warns against this. Retire this one vhost, not the web server. Agents investigate read-only and produce the plan; the founder runs it.
-
-### S8 — Triage the standing Dependabot queue
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### S7 — Retire stale cloud-AI runtime dependencies (OpenAI **and Anthropic**)
 
@@ -800,28 +798,12 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 **Phase 3.** This is the lane that decides whether you can diagnose anything after beta opens. **O1 and O6 are the highest-value items in the whole plan** — mobile is worse than web here, because you cannot read a user's console.
 
-### O1b — Application error tracking (Sentry-class)
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-18. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
 ### O1c — Product analytics (Umami) — deferred
 
 - **Status:** DEFERRED to post-beta
 - **Priority:** P3
 - **Rationale:** Umami is **product** analytics — which screens get used, funnels, retention. It is not an operations signal and it is not a beta gate. `G6` in the deferred backlog already soft-blocks it. O1's Kuma/Beszel stack covers the operational need; O1b covers the error need. Revisit after Phase 5 when there is real usage worth measuring.
 - **Do not touch:** treating analytics as a launch blocker.
-
-### O6 — Native crash reporting on both platforms
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### O7 — Forced-update / minimum-version gate
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-19. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### O2 — Named rollback owner and tested rollback path
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-27. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### O3 — Post-deploy canary
 
@@ -833,22 +815,6 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Skills:** `slops-canary`
 - **Done when:** after a deploy, health/ready endpoints, key routes, error rate, and p95 latency are checked against a known-good baseline, producing a pass/hold/rollback recommendation.
 - **Do not touch:** executing a rollback automatically — recommend only.
-
-### O4 — Load test the three hot routes
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-22. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### O5 — Supabase backup and restore verification
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-17. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### O8 — Wire GlitchTip into Omen's actual error paths
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### O9 — Route GlitchTip issues through the existing Layer 5 Discord alerting
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## P. Launch-blocking defects — discovered 2026-08-11
 
@@ -890,14 +856,6 @@ event traceable.
 - **`docker-compose.yml` uses `${VAR:?required}` guards (16 of them).** A missing or malformed var makes the container **refuse to start** rather than run degraded. That is good safety, but it means a botched `.env` edit is an outage, not a warning — have the previous values recoverable before editing.
 - **Superseding finding 2026-08-13 — the fault is app-level, not grant-level.** Step 1's diagnostic order below was followed and completed: the founder updated `YAHOO_CLIENT_ID`/`YAHOO_CLIENT_SECRET` on KVM1, force-recreated both containers, and completed a fresh disconnect/reconnect OAuth round-trip. Yahoo still refuses every Fantasy Sports call. A temporary access probe (`GET /api/yahoo/access-probe`, PR [#296](https://github.com/justinduverge-design/omen/pull/296)) returned **403 on all four calls, including public `/game/nfl` metadata that requires no user scope** — which disproves the "dead user grant" default hypothesis stated below, and also disproves bad client credentials (those fail at authorize with `invalid_client`; the handshake succeeds). **The deployed Yahoo app does not hold Fantasy Sports API entitlement.** Yahoo gates that behind a separately reviewed application (`https://sports.yahoo.com/developer/access/`), distinct from the permission checkbox on the app record. Remaining work is founder-side on the Yahoo developer account. **Narrowed the same session:** the deployed client id decodes to app **`ZcZJXm8V`** ("SlopsSaloon Fanatasy Football MVP"), which is confirmed to have `Fantasy Sports - Read` checked and the correct redirect URI — so the wrong-app branch is eliminated and the deployed credentials are correct. The checkbox is a *request*, not a *grant*: Yahoo issues Fantasy Sports API access via a separately reviewed application (`https://sports.yahoo.com/developer/access/`), and a checked-but-unapproved app returns exactly this 403. The prior approval most likely attached to the earlier app that was deleted. **Action: re-apply for Fantasy Sports API access for `ZcZJXm8V`; no agent-buildable code fix exists.** See `Direction/known_issues.md`.
 - **Do not touch:** client secrets in logs, agent output, commit messages, or the repo. All four local `.env*` files are gitignored and none has ever been committed (verified 2026-08-11) — keep it that way. Do not delete the existing `platform_connections` row; it is fine, and re-creating it loses the league binding.
-
-### P1-ConnectContinueRoute — "Continue" after connecting lands on the wrong page
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
-
-### P1-DraftAssistantSideline — Remove Draft Assistant from the 1.0 surface
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-16. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ## F. Verify lane — Justin must pin
 
@@ -947,10 +905,6 @@ event traceable.
 - **Scope:** includes the known gap — `GET /api/sleeper/roster` requires an explicit `week` param and there is no auto week detection. Verify the app always supplies it correctly, including at week boundaries.
 - **Done when:** connect, Omen recommendations, trade candidates, and the explicit-`week` path all pass on a real Sleeper account on both platforms.
 - **Do not touch:** provider credentials in logs or screenshots.
-
-### F9 — Mock / live labeling sweep
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-21. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### F10 — Real-device matrix
 
@@ -1063,10 +1017,6 @@ Source: `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md`.
 Contract: `Blueprints/specs/mobile/omen-wave1-contract-v1.md`.
 Waves 2–5 get their own contracts and are **not** queued here yet — they are listed in
 `Direction/roadmap.md` so the sequence is visible without inviting a premature pull.
-
-### W1-GATE — ESPN in-app sheet legal and review gate
-
-- **Status:** CLOSED — **Closure:** COMPLETED 2026-08-31. Full record in `Direction/sprints_completed.md`. Retired from the active queue 2026-09-02.
 
 ### W1-ANDROID-CI — Nothing runs Android unit tests
 
@@ -1220,7 +1170,7 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W1-CONSENT — Plain consent line on the live ESPN connection
 
-- **Status:** READY
+- **Status:** VERIFIED
 - **Blocked by:** None
 - **Priority:** P0 — ships in the build that goes to Beta App Review, so it lands before `W1-REVIEW`
 - **Cost:** small
@@ -1233,13 +1183,32 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 - **Done when:** the line renders on every ESPN connect entry point; no copy implies ESPN approves
   of or is aware of Omen; screenshot evidence at default and large font scale.
 - **Do not touch:** the ESPN credential handling itself. This item is copy and disclosure only.
+- **Evidence:** 2026-09-01 Claude. Native: `ConnectView.espnConsentNote`, shown on the ESPN branch
+  of Connect. Web: `ESPN_CONSENT_NOTE` on the ESPN card in `ConnectLeague.jsx`; string confirmed
+  present in the production bundle (`dist/assets/index-*.js`). Frontend build clean; iOS 318/318.
+- **Not visually verified on web** — `/account/connect` is auth-gated and local Supabase is not
+  configured, so the line is proved in source and in the built bundle but was not rendered. Worth a
+  look on staging before submission.
+- **Copy:** "Connecting ESPN uses your own ESPN session so Omen can read your league — your roster,
+  scoring, and matchup. It is your account and your choice, and you can disconnect it any time in
+  Account. Omen is not affiliated with or endorsed by ESPN."
+- The affiliation sentence is load-bearing, not decorative: Disney ToU §2.B.vii bars use that
+  suggests an association with their brands.
+- **Duplicate resolved 2026-09-07.** This item existed twice in this file: a `READY` copy carrying the
+  scope and a later `VERIFIED` copy carrying the evidence, appended 2026-09-01 without retiring the
+  original. They are now one entry. The `READY` copy was the one the inbox selector could see, so the
+  queue was advertising finished work as available — and `W1-REVIEW` read as blocked on a task that
+  was already done.
 
 ### W1-REVIEW — First Beta App Review submission, with the existing ESPN path
 
 - **Status:** BLOCKED
-- **Blocked by:** TASK-W1-CONSENT
-- **Blocked by:** TASK-W1-DEMO-NAMES
-- **Blocked by:** FOUNDER — build upload and App Store Connect submission are founder actions
+- **Blocked by:** ~~TASK-W1-CONSENT~~ — **satisfied 2026-09-01**, `VERIFIED`. Not struck from the
+  list until it carries a `Closure:` value; the work itself is done and is not what holds this item.
+- **Blocked by:** ~~TASK-W1-DEMO-NAMES~~ — **satisfied**, `VERIFIED`. Same caveat.
+- **Blocked by:** FOUNDER — build upload and App Store Connect submission are founder actions.
+  **This is now the only live blocker.** Both task blockers were met before 2026-09-02 and this item
+  has read as multi-blocked ever since, which understated how close it is. Reconciled 2026-09-07.
 - **Runbook:** `Blueprints/playbooks/first-app-review-submission-runbook.md` — every agent-verifiable
   fact is verified there. **The Release archive builds** (`ARCHIVE SUCCEEDED`, team `6RWR5G9894`),
   version `0.1.0` build `4`, and the archive carries the **production** API base URL
@@ -1318,21 +1287,6 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
   `OmenColor.accent`. Tint the tab bar to the accent on both platforms.
 - **Done when:** the selected tab renders in the Omen accent in light and dark mode, with AA
   contrast checked in both; screenshot evidence.
-
-### W1-CONSENT — Plain consent line on the live ESPN connection
-
-- **Status:** VERIFIED
-- **Evidence:** 2026-09-01 Claude. Native: `ConnectView.espnConsentNote`, shown on the ESPN branch
-  of Connect. Web: `ESPN_CONSENT_NOTE` on the ESPN card in `ConnectLeague.jsx`; string confirmed
-  present in the production bundle (`dist/assets/index-*.js`). Frontend build clean; iOS 318/318.
-- **Not visually verified on web** — `/account/connect` is auth-gated and local Supabase is not
-  configured, so the line is proved in source and in the built bundle but was not rendered. Worth a
-  look on staging before submission.
-- **Copy:** "Connecting ESPN uses your own ESPN session so Omen can read your league — your roster,
-  scoring, and matchup. It is your account and your choice, and you can disconnect it any time in
-  Account. Omen is not affiliated with or endorsed by ESPN."
-- The affiliation sentence is load-bearing, not decorative: Disney ToU §2.B.vii bars use that
-  suggests an association with their brands.
 
 ## X. Deferred — captured, not scheduled
 

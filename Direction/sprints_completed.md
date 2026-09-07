@@ -514,3 +514,141 @@ Correction truth is deliberately bounded: two authentic upstream schedule revisi
 **Founder decision: accepted the risk explicitly** and chose to ship, keeping the live integration with a consent line. Recorded in `Direction/decision_log.md`, 2026-08-31.
 
 **Constraints carried into `W1-A`:** no association-implying ESPN branding, a consent screen, and the prepared App Review answer. `W1-A` remains `BLOCKED` on `TASK-W1-REVIEW` by the Wave 1 sequencing note — the gate cleared the terms question, not the review question.
+
+## Reconciliation — 2026-09-07
+
+A queue-vs-`git log` pass. **No item was closed by this pass and no `VERIFIED` item was advanced.**
+It removed bookkeeping that had gone false, and recorded two things that need a founder answer.
+
+### 30 CLOSED tombstone stubs removed from the active queue
+
+The 2026-09-02 pass filed these into this file and stamped each one *"Retired from the active
+queue 2026-09-02"* — but left the stub heading and status line sitting in `current_sprint.md`. They
+were removed on 2026-09-07 after each was checked against this file individually. **27 of the 30
+have a real record here; three do not** — see the open question below.
+
+`A5` (filed as `A5-NflversePath`), `A7B-OwnedFootballDataPipelineImplementation` (filed as § A7B),
+`R3`, `R3-BUILD-iOS`, `R4`, `R5`, `R7`, `M1-Screen-League`, `M1-Screen-Trade`, `M4-Auth-Providers-v1`,
+`M4-CC-PlatformsCompact`, `M4-CC-WaiverWatch`, `M4-Help-Support-Implementation`,
+`M5-Slice-E-Ledger`, `M8-EspnAndroidHelper`, `O1b`, `O2`, `O4`, `O5`, `O6`, `O7`, `O8`, `O9`,
+`P1-ConnectContinueRoute`, `P1-DraftAssistantSideline`, `S3`, `S4`, `S8`, `F9`, `W1-GATE`.
+
+### ✅ RESOLVED 2026-09-07 — `R4` and `R5` verified in both consoles
+
+**The founder was right: the work was done and only the receipt was missing.** Verified by direct
+read-only inspection of App Store Connect and Google Play Console on 2026-09-07, at the founder's
+instruction. This is the ledger row both items should have had on 2026-08-23.
+
+**`R4` — Privacy nutrition labels and Data Safety form. COMPLETE, both platforms.**
+
+- **iOS** — App Store Connect → App Privacy reads **"Published 15 days ago by Justin Duverge
+  Catalino"**. Fifteen days before 2026-09-07 is **2026-08-23**, which matches the claimed closure
+  date exactly and is the strongest single piece of evidence here. Privacy Policy URL
+  `https://slopssaloon.com/privacy`; User Privacy Choices URL `https://slopssaloon.com/delete-account`.
+  **8 data types declared** with purpose and linkage: Email Address (Product Personalization + App
+  Functionality, linked), Other User Content (linked), User ID (linked), Product Interaction
+  (Analytics + App Functionality, linked), Crash Data, Performance Data, Other Diagnostic Data, and
+  Other Data (linked).
+- **Android** — Play Console → "Set up your app" shows **Data safety ✓ complete**.
+
+**`R5` — Age rating and gambling questionnaire. COMPLETE, both platforms.**
+
+- **iOS** — Age Ratings are set and region-differentiated, which only happens once the questionnaire
+  is submitted: **13+ across 172 countries or regions**, **12+** in Vietnam and Korea, **14+** in
+  Brazil.
+- **Android** — Play Console shows **Content rating ✓ complete**.
+- **Not separately inspected:** the individual gambling answers inside the questionnaire. Opening the
+  editor risks mutating a submitted form, so it was not opened. **The 13+ result is itself the
+  signal** — a real-money gambling declaration would force 17+/18+. For a fantasy-sports app that is
+  the expected answer, but it is the founder's answer to stand behind, not an agent's.
+
+**Closure stands. No reopen. `Closure: COMPLETED 2026-08-23` for both.**
+
+### 🔴 New finding 2026-09-07 — the store listings are not built, and no item tracks it
+
+Found while verifying `R4`/`R5`. **Both consoles are far less ready than the queue implies.** The
+sprint's store lane covers accounts, signing, forms and questionnaires — all genuinely done — but
+nothing in it owns the **listing content**, and that is what a submission actually needs.
+
+**Google Play — "Set up your app": 6 of 11 complete.**
+
+| ✓ Complete | ✗ Not started |
+| :--- | :--- |
+| Set privacy policy, Sign in details, Ads, **Content rating** (`R5`), Target audience, **Data safety** (`R4`) | **Select an app category and provide contact details**, **Set up your store listing**, Government apps, **Financial features**, Health |
+
+App status is **Draft**, last updated 2026-08-31, and internal testers currently see the temporary
+name **`com.slopssaloon.omen (unreviewed)`** rather than "Omen — Fantasy Football Tool", because the
+listing is unreviewed. **That is what your beta testers are seeing on Android right now.**
+
+**App Store Connect — iOS 1.0 "Prepare for Submission" is essentially empty.** No screenshots
+(0 of 10) and no app previews, no description, no promotional text, no keywords, no support URL,
+**no build attached to the version**, Primary Category **unset**, and Content Rights not set up.
+
+**Why this was invisible.** `R6` (internal testing tracks) and `R7` (scrub Draft Assistant claims
+from store metadata) both assume a listing exists to invite testers into or to scrub. `R7` closed
+2026-08-16 having found the metadata "already clean" — **it was clean because it was empty**, and
+that reading was recorded as a pass. `W1-REVIEW`'s runbook verifies the *build* is correct and says
+nothing about listing completeness.
+
+**`W1-REVIEW` cannot succeed against either store in this state**, regardless of the build. The
+`Financial features` declaration is the one worth answering carefully rather than reflexively, given
+this is a fantasy-sports product with a waiver/FAAB bidding surface.
+
+**Not minted as a task by this pass** — a new critical-path item is a founder call. Recorded here so
+the next person to open `W1-REVIEW` does not discover it at submission time.
+
+### ⚠️ Still open — `M8` was closed without a ledger row
+
+`M8-EspnAndroidHelper` is marked `CLOSED` in `current_sprint.md` with no closure record anywhere in
+this file. `R4` and `R5` had the same gap and are now resolved above. What made the gap look
+alarming in `R4`/`R5`'s case was that the only surviving prose said the opposite of closed:
+
+> "Android internal release remains unpublished with no testers; **R4/R5 still gate rollout**."
+> — § "Decision closeouts — 2026-08-22", written the day before they were marked complete.
+
+> "…and `R3`/`R4` are open." — § "O7 — the forced-update gate lands inert — 2026-08-19".
+
+- **M8-EspnAndroidHelper** — Decide the Android ESPN path. Its only mention here is a pointer inside
+  `M7-EspnSafariExtension`'s row: *"Android path is deferred separately as `M8-EspnAndroidHelper`"* —
+  which records a **deferral**, not a decision. Lower stakes than `R4`/`R5`, and the Android ESPN
+  path has since been built and proven (`W1-A`, 2026-09-03), so the likely answer is that reality
+  overtook the item. It still needs a receipt or a reopen.
+
+These are **store-submission gates on the critical path**, and `W1-REVIEW` is the next thing in the
+queue that needs them. Two readings are possible and an agent cannot choose between them: either the
+forms were genuinely filled in on 2026-08-23 and nobody wrote the evidence down, or the closure was
+premature. **Founder call.** Not re-opened and not accepted by this pass.
+
+**This is the third, fourth and fifth instance of the same defect.** The 2026-09-02 pass caught
+`O2` and `W1-GATE` closed without ledger rows and wrote *"worth noting as a pattern"*. It was — the
+pattern had already happened three more times in the same file and that pass did not sweep for it. A
+closure that writes a status line without writing the evidence row was invisible to
+`check-sprint-staleness.js`, because the checker read what the sprint file *claims*, not whether the
+claim is backed.
+
+**That gap is now closed in code.** `scripts/checks/sprint-closed-without-ledger-row.js` was written
+on 2026-09-07 and flags exactly this class. It found `M8`, which this pass's own manual sweep had
+missed — a substring search had matched the cross-reference in M7's row and cleared it. **Its
+current precision is 3 true positives out of 8 findings:** it also flags `A5`, `A7B`, `R3`,
+`M1-Screen-Trade` and `M1-Screen-League`, all of which *do* have records — filed under a variant key
+(`A5-NflversePath`), as a section heading rather than a key (`## A7B — …`), as a table row
+(`R3 signing and provisioning`), or in `Blueprints/done/LEDGER.md` rather than here. Worth tightening
+before the noise trains people to skip it, which is how the last checker's findings got ignored.
+
+### `W1-CONSENT` was in the file twice
+
+A `READY` copy carrying the scope, and a `VERIFIED` copy carrying the 2026-09-01 evidence, appended
+without retiring the original. Merged into one `VERIFIED` entry. The consequence was not cosmetic:
+the inbox selector reads `Status: READY`, so **the queue was advertising finished P0 work as
+available to pull**, and `W1-REVIEW` read as blocked on a task that was already done.
+
+### The 50 commits that had no queue entry
+
+Between `17806cf` (the 2026-09-02 reconciliation) and `origin/main` on 2026-09-07 there are 50
+non-merge commits, including a Command Center rebuild, a league-aware waiver system proven against
+five real leagues across two providers, all-provider projections, and two production outages fixed.
+
+**They were not undocumented** — `Direction/decision_log.md`, `Direction/known_issues.md` and seven
+dated handoffs cover them well. They were absent from the *status* surfaces: this file,
+`current_sprint.md`, `Blueprints/done/LEDGER.md`, `roadmap.md`, and `release_readiness.md`. The
+narrative record and the queue record came apart, and the queue was the half that was wrong.
