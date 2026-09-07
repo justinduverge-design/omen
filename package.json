@@ -12,17 +12,17 @@
     "evals:mock": "node evals/slops-prompt-guard.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.122.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
-    "@sentry/node": "^10.71.0",
-    "@supabase/supabase-js": "^2.112.4",
-    "@upstash/redis": "^1.38.3",
+    "@anthropic-ai/sdk": "^0.123.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@sentry/node": "^10.73.0",
+    "@supabase/supabase-js": "^2.115.0",
+    "@upstash/redis": "^1.38.4",
     "axios": "^1.20.0",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "espn-fantasy-football-api": "^2.0.1",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.2",
+    "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
     "morgan": "^1.12.0",
     "winston": "^3.15.0"
