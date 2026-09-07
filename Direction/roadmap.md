@@ -82,11 +82,16 @@ lives in `Direction/release_readiness.md`. This file is the feature-level view.
 
 Ordered. Full detail in `Direction/omen-1.0-plan.md`.
 
-1. ~~**Store provisioning**~~ — **substantially done, not "not started".** App records exist on
-   both stores, signing is complete on both, iOS reached TestFlight and Android was accepted into
-   internal testing. ⚠️ The privacy/data-safety forms (`R4`) and age-rating/gambling questionnaire
-   (`R5`) are **marked closed with no evidence recorded** — unresolved, and they gate rollout.
-   The live gate here is now `W1-REVIEW`, the first Beta App Review submission.
+1. ~~**Store provisioning**~~ — **accounts, signing and compliance forms are done; the listings are
+   not.** App records exist on both stores, signing is complete on both, iOS reached TestFlight and
+   Android was accepted into internal testing. The privacy/data-safety forms (`R4`) and
+   age-rating/gambling questionnaire (`R5`) were **verified complete in both consoles on 2026-09-07**.
+   🔴 **But neither store listing is built.** Google Play is **6 of 11** on "Set up your app" —
+   missing app category and contact details, the store listing, and the Government apps / Financial
+   features / Health declarations; the app is `Draft` and testers see `com.slopssaloon.omen
+   (unreviewed)`. iOS 1.0 has **no screenshots, no description, no keywords, no support URL, no build
+   attached, and no Primary Category**. **`W1-REVIEW` cannot succeed until that is built**, and no
+   sprint item currently owns it.
 2. **Real-account QA** — **Yahoo and ESPN are now proven against real connected accounts**
    (ESPN from a phone, founder's own league, 2026-09-03; waiver systems verified against five real
    leagues across both providers, 2026-09-06). **Sleeper is the remaining gap** — the reversal of

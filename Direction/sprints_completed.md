@@ -533,19 +533,81 @@ have a real record here; three do not** — see the open question below.
 `M5-Slice-E-Ledger`, `M8-EspnAndroidHelper`, `O1b`, `O2`, `O4`, `O5`, `O6`, `O7`, `O8`, `O9`,
 `P1-ConnectContinueRoute`, `P1-DraftAssistantSideline`, `S3`, `S4`, `S8`, `F9`, `W1-GATE`.
 
-### ⚠️ Open question — `R4`, `R5` and `M8` were closed without a ledger row
+### ✅ RESOLVED 2026-09-07 — `R4` and `R5` verified in both consoles
 
-All three are marked `CLOSED` in `current_sprint.md`. **None has a closure record anywhere in this
-file.** Each appears only inside *another* item's prose, and in `R4`/`R5`'s case what that prose
-says is the opposite of closed:
+**The founder was right: the work was done and only the receipt was missing.** Verified by direct
+read-only inspection of App Store Connect and Google Play Console on 2026-09-07, at the founder's
+instruction. This is the ledger row both items should have had on 2026-08-23.
+
+**`R4` — Privacy nutrition labels and Data Safety form. COMPLETE, both platforms.**
+
+- **iOS** — App Store Connect → App Privacy reads **"Published 15 days ago by Justin Duverge
+  Catalino"**. Fifteen days before 2026-09-07 is **2026-08-23**, which matches the claimed closure
+  date exactly and is the strongest single piece of evidence here. Privacy Policy URL
+  `https://slopssaloon.com/privacy`; User Privacy Choices URL `https://slopssaloon.com/delete-account`.
+  **8 data types declared** with purpose and linkage: Email Address (Product Personalization + App
+  Functionality, linked), Other User Content (linked), User ID (linked), Product Interaction
+  (Analytics + App Functionality, linked), Crash Data, Performance Data, Other Diagnostic Data, and
+  Other Data (linked).
+- **Android** — Play Console → "Set up your app" shows **Data safety ✓ complete**.
+
+**`R5` — Age rating and gambling questionnaire. COMPLETE, both platforms.**
+
+- **iOS** — Age Ratings are set and region-differentiated, which only happens once the questionnaire
+  is submitted: **13+ across 172 countries or regions**, **12+** in Vietnam and Korea, **14+** in
+  Brazil.
+- **Android** — Play Console shows **Content rating ✓ complete**.
+- **Not separately inspected:** the individual gambling answers inside the questionnaire. Opening the
+  editor risks mutating a submitted form, so it was not opened. **The 13+ result is itself the
+  signal** — a real-money gambling declaration would force 17+/18+. For a fantasy-sports app that is
+  the expected answer, but it is the founder's answer to stand behind, not an agent's.
+
+**Closure stands. No reopen. `Closure: COMPLETED 2026-08-23` for both.**
+
+### 🔴 New finding 2026-09-07 — the store listings are not built, and no item tracks it
+
+Found while verifying `R4`/`R5`. **Both consoles are far less ready than the queue implies.** The
+sprint's store lane covers accounts, signing, forms and questionnaires — all genuinely done — but
+nothing in it owns the **listing content**, and that is what a submission actually needs.
+
+**Google Play — "Set up your app": 6 of 11 complete.**
+
+| ✓ Complete | ✗ Not started |
+| :--- | :--- |
+| Set privacy policy, Sign in details, Ads, **Content rating** (`R5`), Target audience, **Data safety** (`R4`) | **Select an app category and provide contact details**, **Set up your store listing**, Government apps, **Financial features**, Health |
+
+App status is **Draft**, last updated 2026-08-31, and internal testers currently see the temporary
+name **`com.slopssaloon.omen (unreviewed)`** rather than "Omen — Fantasy Football Tool", because the
+listing is unreviewed. **That is what your beta testers are seeing on Android right now.**
+
+**App Store Connect — iOS 1.0 "Prepare for Submission" is essentially empty.** No screenshots
+(0 of 10) and no app previews, no description, no promotional text, no keywords, no support URL,
+**no build attached to the version**, Primary Category **unset**, and Content Rights not set up.
+
+**Why this was invisible.** `R6` (internal testing tracks) and `R7` (scrub Draft Assistant claims
+from store metadata) both assume a listing exists to invite testers into or to scrub. `R7` closed
+2026-08-16 having found the metadata "already clean" — **it was clean because it was empty**, and
+that reading was recorded as a pass. `W1-REVIEW`'s runbook verifies the *build* is correct and says
+nothing about listing completeness.
+
+**`W1-REVIEW` cannot succeed against either store in this state**, regardless of the build. The
+`Financial features` declaration is the one worth answering carefully rather than reflexively, given
+this is a fantasy-sports product with a waiver/FAAB bidding surface.
+
+**Not minted as a task by this pass** — a new critical-path item is a founder call. Recorded here so
+the next person to open `W1-REVIEW` does not discover it at submission time.
+
+### ⚠️ Still open — `M8` was closed without a ledger row
+
+`M8-EspnAndroidHelper` is marked `CLOSED` in `current_sprint.md` with no closure record anywhere in
+this file. `R4` and `R5` had the same gap and are now resolved above. What made the gap look
+alarming in `R4`/`R5`'s case was that the only surviving prose said the opposite of closed:
 
 > "Android internal release remains unpublished with no testers; **R4/R5 still gate rollout**."
 > — § "Decision closeouts — 2026-08-22", written the day before they were marked complete.
 
 > "…and `R3`/`R4` are open." — § "O7 — the forced-update gate lands inert — 2026-08-19".
 
-- **R4** — Privacy nutrition labels and Data Safety form (closed 2026-08-23)
-- **R5** — Age rating and gambling questionnaire (closed 2026-08-23)
 - **M8-EspnAndroidHelper** — Decide the Android ESPN path. Its only mention here is a pointer inside
   `M7-EspnSafariExtension`'s row: *"Android path is deferred separately as `M8-EspnAndroidHelper`"* —
   which records a **deferral**, not a decision. Lower stakes than `R4`/`R5`, and the Android ESPN

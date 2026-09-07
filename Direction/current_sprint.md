@@ -41,7 +41,11 @@ narrative record and the queue record came apart, and only the queue was wrong.
 1. **30 `CLOSED` tombstone stubs** were still occupying the active queue, each already carrying
    "Retired from the active queue 2026-09-02" while sitting in it. All 30 were verified against
    `sprints_completed.md` before removal; **27 have a real record there.** Removed this pass.
-2. **`R4`, `R5` and `M8-EspnAndroidHelper` were closed with no ledger row** — the exact defect the
+2. **`R4`, `R5` and `M8-EspnAndroidHelper` were closed with no ledger row.**
+   **`R4` and `R5` were verified complete in both consoles on 2026-09-07 and are resolved** — see
+   `sprints_completed.md`. The founder was right: the work was done, only the receipt was missing.
+   iOS App Privacy reads "Published 15 days ago", which lands exactly on the claimed 2026-08-23.
+   `M8` remains open. The original finding, kept because the defect was real: — the exact defect the
    2026-09-02 pass flagged for `O2` and `W1-GATE`, recurring three more times and undetected. Each
    appears in `sprints_completed.md` only as a cross-reference inside *another* item's prose
    (*"R4/R5 still gate rollout"*; *"Android path is deferred separately as `M8-EspnAndroidHelper`"*),
@@ -59,6 +63,19 @@ narrative record and the queue record came apart, and only the queue was wrong.
 4. **`W1-REVIEW` read as triple-blocked when only one blocker was live.** Both task blockers
    (`W1-CONSENT`, `W1-DEMO-NAMES`) were satisfied before 2026-09-02. The remaining blocker is
    `FOUNDER`. Annotated rather than cleared, because neither blocker carries a `Closure:` value yet.
+
+### 🔴 Found while verifying `R4`/`R5` — the store listings are not built
+
+Neither store listing exists in a submittable state. **Google Play is 6 of 11 on "Set up your app"**
+— missing app category and contact details, the store listing itself, and the Government apps /
+**Financial features** / Health declarations; the app is `Draft` and internal testers currently see
+the temporary name `com.slopssaloon.omen (unreviewed)`. **iOS 1.0 has no screenshots, no
+description, no keywords, no support URL, no build attached, and no Primary Category.**
+
+**`W1-REVIEW` cannot succeed against either store in this state**, regardless of how good the build
+is. No item in this queue owns listing content — `R6` and `R7` both assume a listing already exists,
+and `R7` closed having found the metadata "already clean" when it was in fact empty. **Not minted as
+a task here; a new critical-path item is a founder call.**
 
 ### Unchanged and still flagged — these are decisions, not edits
 
