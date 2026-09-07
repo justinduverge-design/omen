@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&family=Alegreya:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #A67C2E; } a:hover { color: #C49035; }
+    .sans { font-family: 'Alegreya Sans', system-ui, sans-serif; }
+    .serif { font-family: 'Alegreya', Georgia, serif; }
+    .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #AEAEB2; }
+    .chip { font-size: 11px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; }
+    .h1 { font-size: 32px; font-weight: 700; color: #F5F0E8; line-height: 1.1; }
+    .h2 { font-size: 20px; font-weight: 600; color: #F5F0E8; line-height: 1.25; }
+    .h3 { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+    .body { font-family: 'Alegreya', Georgia, serif; font-size: 15px; color: #F5F0E8; line-height: 1.5; }
+    .small { font-family: 'Alegreya', Georgia, serif; font-size: 13px; color: #AEAEB2; line-height: 1.45; }
+    .card { background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .lim { font-family: 'Alegreya', Georgia, serif; font-size: 12.5px; color: #6D6D72; line-height: 1.45; }
+  </style>
+</helmet>
+<div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="height: 54px; flex-shrink: 0;"></div>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div class="chip" style="display: flex; align-items: center; gap: 5px; color: #AEAEB2; min-width: 0;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>
+      <span style="color: #F5F0E8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Gravediggers</span>
+      <span style="color: #6D6D72; flex-shrink: 0;">· Sleeper · Week 7</span>
+    </div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 20px 16px 0 16px; display: flex; flex-direction: column; gap: 16px;">
+
+    <div class="h1" style="font-size: 28px;">Trade</div>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="chip" style="color: #0A0A0B; background: #A67C2E; border-radius: 4px; padding: 4px 9px;">2 teams</div>
+      <div class="chip" style="color: #AEAEB2; border: 1px solid #3A3A3C; border-radius: 4px; padding: 4px 9px;">3 teams</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <div class="eyebrow">You give</div>
+        <div class="lim">Gravediggers</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; background: #2C2C2E; border-radius: 10px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #1C1C1E;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="8.5" y1="12" x2="15.5" y2="12"></line></svg>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px;">
+            <div class="h3" style="font-size: 15px;">Kyren Williams</div>
+            <div class="lim">RB · LAR · your RB2</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #AEAEB2;">14.1</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #1C1C1E;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8.5" x2="12" y2="15.5"></line><line x1="8.5" y1="12" x2="15.5" y2="12"></line></svg>
+          <div class="small" style="color: #6D6D72; flex-grow: 1;">Add from your roster</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="flex-grow: 1; height: 1px; background: #2C2C2E;"></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 3 21 7 17 11"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="3" y1="17" x2="15" y2="17"></line></svg>
+      <div style="flex-grow: 1; height: 1px; background: #2C2C2E;"></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <div class="eyebrow">You get</div>
+        <div class="lim">Mike's Marauders</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; background: #2C2C2E; border-radius: 10px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #1C1C1E;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="8.5" y1="12" x2="15.5" y2="12"></line></svg>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px;">
+            <div class="h3" style="font-size: 15px;">Garrett Wilson</div>
+            <div class="lim">WR · NYJ · their WR1</div>
+          </div>
+          <div class="num" style="font-size: 13px; color: #AEAEB2;">15.6</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: #1C1C1E;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6D6D72" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8.5" x2="12" y2="15.5"></line><line x1="8.5" y1="12" x2="15.5" y2="12"></line></svg>
+          <div class="small" style="color: #6D6D72; flex-grow: 1;">Add from their roster</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+    <div style="padding-bottom: 20px;">
+      <div style="background: #A67C2E; border-radius: 10px; padding: 15px; text-align: center;">
+        <div class="h3" style="color: #0A0A0B; font-size: 15px;">Read this trade</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

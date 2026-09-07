@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&family=Alegreya:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #A67C2E; } a:hover { color: #C49035; }
+    .sans { font-family: 'Alegreya Sans', system-ui, sans-serif; }
+    .serif { font-family: 'Alegreya', Georgia, serif; }
+    .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #AEAEB2; }
+    .chip { font-size: 11px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; }
+    .h1 { font-size: 32px; font-weight: 700; color: #F5F0E8; line-height: 1.1; }
+    .h2 { font-size: 20px; font-weight: 600; color: #F5F0E8; line-height: 1.25; }
+    .h3 { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+    .body { font-family: 'Alegreya', Georgia, serif; font-size: 15px; color: #F5F0E8; line-height: 1.5; }
+    .small { font-family: 'Alegreya', Georgia, serif; font-size: 13px; color: #AEAEB2; line-height: 1.45; }
+    .card { background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .lim { font-family: 'Alegreya', Georgia, serif; font-size: 12.5px; color: #6D6D72; line-height: 1.45; }
+  </style>
+</helmet>
+<div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="height: 54px; flex-shrink: 0;"></div>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div class="chip" style="display: flex; align-items: center; gap: 5px; color: #AEAEB2; min-width: 0;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>
+      <span style="color: #F5F0E8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Gravediggers</span>
+      <span style="color: #6D6D72; flex-shrink: 0;">· Sleeper</span>
+    </div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 20px 16px 0 16px; display: flex; flex-direction: column; gap: 18px;">
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <div class="eyebrow" style="letter-spacing: 0.05em; text-transform: none; font-size: 13px;">Week 4 · Start/Sit</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="h1" style="font-size: 26px; line-height: 1.2;">Bench Kyren Williams.</div>
+      <div class="lim">Issued Sunday, 5 October 2026 at 11:12 AM ET</div>
+    </div>
+
+    <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; border-color: #3A3A3C;">
+      <div style="width: 2px; align-self: stretch; background: #7E1717; border-radius: 1px;"></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+        <div class="h3" style="color: #F5F0E8;">You followed it. It cost you.</div>
+        <div class="small" style="color: #AEAEB2;">Williams scored 18.4. The man you started, Tyjae Spears, scored 15.3. The call was worse by 3.1.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="eyebrow">What we knew at the time</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div class="chip" style="color: #6D6D72;">Your league</div>
+          <div class="small" style="color: #F5F0E8;">10 teams, flex-eligible RB/WR/TE. You were 2-1 and favoured by 6.5.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div class="chip" style="color: #6D6D72;">The players</div>
+          <div class="small" style="color: #F5F0E8;">Williams was listed questionable (ankle) on the Friday report and did not practise Thursday. Spears had no designation.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div class="chip" style="color: #6D6D72;">What we fed the model</div>
+          <div class="small" style="color: #F5F0E8;">Williams projected 11.9, Spears 13.4. Seattle had allowed the 4th-fewest rushing yards through three weeks.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div class="chip" style="color: #7A8CA0;">What Omen concluded</div>
+          <div class="small" style="color: #AEAEB2;">That a questionable tag plus a missed Thursday meant a reduced snap share. He played 91% of snaps.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px; border-left: 2px solid #3A3A3C; padding-left: 10px; margin-left: -12px;">
+          <div class="chip" style="color: #A67C2E;">What we did not have</div>
+          <div class="small" style="color: #AEAEB2;">This call pre-dates scoring capture, so it was graded as full PPR. Your league is Half PPR. Both men caught passes that week, so the margin above is close but not exact.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
