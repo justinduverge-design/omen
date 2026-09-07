@@ -850,3 +850,46 @@ test("no ESPN cookie value reaches a follows response or its rejection", async (
   const serialized = JSON.stringify(body);
   assert.doesNotMatch(serialized, /espn-cookie-secret|swid-secret/);
 });
+
+// A dead ESPN connection reported `connected`.
+//
+// `connectionState` tests whether the credential columns are POPULATED, which they are — a cookie
+// that expired last week is still a cookie. So an account ESPN was rejecting outright came back
+// `connection_state: "connected"` with `team_name: null` and no projections, and nothing anywhere
+// told the user to reconnect. Found on a real account 2026-09-07. Presence is not liveness.
+test("ESPN rejecting the credentials reports reconnect_required, not connected", async () => {
+  const rejected = () => {
+    const e = new Error("ESPN rejected the request — cookies may be invalid or expired");
+    e.status = 401;
+    throw e;
+  };
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
+    espnAdapter: defaultEspnAdapter({
+      fetchEspnFanLeagues: rejected,
+      verifyLeagueAccess: rejected,
+    }),
+  });
+  const { body } = await request(app);
+
+  const espn = body.platforms.find((p) => p.platform === "espn");
+  assert.equal(espn.connection_state, "reconnect_required");
+  assert.match(espn.notice, /Reconnect ESPN/);
+});
+
+// A read that merely FAILED is not a dead connection, and must not be reported as one — a flaky
+// ESPN or a network blip would otherwise send the user to re-do a connection that is fine.
+test("an ESPN read that fails without a 401 stays connected", async () => {
+  const app = buildApp({
+    supabase: { rows: [ESPN_ROW], missingSelectionColumn: false },
+    espnAdapter: defaultEspnAdapter({
+      fetchEspnFanLeagues: async () => { throw new Error("fan api unavailable"); },
+      verifyLeagueAccess: async () => { const e = new Error("ESPN is down"); e.status = 502; throw e; },
+    }),
+  });
+  const { body } = await request(app);
+
+  const espn = body.platforms.find((p) => p.platform === "espn");
+  assert.equal(espn.connection_state, "connected");
+  assert.match(espn.notice, /full league list/);
+});

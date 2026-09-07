@@ -207,13 +207,27 @@ function teamId(team) {
   return id == null ? null : String(id);
 }
 
+/**
+ * A team's display name, trimmed.
+ *
+ * ESPN stores exactly what the owner typed, and owners type padding: a live read on 2026-09-07
+ * returned `"    Love Thy Lamb"` (four leading spaces), `"    Hall Be Thy Name"` and
+ * `"The Bijan Incident "`. Untrimmed, that padding is laid out — a leading-space name renders
+ * visibly indented against every other row in the switcher, and a trailing space breaks the
+ * spacing before an adjacent glyph.
+ *
+ * The `combined` branch was already trimmed; `team.name` was not, and `team.name` is the branch
+ * that actually fires for these leagues. Collapses interior runs too, because `"A    B"` is the
+ * same class of typing artifact and no team means the extra spaces.
+ */
 function teamName(team) {
-  const combined = `${team?.location || ""} ${team?.nickname || ""}`.trim();
-  return team?.name
-    || team?.teamName
+  const clean = (v) => String(v || "").replace(/\s+/g, " ").trim();
+  const combined = `${clean(team?.location)} ${clean(team?.nickname)}`.trim();
+  return clean(team?.name)
+    || clean(team?.teamName)
     || combined
-    || team?.abbrev
-    || team?.abbreviation
+    || clean(team?.abbrev)
+    || clean(team?.abbreviation)
     || "Unknown";
 }
 

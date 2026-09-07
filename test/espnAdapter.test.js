@@ -876,3 +876,27 @@ test("an Invalid Player or ALL slot is bucketed as bench, never as a starter", (
   assert.deepEqual(roster.slots.ir.map((p) => p.player_id), ["4"]);
   assert.deepEqual(roster.slots.bench.map((p) => p.player_id).sort(), ["3", "5", "6"]);
 });
+
+// ESPN stores exactly what an owner typed, padding included. A live read on 2026-09-07 returned
+// "    Love Thy Lamb" (four leading spaces) and "The Bijan Incident " (trailing). Untrimmed, the
+// padding is laid out — a leading-space name renders visibly indented against every other row in
+// the switcher. The `location + nickname` branch was already trimmed; `team.name` was not, and
+// `team.name` is the branch that actually fires for these leagues.
+test("team names are trimmed of the padding ESPN stores verbatim", () => {
+  const { adapter } = loadEspnAdapterWithTeams([]);
+  const data = { teams: [
+    { id: 1, name: "    Love Thy Lamb", owners: ["{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}"] },
+    { id: 2, name: "The Bijan Incident " },
+    { id: 3, name: "A    B" },
+    { id: 4, location: "  Team ", nickname: " Name  " },
+  ] };
+  const standings = adapter.standingsFromEspnData(data, "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}");
+  const names = standings.map((t) => t.team_name);
+
+  assert.ok(names.includes("Love Thy Lamb"), names.join(" | "));
+  assert.ok(names.includes("The Bijan Incident"), names.join(" | "));
+  // Interior runs collapse too: "A    B" is the same typing artifact, and no team means them.
+  assert.ok(names.includes("A B"), names.join(" | "));
+  assert.ok(names.includes("Team Name"), names.join(" | "));
+  for (const n of names) assert.equal(n, n.trim(), `"${n}" still carries padding`);
+});

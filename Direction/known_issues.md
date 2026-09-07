@@ -567,6 +567,31 @@ Two notes for whoever touches this next:
   comment that quotes a hex literal to explain a fix will fail the build. Describe it in words
   instead. The comment in `OmenAuthFlow.kt` says so in place.
 
+## ✅ FIXED 2026-09-07 — a dead ESPN connection reported `connected`
+
+Founder, on a real device: "the team names aren't showing in the switcher for ESPN."
+
+`c814312` had already fixed the name resolution the day before and was deployed. Measured rather
+than re-derived: `GET /api/leagues` was run against **every** connected ESPN account, and six of
+seven returned real team names ("The Titans of Slopsilonia", "Chasing Hurt Nabers", "Christian
+Mingle"…). One did not — and it reported **`connection_state: "connected"`** while ESPN was
+answering its discovery call with a `401`.
+
+**`connectionState` tests whether the credential columns are POPULATED, not whether they work.**
+A cookie that expired last week is still a cookie. So a dead ESPN connection produced a league
+with no team name, no projections, and nothing anywhere telling the user to reconnect — it looked
+exactly like a working connection whose data happened to be blank. *Presence is not liveness.*
+
+A provider `401` now flips the reported state to `reconnect_required` and carries a notice that
+says so. A read that merely **failed** (5xx, network) deliberately stays `connected` — a flaky
+ESPN must not send a user to redo a connection that is fine, and there is a test pinning each.
+
+**Second fix in the same pass: team names are trimmed.** ESPN stores what the owner typed,
+padding included — the live read returned `"    Love Thy Lamb"` and `"The Bijan Incident "`.
+Untrimmed, that padding is laid out, so a name renders visibly indented against every other row
+in the switcher. The `location + nickname` branch was already trimmed; `team.name` was not, and
+`team.name` is the branch that fires for these leagues.
+
 ## 🟡 OPEN — one ESPN connection row has no `espn_team_id`
 
 Surfaced 2026-09-07 by `scripts/espn-projection-live-proof.js` running over every connected ESPN
@@ -579,7 +604,10 @@ yours without a team id, and says so rather than picking one. But a user with th
 league that never loads a matchup, for a reason no screen explains. Either the row is a stale
 duplicate that should be removed, or discovery failed to bind a team id and should be re-run.
 
-Needs a look at the founder's connection rows; it is data, not code.
+**Root cause identified 2026-09-07:** this is the same account whose ESPN credentials ESPN is
+rejecting. Discovery cannot run, so nothing ever binds a team id. It should stop being a mystery
+row the moment that connection is re-established — the directory now tells the user to do exactly
+that. Re-check after a reconnect before treating it as a separate defect.
 
 ## 🟡 OPEN — an undrafted Sleeper league says the wrong true thing
 
