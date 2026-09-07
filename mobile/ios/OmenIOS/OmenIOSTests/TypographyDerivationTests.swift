@@ -44,11 +44,42 @@ final class TypographyDerivationTests: XCTestCase {
         XCTAssertEqual(doubled.tracking, eyebrow.tracking * 2, accuracy: 0.0001)
     }
 
-    /// The `numeric` role is monospaced and tabular, which is the whole reason the scoreboard
-    /// derives from it: `100.7` and `95.8` have to sit in a column without the digits drifting.
-    func testTheScoreboardDerivesFromAMonospacedTabularRole() {
+    /// The `numeric` role is tabular, which is the whole reason the scoreboard derives from it:
+    /// `100.7` and `95.8` have to sit in a column without the digits drifting.
+    ///
+    /// **Amended 2026-09-07.** This used to also assert `design == .monospaced`. The app moved to
+    /// a single typeface, so no role carries a mono family any more — but column alignment must
+    /// not move with it. Alignment comes from `.monospacedDigit()` applied at the modifier, not
+    /// from the family, so the property that actually matters is `tabularNumbers`. Reintroducing
+    /// a mono family to hold a column straight is prohibited (facts-of-record #21).
+    func testTheScoreboardDerivesFromATabularRole() {
         XCTAssertTrue(OmenTypography.numeric.tabularNumbers)
-        XCTAssertEqual(OmenTypography.numeric.design, .monospaced)
+    }
+
+    /// The whole three-family seam shipped for months resolving to SF Pro / New York / SF Mono
+    /// because no font file was ever committed, and nothing failed. This is the assertion that
+    /// would have caught it: every role must resolve to the real family, not a system stand-in.
+    func testEveryRoleResolvesToTheRealAlegreyaSansFamily() {
+        let roles: [(String, OmenTypeRoleSpec)] = [
+            ("display", OmenTypography.display), ("h1", OmenTypography.h1),
+            ("h2", OmenTypography.h2), ("h3", OmenTypography.h3),
+            ("body", OmenTypography.body), ("bodySmall", OmenTypography.bodySmall),
+            ("label", OmenTypography.label), ("eyebrow", OmenTypography.eyebrow),
+            ("chip", OmenTypography.chip), ("numeric", OmenTypography.numeric)
+        ]
+        for (name, role) in roles {
+            XCTAssertEqual(
+                role.resolvedUIFont.familyName, "Alegreya Sans",
+                "role \(name) resolved to \(role.resolvedUIFont.familyName), not the bundled family"
+            )
+        }
+    }
+
+    /// Alegreya Sans ships no 600 weight, so the two semibold roles resolve to Bold. Asserted
+    /// rather than left to chance: a silently synthesised weight is how a type scale rots.
+    func testSemiboldRolesResolveToBoldBecauseTheFamilyHasNo600() {
+        XCTAssertEqual(OmenTypography.h2.resolvedUIFont.fontName, "AlegreyaSans-Bold")
+        XCTAssertEqual(OmenTypography.h3.resolvedUIFont.fontName, "AlegreyaSans-Bold")
     }
 }
 

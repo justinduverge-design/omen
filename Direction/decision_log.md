@@ -1,5 +1,65 @@
 # Omen Decision Log
 
+## 2026-09-07 — One typeface: the three-family system was never actually seen
+
+**Founder decision: Alegreya Sans is the only font in the app.** Both platforms, every role.
+
+**What prompted it:** the founder judged the live Command Center's three fonts as looking bad, and
+asked for the face used on player names everywhere.
+
+**The fact that reframed it, surfaced before acting.** There were **no font files in this
+repository** — no `.ttf`, `.otf` or `.woff*` anywhere. `OmenFontDesign` (iOS) and
+`OmenFontFamilies` (Android) resolved the three locked families to platform stand-ins:
+
+| Role | Locked family | What actually rendered on iOS |
+| :--- | :--- | :--- |
+| display / h1 / h2 / h3 / label | Alegreya Sans | SF Pro |
+| body / bodySmall | Alegreya | **New York** |
+| eyebrow / chip / numeric | DM Mono | SF Mono |
+
+So the three fonts being judged were SF Pro, New York and SF Mono. **The intended system had never
+rendered once**, on either platform, in the product's life. New York in particular is a bookish
+Apple serif with little in common with Alegreya.
+
+**The founder was told this before deciding, offered the alternative** — ship `M12-BrandFonts`
+first and judge the real three-family system, with the collapse still a three-line change
+afterwards — **and chose to collapse anyway.** Recorded because the option was live and declined,
+not overlooked.
+
+**Why the instruction needed more than the seam change to be satisfied.** Pointing every role at
+`alegreyaSans` would have shipped **SF Pro** everywhere, since that is what the name resolved to.
+The founder asked for the face on the canvas's player names, which is real Alegreya Sans. So this
+carries `M12-BrandFonts`'s acquisition half for one family: Regular, Medium and Bold committed from
+the canonical `google/fonts` source under SIL OFL 1.1 with the licence intact, registered through
+`UIAppFonts` and Android resource fonts.
+
+**Alegreya Sans has no 600 weight** — the family ships 100/300/400/500/700/800/900. The two
+`.semibold` roles therefore resolve to **Bold**. That is the same resolution the design canvas
+produced, since CSS font matching promotes 600 to 700 against this family, so the shipped app wears
+the face the approved artboards did rather than a synthesised weight. Asserted in a test on both
+platforms rather than left to the platform's discretion.
+
+**Column alignment was the one way this could go wrong** and it does not: tabular figures come from
+`.monospacedDigit()` on iOS and the tabular feature in `toTextStyle()` on Android — the modifier,
+never the family. Reintroducing a mono family to straighten a column stays prohibited
+(facts-of-record #21).
+
+**Supersedes `W2-Typography`**, which retired only DM Mono and would have left the serif.
+**Partially satisfies `M12-BrandFonts`**: one family of three is now shipped and proven, and the
+other two are moot under this decision — the item needs re-scoping to a closeout, which is a
+founder call, not folded in here.
+
+**Evidence:** iOS 454 tests / 0 failures (Xcode 26.6 `17F113`, iPhone 17 Pro sim), including a new
+assertion that every role resolves to family `Alegreya Sans` rather than a system stand-in — the
+test that would have caught the original defect. Android `:app` 180/180, `:core:designsystem` 25/25,
+both modules assembling with the font resources. Fonts confirmed present in the built `.app` bundle
+and in its `UIAppFonts`. Simulator screenshot of Command Center.
+
+**Still unproven:** no real-device render, no Dynamic Type or accessibility pass against the new
+face, and no Android screenshot. `M12`'s own note stands — landing real fonts is the stated trigger
+for revisiting the Dynamic Type finding in `known_issues.md`, and that has not been done.
+
+
 ## 2026-09-07 — Reading ESPN's real client, and the Android primitives that were hiding three bugs
 
 Founder: "let's get you to read real ESPN code so that you can do mMatchupScore right" and
