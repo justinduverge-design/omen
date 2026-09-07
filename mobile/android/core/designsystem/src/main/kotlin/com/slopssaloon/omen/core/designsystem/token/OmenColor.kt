@@ -25,6 +25,16 @@ data class OmenColorScheme(
     val accentMuted: Color,
     val textOnAccent: Color,
     val omen: Color,
+    /**
+     * Verdigris tuned for **chip typography**, the same way [OmenDataSemantics.platformSleeperChip]
+     * and `platformEspnChip` are tuned for theirs.
+     *
+     * [omen]'s dark value `#2F7D5B` is 3.96:1 on `bg` — fine for a glow, a rule, or a fill, and
+     * short of AA for 11sp chip text. `#3A9A70` is the same hue carried to **5.69:1** and is used
+     * only where verdigris has to be *read*. The light value is unchanged at `#1A5C3E`
+     * (7.94:1 on `surface1`), which already cleared AA. iOS mirror: `OmenColor.omenChip`.
+     */
+    val omenChip: Color,
     val umber: Color,
     /** Derived from [accent]; solid stroke color for the focus-ring outline (registry §2.2, §4). */
     val focusRing: Color,
@@ -132,6 +142,7 @@ val OmenDarkColors = OmenColorScheme(
     accentMuted = Color(0xFF3A2A0A),
     textOnAccent = Color(0xFF0A0A0B),
     omen = Color(0xFF2F7D5B),
+    omenChip = Color(0xFF3A9A70),
     umber = Color(0xFF5A3A25),
     focusRing = Color(0xFFA67C2E),
     focusRingHalo = Color(0xFFA67C2E).copy(alpha = 0.4f),
@@ -153,6 +164,7 @@ val OmenLightColors = OmenColorScheme(
     accentMuted = Color(0xFFFEF3C7),
     textOnAccent = Color(0xFFFAFAF9),
     omen = Color(0xFF1A5C3E),
+    omenChip = Color(0xFF1A5C3E),
     umber = Color(0xFF5A3A25),
     focusRing = Color(0xFF7A5C1E),
     focusRingHalo = Color(0xFF7A5C1E).copy(alpha = 0.4f),

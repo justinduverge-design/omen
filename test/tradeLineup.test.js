@@ -265,3 +265,43 @@ test("an unbudgeted solve is unchanged and reports itself exhaustive", () => {
   assert.equal(result.exhaustive, true);
   assert.equal(result.total, 32);
 });
+
+// `lineupEligible` excluded only `IR` and `TAXI`. ESPN's other two `starter: false` slots —
+// `INV` (Invalid Player) and `ALL` — were unnamed in the adapter's slot map until 2026-09-07,
+// so they normalized to `"UNK"`, passed the test, and could be offered by the optimizer as a
+// start/sit or trade improvement.
+test("a player parked in an ineligible slot is never started", () => {
+  const parked = (id, slot, points) => ({ ...player(id, ["RB"], points), selected_position: slot });
+
+  for (const slot of ["IR", "TAXI", "INV", "ALL"]) {
+    const result = solveOptimalLineup({
+      players: [
+        player("rb", ["RB"], 5),
+        parked("parked", slot, 99),
+      ],
+      rosterPositions: ["RB"],
+    });
+
+    assert.deepEqual(
+      result.starters.map((row) => row.player.player_id),
+      ["rb"],
+      `${slot} must not be startable`
+    );
+    assert.equal(result.total, 5, `${slot} must not contribute points`);
+  }
+});
+
+// `BN` is deliberately NOT ineligible: moving a benched player into the lineup is the entire
+// point of the solver, and adding it to the exclusion set would silently disable start/sit.
+test("a benched player is still lineup-eligible", () => {
+  const result = solveOptimalLineup({
+    players: [
+      { ...player("starter", ["RB"], 5), selected_position: "RB" },
+      { ...player("benched", ["RB"], 22), selected_position: "BN" },
+    ],
+    rosterPositions: ["RB"],
+  });
+
+  assert.deepEqual(result.starters.map((row) => row.player.player_id), ["benched"]);
+  assert.equal(result.total, 22);
+});

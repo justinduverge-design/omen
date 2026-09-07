@@ -585,3 +585,77 @@ test("fetchSleeperMatchups caches by league/week (6h) so a second call doesn't r
   assert.equal(matchupCalls.length, 1, "second call should be served from cache, not a live Sleeper request");
   assert.equal(store.size, 1);
 });
+
+// ---------------------------------------------------------------------------
+// Matchup projections. Sleeper's matchup rows carry no projected total, so `matchupFromMatchups`
+// returned `projected: null` for every side and the Command Center's PROJ column showed an em
+// dash for Sleeper leagues while Yahoo's showed a number. Sleeper *does* publish per-player
+// projections and this adapter has fetched them since M11 — the matchup path never asked.
+// Founder, 2026-09-06: "the matchup doesn't produce projections for all leagues, only Yahoo."
+// ---------------------------------------------------------------------------
+
+test("a Sleeper side's projection is summed from its starters", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures({});
+  const matchups = [
+    { roster_id: 7, matchup_id: 2, points: 0, starters: ["1001", "1002"] },
+    { roster_id: 3, matchup_id: 2, points: 0, starters: ["2001"] },
+  ];
+
+  const matchup = adapter.matchupFromMatchups({
+    leagueId: "L", week: 3, rosterId: 7, matchups,
+    projections: { 1001: 12.5, 1002: 9.25, 2001: 18 },
+  });
+
+  assert.equal(matchup.you.projected, 21.75);
+  assert.equal(matchup.opponent.projected, 18);
+});
+
+// `players` is the whole roster. Summing it would project the bench as if it played, which is
+// not the number any fantasy site shows.
+test("bench players are not summed into a Sleeper projection", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures({});
+  const matchups = [
+    { roster_id: 7, matchup_id: 2, points: 0, starters: ["1001"], players: ["1001", "9999"] },
+    { roster_id: 3, matchup_id: 2, points: 0, starters: ["2001"], players: ["2001", "9999"] },
+  ];
+
+  const matchup = adapter.matchupFromMatchups({
+    leagueId: "L", week: 3, rosterId: 7, matchups,
+    projections: { 1001: 12.5, 2001: 18, 9999: 500 },
+  });
+
+  assert.equal(matchup.you.projected, 12.5);
+});
+
+// Sleeper writes the string "0" into an unfilled starting slot. It is not a player id, and
+// `projectionFor` must not be asked about it.
+test("an unfilled Sleeper starting slot is skipped, not looked up", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures({});
+  const matchups = [
+    { roster_id: 7, matchup_id: 2, points: 0, starters: ["1001", "0"] },
+    { roster_id: 3, matchup_id: 2, points: 0, starters: ["2001"] },
+  ];
+
+  const matchup = adapter.matchupFromMatchups({
+    leagueId: "L", week: 3, rosterId: 7, matchups,
+    projections: { 1001: 12.5, 0: 77, 2001: 18 },
+  });
+
+  assert.equal(matchup.you.projected, 12.5);
+});
+
+// Absence has to survive as absence. `Number(null) === 0` downstream turns a fabricated zero
+// into a confident claim that the team is projected to score nothing.
+test("a Sleeper side with no projections at all is null, never zero", () => {
+  const { adapter } = loadSleeperAdapterWithFixtures({});
+  const matchups = [
+    { roster_id: 7, matchup_id: 2, points: 0, starters: ["1001"] },
+    { roster_id: 3, matchup_id: 2, points: 0, starters: ["2001"] },
+  ];
+
+  const noProjections = adapter.matchupFromMatchups({ leagueId: "L", week: 3, rosterId: 7, matchups });
+  assert.equal(noProjections.you.projected, null);
+
+  // And the pre-existing callers that pass nothing keep working unchanged.
+  assert.equal(noProjections.opponent.projected, null);
+});

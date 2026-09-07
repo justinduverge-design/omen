@@ -107,7 +107,8 @@ struct SignInView: View {
                         icon: Image("AuthApple"),
                         action: { viewModel.signInWithApple() },
                         enabled: !isBusy,
-                        loading: isAppleBusy
+                        loading: isAppleBusy,
+                        tintsIcon: true
                     )
                 }
 
@@ -134,7 +135,8 @@ struct SignInView: View {
                         contentDescription: "Continue with email",
                         icon: Image("AuthEmail"),
                         action: { emailEntryVisible = true },
-                        enabled: !isBusy
+                        enabled: !isBusy,
+                        tintsIcon: true
                     )
                 }
                 .accessibilityElement(children: .contain)

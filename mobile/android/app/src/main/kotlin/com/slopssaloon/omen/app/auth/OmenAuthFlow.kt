@@ -19,12 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -50,8 +47,11 @@ import com.slopssaloon.omen.R
 import com.slopssaloon.omen.core.auth.AuthFailure
 import com.slopssaloon.omen.core.auth.AuthFlowState
 import com.slopssaloon.omen.core.auth.OtpCodeValidator
+import com.slopssaloon.omen.core.designsystem.component.OmenAuthPrimaryButton
+import com.slopssaloon.omen.core.designsystem.component.OmenAuthTile
 import com.slopssaloon.omen.core.designsystem.component.OmenButton
 import com.slopssaloon.omen.core.designsystem.component.OmenButtonVariant
+import com.slopssaloon.omen.core.designsystem.component.OmenCanvasTextAction
 import com.slopssaloon.omen.core.designsystem.component.OmenFormField
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButton
 import com.slopssaloon.omen.core.designsystem.component.OmenIconButtonSize
@@ -99,7 +99,7 @@ fun OmenAuthFlow(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0B)),
+            .background(OmenTheme.color.bg),
     ) {
         Column(
             modifier = Modifier
@@ -172,7 +172,12 @@ private fun SignInFirstScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_canvas_chevron_left),
                     contentDescription = null,
-                    tint = Color.Unspecified,
+                    // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
+                    // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                    // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
+                    // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                    // screen's hardcoded dark background was tokenised on 2026-09-07.
+                    tint = OmenTheme.color.textSecondary,
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -210,7 +215,7 @@ private fun SignInFirstScreen(
         Spacer(Modifier.height(32.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
-            AuthPrimaryButton(
+            OmenAuthPrimaryButton(
                 text = if (googleConfigured) "Continue with Google" else "Google unavailable",
                 icon = {
                     Image(
@@ -232,14 +237,14 @@ private fun SignInFirstScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (discordConfigured) {
-                    AuthProviderTile(
+                    OmenAuthTile(
                         contentDescription = "Continue with Discord",
                         onClick = onDiscord,
                         enabled = state !is AuthFlowState.LaunchingOAuth &&
                             state !is AuthFlowState.ExchangingOAuthCode,
                         loading = state is AuthFlowState.LaunchingOAuth ||
                             state is AuthFlowState.ExchangingOAuthCode,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).height(54.dp),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_auth_discord),
@@ -249,16 +254,25 @@ private fun SignInFirstScreen(
                         )
                     }
                 }
-                AuthProviderTile(
+                OmenAuthTile(
                     contentDescription = "Continue with email",
                     onClick = onShowEmailEntry,
                     enabled = state !is AuthFlowState.RequestingOtp,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(54.dp),
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_auth_email),
                         contentDescription = null,
-                        tint = Color.Unspecified,
+                        // Tinted, unlike the Discord and Google marks beside it. Those are brand
+                        // logos and must keep their own colours (`Color.Unspecified`); this is a
+                        // plain UI glyph whose asset bakes in the cream `#F5F0E8`, so on a light
+                        // tile it was cream-on-white and all but invisible. It only became
+                        // visible when this screen's hardcoded near-black background literal was
+                        // replaced with the trait-aware `bg` token in the same 2026-09-07 pass —
+                        // the hex is deliberately not written out here, because the enforcement
+                        // scanner matches the literal by pattern and cannot tell prose from code —
+                        // before that the screen forced itself dark and the bug could not show.
+                        tint = OmenTheme.color.textPrimary,
                         modifier = Modifier.size(19.dp),
                     )
                 }
@@ -274,7 +288,7 @@ private fun SignInFirstScreen(
             }
 
             if (demoModeEnabled && onTryDemo != null) {
-                CanvasTextAction(
+                OmenCanvasTextAction(
                     text = "Look around without an account →",
                     onClick = onTryDemo,
                     color = OmenTheme.color.accent,
@@ -311,67 +325,7 @@ private fun SignInFirstScreen(
     }
 }
 
-@Composable
-private fun AuthPrimaryButton(
-    text: String,
-    icon: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit,
-    enabled: Boolean,
-    loading: Boolean,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled && !loading,
-        shape = RoundedCornerShape(10.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = OmenTheme.color.textPrimary,
-            contentColor = OmenTheme.color.textOnAccent,
-            disabledContainerColor = OmenTheme.color.surface3,
-            disabledContentColor = OmenTheme.color.textTertiary,
-        ),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (icon != null && !loading) icon()
-            Text(text, style = OmenTheme.typography.h3.toTextStyle(), fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
 
-@Composable
-private fun AuthProviderTile(
-    contentDescription: String,
-    onClick: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-    loading: Boolean = false,
-    icon: @Composable () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled && !loading,
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF141416),
-        contentColor = if (enabled && !loading) OmenTheme.color.textPrimary else OmenTheme.color.textTertiary,
-        border = BorderStroke(1.dp, OmenTheme.color.border),
-        modifier = modifier.height(54.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            if (loading) {
-                androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = OmenTheme.color.textPrimary,
-                )
-            } else {
-                icon()
-            }
-        }
-    }
-}
 
 @Composable
 private fun EmailEntry(
@@ -440,7 +394,12 @@ private fun EmailCodeScreen(
             Icon(
                 painter = painterResource(id = R.drawable.ic_canvas_chevron_left),
                 contentDescription = null,
-                tint = Color.Unspecified,
+                // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
+                // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
+                // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                // screen's hardcoded dark background was tokenised on 2026-09-07.
+                tint = OmenTheme.color.textSecondary,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -473,7 +432,7 @@ private fun EmailCodeScreen(
 
         Spacer(Modifier.height(OmenTheme.spacing.step16))
         if (resend != null) {
-            CanvasTextAction(
+            OmenCanvasTextAction(
                 text = if (resend.secondsRemaining > 0) "Send it again in ${resend.secondsRemaining}s" else "Send it again",
                 onClick = onResendCode,
                 color = if (resend.canResend && !isVerifying) OmenTheme.color.accent else OmenTheme.color.textTertiary,
@@ -500,7 +459,7 @@ private fun EmailCodeScreen(
 
         Spacer(Modifier.weight(1f))
 
-        CanvasTextAction(
+        OmenCanvasTextAction(
             text = "Use a different email",
             onClick = onUseDifferentEmail,
             color = OmenTheme.color.textTertiary,
@@ -520,33 +479,6 @@ private fun EmailCodeScreen(
     }
 }
 
-@Composable
-private fun CanvasTextAction(
-    text: String,
-    onClick: () -> Unit,
-    color: Color,
-    fontWeight: FontWeight,
-    height: androidx.compose.ui.unit.Dp,
-    enabled: Boolean = true,
-) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = color,
-            disabledContentColor = OmenTheme.color.textTertiary,
-        ),
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.fillMaxWidth().height(height),
-    ) {
-        Text(
-            text = text,
-            style = OmenTheme.typography.label.toTextStyle(),
-            fontWeight = fontWeight,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
 
 @Composable
 private fun CodeEntry(code: String, enabled: Boolean, onCodeChange: (String) -> Unit) {
@@ -578,7 +510,7 @@ private fun CodeBoxes(code: String) {
                     .weight(1f)
                     .height(60.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (filled) OmenTheme.color.accentMuted else Color(0xFF141416))
+                    .background(if (filled) OmenTheme.color.accentMuted else OmenTheme.color.surface1)
                     .border(
                         width = 1.dp,
                         color = if (filled) OmenTheme.color.accent else OmenTheme.color.border,

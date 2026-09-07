@@ -252,6 +252,7 @@ async function resolveEspnTeams(leagues, credentials) {
 
 async function espnLeagues(row, userId, season) {
   const boundId = usableLeagueId(row) ? String(row.league_id) : null;
+  let credentialsRejected = false;
 
   let credentials;
   try {
@@ -269,6 +270,7 @@ async function espnLeagues(row, userId, season) {
       );
       if (discovered.length) {
         const named = await resolveEspnTeams(discovered, credentials);
+        // Reached only when ESPN answered, so the credentials are good.
         return {
           discovery: "full",
           leagues: named.map((league) => leagueEntry({
@@ -284,8 +286,12 @@ async function espnLeagues(row, userId, season) {
           notice: null,
         };
       }
-    } catch {
-      // Discovery is best-effort. The bound league below is still a true answer.
+    } catch (e) {
+      // Discovery is best-effort — the bound league below is still a true answer — but a **401**
+      // is not a failed read, it is a dead connection, and the two must not look the same.
+      // `credentialsRejected` is carried out to `platformGroup`, which turns it into
+      // `reconnect_required`. See `connectionState`.
+      if (Number(e?.status) === 401) credentialsRejected = true;
     }
   }
 
@@ -305,15 +311,19 @@ async function espnLeagues(row, userId, season) {
       );
       teamId = team?.team_id == null ? teamId : String(team.team_id);
       teamName = team?.team_name || null;
-    } catch {
+    } catch (e) {
       // Never surface the ESPN failure detail here; the state field carries it.
+      if (Number(e?.status) === 401) credentialsRejected = true;
     }
   }
 
   return {
     discovery: "bound_only",
+    credentialsRejected,
     leagues: [leagueEntry({ leagueId: row.league_id, leagueName: null, season, teamId, teamName })],
-    notice: "Omen couldn't ask ESPN for your full league list, so only the connected league is shown.",
+    notice: credentialsRejected
+      ? "ESPN is no longer accepting this connection. Reconnect ESPN to see your leagues and teams."
+      : "Omen couldn't ask ESPN for your full league list, so only the connected league is shown.",
   };
 }
 
@@ -354,7 +364,14 @@ async function platformGroup(platform, row, userId, season, followed) {
     is_followed: followed == null ? true : followed.has(league.league_id),
   }));
 
-  return { platform, connection_state: state, discovery: result.discovery, notice: result.notice, leagues };
+  // A provider that answered `401` has credentials that exist and no longer work. `connectionState`
+  // above cannot see that — it tests whether the columns are *populated*, which they are — so a
+  // dead ESPN connection reported `connected` and produced a league with no team name, no
+  // projections, and nothing anywhere telling the user to reconnect. Found on a real account
+  // 2026-09-07: `connection_state=connected` beside `team_name=null` on a league ESPN was
+  // rejecting outright. Presence is not liveness.
+  const reportedState = result.credentialsRejected ? "reconnect_required" : state;
+  return { platform, connection_state: reportedState, discovery: result.discovery, notice: result.notice, leagues };
 }
 
 function activeSummary(rows, groups) {

@@ -85,9 +85,22 @@ function createSearchBudget({ budgetMs = TRADE_SEARCH_BUDGET_MS, now = Date.now 
   };
 }
 
+/**
+ * Slots a player can never be moved *into* a starting lineup from.
+ *
+ * `INV` and `ALL` joined this on 2026-09-07. They are ESPN's other two `starter: false` lineup
+ * slots (Invalid Player, and the ALL pseudo-slot), and they were unnamed in the adapter's slot
+ * map until then — so they normalized to `"UNK"`, passed this test, and an Invalid Player could
+ * be offered by the optimizer as a start/sit or trade improvement.
+ *
+ * `BN` is deliberately absent: a benched player IS lineup-eligible — moving one into the lineup
+ * is the entire point of the solver.
+ */
+const LINEUP_INELIGIBLE_SLOTS = new Set(["IR", "TAXI", "INV", "ALL"]);
+
 function lineupEligible(player) {
   const location = String(player?.selected_position || "").toUpperCase();
-  return location !== "IR" && location !== "TAXI";
+  return !LINEUP_INELIGIBLE_SLOTS.has(location);
 }
 
 /**

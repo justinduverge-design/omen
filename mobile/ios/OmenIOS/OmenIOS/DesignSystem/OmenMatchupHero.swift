@@ -110,9 +110,9 @@ struct OmenMatchupHero: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             eyebrow(eyebrowText)
             if showsColumns { columnHeader }
-            teamRow(team: selectedTeam, semanticLabel: "Your team")
+            teamRow(team: selectedTeam, semanticLabel: "Your team", isYours: true)
             connectingRule
-            teamRow(team: opponent, semanticLabel: "Opponent")
+            teamRow(team: opponent, semanticLabel: "Opponent", isYours: false)
             if onOpen != nil {
                 Text("View matchup →")
                     .omenTextStyle(OmenTypography.label)
@@ -130,11 +130,33 @@ struct OmenMatchupHero: View {
 
     /// Column widths are fixed and shared so `123` and `50` sit under `PROJ` and `SCORE`
     /// rather than drifting with the length of a team name.
-    private static let projColumnWidth: CGFloat = 64
-    private static let scoreColumnWidth: CGFloat = 72
+    ///
+    /// Narrowed from 64/72 on 2026-09-06. The numbers now render in the monospaced family
+    /// (`OmenTypography.numeric`) rather than the proportional system face, and mono digits at
+    /// these sizes need less room than the old reservation — a real `100.7` fits 78pt at 24pt
+    /// with margin. Every point taken back here goes to the team name beside it, which was
+    /// truncating to "Puk Around &…" on a 393pt phone.
+    private static let projColumnWidth: CGFloat = 58
+    private static let scoreColumnWidth: CGFloat = 78
+
+    /// The scoreboard numbers, as **derivations of the `numeric` role** rather than raw
+    /// `.system` sizes. Both were `.font(.system(size:))` literals, which resolve to the
+    /// platform sans whatever family the role owns — so the two biggest numbers on the screen
+    /// were the only text in the card not speaking the app's type system, and they would not
+    /// have followed DM Mono in when the real font resources land.
+    private static let scoreStyle = OmenTypography.numeric.at(size: 24, weight: .semibold)
+    /// Smaller and lighter than the score: the projection is context, the score is the fact.
+    private static let projStyle = OmenTypography.numeric.at(size: 18, weight: .regular)
+    /// Records are a stat, not prose. They were `bodySmall`, which is the **serif** role — a
+    /// serif "6-1" sat beside a sans team name and a mono column header in one 40pt-tall row,
+    /// which is most of why this card read as three fonts arguing.
+    private static let recordStyle = OmenTypography.numeric.at(size: 13, weight: .regular)
 
     private var columnHeader: some View {
         HStack(spacing: OmenSpacing.step8) {
+            // Matches the leading accent bar in `teamRow` so `PROJ`/`SCORE` stay over their
+            // own columns rather than drifting 3pt left of them.
+            Color.clear.frame(width: 3, height: 0)
             Spacer(minLength: 0)
             Text("PROJ")
                 .omenTextStyle(OmenTypography.eyebrow)
@@ -150,37 +172,69 @@ struct OmenMatchupHero: View {
         .accessibilityHidden(true)
     }
 
-    private func teamRow(team: OmenMatchupTeam, semanticLabel: String) -> some View {
+    /// `isYours` draws a short accent bar down the leading edge of your own row.
+    ///
+    /// Both rows were styled identically, so on a card showing two unfamiliar league names the
+    /// reader had to know their own team name to know which line was theirs — the position
+    /// convention (yours on top) is real but invisible, and it is the *only* thing that carried
+    /// it. A rule, not a colour swap on the text: the row keeps `textPrimary` at full contrast
+    /// either way, and VoiceOver already says "Your team" first, so this adds a sighted cue to
+    /// match one the label always had.
+    private func teamRow(team: OmenMatchupTeam, semanticLabel: String, isYours: Bool) -> some View {
         HStack(spacing: OmenSpacing.step8) {
-            HStack(spacing: OmenSpacing.step8) {
+            Capsule()
+                .fill(isYours ? OmenColor.accent : Color.clear)
+                .frame(width: 3)
+                .frame(maxHeight: .infinity)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // Two lines, not one. Founder on a real device, 2026-09-07: a Yahoo team called
+                // "Puk Around & Find Out" still lost its ending, because a single line has to
+                // share the row with two numeric columns no matter how much the columns give
+                // back. Wrapping is the only thing that actually buys a long name more room.
+                //
+                // `lineLimit(2)` wraps only when it must, so a short name is laid out exactly as
+                // before and the card does not grow for the common case. The scale factor is
+                // eased from 0.75 to 0.85: with a second line available, shrinking type is the
+                // wrong first move, and 0.75 on a wrapped name reads noticeably smaller than the
+                // opponent beneath it.
                 Text(team.name)
                     .omenTextStyle(OmenTypography.h2)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text(team.record)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !team.record.isEmpty {
+                    // Under the name, not beside it. Beside it the record competed with the
+                    // name for the width the columns had already taken, and the name lost.
+                    Text(team.record)
+                        .omenTextStyle(Self.recordStyle)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
             }
-            Spacer(minLength: OmenSpacing.step8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             if showsColumns {
                 Text(team.projectedText ?? "—")
-                    // Smaller than the score: the projection is context, the score is the
-                    // fact. Same size would make the reader work out which is which.
-                    .font(.system(size: 20, weight: .regular, design: .default))
-                    .monospacedDigit()
+                    .omenTextStyle(Self.projStyle)
                     .foregroundStyle(OmenColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .frame(width: Self.projColumnWidth, alignment: .trailing)
             }
             Text(team.scoreText)
-                .font(.system(size: 28, weight: .medium))
-                .monospacedDigit()
+                .omenTextStyle(Self.scoreStyle)
                 .foregroundStyle(OmenColor.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(
                     width: showsColumns ? Self.scoreColumnWidth : nil,
                     alignment: .trailing
                 )
         }
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rowAccessibilityLabel(team: team, semanticLabel: semanticLabel))
     }
@@ -279,7 +333,12 @@ struct OmenMatchupHero: View {
     private var ruleText: String {
         switch state {
         case let .beforeGames(s, o, _, _):
-            if showsColumns { return "Not started" }
+            // Empty, not "Not started". The eyebrow directly above already reads
+            // "MATCHUP · NOT STARTED" — printing it again three lines down inside the rule put
+            // the same two words on screen twice with a hairline between them, which is what
+            // the founder was looking at on 2026-09-06. With columns present the rule has
+            // nothing left to say, so it says nothing and stays a hairline.
+            if showsColumns { return "" }
             // Both sides carry an em dash before kickoff when the provider gave no projection,
             // and "Projected: —–—" is a label with nothing behind it. Seen on a real ESPN
             // league. Say the true thing instead.
@@ -287,7 +346,8 @@ struct OmenMatchupHero: View {
             guard hasNumbers else { return "Not started" }
             return "Projected: \(s.scoreText)–\(o.scoreText)"
         case let .live(_, _, projectedFinish, _):
-            if showsColumns { return "Live score" }
+            // Same reason: the eyebrow says "LIVE", so "Live score" here is an echo.
+            if showsColumns { return "" }
             return projectedFinish.map { "Projected finish: \($0)" } ?? "Live score"
         case let .final(_, _, resultSummary, _):
             // Never redundant: the columns carry no result, and a projection is gone by now.
@@ -302,7 +362,15 @@ struct OmenMatchupHero: View {
 func omenMatchupHeroAccessibilityLabel(_ state: OmenMatchupHeroState) -> String {
     switch state {
     case let .beforeGames(s, o, startTime, _):
-        return "Matchup starts at \(startTime). Your team \(s.name) (\(s.record)) projected \(s.scoreText). Opponent \(o.name) (\(o.record)) projected \(o.scoreText)."
+        // `projectedText ?? scoreText`, not `scoreText`. Before kickoff `scoreText` is an em
+        // dash by design — nobody has scored, and a `0.0` there would read as a real score of
+        // nothing — so once the PROJ column shipped this label started announcing "projected —"
+        // while the screen showed 100.7. The number moved into its own field and the label was
+        // never re-pointed at it. Falls back to `scoreText` for a caller with no projection,
+        // which is the shape this label was written for and still the pre-column behaviour.
+        let mine = s.projectedText ?? s.scoreText
+        let theirs = o.projectedText ?? o.scoreText
+        return "Matchup starts at \(startTime). Your team \(s.name) (\(s.record)) projected \(mine). Opponent \(o.name) (\(o.record)) projected \(theirs)."
     case let .live(s, o, projectedFinish, _):
         var base = "Live: \(s.name) \(s.scoreText), \(o.name) \(o.scoreText)."
         if let projectedFinish { base += " Projected finish: \(projectedFinish)." }

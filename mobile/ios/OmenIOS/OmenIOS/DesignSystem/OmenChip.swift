@@ -15,7 +15,16 @@ import SwiftUI
 ///
 /// Provider chips keep their platform colours, deliberately — that is how a user finds their
 /// ESPN team in a row of six.
-enum OmenChipTone { case rb, wr, qb, te, def, k, sleeper, yahoo, espn, demo, omen }
+/// `verdigris` was split out of `omen` on 2026-09-06. Both are Omen's own tones, but they are
+/// not one tone: `omen` is brass and marks the controls that *filter* or *select* (All, the
+/// Waiver / Ledger / Pulse tabs), and `verdigris` is green and marks **+ Add League**, the one
+/// chip in that row that changes what you have rather than what you are looking at.
+///
+/// That distinction was already written into `OmenLeagueCarousel` in prose — Add League was
+/// moved out of the filter row precisely because "the provider chips are a *filter* and this is
+/// an *action*" — but both still rendered brass, so the row said in colour what the layout had
+/// just stopped saying. Now they differ.
+enum OmenChipTone { case rb, wr, qb, te, def, k, sleeper, yahoo, espn, demo, omen, verdigris }
 
 /// Registry §3.1 position/platform/mode chip. `action == nil` produces a display chip.
 struct OmenChip: View {
@@ -38,6 +47,8 @@ struct OmenChip: View {
         case .espn: return OmenColor.Data.platformEspn
         case .demo: return OmenColor.Data.demoText
         case .omen: return OmenColor.accent
+        // `omenChip`, not `omen`: the base verdigris is 3.96:1 on `bg` and chip type is 11pt.
+        case .verdigris: return OmenColor.omenChip
         }
     }
 

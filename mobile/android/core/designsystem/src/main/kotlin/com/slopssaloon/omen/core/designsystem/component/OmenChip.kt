@@ -30,8 +30,18 @@ import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
  *
  * Provider chips keep their platform colours, deliberately — that is how a user finds their
  * ESPN team in a row of six. iOS mirror: `OmenChipTone.omen`.
+ *
+ * `Verdigris` was split out of `Omen` on 2026-09-06. Both are Omen's own tones, but they are not
+ * one tone: `Omen` is brass and marks the controls that *filter* or *select* (All, the
+ * Waiver / Ledger / Pulse tabs), and `Verdigris` is green and marks **+ Add League**, the one chip
+ * in that row that changes what you have rather than what you are looking at.
+ *
+ * That distinction was already written into `OmenLeagueCarousel` in prose — Add League was moved
+ * out of the filter row precisely because the provider chips are a filter and this is an action —
+ * but both still rendered brass, so the row said in colour what the layout had just stopped
+ * saying. iOS mirror: `OmenChipTone.verdigris`.
  */
-enum class OmenChipTone { Rb, Wr, Qb, Te, Def, K, Sleeper, Yahoo, Espn, Demo, Omen }
+enum class OmenChipTone { Rb, Wr, Qb, Te, Def, K, Sleeper, Yahoo, Espn, Demo, Omen, Verdigris }
 
 @Composable
 fun OmenChip(
@@ -55,6 +65,8 @@ fun OmenChip(
         OmenChipTone.Espn -> colors.data.platformEspn
         OmenChipTone.Demo -> colors.data.demoText
         OmenChipTone.Omen -> colors.accent
+        // `omenChip`, not `omen`: the base verdigris is 3.96:1 on `bg` and chip type is 11sp.
+        OmenChipTone.Verdigris -> colors.omenChip
     }
     val shape = RoundedCornerShape(999.dp)
     val chipLabel: @Composable () -> Unit = { Text(label, style = OmenTheme.typography.chip.toTextStyle()) }

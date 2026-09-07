@@ -58,10 +58,13 @@ function defaultSleeperAdapter(overrides = {}) {
     fetchSleeperStandings: async () => SLEEPER_STANDINGS,
     fetchSleeperRoster: async () => ({ roster_id: 7 }),
     fetchSleeperMatchups: async () => ([
-      { roster_id: 7, matchup_id: 2, points: 88.4 },
-      { roster_id: 3, matchup_id: 2, points: 91.1 },
-      { roster_id: 9, matchup_id: 1, points: 60.0 },
+      { roster_id: 7, matchup_id: 2, points: 88.4, starters: ["1001", "1002"] },
+      { roster_id: 3, matchup_id: 2, points: 91.1, starters: ["2001", "0"] },
+      { roster_id: 9, matchup_id: 1, points: 60.0, starters: [] },
     ]),
+    // Sleeper's matchup rows carry no projected total, so the PROJ column is summed from the
+    // per-player projections endpoint. Stubbed here so the route's own wiring is exercised.
+    fetchSleeperProjections: async () => ({ 1001: 12.5, 1002: 9.25, 2001: 18.0 }),
     // The extractor itself is not mocked — the point is to exercise the real one.
     matchupFromMatchups: real.matchupFromMatchups,
     ...overrides,

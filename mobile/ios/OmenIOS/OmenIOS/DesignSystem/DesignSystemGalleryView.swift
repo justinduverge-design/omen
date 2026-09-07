@@ -114,6 +114,8 @@ struct DesignSystemGalleryView: View {
                             OmenChip(label: "RB", tone: .rb)
                             OmenChip(label: "Sleeper", tone: .sleeper, selected: true, action: {})
                             OmenChip(label: "Demo", tone: .demo, enabled: false, action: {})
+                            OmenChip(label: "All", tone: .omen, action: {})
+                            OmenChip(label: "+ Add League", tone: .verdigris, action: {})
                         }
                     }
                 }

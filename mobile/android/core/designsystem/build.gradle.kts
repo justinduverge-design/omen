@@ -45,3 +45,33 @@ dependencies {
     // Debug-only gallery Activity for on-device screenshot evidence (never in release).
     debugImplementation(libs.androidx.activity.compose)
 }
+
+/**
+ * `PrimitiveEnforcementTest` scans Kotlin sources in **other** modules — `app/src/main/kotlin`
+ * and any future `feature/` subtree — by walking the filesystem. Gradle has no way to know that,
+ * so those files are not task inputs, and `testDebugUnitTest` is happily UP-TO-DATE after an
+ * `app/` edit that introduces a violation.
+ *
+ * That is not theoretical. On 2026-09-07 a comment added to `OmenAuthFlow.kt` contained a hex
+ * literal in the banned shape; the very next `:core:designsystem:testDebugUnitTest` reported
+ * BUILD SUCCESSFUL because nothing in this module had changed. The guardrail was green while the
+ * thing it guards was red — the exact failure mode the scanner exists to prevent, one layer up.
+ *
+ * Declaring the scanned trees as inputs makes an `app/` edit invalidate the task, so the scan
+ * actually re-runs. `PathSensitivity.RELATIVE` keeps caching useful.
+ *
+ * Only directories that exist are declared. `inputs.dir(...).optional(true)` looks like it covers
+ * an absent one and does not — Gradle still validates the path and fails the task configuration
+ * with "Input file does not exist". `feature/` has no module yet, so it is filtered here and will
+ * start being tracked automatically on the day it appears.
+ */
+tasks.withType<Test>().configureEach {
+    listOf("app/src/main/kotlin", "feature")
+        .map { rootProject.layout.projectDirectory.dir(it) }
+        .filter { it.asFile.isDirectory }
+        .forEach { dir ->
+            inputs.dir(dir)
+                .withPathSensitivity(PathSensitivity.RELATIVE)
+                .withPropertyName("primitiveEnforcementScanRoot-${dir.asFile.name}")
+        }
+}

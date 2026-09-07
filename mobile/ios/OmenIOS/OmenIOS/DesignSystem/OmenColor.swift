@@ -23,6 +23,19 @@ enum OmenColor {
     static let accentMuted = dynamic(dark: 0x3A2A0A, light: 0xFEF3C7)
     static let textOnAccent = dynamic(dark: 0x0A0A0B, light: 0xFAFAF9)
     static let omen = dynamic(dark: 0x2F7D5B, light: 0x1A5C3E)
+
+    /// Verdigris tuned for **chip typography**, the same way `Data.platformSleeperChip` and
+    /// `platformEspnChip` are tuned for theirs.
+    ///
+    /// `omen`'s dark value `#2F7D5B` is 3.96:1 on `bg` — fine for a glow, a rule, or a fill, and
+    /// short of AA for 11pt chip text. `#3A9A70` is the same hue carried to **5.69:1** and is
+    /// used only where verdigris has to be *read*. The light value is unchanged at `#1A5C3E`
+    /// (7.94:1 on `surface1`), which already cleared AA.
+    ///
+    /// Founder, 2026-09-06: "add league pill should be verdigris green." Brand/brand-system.md
+    /// names Verdigris Green `#2F7D5B` as the intelligence/active-signal colour, so the chip that
+    /// *adds* a league now reads in it rather than borrowing brass from the filters beside it.
+    static let omenChip = dynamic(dark: 0x3A9A70, light: 0x1A5C3E)
     static let umber = dynamic(dark: 0x5A3A25, light: 0x5A3A25)
 
     /// Favourite / starred marks. Founder-approved 2026-09-05 and recorded in

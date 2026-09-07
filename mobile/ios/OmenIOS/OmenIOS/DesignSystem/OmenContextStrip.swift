@@ -83,10 +83,19 @@ struct OmenContextStrip: View {
                 .omenTextStyle(OmenTypography.h3)
                 .foregroundStyle(OmenColor.textPrimary)
             // Omitted entirely when the provider gave no name — never a placeholder.
+            //
+            // `label`, not `bodySmall`. `bodySmall` is the **serif** reading role; a league name
+            // is a label, and in serif under a sans team name it read as the opening of a
+            // sentence. Same correction as `OmenLeagueCarousel` and `OmenMatchupHero`, made in
+            // the same 2026-09-06 pass — this strip sits directly above the matchup card, so
+            // leaving it behind would have kept the mixed-font effect the founder flagged
+            // visible in the very next line.
             if let leagueName {
                 Text(leagueName)
-                    .omenTextStyle(OmenTypography.bodySmall)
+                    .omenTextStyle(OmenTypography.label)
                     .foregroundStyle(OmenColor.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         case let .needsRecovery(_, _, teamName, reason):
             Text(teamName)

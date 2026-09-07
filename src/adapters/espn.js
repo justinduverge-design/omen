@@ -37,6 +37,34 @@ async function writeCache(key, value, ttlSeconds) {
   await redis.set(key, JSON.stringify(value), { ex: ttlSeconds }).catch(() => {});
 }
 
+/**
+ * ESPN's own non-starter lineup slots, transcribed from its production client bundle
+ * (`cdn1.espn.net/kona/<build>/_next/static/commons/main-*.js`, read 2026-09-07) — the same
+ * source `normalizeFanGroupId` below already cites.
+ *
+ * ESPN ships a 26-row football `lineupSlots` table where every row carries an explicit
+ * `starter` boolean, and its client decides "does this player count toward the team's projected
+ * total" with exactly `lineupSlotsMap[lineupSlotId].starter`. Four rows are `starter: false`:
+ *
+ * | id | abbrev | name |
+ * |----|--------|------|
+ * | 20 | BE     | Bench |
+ * | 21 | IR     | Injured Reserve |
+ * | 22 | INV    | Invalid Player |
+ * | 25 | ALL    | All Players |
+ *
+ * **This is a set of ids, not a set of abbreviations, on purpose.** `LINEUP_SLOT_MAP` below
+ * names ten slots and answers `"UNK"` for the other sixteen, so a test written as
+ * `slot !== "BN" && slot !== "IR"` counts `INV` and `ALL` as starters. It also has to keep
+ * answering "starter" for the IDP and specialist slots (DT/DE/LB/DL/CB/S/DB/DP/P/HC/EDR) that
+ * `LINEUP_SLOT_MAP` does not name but ESPN marks `starter: true` — which it does, because this
+ * asks ESPN's question rather than Omen's.
+ */
+const ESPN_NON_STARTER_SLOT_IDS = new Set([20, 21, 22, 25]);
+
+/** ESPN `statSettings.sources`: `{id: 0, "Real"}`, `{id: 1, "Projected"}`. Same bundle. */
+const ESPN_PROJECTED_STAT_SOURCE_ID = 1;
+
 const LINEUP_SLOT_MAP = {
   0: "QB",
   2: "RB",
@@ -46,8 +74,14 @@ const LINEUP_SLOT_MAP = {
   17: "K",
   20: "BN",
   21: "IR",
+  // 22 and 25 are ESPN's other two `starter: false` rows. They were unnamed until 2026-09-07,
+  // which meant `slotFromId` answered `"UNK"` for them and every downstream test written as
+  // `slot !== "BN" && slot !== "IR"` — `rosterFromEspnData`'s bucketing and `tradeLineup`'s
+  // `lineupEligible` among them — treated an Invalid Player as a rostered starter.
+  22: "INV",
   23: "FLEX",
   24: "FLEX",
+  25: "ALL",
 };
 
 const POSITION_ID_MAP = {
@@ -80,6 +114,25 @@ function normalizeSwid(swid) {
 
 function slotFromId(slotId) {
   return LINEUP_SLOT_MAP[Number(slotId)] || "UNK";
+}
+
+/**
+ * Does this lineup slot count toward a team's weekly total, by ESPN's own definition?
+ *
+ * An unknown or absent slot id answers `false`. A roster entry with no slot is not evidence of
+ * a starter, and guessing "yes" would inflate a projected total with a player ESPN is not
+ * counting — the one direction of error that produces a confident wrong number.
+ */
+function isEspnStarterSlot(slotId) {
+  // `null`, `undefined` and `""` are rejected BEFORE the coercion, not after. `Number(null)` and
+  // `Number("")` are both `0`, and slot **0 is QB** — a real starter — so a bare
+  // `Number.isFinite` check would turn "this entry has no slot" into "this entry is your
+  // quarterback" and add its projection to the total. Same coercion trap as `firstFinite`
+  // above, and as the ESPN zero-projection failure in `known_issues.md`.
+  if (slotId === null || slotId === undefined || slotId === "") return false;
+  const id = Number(slotId);
+  if (!Number.isFinite(id)) return false;
+  return !ESPN_NON_STARTER_SLOT_IDS.has(id);
 }
 
 function positionFrom(value) {
@@ -154,13 +207,27 @@ function teamId(team) {
   return id == null ? null : String(id);
 }
 
+/**
+ * A team's display name, trimmed.
+ *
+ * ESPN stores exactly what the owner typed, and owners type padding: a live read on 2026-09-07
+ * returned `"    Love Thy Lamb"` (four leading spaces), `"    Hall Be Thy Name"` and
+ * `"The Bijan Incident "`. Untrimmed, that padding is laid out — a leading-space name renders
+ * visibly indented against every other row in the switcher, and a trailing space breaks the
+ * spacing before an adjacent glyph.
+ *
+ * The `combined` branch was already trimmed; `team.name` was not, and `team.name` is the branch
+ * that actually fires for these leagues. Collapses interior runs too, because `"A    B"` is the
+ * same class of typing artifact and no team means the extra spaces.
+ */
 function teamName(team) {
-  const combined = `${team?.location || ""} ${team?.nickname || ""}`.trim();
-  return team?.name
-    || team?.teamName
+  const clean = (v) => String(v || "").replace(/\s+/g, " ").trim();
+  const combined = `${clean(team?.location)} ${clean(team?.nickname)}`.trim();
+  return clean(team?.name)
+    || clean(team?.teamName)
     || combined
-    || team?.abbrev
-    || team?.abbreviation
+    || clean(team?.abbrev)
+    || clean(team?.abbreviation)
     || "Unknown";
 }
 
@@ -245,7 +312,12 @@ function normalizePlayer(entry, week) {
   const id = playerId(entry, player);
   const selectedPosition = slotFromId(entry?.lineupSlotId ?? entry?.lineupSlot ?? entry?.slotId);
   const primaryPosition = positionFrom(player?.defaultPosition || player?.defaultPositionId || player?.position);
-  const isStarter = selectedPosition !== "BN" && selectedPosition !== "IR";
+  // Asked of the slot ID against ESPN's own `starter` flag, not of `LINEUP_SLOT_MAP`'s
+  // abbreviation. The old test was `selectedPosition !== "BN" && selectedPosition !== "IR"`,
+  // and `LINEUP_SLOT_MAP` answers `"UNK"` for the sixteen slots it does not name — so slot 22
+  // (INV, Invalid Player) and slot 25 (ALL) both read as starters. See
+  // `ESPN_NON_STARTER_SLOT_IDS` for the transcribed table.
+  const isStarter = isEspnStarterSlot(entry?.lineupSlotId ?? entry?.lineupSlot ?? entry?.slotId);
 
   return {
     player_key: `espn:${id}`,
@@ -288,11 +360,29 @@ function normalizePlayer(entry, week) {
 
 const ESPN_WAIVER_STATUSES = new Set(["FREEAGENT", "WAIVERS"]);
 
+/**
+ * The projected points ESPN publishes for one player in one week.
+ *
+ * Verified 2026-09-07 against ESPN's production bundle rather than inferred:
+ *
+ * - `statSourceId: 1` is `Projected` and `0` is `Real`, per ESPN's own
+ *   `statSettings.sources` table. `ESPN_PROJECTED_STAT_SOURCE_ID` names it.
+ * - `appliedTotal` is the field ESPN's projection resolver reads
+ *   (`const h = player.stats(seasonId, scoringPeriodId, projectedSourceId, gameSplitId);
+ *   ... h.appliedTotal`). Not `appliedAverage`, not the raw `stats` map.
+ *
+ * **No `statSplitTypeId` filter, deliberately.** ESPN keys its season-long projection row to
+ * `scoringPeriodId: 0` and its weekly rows to the week, so requiring
+ * `scoringPeriodId === requestedWeek` already excludes the season row — which is the only
+ * collision that matters here. Adding a hardcoded split id would be a second constant to keep
+ * true for no gain, and ESPN resolves that id by lookup (`find(splitTypes, {gameSplit: true})`)
+ * rather than by literal, precisely because it is not stable across its sports.
+ */
 function projectedPointsForEspnPlayer(player, week) {
   const requestedWeek = Number(week);
   const stats = Array.isArray(player?.stats) ? player.stats : [];
   const projection = stats.find((stat) =>
-    Number(stat?.statSourceId) === 1
+    Number(stat?.statSourceId) === ESPN_PROJECTED_STAT_SOURCE_ID
     && (Number.isFinite(requestedWeek) ? Number(stat?.scoringPeriodId) === requestedWeek : true)
   );
   return firstFinite(projection?.appliedTotal);
@@ -324,7 +414,9 @@ function waiverPoolFromEspnData(data, opts = {}) {
       team: player?.proTeamAbbreviation || player?.teamAbbrev || player?.team || null,
       status: statusFrom(player?.injuryStatus || player?.injury_status),
       // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
-      // substituted, even when a projection is unavailable for this period.
+      // substituted, even when a projection is unavailable for this period. Confirmed
+      // 2026-09-07 against ESPN's own `statSettings.sources` table:
+      // `[{id: 0, description: "Real"}, {id: 1, description: "Projected"}]`.
       projected_points: projectedPointsForEspnPlayer(player, requestedWeek),
     }];
   });
@@ -582,11 +674,17 @@ function rosterFromEspnData(data, leagueId, swid, week, opts = {}) {
     throw err;
   }
 
+  // Bucketed by `is_starter` — which `normalizePlayer` derives from ESPN's own `starter` flag —
+  // rather than by re-testing the abbreviation here. The old `else slots.starters.push(...)`
+  // was a catch-all, so any slot `LINEUP_SLOT_MAP` did not name fell into **starters**: an
+  // Invalid Player (22) or the ALL pseudo-slot (25) arrived at the lineup optimizer as part of
+  // the user's starting lineup. IR keeps its own bucket because callers distinguish it from
+  // bench; everything else ESPN does not count is bench.
   const slots = { starters: [], bench: [], ir: [] };
   for (const entry of rosterEntries(team)) {
     const normalized = normalizePlayer(entry, scoringPeriodId);
     if (normalized.selected_position === "IR") slots.ir.push(normalized);
-    else if (normalized.selected_position === "BN") slots.bench.push(normalized);
+    else if (!normalized.is_starter) slots.bench.push(normalized);
     else slots.starters.push(normalized);
   }
 
@@ -743,6 +841,98 @@ function espnMatchupPoints(side) {
   return Number.isFinite(Number(value)) ? Number(value) : null;
 }
 
+/**
+ * A matchup side's projected total, read the way ESPN's own client reads it.
+ *
+ * `projected` was hardwired to `null` here above a comment reading "ESPN can carry projections
+ * in other views; this one does not". That was true of the *request* Omen was making, not of
+ * ESPN. Corrected 2026-09-07 against ESPN's production client bundle
+ * (`cdn1.espn.net/kona/<build>/_next/static/commons/main-*.js` and its `boxscore` page chunk),
+ * which settled three things that had been guesses:
+ *
+ * 1. **`view=["mMatchup","mMatchupScore"]` is ESPN's own pair.** Its matchup fetch requests
+ *    exactly those two with a `scoringPeriodId`. `fetchEspnMatchup` now matches it.
+ *
+ * 2. **`totalProjectedPointsLive` is computed on the client** — ESPN's boxscore chunk sums it and
+ *    assigns it back onto the matchup-team object:
+ *
+ *        const n = entries.reduce((acc, entry) => {
+ *          const slot = lineupSlotsMap[entry.lineupSlotId];
+ *          if (slot && slot.starter) acc += projectionFor(entry).projectedPoints;
+ *          return acc;
+ *        }, 0);
+ *        runInAction(() => { team.totalProjectedPointsLive = n });
+ *
+ *    **Corrected 2026-09-07 against a real league** (`scripts/espn-projection-live-proof.js`):
+ *    the bundle read concluded from that assignment that the field would be *absent* on a
+ *    response. It is not — a live league returns `totalProjectedPointsLive` as a number, and the
+ *    client's own sum overwrites it. So the original note here was right about where the client
+ *    gets its displayed value and wrong about the wire. Both it and **`totalProjectedPoints`**
+ *    (ESPN's *delayed* projection) come back populated; the ordering below is unchanged, because
+ *    it mirrors what ESPN *displays* rather than what it merely sends.
+ *
+ * 3. **The starter sum IS ESPN's headline number.** Its matchup header prints
+ *    `formatMessage(projected, { score: totalProjectedPointsLive })` — the client-side starter
+ *    sum, not the server field. So this reads in the same order ESPN displays in: sum the
+ *    starters when the roster is present, and fall back to the server's stated total when it
+ *    is not. The earlier version had this backwards.
+ *
+ * `null` when neither answers, never `0`. ESPN publishes no projections for a season until its
+ * first week goes live, and a confident zero during that window is exactly the failure recorded
+ * in `known_issues.md` under the 2026-09-05 `mvp-move` hang: `Number(null) === 0` downstream
+ * made every ESPN player a confident zero and every lineup a tie.
+ */
+function espnMatchupProjected(side, week) {
+  const summed = espnStarterProjectionSum(side, week);
+  if (summed != null) return summed;
+
+  // ESPN's own stated totals, used when a side ships no roster to sum. Both are really present
+  // on the wire (proved against a live league 2026-09-07); `totalProjectedPoints` leads because
+  // it is the server's own number, with the client-computed `…Live` behind it.
+  return firstFinite(
+    side?.totalProjectedPoints,
+    side?.team?.totalProjectedPoints,
+    side?.totalProjectedPointsLive,
+    side?.team?.totalProjectedPointsLive
+  );
+}
+
+/**
+ * ESPN's own algorithm: sum `projectedPoints` over the entries whose lineup slot ESPN marks
+ * `starter: true`. Bench, IR, INV and ALL are excluded by `isEspnStarterSlot`.
+ *
+ * `rosterForCurrentScoringPeriod` first, then `rosterForMatchupPeriod` — both names are read by
+ * ESPN's matchup-team model, and the first is the one keyed to the week being asked for.
+ *
+ * Returns `null` rather than `0` when there is no roster, or when no starter carried a
+ * projection. A starter ESPN has no projection row for contributes nothing to a sum that
+ * already has at least one real number in it, which is the same treatment ESPN's own reduce
+ * gives it.
+ */
+function espnStarterProjectionSum(side, week) {
+  const entries = Array.isArray(side?.rosterForCurrentScoringPeriod?.entries)
+    ? side.rosterForCurrentScoringPeriod.entries
+    : Array.isArray(side?.rosterForMatchupPeriod?.entries)
+      ? side.rosterForMatchupPeriod.entries
+      : [];
+  if (!entries.length) return null;
+
+  let total = 0;
+  let found = false;
+  for (const entry of entries) {
+    if (!isEspnStarterSlot(entry?.lineupSlotId ?? entry?.lineupSlot ?? entry?.slotId)) continue;
+    const points = firstFinite(
+      entry?.projectedPoints,
+      entry?.projected_points,
+      projectedPointsForEspnPlayer(unwrapPlayer(entry), week)
+    );
+    if (points == null) continue;
+    total += points;
+    found = true;
+  }
+  return found ? Math.round(total * 100) / 100 : null;
+}
+
 function lastResultFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, schedule }) {
   const games = Array.isArray(schedule) ? schedule : [];
   const targetTeamId = requestedTeamId == null ? null : String(requestedTeamId);
@@ -832,8 +1022,7 @@ function matchupFromEspnSchedule({ leagueId, week, teamId: requestedTeamId, sche
           ? `${standingsRow.wins}-${standingsRow.losses}`
           : null,
         points: espnMatchupPoints(entry),
-        // ESPN can carry projections in other views; this one does not. Null, never a guess.
-        projected: null,
+        projected: espnMatchupProjected(entry, week),
       };
     };
 
@@ -888,7 +1077,10 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
  */
 async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
-  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup"], scoringPeriodId, opts);
+  // `mMatchupScore` is what carries the projected totals and the per-side roster the PROJ
+  // column is summed from. `mMatchup` alone gives the schedule and the actual points, which is
+  // why every ESPN league reported `projected: null` while Yahoo reported a number.
+  const data = await fetchEspnApi(leagueId, espn_s2, swid, ["mMatchup", "mMatchupScore"], scoringPeriodId, opts);
   return matchupFromEspnSchedule({
     leagueId,
     week: scoringPeriodId,
@@ -1012,6 +1204,8 @@ module.exports = {
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   matchupFromEspnSchedule,
+  espnMatchupProjected,
+  isEspnStarterSlot,
   standingsFromEspnData,
   teamFromEspnData,
   rosterFromEspnData,
