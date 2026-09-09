@@ -27,20 +27,36 @@ class OmenTypographyTest {
         uiRoles.forEach { assertEquals(OmenFontFamilies.alegreyaSans, it.family) }
     }
 
+    /**
+     * Amended 2026-09-07: the app moved to a single typeface, so the serif and mono assertions
+     * these replaced no longer describe the design. Every role now resolves to one family, and
+     * that is the property worth locking — a second family creeping back in is the regression.
+     */
     @Test
-    fun `reading roles use the serif fallback`() {
-        assertEquals(OmenFontFamilies.alegreya, OmenTypographyRoles.body.family)
-        assertEquals(OmenFontFamilies.alegreya, OmenTypographyRoles.bodySmall.family)
-    }
-
-    @Test
-    fun `numeric and compact-label roles use the mono fallback`() {
-        val monoRoles = listOf(
+    fun `every role uses the one family`() {
+        val allRoles = listOf(
+            OmenTypographyRoles.display,
+            OmenTypographyRoles.h1,
+            OmenTypographyRoles.h2,
+            OmenTypographyRoles.h3,
+            OmenTypographyRoles.body,
+            OmenTypographyRoles.bodySmall,
+            OmenTypographyRoles.label,
             OmenTypographyRoles.eyebrow,
             OmenTypographyRoles.chip,
             OmenTypographyRoles.numeric,
         )
-        monoRoles.forEach { assertEquals(OmenFontFamilies.dmMono, it.family) }
+        allRoles.forEach { assertEquals(OmenFontFamilies.alegreyaSans, it.family) }
+    }
+
+    /**
+     * Column alignment must survive losing the mono family. It comes from the tabular-figure
+     * feature applied in `toTextStyle()`, not from the typeface. Reintroducing a mono family to
+     * hold a column straight is prohibited (facts-of-record #21).
+     */
+    @Test
+    fun `the numeric role still asks for tabular figures`() {
+        assertTrue(OmenTypographyRoles.numeric.tabularNumbers)
     }
 
     @Test

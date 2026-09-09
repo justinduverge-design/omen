@@ -2,17 +2,38 @@ import SwiftUI
 import UIKit
 
 /// Native font-family seam (registry §2.4; m1-native-typography-build-brief-v1.md §3).
-/// Alegreya Sans / Alegreya / DM Mono are the locked families, but font-file acquisition is a
-/// separately approved asset/license decision not yet made (brief §7). Until then this resolves
-/// to `UIFontDescriptor.SystemDesign` fallbacks chosen to preserve the *shape* of the role split
-/// — default (sans) for UI/headings, serif for long-form reading, monospaced for numeric/
-/// code-adjacent values — so the hierarchy degrades gracefully rather than collapsing to one
-/// face. Swapping in the real font resources is a one-line change here; no call site may
-/// reference a font family directly (registry §2.6).
-private enum OmenFontDesign {
-    static let alegreyaSans: UIFontDescriptor.SystemDesign = .default
-    static let alegreya: UIFontDescriptor.SystemDesign = .serif
-    static let dmMono: UIFontDescriptor.SystemDesign = .monospaced
+///
+/// **One typeface, founder decision 2026-09-07.** The app previously carried a three-family role
+/// split — Alegreya Sans for UI, Alegreya for reading copy, DM Mono for eyebrow/chip/numeric.
+/// No font files had ever been committed, so that split rendered as SF Pro / New York / SF Mono
+/// on device and was never seen in its intended faces. The founder judged the result and chose to
+/// collapse to a single family rather than ship the three. Alegreya Sans is now the only family in
+/// the app; hierarchy is carried by size, weight, tracking and case alone.
+///
+/// This supersedes `W2-Typography`, which retired only DM Mono.
+///
+/// The files are committed under `OmenIOS/Fonts/` under the SIL Open Font License 1.1 with
+/// `OFL.txt` intact, and registered through `UIAppFonts` in `Info.plist`.
+///
+/// **Alegreya Sans has no 600 weight** (the family ships 100/300/400/500/700/800/900), so the
+/// two `.semibold` roles resolve to Bold. That is the same resolution the design canvas produced
+/// — CSS font matching promotes 600 to 700 against this family — so the shipped app matches the
+/// artboards the founder approved rather than silently synthesising a weight.
+///
+/// No call site may name a font family directly (registry §2.6); this enum stays the only seam.
+private enum OmenFontFamily {
+    /// The one family. `nil` from `UIFont(name:size:)` means the resource failed to register,
+    /// in which case the role falls back to the system face rather than rendering nothing.
+    static func postScriptName(for weight: UIFont.Weight) -> String {
+        switch weight {
+        case .bold, .heavy, .black, .semibold: return "AlegreyaSans-Bold"
+        case .medium: return "AlegreyaSans-Medium"
+        default: return "AlegreyaSans-Regular"
+        }
+    }
+
+    /// Retained as the fallback shape if the bundled resource ever fails to load.
+    static let fallbackDesign: UIFontDescriptor.SystemDesign = .default
 }
 
 /// One shared type role. `size`/`lineHeight` are literal points from the locked role map
@@ -31,11 +52,20 @@ struct OmenTypeRoleSpec {
     let tabularNumbers: Bool
 
     var font: Font {
+        let scaled = UIFontMetrics(forTextStyle: relativeTo).scaledFont(for: resolvedUIFont)
+        return Font(scaled)
+    }
+
+    /// The unscaled face this role resolves to. Exposed so a test can assert the app is running
+    /// on the real family rather than on a system stand-in — the failure that went unnoticed for
+    /// the whole life of the three-family seam.
+    var resolvedUIFont: UIFont {
+        if let named = UIFont(name: OmenFontFamily.postScriptName(for: weight), size: size) {
+            return named
+        }
         let base = UIFont.systemFont(ofSize: size, weight: weight)
         let descriptor = base.fontDescriptor.withDesign(design) ?? base.fontDescriptor
-        let designed = UIFont(descriptor: descriptor, size: size)
-        let scaled = UIFontMetrics(forTextStyle: relativeTo).scaledFont(for: designed)
-        return Font(scaled)
+        return UIFont(descriptor: descriptor, size: size)
     }
 
     /// The **same role at a display size**. Family, tracking, case and tabular-figure rule are
@@ -70,43 +100,43 @@ struct OmenTypeRoleSpec {
 /// The ten locked roles from the registry §2.4 / typography brief §2.
 enum OmenTypography {
     static let display = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreyaSans, size: 48, weight: .bold,
+        design: OmenFontFamily.fallbackDesign, size: 48, weight: .bold,
         relativeTo: .largeTitle, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let h1 = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreyaSans, size: 32, weight: .bold,
+        design: OmenFontFamily.fallbackDesign, size: 32, weight: .bold,
         relativeTo: .title1, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let h2 = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreyaSans, size: 20, weight: .semibold,
+        design: OmenFontFamily.fallbackDesign, size: 20, weight: .semibold,
         relativeTo: .title2, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let h3 = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreyaSans, size: 16, weight: .semibold,
+        design: OmenFontFamily.fallbackDesign, size: 16, weight: .semibold,
         relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let body = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreya, size: 15, weight: .regular,
+        design: OmenFontFamily.fallbackDesign, size: 15, weight: .regular,
         relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let bodySmall = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreya, size: 13, weight: .regular,
+        design: OmenFontFamily.fallbackDesign, size: 13, weight: .regular,
         relativeTo: .footnote, tracking: 0, uppercase: false, tabularNumbers: false
     )
     static let label = OmenTypeRoleSpec(
-        design: OmenFontDesign.alegreyaSans, size: 12, weight: .medium,
+        design: OmenFontFamily.fallbackDesign, size: 12, weight: .medium,
         relativeTo: .caption1, tracking: 12 * 0.05, uppercase: false, tabularNumbers: false
     )
     static let eyebrow = OmenTypeRoleSpec(
-        design: OmenFontDesign.dmMono, size: 12, weight: .medium,
+        design: OmenFontFamily.fallbackDesign, size: 12, weight: .medium,
         relativeTo: .caption1, tracking: 12 * 0.12, uppercase: true, tabularNumbers: false
     )
     static let chip = OmenTypeRoleSpec(
-        design: OmenFontDesign.dmMono, size: 11, weight: .medium,
+        design: OmenFontFamily.fallbackDesign, size: 11, weight: .medium,
         relativeTo: .caption2, tracking: 11 * 0.10, uppercase: true, tabularNumbers: false
     )
     static let numeric = OmenTypeRoleSpec(
-        design: OmenFontDesign.dmMono, size: 15, weight: .medium,
+        design: OmenFontFamily.fallbackDesign, size: 15, weight: .medium,
         relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: true
     )
 }

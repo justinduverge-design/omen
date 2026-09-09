@@ -585,7 +585,14 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 ### M12-BrandFonts — Ship the locked Omen typefaces in both native apps
 
-- **Status:** READY
+- **Status:** READY — **needs re-scoping, 2026-09-07.** The one-typeface decision shipped
+  **Alegreya Sans** (Regular / Medium / Bold, SIL OFL 1.1, licence intact) on both platforms, with
+  a test on each asserting the roles resolve to the real family rather than a system stand-in. The
+  other two locked families are **moot under that decision** — Alegreya and DM Mono are no longer
+  in the design. So this item as written can never be completed, and what remains of it is a
+  closeout plus its two live consequences: the promotional-footage gate is now open, and this
+  item's own note makes landing real fonts the trigger to **re-raise the Dynamic Type finding** in
+  `known_issues.md`, which has not been done. **Founder call** — not re-scoped by an agent.
 - **Blocked by:** None as of 2026-08-29. ~~TASK-M5-Native-API-Client — specifically slices F and G, which are not built.~~ **Slices F and G shipped and merged to `main` on 2026-08-29** (`e603a08`), so the founder's "build the walls, build the rooms, paint it" sequencing is satisfied and this is the paint pass. Cleared during debt-preflight Stage 0.3; found by reading the blocker against `main` rather than by the staleness script, which matches PR titles and cannot see a sequencing blocker. **This item now gates `F11` — do not run the accessibility pass on system fallbacks.**
 - **Priority:** P1 — **a prerequisite for any promotional footage.** Raised from invisible: until 2026-08-28 this defect existed only in `Direction/known_issues.md` and issue [#338](https://github.com/justinduverge-design/omen/issues/338) and was in **no** queue, which is exactly the failure `M10` exists to catch.
 - **Cost:** small
@@ -1155,7 +1162,12 @@ Waves 2–5 get their own contracts and are **not** queued here yet — they are
 
 ### W2-Typography — Retire DM Mono across both native platforms
 
-- **Status:** READY
+- **Status:** SUPERSEDED 2026-09-07 by the one-typeface founder decision, which retired DM Mono
+  **and** the serif in the same pass. Its `Done when:` is met and exceeded: no mono family resolves
+  anywhere on either platform, and `numeric` still renders tabular digits through
+  `.monospacedDigit()` / the Android tabular feature, asserted by a test on each side. Its **Do not
+  touch** held — column alignment never depended on the typeface. Awaiting a `Closure:` value.
+- ~~**Status:** READY~~
 - **Blocked by:** None
 - **Priority:** P1 — design-system correctness; blocks nothing but touches every screen
 - **Cost:** small
