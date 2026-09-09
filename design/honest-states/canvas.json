@@ -1,0 +1,148 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Waiver \u00a76"
+    },
+    {
+      "id": "page-2",
+      "name": "Start/Sit \u00a75 \u00b7 Ledger \u00a77"
+    },
+    {
+      "id": "page-3",
+      "name": "League \u00b7 Switcher"
+    },
+    {
+      "id": "page-4",
+      "name": "Trade rebuild"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "WaiverNotDetermined.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "WaiverNoMove.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "StartSitClear.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "StartSitIncomplete.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "LedgerDetail.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "LeagueDegraded.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-3"
+    },
+    {
+      "file": "SwitcherSheet.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-3"
+    },
+    {
+      "file": "TradeRoster.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4"
+    },
+    {
+      "file": "TradeNeedsContext.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "n-waiver",
+      "x": 0,
+      "y": -250,
+      "w": 860,
+      "page": "page-1",
+      "text": "GET /api/waivers/analysis -> waiver-analysis.v1\n\nThe \u00a76.2 gate is the whole point of these three. A FAAB number appears ONLY for a league positively determined FAAB; a priority position ONLY for one determined priority; NEITHER when the system is not_determined. The middle artboard is that third case -- the move still renders, the bid does not.\n\nbest_move.bid is null when any input is missing, never 0. Claim probability is never returned for any league, so nothing here estimates whether a claim wins. A deadline shows only when availability was confirmed."
+    },
+    {
+      "id": "n-evidence",
+      "x": 0,
+      "y": -250,
+      "w": 860,
+      "page": "page-2",
+      "text": "GET /api/start-sit/detail -> start-sit-detail.v1   \u00b7   GET /api/moves/:id -> move-detail.v1\n\nEvery evidence entry carries its own kind, so a projection is never drawn as a fact. The chip is the mechanism: green Fact = verified, brass Proj = projection, blue Omen = inference, grey Gap = limitation. Same idea on the Ledger receipt, where the categories are league_context / player_game_fact / model_input / omen_inference / limitation.\n\nAn unverified scoring format is stated as a limitation and never assumed to be PPR -- the middle artboard. The Ledger receipt shows the other half: a call that pre-dates scoring capture names the PPR fallback as a limitation, and the stored win/loss is translated into measured language, never surfaced raw."
+    },
+    {
+      "id": "n-league",
+      "x": 0,
+      "y": -250,
+      "w": 860,
+      "page": "page-3",
+      "text": "GET /api/league/overview -> league-overview.v1   \u00b7   GET /api/leagues -> league-directory.v1\n\nmatchup, standings and activity each carry their own status and FAIL INDEPENDENTLY. A dead matchup read sits beside live standings -- it does not take the screen down. playoff_picture.settings_known is true only for Sleeper today, so ESPN and Yahoo get no cut line rather than a guessed one. The deadline signal is deliberately absent everywhere.\n\nOn the switcher: platform groups are ordered by followed-league count, most first, ties alphabetical, and leagues alphabetically within a platform. The server is the single authority on that order -- CLIENTS MUST NOT RE-SORT. is_active is one league; is_followed is many. A per-platform failure degrades that group only, which is the Yahoo row."
+    },
+    {
+      "id": "n-trade",
+      "x": 0,
+      "y": -250,
+      "w": 860,
+      "page": "page-4",
+      "text": "POST /api/trade/compare -> trade-compare.v2\n\nToday's native Trade screen is two text fields and a Compare button. The builder here is the rebuild: roster-based, with the two- and three-team shapes as a real control.\n\nThe second artboard is the close_needs_context verdict, which is where the contract is most opinionated. Sending league_context AND a bearer token opts into personalized analysis; without it the honest answer is that the two players are close and the roster decides. Unauthenticated returns 200, not 401 -- anyone can read a trade without an account, and the screen has to be complete in that state."
+    },
+    {
+      "id": "n-scope",
+      "x": 900,
+      "y": -250,
+      "w": 420,
+      "page": "page-1",
+      "text": "NOT DESIGNED HERE, and deliberately:\n\n\u00b7 Store listing assets. They come after the app is presentable, per the founder call.\n\u00b7 off_season and no_decision states across all screens.\n\u00b7 player_unavailable on Start/Sit.\n\u00b7 The healthy full League overview -- the existing canvas already carries a matchup + standings screen.\n\u00b7 Trade share output and counters.\n\nAll sample data is invented. No real league, team or player figure here was read from a provider."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

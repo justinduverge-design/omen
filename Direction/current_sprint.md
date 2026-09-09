@@ -146,7 +146,10 @@ Every task plan must name the selected skills and explain why any normally requi
 
 - **Core docs:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-git-flow`
 - **Core implementation:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-quality-baseline`, `slops-code-review`
-- **UI / UX:** core implementation + `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change
+- **UI / UX — web:** core implementation + `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change
+- **UI / UX — native (iOS + Android):** core implementation + `slops-taste`, **`slops-canvas-to-code`** (before the build, whenever the screen has an artboard), **`slops-native-ui-audit`** (for the verdict), `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change. **Do not use `slops-ui-ux-audit` for native** — it audits a partially-superseded web spec in web units.
+  - The two native skills answer **different questions and both are needed**: `slops-canvas-to-code` asks *does the screen match its artboard*; `slops-native-ui-audit` asks *is the screen any good*. Neither substitutes for the other.
+  - **Added 2026-09-07.** Both skills existed and neither was routed anywhere, so the page-by-page canvas work was done by hand. `slops-canvas-to-code` was written for precisely that failure and quotes it: *"When I tried to build the pages with codex I ran out of rate limits because I didn't do the job exactly like the canvas presented it, forgot placements and icons. It was bad."*
 - **Trust boundary:** core implementation + `security-privacy-evidence`, `rbac-risk-review`; add `slops-legal-spot-check` when provider claims, privacy, terms, attribution, or public data-use copy changes
 - **Data / ingest:** core implementation + `pre-build-research`, `slops-data-ingest-plan`, `security-privacy-evidence`
 - **AI path:** core implementation + `slops-ai-integration-review`, `security-privacy-evidence`; add `slops-financial-sketch` when cost scenarios matter

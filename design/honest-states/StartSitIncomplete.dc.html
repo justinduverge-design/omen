@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&family=Alegreya:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #A67C2E; } a:hover { color: #C49035; }
+    .sans { font-family: 'Alegreya Sans', system-ui, sans-serif; }
+    .serif { font-family: 'Alegreya', Georgia, serif; }
+    .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #AEAEB2; }
+    .chip { font-size: 11px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; }
+    .h1 { font-size: 32px; font-weight: 700; color: #F5F0E8; line-height: 1.1; }
+    .h2 { font-size: 20px; font-weight: 600; color: #F5F0E8; line-height: 1.25; }
+    .h3 { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+    .body { font-family: 'Alegreya', Georgia, serif; font-size: 15px; color: #F5F0E8; line-height: 1.5; }
+    .small { font-family: 'Alegreya', Georgia, serif; font-size: 13px; color: #AEAEB2; line-height: 1.45; }
+    .card { background: #1C1C1E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 24px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .lim { font-family: 'Alegreya', Georgia, serif; font-size: 12.5px; color: #6D6D72; line-height: 1.45; }
+  </style>
+</helmet>
+<div class="sans" style="width: 390px; height: 844px; background: #0A0A0B; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="height: 54px; flex-shrink: 0;"></div>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: #1C1C1E; border-bottom: 1px solid #2C2C2E; flex-shrink: 0;">
+    <div class="chip" style="display: flex; align-items: center; gap: 5px; color: #AEAEB2; min-width: 0;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#C7CBD1" stroke="none" style="flex-shrink:0;"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>
+      <span style="color: #F5F0E8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Bayou Bandits</span>
+      <span style="color: #6D6D72; flex-shrink: 0;">· ESPN · Week 7</span>
+    </div>
+    <div class="chip" style="display: flex; align-items: center; gap: 4px; color: #A67C2E; flex-shrink: 0;">Switch
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+  <div style="flex: 1; overflow: hidden; padding: 20px 16px 0 16px; display: flex; flex-direction: column; gap: 18px;">
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <div class="h1" style="font-size: 28px;">Flex</div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 16px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div class="h2">Tyjae Spears</div>
+          <div class="lim">RB · TEN · vs IND</div>
+        </div>
+        <div style="text-align: right; display: flex; flex-direction: column; gap: 2px;">
+          <div class="h2 num" style="color: #F5F0E8;">11.2</div>
+          <div class="lim">projected</div>
+        </div>
+      </div>
+      <div style="height: 1px; background: #2C2C2E;"></div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 16px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div class="h2">Khalil Shakir</div>
+          <div class="lim">WR · BUF · at MIA</div>
+        </div>
+        <div style="text-align: right; display: flex; flex-direction: column; gap: 2px;">
+          <div class="h2 num" style="color: #F5F0E8;">10.6</div>
+          <div class="lim">projected</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="h2" style="font-size: 20px; line-height: 1.3;">Too close to call, and the reason matters.</div>
+      <div class="body" style="color: #AEAEB2; font-size: 14px;">Six tenths of a point apart is not a difference we can stand behind — and we do not know how your league scores receptions, which is exactly what separates these two.</div>
+    </div>
+
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; border-color: #A67C2E;">
+      <div style="display: flex; align-items: flex-start; gap: 10px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A67C2E" stroke-width="2" stroke-linecap="round" style="flex-shrink:0; margin-top:1px;"><path d="M12 3l9 16H3z"></path><line x1="12" y1="9" x2="12" y2="14"></line><line x1="12" y1="16.5" x2="12" y2="16.6"></line></svg>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+          <div class="h3" style="font-size: 14px; color: #A67C2E;">Your scoring is unread</div>
+          <div class="lim" style="color: #AEAEB2;">ESPN has not given us this league's scoring rules. Shakir caught 7 balls last week and Spears caught 2 — so in a full-PPR league Shakir is ahead, and in standard he is behind. We are not assuming which.</div>
+        </div>
+      </div>
+      <div style="height: 1px; background: #2C2C2E;"></div>
+      <div class="chip" style="color: #A67C2E;">Set it manually</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="eyebrow">What this rests on</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div class="chip" style="color: #34C759; border: 1px solid #34C759; border-radius: 3px; padding: 2px 5px; width: 62px; text-align: center; flex-shrink: 0;">Fact</div>
+          <div class="small" style="color: #F5F0E8; flex-grow: 1;">Both are active. Neither carries a designation.</div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div class="chip" style="color: #6D6D72; border: 1px solid #3A3A3C; border-radius: 3px; padding: 2px 5px; width: 62px; text-align: center; flex-shrink: 0;">Gap</div>
+          <div class="small" style="color: #6D6D72; flex-grow: 1;">League scoring format — unread. Without it we cannot rank a volume receiver against a runner.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

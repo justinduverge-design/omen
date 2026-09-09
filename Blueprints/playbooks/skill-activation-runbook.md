@@ -42,7 +42,9 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 | `slops-tdd` | Required for behavior changes | Backend/API/data/integration behavior or reproducible defect changes | Intended RED, GREEN, broader test result |
 | `slops-git-flow` | Required for implementation | Any scoped branch/commit/PR work | Branch/base/scope/commit/PR evidence |
 | `slops-quality-baseline` | Required before merge/release | Any implementation or dependency/config quality change | Tests, audit, build, diff check versus baseline |
-| `slops-ui-ux-audit` | Required for UI verdict | User-visible UI, state, accessibility, responsive, or design-system change | P0/P1/P2 audit and screenshots |
+| `slops-canvas-to-code` | **Required before building any canvas screen** | A `.dc.html` artboard in `design/` is about to become a built screen, a built screen drifted from its artboard, or a screen build is burning retries | Screen contract with a per-element acceptance checklist, then a build-vs-artboard diff |
+| `slops-native-ui-audit` | **Required for a native UI verdict** | A native iOS SwiftUI or Android Compose screen changes — tap targets, Dynamic Type/font scale, VoiceOver/TalkBack, contrast under team skins, reduce-motion, dark mode, honest mock/live labeling | Severity-ranked native findings |
+| `slops-ui-ux-audit` | Required for a **web** UI verdict | User-visible **web** UI, state, accessibility, responsive, or design-system change. **Not the native path** — it audits `omen-ux-ui-design-system-v1.md`, which this repo's `CLAUDE.md` marks partially superseded, and its checks are web checks (ARIA, WCAG on a page, 44 *pixels*). Use `slops-native-ui-audit` for native. | P0/P1/P2 audit and screenshots |
 | `slops-ux-copy` | Required when UX words change | CTA, state, onboarding, recommendation, error, or confirmation copy | Approved copy options/diff |
 | `slops-code-review` | Required before code merge | Branch/PR/diff changes code or trust boundaries | Merge/fix/block verdict with findings |
 | `slops-canary` | Required after deploy | Production cutover or release completes | Timed health/route/error/latency verdict |
