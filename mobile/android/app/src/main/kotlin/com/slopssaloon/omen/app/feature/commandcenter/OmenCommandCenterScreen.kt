@@ -43,7 +43,6 @@ import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -222,11 +221,7 @@ fun OmenCommandCenterScreen(
     // Figma `73:2`: "Android opens the detail sheet as a ModalBottomSheet".
     val row = detailRow
     if (row != null) {
-        ModalBottomSheet(
-            onDismissRequest = { detailRow = null },
-            containerColor = OmenTheme.color.bg,
-            dragHandle = { OmenSheetDragHandle() },
-        ) {
+        ModalBottomSheet(onDismissRequest = { detailRow = null }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -466,25 +461,15 @@ private fun WaiverCallToActionOnly(state: OmenWaiverWatchState, onOpenWaiver: ()
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun OmenSheetDragHandle() {
-    BottomSheetDefaults.DragHandle(color = OmenTheme.color.border)
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
 private fun CommandCenterDetailSheet(
     title: String,
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    // OmenTheme does not wrap MaterialTheme, so a ModalBottomSheet with no containerColor
-    // renders on Material's default LIGHT surface while every child paints Omen's dark
-    // tokens — the sheet title came out pale gold on near-white. Name the surface here.
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = OmenTheme.color.bg,
-        dragHandle = { OmenSheetDragHandle() },
-    ) {
+    // No containerColor here on purpose: `OmenTheme` now hands MaterialTheme a scheme built
+    // from Omen tokens, so `surfaceContainerLow` — what a sheet defaults to — is already an
+    // Omen surface. Naming it again here would be a second source of truth for the same fact.
+    ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
             verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),

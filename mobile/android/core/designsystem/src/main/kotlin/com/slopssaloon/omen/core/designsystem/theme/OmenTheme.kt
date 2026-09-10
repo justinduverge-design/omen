@@ -71,7 +71,11 @@ object OmenTheme {
             // Compose foundation components (OutlinedTextField, ModalBottomSheet, etc.) still
             // read MaterialTheme — bridge the minimum surface so Material defaults don't fight
             // Omen tokens. Omen components should still prefer OmenTheme.color directly.
-            MaterialTheme {
+            //
+            // This call used to pass no arguments, which meant the bridge described above did
+            // not exist: MaterialTheme fell back to its own default palette, which is light in
+            // both themes. See `omenMaterialColorScheme` for what that broke.
+            MaterialTheme(colorScheme = omenMaterialColorScheme(colors, darkTheme)) {
                 content()
             }
         }
