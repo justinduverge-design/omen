@@ -40,6 +40,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -480,8 +482,17 @@ private fun EmailCodeScreen(
 }
 
 
+/// The field fills the whole 60dp box, so a tap anywhere over the drawn boxes reaches it —
+/// keep `fillMaxSize()`. What was missing is the caret: the screen exists only to take a code,
+/// so it opens focused with the keyboard already up, matching iOS `OmenOtpCodeField`.
 @Composable
 private fun CodeEntry(code: String, enabled: Boolean, onCodeChange: (String) -> Unit) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(enabled) {
+        if (enabled) {
+            focusRequester.requestFocus()
+        }
+    }
     Box(modifier = Modifier.fillMaxWidth().height(60.dp)) {
         CodeBoxes(code)
         BasicTextField(
@@ -494,6 +505,7 @@ private fun CodeEntry(code: String, enabled: Boolean, onCodeChange: (String) -> 
             textStyle = OmenTheme.typography.h2.toTextStyle().copy(color = Color.Transparent),
             modifier = Modifier
                 .fillMaxSize()
+                .focusRequester(focusRequester)
                 .semantics { contentDescription = "6-digit code" },
         )
     }

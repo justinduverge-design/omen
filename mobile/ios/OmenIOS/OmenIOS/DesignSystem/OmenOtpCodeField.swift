@@ -17,10 +17,19 @@ import SwiftUI
 ///
 /// `opacity(0.02)` rather than `0`: a fully transparent field is treated as hidden by the
 /// system and stops receiving focus and autofill. Do not "clean this up" to zero.
+///
+/// Hit area: `.frame(height: 60)` centres the field inside a 60pt box but does NOT grow what
+/// touch can reach — the live region stays the field's natural ~25pt line height, so taps on
+/// the top and bottom thirds of the drawn boxes landed on nothing and the keyboard never came
+/// up. `.contentShape(Rectangle())` after the frame is what actually makes all 60pt tappable,
+/// and the ZStack carries its own shape + tap so a miss anywhere over the boxes still focuses.
+/// Removing either one silently returns the field to a thin unreachable strip.
 struct OmenOtpCodeField: View {
     @Binding var code: String
     var digits: Int = 6
     var enabled = true
+
+    @FocusState private var focused: Bool
 
     /// Normalisation lives here so the field cannot hold something it will not display.
     /// `OtpCodeValidator` is `Core/`, not `App/`, so depending on it does not point this
@@ -64,12 +73,25 @@ struct OmenOtpCodeField: View {
             )
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
+            .focused($focused)
             .foregroundStyle(.clear)
             .tint(.clear)
             .opacity(0.02)
-            .frame(height: 60)
+            .frame(maxWidth: .infinity, minHeight: 60)
+            .contentShape(Rectangle())
             .disabled(!enabled)
             .accessibilityLabel("\(digits)-digit code")
+        }
+        // A tap that misses the field itself still belongs to the code entry.
+        .contentShape(Rectangle())
+        .onTapGesture { focused = enabled }
+        // The code screen exists only to take a code, so it opens with the caret already in
+        // it. The hop to the next runloop is required: setting @FocusState during the same
+        // transition that inserts this view into the ScrollView is dropped by SwiftUI.
+        .task {
+            guard enabled else { return }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            focused = true
         }
     }
 }
