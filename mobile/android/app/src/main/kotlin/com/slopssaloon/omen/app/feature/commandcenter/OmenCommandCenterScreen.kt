@@ -43,6 +43,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -113,22 +114,36 @@ fun OmenCommandCenterScreen(
     // the page that can expire.
     var widgetPage by remember { mutableStateOf(OmenWidgetPage.Waiver) }
 
+    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(OmenTheme.color.bg)
-            .verticalScroll(rememberScrollState())
+            // Founder, 2026-09-10: "take off the scroll on the screen. Users shouldn't be
+            // able to scroll down." `maxValue == 0` means the content already fits, so this
+            // switches scrolling off exactly when there is nothing to scroll to — including
+            // the overscroll stretch, which is the part that reads as "this page scrolls".
+            // A flat `enabled = false` would strand the bottom of the screen at large font
+            // scales, failing the accessibility gate in
+            // `omen-native-delivery-governance-v1.md` §5.
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
             .padding(
                 PaddingValues(
                     horizontal = OmenTheme.spacing.step16,
-                    vertical = OmenTheme.spacing.step24,
+                    vertical = if (carousel == null) {
+                        OmenTheme.spacing.step24
+                    } else {
+                        OmenTheme.spacing.step16
+                    },
                 )
             ),
         // `sectionStack` is right for a page of stacked sections and far too much for one
         // with two carousels that both need to be on screen. The carousel layout uses a
         // tighter rhythm; the legacy stacked layout keeps the original.
+        // step24 -> step16 on 2026-09-10: this rhythm repeats four times and the founder
+        // wants the whole screen on one fold.
         verticalArrangement = Arrangement.spacedBy(
-            if (carousel == null) OmenTheme.spacing.sectionStack else OmenTheme.spacing.step24,
+            if (carousel == null) OmenTheme.spacing.sectionStack else OmenTheme.spacing.step16,
         ),
     ) {
         HeaderBlock(state.greeting, onOpenAccount)
@@ -189,7 +204,11 @@ fun OmenCommandCenterScreen(
                 onSelect = { widgetPage = it },
                 // Each page keeps its existing composition verbatim — this change moves the
                 // sections, it does not rewrite them.
-                waiver = { WaiverWatch(state.waiverWatch, { showWaiverDetail = true }, showLabel = false) },
+                // Founder, 2026-09-10: "I don't want to see the waiver wire printed on
+                // Omen. I just want the review waiver wire analysis." Mirrors iOS
+                // `waiverCallToActionOnly`. The full briefing is unchanged and still one tap
+                // away in the sheet below — `WaiverWatch` is NOT dead code.
+                waiver = { WaiverCallToActionOnly(state.waiverWatch) { showWaiverDetail = true } },
                 ledger = { LedgerPreview(state.ledger, { ledgerDetailEntry = it }, showLabel = false) },
                 pulse = { LeaguePulse(state.leaguePulse, onOpenLeague, showLabel = false) },
             )
@@ -203,7 +222,11 @@ fun OmenCommandCenterScreen(
     // Figma `73:2`: "Android opens the detail sheet as a ModalBottomSheet".
     val row = detailRow
     if (row != null) {
-        ModalBottomSheet(onDismissRequest = { detailRow = null }) {
+        ModalBottomSheet(
+            onDismissRequest = { detailRow = null },
+            containerColor = OmenTheme.color.bg,
+            dragHandle = { OmenSheetDragHandle() },
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -416,6 +439,37 @@ private fun OmenLinkButton(title: String, onOpenOmen: (() -> Unit)?) {
     }
 }
 
+/**
+ * The Waiver page of the widget pager: its way in, and nothing else.
+ *
+ * The pager already draws the "Waiver Watch" section title above this, so a second heading
+ * here would repeat it. The deadline stays because it is the one fact that decides whether
+ * the tap is urgent, and it is a single row.
+ */
+@Composable
+private fun WaiverCallToActionOnly(state: OmenWaiverWatchState, onOpenWaiver: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+    ) {
+        if (state is OmenWaiverWatchState.Urgent) {
+            Text(
+                text = state.deadlineText,
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+                maxLines = 2,
+            )
+        }
+        OmenLinkButton("Review waiver analysis", onOpenWaiver)
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun OmenSheetDragHandle() {
+    BottomSheetDefaults.DragHandle(color = OmenTheme.color.border)
+}
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun CommandCenterDetailSheet(
@@ -423,7 +477,14 @@ private fun CommandCenterDetailSheet(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // OmenTheme does not wrap MaterialTheme, so a ModalBottomSheet with no containerColor
+    // renders on Material's default LIGHT surface while every child paints Omen's dark
+    // tokens — the sheet title came out pale gold on near-white. Name the surface here.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = OmenTheme.color.bg,
+        dragHandle = { OmenSheetDragHandle() },
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
             verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),

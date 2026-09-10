@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.feature.commandcenter
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,11 +12,17 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -248,21 +255,39 @@ private fun LoadedCarousel(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        // Was a hard 270.dp. A fixed height cannot grow, so "What to watch" wrapping to a
+        // second or third line — or any larger Dynamic Type setting — was clipped off the
+        // bottom of the card. The pager now measures its pages and takes the tallest one:
+        // content decides the height, and the height still does not jump as you swipe
+        // between leagues whose cards differ in length.
+        var maxPageHeightPx by remember(pages.size) { mutableIntStateOf(0) }
+        val density = LocalDensity.current
+        val pagerModifier = if (maxPageHeightPx > 0) {
+            Modifier.fillMaxWidth().height(with(density) { maxPageHeightPx.toDp() })
+        } else {
+            Modifier.fillMaxWidth()
+        }
         HorizontalPager(
             state = pagerState,
-            // A pager does not size to its content, so this height is load-bearing. It must fit
-            // the selected-league header and matchup card without creating dead vertical space
-            // before Waiver/Ledger/Pulse.
-            modifier = Modifier.fillMaxWidth().height(270.dp),
+            modifier = pagerModifier,
             pageSpacing = OmenTheme.spacing.step8,
+            verticalAlignment = Alignment.Top,
         ) { index ->
             pages.getOrNull(index)?.let { page ->
-                PageCard(
-                    viewModel = viewModel,
-                    page = page,
-                    position = "${index + 1} of ${pages.size}",
-                    onOpenMatchup = onOpenMatchup,
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { size ->
+                            if (size.height > maxPageHeightPx) maxPageHeightPx = size.height
+                        },
+                ) {
+                    PageCard(
+                        viewModel = viewModel,
+                        page = page,
+                        position = "${index + 1} of ${pages.size}",
+                        onOpenMatchup = onOpenMatchup,
+                    )
+                }
             }
         }
     }

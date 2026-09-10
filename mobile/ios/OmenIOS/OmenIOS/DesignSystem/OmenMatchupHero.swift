@@ -28,6 +28,14 @@ func omenCompactTeamLabel(_ name: String, maxCharacters: Int = 3) -> String {
     return label.isEmpty ? trimmed : label
 }
 
+/// Card width, measured without participating in layout so the card can size to its content.
+private struct MatchupHeroWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 /// One side of the matchup spine.
 ///
 /// `scoreText` is the live/final number. `projectedText` is the projection, and when it is
@@ -71,6 +79,9 @@ struct OmenMatchupHero: View {
     let state: OmenMatchupHeroState
     let onOpen: (() -> Void)?
 
+    /// Card width. Starts at 0, which reads as narrow — see the layout note below.
+    @State private var measuredWidth: CGFloat = 0
+
     init(state: OmenMatchupHeroState, onOpen: (() -> Void)? = nil) {
         self.state = state
         self.onOpen = onOpen
@@ -109,27 +120,42 @@ struct OmenMatchupHero: View {
             OmenCard(variant: .solid) { spine }
         } else {
             OmenCard(variant: .solid) {
-                GeometryReader { proxy in
-                    let narrow = proxy.size.width < 380
-                    Group {
-                        if narrow || whatToWatch == nil {
-                            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                                spine
-                                if let signal = whatToWatch {
-                                    watchRail(signal: signal)
-                                }
+                // The width test used to live in a `GeometryReader` wrapped around this
+                // content. A GeometryReader is greedy — it claims all offered height and has
+                // no intrinsic height of its own — so the card could never size to what it
+                // actually contained and sat at a flat 220 with dead space under the spine.
+                // The width is now read from a `.background`, which measures without taking
+                // part in layout, and the stack decides the height. Unknown width reads as
+                // narrow so the first frame renders the stacked layout, which is correct on
+                // every phone; the wide branch is for regular-width iPad only.
+                let narrow = measuredWidth < 380
+                Group {
+                    if narrow || whatToWatch == nil {
+                        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                            spine
+                            if let signal = whatToWatch {
+                                watchRail(signal: signal)
                             }
-                        } else {
-                            HStack(alignment: .top, spacing: OmenSpacing.step16) {
-                                spine.frame(maxWidth: .infinity, alignment: .leading)
-                                if let signal = whatToWatch {
-                                    watchRail(signal: signal).frame(width: 160)
-                                }
+                        }
+                    } else {
+                        HStack(alignment: .top, spacing: OmenSpacing.step16) {
+                            spine.frame(maxWidth: .infinity, alignment: .leading)
+                            if let signal = whatToWatch {
+                                watchRail(signal: signal).frame(width: 160)
                             }
                         }
                     }
                 }
-                .frame(minHeight: 220)
+                .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: MatchupHeroWidthKey.self, value: proxy.size.width)
+                    }
+                )
+                .onPreferenceChange(MatchupHeroWidthKey.self) { width in
+                    guard width > 0, width != measuredWidth else { return }
+                    measuredWidth = width
+                }
             }
         }
     }
