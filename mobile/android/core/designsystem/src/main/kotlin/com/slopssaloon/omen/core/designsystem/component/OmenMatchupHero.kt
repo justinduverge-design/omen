@@ -33,6 +33,30 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+import java.util.Locale
+
+/**
+ * Compact fantasy-team label for surfaces where a full team name competes with score columns.
+ *
+ * Multi-word names use initials. One-word names use the first three alphanumeric characters,
+ * uppercased, so names like "Scaries" still produce a useful short label.
+ */
+fun omenCompactTeamLabel(name: String, maxCharacters: Int = 3): String {
+    val trimmed = name.trim()
+    if (trimmed.isEmpty()) return trimmed
+
+    val normalized = Regex("'s\\b", RegexOption.IGNORE_CASE).replace(trimmed, "")
+    val words = Regex("[A-Za-z0-9]+").findAll(normalized).map { it.value }.toList()
+    if (words.size > 1) {
+        val label = words.take(maxCharacters).mapNotNull { it.firstOrNull() }.joinToString("")
+            .uppercase(Locale.US)
+        return label.ifEmpty { trimmed }
+    }
+
+    val source = words.firstOrNull() ?: trimmed
+    val label = source.take(maxCharacters).uppercase(Locale.US)
+    return label.ifEmpty { trimmed }
+}
 
 /**
  * Registry §3.2 MatchupHero (Matchup Spine, Figma node `25:26`, approved 2026-07-20).
@@ -301,18 +325,18 @@ private fun TeamRow(
                 .clip(CircleShape)
                 .background(if (isYours) colors.accent else Color.Transparent),
         )
-        Column(modifier = Modifier.weight(1f)) {
-            // Two lines, not one. Founder on a real device, 2026-09-07: a long Yahoo team name
-            // still lost its ending, because a single line has to share the row with two numeric
-            // columns no matter how much the columns give back. Wrapping is the only thing that
-            // buys a long name more room. `maxLines = 2` wraps only when it must, so a short name
-            // is laid out exactly as before. iOS mirror: same change, same reason.
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = team.name,
+                text = matchupDisplayName(team.name, semanticLabel),
                 style = type.h2.toTextStyle(),
                 color = colors.textPrimary,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             if (team.record.isNotEmpty()) {
                 Text(
@@ -345,6 +369,9 @@ private fun TeamRow(
         )
     }
 }
+
+private fun matchupDisplayName(name: String, semanticLabel: String): String =
+    if (semanticLabel == "Your team") omenCompactTeamLabel(name) else name
 
 private fun rowDescription(
     team: OmenMatchupTeam,

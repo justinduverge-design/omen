@@ -286,6 +286,10 @@ extension CommandCenterViewModelTests {
         try JSONDecoder().decode(MovesHistory.self, from: Data(json.utf8))
     }
 
+    private func waiver(_ json: String) throws -> WaiverAnalysis {
+        try JSONDecoder().decode(WaiverAnalysis.self, from: Data(json.utf8))
+    }
+
     private func summary(omenStatus: String) throws -> DashboardSummary {
         try JSONDecoder().decode(DashboardSummary.self, from: Data("""
         {
@@ -429,5 +433,62 @@ extension CommandCenterViewModelTests {
             entries.allSatisfy { $0.period.hasPrefix("DEMO") },
             "every demo Ledger row stays labeled as demo"
         )
+    }
+
+    func testWaiverAnalysisFillsWaiverWatchAfterTheShellLoads() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .success(try history("""
+            {"contract_version":"moves-history.v1","season":2026,"summary":null,"moves":[]}
+            """))),
+            waiverRepository: StubWaiverAnalysisRepository(result: .success(try waiver("""
+            {
+              "contract_version":"waiver-analysis.v1",
+              "state":"confirmed_opportunity",
+              "deadline":"Wed 3:00 AM",
+              "best_move":{
+                "add":{"name":"Sample Waiver RB","position":"RB","team":"NYG","projected_points":12.4,"status":"FA"},
+                "drop":{"name":"Bench Depth","position":"WR","team":"SEA","projected_points":4.1,"status":null},
+                "improvement":5.6,
+                "why_now":"Sample Waiver RB covers an unavailable starter.",
+                "bid":{"amount":7,"basis":"value"}
+              },
+              "alternatives":[
+                {"player":{"name":"Sample Pivot","position":"WR","team":"ATL","projected_points":9.1,"status":"FA"},"improvement":2.2,"tradeoff":"Lower projection, cleaner drop."}
+              ]
+            }
+            """))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        guard case let .urgent(deadline, bestMove, alternatives) = viewModel.commandCenterState.waiverWatch else {
+            return XCTFail("expected confirmed waiver opportunity to reach Waiver Watch")
+        }
+        XCTAssertEqual(deadline, "Deadline Wed 3:00 AM")
+        XCTAssertEqual(bestMove.playerName, "Sample Waiver RB")
+        XCTAssertEqual(bestMove.position, "RB")
+        XCTAssertTrue(bestMove.availability.contains("Suggested bid 7"))
+        XCTAssertEqual(alternatives.first?.playerName, "Sample Pivot")
+    }
+
+    func testWaiverAnalysisFailureLeavesDashboardWaiverStateInPlace() async throws {
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
+            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            movesRepository: StubMovesRepository(result: .success(try history("""
+            {"contract_version":"moves-history.v1","season":2026,"summary":null,"moves":[]}
+            """))),
+            waiverRepository: StubWaiverAnalysisRepository(result: .failure(.server(status: 503))),
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        guard case .availabilityUnknown = viewModel.commandCenterState.waiverWatch else {
+            return XCTFail("a failed waiver detail read must not claim no moves")
+        }
     }
 }

@@ -36,6 +36,7 @@ import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatformBadge
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurface
 import com.slopssaloon.omen.core.designsystem.component.OmenStateSurfaceKind
+import com.slopssaloon.omen.core.designsystem.component.omenCompactTeamLabel
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /**
@@ -249,10 +250,10 @@ private fun LoadedCarousel(
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         HorizontalPager(
             state = pagerState,
-            // A pager does not size to its content, so this height is load-bearing: too small
-            // and the page clips (the team-name row was cut off on device), too large and the
-            // widget pager below leaves the fold. Pages scroll internally, so nothing is lost.
-            modifier = Modifier.fillMaxWidth().height(250.dp),
+            // A pager does not size to its content, so this height is load-bearing. It must fit
+            // the selected-league header and matchup card without creating dead vertical space
+            // before Waiver/Ledger/Pulse.
+            modifier = Modifier.fillMaxWidth().height(270.dp),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             pages.getOrNull(index)?.let { page ->

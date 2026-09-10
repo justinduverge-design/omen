@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.semantics
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.core.designsystem.component.OmenChip
 import com.slopssaloon.omen.core.designsystem.component.OmenChipTone
+import com.slopssaloon.omen.core.designsystem.component.omenCompactTeamLabel
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 import kotlinx.coroutines.launch
 
@@ -84,7 +85,7 @@ fun OmenTeamPicker(
                     // The team, not the league: these screens are about a roster, and the team
                     // name is what the user calls it. The league rides in the content
                     // description, which is where a long name belongs anyway.
-                    label = page.displayTeamName,
+                    label = omenCompactTeamLabel(page.displayTeamName),
                     tone = chipTone(page.platform),
                     selected = page.isActive,
                     enabled = viewModel.committingPageId == null,

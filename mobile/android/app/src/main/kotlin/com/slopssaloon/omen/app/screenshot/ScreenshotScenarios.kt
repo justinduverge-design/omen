@@ -98,6 +98,10 @@ object ScreenshotScenarios {
             label = "Command Center — demo/mock connected",
             render = { CommandCenterInShell(demo = true) },
         ),
+        "command-center.long-matchup" to ScreenshotScenario(
+            label = "Command Center — long fantasy team names in matchup",
+            render = { CommandCenterInShell(state = OmenCommandCenterFixtures.longNameMatchup) },
+        ),
         "command-center.disconnected" to ScreenshotScenario(
             label = "Command Center — real user, disconnected",
             render = { CommandCenterInShell(demo = false) },
@@ -402,7 +406,7 @@ fun ScreenshotScenarioHost(scenarioKey: String) {
 }
 
 @Composable
-private fun CommandCenterInShell(demo: Boolean) {
+private fun CommandCenterInShell(demo: Boolean = true, state: OmenCommandCenterState? = null) {
     var selected by remember { mutableStateOf(FauxNavTab.Command) }
     Scaffold(
         containerColor = OmenTheme.color.bg,
@@ -411,7 +415,7 @@ private fun CommandCenterInShell(demo: Boolean) {
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when (selected) {
                 FauxNavTab.Command -> OmenCommandCenterScreen(
-                    state = if (demo) OmenCommandCenterFixtures.demoConnected
+                    state = state ?: if (demo) OmenCommandCenterFixtures.demoConnected
                     else OmenCommandCenterFixtures.realDisconnected,
                     onOpenAccount = {},
                     onOpenOmen = { selected = FauxNavTab.Omen },

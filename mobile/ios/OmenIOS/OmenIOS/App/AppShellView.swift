@@ -72,6 +72,9 @@ struct AppShellView: View {
                     movesRepository: ApiMovesRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     ),
+                    waiverRepository: ApiWaiverAnalysisRepository(
+                        client: OmenApiClient(baseURL: environment.apiBaseURL)
+                    ),
                     omenDecisionRepository: ApiOmenDecisionRepository(
                         client: OmenApiClient(baseURL: environment.apiBaseURL)
                     ),

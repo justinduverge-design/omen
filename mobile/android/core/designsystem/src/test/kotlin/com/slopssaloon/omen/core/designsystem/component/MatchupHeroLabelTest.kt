@@ -15,6 +15,24 @@ import org.junit.Test
 class MatchupHeroLabelTest {
 
     @Test
+    fun `compact team label uses initials for multi word names`() {
+        assertTrue(omenCompactTeamLabel("Justin Titans") == "JT")
+        assertTrue(omenCompactTeamLabel("The Wildly Unreasonable Playoff Machines") == "TWU")
+    }
+
+    @Test
+    fun `compact team label uses first three characters for one word names`() {
+        assertTrue(omenCompactTeamLabel("Scaries") == "SCA")
+        assertTrue(omenCompactTeamLabel("RedLanternCorps") == "RED")
+    }
+
+    @Test
+    fun `compact team label ignores punctuation between words`() {
+        assertTrue(omenCompactTeamLabel("Puk Around & Find Out") == "PAF")
+        assertTrue(omenCompactTeamLabel("Nico's Nine Lives") == "NNL")
+    }
+
+    @Test
     fun `pregame label announces the projection, not the em dash in the score slot`() {
         val label = matchupHeroAccessibilityLabel(
             OmenMatchupHeroState.BeforeGames(

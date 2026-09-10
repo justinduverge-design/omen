@@ -1,5 +1,33 @@
 import SwiftUI
 
+/// Compact fantasy-team label for surfaces where a full team name competes with score columns.
+///
+/// Multi-word names use initials. One-word names use the first three alphanumeric characters,
+/// uppercased, so names like "Scaries" still produce a useful short label.
+func omenCompactTeamLabel(_ name: String, maxCharacters: Int = 3) -> String {
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return trimmed }
+    let normalized = trimmed.replacingOccurrences(
+        of: #"(?i)'s\b"#,
+        with: "",
+        options: .regularExpression
+    )
+
+    let words = normalized
+        .components(separatedBy: CharacterSet.alphanumerics.inverted)
+        .filter { !$0.isEmpty }
+
+    if words.count > 1 {
+        let initials = words.prefix(maxCharacters).compactMap(\.first)
+        let label = String(initials).uppercased()
+        return label.isEmpty ? trimmed : label
+    }
+
+    let source = words.first ?? trimmed
+    let label = String(source.prefix(maxCharacters)).uppercased()
+    return label.isEmpty ? trimmed : label
+}
+
 /// One side of the matchup spine.
 ///
 /// `scoreText` is the live/final number. `projectedText` is the projection, and when it is
@@ -188,30 +216,18 @@ struct OmenMatchupHero: View {
                 .frame(maxHeight: .infinity)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Two lines, not one. Founder on a real device, 2026-09-07: a Yahoo team called
-                // "Puk Around & Find Out" still lost its ending, because a single line has to
-                // share the row with two numeric columns no matter how much the columns give
-                // back. Wrapping is the only thing that actually buys a long name more room.
-                //
-                // `lineLimit(2)` wraps only when it must, so a short name is laid out exactly as
-                // before and the card does not grow for the common case. The scale factor is
-                // eased from 0.75 to 0.85: with a second line available, shrinking type is the
-                // wrong first move, and 0.75 on a wrapped name reads noticeably smaller than the
-                // opponent beneath it.
-                Text(team.name)
+            HStack(spacing: OmenSpacing.step8) {
+                Text(matchupDisplayName(team.name, semanticLabel: semanticLabel))
                     .omenTextStyle(OmenTypography.h2)
                     .foregroundStyle(OmenColor.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
+                    .lineLimit(1)
                     .truncationMode(.tail)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(isYours ? 0.8 : 0.65)
                 if !team.record.isEmpty {
-                    // Under the name, not beside it. Beside it the record competed with the
-                    // name for the width the columns had already taken, and the name lost.
                     Text(team.record)
                         .omenTextStyle(Self.recordStyle)
                         .foregroundStyle(OmenColor.textSecondary)
+                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,6 +253,10 @@ struct OmenMatchupHero: View {
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rowAccessibilityLabel(team: team, semanticLabel: semanticLabel))
+    }
+
+    private func matchupDisplayName(_ name: String, semanticLabel: String) -> String {
+        semanticLabel == "Your team" ? omenCompactTeamLabel(name) : name
     }
 
     private func rowAccessibilityLabel(team: OmenMatchupTeam, semanticLabel: String) -> String {

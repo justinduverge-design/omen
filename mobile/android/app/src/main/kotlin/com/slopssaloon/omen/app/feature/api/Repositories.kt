@@ -177,6 +177,23 @@ class StubMovesRepository(
     override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> = result
 }
 
+// --- Waiver Watch -------------------------------------------------------------
+
+interface WaiverAnalysisRepository {
+    suspend fun fetchWaiverAnalysis(accessToken: String): OmenApiResult<WaiverAnalysis>
+}
+
+class ApiWaiverAnalysisRepository(private val client: OmenApiClient) : WaiverAnalysisRepository {
+    override suspend fun fetchWaiverAnalysis(accessToken: String): OmenApiResult<WaiverAnalysis> =
+        client.get("api/waivers/analysis", accessToken, WaiverAnalysis::parse)
+}
+
+class StubWaiverAnalysisRepository(
+    private val result: OmenApiResult<WaiverAnalysis> = OmenApiResult.Failure(OmenApiError.Network),
+) : WaiverAnalysisRepository {
+    override suspend fun fetchWaiverAnalysis(accessToken: String): OmenApiResult<WaiverAnalysis> = result
+}
+
 // --- Team/league switcher (visual briefs §10.2) -------------------------------
 //
 // Kept separate from DashboardRepository and LeagueRepository for the reason already

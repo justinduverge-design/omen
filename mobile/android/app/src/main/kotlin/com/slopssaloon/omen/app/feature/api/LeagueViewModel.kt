@@ -26,12 +26,16 @@ class LeagueViewModel(
 
     var viewState: ViewState by mutableStateOf(ViewState.Idle)
         private set
+    private var requestedPlatform: String? = null
+    private var requestedLeagueId: String? = null
 
-    suspend fun load(userId: String) {
+    suspend fun load(userId: String, platform: String? = null, leagueId: String? = null) {
         if (userId == SessionManager.DEMO_USER_ID) {
             viewState = ViewState.Demo
             return
         }
+        requestedPlatform = platform
+        requestedLeagueId = leagueId
         reload()
     }
 
@@ -40,7 +44,9 @@ class LeagueViewModel(
         // `authorized` renews an expiring token first and retries once on a 401, so an
         // Unauthorized arriving here has already survived a forced refresh and has already
         // routed the session to re-auth.
-        viewState = when (val result = sessionManager.authorized { repository.fetchOverview(it) }) {
+        viewState = when (val result = sessionManager.authorized {
+            repository.fetchOverview(it, requestedPlatform, requestedLeagueId)
+        }) {
             is OmenApiResult.Success -> ViewState.Loaded(result.value)
             is OmenApiResult.Failure -> ViewState.Failed(result.error)
         }

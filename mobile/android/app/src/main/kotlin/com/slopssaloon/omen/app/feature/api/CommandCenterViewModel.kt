@@ -8,6 +8,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
@@ -26,6 +27,7 @@ class CommandCenterViewModel(
     private val repository: DashboardRepository,
     private val leagueRepository: LeagueRepository,
     private val movesRepository: MovesRepository,
+    private val waiverRepository: WaiverAnalysisRepository = StubWaiverAnalysisRepository(),
     private val sessionManager: SessionManager,
 ) {
     sealed interface ViewState {
@@ -75,6 +77,10 @@ class CommandCenterViewModel(
     var matchup: OmenMatchupHeroState? by mutableStateOf(null)
         private set
 
+    /** Waiver Watch detail from `waiver-analysis.v1`; null keeps the dashboard-derived state. */
+    var waiverWatch: OmenWaiverWatchState? by mutableStateOf(null)
+        private set
+
     /**
      * The Command Center state to render.
      *
@@ -86,7 +92,7 @@ class CommandCenterViewModel(
         get() = when (val state = viewState) {
             is ViewState.Loading -> OmenCommandCenterFixtures.realLoading
             is ViewState.Demo -> OmenCommandCenterFixtures.demoConnected
-            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger, leaguePulse, matchup)
+            is ViewState.Loaded -> state.summary.toCommandCenterState(context, ledger, leaguePulse, matchup, waiverWatch)
             is ViewState.Failed -> OmenCommandCenterFixtures.realDisconnected
         }
 
@@ -108,6 +114,7 @@ class CommandCenterViewModel(
         ledger = null
         leaguePulse = null
         matchup = null
+        waiverWatch = null
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401.
@@ -140,8 +147,14 @@ class CommandCenterViewModel(
                             loadLedger(accessToken)
                         }
                     }
+                    val waiverJob = async {
+                        if (result.value.waiverStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
+                            loadWaiverWatch(accessToken)
+                        }
+                    }
                     contextJob.await()
                     ledgerJob.await()
+                    waiverJob.await()
                 }
             }
             is OmenApiResult.Failure -> {
@@ -192,6 +205,13 @@ class CommandCenterViewModel(
             // same token, so this is far more likely a route-level problem than a dead session,
             // and tearing down a working shell over it would be the worse failure.
             is OmenApiResult.Failure -> OmenLedgerPreviewState.Error(ledgerMessageFor(result.error))
+        }
+    }
+
+    private suspend fun loadWaiverWatch(accessToken: String) {
+        when (val result = waiverRepository.fetchWaiverAnalysis(accessToken)) {
+            is OmenApiResult.Success -> waiverWatch = result.value.waiverWatchState
+            is OmenApiResult.Failure -> Unit
         }
     }
 

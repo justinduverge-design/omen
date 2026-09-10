@@ -189,6 +189,172 @@ struct StubMovesRepository: MovesRepository {
     }
 }
 
+/// `GET /api/waivers/analysis` -> `waiver-analysis.v1`.
+///
+/// Command Center uses this to turn the coarse dashboard waiver status into a real Waiver
+/// Watch. The route is explicit about uncertainty, so the mapping keeps those states separate
+/// instead of collapsing them into an empty list.
+struct WaiverAnalysis: Decodable, Equatable {
+    let contractVersion: String?
+    let state: State
+    let message: String?
+    let deadline: String?
+    let bestMove: BestMove?
+    let alternatives: [Alternative]
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version"
+        case state, message, deadline, alternatives
+        case bestMove = "best_move"
+    }
+
+    enum State: String, Decodable {
+        case confirmedOpportunity = "confirmed_opportunity"
+        case availabilityUnknown = "availability_unknown"
+        case noLowCostDrop = "no_low_cost_drop"
+        case noCredibleMove = "no_credible_move"
+        case engineLimitation = "engine_limitation"
+        case offSeason = "off_season"
+        case unknown
+
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = State(rawValue: raw) ?? .unknown
+        }
+    }
+
+    struct BestMove: Decodable, Equatable {
+        let add: Player?
+        let drop: Player?
+        let improvement: Double?
+        let whyNow: String?
+        let bid: Bid?
+
+        enum CodingKeys: String, CodingKey {
+            case add, drop, improvement, bid
+            case whyNow = "why_now"
+        }
+    }
+
+    struct Player: Decodable, Equatable {
+        let name: String?
+        let position: String?
+        let team: String?
+        let projectedPoints: Double?
+        let status: String?
+
+        enum CodingKeys: String, CodingKey {
+            case name, position, team, status
+            case projectedPoints = "projected_points"
+        }
+    }
+
+    struct Bid: Decodable, Equatable {
+        let amount: Double?
+        let basis: String?
+    }
+
+    struct Alternative: Decodable, Equatable {
+        let player: Player?
+        let improvement: Double?
+        let tradeoff: String?
+    }
+}
+
+extension WaiverAnalysis {
+    var waiverWatchState: OmenWaiverWatchState {
+        switch state {
+        case .confirmedOpportunity:
+            guard let bestMove, let opportunity = OmenWaiverOpportunity(bestMove: bestMove) else {
+                return .availabilityUnknown
+            }
+            return .urgent(
+                deadlineText: deadline.map { "Deadline \($0)" } ?? "Availability confirmed",
+                bestMove: opportunity,
+                longHorizonMoves: alternatives.compactMap(OmenWaiverOpportunity.init(alternative:)).prefixArray(3)
+            )
+        case .availabilityUnknown:
+            return .availabilityUnknown
+        case .noLowCostDrop:
+            return .processed
+        case .noCredibleMove:
+            return .noCredibleMove
+        case .engineLimitation, .unknown:
+            return .availabilityUnknown
+        case .offSeason:
+            return .offSeason
+        }
+    }
+}
+
+private extension OmenWaiverOpportunity {
+    init?(bestMove: WaiverAnalysis.BestMove) {
+        guard let add = bestMove.add, let name = add.name?.trimmed, !name.isEmpty else { return nil }
+        let projected = bestMove.improvement.map { "Projects +\(Self.pointsText($0)) vs current slot" }
+        let bid = bestMove.bid?.amount.map { "Suggested bid \(Self.pointsText($0))" }
+        self.init(
+            playerName: name,
+            position: add.position?.trimmed.nonEmpty ?? "Player",
+            team: add.team?.trimmed.nonEmpty ?? "Available player",
+            availability: [projected, bid].compactMap { $0 }.joined(separator: " · ").nonEmpty ?? "Available in this league",
+            reason: bestMove.whyNow?.trimmed.nonEmpty ?? "Omen found this as the strongest available roster move."
+        )
+    }
+
+    init?(alternative: WaiverAnalysis.Alternative) {
+        guard let player = alternative.player, let name = player.name?.trimmed, !name.isEmpty else { return nil }
+        self.init(
+            playerName: name,
+            position: player.position?.trimmed.nonEmpty ?? "Player",
+            team: player.team?.trimmed.nonEmpty ?? "Available player",
+            availability: alternative.improvement.map { "Projects +\(Self.pointsText($0))" } ?? "Available in this league",
+            reason: alternative.tradeoff?.trimmed.nonEmpty ?? "Alternative waiver option."
+        )
+    }
+
+    static func pointsText(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        return rounded == floor(rounded) ? String(Int(rounded)) : String(rounded)
+    }
+}
+
+private extension Array {
+    func prefixArray(_ maxLength: Int) -> [Element] { Array(prefix(maxLength)) }
+}
+
+private extension String {
+    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+    var nonEmpty: String? { isEmpty ? nil : self }
+}
+
+// MARK: - Waiver Watch
+
+/// `GET /api/waivers/analysis`. Separate from the dashboard summary because it can make
+/// provider-specific reads and returns an in-band decision state rather than a shell gate.
+protocol WaiverAnalysisRepository {
+    func fetchWaiverAnalysis(accessToken: String) async -> Result<WaiverAnalysis, OmenApiError>
+}
+
+struct ApiWaiverAnalysisRepository: WaiverAnalysisRepository {
+    private let client: OmenApiClient
+
+    init(client: OmenApiClient) {
+        self.client = client
+    }
+
+    func fetchWaiverAnalysis(accessToken: String) async -> Result<WaiverAnalysis, OmenApiError> {
+        await client.get("api/waivers/analysis", accessToken: accessToken, as: WaiverAnalysis.self)
+    }
+}
+
+struct StubWaiverAnalysisRepository: WaiverAnalysisRepository {
+    let result: Result<WaiverAnalysis, OmenApiError>
+
+    func fetchWaiverAnalysis(accessToken: String) async -> Result<WaiverAnalysis, OmenApiError> {
+        result
+    }
+}
+
 // MARK: - Slice G — trade compare
 
 /// `POST /api/trade/compare`. Separate from the league repositories because this route is

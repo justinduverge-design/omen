@@ -76,6 +76,7 @@ import com.slopssaloon.omen.app.feature.api.LeagueViewModel
 import com.slopssaloon.omen.app.feature.api.TradeViewModel
 import com.slopssaloon.omen.app.feature.api.ApiMovesRepository
 import com.slopssaloon.omen.app.feature.api.ApiOmenDecisionRepository
+import com.slopssaloon.omen.app.feature.api.ApiWaiverAnalysisRepository
 import com.slopssaloon.omen.app.feature.api.CommandCenterViewModel
 import com.slopssaloon.omen.app.feature.api.OmenApiClient
 import com.slopssaloon.omen.app.feature.api.OmenApiError
@@ -161,6 +162,7 @@ fun OmenAndroidApp() {
             repository = ApiDashboardRepository(client),
             leagueRepository = ApiLeagueRepository(client),
             movesRepository = ApiMovesRepository(client),
+            waiverRepository = ApiWaiverAnalysisRepository(client),
             sessionManager = sessionManager,
         )
     }
@@ -688,6 +690,11 @@ private fun SignedInDestination(
     onSwitchContext: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    suspend fun loadLeagueForSelectedContext() {
+        val page = leagueCarouselViewModel.currentPage ?: leagueCarouselViewModel.allPages.firstOrNull { it.isActive }
+        leagueViewModel.load(userId, page?.platform, page?.leagueId)
+    }
+
     when (destination) {
         NavDestination.Command -> {
             LaunchedEffect(userId) { commandCenterViewModel.load(userId) }
@@ -721,7 +728,6 @@ private fun SignedInDestination(
                     onConnect = onConnect,
                     onOpenAccount = onOpenAccount,
                     onOpenOmen = onOpenOmen,
-                    onOpenLedger = { onOpenOmen() },
                     onOpenLeague = onOpenLeague,
                     carousel = leagueCarouselViewModel,
                     userId = userId,
@@ -729,7 +735,13 @@ private fun SignedInDestination(
                     // the client re-reads them rather than deciding for itself. The Omen and
                     // League destinations reload on their own LaunchedEffect, so the shell is
                     // the one that has to be told.
-                    onContextChanged = { scope.launch { commandCenterViewModel.load(userId) } },
+                    onContextChanged = {
+                        scope.launch {
+                            commandCenterViewModel.load(userId)
+                            loadLeagueForSelectedContext()
+                            omenDecisionViewModel.load(userId)
+                        }
+                    },
                 )
             }
         }
@@ -747,7 +759,7 @@ private fun SignedInDestination(
                         // switches on Trade and then taps League must not find the old team
                         // there.
                         commandCenterViewModel.load(userId)
-                        leagueViewModel.load(userId)
+                        loadLeagueForSelectedContext()
                         omenDecisionViewModel.load(userId)
                     }
                 }) {
@@ -774,7 +786,7 @@ private fun SignedInDestination(
                         // switches on Trade and then taps League must not find the old team
                         // there.
                         commandCenterViewModel.load(userId)
-                        leagueViewModel.load(userId)
+                        loadLeagueForSelectedContext()
                         omenDecisionViewModel.load(userId)
                     }
                 }) {
@@ -795,14 +807,14 @@ private fun SignedInDestination(
         // honest "landing next" placeholder, which was correct while the screen contract was
         // unratified and is no longer.
         NavDestination.League -> {
-            LaunchedEffect(userId) { leagueViewModel.load(userId) }
+            LaunchedEffect(userId) { loadLeagueForSelectedContext() }
             WithTeamPicker(leagueCarouselViewModel, userId, onContextChanged = {
                     scope.launch {
                         // Every personalized surface, not just the visible one — a user who
                         // switches on Trade and then taps League must not find the old team
                         // there.
                         commandCenterViewModel.load(userId)
-                        leagueViewModel.load(userId)
+                        loadLeagueForSelectedContext()
                         omenDecisionViewModel.load(userId)
                     }
                 }) {

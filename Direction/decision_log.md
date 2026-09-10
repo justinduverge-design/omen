@@ -1,5 +1,21 @@
 # Omen Decision Log
 
+## 2026-09-10 — Command Center owns Waiver Watch and Ledger detail
+
+Waiver Watch in Command Center now reads the waiver-analysis contract directly when the active league supports it. If that read fails, the dashboard-derived state remains visible rather than inventing an empty opportunity or hiding uncertainty.
+
+The Waiver and Ledger pills open Command Center-owned detail sheets instead of routing users to the Omen tab. This keeps the Command Center page as the control surface for its own lower modules while the standalone Omen destination remains reserved for broader recommendation work.
+
+Opponent names in matchup rows remain full-name, one-line, tail-truncated labels for now. Two-line opponent labels are not rejected, but they need a separate layout decision because wrapping can reintroduce unstable carousel heights.
+
+## 2026-09-08 — Compact matchup labels are for the user's team only
+
+The matchup hero uses a compact visual label only for the current user's team: multi-word teams use initials, and one-word teams use the first two to three uppercase characters. Opponent rows keep the full fantasy team name visible with tail truncation when space runs out, because trade and matchup contexts require knowing exactly which other manager/team is involved. Full names remain in accessibility labels and picker sheet rows.
+
+The Command Center carousel selected-league header is context, not a score-table row, so it keeps the full selected team name under `Matchup`. Compact labels remain limited to small switcher chips and the current user's matchup-card score row.
+
+The same selected league context is passed into the League overview reload path on iOS and Android. A League page that is opened after switching leagues should request the same provider and league id that Command Center is showing, instead of falling back to the repository default.
+
 ## 2026-09-07 — One typeface: the three-family system was never actually seen
 
 **Founder decision: Alegreya Sans is the only font in the app.** Both platforms, every role.
@@ -215,7 +231,6 @@ asserted the card's accessibility label mentions the projection, and it failed: 
 label read `scoreText`, which is an em dash before kickoff by design, so VoiceOver announced
 "projected -" while the screen showed `100.7`. The number had moved into its own field on
 2026-09-04 and the label was never re-pointed at it. Fixed on both platforms.
-
 
 ## 2026-09-05 — The outage that alerting caught and nobody could act on; and what a moat is actually for
 

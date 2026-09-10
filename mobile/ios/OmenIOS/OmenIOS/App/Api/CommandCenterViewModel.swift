@@ -38,20 +38,27 @@ final class CommandCenterViewModel: ObservableObject {
     /// no real-data path at all.
     @Published private(set) var matchup: OmenMatchupHeroState?
 
+    /// Waiver Watch detail from `waiver-analysis.v1`. `nil` keeps the dashboard-derived
+    /// status until the route has produced a real decision state.
+    @Published private(set) var waiverWatch: OmenWaiverWatchState?
+
     private let repository: DashboardRepository
     private let leagueRepository: LeagueRepository
     private let movesRepository: MovesRepository
+    private let waiverRepository: WaiverAnalysisRepository
     private let sessionManager: SessionManager
 
     init(
         repository: DashboardRepository,
         leagueRepository: LeagueRepository,
         movesRepository: MovesRepository,
+        waiverRepository: WaiverAnalysisRepository = StubWaiverAnalysisRepository(result: .failure(.network)),
         sessionManager: SessionManager
     ) {
         self.repository = repository
         self.leagueRepository = leagueRepository
         self.movesRepository = movesRepository
+        self.waiverRepository = waiverRepository
         self.sessionManager = sessionManager
     }
 
@@ -67,7 +74,7 @@ final class CommandCenterViewModel: ObservableObject {
         case .demo:
             return OmenCommandCenterFixtures.demoConnected
         case .loaded(let summary):
-            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup)
+            return .from(summary: summary, context: context, ledger: ledger, leaguePulse: leaguePulse, matchup: matchup, waiverWatch: waiverWatch)
         case .failed:
             return OmenCommandCenterFixtures.realDisconnected
         }
@@ -91,6 +98,7 @@ final class CommandCenterViewModel: ObservableObject {
         ledger = nil
         leaguePulse = nil
         matchup = nil
+        waiverWatch = nil
 
         // The shell read goes through the session seam, which renews an expiring token before
         // the call and retries once on a 401. The two follow-ups then reuse the token that
@@ -122,7 +130,11 @@ final class CommandCenterViewModel: ObservableObject {
                 guard summary.tools.omenOfTheWeek.status != .needsPlatform else { return }
                 await loadLedger(accessToken: accessToken)
             }()
-            _ = await (contextTask, ledgerTask)
+            async let waiverTask: Void = {
+                guard summary.tools.waiverWire.status != .needsPlatform else { return }
+                await loadWaiverWatch(accessToken: accessToken)
+            }()
+            _ = await (contextTask, ledgerTask, waiverTask)
         case .failure(let error):
             // `authorized` has already forced a refresh, retried once, and routed a genuine
             // authorization failure to re-auth. Nothing left to do but render honestly.
@@ -171,6 +183,17 @@ final class CommandCenterViewModel: ObservableObject {
             // the same token, so this is far more likely a route-level problem than a dead
             // session, and tearing down a working shell over it would be the worse failure.
             ledger = .error(Self.ledgerMessage(for: error))
+        }
+    }
+
+    private func loadWaiverWatch(accessToken: String) async {
+        switch await waiverRepository.fetchWaiverAnalysis(accessToken: accessToken) {
+        case .success(let analysis):
+            waiverWatch = analysis.waiverWatchState
+        case .failure:
+            // The dashboard-derived state remains visible. Waiver analysis has in-band
+            // uncertainty states, but a transport failure cannot truthfully become one.
+            break
         }
     }
 

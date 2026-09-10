@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
 import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
 import com.slopssaloon.omen.core.session.Session
 import com.slopssaloon.omen.core.session.SessionManager
@@ -50,14 +51,17 @@ class CommandCenterLedgerTest {
     )
 
     private fun history(json: String): MovesHistory = requireNotNull(MovesHistory.parse(json))
+    private fun waiver(json: String): WaiverAnalysis = requireNotNull(WaiverAnalysis.parse(json))
 
     private fun viewModel(
         omenStatus: String = "ready",
         moves: MovesRepository,
+        waiver: WaiverAnalysisRepository = StubWaiverAnalysisRepository(),
     ) = CommandCenterViewModel(
         repository = StubDashboardRepository(OmenApiResult.Success(summary(omenStatus))),
         leagueRepository = StubLeagueRepository(OmenApiResult.Failure(OmenApiError.Network)),
         movesRepository = moves,
+        waiverRepository = waiver,
         sessionManager = sessionManager(),
     )
 
@@ -162,5 +166,60 @@ class CommandCenterLedgerTest {
             "every demo Ledger row stays labeled as demo",
             state.entries.all { it.period.startsWith("DEMO") },
         )
+    }
+
+    @Test
+    fun waiverAnalysisFillsWaiverWatchAfterTheShellLoads() = runBlocking {
+        val model = viewModel(
+            moves = StubMovesRepository(
+                OmenApiResult.Success(history("""{"contract_version":"moves-history.v1","season":2026,"summary":null,"moves":[]}""")),
+            ),
+            waiver = StubWaiverAnalysisRepository(
+                OmenApiResult.Success(
+                    waiver(
+                        """
+                        {
+                          "contract_version":"waiver-analysis.v1",
+                          "state":"confirmed_opportunity",
+                          "deadline":"Wed 3:00 AM",
+                          "best_move":{
+                            "add":{"name":"Sample Waiver RB","position":"RB","team":"NYG","projected_points":12.4,"status":"FA"},
+                            "drop":{"name":"Bench Depth","position":"WR","team":"SEA","projected_points":4.1,"status":null},
+                            "improvement":5.6,
+                            "why_now":"Sample Waiver RB covers an unavailable starter.",
+                            "bid":{"amount":7,"basis":"value"}
+                          },
+                          "alternatives":[
+                            {"player":{"name":"Sample Pivot","position":"WR","team":"ATL","projected_points":9.1,"status":"FA"},"improvement":2.2,"tradeoff":"Lower projection, cleaner drop."}
+                          ]
+                        }
+                        """.trimIndent(),
+                    ),
+                ),
+            ),
+        )
+
+        model.load("user-1")
+
+        val state = model.commandCenterState.waiverWatch as OmenWaiverWatchState.Urgent
+        assertEquals("Deadline Wed 3:00 AM", state.deadlineText)
+        assertEquals("Sample Waiver RB", state.bestMove.playerName)
+        assertEquals("RB", state.bestMove.position)
+        assertTrue(state.bestMove.availability.contains("Suggested bid 7"))
+        assertEquals("Sample Pivot", state.longHorizonMoves.first().playerName)
+    }
+
+    @Test
+    fun waiverAnalysisFailureLeavesDashboardWaiverStateInPlace() = runBlocking {
+        val model = viewModel(
+            moves = StubMovesRepository(
+                OmenApiResult.Success(history("""{"contract_version":"moves-history.v1","season":2026,"summary":null,"moves":[]}""")),
+            ),
+            waiver = StubWaiverAnalysisRepository(OmenApiResult.Failure(OmenApiError.Server(503))),
+        )
+
+        model.load("user-1")
+
+        assertTrue(model.commandCenterState.waiverWatch is OmenWaiverWatchState.AvailabilityUnknown)
     }
 }

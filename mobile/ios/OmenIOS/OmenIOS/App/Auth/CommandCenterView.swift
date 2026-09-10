@@ -39,6 +39,7 @@ struct CommandCenterView: View {
         dashboardRepository: DashboardRepository,
         leagueRepository: LeagueRepository,
         movesRepository: MovesRepository,
+        waiverRepository: WaiverAnalysisRepository,
         omenDecisionRepository: OmenDecisionRepository,
         connectRepository: ConnectRepository,
         leagueDirectoryRepository: LeagueDirectoryRepository,
@@ -53,6 +54,7 @@ struct CommandCenterView: View {
             repository: dashboardRepository,
             leagueRepository: leagueRepository,
             movesRepository: movesRepository,
+            waiverRepository: waiverRepository,
             sessionManager: sessionManager
         ))
         _omenDecisionViewModel = StateObject(wrappedValue: OmenDecisionViewModel(
@@ -104,7 +106,7 @@ struct CommandCenterView: View {
                         // switches on Trade and then taps League must not find the old team
                         // there.
                         await commandCenterViewModel.load(userID: userID)
-                        await leagueViewModel.load(userID: userID)
+                        await loadLeagueForSelectedContext()
                         await omenDecisionViewModel.load(userID: userID)
                     }
                 },
@@ -154,7 +156,6 @@ struct CommandCenterView: View {
                         onOpenAccount: { showAccountSheet = true },
                         onConnect: { showConnectSheet = true },
                         onOpenOmen: { selectedTab = .omen },
-                        onOpenLedger: { _ in selectedTab = .omen },
                         onOpenLeague: { selectedTab = .league },
                         carousel: leagueCarouselViewModel,
                         userID: userID,
@@ -163,7 +164,11 @@ struct CommandCenterView: View {
                         // Omen and League destinations reload lazily on their own `.task`,
                         // so the shell is the one that has to be told.
                         onContextChanged: { _ in
-                            Task { await commandCenterViewModel.load(userID: userID) }
+                            Task {
+                                await commandCenterViewModel.load(userID: userID)
+                                await loadLeagueForSelectedContext()
+                                await omenDecisionViewModel.load(userID: userID)
+                            }
                         }
                     )
                 }
@@ -217,7 +222,7 @@ struct CommandCenterView: View {
                     onConnect: { showConnectSheet = true }
                 )
             }
-            .task { await leagueViewModel.load(userID: userID) }
+            .task { await loadLeagueForSelectedContext() }
             .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)
         }
@@ -276,6 +281,11 @@ struct CommandCenterView: View {
                     }
             }
         }
+    }
+
+    private func loadLeagueForSelectedContext() async {
+        let page = leagueCarouselViewModel.currentPage ?? leagueCarouselViewModel.allPages.first(where: { $0.isActive })
+        await leagueViewModel.load(userID: userID, platform: page?.platform, leagueID: page?.leagueID)
     }
 }
 

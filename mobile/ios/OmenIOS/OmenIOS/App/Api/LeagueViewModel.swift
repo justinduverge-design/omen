@@ -18,6 +18,8 @@ final class LeagueViewModel: ObservableObject {
 
     private let repository: LeagueRepository
     private let sessionManager: SessionManager
+    private var requestedPlatform: String?
+    private var requestedLeagueID: String?
 
     /// Injected so the empty-state Connect affordance reaches the same connect flow the rest
     /// of the app uses, rather than this screen minting a second entry point.
@@ -28,11 +30,13 @@ final class LeagueViewModel: ObservableObject {
         self.sessionManager = sessionManager
     }
 
-    func load(userID: String) async {
+    func load(userID: String, platform: String? = nil, leagueID: String? = nil) async {
         guard userID != SessionManager.demoUserID else {
             viewState = .demo
             return
         }
+        requestedPlatform = platform
+        requestedLeagueID = leagueID
         await reload()
     }
 
@@ -41,7 +45,9 @@ final class LeagueViewModel: ObservableObject {
         // `authorized` renews an expiring token first and retries once on a 401, so a
         // `.unauthorized` arriving here has already survived a forced refresh and has
         // already routed the session to re-auth.
-        switch await sessionManager.authorized({ await repository.fetchOverview(accessToken: $0) }) {
+        switch await sessionManager.authorized({
+            await repository.fetchOverview(accessToken: $0, platform: requestedPlatform, leagueID: requestedLeagueID)
+        }) {
         case .success(let overview):
             viewState = .loaded(overview)
         case .failure(let error):

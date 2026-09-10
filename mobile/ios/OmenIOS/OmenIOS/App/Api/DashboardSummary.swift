@@ -148,7 +148,8 @@ extension OmenCommandCenterState {
         context: OmenContextStripState? = nil,
         ledger: OmenLedgerPreviewState? = nil,
         leaguePulse: OmenLeaguePulseState? = nil,
-        matchup: OmenMatchupHeroState? = nil
+        matchup: OmenMatchupHeroState? = nil,
+        waiverWatch: OmenWaiverWatchState? = nil
     ) -> OmenCommandCenterState {
         let omenStatus = summary.tools.omenOfTheWeek.status
         let connected = summary.platforms.anyConnected
@@ -158,7 +159,7 @@ extension OmenCommandCenterState {
             context: context ?? .empty,
             // A real matchup always wins. The shell can only ever say why there isn't one.
             matchup: matchup ?? .noMatchup(reason: matchupReason(for: omenStatus, connected: connected)),
-            waiverWatch: waiverWatch(for: summary.tools.waiverWire.status, season: omenStatus),
+            waiverWatch: waiverWatch ?? Self.waiverWatch(for: summary.tools.waiverWire.status, season: omenStatus),
             ledger: ledger ?? (omenStatus == .needsPlatform ? .notConnected : .empty),
             leaguePulse: leaguePulse ?? Self.leaguePulse(for: omenStatus)
         )

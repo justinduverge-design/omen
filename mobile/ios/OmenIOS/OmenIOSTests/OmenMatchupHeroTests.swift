@@ -9,6 +9,21 @@ final class OmenMatchupHeroTests: XCTestCase {
     private let myTeam = OmenMatchupTeam(name: "Justin Titans", record: "6–1", scoreText: "64.8")
     private let theirTeam = OmenMatchupTeam(name: "Marcus Team", record: "5–2", scoreText: "58.1")
 
+    func testCompactTeamLabelUsesInitialsForMultiWordNames() {
+        XCTAssertEqual(omenCompactTeamLabel("Justin Titans"), "JT")
+        XCTAssertEqual(omenCompactTeamLabel("The Sunday Scaries"), "TSS")
+    }
+
+    func testCompactTeamLabelUsesFirstThreeCharactersForOneWordNames() {
+        XCTAssertEqual(omenCompactTeamLabel("Scaries"), "SCA")
+        XCTAssertEqual(omenCompactTeamLabel("X"), "X")
+    }
+
+    func testCompactTeamLabelIgnoresPunctuationBetweenWords() {
+        XCTAssertEqual(omenCompactTeamLabel("Justin's Titans"), "JT")
+        XCTAssertEqual(omenCompactTeamLabel("Scaries!"), "SCA")
+    }
+
     func testLiveLabelIncludesBothScoresAndProjectedFinish() {
         let state = OmenMatchupHeroState.live(
             selectedTeam: myTeam,

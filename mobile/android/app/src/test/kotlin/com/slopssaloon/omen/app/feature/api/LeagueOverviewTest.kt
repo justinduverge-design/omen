@@ -4,6 +4,10 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
+import com.slopssaloon.omen.core.session.InMemorySecureSessionStore
+import com.slopssaloon.omen.core.session.Session
+import com.slopssaloon.omen.core.session.SessionManager
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -338,5 +342,56 @@ class LeagueOverviewTest {
 
         // A projection after the whistle is noise.
         assertEquals("120.0", hero.selectedTeam.scoreText)
+    }
+
+    @Test
+    fun `league view model requests the named league when provided`() = runBlocking {
+        val overview = parse(sides("live"))
+        val repository = RecordingLeagueRepository(overview)
+        val viewModel = LeagueViewModel(repository, signedInSessionManager())
+
+        viewModel.load("user-1", platform = "espn", leagueId = "884411")
+
+        assertEquals("espn", repository.requestedPlatform)
+        assertEquals("884411", repository.requestedLeagueId)
+    }
+
+    @Test
+    fun `league view model retry uses the last named league`() = runBlocking {
+        val overview = parse(sides("live"))
+        val repository = RecordingLeagueRepository(overview)
+        val viewModel = LeagueViewModel(repository, signedInSessionManager())
+
+        viewModel.load("user-1", platform = "yahoo", leagueId = "399.l.1")
+        repository.requestedPlatform = null
+        repository.requestedLeagueId = null
+        viewModel.reload()
+
+        assertEquals("yahoo", repository.requestedPlatform)
+        assertEquals("399.l.1", repository.requestedLeagueId)
+    }
+
+    private fun signedInSessionManager() = SessionManager(
+        InMemorySecureSessionStore(Session("user-1", "token", "refresh", 2_000)),
+    ) { 1_000 }
+
+    private class RecordingLeagueRepository(
+        private val overview: LeagueOverview,
+    ) : LeagueRepository {
+        var requestedPlatform: String? = null
+        var requestedLeagueId: String? = null
+
+        override suspend fun fetchStandings(accessToken: String): OmenApiResult<LeagueStandings> =
+            OmenApiResult.Failure(OmenApiError.Network)
+
+        override suspend fun fetchOverview(
+            accessToken: String,
+            platform: String?,
+            leagueId: String?,
+        ): OmenApiResult<LeagueOverview> {
+            requestedPlatform = platform
+            requestedLeagueId = leagueId
+            return OmenApiResult.Success(overview)
+        }
     }
 }

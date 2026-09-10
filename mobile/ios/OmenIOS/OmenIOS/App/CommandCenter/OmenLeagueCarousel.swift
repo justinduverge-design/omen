@@ -201,11 +201,10 @@ struct OmenLeagueCarousel: View {
         // `.never` because this widget draws its own "2 of 5" line. The system dots are
         // colour-only, which §10.2's cue rule rules out for a selection indicator.
         .tabViewStyle(.page(indexDisplayMode: .never))
-        // A paged TabView does not size to its content, so this height is load-bearing: too
-        // small and the page clips (the team-name row was being cut off on device), too large
-        // and the widget pager below leaves the fold. The card scrolls internally, so this is
-        // now a floor for the common case rather than a hard cap on what fits.
-        .frame(height: 250)
+        // A paged TabView does not size to its content, so this height is load-bearing. It must
+        // fit the selected-league header and matchup card without creating the dead vertical
+        // space that pushed Waiver/Ledger/Pulse down on device.
+        .frame(height: 270)
         .onChange(of: viewModel.selectedIndex) { _, _ in
             Task {
                 await viewModel.loadCurrentPage()
@@ -219,12 +218,7 @@ struct OmenLeagueCarousel: View {
     }
 
     private func pageCard(_ page: LeagueCarouselViewModel.Page) -> some View {
-        ScrollView {
-            pageCardBody(page)
-        }
-        // Never clips: a taller matchup (columns plus a what-to-watch rail) scrolls inside its
-        // own page instead of losing its header off the top, which is what it did on device.
-        .scrollBounceBehavior(.basedOnSize)
+        pageCardBody(page)
     }
 
     private func pageCardBody(_ page: LeagueCarouselViewModel.Page) -> some View {

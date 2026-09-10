@@ -73,7 +73,7 @@ struct OmenTeamPicker: View {
                         // The team, not the league: these screens are about a roster, and the
                         // team name is what the user calls it. The league rides in the
                         // accessibility label, which is where a long name belongs anyway.
-                        label: chipLabel(page),
+                        label: compactChipLabel(page),
                         tone: chipTone(page.platform),
                         selected: page.isActive,
                         enabled: viewModel.committingPageID == nil,
@@ -219,10 +219,6 @@ struct OmenTeamPicker: View {
     /// the **league** name takes its place — not "Your team", and not the user's own name.
     /// `Page.displayTeamName` falls back to "Your team", which is honest on a matchup card but
     /// useless in a list where every unnamed row would read identically.
-    private func chipLabel(_ page: LeagueCarouselViewModel.Page) -> String {
-        page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName
-    }
-
     /// The second line. When the league name has already been promoted to the primary line,
     /// this says so rather than repeating it.
     private func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
@@ -261,8 +257,16 @@ struct OmenTeamPicker: View {
             ? ", the league Omen is using"
             : (viewModel.committingPageID == page.id ? ", switching" : "")
         let favorite = viewModel.isFavorite(page) ? ", favourite" : ""
-        return "\(chipLabel(page)), \(page.displayLeagueName), "
+        return "\(fullChipLabel(page)), \(page.displayLeagueName), "
             + "\(platformDisplayName(page.platform))\(favorite)\(state)"
+    }
+
+    private func compactChipLabel(_ page: LeagueCarouselViewModel.Page) -> String {
+        omenCompactTeamLabel(fullChipLabel(page))
+    }
+
+    private func fullChipLabel(_ page: LeagueCarouselViewModel.Page) -> String {
+        page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName
     }
 }
 
@@ -272,7 +276,7 @@ extension OmenTeamPicker {
         OmenSwitcherTeam(
             id: page.id,
             platform: omenPlatform(page.platform),
-            teamName: chipLabel(page),
+            teamName: fullChipLabel(page),
             subtitle: subtitle(page),
             isActive: page.isActive,
             isFavorite: viewModel.isFavorite(page),

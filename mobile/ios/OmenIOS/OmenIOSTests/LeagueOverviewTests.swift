@@ -360,4 +360,77 @@ final class LeagueOverviewTests: XCTestCase {
         // A projection after the whistle is noise.
         XCTAssertEqual(mine.scoreText, "120.0")
     }
+
+    @MainActor
+    func testLeagueViewModelRequestsTheNamedLeagueWhenProvided() async throws {
+        let overview = try decode(matchup: sides(status: "live"))
+        let repository = RecordingLeagueRepository(overview: overview)
+        let viewModel = LeagueViewModel(
+            repository: repository,
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "user-1",
+                    accessToken: "token",
+                    refreshToken: "refresh",
+                    expiresAtEpochSeconds: 2_000
+                )),
+                nowEpochSeconds: { 1_000 }
+            )
+        )
+
+        await viewModel.load(userID: "user-1", platform: "espn", leagueID: "884411")
+
+        XCTAssertEqual(repository.requestedPlatform, "espn")
+        XCTAssertEqual(repository.requestedLeagueID, "884411")
+    }
+
+    @MainActor
+    func testLeagueViewModelRetryUsesTheLastNamedLeague() async throws {
+        let overview = try decode(matchup: sides(status: "live"))
+        let repository = RecordingLeagueRepository(overview: overview)
+        let viewModel = LeagueViewModel(
+            repository: repository,
+            sessionManager: SessionManager(
+                store: InMemorySecureSessionStore(initial: Session(
+                    userID: "user-1",
+                    accessToken: "token",
+                    refreshToken: "refresh",
+                    expiresAtEpochSeconds: 2_000
+                )),
+                nowEpochSeconds: { 1_000 }
+            )
+        )
+
+        await viewModel.load(userID: "user-1", platform: "yahoo", leagueID: "399.l.1")
+        repository.requestedPlatform = nil
+        repository.requestedLeagueID = nil
+        await viewModel.reload()
+
+        XCTAssertEqual(repository.requestedPlatform, "yahoo")
+        XCTAssertEqual(repository.requestedLeagueID, "399.l.1")
+    }
+
+    private final class RecordingLeagueRepository: LeagueRepository {
+        let overview: LeagueOverview
+        var requestedPlatform: String?
+        var requestedLeagueID: String?
+
+        init(overview: LeagueOverview) {
+            self.overview = overview
+        }
+
+        func fetchStandings(accessToken: String) async -> Result<LeagueStandings, OmenApiError> {
+            .failure(.network)
+        }
+
+        func fetchOverview(
+            accessToken: String,
+            platform: String?,
+            leagueID: String?
+        ) async -> Result<LeagueOverview, OmenApiError> {
+            requestedPlatform = platform
+            requestedLeagueID = leagueID
+            return .success(overview)
+        }
+    }
 }

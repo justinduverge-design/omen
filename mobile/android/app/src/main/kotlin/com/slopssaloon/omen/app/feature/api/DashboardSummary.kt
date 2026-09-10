@@ -154,6 +154,7 @@ fun DashboardSummary.toCommandCenterState(
     ledger: OmenLedgerPreviewState? = null,
     leaguePulse: OmenLeaguePulseState? = null,
     matchup: OmenMatchupHeroState? = null,
+    waiverWatch: OmenWaiverWatchState? = null,
 ): OmenCommandCenterState = OmenCommandCenterState(
     greeting = greetingFor(omenStatus, gameWeek),
     context = context ?: OmenContextStripState.Empty,
@@ -161,7 +162,7 @@ fun DashboardSummary.toCommandCenterState(
     matchup = matchup ?: OmenMatchupHeroState.NoMatchup(
         reason = matchupReasonFor(omenStatus, platforms.anyConnected),
     ),
-    waiverWatch = waiverWatchFor(waiverStatus, omenStatus),
+    waiverWatch = waiverWatch ?: waiverWatchFor(waiverStatus, omenStatus),
     // [ledger] is slice E's overlay and follows the same never-regress rule as [context]: null
     // keeps the shell-derived default, and a supplied value always wins because
     // `moves-history.v1` is the only source that actually knows whether rows exist.

@@ -106,6 +106,8 @@ fun OmenCommandCenterScreen(
     // Drives the tap-through detail sheet. The sheet carries the existing
     // OmenPlatformConnectionCard content — that content is moved off the main surface, not new.
     var detailRow by remember { mutableStateOf<OmenPlatformRowState?>(null) }
+    var showWaiverDetail by remember { mutableStateOf(false) }
+    var ledgerDetailEntry by remember { mutableStateOf<OmenLedgerEntry?>(null) }
     // Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
     // one of the three that is ever time-critical, and a user who never swipes should land on
     // the page that can expire.
@@ -187,13 +189,13 @@ fun OmenCommandCenterScreen(
                 onSelect = { widgetPage = it },
                 // Each page keeps its existing composition verbatim — this change moves the
                 // sections, it does not rewrite them.
-                waiver = { WaiverWatch(state.waiverWatch, onOpenOmen, showLabel = false) },
-                ledger = { LedgerPreview(state.ledger, onOpenLedger, showLabel = false) },
+                waiver = { WaiverWatch(state.waiverWatch, { showWaiverDetail = true }, showLabel = false) },
+                ledger = { LedgerPreview(state.ledger, { ledgerDetailEntry = it }, showLabel = false) },
                 pulse = { LeaguePulse(state.leaguePulse, onOpenLeague, showLabel = false) },
             )
         } else {
-            WaiverWatch(state = state.waiverWatch, onOpenOmen = onOpenOmen)
-            LedgerPreview(state = state.ledger, onOpenLedger = onOpenLedger)
+            WaiverWatch(state = state.waiverWatch, onOpenWaiver = { showWaiverDetail = true })
+            LedgerPreview(state = state.ledger, onOpenLedger = { ledgerDetailEntry = it })
             LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
         }
     }
@@ -222,6 +224,16 @@ fun OmenCommandCenterScreen(
                     onAction = { onConnectPlatform?.invoke(row.platform) },
                 )
             }
+        }
+    }
+    if (showWaiverDetail) {
+        CommandCenterDetailSheet(title = "Waiver Watch", onDismiss = { showWaiverDetail = false }) {
+            WaiverWatch(state.waiverWatch, onOpenWaiver = null, showLabel = false, showDetailLink = false)
+        }
+    }
+    ledgerDetailEntry?.let { entry ->
+        CommandCenterDetailSheet(title = "The Ledger", onDismiss = { ledgerDetailEntry = null }) {
+            LedgerDetail(entry = entry, state = state.ledger)
         }
     }
 }
@@ -274,16 +286,17 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
 @Composable
 private fun WaiverWatch(
     state: OmenWaiverWatchState,
-    onOpenOmen: (() -> Unit)?,
+    onOpenWaiver: (() -> Unit)?,
     // False inside the widget pager, which supplies the heading itself — two headings stacked
     // would read as two sections.
     showLabel: Boolean = true,
+    showDetailLink: Boolean = true,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         if (showLabel) SectionLabel("Waiver Watch")
         when (state) {
-            is OmenWaiverWatchState.Urgent -> UrgentWaiverBriefing(state, onOpenOmen)
-            is OmenWaiverWatchState.Calm -> CalmWaiverList(state, onOpenOmen)
+            is OmenWaiverWatchState.Urgent -> UrgentWaiverBriefing(state, onOpenWaiver, showDetailLink)
+            is OmenWaiverWatchState.Calm -> CalmWaiverList(state, onOpenWaiver, showDetailLink)
             OmenWaiverWatchState.Pending -> WaiverStatusCard(
                 title = "Claim pending",
                 message = "Omen has identified an opportunity. Claim outcome is not yet known.",
@@ -291,7 +304,7 @@ private fun WaiverWatch(
             OmenWaiverWatchState.Processed -> WaiverStatusCard(
                 title = "Waivers processed",
                 message = "Your league’s waivers have processed. Review current opportunities.",
-                onOpenOmen = onOpenOmen,
+                onOpenWaiver = onOpenWaiver.takeIf { showDetailLink },
             )
             OmenWaiverWatchState.AvailabilityUnknown -> WaiverStatusCard(
                 title = "Availability needs confirmation",
@@ -320,7 +333,11 @@ private fun WaiverWatch(
 }
 
 @Composable
-private fun UrgentWaiverBriefing(state: OmenWaiverWatchState.Urgent, onOpenOmen: (() -> Unit)?) {
+private fun UrgentWaiverBriefing(
+    state: OmenWaiverWatchState.Urgent,
+    onOpenWaiver: (() -> Unit)?,
+    showDetailLink: Boolean,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         Text(state.deadlineText, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
         OmenCard(variant = OmenCardVariant.Preview) {
@@ -330,7 +347,7 @@ private fun UrgentWaiverBriefing(state: OmenWaiverWatchState.Urgent, onOpenOmen:
                 OpportunityContent(state.bestMove)
             }
         }
-        OmenLinkButton("Review Omen’s waiver analysis", onOpenOmen)
+        if (showDetailLink) OmenLinkButton("Review waiver analysis", onOpenWaiver)
         if (state.longHorizonMoves.isNotEmpty()) {
             Text("For the long horizon", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
             state.longHorizonMoves.take(2).forEach { OpportunityRow(it) }
@@ -339,22 +356,26 @@ private fun UrgentWaiverBriefing(state: OmenWaiverWatchState.Urgent, onOpenOmen:
 }
 
 @Composable
-private fun CalmWaiverList(state: OmenWaiverWatchState.Calm, onOpenOmen: (() -> Unit)?) {
+private fun CalmWaiverList(
+    state: OmenWaiverWatchState.Calm,
+    onOpenWaiver: (() -> Unit)?,
+    showDetailLink: Boolean,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
         state.opportunities.forEachIndexed { index, opportunity ->
             OpportunityRow(opportunity, rank = index + 1)
         }
-        OmenLinkButton("See full waiver analysis", onOpenOmen)
+        if (showDetailLink) OmenLinkButton("See full waiver analysis", onOpenWaiver)
     }
 }
 
 @Composable
-private fun WaiverStatusCard(title: String, message: String, onOpenOmen: (() -> Unit)? = null) {
+private fun WaiverStatusCard(title: String, message: String, onOpenWaiver: (() -> Unit)? = null) {
     OmenCard(variant = OmenCardVariant.Outlined) {
         Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
             Text(title, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
             Text(message, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
-            if (onOpenOmen != null) OmenLinkButton("Review Omen’s waiver analysis", onOpenOmen)
+            if (onOpenWaiver != null) OmenLinkButton("Review waiver analysis", onOpenWaiver)
         }
     }
 }
@@ -392,6 +413,42 @@ private fun OmenLinkButton(title: String, onOpenOmen: (() -> Unit)?) {
             variant = OmenButtonVariant.Link,
             size = OmenButtonSize.Lg,
         )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun CommandCenterDetailSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(OmenTheme.spacing.step16),
+            verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16),
+        ) {
+            Text(title, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun LedgerDetail(entry: OmenLedgerEntry, state: OmenLedgerPreviewState) {
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        OmenCard(variant = OmenCardVariant.Preview) {
+            Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                Text(
+                    text = "${entry.period} · ${entry.callType}",
+                    style = OmenTheme.typography.eyebrow.toTextStyle(),
+                    color = OmenTheme.color.accent,
+                )
+                Text(entry.summary, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
+                Text(entry.outcome, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+            }
+        }
+        LedgerPreview(state = state, onOpenLedger = null, showLabel = false)
     }
 }
 
@@ -686,6 +743,34 @@ object OmenCommandCenterFixtures {
             cutLine = "Demo standing · 2 games clear of the cut line",
             activity = "No demo league activity feed — this section stays honest until one exists.",
         ),
+    )
+
+    val longNameMatchup: OmenCommandCenterState = OmenCommandCenterState(
+        greeting = "Demo · Sunday. Week 7 is in play.",
+        context = OmenContextStripState.Selected(
+            platform = OmenPlatform.Espn,
+            leagueName = "Demo Slate (mock league)",
+            teamName = "Scaries",
+        ),
+        platforms = listOf(
+            OmenPlatformRowState(OmenPlatform.Sleeper, OmenConnectionStatus.Connected, "4m ago"),
+            OmenPlatformRowState(OmenPlatform.Yahoo, OmenConnectionStatus.Connected, "8m ago"),
+            OmenPlatformRowState(OmenPlatform.Espn, OmenConnectionStatus.Connected, "1m ago"),
+        ),
+        matchup = OmenMatchupHeroState.Live(
+            selectedTeam = OmenMatchupTeam("Scaries", "6-1", "64.8", projectedText = "119.6"),
+            opponent = OmenMatchupTeam(
+                "The Wildly Unreasonable Playoff Machines",
+                "5-2",
+                "58.1",
+                projectedText = "114.2",
+            ),
+            projectedFinish = "119.6-114.2",
+            whatToWatch = "Opponent has two demo players remaining Monday night.",
+        ),
+        waiverWatch = OmenWaiverWatchState.Pending,
+        ledger = OmenLedgerPreviewState.Empty,
+        leaguePulse = OmenLeaguePulseState.Available(position = "Demo: 3rd of 12 · In a playoff spot"),
     )
 
     /**

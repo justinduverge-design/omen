@@ -30,6 +30,10 @@ enum ScreenshotScenarios {
             label: "Command Center — demo/mock connected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.demo-connected")) }
         ),
+        "command-center.long-matchup": ScreenshotScenario(
+            label: "Command Center — long fantasy team names in matchup",
+            content: { AnyView(FauxShell(commandStateOverride: OmenCommandCenterFixtures.longNameMatchup)) }
+        ),
         "command-center.disconnected": ScreenshotScenario(
             label: "Command Center — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.disconnected")) }

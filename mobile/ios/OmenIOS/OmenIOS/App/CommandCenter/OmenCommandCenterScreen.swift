@@ -45,6 +45,8 @@ struct OmenCommandCenterScreen: View {
     /// Drives the tap-through detail sheet. The sheet carries the existing
     /// `OmenPlatformConnectionCard` content — that content is moved off the main surface, not new.
     @State private var detailRow: OmenPlatformRowState?
+    @State private var showWaiverDetail = false
+    @State private var ledgerDetailEntry: OmenLedgerEntry?
     /// Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
     /// one of the three that is ever time-critical, and a user who never swipes should land on
     /// the page that can expire.
@@ -121,6 +123,16 @@ struct OmenCommandCenterScreen: View {
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)
         }
+        .sheet(isPresented: $showWaiverDetail) {
+            CommandCenterDetailSheet(title: "Waiver Watch") {
+                waiverWatchBody(showDetailLink: false)
+            }
+        }
+        .sheet(item: $ledgerDetailEntry) { entry in
+            CommandCenterDetailSheet(title: "The Ledger") {
+                ledgerDetailBody(selected: entry)
+            }
+        }
     }
 
     /// Founder sketch, 2026-09-04: the three sections below the matchup become one paged
@@ -134,7 +146,7 @@ struct OmenCommandCenterScreen: View {
                 selection: $widgetPage,
                 // Each page keeps its existing composition verbatim — this change moves the
                 // sections, it does not rewrite them.
-                waiver: AnyView(waiverWatchBody),
+                waiver: AnyView(waiverWatchBody()),
                 // The section links ride along into the paged layout as trailing rows. They
                 // are the only route from each preview to its full screen, and dropping them
                 // in the move would have stranded both sections.
@@ -251,27 +263,32 @@ struct OmenCommandCenterScreen: View {
     private var waiverWatch: some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             sectionLabel("Waiver Watch")
-            waiverWatchBody
+            waiverWatchBody()
         }
     }
 
     /// The section without its own heading — the widget pager supplies that, and two headings
     /// stacked would read as two sections.
     @ViewBuilder
-    private var waiverWatchBody: some View {
+    private func waiverWatchBody(showDetailLink: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             switch state.waiverWatch {
             case let .urgent(deadlineText, bestMove, longHorizonMoves):
-                urgentWaiverBriefing(deadlineText: deadlineText, bestMove: bestMove, longHorizonMoves: longHorizonMoves)
+                urgentWaiverBriefing(
+                    deadlineText: deadlineText,
+                    bestMove: bestMove,
+                    longHorizonMoves: longHorizonMoves,
+                    showDetailLink: showDetailLink
+                )
             case let .calm(opportunities):
-                calmWaiverList(opportunities: opportunities)
+                calmWaiverList(opportunities: opportunities, showDetailLink: showDetailLink)
             case .pending:
                 waiverStatusCard(title: "Claim pending", message: "Omen has identified an opportunity. Claim outcome is not yet known.")
             case .processed:
                 waiverStatusCard(
                     title: "Waivers processed",
                     message: "Your league’s waivers have processed. Review current opportunities.",
-                    showOmenLink: true
+                    showDetailLink: showDetailLink
                 )
             case .availabilityUnknown:
                 waiverStatusCard(title: "Availability needs confirmation", message: "Omen cannot confirm availability for this league.")
@@ -303,7 +320,8 @@ struct OmenCommandCenterScreen: View {
     private func urgentWaiverBriefing(
         deadlineText: String,
         bestMove: OmenWaiverOpportunity,
-        longHorizonMoves: [OmenWaiverOpportunity]
+        longHorizonMoves: [OmenWaiverOpportunity],
+        showDetailLink: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             Text(deadlineText).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
@@ -314,7 +332,7 @@ struct OmenCommandCenterScreen: View {
                     opportunityContent(bestMove)
                 }
             }
-            omenLinkButton(title: "Review Omen’s waiver analysis")
+            if showDetailLink { waiverDetailButton(title: "Review waiver analysis") }
             if !longHorizonMoves.isEmpty {
                 Text("For the long horizon").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
                 ForEach(Array(longHorizonMoves.prefix(2))) { opportunity in
@@ -324,21 +342,21 @@ struct OmenCommandCenterScreen: View {
         }
     }
 
-    private func calmWaiverList(opportunities: [OmenWaiverOpportunity]) -> some View {
+    private func calmWaiverList(opportunities: [OmenWaiverOpportunity], showDetailLink: Bool) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
             ForEach(Array(opportunities.enumerated()), id: \.element.id) { index, opportunity in
                 opportunityRow(opportunity, rank: index + 1)
             }
-            omenLinkButton(title: "See full waiver analysis")
+            if showDetailLink { waiverDetailButton(title: "See full waiver analysis") }
         }
     }
 
-    private func waiverStatusCard(title: String, message: String, showOmenLink: Bool = false) -> some View {
+    private func waiverStatusCard(title: String, message: String, showDetailLink: Bool = false) -> some View {
         OmenCard(variant: .outlined) {
             VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                 Text(title).omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
                 Text(message).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
-                if showOmenLink { omenLinkButton(title: "Review Omen’s waiver analysis") }
+                if showDetailLink { waiverDetailButton(title: "Review waiver analysis") }
             }
         }
     }
@@ -362,10 +380,8 @@ struct OmenCommandCenterScreen: View {
     }
 
     @ViewBuilder
-    private func omenLinkButton(title: String) -> some View {
-        if let onOpenOmen {
-            OmenButton(title: "\(title) →", action: onOpenOmen, variant: .link, size: .lg)
-        }
+    private func waiverDetailButton(title: String) -> some View {
+        OmenButton(title: "\(title) →", action: { showWaiverDetail = true }, variant: .link, size: .lg)
     }
 
     @ViewBuilder
@@ -384,8 +400,8 @@ struct OmenCommandCenterScreen: View {
     /// the preview to the full Ledger, and dropping it would strand the section.
     @ViewBuilder
     private var ledgerSeeAll: some View {
-        if case .entries = state.ledger, let first = state.ledger.entries.first, let onOpenLedger {
-            OmenButton(title: "See all →", action: { onOpenLedger(first) }, variant: .link, size: .md)
+        if case .entries = state.ledger, let first = state.ledger.entries.first {
+            OmenButton(title: "See all →", action: { ledgerDetailEntry = first }, variant: .link, size: .md)
         }
     }
 
@@ -399,7 +415,7 @@ struct OmenCommandCenterScreen: View {
                         OmenListRow(
                             title: "\(entry.period) · \(entry.callType)",
                             subtitle: "\(entry.summary)\n\(entry.outcome)",
-                            action: onOpenLedger.map { callback in { callback(entry) } },
+                            action: { ledgerDetailEntry = entry },
                             leading: {
                                 Rectangle()
                                     .fill(OmenColor.accent)
@@ -422,6 +438,25 @@ struct OmenCommandCenterScreen: View {
             case .error(let message):
                 OmenStateSurface(kind: .error, title: "The Ledger didn’t load", message: message)
             }
+        }
+    }
+
+    private func ledgerDetailBody(selected: OmenLedgerEntry) -> some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            OmenCard(variant: .preview) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("\(selected.period) · \(selected.callType)")
+                        .omenTextStyle(OmenTypography.eyebrow)
+                        .foregroundStyle(OmenColor.accent)
+                    Text(selected.summary)
+                        .omenTextStyle(OmenTypography.h2)
+                        .foregroundStyle(OmenColor.textPrimary)
+                    Text(selected.outcome)
+                        .omenTextStyle(OmenTypography.body)
+                        .foregroundStyle(OmenColor.textSecondary)
+                }
+            }
+            ledgerPreviewBody
         }
     }
 
@@ -585,6 +620,27 @@ struct OmenWaiverOpportunity: Identifiable {
     }
 }
 
+private struct CommandCenterDetailSheet<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                    content()
+                }
+                .padding(OmenSpacing.step16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(OmenColor.bg.ignoresSafeArea())
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.large])
+    }
+}
+
 /// Fixture registry. Every fixture is explicitly labelled by its variable name; none
 /// mints a "connected provider" claim for a real user. Screenshot workflow and
 /// `Try Demo` session both consume these; a real signed-in user without connected
@@ -634,6 +690,30 @@ enum OmenCommandCenterFixtures {
             cutLine: "Demo standing · 2 games clear of the cut line",
             activity: "No demo league activity feed — this section stays honest until one exists."
         )
+    )
+
+    static let longNameMatchup = OmenCommandCenterState(
+        greeting: "Demo · Sunday. Week 7 is in play.",
+        context: .selected(platform: .espn, leagueName: "Demo Slate (mock league)", teamName: "Scaries"),
+        platforms: [
+            OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago"),
+            OmenPlatformRowState(platform: .yahoo, status: .connected, lastSyncText: "8m ago"),
+            OmenPlatformRowState(platform: .espn, status: .connected, lastSyncText: "1m ago")
+        ],
+        matchup: .live(
+            selectedTeam: OmenMatchupTeam(name: "Scaries", record: "6-1", scoreText: "64.8", projectedText: "119.6"),
+            opponent: OmenMatchupTeam(
+                name: "The Wildly Unreasonable Playoff Machines",
+                record: "5-2",
+                scoreText: "58.1",
+                projectedText: "114.2"
+            ),
+            projectedFinish: "119.6-114.2",
+            whatToWatch: "Opponent has two demo players remaining Monday night."
+        ),
+        waiverWatch: .pending,
+        ledger: .empty,
+        leaguePulse: .available(position: "Demo: 3rd of 12 · In a playoff spot", cutLine: nil, activity: nil)
     )
 
     /// Honest disconnected state — what a real signed-in user without a connected
