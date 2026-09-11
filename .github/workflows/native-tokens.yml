@@ -1,0 +1,45 @@
+# Native design-token gates.
+#
+# Two things can go wrong with `OmenColor.swift` / `OmenColor.kt` that neither platform's own
+# test suite can see:
+#
+#   1. A value changes on one platform and not the other. Nothing compiles them together, so
+#      both suites stay green and the divergence surfaces weeks later as "light mode looks
+#      different on Android".
+#   2. A value changes to something nobody can read. Hex-pinning tests assert a token equals a
+#      hex; they say nothing about whether that hex has contrast. The shipped light `border`
+#      sat at 1.08:1 — the sole visible boundary of every text field — under a fully green
+#      suite.
+#
+# The parity check is pure Node and runs here. The contrast check is a Kotlin unit test and
+# runs in the Android job, which also compiles the token file it reads.
+name: Native Design Tokens
+on:
+  pull_request:
+    paths:
+      - 'mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenColor.swift'
+      - 'mobile/android/core/designsystem/src/main/kotlin/**'
+      - 'scripts/check-token-parity.js'
+      - '.github/workflows/native-tokens.yml'
+jobs:
+  token-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: iOS and Android token values agree
+        run: node scripts/check-token-parity.js
+
+  token-contrast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Token contrast floors (WCAG AA text, 3:1 control boundaries)
+        working-directory: mobile/android
+        run: ./gradlew :core:designsystem:testDebugUnitTest --tests '*OmenColor*'

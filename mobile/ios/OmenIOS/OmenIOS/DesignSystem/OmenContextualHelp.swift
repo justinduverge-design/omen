@@ -117,7 +117,7 @@ struct OmenContextualHelpSheet: View {
                                     // row allows exactly `surface-2` + `text-primary`, and brass
                                     // here was an implementation deviation, not an approved
                                     // variant. It also failed WCAG AA in dark mode: measured
-                                    // 3.68:1 for accent `#A67C2E` on surface-2 `#2C2C2E`
+                                    // 3.68:1 for accent `#A67C2E` on the then surface-2 `#2C2C2E`
                                     // (light mode passed at 5.70:1, so this was dark-only).
                                     // The body below already followed the registry; the label
                                     // was the half of that earlier fix that got left behind.

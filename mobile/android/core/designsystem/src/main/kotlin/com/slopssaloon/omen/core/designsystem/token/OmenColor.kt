@@ -7,6 +7,14 @@ import androidx.compose.ui.graphics.Color
  * `omen-native-design-system-registry-v1.md` §2.2 — do not hand-edit a hex here without
  * updating the registry row first (registry markdown is the source of truth).
  *
+ *
+ * **Warm neutral ramp, 2026-09-11.** The light ramp was Tailwind's cold grey on a
+ * brass-and-umber brand; it is now derived from the approved core (Bone White, Weathered
+ * Umber). `border` also changed role — it is the sole visible boundary of text fields,
+ * pickers, OTP cells and outlined buttons, and shipped at 1.08:1, so it now clears WCAG
+ * 1.4.11's 3:1. Ratios and the residual (`surface3`) are in registry §2.2. Enforced by
+ * `OmenColorContrastTest`, not by these comments.
+ *
  * Feature code must read [com.slopssaloon.omen.core.designsystem.theme.OmenTheme.color],
  * never construct [OmenColorScheme] or a raw [Color] directly (registry §2.6).
  */
@@ -123,20 +131,20 @@ private val darkDataSemantics = OmenDataSemanticColors(
 // Registry §2.3: risk-high and the data-source/confidence/position/platform/demo families are
 // identical dark/light by contract; only risk-low/risk-medium document a light override.
 private val lightDataSemantics = darkDataSemantics.copy(
-    riskLow = Color(0xFF16A34A),
-    riskMedium = Color(0xFFD97706),
+    riskLow = Color(0xFF13702F),
+    riskMedium = Color(0xFF8F4A09),
 )
 
 val OmenDarkColors = OmenColorScheme(
     bg = Color(0xFF0A0A0B),
     surface1 = Color(0xFF1C1C1E),
-    surface2 = Color(0xFF2C2C2E),
-    surface3 = Color(0xFF3A3A3C),
-    border = Color(0xFF3A3A3C),
-    borderSubtle = Color(0xFF2C2C2E),
+    surface2 = Color(0xFF2B2823),
+    surface3 = Color(0xFF3A352D),
+    border = Color(0xFF837B69),
+    borderSubtle = Color(0xFF332F29),
     textPrimary = Color(0xFFF5F0E8),
-    textSecondary = Color(0xFFAEAEB2),
-    textTertiary = Color(0xFF6D6D72),
+    textSecondary = Color(0xFFB5ADA2),
+    textTertiary = Color(0xFF9A9184),
     accent = Color(0xFFA67C2E),
     accentHover = Color(0xFFC49035),
     accentMuted = Color(0xFF3A2A0A),
@@ -150,19 +158,19 @@ val OmenDarkColors = OmenColorScheme(
 )
 
 val OmenLightColors = OmenColorScheme(
-    bg = Color(0xFFFAFAF9),
-    surface1 = Color(0xFFFFFFFF),
-    surface2 = Color(0xFFF5F5F4),
-    surface3 = Color(0xFFEBEBEA),
-    border = Color(0xFFE5E5E3),
-    borderSubtle = Color(0xFFF0F0EE),
-    textPrimary = Color(0xFF1C1C1E),
-    textSecondary = Color(0xFF6B7280),
-    textTertiary = Color(0xFF9CA3AF),
+    bg = Color(0xFFF1EDE4),
+    surface1 = Color(0xFFFFFDF9),
+    surface2 = Color(0xFFF6F1E7),
+    surface3 = Color(0xFFE9E1D2),
+    border = Color(0xFF8F7B5F),
+    borderSubtle = Color(0xFFDCD1BA),
+    textPrimary = Color(0xFF1C1917),
+    textSecondary = Color(0xFF5C5248),
+    textTertiary = Color(0xFF6B6052),
     accent = Color(0xFF7A5C1E),
     accentHover = Color(0xFFA67C2E),
-    accentMuted = Color(0xFFFEF3C7),
-    textOnAccent = Color(0xFFFAFAF9),
+    accentMuted = Color(0xFFF6E7BE),
+    textOnAccent = Color(0xFFFFFDF9),
     omen = Color(0xFF1A5C3E),
     omenChip = Color(0xFF1A5C3E),
     umber = Color(0xFF5A3A25),

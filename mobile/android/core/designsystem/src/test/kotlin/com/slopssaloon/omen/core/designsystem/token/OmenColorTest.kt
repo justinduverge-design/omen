@@ -23,9 +23,9 @@ class OmenColorTest {
 
     @Test
     fun `light core semantics match registry`() {
-        assertEquals(Color(0xFFFAFAF9), OmenLightColors.bg)
-        assertEquals(Color(0xFFFFFFFF), OmenLightColors.surface1)
-        assertEquals(Color(0xFF1C1C1E), OmenLightColors.textPrimary)
+        assertEquals(Color(0xFFF1EDE4), OmenLightColors.bg)
+        assertEquals(Color(0xFFFFFDF9), OmenLightColors.surface1)
+        assertEquals(Color(0xFF1C1917), OmenLightColors.textPrimary)
         assertEquals(Color(0xFF7A5C1E), OmenLightColors.accent)
         assertEquals(Color(0xFF1A5C3E), OmenLightColors.omen)
     }
@@ -47,11 +47,11 @@ class OmenColorTest {
     @Test
     fun `risk-low and risk-medium document a light-mode override`() {
         assertEquals(Color(0xFF34C759), OmenDarkColors.data.riskLow)
-        assertEquals(Color(0xFF16A34A), OmenLightColors.data.riskLow)
+        assertEquals(Color(0xFF13702F), OmenLightColors.data.riskLow)
         assertNotEquals(OmenDarkColors.data.riskLow, OmenLightColors.data.riskLow)
 
         assertEquals(Color(0xFFFF9F0A), OmenDarkColors.data.riskMedium)
-        assertEquals(Color(0xFFD97706), OmenLightColors.data.riskMedium)
+        assertEquals(Color(0xFF8F4A09), OmenLightColors.data.riskMedium)
     }
 
     @Test

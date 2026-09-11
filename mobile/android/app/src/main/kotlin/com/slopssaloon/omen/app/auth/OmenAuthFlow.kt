@@ -175,9 +175,9 @@ private fun SignInFirstScreen(
                     painter = painterResource(id = R.drawable.ic_canvas_chevron_left),
                     contentDescription = null,
                     // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
-                    // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                    // value until the 2026-09-11 warm-ramp change — but in light mode it stayed a pale
                     // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
-                    // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                    // control. The token answers `#5C5248` there (7.50:1). Latent until the
                     // screen's hardcoded dark background was tokenised on 2026-09-07.
                     tint = OmenTheme.color.textSecondary,
                     modifier = Modifier.size(24.dp),
@@ -397,9 +397,9 @@ private fun EmailCodeScreen(
                 painter = painterResource(id = R.drawable.ic_canvas_chevron_left),
                 contentDescription = null,
                 // `textSecondary`, not the asset's baked `#AEAEB2`. That hex IS textSecondary's *dark*
-                // value, so dark mode is pixel-identical — but in light mode it stayed a pale
+                // value until the 2026-09-11 warm-ramp change — but in light mode it stayed a pale
                 // grey on a cream page at **2.12:1**, under the 3:1 WCAG 1.4.11 floor for a
-                // control. The token answers `#6B7280` there (4.63:1). Latent until the
+                // control. The token answers `#5C5248` there (7.50:1). Latent until the
                 // screen's hardcoded dark background was tokenised on 2026-09-07.
                 tint = OmenTheme.color.textSecondary,
                 modifier = Modifier.size(24.dp),
