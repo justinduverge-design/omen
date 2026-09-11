@@ -16,6 +16,22 @@ import SwiftUI
 /// Callers own the state and choose an honest fixture (demo mode vs real signed-in user).
 /// This composition never selects a "connected" fixture on its own — exposing
 /// demo-connected provider claims to a real user would violate facts-of-record #7.
+/// Height of the Command Center's scrolling content.
+private struct CommandCenterContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Height of the viewport that content is measured against.
+private struct CommandCenterViewportHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct OmenCommandCenterScreen: View {
     let state: OmenCommandCenterState
     let onSwitchContext: (() -> Void)?
@@ -45,6 +61,15 @@ struct OmenCommandCenterScreen: View {
     /// Drives the tap-through detail sheet. The sheet carries the existing
     /// `OmenPlatformConnectionCard` content — that content is moved off the main surface, not new.
     @State private var detailRow: OmenPlatformRowState?
+    @State private var contentHeight: CGFloat = 0
+    @State private var viewportHeight: CGFloat = 0
+    /// True once both have been measured and the content is no taller than the viewport.
+    /// Unmeasured (either still 0) reads as "does not fit", so scrolling stays available
+    /// until we actually know — never the other way round.
+    private var contentFits: Bool {
+        contentHeight > 0 && viewportHeight > 0 && contentHeight <= viewportHeight
+    }
+
     @State private var showWaiverDetail = false
     @State private var ledgerDetailEntry: OmenLedgerEntry?
     /// Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
@@ -85,7 +110,9 @@ struct OmenCommandCenterScreen: View {
             // `sectionStack` is 48pt, which is right for a page of stacked sections and far
             // too much for one with two carousels that both need to be on screen. The carousel
             // layout uses a tighter rhythm; the legacy stacked layout keeps the original.
-            VStack(alignment: .leading, spacing: carousel == nil ? OmenSpacing.sectionStack : OmenSpacing.step24) {
+            // step24 -> step16 on 2026-09-10: the founder wants the whole Command Center on
+            // one screen with no scrolling, and this rhythm repeats four times.
+            VStack(alignment: .leading, spacing: carousel == nil ? OmenSpacing.sectionStack : OmenSpacing.step16) {
                 header
                 // The vertical platform status strip is suppressed when the carousel is
                 // present. Founder, 2026-09-04: "you still have Sleeper, Yahoo and ESPN going
@@ -116,9 +143,28 @@ struct OmenCommandCenterScreen: View {
                 secondaryWidgets
             }
             .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step24)
+            .padding(.vertical, carousel == nil ? OmenSpacing.step24 : OmenSpacing.step16)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: CommandCenterContentHeightKey.self, value: proxy.size.height)
+                }
+            )
         }
+        // Founder, 2026-09-10: "take off the scroll on the screen. Users shouldn't be able
+        // to scroll down." Conditional rather than a flat `true`: if the content genuinely
+        // does not fit — large Dynamic Type, a long greeting, a tall widget page — hard
+        // disabling would make the bottom of the screen permanently unreachable, which is an
+        // accessibility-gate failure in `omen-native-delivery-governance-v1.md` §5. Scrolling
+        // is switched off exactly when there is nothing to scroll to.
+        .scrollDisabled(carousel != nil && contentFits)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: CommandCenterViewportHeightKey.self, value: proxy.size.height)
+            }
+        )
+        .onPreferenceChange(CommandCenterContentHeightKey.self) { contentHeight = $0 }
+        .onPreferenceChange(CommandCenterViewportHeightKey.self) { viewportHeight = $0 }
         .background(OmenColor.bg.ignoresSafeArea())
         .sheet(item: $detailRow) { row in
             platformDetailSheet(row)
@@ -144,9 +190,13 @@ struct OmenCommandCenterScreen: View {
         if carousel != nil {
             OmenWidgetPager(
                 selection: $widgetPage,
-                // Each page keeps its existing composition verbatim — this change moves the
-                // sections, it does not rewrite them.
-                waiver: AnyView(waiverWatchBody()),
+                // Founder, 2026-09-10: "I don't want to see the waiver wire printed on
+                // Omen. I just want the review waiver wire analysis." The full briefing —
+                // best move, the long-horizon list, every state surface — is unchanged and
+                // still one tap away in the sheet; Command Center now carries only the way
+                // in, so the whole screen fits without scrolling. `waiverWatchBody` is NOT
+                // dead: the sheet below still renders it in full.
+                waiver: AnyView(waiverCallToActionOnly),
                 // The section links ride along into the paged layout as trailing rows. They
                 // are the only route from each preview to its full screen, and dropping them
                 // in the move would have stranded both sections.
@@ -379,7 +429,26 @@ struct OmenCommandCenterScreen: View {
         }
     }
 
+    /// The Waiver page of the widget pager: its way in, and nothing else.
+    ///
+    /// The pager already draws the "Waiver Watch" section title above this, so a second
+    /// heading here would repeat it. The deadline line stays because it is the one fact that
+    /// decides whether the tap is urgent, and it is a single row.
     @ViewBuilder
+    private var waiverCallToActionOnly: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            if case let .urgent(deadlineText, _, _) = state.waiverWatch {
+                Text(deadlineText)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            waiverDetailButton(title: "Review waiver analysis")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func waiverDetailButton(title: String) -> some View {
         OmenButton(title: "\(title) →", action: { showWaiverDetail = true }, variant: .link, size: .lg)
     }

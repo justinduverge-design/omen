@@ -86,8 +86,10 @@ struct OmenWidgetPager: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         // Sized so this pager and the matchup carousel above it share one screen — the
         // founder wants both on the fold, and 340 put this one under it. Every page scrolls
-        // internally, so a tall waiver briefing is reachable rather than clipped.
-        .frame(height: 260)
+        // internally, so a tall Ledger is reachable rather than clipped.
+        // 260 -> 200 on 2026-09-10: the Waiver page is now a deadline line and a link rather
+        // than a printed briefing, so the tallest page is no longer the one that set 260.
+        .frame(height: 200)
     }
 
     private func page(_ id: Page, content: AnyView) -> some View {

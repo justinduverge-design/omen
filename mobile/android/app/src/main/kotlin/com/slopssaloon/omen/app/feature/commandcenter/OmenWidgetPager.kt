@@ -102,7 +102,9 @@ fun OmenWidgetPager(
             // Sized so this pager and the matchup carousel above it share one screen — the
             // founder wants both on the fold, and 340 put this one under it. Every page scrolls
             // internally, so a tall waiver briefing is reachable rather than clipped.
-            modifier = Modifier.fillMaxWidth().height(260.dp),
+            // 260 -> 200 on 2026-09-10: the Waiver page is now a deadline line and a link
+            // rather than a printed briefing, so the tallest page no longer needs 260.
+            modifier = Modifier.fillMaxWidth().height(200.dp),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             val page = pages[index]

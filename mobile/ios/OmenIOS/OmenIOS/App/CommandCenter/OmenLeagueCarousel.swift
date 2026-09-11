@@ -18,7 +18,19 @@ import SwiftUI
 ///     is the question the strip existed to answer and must not be lost in the merge;
 ///   - a page that cannot load says so on its own card. One dead provider must not blank
 ///     the widget for the leagues that work.
+/// Tallest composed carousel page. Drives the pager's height so the card cannot be clipped.
+private struct CarouselPageHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct OmenLeagueCarousel: View {
+    /// Floor, not a fixed size — a page always gets at least this much while it loads.
+    static let minimumPageHeight: CGFloat = 220
+
+    @State private var pageHeight: CGFloat = OmenLeagueCarousel.minimumPageHeight
     @ObservedObject var viewModel: LeagueCarouselViewModel
     /// Passed so "demo" reads differently from "signed out", which are identical from the
     /// token alone and must never read the same to a user.
@@ -201,10 +213,21 @@ struct OmenLeagueCarousel: View {
         // `.never` because this widget draws its own "2 of 5" line. The system dots are
         // colour-only, which §10.2's cue rule rules out for a selection indicator.
         .tabViewStyle(.page(indexDisplayMode: .never))
-        // A paged TabView does not size to its content, so this height is load-bearing. It must
-        // fit the selected-league header and matchup card without creating the dead vertical
-        // space that pushed Waiver/Ledger/Pulse down on device.
-        .frame(height: 270)
+        // Was a hard 270. A paged TabView does not size to its content, and a fixed number
+        // cannot grow — on a real six-league account the page header overflowed and the
+        // platform badge was sliced in half by the row above it (founder screenshot,
+        // 2026-09-10). The pages now report their intrinsic height and the tallest one wins,
+        // so content sets the height instead of a constant guessing at it.
+        .frame(height: pageHeight)
+        .onPreferenceChange(CarouselPageHeightKey.self) { measured in
+            // Monotonic within a page set: the height must not twitch as neighbouring pages
+            // compose and decompose during a swipe. `pages.count` resets it (see below).
+            guard measured > pageHeight else { return }
+            pageHeight = measured
+        }
+        .onChange(of: viewModel.pages.count) { _, _ in
+            pageHeight = Self.minimumPageHeight
+        }
         .onChange(of: viewModel.selectedIndex) { _, _ in
             Task {
                 await viewModel.loadCurrentPage()
@@ -219,6 +242,18 @@ struct OmenLeagueCarousel: View {
 
     private func pageCard(_ page: LeagueCarouselViewModel.Page) -> some View {
         pageCardBody(page)
+            // `fixedSize` so the reported height is the page's INTRINSIC height rather than
+            // the height the TabView is currently imposing. Measuring the imposed height
+            // would feed the frame its own value and never grow.
+            .fixedSize(horizontal: false, vertical: true)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: CarouselPageHeightKey.self,
+                        value: proxy.size.height
+                    )
+                }
+            )
     }
 
     private func pageCardBody(_ page: LeagueCarouselViewModel.Page) -> some View {
