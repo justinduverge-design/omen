@@ -14,10 +14,10 @@ class OmenColorTest {
 
     @Test
     fun `dark core semantics match registry`() {
-        assertEquals(Color(0xFF0A0A0B), OmenDarkColors.bg)
-        assertEquals(Color(0xFF1C1C1E), OmenDarkColors.surface1)
+        assertEquals(Color(0xFF1F1F1D), OmenDarkColors.bg)
+        assertEquals(Color(0xFF2A2A27), OmenDarkColors.surface1)
         assertEquals(Color(0xFFF5F0E8), OmenDarkColors.textPrimary)
-        assertEquals(Color(0xFFA67C2E), OmenDarkColors.accent)
+        assertEquals(Color(0xFFC4933B), OmenDarkColors.accent)
         assertEquals(Color(0xFF2F7D5B), OmenDarkColors.omen)
     }
 
@@ -91,7 +91,7 @@ class OmenColorTest {
      */
     @Test
     fun `the verdigris chip override lifts dark mode only`() {
-        assertEquals(Color(0xFF3A9A70), OmenDarkColors.omenChip)
+        assertEquals(Color(0xFF4FAE81), OmenDarkColors.omenChip)
         assertEquals(Color(0xFF1A5C3E), OmenLightColors.omenChip)
 
         // Dark is a real lift off the base; light is deliberately identical to it.

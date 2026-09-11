@@ -165,4 +165,57 @@ class OmenColorContrastTest {
             )
         }
     }
+
+    /**
+     * The platform chips, after 2026-09-11.
+     *
+     * These render filled with the brand colour and a white label, rather than drawing the
+     * brand colour as text. The old treatment put Yahoo `#410093` at **1.33:1** on `surface1`
+     * — a filter control nobody could read — and no test noticed, because the token held
+     * exactly the hex it was supposed to hold.
+     *
+     * The brand hexes are sourced values and must not drift for legibility reasons; this
+     * asserts the *treatment* carries them instead.
+     */
+    @Test
+    fun `platform chips carry their label on the brand fill`() {
+        for ((themeName, scheme) in listOf("light" to OmenLightColors, "dark" to OmenDarkColors)) {
+            val pairs = listOf(
+                Triple("sleeper", scheme.data.platformSleeperChip, scheme.data.onPlatformSleeper),
+                Triple("yahoo", scheme.data.platformYahooChip, scheme.data.onPlatformYahoo),
+                Triple("espn", scheme.data.platformEspnChip, scheme.data.onPlatformEspn),
+            )
+            for ((name, fill, label) in pairs) {
+                val ratio = contrast(label, fill)
+                assertTrue(
+                    ratio >= 4.5,
+                    "$themeName $name label on its own fill = ${"%.2f".format(ratio)}:1",
+                )
+            }
+        }
+    }
+
+    /**
+     * Crimson is the founder's colour and it is dark and saturated, which makes it a fill
+     * rather than ink. As text it converges with the ground — it measured 1.59:1 on the smoky
+     * `bg` and 1.91:1 on the old near-black. Reversed out with Bone White on top it is 9.15:1
+     * and among the strongest things on the screen.
+     *
+     * Asserted with Bone White specifically, not with `textPrimary` per theme: `riskHigh` is a
+     * data-semantic invariant and is dark in BOTH themes, so a crimson fill always carries the
+     * light ink. The first version of this test asked whether light-mode `textPrimary`
+     * (`#1C1917`, near-black) sat on crimson and failed at 1.68:1 — a true number answering a
+     * question the product never asks.
+     */
+    @Test
+    fun `crimson carries bone white when used as a fill`() {
+        val boneWhite = OmenDarkColors.textPrimary
+        for ((themeName, scheme) in listOf("light" to OmenLightColors, "dark" to OmenDarkColors)) {
+            val ratio = contrast(boneWhite, scheme.data.riskHigh)
+            assertTrue(
+                ratio >= 4.5,
+                "$themeName Bone White on crimson fill = ${"%.2f".format(ratio)}:1",
+            )
+        }
+    }
 }
