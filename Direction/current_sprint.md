@@ -1357,3 +1357,51 @@ auto-pulled. Each names what reopens it.
   survives this deferral unchanged.
 - **Do not touch:** the headshot prohibitions in §1.2, §5.1, and §8.2. This item does not reopen
   them.
+
+### X2-PulseToLeague — Move League Pulse off Command Center and onto the League page
+
+- **Status:** QUEUED — not started
+- **Decision:** founder, 2026-09-11, during the colourway session: "we need to notate that we
+  want to move pulse into the league page, at a later date."
+- **Priority:** none yet — explicitly "a later date", after the beta going out 2026-09-11
+- **Cost:** unknown — not estimable until the League screen contract is read
+- **Agent-buildable:** the move is; the resulting League composition is not, see the gate
+- **Scope:** League Pulse leaves Command Center and lands on the League page. Command Center
+  loses the Pulse segment from its Waiver / Ledger / Pulse control, which becomes two.
+- **Why now-ish:** Command Center is close to done in the founder's read. Matchup carousel and
+  the Waiver/Ledger popovers are where he wants them; Pulse is the remaining structural
+  misplacement rather than a visual one.
+- **Blocked by:** FOUNDER_APPROVAL / design authority — this is **cross-screen product
+  structure, not visual design**, and the standing native design grant explicitly reserves
+  "moving a feature between screens (e.g. League Pulse off Command Center)" to the founder.
+  The decision above authorizes the *intent*; the League-side composition still needs a
+  contract or a Figma pass before code.
+- **Watch for:** League Pulse already carries real wiring history — see `decision_log.md`
+  2026-08-xx, where `leaguePulse(for:)` derived from `dashboard-summary.v1` tool status and
+  discarded the `league-standings.v1` rank/wins/losses it needed. Moving the surface must not
+  re-strand that data path. Read those entries before planning.
+- **Done when:** League Pulse renders on the League page against the same honest-state rules it
+  follows today, Command Center's segmented control reads Waiver / Ledger with no dead third
+  segment, and no state is invented on either side.
+- **Do not touch:** the honest-state contract — Pulse says when it has nothing, on either page.
+
+## Founder's stated order of work after the 2026-09-11 beta
+
+Recorded from the founder verbatim so the next session does not re-derive it. This is a
+running order, not a commitment with dates:
+
+1. **Matchup carousel touch-up** — "we almost had the matchup carousel the way I like it."
+   The founder has a screenshot he intends to mark up; it was mentioned but **not yet
+   provided**, so do not start this from a guess about what he wants changed. Ask for it.
+2. **X2-PulseToLeague**, above.
+3. **Omen page**, or **the Account page** — founder undecided between them: "then we'll move on
+   to omen as the page that needs work. Or maybe I'll do the account page because that needs
+   work too." Both are named as needing work; which comes first is his call, not a coin flip.
+
+**Open and tabled: the colourway.** The founder likes black-and-gold and notes it is the
+logo's colourway, but finds it "kinda boring" and "lacking colour" — while also allowing
+"maybe it's supposed to be boring." His own half-idea on the table: **"maybe we only use the
+green and the red for the score."** That is a real proposal and it fits the standing rule from
+the 2026-09-11 registry note — crimson and verdigris are fills, not ink, and score is the one
+place in the product where a two-pole colour scale carries actual meaning. **Tabled by the
+founder, not resolved.** Do not spend the colourway on decoration before he rules on it.
