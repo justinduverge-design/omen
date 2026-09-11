@@ -77,3 +77,10 @@ local.properties*
 !local.properties.example
 *Local.xcconfig
 !Local.xcconfig.example
+
+# Local capture output from scripts/capture-screen-batch.sh — batch screenshots and the
+# throwaway DerivedData its --build flag uses. Evidence PNGs that are meant to be KEPT belong
+# with the artifact that cites them (a handoff, a review), committed deliberately and by path,
+# not swept in by the hundred every time someone runs the visual gate.
+output/screens/
+output/ios-dd/
