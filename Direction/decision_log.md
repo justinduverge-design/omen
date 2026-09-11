@@ -2814,3 +2814,71 @@ exactly now are, and the rest say so — it does not mean every recommendation g
 
 **Watch item:** the cron runs Tuesdays. The first real run is the first evidence that this is
 behaving; until then this entry records intent, not proof.
+
+## 2026-09-11 — Light mode gets the brand's colours; dark mode goes smoky
+
+- **Decision: the native apps' dark ground is smoky grey `#1F1F1D`, not Raven Black `#0A0A0B`.**
+  Founder call, made live on seeing the warm light ramp: "what if instead of, like, full dark
+  mode, like, black, what if we go, like, almost gray, like a smoky gray? I know that's
+  changing stuff that's, like, fundamental." Brand identity is explicitly reserved to the
+  founder by the standing native design grant, and this is him exercising it. Raven Black is
+  unchanged in `Brand/brand-system.md` and remains the logo and marketing ground; this governs
+  the native app surface only.
+
+- **Decision: shallow smoke, and the depth is not a taste call.** Omen's two signature colours
+  are dark and saturated, so a lighter ground *converges* with them rather than setting them
+  off. Crimson `#7E1717` measures 1.59:1 on the shipped ground and 1.22:1 one step deeper;
+  Yahoo `#410093` reaches **1.01:1** at deep smoke — the same colour as the background. Brass
+  lifted to `#C4933B` and verdigris to `#4FAE81` to hold AA on the lighter ground. Going
+  smokier than `#1F1F1D` means giving up the brand hexes, and that trade was not made.
+
+- **Standing rule: crimson and verdigris are fills, not ink.** They converge with any ground
+  Omen would plausibly use when set as text, and are the strongest elements available when
+  reversed out (Bone White on crimson, 9.15:1). The founder wants more of both on screen; this
+  is the mechanism. Not yet spent — the composition work is tracked in `current_sprint.md`.
+
+- **Decision: platform chips change treatment, not colour.** The filter chips drew the raw
+  brand hex as a label over a 15% wash of itself, putting Yahoo at **1.33:1** on `surface-1`
+  and ESPN at 3.47:1. A filter control nobody could read shipped, and no test could see it,
+  because the token held exactly the hex it was supposed to hold. A sourced brand hex is the
+  one value that must not be tuned for legibility, so the chips now fill with the brand and
+  reverse the label to white — Yahoo 12.76:1 — with every brand hex untouched.
+
+- **Correction on the record: the Yahoo constraint is not an API contract.** It was described
+  as one in session ("we need to keep Yahoo the same, it's per that API contract"). It is a
+  brand-accuracy sourcing decision from
+  `Blueprints/handoffs/2026-06-30-phase1-7-platform-brand-colors-handoff.md` — self-imposed,
+  not externally binding. The practical answer is identical (`#410093` stays), but a future
+  session must not treat it as a legal obligation it cannot revisit.
+
+- **Finding: light mode's neutrals were never the brand's.** The shipped light ramp was
+  Tailwind's cold grey — `#FAFAF9 / #FFFFFF / #F5F5F4` divided by `#E5E5E3`, with blue-grey
+  `#6B7280` / `#9CA3AF` text on a brass-and-umber brand. Founder, 2026-09-10: "it's lacking
+  colour in light mode." The neutrals now derive from Bone White and Weathered Umber. No brand
+  hex was replaced.
+
+- **Finding: `border` was a control boundary at 1.08:1 and shipped that way.** It is the entire
+  visible edge of `OmenTextField`, `OmenPicker`, `OmenOtpCodeField`, the outlined `OmenButton`
+  variants and Material's `outline` via the bridge — 1.08:1 in light, 2.25:1 in dark, against
+  WCAG 1.4.11's 3:1. Now clears 3:1 in both themes on every surface a control sits on.
+
+- **Finding: hex-pinning tests cannot see any of this.** `OmenColorTest` asserts a token equals
+  a hex and stayed green for the entire life of the 1.08:1 border and the 1.33:1 Yahoo chip. A
+  pinned hex is a pinned hex whether or not anyone can read it. `OmenColorContrastTest` now
+  computes ratios from the token values so it fails on the *consequence*; it was proven red
+  against the shipped hexes before being trusted, and two of its own first-draft assertions
+  were themselves wrong (one asked whether light-mode near-black ink sits on crimson, which
+  the product never does).
+
+- **Finding: nothing compiled the two token files together.** `OmenColor.swift` and
+  `OmenColor.kt` are hand-maintained twins, so a value changed on one platform and not the
+  other is invisible to both suites. `scripts/check-token-parity.js` now diffs them; proven red
+  against an injected one-digit drift and a deleted token.
+
+- **Finding: the iOS screenshot fixture had been lying since 2026-09-01.** `CommandCenterView`
+  got `.tint(OmenColor.accent)` that day, for exactly this bug; the screenshot host never did.
+  Every iOS capture from then until now rendered the selected tab in iOS system blue that the
+  shipped app never showed. Android's host had it right throughout. Found only because the warm
+  light ground made the blue impossible to ignore — a screenshot of the fixture, not the
+  product, which is the failure mode the "know which branch your fixture exercises" rule exists
+  for.

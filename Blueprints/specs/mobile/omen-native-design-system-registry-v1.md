@@ -45,22 +45,113 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 
 | Token | Role | Dark (default) | Light / system |
 |---|---|---|---|
-| `bg` | app background (Raven Black) | `#0A0A0B` | `#FAFAF9` |
-| `surface-1` | card/panel (Charcoal) | `#1C1C1E` | `#FFFFFF` |
-| `surface-2` | elevated surface | `#2C2C2E` | `#F5F5F4` |
-| `surface-3` | inset / hover | `#3A3A3C` | `#EBEBEA` |
-| `border` | standard border | `#3A3A3C` | `#E5E5E3` |
-| `border-subtle` | hairline border | `#2C2C2E` | `#F0F0EE` |
-| `text-primary` | primary text (Bone White) | `#F5F0E8` | `#1C1C1E` |
-| `text-secondary` | secondary text | `#AEAEB2` | `#6B7280` |
-| `text-tertiary` | muted / placeholder | `#6D6D72` | `#9CA3AF` |
-| `accent` | brand CTA (Aged Brass) | `#A67C2E` | `#7A5C1E` |
-| `accent-hover` | accent pressed/hover | `#C49035` | `#A67C2E` |
-| `accent-muted` | low-emphasis accent fill | `#3A2A0A` | `#FEF3C7` |
-| `text-on-accent` | foreground on accent surfaces | `#0A0A0B` | `#FAFAF9` |
+| `bg` | app background (smoky grey / warm parchment) | `#1F1F1D` | `#F1EDE4` |
+| `surface-1` | card/panel (smoke / warm white) | `#2A2A27` | `#FFFDF9` |
+| `surface-2` | elevated surface | `#343431` | `#F6F1E7` |
+| `surface-3` | inset / hover | `#3F3F3B` | `#E9E1D2` |
+| `border` | standard border — **control boundary, 3:1 floor** | `#8A8272` | `#8F7B5F` |
+| `border-subtle` | decorative hairline (never a control's only edge) | `#3A3A36` | `#DCD1BA` |
+| `text-primary` | primary text (Bone White) | `#F5F0E8` | `#1C1917` |
+| `text-secondary` | secondary text | `#BDB5A9` | `#5C5248` |
+| `text-tertiary` | muted / placeholder | `#A79E90` | `#6B6052` |
+| `accent` | brand CTA (Aged Brass, lifted for the smoky ground) | `#C4933B` | `#7A5C1E` |
+| `accent-hover` | accent pressed/hover | `#D8A648` | `#A67C2E` |
+| `accent-muted` | low-emphasis accent fill | `#3A2A0A` | `#F6E7BE` |
+| `text-on-accent` | foreground on accent surfaces | `#14140F` | `#FFFDF9` |
 | `omen` | AI-signal accent (Verdigris) | `#2F7D5B` | `#1A5C3E` |
 | `umber` | brown-metal depth | `#5A3A25` | `#5A3A25` |
 | `focus-ring` | focus indicator (accent @ 40%) | derived from `accent` | derived from `accent` |
+
+**Smoky grey dark mode, 2026-09-11 (founder call, same day).** Justin, on seeing the warm
+light ramp: "what if instead of, like, full dark mode, like, black, what if we go, like,
+almost gray, like a smoky gray? I know that's changing stuff that's, like, fundamental."
+This is a **brand identity move and it is the founder's to make** — the standing design grant
+explicitly reserves it. Recorded here because it supersedes the "Raven Black `#0A0A0B` =
+`bg`" reading of Brand/brand-system.md for the native apps; the brand doc's palette row is
+unchanged and Raven Black remains the logo/marketing ground.
+
+`bg` moves `#0A0A0B` → `#1F1F1D`, surfaces stepping `#2A2A27 / #343431 / #3F3F3B`. This is
+the **shallow** end of smoke, deliberately. Depth was chosen against the brand colours rather
+than by eye: Omen's two signature colours are dark and saturated, so a lighter ground
+*converges* with them. Measured against candidate depths —
+
+| on ground | `#0A0A0B` (was) | `#1F1F1D` (shipped) | `#2A2A27` | `#33332F` |
+|---|---|---|---|---|
+| Yahoo `#410093` | 1.55 | 1.29 | 1.13 | 1.01 |
+| Crimson `#7E1717` | 1.91 | 1.59 | 1.39 | 1.22 |
+| `accent` (pre-lift) | 5.22 | 4.35 | 3.80 | 3.35 |
+
+At the deep end crimson and Yahoo are *the same colour as the background*. So brass lifted to
+`#C4933B` and verdigris to `#4FAE81` to hold AA on the lighter ground — same hues carried up,
+not new colours — and anything darker than shallow smoke is off the table without also
+abandoning the brand hexes.
+
+**The standing rule that falls out of this:** crimson and verdigris are **fills, not ink.**
+As text they converge with any ground Omen would plausibly use. Reversed out — Bone White on
+crimson is 9.15:1 — they are among the strongest elements available. Founder wants more of
+both on screen; the way to get it is crimson and verdigris *blocks and surfaces*, never
+crimson and verdigris lettering. Not yet done: that is a composition change across screens,
+tracked separately.
+
+**Platform chips changed treatment, not colour (§2.3 intact).** The filter chips drew the raw
+brand hex as a label over a 15% wash of itself, which put Yahoo `#410093` at **1.33:1** on
+`surface1` and ESPN at 3.47:1 — an invisible filter control that shipped. A sourced brand hex
+is the one value that must not be tuned for legibility, so the treatment changed instead:
+platform tones now fill with the brand and reverse the label to white. Yahoo is 12.76:1, ESPN
+6.88:1, Sleeper 5.30:1, and every brand hex is exactly as sourced in
+`Blueprints/handoffs/2026-06-30-phase1-7-platform-brand-colors-handoff.md`. Selection keeps a
+non-colour carrier (✓ glyph plus a brass ring the unselected state does not draw).
+
+**Correction on the record:** the Yahoo constraint was described in-session as a Yahoo *API
+contract*. It is not — it is a brand-accuracy sourcing decision from the 2026-06-30 handoff.
+Self-imposed, not externally binding. The practical answer is the same, but a future session
+should not treat it as a legal obligation.
+
+Dark ratios after the move, against `bg / surface-1 / surface-2`: `text-primary` 14.55 /
+12.69 / 11.01 · `text-secondary` 8.13 / 7.09 / 6.15 · `text-tertiary` 6.24 / 5.44 / 4.72 ·
+`accent` 5.96 / 5.20 / 4.51 · `omen-chip` 6.06 / 5.28 / 4.58 · `border` 4.34 / 3.78 / 3.28.
+
+**Warm neutral ramp, 2026-09-11 (Claude, standing design grant).** Founder, 2026-09-10:
+"it's lacking colour in light mode, maybe we use more of the approved colours." The light ramp
+was Tailwind's cold grey — `#FAFAF9 / #FFFFFF / #F5F5F4` separated by `#E5E5E3`, with
+blue-grey `#6B7280` / `#9CA3AF` text fighting a brass-and-umber brand on every screen. The
+neutrals are now derived from the approved core (Bone White `#F5F0E8`, Weathered Umber
+`#5A3A25`) rather than from a generic grey scale: a parchment ground, a warm-white card that
+actually lifts off it, and umber-tinted borders and muted text. No brand hex was replaced —
+`accent`, `omen`, `umber` and the data-semantic layer are untouched.
+
+Dark got the same treatment where it was safe to: `bg` and `surface-1` keep their brand-named
+Raven Black and Charcoal hexes, while the *derived* neutrals (`surface-2`, `surface-3`,
+`border`, `border-subtle`, `text-secondary`, `text-tertiary`) warm to match. One identity, two
+themes, same job.
+
+`border` changed role as well as value. It is the entire visible boundary of `OmenTextField`,
+`OmenPicker`, `OmenOtpCodeField`, the secondary/destructive `OmenButton` outlines and
+Material's `outline` via the bridge — and it shipped at **1.08:1** on `bg` in light and
+2.25:1 in dark, failing WCAG 1.4.11's 3:1 for non-text UI. It now clears 3:1 against `bg`,
+`surface-1` and `surface-2` in both themes. `border-subtle` keeps the old decorative job and
+is explicitly *not* held to that floor. **Known residual:** `border` is 2.90:1 on dark
+`surface-3` and 3.13:1 on light `surface-3`; no control is drawn on `surface-3` today (it is a
+progress/confidence track, a disabled container, and the neutral badge fill), so this is
+recorded rather than fixed.
+
+Light `risk-low` and `risk-medium` moved too, under the light-override this table's §2.3 row
+already permits: `#16A34A` and `#D97706` were 3.24:1 and 3.14:1 on the old white `surface-1`
+and are read as chip text. They are now `#13702F` (6.10:1) and `#8F4A09` (6.56:1). The tier
+*meanings* are unchanged and every tier still carries its text label, so §2.3's invariant
+holds.
+
+Ratios, light, against `bg / surface-1 / surface-2 / surface-3`:
+`text-primary` 14.97 / 17.21 / 15.54 / 13.46 · `text-secondary` 6.52 / 7.50 / 6.77 / 5.87 ·
+`text-tertiary` 5.26 / 6.04 / 5.45 / — · `accent` 5.32 / 6.12 / 5.52 / 4.79 ·
+`omen` 6.80 / 7.82 / 7.05 / 6.11 · `border` 3.48 / 4.00 / 3.61 / 3.13.
+Dark: `text-primary` 17.44 / 15.00 / 12.94 / 10.72 · `text-secondary` 8.92 / 7.67 / 6.62 /
+5.48 · `text-tertiary` 6.37 / 5.47 / 4.72 / — · `border` 4.71 / 4.05 / 3.50 / 2.90.
+`text-on-accent` on `accent` is 6.12 light, 5.22 dark; `text-primary` on `accent-muted` is
+14.23 light, 12.22 dark.
+
+These are enforced, not asserted in prose: `OmenColorContrastTest` computes them from the
+token values, and was proven to go red against the shipped hexes before being trusted.
 
 *(`--color-focus-ring` is referenced by the web component lock but absent from `index.css` tokens (Jules Button note). The registry names it as a **semantic** token — `focus-ring`, not "gold outline" — so each platform expresses focus appropriately. M1 must add it with an AA-visible value in both themes. **Non-color requirement (Justin, 2026-07-19):** focus/selection must be conveyed by a **visible outline plus platform-native focus/selection behavior**, never by the brass color alone — so it works for low-vision users. See §4.)*
 
@@ -70,7 +161,7 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 
 | Family | Tokens | Note |
 |---|---|---|
-| Risk | `risk-low #34C759`, `risk-medium #FF9F0A`, `risk-high #7E1717` (light: `#16A34A / #D97706 / #7E1717`) | always paired with a text label |
+| Risk | `risk-low #34C759`, `risk-medium #FF9F0A`, `risk-high #7E1717` (light: `#13702F / #8F4A09 / #7E1717`) | always paired with a text label; light low/medium darkened 2026-09-11 for AA at chip type — see §2.2 note |
 | Data source | `data-live #34C759`, `data-stub #FF9F0A`, `data-mock #636366`, `data-unavailable #3A3A3C` | drives Live/Stub/Mock/Unavailable labels |
 | Confidence gradient | `confidence-floor #701020` → `confidence-ceiling #206F3A` | score always printed as redundant text |
 | Position chips | `pos-rb/#34D399 wr/#60A5FA qb/#FB923C te/#C084FC def/#F472B6 k/#A3A3A3` | colorblind-validated |

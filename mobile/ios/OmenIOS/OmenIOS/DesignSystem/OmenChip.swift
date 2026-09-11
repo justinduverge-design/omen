@@ -42,13 +42,44 @@ struct OmenChip: View {
         case .te: return OmenColor.Data.posTe
         case .def: return OmenColor.Data.posDef
         case .k: return OmenColor.Data.posK
-        case .sleeper: return OmenColor.Data.platformSleeper
-        case .yahoo: return OmenColor.Data.platformYahoo
-        case .espn: return OmenColor.Data.platformEspn
+        // The `-chip` family, not the raw brand hex. See `isPlatform` below — these tones
+        // fill with the brand and reverse the label to white, rather than drawing the brand
+        // as text. Android mirror: `OmenChip.kt`.
+        case .sleeper: return OmenColor.Data.platformSleeperChip
+        case .yahoo: return OmenColor.Data.platformYahooChip
+        case .espn: return OmenColor.Data.platformEspnChip
         case .demo: return OmenColor.Data.demoText
         case .omen: return OmenColor.accent
         // `omenChip`, not `omen`: the base verdigris is 3.96:1 on `bg` and chip type is 11pt.
         case .verdigris: return OmenColor.omenChip
+        }
+    }
+
+    /// Platform tones render FILLED with a white label; every other tone keeps the tinted
+    /// outline it has always had.
+    ///
+    /// The tinted treatment draws the tone colour as text over a 15% wash of itself, which
+    /// only reads when the tone is light enough to carry type on the app background. Position
+    /// chips, demo and verdigris all are. The three platform brands are not — they are dark,
+    /// saturated identity colours, and Yahoo in particular is a deep purple that landed within
+    /// **1.33:1** of `surface1`: an invisible filter control that shipped.
+    ///
+    /// A brand colour is the one thing here that cannot be tuned for legibility, since the
+    /// hexes are sourced brand values. So the treatment changes instead of the colour:
+    /// `#410093` is untouched and now carries white at 12.76:1.
+    private var isPlatform: Bool {
+        switch tone {
+        case .sleeper, .yahoo, .espn: return true
+        default: return false
+        }
+    }
+
+    private var onPlatform: Color {
+        switch tone {
+        case .sleeper: return OmenColor.Data.onPlatformSleeper
+        case .yahoo: return OmenColor.Data.onPlatformYahoo
+        case .espn: return OmenColor.Data.onPlatformEspn
+        default: return foreground
         }
     }
 
@@ -57,12 +88,26 @@ struct OmenChip: View {
             if selected { Image(systemName: "checkmark").accessibilityHidden(true) }
             Text(label).omenTextStyle(OmenTypography.chip)
         }
-        .foregroundStyle(enabled ? foreground : OmenColor.textTertiary)
+        .foregroundStyle(enabled ? (isPlatform ? onPlatform : foreground) : OmenColor.textTertiary)
         .padding(.horizontal, OmenSpacing.step8)
         .padding(.vertical, OmenSpacing.step4)
-        .background(selected ? foreground.opacity(0.28) : foreground.opacity(0.15))
+        .background(
+            isPlatform
+                ? foreground
+                : (selected ? foreground.opacity(0.28) : foreground.opacity(0.15))
+        )
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(foreground.opacity(selected ? 1 : 0.5), lineWidth: 1))
+        // Selection keeps a non-colour carrier either way: the checkmark glyph above, plus a
+        // ring. A filled chip cannot lean on fill alpha the way the tinted ones do, so on
+        // those the ring is brass and appears only when selected.
+        .overlay(
+            Capsule().stroke(
+                isPlatform
+                    ? (selected ? OmenColor.accent : Color.clear)
+                    : foreground.opacity(selected ? 1 : 0.5),
+                lineWidth: isPlatform && selected ? 2 : 1
+            )
+        )
     }
 
     var body: some View {

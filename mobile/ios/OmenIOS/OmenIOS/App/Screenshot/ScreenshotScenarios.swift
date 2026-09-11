@@ -461,6 +461,16 @@ private struct FauxShell: View {
             .tabItem { CommandCenterTab.league.label }
             .tag(CommandCenterTab.league)
         }
+        // Mirrors `CommandCenterView`'s own `.tint`, and for the same reason it was added
+        // there on 2026-09-01: without it the selected tab renders in iOS system blue while
+        // every other element on the screen is brass.
+        //
+        // The real view was fixed; this host was not, so from 2026-09-01 until 2026-09-11
+        // every iOS capture showed a blue tab bar that the shipped app never rendered — a
+        // screenshot of the fixture rather than of the product. Found when the warm light
+        // ramp made the blue impossible to keep ignoring. If the real shell's tint changes,
+        // change it here in the same edit.
+        .tint(OmenColor.accent)
     }
 
     private var commandState: OmenCommandCenterState {

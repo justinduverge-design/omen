@@ -5,23 +5,31 @@ import UIKit
 /// `omen-native-design-system-registry-v1.md` §2.2/§2.3 — do not hand-edit a hex here without
 /// updating the registry row first (registry markdown is the source of truth).
 ///
+/// **Warm neutral ramp, 2026-09-11.** The light ramp was Tailwind's cold grey on a
+/// brass-and-umber brand; it is now derived from the approved core (Bone White, Weathered
+/// Umber). `border` also changed role — it is the sole visible boundary of text fields,
+/// pickers, OTP cells and outlined buttons, and shipped at 1.08:1, so it now clears WCAG
+/// 1.4.11's 3:1. Ratios and the residual (`surface3`) are in registry §2.2. The ratios are
+/// enforced by Android's `OmenColorContrastTest`; this file staying equal to its Kotlin twin
+/// is enforced by `scripts/check-token-parity.js`.
+///
 /// Every token is a trait-aware dynamic `Color` (registry §2.6): feature code reads
 /// `OmenColor.xxx` directly and gets the correct dark/light value automatically, with no
 /// `@Environment(\.colorScheme)` plumbing required at the call site.
 enum OmenColor {
-    static let bg = dynamic(dark: 0x0A0A0B, light: 0xFAFAF9)
-    static let surface1 = dynamic(dark: 0x1C1C1E, light: 0xFFFFFF)
-    static let surface2 = dynamic(dark: 0x2C2C2E, light: 0xF5F5F4)
-    static let surface3 = dynamic(dark: 0x3A3A3C, light: 0xEBEBEA)
-    static let border = dynamic(dark: 0x3A3A3C, light: 0xE5E5E3)
-    static let borderSubtle = dynamic(dark: 0x2C2C2E, light: 0xF0F0EE)
-    static let textPrimary = dynamic(dark: 0xF5F0E8, light: 0x1C1C1E)
-    static let textSecondary = dynamic(dark: 0xAEAEB2, light: 0x6B7280)
-    static let textTertiary = dynamic(dark: 0x6D6D72, light: 0x9CA3AF)
-    static let accent = dynamic(dark: 0xA67C2E, light: 0x7A5C1E)
-    static let accentHover = dynamic(dark: 0xC49035, light: 0xA67C2E)
-    static let accentMuted = dynamic(dark: 0x3A2A0A, light: 0xFEF3C7)
-    static let textOnAccent = dynamic(dark: 0x0A0A0B, light: 0xFAFAF9)
+    static let bg = dynamic(dark: 0x1F1F1D, light: 0xF1EDE4)
+    static let surface1 = dynamic(dark: 0x2A2A27, light: 0xFFFDF9)
+    static let surface2 = dynamic(dark: 0x343431, light: 0xF6F1E7)
+    static let surface3 = dynamic(dark: 0x3F3F3B, light: 0xE9E1D2)
+    static let border = dynamic(dark: 0x8A8272, light: 0x8F7B5F)
+    static let borderSubtle = dynamic(dark: 0x3A3A36, light: 0xDCD1BA)
+    static let textPrimary = dynamic(dark: 0xF5F0E8, light: 0x1C1917)
+    static let textSecondary = dynamic(dark: 0xBDB5A9, light: 0x5C5248)
+    static let textTertiary = dynamic(dark: 0xA79E90, light: 0x6B6052)
+    static let accent = dynamic(dark: 0xC4933B, light: 0x7A5C1E)
+    static let accentHover = dynamic(dark: 0xD8A648, light: 0xA67C2E)
+    static let accentMuted = dynamic(dark: 0x3A2A0A, light: 0xF6E7BE)
+    static let textOnAccent = dynamic(dark: 0x14140F, light: 0xFFFDF9)
     static let omen = dynamic(dark: 0x2F7D5B, light: 0x1A5C3E)
 
     /// Verdigris tuned for **chip typography**, the same way `Data.platformSleeperChip` and
@@ -35,7 +43,7 @@ enum OmenColor {
     /// Founder, 2026-09-06: "add league pill should be verdigris green." Brand/brand-system.md
     /// names Verdigris Green `#2F7D5B` as the intelligence/active-signal colour, so the chip that
     /// *adds* a league now reads in it rather than borrowing brass from the filters beside it.
-    static let omenChip = dynamic(dark: 0x3A9A70, light: 0x1A5C3E)
+    static let omenChip = dynamic(dark: 0x4FAE81, light: 0x1A5C3E)
     static let umber = dynamic(dark: 0x5A3A25, light: 0x5A3A25)
 
     /// Favourite / starred marks. Founder-approved 2026-09-05 and recorded in
@@ -49,20 +57,20 @@ enum OmenColor {
     /// The light value is not the same hex: `#C7CBD1` is a pale silver that all but vanishes
     /// on a white surface (1.5:1), which is exactly the class of bug
     /// `PrimitiveEnforcementTests` was written after — a dark-only literal that shipped and
-    /// went invisible in light mode. `#78808A` is the same cool-metal hue carried to 4.9:1 on
+    /// went invisible in light mode. `#69707B` is the same cool-metal hue carried to 4.92:1 on
     /// `surface1`.
-    static let platinum = dynamic(dark: 0xC7CBD1, light: 0x78808A)
+    static let platinum = dynamic(dark: 0xC7CBD1, light: 0x69707B)
 
     /// Derived from `accent`; solid stroke color for the focus-ring outline (registry §2.2, §4).
     static let focusRing = accent
     /// Soft halo layered behind `focusRing` — the "accent @ 40%" reading of the registry row.
-    static let focusRingHalo = dynamic(dark: 0xA67C2E, light: 0x7A5C1E, alpha: 0.4)
+    static let focusRingHalo = dynamic(dark: 0xC4933B, light: 0x7A5C1E, alpha: 0.4)
 
     enum Data {
         // Data-semantic invariant tokens (registry §2.3) — never theme-overridden, except the
         // documented risk-low/risk-medium light-mode adjustment below.
-        static let riskLow = dynamic(dark: 0x34C759, light: 0x16A34A)
-        static let riskMedium = dynamic(dark: 0xFF9F0A, light: 0xD97706)
+        static let riskLow = dynamic(dark: 0x34C759, light: 0x13702F)
+        static let riskMedium = dynamic(dark: 0xFF9F0A, light: 0x8F4A09)
         static let riskHigh = invariant(0x7E1717)
         static let dataLive = invariant(0x34C759)
         static let dataStub = invariant(0xFF9F0A)
