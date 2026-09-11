@@ -5,6 +5,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -23,6 +24,7 @@ import com.slopssaloon.omen.app.auth.OmenAuthFlow
 import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
+import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
@@ -101,6 +103,25 @@ object ScreenshotScenarios {
         "command-center.long-matchup" to ScreenshotScenario(
             label = "Command Center — long fantasy team names in matchup",
             render = { CommandCenterInShell(state = OmenCommandCenterFixtures.longNameMatchup) },
+        ),
+        // The `carousel != null` branch — a real multi-league account. Every other Command
+        // Center scenario runs the stacked `carousel == null` layout, which is why three
+        // clipping bugs reached the founder's phone before anything here could catch them.
+        "command-center.carousel" to ScreenshotScenario(
+            label = "Command Center — six leagues, live carousel",
+            render = {
+                val vm = remember { CarouselFixtures.viewModel() }
+                LaunchedEffect(Unit) { vm.load(userId = "fixture") }
+                CommandCenterInShell(demo = false, carousel = vm)
+            },
+        ),
+        "command-center.carousel-provider-down" to ScreenshotScenario(
+            label = "Command Center — carousel with one provider failing",
+            render = {
+                val vm = remember { CarouselFixtures.viewModel(failingPlatform = "espn") }
+                LaunchedEffect(Unit) { vm.load(userId = "fixture") }
+                CommandCenterInShell(demo = false, carousel = vm)
+            },
         ),
         "command-center.disconnected" to ScreenshotScenario(
             label = "Command Center — real user, disconnected",
@@ -406,7 +427,11 @@ fun ScreenshotScenarioHost(scenarioKey: String) {
 }
 
 @Composable
-private fun CommandCenterInShell(demo: Boolean = true, state: OmenCommandCenterState? = null) {
+private fun CommandCenterInShell(
+    demo: Boolean = true,
+    state: OmenCommandCenterState? = null,
+    carousel: LeagueCarouselViewModel? = null,
+) {
     var selected by remember { mutableStateOf(FauxNavTab.Command) }
     Scaffold(
         containerColor = OmenTheme.color.bg,
@@ -417,6 +442,7 @@ private fun CommandCenterInShell(demo: Boolean = true, state: OmenCommandCenterS
                 FauxNavTab.Command -> OmenCommandCenterScreen(
                     state = state ?: if (demo) OmenCommandCenterFixtures.demoConnected
                     else OmenCommandCenterFixtures.realDisconnected,
+                    carousel = carousel,
                     onOpenAccount = {},
                     onOpenOmen = { selected = FauxNavTab.Omen },
                     onOpenLedger = { selected = FauxNavTab.Omen },

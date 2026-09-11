@@ -30,6 +30,17 @@ enum ScreenshotScenarios {
             label: "Command Center — demo/mock connected",
             content: { AnyView(FauxShell(scenarioKey: "command-center.demo-connected")) }
         ),
+        // The `carousel != nil` branch — a real multi-league account. Every other Command
+        // Center scenario runs the stacked layout, which is why three clipping bugs reached
+        // the founder's phone before anything here could catch them.
+        "command-center.carousel": ScreenshotScenario(
+            label: "Command Center — six leagues, live carousel",
+            content: { AnyView(CarouselScenarioHost()) }
+        ),
+        "command-center.carousel-provider-down": ScreenshotScenario(
+            label: "Command Center — carousel with one provider failing",
+            content: { AnyView(CarouselScenarioHost(failingPlatform: "espn")) }
+        ),
         "command-center.long-matchup": ScreenshotScenario(
             label: "Command Center — long fantasy team names in matchup",
             content: { AnyView(FauxShell(commandStateOverride: OmenCommandCenterFixtures.longNameMatchup)) }
@@ -411,6 +422,9 @@ private struct FauxShell: View {
     var initialTab: CommandCenterTab = .command
     /// Set by scenarios that supply a state directly instead of naming a whole fixture.
     var commandStateOverride: OmenCommandCenterState?
+    /// Supplied by the carousel scenarios. Everything else leaves this nil and gets the
+    /// stacked `carousel == nil` layout, which is what those captures have always been of.
+    var carousel: LeagueCarouselViewModel?
 
     var body: some View {
         TabView(selection: .constant(initialTab)) {
@@ -424,7 +438,8 @@ private struct FauxShell: View {
                 // Android host had all along. Found while capturing M4-CC-WaiverWatch.
                 onOpenOmen: {},
                 onOpenLedger: { _ in },
-                onOpenLeague: {}
+                onOpenLeague: {},
+                carousel: carousel
             )
                 .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
@@ -715,5 +730,23 @@ struct TeamSwitcherScreenshotHost: View {
                     count: viewModel.allPages.filter { $0.platform == platform }.count
                 )
             }
+    }
+}
+
+/// Owns the carousel view model for the lifetime of the capture and kicks off its load.
+private struct CarouselScenarioHost: View {
+    var failingPlatform: String?
+    @StateObject private var viewModel: LeagueCarouselViewModel
+
+    init(failingPlatform: String? = nil) {
+        self.failingPlatform = failingPlatform
+        _viewModel = StateObject(
+            wrappedValue: CarouselFixtures.viewModel(failingPlatform: failingPlatform)
+        )
+    }
+
+    var body: some View {
+        FauxShell(carousel: viewModel)
+            .task { await viewModel.load(userID: "fixture") }
     }
 }

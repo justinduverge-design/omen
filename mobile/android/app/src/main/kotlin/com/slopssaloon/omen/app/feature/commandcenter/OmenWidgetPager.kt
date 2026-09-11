@@ -1,5 +1,6 @@
 package com.slopssaloon.omen.app.feature.commandcenter
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +13,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -54,6 +60,12 @@ enum class OmenWidgetPage(val tabLabel: String, val sectionTitle: String) {
     Ledger("Ledger", "The Ledger"),
     Pulse("Pulse", "League Pulse"),
 }
+
+/** Floor, so a page mid-load does not collapse the pager to nothing. */
+private val MIN_PAGE_HEIGHT = 96.dp
+
+/** Ceiling, so a long Ledger cannot push the matchup off the fold. It scrolls past this. */
+private val MAX_PAGE_HEIGHT = 260.dp
 
 @Composable
 fun OmenWidgetPager(
@@ -97,29 +109,52 @@ fun OmenWidgetPager(
             }
         }
 
+        // Height follows the page you are ON, not the tallest of the three.
+        //
+        // A shared fixed height was fine while all three pages printed a briefing. Once
+        // Waiver became a deadline line and a link, 200.dp reserved roughly 300.dp of empty
+        // space under it — found by the screenshot gate on 2026-09-10, and invisible to every
+        // clipping assertion because nothing was clipped, it was simply blank.
+        //
+        // Measured per page, capped, and animated so a swipe between a short page and a long
+        // one does not snap. The cap keeps a very long Ledger from pushing the matchup off
+        // the fold; that page still scrolls inside itself.
+        val measured = remember { mutableStateMapOf<Int, Int>() }
+        val density = LocalDensity.current
+        val currentHeight = measured[pagerState.currentPage]
+            ?.let { with(density) { it.toDp() } }
+            ?.coerceIn(MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT)
+            ?: MIN_PAGE_HEIGHT
+        val animatedHeight by animateDpAsState(currentHeight, label = "widgetPagerHeight")
+
         HorizontalPager(
             state = pagerState,
-            // Sized so this pager and the matchup carousel above it share one screen — the
-            // founder wants both on the fold, and 340 put this one under it. Every page scrolls
-            // internally, so a tall waiver briefing is reachable rather than clipped.
-            // 260 -> 200 on 2026-09-10: the Waiver page is now a deadline line and a link
-            // rather than a printed briefing, so the tallest page no longer needs 260.
-            modifier = Modifier.fillMaxWidth().height(200.dp),
+            modifier = Modifier.fillMaxWidth().height(animatedHeight),
             pageSpacing = OmenTheme.spacing.step8,
         ) { index ->
             val page = pages[index]
             Column(
                 // Scrolls within its own page rather than clipping: a long Ledger must not
-                // become unreachable just because it shares a fixed-height pager with two
-                // shorter siblings.
+                // become unreachable just because it shares a height with two shorter
+                // siblings. The scroll only engages once the content passes MAX_PAGE_HEIGHT.
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
             ) {
-                Text(page.sectionTitle, style = OmenTheme.typography.label.toTextStyle())
-                when (page) {
-                    OmenWidgetPage.Waiver -> waiver()
-                    OmenWidgetPage.Ledger -> ledger()
-                    OmenWidgetPage.Pulse -> pulse()
+                Column(
+                    // Inner column, measured OUTSIDE the scroll: a scrollable parent offers
+                    // its child unbounded height, so this reports the page's intrinsic height
+                    // rather than whatever the pager is currently imposing.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { measured[index] = it.height },
+                    verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
+                ) {
+                    Text(page.sectionTitle, style = OmenTheme.typography.label.toTextStyle())
+                    when (page) {
+                        OmenWidgetPage.Waiver -> waiver()
+                        OmenWidgetPage.Ledger -> ledger()
+                        OmenWidgetPage.Pulse -> pulse()
+                    }
                 }
             }
         }
