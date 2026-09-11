@@ -1405,3 +1405,82 @@ green and the red for the score."** That is a real proposal and it fits the stan
 the 2026-09-11 registry note — crimson and verdigris are fills, not ink, and score is the one
 place in the product where a two-pole colour scale carries actual meaning. **Tabled by the
 founder, not resolved.** Do not spend the colourway on decoration before he rules on it.
+
+### X3-VersionTagging — Give releases real numbers, starting at 1.7
+
+- **Status:** QUEUED — founder named it "1.7's first task", 2026-09-11
+- **Priority:** none for the 2026-09-11 beta; first thing in the 1.7 cycle
+- **Cost:** small for the going-forward half; unknown for the backfill
+- **Agent-buildable:** the tagging and the release doc are; the historical mapping is not
+  without the founder's dates
+- **Source:** found while trying to answer "what changed between 1.6 and 1.4" for the beta
+  testers and discovering the question could not be answered from this repo at all.
+
+**The finding.** There are **no git tags in this repository** — none. `MARKETING_VERSION` has
+been `0.1.0` since the app shell was scaffolded on 2026-07-19 and has never moved;
+`CURRENT_PROJECT_VERSION` reached 5 with no commit trail explaining when or why. So the
+version numbers the founder sees in TestFlight have **no counterpart in version control**, and
+no build that ever reached a tester can be traced to the code it was cut from. Founder,
+2026-09-11: "that was an oversight."
+
+This is not cosmetic. It means no release can be diffed, no regression can be bisected to a
+build, and no tester report can be tied to the code they were actually running.
+
+- **Scope, going forward:** every build that goes to a tester gets an annotated git tag, and
+  the tag carries the build number the tester sees. Marketing version starts moving. A short
+  release record per build — what changed, what was verified, what was not.
+- **Scope, backfill:** reconstruct 1.1 through 1.6 retroactively. **Blocked on the founder's
+  dates** — he offered them ("if you need dates, I can give you dates") and they are the only
+  way to map a TestFlight build onto a commit, since nothing in-repo records it. Do not guess
+  a mapping; a wrong tag is worse than a missing one because it will be trusted later.
+- **Open question, founder:** what are 1.1–1.6 numbered against? `MARKETING_VERSION` has
+  always been `0.1.0`, so those numbers come from outside the repo. Reconcile the scheme
+  before tagging anything, or the tags will encode the confusion permanently.
+- **Done when:** every tester-facing build from 1.7 on is tagged at the commit it was cut
+  from, the scheme is written down somewhere a future session will read, and the 1.1–1.6
+  backfill is either complete or explicitly abandoned on the record.
+- **Do not touch:** do not invent a historical tag to make the sequence look tidy.
+
+**Founder's stated intent for 1.7 beyond tagging:** "with 1.7 I wanna start working on it
+differently" — more structured, page by page. The `slops-native-sim-drive` skill was authored
+2026-09-11 in service of that. See the note on skill reach below.
+
+### X4-SkillReach — The Slops skills are documents, not skills the tooling can reach
+
+- **Status:** QUEUED — diagnosis done 2026-09-11, fix not applied
+- **Priority:** P2, but it compounds — every skill authored while this is true has the same
+  reach problem the day it ships
+- **Cost:** small
+- **Agent-buildable:** yes
+- **Source:** founder, 2026-09-11: "I seem to not use the skills as much here on Mac. Like, I
+  feel like there's a disconnect there." There is, and it is mechanical rather than a habit
+  problem.
+
+**The finding.** There is **no `.claude/skills/` directory** — not in this repo, not in
+`Slops-OS`, not in `~/.claude/`. The 65-entry library at `Slops-OS/Blueprints/skills/` is
+**markdown documents in a sibling repository**. The harness's skill routing cannot see them,
+so they never appear as invocable skills and are never suggested. The only skills actually
+offered in a session here are third-party plugin skills.
+
+So a Slops skill fires **only** when someone already knows its name, knows it exists, and goes
+and reads the file. That is the disconnect. It is not that the founder forgets to use them —
+the tooling has no way to offer them.
+
+`slops-native-sim-drive` was used properly in the 2026-09-11 colour session for exactly one
+reason: the session prompt named it explicitly. Nothing else would have surfaced it. The skill
+was authored the same day, which makes the point sharper — a brand-new, well-written, `active`
+skill was still invisible to the runtime an hour after it was written.
+
+- **Scope:** make the L0 library reachable by the harness — installed or linked into a
+  `.claude/skills/` location that skill routing actually reads — so they can be invoked by name
+  and surfaced when relevant, without changing where they are authored.
+- **Watch for:** authorship must stay in `Slops-OS/Blueprints/skills/` with
+  `SKILL_ROUTING.md` authoritative. If the fix makes a second editable copy, the two drift and
+  the library becomes worse than unreachable — it becomes wrong. A link or a build step, not a
+  copy-paste.
+- **Watch for:** three skills are web-app-only (`slops-ui-ux-audit`,
+  `mobile-first-qa-playbook`, `slops-mobile-smoke`). Making them *easier* to reach on a native
+  task is a regression, not a win — routing has to carry that distinction.
+- **Done when:** a session in this repo can invoke a Slops skill by name without being told the
+  path, and the founder stops having to remember the library exists.
+- **Do not touch:** do not rewrite skills to suit the transport. This is a delivery problem.
