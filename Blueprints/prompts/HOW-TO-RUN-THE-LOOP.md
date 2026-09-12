@@ -7,6 +7,7 @@ One short instruction per task. The folder carries the context; you approve the 
 - **Task slot:** `Direction/agent_inbox.md` — top-5 auto-populated by the agent + optional pin
 - **Queue:** `Direction/current_sprint.md` — full list, lanes (Frontend / Backend / Ops / Verify / Decisions / Tech debt)
 - **Kickoff:** `Blueprints/prompts/kickoff-l2.md` — the one live Omen starter for every runtime. It confirms the session's actual capabilities, reads Runtime Policy before applying any authority, and routes short founder prompts into the relevant skills.
+- **Page-driven intake:** `Blueprints/prompts/omen-grade-ui-intent.md` — use after kickoff when Justin attaches a screenshot/screen recording and talks through a page. It turns messy voice-note intent into source-backed UI/product work and maps it back to sprint items when possible.
 - **Modules:** inlined inside each kickoff prompt — pull-task, plan-approval, done-and-close, and safety-gates sections.
 - **Self-check:** `Blueprints/definition-of-done.md`
 - **Scripts index:** `scripts/README.md` — every operational script, what it does, and whether it is safe to run. **Check it before writing a new one**; several existing scripts were written twice because a session did not know an equivalent existed. The record-integrity checks live at `scripts/checks/` and are indexed there.
@@ -22,6 +23,7 @@ One short instruction per task. The folder carries the context; you approve the 
 
 0. **Check you are alone in the tree** — `node scripts/check-workspace-solo.js`. More than one agent in one checkout is not a hypothetical: it happened on 2026-08-24 and mixed two workstreams into a single commit.
 1. **Paste the kickoff** from `Blueprints/prompts/kickoff-l2.md`, or give the agent a short task and let it use that kickoff as its harness.
+   - For screenshot or voice-note page work, say: `Use Omen-grade UI intent. Screenshot attached. Target: <screen>.`
 2. **Agent self-pulls** — reads inbox, honors pin, otherwise selects up to 5 `Status: READY` items from the sprint across all lanes, ordered by the selection rule, and claims one.
 3. **Plan approval gate** — agent reports task / files / verification plan / selected skills and conditional-skill N/A reasons. You confirm or correct. The agent should invoke skills by name; it should not read or copy skill files as startup context.
 4. **Agent builds, verifies, commits, closes** — follows the company-baseline playbook, satisfies DoD, writes handoff, and logs decisions. Closing means advancing the item through the **status model** (`Direction/status-model.md`): set `Status: VERIFIED` with an `Evidence:` pointer, then `Status: CLOSED` with a `Closure:` value once it lands in `Direction/sprints_completed.md`. `CLOSED` is terminal. A merged PR alone does not satisfy `VERIFIED` — the task's own `Done when:` must be met.

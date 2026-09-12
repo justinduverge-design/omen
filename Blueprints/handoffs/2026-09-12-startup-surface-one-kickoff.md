@@ -30,3 +30,11 @@ The red gates were already outside the bounded startup-surface change. They bloc
 ## Recommendation
 
 Keep `Blueprints/prompts/kickoff-l2.md` as the only live starter. New task-specific prompt packets should either become backlog items/handoffs or be archived after use, not added as new `kickoff-*` files.
+
+## Same-Day Addendum — Omen-Grade UI Intent
+
+Justin clarified the repeated workflow: he often starts work by attaching a screenshot and dictating what feels wrong on a page, then wants the agent to turn that into useful product work without a giant prompt.
+
+Added `Blueprints/prompts/omen-grade-ui-intent.md` for that purpose. It is not a second kickoff; it is loaded after kickoff when the task is screenshot or voice-note driven. It translates messy founder input into cleaned intent, source-backed data contract needs, UI/layout contract, UX copy contract, sprint crosswalk, acceptance criteria, and a short next-agent prompt.
+
+Wired references into `AGENTS.md`, `AGENT.md`, `Blueprints/prompts/kickoff-l2.md`, `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`, and `Blueprints/prompts/README.md`. `CLAUDE.md` remains untouched.

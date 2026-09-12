@@ -54,6 +54,8 @@ Paste `Blueprints/prompts/kickoff-l2.md` to start any Omen session. It is the on
 
 Short founder prompts are valid. If the founder says something like "this Command Center screen feels wrong" or "fix this League flow", the agent should use kickoff, identify the surface, route to the relevant skills by name, and ask only for the missing decision or approval that materially changes the work.
 
+For screenshot or voice-note driven page work, use `Blueprints/prompts/omen-grade-ui-intent.md` after kickoff. It translates messy founder input into source-backed UI/product work and maps page-driven fixes back to sprint items when they overlap.
+
 ## Close-out
 
 Satisfy `Blueprints/definition-of-done.md`, append rows to `Blueprints/playbooks/skill-usage-ledger.md` and `Blueprints/done/LEDGER.md`, log decisions in `Direction/decision_log.md`, write a dated handoff in `Blueprints/handoffs/`, and run the close-out gates named by `AGENT.md` / `CLAUDE.md`. A P0 blocks close-out; an unrun check is not a passing check.

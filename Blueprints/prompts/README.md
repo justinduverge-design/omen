@@ -24,6 +24,9 @@ Use these prompts to start new Omen work without re-explaining the whole repo:
   Supersedes the retired `kickoff-backend-codex.md` / `kickoff-frontend-claude.md` pair,
   archived under `Archive/authority-routing/`, and the task-specific kickoff prompts
   archived under `Archive/prompts/2026-09-12-retired-kickoffs/`.
+- `omen-grade-ui-intent.md` - generic screenshot / voice-note intake for page-driven
+  Omen work. Use after kickoff when Justin points at a screen and talks through what
+  should feel more useful, more source-backed, or more product-grade.
 
 Any change to a prompt in this folder must be recorded in `PROMPTS_CHANGELOG.md`.
 `prompt_playbook.md` is superseded by the kickoff files above and remains only as

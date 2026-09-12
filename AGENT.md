@@ -86,6 +86,8 @@ For native iPhone, Android, mobile design-system, mobile onboarding, provider-co
 
 For shared UI components, team theming, page systems, visual QA, accessibility, or UX copy, read the relevant design contracts named in `AGENTS.md` and `CLAUDE.md` on demand. Prefer screenshot-led and contract-led changes over broad redesigns when the product is already close.
 
+For screenshot or voice-note driven page work, use `Blueprints/prompts/omen-grade-ui-intent.md` after kickoff. Treat messy founder dictation as intent to translate: identify the surface, map existing data and missing contracts, invoke the relevant skills by name, and crosswalk the work against sprint items before implementing.
+
 ## Backend Priority Order
 
 1. Health, readiness, and platform status contracts.

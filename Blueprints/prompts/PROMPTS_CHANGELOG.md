@@ -7,6 +7,24 @@ The self-improving loop tracks win rates but not prompt changes — this file fi
 
 ---
 
+## 2026-09-12 — Omen-grade UI intent intake
+
+Justin named the current working mode: screenshot or screen recording plus voice-to-text page
+feedback. The previous answer still produced a long one-off prompt, which solved the immediate
+translation but not the repeated workflow.
+
+- Added `Blueprints/prompts/omen-grade-ui-intent.md` as the generic intake prompt for page-driven
+  Omen work across Command Center, Omen, Trade, League, Waiver Watch, Ledger, League Pulse, Posts,
+  and related surfaces.
+- The prompt translates messy founder dictation into cleaned intent, target surface, work
+  classification, current-data inventory, missing backend/data contract, UI/layout contract,
+  UX copy contract, sprint crosswalk, acceptance criteria, blocking questions, and a short next
+  agent prompt.
+- `AGENTS.md`, `AGENT.md`, `kickoff-l2.md`, `HOW-TO-RUN-THE-LOOP.md`, and this prompt index now
+  point at the intake without adding it to the required cold-start read order.
+
+---
+
 ## 2026-09-12 — one live Omen kickoff and short-prompt skill routing
 
 Justin approved the light-harness direction before push/merge: one Omen kickoff, small agent

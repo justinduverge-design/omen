@@ -116,6 +116,14 @@ Read in order before acting:
 	read only the governing docs for that surface, route to the relevant skills by
 	name, and ask only for a missing decision or restricted approval.
 
+	SCREENSHOT / VOICE-NOTE UI INTAKE
+	If the founder attaches a screenshot or screen recording and talks through
+	what feels wrong, use Blueprints/prompts/omen-grade-ui-intent.md after this
+	kickoff. It is the generic intake for page-driven work across Command Center,
+	Omen, Trade, League, Waiver Watch, Ledger, League Pulse, Posts, and related
+	product surfaces. It turns messy founder intent into source-backed UI work and
+	crosswalks the result against current sprint items.
+
 	SKILL ROUTING DEFAULTS
 	- Native UI or screen behavior: slops-native-screen-design when deciding the
 	  screen, slops-native-sim-drive for deterministic captures, and

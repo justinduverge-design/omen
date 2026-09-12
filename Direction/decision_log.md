@@ -2918,3 +2918,9 @@ behaving; until then this entry records intent, not proof.
   untouched in this pass. No skill inventory or linked-skill count is copied into the harness;
   `../../Blueprints/skills/SKILL_ROUTING.md` remains authoritative for status and scope, and
   `.claude/skills/` is treated as linker output.
+
+- **Decision: screenshot plus voice note is a first-class Omen intake.** Justin's page-driven
+  workflow is to point at a screen, talk through what feels wrong, and improve that surface in a
+  way that may also close sprint work. `Blueprints/prompts/omen-grade-ui-intent.md` now owns that
+  translation: clean up messy founder input, identify the surface, classify layout/copy/data/API
+  work, require source-backed Omen-grade insight, and crosswalk against current sprint items.
