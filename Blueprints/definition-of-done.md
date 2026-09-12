@@ -84,6 +84,30 @@ Run `node scripts/check-sprint-staleness.js`. It compares the direction files ag
 
 **Read the coverage block, not just the verdict.** It prints what it did *not* inspect on every run, and reports "DID NOT RUN" rather than passing when GitHub is unreachable — a clean result is only meaningful against a stated scope. Index of the checkers and how to add one: `scripts/checks/README.md`; all scripts: `scripts/README.md`.
 
+Then run the cross-layer documentation gate from the **L0 root**, which sees L0, L1 and L2 together
+and catches what a repo-local checker cannot — a dead header on a live file, a cited path that
+resolves nowhere, a skill or agent on disk that no index knows about:
+
+```bash
+node Blueprints/tools/truth-gate/truth-gate.mjs --quiet
+```
+
+A **P0** means an agent reading current docs would act on false information. Clear it or record why
+it stands before closing. In a standalone Omen clone the L0 tree is unavailable — say the gate did
+not run rather than reporting a pass; an unrun check is not a passing check.
+
+## Citing paths in the append-only records — forward rule, 2026-09-12
+
+`Direction/decision_log.md`, `Direction/sprints_completed.md`, `Blueprints/done/LEDGER.md` and
+`Blueprints/playbooks/skill-usage-ledger.md` are append-only. Their **existing** entries cite the
+paths that existed on their date, and Truth Gate is suppressed on them for exactly that reason —
+the value in an old entry is the reasoning, not the path.
+
+**An entry you append today cites repo-relative paths that resolve today.** Write
+`Blueprints/done/LEDGER.md`, not `done/LEDGER.md`; `frontend/src/lib/platformChip.js`, not
+`lib/platformChip.js`. Old entries are history and stay as written. New entries are current writing
+and are the one part of these files anyone will follow.
+
 ## The ledger
 
 Every closure is recorded in `done/LEDGER.md`. Review monthly — gates skipped often signal a prompt or skill to revisit.

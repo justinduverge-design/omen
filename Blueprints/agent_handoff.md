@@ -32,9 +32,9 @@ Use this repo as the active product workspace:
 
 Do not deploy, commit, push, delete files, move app folders, touch secrets, or modify production configuration without Justin's explicit approval.
 
-Do not work from `Projects\slops-saloon`.
+Do not work from `Projects/slops-saloon`.
 
-Do not touch `Archive\quarantine`.
+Do not touch `Archive/quarantine`.
 
 ---
 

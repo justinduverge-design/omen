@@ -1707,7 +1707,7 @@ tests with one pre-existing unrelated failure; Android unit suite green.
 - ESPN league selection belongs in a full Account section for MVP, not a modal.
 - Omen may preserve safe request context after ESPN recovery, but the user must click to rerun.
 - `espn_import_blocked` remains the MVP user-facing state; safe backend `reason_code` values may be added later.
-- Security and privacy decisions are tracked in `Blueprints\security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
+- Security and privacy decisions are tracked in `Blueprints/security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
 - Users need plain-English reasoning, not heavy math.
 - Tuesday scoring launch provider is `nflverse-data` weekly player stats. The current Sportradar cron fetch path is not launch-ready and should be replaced or isolated before scoring real user moves.
 

@@ -65,7 +65,7 @@ Do not author a skill over these; they already work.
 If Omen requires skills not in the global library, they may be created here:
 
 - Keep them scoped to Omen concerns only.
-- Global reusable skills belong in `Blueprints\skills`, not here.
+- Global reusable skills belong in `Blueprints/skills`, not here.
 - Name them consistently: kebab-case folder names, snake_case for divided categories.
 - Each skill should have a `SKILL.md` following the global template.
 
