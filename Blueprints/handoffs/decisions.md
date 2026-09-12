@@ -4,13 +4,13 @@
 
 Shared frontend/backend engineering decisions for the active Omen product repo.
 
-Company-level decisions belong in the SLOPS OS layer. Division decisions belong one layer up in `..\Direction`. Omen product decisions belong under `Direction\` unless they directly affect app contracts.
+Company-level decisions belong in the SLOPS OS layer. Division decisions belong one layer up in `..\Direction`. Omen product decisions belong under `Direction/` unless they directly affect app contracts.
 
 ## Active Decisions
 
-- `Blueprints\handoffs\frontend-to-backend.md` is the canonical place for Claude/frontend requests to Codex/backend.
-- `Blueprints\handoffs\backend-to-frontend.md` is the canonical place for Codex/backend contract responses to Claude/frontend.
-- `Blueprints\handoffs\decisions.md` is the canonical shared engineering decision log for active app coordination.
+- `Blueprints/handoffs/frontend-to-backend.md` is the canonical place for Claude/frontend requests to Codex/backend.
+- `Blueprints/handoffs/backend-to-frontend.md` is the canonical place for Codex/backend contract responses to Claude/frontend.
+- `Blueprints/handoffs/decisions.md` is the canonical shared engineering decision log for active app coordination.
 - The canonical Omen repo path is `<active-git-root>/slops-saloon/corvus/`.
 - The nested `Corvus/` folder is retired and must not be recreated.
 - Omen is the active Fantasy Football MVP product.
@@ -24,7 +24,7 @@ Company-level decisions belong in the SLOPS OS layer. Division decisions belong 
 - ESPN league selection belongs in a full Account section for MVP, not a modal.
 - Omen may preserve safe request context after ESPN recovery, but the user must click to rerun.
 - `espn_import_blocked` remains the MVP user-facing state; safe backend `reason_code` values may be added later.
-- Security and privacy decisions are tracked in `Blueprints\security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
+- Security and privacy decisions are tracked in `Blueprints/security-privacy.md`; compliance evidence is tracked in `probo.yaml`.
 - Users need plain-English reasoning, not heavy math.
 - Trade Analyzer Phase 1 does not ask users for Projection or Status. Omen should infer, enrich, or label those signals during analysis rather than requiring user-entered projections/statuses.
 - Tier 2 frontend default placement: Hall of Records/Move History and League Standings should start on `/football` unless Justin or Claude explicitly moves them.

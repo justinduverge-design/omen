@@ -1447,7 +1447,15 @@ differently" — more structured, page by page. The `slops-native-sim-drive` ski
 
 ### X4-SkillReach — The Slops skills are documents, not skills the tooling can reach
 
-- **Status:** QUEUED — diagnosis done 2026-09-11, fix not applied
+- **Status:** VERIFIED — 2026-09-12. Delivery landed; recording and rollout follow.
+- **Evidence:** `Slops-OS/Blueprints/tools/skill-link/link-skills.mjs` creates relative
+  `.claude/skills/<name>` symlinks in both repos. `--check` reports 120 in-sync, 0 drift
+  (L0: 59 skills; Omen: those 59 plus its 2 local). Registered in `SKILL_ROUTING.md`
+  § "Reaching the library (skill-link)". Authorship unchanged — no second editable copy;
+  the tool refuses to replace a real directory with a link. Targets are relative, so they
+  survive any clone path (an absolute target is reported as drift). `truth-gate --check=registry-drift`
+  PASS. Web-only scope is carried in each skill's own `description`, which is what routing reads;
+  `slops-ui-ux-audit` was missing that guard and now has it.
 - **Priority:** P2, but it compounds — every skill authored while this is true has the same
   reach problem the day it ships
 - **Cost:** small

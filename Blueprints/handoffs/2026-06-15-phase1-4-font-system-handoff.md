@@ -6,7 +6,7 @@
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Blueprints\specs\page-system.md` and `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Blueprints\specs\corvus-ux-ui-design-system-v1.md` — page/design specs aligned to the new font system.
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\frontend\src\index.css` and `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\frontend\tailwind.config.js` — loaded Alegreya + Alegreya Sans and remapped `font-serif`, `font-sans`, and `font-display`.
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\frontend\src\pages\*.jsx` plus touched shared components — replaced old serif/display usage with Alegreya Sans for headings/card titles/UI and Alegreya for reading copy.
-- `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Direction\current_sprint.md`, `Direction\agent_inbox.md`, `Direction\decision_log.md`, and `Blueprints\done\LEDGER.md` — task closed, next pull refreshed, decisions/evidence logged.
+- `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Direction\current_sprint.md`, `Direction/agent_inbox.md`, `Direction/decision_log.md`, and `Blueprints/done/LEDGER.md` — task closed, next pull refreshed, decisions/evidence logged.
 
 ## Files Discussed
 
@@ -16,7 +16,7 @@
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\prompts\kickoff-modules\plan-approval.md`
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\prompts\kickoff-modules\done-and-close.md`
 - `C:\Users\JDuve\OneDrive\Desktop\SLOPS\Blueprints\prompts\kickoff-modules\safety-gates.md`
-- `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Blueprints\definition-of-done.md`, `done\page-done.md`, and `done\design-done.md`
+- `C:\Users\JDuve\OneDrive\Desktop\SLOPS\slops-saloon\corvus\Blueprints\definition-of-done.md`, `done/page-done.md`, and `done/design-done.md`
 
 ## Decisions Made
 
