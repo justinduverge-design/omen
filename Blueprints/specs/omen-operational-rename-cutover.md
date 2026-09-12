@@ -84,7 +84,7 @@ Direct repo inspection found active operational identifiers in:
   - runner label `corvus-deploy`
   - `/opt/corvus/deploy/hostinger`
   - Compose project `corvus`
-- `README.md`, `Direction/roadmap.md`, `Direction/release_readiness.md`, and `Direction/AGENTS.md`
+- `README.md`, `Direction/roadmap.md`, `Direction/release_readiness.md`, and `AGENTS.md`
   - repo/image/container identity notes that should follow the operational decision
 
 Historical prompts, old handoff history, and legacy compatibility notes may continue to mention Corvus as history.

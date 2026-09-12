@@ -105,7 +105,7 @@ the value in an old entry is the reasoning, not the path.
 
 **An entry you append today cites repo-relative paths that resolve today.** Write
 `Blueprints/done/LEDGER.md`, not `done/LEDGER.md`; `frontend/src/lib/platformChip.js`, not
-`lib/platformChip.js`. Old entries are history and stay as written. New entries are current writing
+`frontend/src/lib/platformChip.js`. Old entries are history and stay as written. New entries are current writing
 and are the one part of these files anyone will follow.
 
 ## The ledger

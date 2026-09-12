@@ -20,4 +20,4 @@ Operational procedures for using SLOPS skills against Omen. These files apply La
 
 ## Maintenance
 
-Any skill status, name, or trigger change requires a same-pass review of `skill-activation-runbook.md`. Monthly, compare the usage ledger with `done/LEDGER.md`: repeated skips mean the trigger, skill, or done gate needs correction.
+Any skill status, name, or trigger change requires a same-pass review of `skill-activation-runbook.md`. Monthly, compare the usage ledger with `Blueprints/done/LEDGER.md`: repeated skips mean the trigger, skill, or done gate needs correction.

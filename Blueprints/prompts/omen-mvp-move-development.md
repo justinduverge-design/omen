@@ -18,7 +18,7 @@ Read first:
 - DBS_INDEX.md
 - README.md
 - Blueprints/handoffs/backend-to-frontend.md
-- Corvus/Blueprints/specs/omen-mvp-move.md
+- Blueprints/specs/omen-mvp-move.md
 
 Then inspect only the backend files needed to follow existing route, service, middleware, and test patterns.
 
@@ -44,7 +44,7 @@ Required endpoint behavior:
 - Keep Yahoo, Sleeper, and ESPN platform behavior contract-compatible even when mock data is used.
 
 Request shape:
-Accept the request shape from `Blueprints/handoffs/backend-to-frontend.md` and `Corvus/Blueprints/specs/omen-mvp-move.md`:
+Accept the request shape from `Blueprints/handoffs/backend-to-frontend.md` and `Blueprints/specs/omen-mvp-move.md`:
 - `platform`
 - `league_id`
 - `team_id`

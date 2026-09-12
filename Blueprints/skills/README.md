@@ -71,7 +71,7 @@ If Omen requires skills not in the global library, they may be created here:
 
 ## Before Creating Skills Here
 
-1. Check `SLOPS\Blueprints\skills\SKILL_ROUTING.md` to confirm the skill doesn't exist globally.
+1. Check `Slops-OS/Blueprints/skills/SKILL_ROUTING.md` to confirm the skill doesn't exist globally.
 2. Verify that the skill is truly app-specific and not reusable elsewhere.
 3. If it becomes reusable, move it to the global library with Justin approval.
 

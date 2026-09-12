@@ -43,7 +43,7 @@ Do not touch `Archive/quarantine`.
 ### What was completed
 
 **Documentation (canonical paths fixed):**
-- `corvus/Blueprints/specs/omen-ux-ui-design-system-v1.md` — written to canonical path (was worktree-only)
+- `Blueprints/specs/omen-ux-ui-design-system-v1.md` — written to canonical path (was worktree-only)
 
 **Frontend — theme system:**
 - `frontend/tailwind.config.js` — added Omen brand color tokens (raven, charcoal, bone, gold, crimson, omen)

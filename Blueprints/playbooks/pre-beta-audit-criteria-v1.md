@@ -156,7 +156,7 @@ stopped at the first space.
       an open gate** — `M5` slice F sat "blocked" for five days after its condition was met.
 - [ ] When a fact of record is superseded, every place asserting the old fact is amended — not
       only the file where the correction was discovered. This has recurred at least three times.
-- [ ] No handoff claims deployment without `done/release-done.md` gate 4 evidence. Merged is
+- [ ] No handoff claims deployment without `Blueprints/done/release-done.md` gate 4 evidence. Merged is
       not released.
 
 ---
