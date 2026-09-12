@@ -62,7 +62,7 @@ and the close-out flow both reference it.
 | `handoff-unmerged-claims` | handoff claiming "not pushed" while citing a merged PR | #314 |
 | `known-issues-buried` | entry marked OPEN naming no GitHub issue | the four surfaced as #338–#341 |
 | `issue-state-conflicts` | wording contradicting a cited issue's state | Yahoo / #308 |
-| `known-issues-missing-paths` | entry naming a repo path that no longer exists | `src/omen_gdpr.js` |
+| `known-issues-missing-paths` | entry naming a repo path that no longer exists | src/omen_gdpr.js (retired 2026-07-13) |
 | `sprint-closed-without-ledger-row` | item declared CLOSED with no row in the completion ledger | `O2`, `W1-GATE`, `R4`, `R5` — four instances, all found by hand |
 
 Full contract for adding one: [`checks/README.md`](checks/README.md).

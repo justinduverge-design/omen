@@ -72,7 +72,7 @@ The orchestrator catches it and reports that checker as **DID NOT RUN** — neve
 | `handoff-unmerged-claims` | handoff claiming "not pushed" while citing a merged PR | #314 |
 | `known-issues-buried` | entry marked OPEN naming no GitHub issue | the four issues surfaced as #338–#341 |
 | `issue-state-conflicts` | wording that contradicts a cited issue's state | the Yahoo/#308 contradiction |
-| `known-issues-missing-paths` | entry naming a repo path that no longer exists | `src/omen_gdpr.js` |
+| `known-issues-missing-paths` | entry naming a repo path that no longer exists | src/omen_gdpr.js (retired 2026-07-13) |
 | `sprint-closed-without-ledger-row` | item declared CLOSED with no row in `sprints_completed.md` | `O2`, `W1-GATE`, `R4`, `R5` |
 
 ## Writing a checker that will actually get read

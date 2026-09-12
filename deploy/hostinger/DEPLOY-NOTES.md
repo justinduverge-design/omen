@@ -2,7 +2,7 @@
 
 These notes explain how the repo-side deploy files fit together. A more
 detailed founder-safe runbook is planned for
-`Blueprints/playbooks/hostinger-kvm1-deploy-runbook.md` (TBD — use this
+`Blueprints/playbooks/app-cutover-playbook.md` and these notes (TBD — use this
 file plus the compose and nginx configs as the source of truth in the meantime).
 
 ## How The Pieces Fit

@@ -79,7 +79,7 @@ Changes to consider:
 Expected files:
 
 - `src/services/omen.js`
-- optional `src/services/omenRecommendation.js`
+- optional src/services/omen.js (the layer shipped under this name, not the one this spec proposed)
 - `test/omenMvpLiveService.test.js`
 - `test/omenRoute.test.js`
 
