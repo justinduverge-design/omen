@@ -103,11 +103,32 @@ Read in order before acting:
   Read the entry that governs what you are touching. You still WRITE to it at
   close-out. If you are about to re-decide something, go read it.
 
-  The Slops skills are INVOCABLE BY NAME. Do not read them as files and do not
-  copy one into this repo. 61 are linked into .claude/skills/ by
-  Slops-OS/Blueprints/tools/skill-link/link-skills.mjs; authorship stays in
-  Slops-OS/Blueprints/skills/. slops-ui-ux-audit, mobile-first-qa-playbook and
-  slops-mobile-smoke are WEB-APP ONLY.
+	The Slops skills are INVOCABLE BY NAME. Do not read them as files and do not
+	copy one into this repo. The local .claude/skills/ directory is linker output;
+	Slops-OS/Blueprints/skills/SKILL_ROUTING.md is authoritative for status and
+	scope. slops-ui-ux-audit, mobile-first-qa-playbook and slops-mobile-smoke are
+	WEB-APP ONLY.
+
+	SHORT FOUNDER PROMPTS ARE VALID
+	If the founder gives a short prompt ("this Command Center screen feels wrong",
+	"make League know the team", "fix this backend state"), do not ask for a
+	fully-written task prompt. Use the kickoff context to identify the surface,
+	read only the governing docs for that surface, route to the relevant skills by
+	name, and ask only for a missing decision or restricted approval.
+
+	SKILL ROUTING DEFAULTS
+	- Native UI or screen behavior: slops-native-screen-design when deciding the
+	  screen, slops-native-sim-drive for deterministic captures, and
+	  slops-native-ui-audit for a built-screen grade.
+	- Backend behavior or contracts: slops-tdd for the smallest behavior slice,
+	  slops-quality-baseline for checks, and slops-code-review before handoff.
+	- Security, privacy, provider credentials, auth, SQL, or release evidence:
+	  security-privacy-evidence and rbac-risk-review, plus the action-level gates.
+	- UX copy, empty/error/loading states, and exposed product wording:
+	  slops-ux-copy, with facts-of-record checked for public claims.
+	- Unclear external/provider behavior: pre-build-research before coding.
+	If a named skill is unavailable in this runtime, say so and use the closest
+	safe fallback without pretending the skill ran.
 
   If a file is missing, continue and mention it.
 
@@ -149,9 +170,10 @@ Then run, in order:
        node ../../Blueprints/tools/valor-brain/validate.mjs
        node scripts/check-kickoff-drift.js
 
-Begin now: run STEP 0, then STEP 0.1, then read the files above, then run
-PULL TASK immediately. Do not wait for a separate task description — this
-message is the task.
+	Begin now: run STEP 0, then STEP 0.1, then read the files above, then run
+	PULL TASK immediately unless the founder's message already names the task.
+	Do not require a detailed prompt; this kickoff plus the founder's short
+	instruction is enough to start discovery and plan approval.
 
 SAFETY GATES (apply throughout — no tier and no assignment removes these)
 - Authorization requires ALL FOUR: the session actually has the capability;

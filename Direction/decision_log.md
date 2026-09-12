@@ -2904,3 +2904,17 @@ behaving; until then this entry records intent, not proof.
   light ground made the blue impossible to ignore — a screenshot of the fixture, not the
   product, which is the failure mode the "know which branch your fixture exercises" rule exists
   for.
+
+## 2026-09-12 — one live Omen kickoff and light Codex harness
+
+- **Decision: `Blueprints/prompts/kickoff-l2.md` is the only live Omen kickoff.** Task-specific
+  kickoff prompts were archived to `Archive/prompts/2026-09-12-retired-kickoffs/`; they remain
+  history, not starter prompts. The founder's working style is now explicit: short prompts are
+  valid, and agents should use the kickoff plus source-of-truth docs and named skills rather
+  than requiring a long handcrafted prompt.
+
+- **Decision: agent harnesses stay light; skills carry repeatable work.** `AGENTS.md` is the
+  shared doorway, `AGENT.md` is the Codex-specific extension, and `CLAUDE.md` was intentionally
+  untouched in this pass. No skill inventory or linked-skill count is copied into the harness;
+  `../../Blueprints/skills/SKILL_ROUTING.md` remains authoritative for status and scope, and
+  `.claude/skills/` is treated as linker output.

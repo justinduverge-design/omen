@@ -1,4 +1,4 @@
-# Omen — Codex Context
+# Omen — Shared Agent Context
 
 **App renamed:** Corvus → Omen (2026-06-22). The external repo, deploy path, GHCR images, and containers are now Omen. New source files, user-facing strings, comments, and local contracts should use Omen; keep `corvus` only for documented compatibility shims, redirects, legacy env fallbacks, and rollback evidence.
 
@@ -50,8 +50,10 @@ Do not start native feature code when any of those sources are missing or confli
 
 ## Kickoff
 
-Paste `Blueprints/prompts/kickoff-l2.md` to start a session — or just run the auto-populate flow described in `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`.
+Paste `Blueprints/prompts/kickoff-l2.md` to start any Omen session. It is the only live kickoff prompt in `Blueprints/prompts/`; older task-specific kickoffs are archived under `Archive/prompts/`.
+
+Short founder prompts are valid. If the founder says something like "this Command Center screen feels wrong" or "fix this League flow", the agent should use kickoff, identify the surface, route to the relevant skills by name, and ask only for the missing decision or approval that materially changes the work.
 
 ## Close-out
 
-Satisfy `Blueprints/definition-of-done.md`, append a row to `Blueprints/playbooks/skill-usage-ledger.md`, log decisions in `Direction/decision_log.md`, and write a dated handoff in `Blueprints/handoffs/`.
+Satisfy `Blueprints/definition-of-done.md`, append rows to `Blueprints/playbooks/skill-usage-ledger.md` and `Blueprints/done/LEDGER.md`, log decisions in `Direction/decision_log.md`, write a dated handoff in `Blueprints/handoffs/`, and run the close-out gates named by `AGENT.md` / `CLAUDE.md`. A P0 blocks close-out; an unrun check is not a passing check.

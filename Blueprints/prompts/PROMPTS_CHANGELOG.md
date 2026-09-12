@@ -7,6 +7,25 @@ The self-improving loop tracks win rates but not prompt changes — this file fi
 
 ---
 
+## 2026-09-12 — one live Omen kickoff and short-prompt skill routing
+
+Justin approved the light-harness direction before push/merge: one Omen kickoff, small agent
+context files, and heavy repeatable procedure in named skills rather than detailed prompts.
+
+- `Blueprints/prompts/kickoff-l2.md` remains the only live kickoff in `Blueprints/prompts/`.
+  Task-specific kickoff prompts were archived to
+  `Archive/prompts/2026-09-12-retired-kickoffs/`.
+- The kickoff now says short founder prompts are valid: agents should identify the surface, read
+  the narrow governing docs, route to skills by name, and ask only for missing decisions or
+  restricted approvals.
+- Skill routing defaults were added for native UI, backend contracts, security/privacy/provider
+  work, UX copy, and external/provider uncertainty. Skills remain invocable by name; the kickoff
+  does not read or copy skill files.
+- `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` and `Blueprints/prompts/README.md` now point at
+  the single kickoff and no longer describe retired frontend/backend kickoff prompts as live.
+
+---
+
 ## 2026-09-12 — read-order revision and the duplicate-read-order fix
 
 Run of `slops-agent-docs-refresh` (its first; skill was `draft`). Bootstrap and kickoff rewritten

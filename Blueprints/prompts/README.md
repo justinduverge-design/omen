@@ -9,7 +9,7 @@ Use active prompts only when they match the current route:
 ```text
 SLOPS/
   slops-saloon/
-    corvus/
+    omen/
 ```
 
 ## Active Build Loop Prompts
@@ -18,10 +18,12 @@ Use these prompts to start new Omen work without re-explaining the whole repo:
 
 - `HOW-TO-RUN-THE-LOOP.md` - operator guide for loading one task, choosing the right lane, and closing the loop.
 - `kickoff-l2.md` - the single copy-paste L2 starter for any runtime. Layer- and
-  capability-named, not vendor-named: it confirms the session's actual capabilities and
-  reads Runtime Policy and Active Trust Assignments before applying any authority.
+  capability-named, not vendor-named: it confirms the session's actual capabilities,
+  reads Runtime Policy and Active Trust Assignments before applying any authority,
+  and routes short founder prompts into named skills.
   Supersedes the retired `kickoff-backend-codex.md` / `kickoff-frontend-claude.md` pair,
-  archived under `Archive/authority-routing/`.
+  archived under `Archive/authority-routing/`, and the task-specific kickoff prompts
+  archived under `Archive/prompts/2026-09-12-retired-kickoffs/`.
 
 Any change to a prompt in this folder must be recorded in `PROMPTS_CHANGELOG.md`.
 `prompt_playbook.md` is superseded by the kickoff files above and remains only as
