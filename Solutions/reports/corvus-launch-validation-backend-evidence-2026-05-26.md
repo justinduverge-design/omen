@@ -150,7 +150,7 @@ Reason: real Stripe test-mode validation needs approved Stripe test keys, price 
 
 Prepared locally:
 
-- `sql/corvus_rls_security.sql` includes subscription metadata columns: `trial_ends_at` and `current_period_end`.
+- `sql/omen_rls_security.sql` includes subscription metadata columns: `trial_ends_at` and `current_period_end`.
 
 Not applied:
 

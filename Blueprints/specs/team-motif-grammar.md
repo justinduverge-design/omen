@@ -10,6 +10,9 @@ depends-on:
   - Blueprints/audits/2026-06-20-phase1-5e-32-team-identity-audit.md
   - Blueprints/audits/2026-06-21-phase1-5h-multi-color-wcag-sweep.md
 ---
+<!-- truth-gate: targets-not-sources — the team-theming implementation was removed from Omen (PR #114, 2026-07-12); the frontend paths here name code to be rebuilt, not code that exists -->
+
+> **Implementation status, 2026-09-12:** the team-theming code this spec describes (`teamTheme`, `teamChant`, motif modules) was **removed from Omen on 2026-07-12** (PR #114). The spec is retained as L1 doctrine for the rebuild — the founder's standing intent is to redo team identity from scratch rather than restore this implementation. Treat every frontend path below as a target. *(Falsified when team identity ships again.)*
 
 # Omen Team Motif Grammar
 
