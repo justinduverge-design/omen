@@ -74,19 +74,15 @@ Regardless of which lane you pull from:
 
 Read these if present:
 
-1. `AGENTS.md`
-2. `context.md` — product shape and current truth
-3. `Direction/context.md`
-4. `Direction/agent_inbox.md` — pinned task or top-5 queue
-5. `Direction/current_sprint.md`
-6. `Direction/facts-of-record.md` — standing constraints
-7. `Direction/known_issues.md`
-8. `Direction/decision_log.md`
-9. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-10. `Blueprints/definition-of-done.md`
-11. `Blueprints/handoffs/frontend-to-backend.md`
-12. `Blueprints/handoffs/backend-to-frontend.md`
-13. `Blueprints/handoffs/decisions.md`
+**One read order, expressed once: `CLAUDE.md` § "Read in order before pulling a task".**
+`Blueprints/prompts/kickoff-l2.md` carries the identical list by contract and
+`node scripts/check-kickoff-drift.js` enforces it.
+
+This file used to restate the order, and the restatement drifted — it still listed
+`Direction/decision_log.md` as an up-front read after that was dropped on 2026-09-12, and it
+never carried the `current_sprint` / `known_issues` splits. A second copy of a read order is a
+second source of truth for the same contract, and the copy is always the one that goes stale.
+Read the list in `CLAUDE.md`.
 
 For launch or release work also read `Direction/omen-1.0-plan.md` (scope and
 sequence) and `Direction/release_readiness.md` (evidence record).

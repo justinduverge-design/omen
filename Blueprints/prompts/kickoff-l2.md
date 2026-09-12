@@ -71,6 +71,10 @@ Read in order before acting:
   node scripts/check-kickoff-drift.js enforces it. Change one, change both.
 
   ALWAYS-READ CORE
+  Revised 2026-09-12: this core cost ~166,000 tokens and now costs ~50,000.
+  Three files carried it. decision_log.md left the list entirely;
+  current_sprint.md and known_issues.md were split. A bootstrap that large
+  competes with the work.
    1. AGENTS.md            shared root posture, ownership, safety
    2. AGENT.md             Codex-specific extension of AGENTS.md.
                            AGENTS.md (with S) is the shared one; AGENT.md
@@ -78,18 +82,32 @@ Read in order before acting:
    3. RESOLVER.md          where a new file belongs, before you create one
    4. Direction/context.md
    5. Direction/agent_inbox.md      <- a pin wins over the queue
-   6. Direction/current_sprint.md   <- lane queue when there is no pin
+   6. Direction/current_sprint.md   <- lane queue when there is no pin.
+                                       ACTIVE items only; terminal items point
+                                       into Direction/sprint-verified-detail.md
    7. Direction/status-model.md     states, Claim:/Evidence:, blocker grammar
    8. Direction/facts-of-record.md
-   9. Direction/known_issues.md
+   9. Direction/known_issues.md     OPEN bugs. Fixed ones live in
+                                    Direction/known_issues-resolved.md
 
   READ BEFORE YOU PLAN
-  10. Direction/decision_log.md
-  11. Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
-  12. Blueprints/definition-of-done.md
-  13. Blueprints/playbooks/omen-company-baseline.md
-  14. Blueprints/playbooks/skill-activation-runbook.md
-  15. Latest entry in Blueprints/handoffs/
+  10. Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md
+  11. Blueprints/definition-of-done.md
+  12. Blueprints/playbooks/omen-company-baseline.md
+  13. Blueprints/playbooks/skill-activation-runbook.md
+  14. Latest entry in Blueprints/handoffs/
+
+  Direction/decision_log.md is NOT read up front as of 2026-09-12. It is a
+  reference, not a briefing: nothing about picking up a task requires every
+  decision ever made, and at ~93,000 tokens it was 56% of the cold start.
+  Read the entry that governs what you are touching. You still WRITE to it at
+  close-out. If you are about to re-decide something, go read it.
+
+  The Slops skills are INVOCABLE BY NAME. Do not read them as files and do not
+  copy one into this repo. 61 are linked into .claude/skills/ by
+  Slops-OS/Blueprints/tools/skill-link/link-skills.mjs; authorship stays in
+  Slops-OS/Blueprints/skills/. slops-ui-ux-audit, mobile-first-qa-playbook and
+  slops-mobile-smoke are WEB-APP ONLY.
 
   If a file is missing, continue and mention it.
 
@@ -121,7 +139,15 @@ Then run, in order:
    - Append a row to Blueprints/playbooks/skill-usage-ledger.md (invoked +
      considered-but-skipped skills, with evidence pointer).
    - Write a dated handoff in Blueprints/handoffs/YYYY-MM-DD-<task>.md.
-   - Append to Blueprints/done/LEDGER.md.
+   - Append to Blueprints/done/LEDGER.md. Entries you append TODAY cite
+     repo-relative paths that resolve today (Blueprints/done/LEDGER.md, not
+     done/LEDGER.md). Old entries are history and stay as written.
+   - Run the gates. A P0 BLOCKS YOUR OWN CLOSE-OUT. An unrun check is not a
+     passing check; in a standalone clone without L0, say the gate did not run.
+       node scripts/check-sprint-staleness.js
+       node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet
+       node ../../Blueprints/tools/valor-brain/validate.mjs
+       node scripts/check-kickoff-drift.js
 
 Begin now: run STEP 0, then STEP 0.1, then read the files above, then run
 PULL TASK immediately. Do not wait for a separate task description — this

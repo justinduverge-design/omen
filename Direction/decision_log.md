@@ -1,5 +1,27 @@
 # Omen Decision Log
 
+## 2026-09-12 — the always-read core is a cost, and it was 166,000 tokens
+
+**Decision (founder-approved before the rewrite):** `Direction/decision_log.md` leaves the up-front
+read order; `current_sprint.md` and `known_issues.md` split active from settled. Cold start goes
+from ~166,000 tokens to ~50,000.
+
+**Why.** The bootstrap was competing with the work. `decision_log.md` alone was 56% of it, and it is
+a reference — you read the decision governing what you are touching, not all of them. This is the
+best explanation on record for why this queue needed reconciling three times in six weeks, why 30
+`CLOSED` tombstones sat in the active queue unnoticed, and why five `READY_FOR_REVIEW` items stayed
+invisible through two passes. An agent that cannot afford to read the queue skims it.
+
+**The risk, stated plainly.** An agent that does not read the decision log may re-decide something
+already settled. The mitigations are `RESOLVER.md`, the instruction to read the governing entry, and
+the rule that being about to re-decide something is itself the signal to go read. Omen has no
+`Direction/decisions/` folder — L0 does — which is why this log became the authority. Creating one
+would let the log be pure history; not done here, and flagged.
+
+**Found during the pass:** four files carried their own read order and none agreed. Only two were
+ever compared. `AGENTS.md`, `AGENT.md`, and L0's `files-to-read-first-L2.md` now point at
+`CLAUDE.md` rather than restate it.
+
 ## 2026-09-10 — Command Center owns Waiver Watch and Ledger detail
 
 Waiver Watch in Command Center now reads the waiver-analysis contract directly when the active league supports it. If that read fails, the dashboard-derived state remains visible rather than inventing an empty opportunity or hiding uncertainty.

@@ -7,6 +7,33 @@ The self-improving loop tracks win rates but not prompt changes — this file fi
 
 ---
 
+## 2026-09-12 — read-order revision and the duplicate-read-order fix
+
+Run of `slops-agent-docs-refresh` (its first; skill was `draft`). Bootstrap and kickoff rewritten
+as one pass in both repos.
+
+**The core cost ~166,000 tokens and now costs ~50,000.** Three files carried it:
+`decision_log.md` (~93k), `current_sprint.md` (~34k), `known_issues.md` (~19k).
+
+- `Direction/decision_log.md` **left the up-front read order.** It is a reference, not a briefing —
+  nothing about picking up a task requires every decision ever made. Still written at close-out;
+  read the entry that governs what you are touching. It remains L2's decision authority.
+- `Direction/current_sprint.md` split: 14 terminal items (`VERIFIED`/`DONE`/`SUPERSEDED`/`DEFERRED`)
+  moved to `Direction/sprint-verified-detail.md` behind one-line pointers, and the 2026-09-07
+  reconciliation narrative to `Direction/reviews/2026-09-07-sprint-reconciliation.md` — its three
+  standing findings kept inline.
+- `Direction/known_issues.md` split: 15 resolved sections to `Direction/known_issues-resolved.md`.
+  Kept, not deleted — more than one has been re-opened.
+- **Four files were carrying their own read order and none agreed.** `AGENTS.md`, `AGENT.md`, and
+  L0's `files-to-read-first-L2.md` now point at `CLAUDE.md` instead of restating it; all three still
+  listed `decision_log.md` up front and none knew about the splits. `check-kickoff-drift.js` only
+  ever compared `CLAUDE.md` to `kickoff-l2.md`, so the other three drifted unseen.
+- Close-out gained the gates in both repos — truth-gate, valor-brain, skill-link, kickoff-drift.
+  A P0 blocks close-out; an unrun check is not a passing check.
+- Skills are recorded as **invocable by name**, not as files to read.
+
+Drift check: 13 entries, matching. Read order was approved by the founder before the rewrite.
+
 ## Format
 
 ```

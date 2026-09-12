@@ -8,21 +8,15 @@ You are working in the Omen product layer. Lanes are a scheduling convenience, n
 
 ## Read in order before pulling a task
 
-1. `AGENT.md` (backend ownership, safety rules, end-of-task report shape)
-1a. `RESOLVER.md` (file routing and optional structured-page validation)
-2. `Direction/context.md` — current operating context
-3. `Direction/agent_inbox.md` — pinned task or top-5 queue
-4. `Direction/current_sprint.md` — full lane queue
-5. `Direction/facts-of-record.md` — standing constraints
-6. `Direction/known_issues.md` — open bugs
-7. `Direction/decision_log.md` — rationale + history
-8. `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` — the loop in one page
-9. `Blueprints/definition-of-done.md` — per-type DoD pointers
-10. `Blueprints/playbooks/omen-company-baseline.md` — baseline procedure
-11. `Blueprints/playbooks/skill-activation-runbook.md` — skill routing
-12. Latest entry in `Blueprints/handoffs/` — last session handoff
+**One read order, expressed once: `CLAUDE.md` § "Read in order before pulling a task".**
+`Blueprints/prompts/kickoff-l2.md` carries the identical list by contract and
+`node scripts/check-kickoff-drift.js` enforces it.
 
-If a file is missing, continue and mention it.
+This file used to restate the order, and the restatement drifted — it still listed
+`Direction/decision_log.md` as an up-front read after that was dropped on 2026-09-12, and it
+never carried the `current_sprint` / `known_issues` splits. A second copy of a read order is a
+second source of truth for the same contract, and the copy is always the one that goes stale.
+Read the list in `CLAUDE.md`.
 
 ## Reads on demand
 
