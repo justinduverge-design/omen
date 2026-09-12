@@ -3,15 +3,35 @@
 You are working in the Omen product layer (L2). Confirm this session's actual capabilities and read
 Runtime Policy before applying any authority. Lanes schedule work; they never grant authority.
 
-## Product shape — treat as fact
+## What Omen is
 
-- **Omen is a mobile app.** iPhone SwiftUI + Android Kotlin/Compose. There is also a web app: it is
-  secondary, and new web page migrations are paused. Native is active authority.
-- **Omen is free indefinitely.** No Stripe, subscription, or paywall code exists anywhere.
-- **Draft Assistant is cut from 1.0** (2026-08-05). It ships for the 2027 fantasy draft on a
-  Slops-built ADP. One factual "2027 fantasy draft" mention is allowed on the marketing site and in
-  a clearly-labelled in-app "not in this version" note. Keep it out of store metadata, onboarding
-  copy, navigation, legal copy, and the advertised tool list. Say neither "coming soon" nor a month.
+**Omen is a fantasy football management app.** A user connects a real league — ESPN, Yahoo, or
+Sleeper — and Omen tells them the best move to make this week: what to do, why it matters, what the
+risk is, and how confident it is. Plain-English reasoning, not heavy math. It should read like a
+trusted analyst, not a calculator.
+
+It ships as a **mobile app** — iPhone SwiftUI and Android Kotlin/Compose — and has a secondary web
+app. Native is active authority; new web page migrations are paused.
+
+**Trade Analyzer is the front door. Omen of the Week is the main event** — one call per week whose
+type is not fixed: a start/sit, a pickup, a drop, or a trade. Waiver is its own section inside the
+**League** destination. **Command Center is the Small Council** — Omen's advisors give short reads
+on what they watch, one voice, seats labelled by subject.
+
+ESPN, Yahoo and Sleeper all matter. ESPN is essential and fragile: treat it as high-value with
+careful recovery flows, user guidance, and honest failure states.
+
+**Two files own the detail, and both are in the read order below. Do not restate them here.**
+
+| For | Read |
+|---|---|
+| Product promise, tool hierarchy, platform context, voice | `Direction/context.md` |
+| Standing constraints — what is free, what is cut, what may be said publicly, security posture | `Direction/facts-of-record.md` |
+
+A copy of a fact is a second source of truth, and the copy is the one that goes stale. This section
+carried the billing and Draft-Assistant constraints until 2026-09-12 and had already drifted from
+`facts-of-record.md` — it still said Draft Assistant was "cut from 1.0" after that was extended to
+the 2027 season on 2026-08-11.
 
 ## Do this, in order
 
@@ -130,4 +150,4 @@ node scripts/check-kickoff-drift.js                             # this list vs k
 7. Write a dated handoff in `Blueprints/handoffs/`.
 
 Entries you append today cite repo-relative paths that resolve today — `Blueprints/done/LEDGER.md`,
-not `done/LEDGER.md`. Old entries stay as written.
+not `Blueprints/done/LEDGER.md`. Old entries stay as written.

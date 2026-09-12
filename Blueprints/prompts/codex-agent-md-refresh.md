@@ -44,7 +44,17 @@ STEP 2 — fix what is stale in AGENT.md
      .claude/skills/. Do not read them as files; do not copy one into this repo.
      Slops-OS/Blueprints/skills/SKILL_ROUTING.md is authoritative for status and
      scope. If your file describes skills as documents to read, fix that.
-  e. Entries appended TODAY to the append-only records (decision_log,
+  e. Your "Product shape" section duplicates Direction/context.md and
+     Direction/facts-of-record.md, both of which are in the read order. On
+     2026-09-12 the copies in CLAUDE.md and AGENTS.md were found to have
+     DRIFTED from the facts of record -- both still said Draft Assistant was
+     "cut from 1.0" after that was extended to the 2027 season on 2026-08-11.
+     Replace yours the same way: say in two sentences what Omen IS -- a fantasy
+     football management app that tells a user the best move to make this week
+     and why -- then POINT at context.md and facts-of-record.md. Do not restate
+     constraints. A copy of a fact is a second source of truth and the copy is
+     the one that goes stale.
+  f. Entries appended TODAY to the append-only records (decision_log,
      sprints_completed, done/LEDGER, skill-usage-ledger) cite repo-relative paths
      that resolve today. Old entries stay as written.
 
