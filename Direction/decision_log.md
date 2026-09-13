@@ -2924,3 +2924,50 @@ behaving; until then this entry records intent, not proof.
   way that may also close sprint work. `Blueprints/prompts/omen-grade-ui-intent.md` now owns that
   translation: clean up messy founder input, identify the surface, classify layout/copy/data/API
   work, require source-backed Omen-grade insight, and crosswalk against current sprint items.
+
+## 2026-09-13 — football-data capture healed; alerting can no longer latch silently
+
+- **Finding: a bare image-digest pin is unrecoverable by design, and cost 17 days of capture.**
+  `/etc/omen-football/image-digest` was re-pinned 2026-08-26 23:33Z to `sha256:<hex>` rather than
+  `repo@sha256:<hex>`, 18 minutes after `d2d327f` deployed. A bare ID names a *local* image only —
+  no registry can serve it back. A later prune removed it, so every capture from 2026-08-27 09:15Z
+  exited 125 with `datasets: {}`. The pin format, not the pipeline, was the fault.
+
+- **Decision: the capture chain heals its own image, or fails loudly — never runs unverified.**
+  `omen-football-image-guard` prefers pulling a `repo@sha256` pin back, else rebuilds from the
+  newest source tree carrying both the Dockerfile and `src/services/footballData`, probes the result
+  with `status`, and re-pins only after that passes. If it cannot produce a *verified* image it
+  leaves the pin untouched and exits non-zero. A wrong image is worse than no capture.
+
+- **Finding: `ProtectSystem=strict` would have made the guard inert.** The three units write-list
+  only `/var/lib/omen-football-data` and `/run/docker.sock`, so `/etc` is read-only inside the
+  sandbox — the guard could build and verify an image but not write the pin. Caught by reading the
+  units, not by testing: the manual run passed because it ran outside systemd. `/etc/omen-football`
+  is now in `ReadWritePaths`.
+
+- **Decision: edge-triggered alerting keeps a 24h ceiling.** The football condition latched once on
+  2026-08-27 and, the signature never changing again, never re-sent. `slops-alert-dispatcher` now
+  re-sends whatever is still active once per day and ages `generated_at_utc` explicitly (>30h).
+  The reminder deliberately spans the football signature as well as `$sig` — one covering only
+  `$sig` would have missed this outage entirely, since football latches in its own state file.
+
+- **Finding: the witness's success was the disguise.** Fetching `kvm1-status.json` kept working, so
+  the file's mtime refreshed every five minutes for seventeen days while the timestamp *inside* it
+  stayed frozen. Freshness of a file is not freshness of its contents.
+
+- **Finding: the Aug 27 credential timing is coincidence.** ESPN cookie expiry and Yahoo 403 first
+  appeared 2026-08-27 02:12, seven hours before capture froze — a tempting causal story. The capture
+  pipeline reads only nflverse GitHub releases and touches neither provider. Both still need manual
+  re-auth, for unrelated reasons.
+
+- **Finding: the guard's real blocker was buildx, not the filesystem.** The first run under systemd
+  failed in about a second. `/etc` being read-only was a genuine defect found by reading the units,
+  but it was the *second* barrier — the guard never got that far. `docker build` runs through
+  buildx, which keeps state in `$HOME/.docker/buildx`, and `ProtectHome=true` makes `/root`
+  unreachable. `docker run` needs no such state, which is exactly why capture worked throughout and
+  nothing surfaced this until the heal path was executed rather than reasoned about.
+
+- **Decision: a self-heal component must explain its own failures.** The first guard discarded build
+  output, so a diagnosable buildx error reached the journal as `rebuild from d2d327f FAILED`. It now
+  logs the tail of the build. Proven end to end 2026-09-13 19:39Z against a deliberately bogus pin:
+  guard rewrote the pin, capture returned `state: pass`, `alerts: []`.

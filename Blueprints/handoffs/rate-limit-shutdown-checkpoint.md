@@ -1,107 +1,118 @@
-# Omen Milestone Checkpoint
+# Rate-Limit Shutdown Checkpoint
 
-**Date:** 2026-06-21
-**Session:** Skill acquisition, distribution, parking, and Omen playbook operationalization
-**Layer:** L0 SLOPS OS + L2 Omen procedures
+Session: 2026-09-13 — Omen football-data capture outage, diagnosis through merge.
 
 ## Current Project State
 
-- Omen remains the active Layer 2 product and the proving ground for the reusable SLOPS company baseline.
-- All 52 registered skill entries have exactly one activation-runbook route: 48 active, 1 paired, 2 parked, and 1 retired.
-- Both runtimes contain all 49 active/paired canonical packages with zero hash mismatches; the two parked packages are absent from both runtimes and recoverable from backup.
-- The Omen build loop, Definition of Done, feature/security/release gates, sprint, and skill ledger now require an explicit skill receipt.
-- Phase 1.6 remains the current product task in `Direction/agent_inbox.md`; its existing frontend/spec changes were preserved and not edited by this procedure pass.
+Football-data capture on KVM1 (`srv1737978`) was **dead for 17 days** and nothing reported it. It
+is now running, and both the fault class and the silence have fixes merged to `main` as
+[#428](https://github.com/justinduverge-design/omen/pull/428).
+
+Auto-heal is **deployed and proven under systemd** as of 19:39Z: a deliberately bogus pin was
+detected, rebuilt, verified and rewritten by `ExecStartPre`, after which capture returned
+`state: pass` with `alerts: []`.
+
+One condition remains active — `witness_mismatch` — which is expected on a Sunday and should clear
+on the Tuesday cycle. A follow-up PR is still owed for the buildx fix proven after #428 merged.
 
 ## Work Completed This Session
 
-1. Added and distributed the approved skill wave, then verified canonical YAML, routing, package presence, and hashes.
-2. Parked `slops-learning-loop` until Omen Release Done plus seven stable days; its first use is a technology-choice and before-season-end improvement cycle.
-3. Parked `slops-community-needs-research` until Justin explicitly opens far-future community-product discovery.
-4. Backed up and removed both parked packages from Claude and Codex runtime directories.
-5. Created the Omen company-baseline playbook, complete 52-entry skill-activation runbook, usage ledger, and post-live learning runbook.
-6. Wired skill selection and evidence into shared kickoff modules, Omen Done gates, closeout order, and sprint items `V1` and `PL1`.
-7. Corrected current live-authority OneDrive paths and the closeout bug that committed before evidence files were written.
-8. Ran graph query, routing/matrix parity, YAML parsing, runtime hash, parked-absence, link-target, whitespace, and root/L2 diff checks.
+**Root cause.** `/etc/omen-football/image-digest` was re-pinned 2026-08-26 23:33Z to a **bare image
+ID** (`sha256:<hex>`) rather than `repo@sha256:<hex>`, 18 minutes after source `d2d327f` deployed.
+A bare ID names a local image only and can never be pulled. A later prune removed it, so every
+capture from the next run (2026-08-27 09:15Z) exited 125 and the status payload froze with
+`datasets: {}`.
+
+**Why it was silent.** `slops-alert-dispatcher` is edge-triggered; the condition latched once and
+never re-sent. Compounding it, the witness's fetch of `kvm1-status.json` kept succeeding, so the
+file's mtime refreshed every 5 minutes while `generated_at_utc` inside it stayed frozen — invisible
+to any mtime-based check.
+
+**Outage closed.** Rebuilt the capture image from `d2d327f`, re-pinned, ran capture. Result:
+`state: pass`, `batch_id` issued, all three datasets populated with hashes, `alerts: []`. The Pi
+went from four active conditions to one.
+
+**Auto-heal shipped.** `omen-football-image-guard` runs as `ExecStartPre`: prefers pulling a
+`repo@sha256` pin back, otherwise rebuilds from the newest source tree carrying both the Dockerfile
+and `src/services/footballData`, probes with `status`, and re-pins only after that passes, backing
+up the prior pin. If it cannot produce a verified image it leaves the pin alone and fails, so
+capture fails loudly rather than running something unverified. Heal path was exercised on KVM1
+against a deliberately bogus pin and recovered correctly.
+
+**Silence closed.** Dispatcher gained an explicit staleness probe on `generated_at_utc` (>30h) and a
+once-daily re-send of still-active conditions, deliberately spanning the football signature as well
+as `$sig`. Both verified live on the Pi.
+
+**Credential question answered.** ESPN cookie expiry and Yahoo 403 first appeared 2026-08-27 02:12,
+seven hours before capture froze. The capture pipeline reads **only** nflverse GitHub releases
+(`schedules/games.csv`, `stats_player`, `stats_team`) and touches neither provider. The timing is
+coincidence, not causation.
 
 ## Files Changed
 
-### Layer 0
+Merged in #428:
 
-- `Blueprints/skills/SKILL_ROUTING.md`
-- `Blueprints/skills/SLOPS_LIFECYCLE.md`
-- `Blueprints/RESOURCES_INDEX.md`
-- `Blueprints/skills/slops-learning-loop/SKILL.md`
-- `Blueprints/skills/slops-community-needs-research/SKILL.md`
-- `Blueprints/prompts/kickoff-modules/read-first.md`
-- `Blueprints/prompts/kickoff-modules/plan-approval.md`
-- `Blueprints/prompts/kickoff-modules/done-and-close.md`
-- `Blueprints/agent-modules/hard-prohibitions.md`
-- `Direction/decision_log.md`
-- `Direction/reviews/2026-06-21-skill-acquisition-distribution-result.md`
-- Earlier acquisition/research files already listed in that result report
+- `ops/football-data/kvm1/omen-football-image-guard` — created
+- `ops/football-data/kvm1/omen-football-capture.service` — updated
+- `ops/football-data/kvm1/omen-football-validate.service` — updated
+- `ops/football-data/kvm1/omen-football-retry.service` — updated
+- `ops/command-center/slops-alert-dispatcher` — updated
 
-### Layer 2
+Written this checkpoint pass:
 
-- `Blueprints/playbooks/README.md`
-- `Blueprints/playbooks/omen-company-baseline.md`
-- `Blueprints/playbooks/skill-activation-runbook.md`
-- `Blueprints/playbooks/skill-usage-ledger.md`
-- `Blueprints/playbooks/post-live-technology-learning.md`
-- `Direction/reviews/2026-06-21-skill-playbook-operationalization.md`
-- `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md`
-- `Blueprints/definition-of-done.md`
-- `Blueprints/done/feature-done.md`
-- `Blueprints/done/security-done.md`
-- `Blueprints/done/release-done.md`
-- `Direction/current_sprint.md`
-- `Direction/context.md`
-- `Direction/decision_log.md`
-- Current route/reference files listed in the operationalization report
-- `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md`
+- `Blueprints/handoffs/rate-limit-shutdown-checkpoint.md` — this file
+- `Direction/decision_log.md` — appended 2026-09-13 entry
+- `Direction/known_issues.md` — entry for the live drop-in defect, opened and resolved same session
 
 ## Files Not Found
 
-- None required by this procedure pass.
+- No `ops/` tree existed in the local checkout at session start — HEAD was 2026-08-20, predating the
+  football-data work. Required `git fetch` before the close-out could be written.
+- `/var/lib/slops-alerting/last-reminder-day` did not exist until the patched dispatcher first ran.
 
 ## What Was Not Done
 
-- No Omen app code, package, test, SQL, environment, secret, deploy, or production change.
-- No commit, push, PR, merge, or graph rebuild.
-- `V1` has not yet governed a completed product task.
-- `PL1` remains blocked until Omen is public and stable for seven days.
-- Community-product discovery remains parked with no Omen backlog item.
+- **Kuma `maxretries=2`** — not applied. Blocked by the permission classifier, and a direct SQLite
+  edit is the wrong mechanism anyway (Kuma caches monitors in memory and can overwrite it). Must be
+  done in the Kuma UI on all four monitors.
+- **ESPN / Yahoo re-auth** — not done, cannot be automated. Requires Justin to re-authenticate.
+- **Tuesday verification** — not yet possible.
+- **A follow-up PR for the buildx fix** — the guard change proven at 19:39Z is committed locally but
+  #428 still contains the version that cannot build under systemd.
+- No app code, secrets, deploy config, SQL, tests, or package files were touched.
 
 ## Current Risks / Open Questions
 
-1. Root and Omen worktrees remain dirty. The Omen worktree also contains pre-existing Phase 1.6 frontend/spec work; commits must use explicit paths and preserve ownership.
-2. Skill-receipt enforcement is documentation-based until `V1` proves the shape is useful. Do not automate before the pilot.
-3. The persistent graph predates the new explicit playbook links. Refresh it after the documentation is safely committed/merged.
-4. Conditional skills have valid triggers but still need real usage evidence over time; monthly ledger review decides keep, improve, park, or retire.
+1. ~~**The live KVM1 drop-in cannot heal.**~~ **Resolved 19:39Z.** Deploying the merged units was
+   necessary but not sufficient: `/etc` being read-only was the second barrier, and the guard never
+   reached it. The actual blocker was `docker build` going through buildx, whose state lives in
+   `$HOME/.docker/buildx` — unreachable under `ProtectHome=true`. Fixed by pointing `DOCKER_CONFIG`
+   at a private temp dir, plus the guard no longer discards build output. Proven end to end against
+   a bogus pin: guard rewrote the pin, capture returned `state: pass`, `alerts: []`. The
+   `ReadWritePaths` defect was found by reading the units and was real; the buildx defect was found
+   only by executing them, and it was the one actually blocking.
+2. **`witness_mismatch` is still active.** Believed expected: the witness holds only 2025 snapshots
+   for `stats_player`/`stats_team` (captured 2026-08-26, before any 2026 games), so it has nothing
+   to compare against. Should clear once the Tuesday witness capture crosses the season boundary.
+   If it persists past Tuesday afternoon, it becomes a genuine data-integrity signal.
+3. **Three identical pending batches** exist from today's repeated manual captures. Validate has not
+   met that input shape before.
+4. **Why the Pi rebooted** at 10:29 local on 2026-09-13 is unexplained; `last -x reboot` returned
+   nothing. Unrelated to the outage, but unaccounted for.
+5. **What re-pinned the digest on 2026-08-26** is unknown. Without knowing, the same bare-ID mistake
+   can recur — the guard now recovers from it, but the origin is worth understanding.
 
 ## Recommended Next Step
 
-Finish the already-active Phase 1.6 task in its existing owner session and use it as the `V1` company-baseline pilot. Do not start a competing implementation or disturb its current uncommitted files.
+Set Kuma `maxretries=2` on all four monitors in the UI (http://100.98.81.0:3001) - the last unfinished
+item from this session that needs no further diagnosis.
 
 ## Exact Next Prompt For Justin
 
-```text
-Continue the existing Omen Phase 1.6 position-chip task; do not restart it or discard current work.
-
-Use V1 as the first company-baseline pilot.
-
-Read first:
-- Direction/agent_inbox.md
-- Direction/current_sprint.md
-- Blueprints/playbooks/omen-company-baseline.md
-- Blueprints/playbooks/skill-activation-runbook.md
-- Blueprints/definition-of-done.md
-- Blueprints/specs/page-system.md
-
-Before editing, show the plan-approval brief with:
-- current dirty files and ownership
-- selected skills and conditional-skill N/A reasons
-- verification commands
-- intended skill-receipt evidence path
-
-Preserve all existing Phase 1.6 work. Do not touch secrets, packages, SQL, deploy, production, or the two parked skills. When complete, satisfy the applicable Done gates and append evidence to Blueprints/playbooks/skill-usage-ledger.md. Do not push or merge without Justin.
-```
+> Set Retries=2 on all four Kuma monitors at http://100.98.81.0:3001 (Public HTTPS, API Health, API
+> Ready, GlitchTip) — they all ship `maxretries=0`, so a single failed beat pages. Then on Tuesday
+> Sep 15 after 10:00 UTC, confirm `witness_mismatch` cleared once the witness crossed the season
+> boundary and picked up 2026 `stats_player`/`stats_team`; if it is still active, treat it as a real
+> data-integrity signal rather than the expected Sunday state. Also complete the L2 close-out this
+> session skipped: `Blueprints/playbooks/skill-usage-ledger.md`, `Blueprints/done/LEDGER.md`, and the
+> four gate commands in `CLAUDE.md`.
