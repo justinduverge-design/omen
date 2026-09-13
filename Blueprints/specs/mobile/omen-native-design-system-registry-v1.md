@@ -37,13 +37,33 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 | **Core semantic** | stable role meaning (text, surface, border, focus, success, risk, disabled) | rarely — role meaning stays stable |
 | **Brand expression** | Omen atmosphere (accent, glow, hero lighting, metallic highlight) | yes, by approved pack |
 | **Component alias** | component role (decision-card surface, primary-button fill, connection panel) | controlled |
-| **Data-semantic invariant** | risk, confidence, data-source, position, platform, demo | **never** |
+| **Provider identity** | ESPN, Sleeper, Yahoo brand marks and chip fills | **never** — D8 |
+| **Named exception** | Platinum, on favourite and selection marks only | **never** — see below |
+| **Data-semantic** | risk, data-source, confidence, position | **invariant in meaning, not in colour.** The state must always be unambiguous. Its carrier may be form — fill, weight, border, glyph, wording — rather than hue. A pack may not change what a state *means*, may not remove its carrier, and may not make two states indistinguishable. |
 | **Theme pack / campaign** | bounded visual mode (Core, Blackout, Whiteout, Playoff Gold) | yes, bounded/temporary |
 | **Team identity** | future per-team skin | not in MVP; must never replace risk/status meaning |
 
+> **Amendment 01, 2026-09-13 (D7).** The original row read "never" for the whole data-semantic
+> family and is narrowed here. This is not permission to drop the state — §1's rule that *colour is
+> never the only carrier of meaning* now runs in the other direction as well: under D7 the
+> non-colour carrier is frequently the **only** carrier, which raises rather than lowers the bar on
+> it. Every treatment in §2.3 is mandatory, and a state shipped without its carrier is a P0.
+
+> **Platinum is a named exception (founder, 2026-09-13).** `platinum` — `#C7CBD1` dark, `#69707B`
+> light — is the one brand-expression colour besides brass permitted in app chrome, and it is
+> scoped to **favourite and selection marks only: never text, never borders, never a fill.** It
+> exists so a starred team reads as *marked* rather than as a second call-to-action, which brass
+> would imply. Its chroma is nearly nil, so it does not compete with brass for attention.
+>
+> **Both platforms.** It shipped on iOS first and was carried in
+> `scripts/check-token-parity.js` `KNOWN_SINGLE_PLATFORM` as a legitimate single-platform absence.
+> That entry is removed when the Android value lands; until then the exception is ratified in
+> spec and pending in code, which is the opposite of the usual drift and is recorded here so it is
+> not mistaken for one.
+
 ### 2.2 Core semantic tokens (concrete values from `index.css`)
 
-| Token | Role | Dark (default) | Light / system |
+| Token | Role | Dark (default) | Light / system — WITHDRAWN 2026-09-13 (D1) |
 |---|---|---|---|
 | `bg` | app background (smoky grey / warm parchment) | `#1F1F1D` | `#F1EDE4` |
 | `surface-1` | card/panel (smoke / warm white) | `#2A2A27` | `#FFFDF9` |
@@ -58,9 +78,37 @@ Tokens are **semantic names**, never raw colors in a screen. The native token na
 | `accent-hover` | accent pressed/hover | `#D8A648` | `#A67C2E` |
 | `accent-muted` | low-emphasis accent fill | `#3A2A0A` | `#F6E7BE` |
 | `text-on-accent` | foreground on accent surfaces | `#14140F` | `#FFFDF9` |
-| `omen` | AI-signal accent (Verdigris) | `#2F7D5B` | `#1A5C3E` |
+| `omen` | AI-signal accent (Verdigris) — **WITHDRAWN 2026-09-13 (D7)**, marketing only | `#2F7D5B` | `#1A5C3E` |
 | `umber` | brown-metal depth | `#5A3A25` | `#5A3A25` |
 | `focus-ring` | focus indicator (accent @ 40%) | derived from `accent` | derived from `accent` |
+| `platinum` | favourite / selection mark **only** (§2.1 named exception) | `#C7CBD1` | `#69707B` |
+| `fill-ring` | hairline that gives any sub-3:1 fill its silhouette | `rgba(245,240,232,.38)` | — |
+
+> **Dark-only, 2026-09-13 (D1).** Omen native ships one scheme until team schemes or seasonal packs
+> exist. `OmenLightColors` and `lightDataSemantics` are removed from `OmenColor.kt`; the scheme
+> selector returns `OmenDarkColors` unconditionally; `android:theme` and `UIUserInterfaceStyle` are
+> set to dark so system chrome matches. **`OmenColorScheme` stays a data class** — collapsing it to
+> constants would make the packs in §2.1 expensive to reintroduce, which is the whole reason the
+> indirection exists. The Light column above is **withdrawn, not deleted**: its values are the
+> starting point when Whiteout or a seasonal pack returns.
+
+> **The fill-ring rule, 2026-09-13.** Provider colour and risk colour are the only hues left in the
+> app, and several of their fills are darker than the surface behind them. Yahoo `#410093` measures
+> **1.29:1** against `bg #1F1F1D` — the fill is the same value as the ground, so only the white
+> lettering renders and the chip loses its silhouette. ESPN is 2.40:1, Sleeper 3.12:1, and
+> `risk-high #7E1717` is 1.59:1. Lifting any of them abandons the sourced brand hex or the brand
+> crimson, which defeats the point of keeping them.
+>
+> **So the rule is uniform and has no exceptions: any fill measuring under 3:1 against its ground
+> carries `fill-ring`.** At `.38` the ring composites to `#777570` over `surface-1` (**3.13:1**) and
+> to `#AB6966` over `risk-high` (**3.89:1** against `bg`), clearing WCAG 1.4.11's non-text floor in
+> both cases. `OmenColorContrastTest` asserts **the ring, not the fill**, is what separates the
+> object from its ground — and asserts the ratio, not the alpha, so the value can be tuned without
+> weakening the guarantee.
+>
+> **Corrected 2026-09-13 by the accessibility pass.** The first draft specified `.22`, which
+> composites to `#575651` over `surface-1` and measures **1.96:1** — too faint to restore the
+> silhouette it was written to restore.
 
 **Smoky grey dark mode, 2026-09-11 (founder call, same day).** Justin, on seeing the warm
 light ramp: "what if instead of, like, full dark mode, like, black, what if we go, like,
@@ -155,43 +203,193 @@ token values, and was proven to go red against the shipped hexes before being tr
 
 *(`--color-focus-ring` is referenced by the web component lock but absent from `index.css` tokens (Jules Button note). The registry names it as a **semantic** token — `focus-ring`, not "gold outline" — so each platform expresses focus appropriately. M1 must add it with an AA-visible value in both themes. **Non-color requirement (Justin, 2026-07-19):** focus/selection must be conveyed by a **visible outline plus platform-native focus/selection behavior**, never by the brass color alone — so it works for low-vision users. See §4.)*
 
-**Semantic color meaning (stable across MVP, Justin 2026-07-19):** brass (`accent`) = attention/CTA; verdigris (`omen`) = ready / healthy / active signal; crimson (`risk-high`) = risk / recovery. These meanings stay fixed; team skins are a **future customization layer, not a foundation**, and may never repurpose these three roles.
+**Semantic color meaning — amended 2026-09-13 (D2, D7).** Under brass-led, the app carries
+**two** brand hues, not three:
 
-### 2.3 Data-semantic invariant tokens (never theme-overridden)
+- **brass (`accent`) = attention, action and outcome.** A CTA, a claim, a net gain. **Never danger** —
+  that separation is the only thing that keeps a single accent legible.
+- **crimson (`risk-high` / `risk-medium`) = risk.** A fill, never ink. Never chrome.
+
+**verdigris (`omen`) is withdrawn from the app** and keeps its meaning only in
+`Brand/brand-system.md` for marketing. The original of this paragraph read *"verdigris (`omen`) =
+ready / healthy / active signal"* and assigned it a live role; D7 removed it. Ready / healthy /
+active is now carried by the `Live` mark in §2.3 — an `accent` dot in a halo beside a
+`text-primary` label.
+
+These meanings stay fixed; team skins are a **future customization layer, not a foundation**, and
+may never repurpose them.
+
+### 2.3 Data-semantic tokens — provider identity by colour, risk by block, all else by form
+
+**Amended 2026-09-13 (D7, as revised by the founder the same day).** The families below used to be
+six rows of hues. D7 removed them from the app in favour of form. The founder then restored risk
+colour specifically — *"I want the risk colours but they gotta be tasteful"* — so risk is the one
+family that keeps a hue, under the constraints below.
+
+**Retained by colour.**
 
 | Family | Tokens | Note |
 |---|---|---|
-| Risk | `risk-low #34C759`, `risk-medium #FF9F0A`, `risk-high #7E1717` (light: `#13702F / #8F4A09 / #7E1717`) | always paired with a text label; light low/medium darkened 2026-09-11 for AA at chip type — see §2.2 note |
-| Data source | `data-live #34C759`, `data-stub #FF9F0A`, `data-mock #636366`, `data-unavailable #3A3A3C` | drives Live/Stub/Mock/Unavailable labels |
-| Confidence gradient | `confidence-floor #701020` → `confidence-ceiling #206F3A` | score always printed as redundant text |
-| Position chips | `pos-rb/#34D399 wr/#60A5FA qb/#FB923C te/#C084FC def/#F472B6 k/#A3A3A3` | colorblind-validated |
-| Platform brand | `platform-sleeper #1FA3E8`, `platform-yahoo #410093`, `platform-espn #C81E2C`; chip legibility overrides `platform-sleeper-chip #0F70B0`, `platform-yahoo-chip #410093`, `platform-espn-chip #B21826`; `on-platform-sleeper/yahoo/espn #FFFFFF` | never on button chrome; lives on PlatformBadge; chip fills tuned for WCAG AA (>=4.5:1) against white |
-| Demo accent | `demo-text #7DD3FC`, `demo-text-secondary rgba(186,230,253,.8)` | demo fixtures only; mock/live badge required |
+| Platform brand | `platform-sleeper #1FA3E8`, `platform-yahoo #410093`, `platform-espn #C81E2C`; chip legibility overrides `platform-sleeper-chip #0F70B0`, `platform-yahoo-chip #410093`, `platform-espn-chip #B21826`; `on-platform-sleeper/yahoo/espn #FFFFFF` | never on button chrome; lives on PlatformBadge; chip fills tuned for WCAG AA (>=4.5:1) against white. **Every chip carries `fill-ring`** — see §2.2. |
+| Risk | `risk-high #7E1717`, `risk-medium #4A1818` | **fills, never ink.** See the risk table below. `risk-low` has no token: absence is the state. |
 
-**Rule:** team theming, moment overlays, and theme packs run in surfaces, accents, chip fills, and chant frames — never in this data-semantic layer.
+**Leaving the app token set** — `omen`, `omen-chip`, `data-live/stub/mock/unavailable`,
+`confidence-floor/ceiling`, `pos-*`, `demo-text`, `demo-text-secondary`. They remain in
+`Brand/brand-system.md` for marketing.
+
+**"Leaving", not "removed" — the distinction is load-bearing.** This table states the target
+state of the token set. It is **not** authority to delete these values from `OmenColor.kt` or
+`OmenColor.swift` today. `data-stub` and `data-mock` are held by the ship-order gate at the foot of
+this section and come out only in a commit that also lands their replacement carriers. The rest
+come out under `U2`. A spec row is not a delete order.
+
+**Risk — one hue, two weights, plus absence.**
+
+| Tier | Carrier | Treatment | Measured |
+|---|---|---|---|
+| **low** | type | `text-tertiary`, uppercase label, no container, no colour | — |
+| **medium** | muted fill | `risk-medium #4A1818` fill, `text-primary` ink, `fill-ring`, no glyph | ink **12.90:1** |
+| **high** | fill + glyph + wording | `risk-high #7E1717` fill, `text-primary` ink, `fill-ring`, leading `▲`, and the label **names the risk** ("Hamstring — game-time call"), never the word "high" alone | ink **9.15:1**, ring **3.89:1** vs `bg` |
+
+> **Why the block is the colour.** Crimson cannot carry a marker drawn *on* a surface. `#7E1717`
+> measures **1.02:1** against `surface-3` — literally the same value — and every lightness that
+> clears the 3:1 non-text floor there has stopped being crimson (`#DA6250` reaches only 2.94:1 and
+> is already coral). This is the registry's own standing rule from §2.2: **crimson and verdigris are
+> fills, not ink.** Reversed out, crimson is among the strongest elements available.
+>
+> **Why there is no amber.** A muted amber for the medium tier measures 4.92:1 on `surface-1`
+> against brass's 5.20:1 — near-identical. §4.1 of the visual lock fixes brass as *action and
+> outcome, never danger*, and that separation is the only thing making a single accent legible. An
+> amber danger chip beside a brass CTA dissolves it. The medium tier takes the quieter crimson
+> instead, and the step from muted block to solid block reads as severity more clearly than three
+> tints would.
+>
+> **Tasteful is a frequency claim as much as a chroma one.** One hue, two weights, appearing only
+> where a glance must land. Three tiers of tint is the pastel set the accessibility audit already
+> flagged as appearing in no design document.
+
+**All other states carry form, not hue.**
+
+| State | Carrier | Treatment |
+|---|---|---|
+| Live | mark | `accent` dot in a `rgba(196,147,59,.2)` halo, beside a `text-primary` label |
+| Position | type | uppercase `text-tertiary` label beside the player name |
+| Confidence | band | `Confident / Leaning / Coin flip`, a 14×2px `accent` rule preceding the word. **No numeral, no bar, no gradient** |
+| Data source · live | fill | solid `surface-3`, `text-primary` |
+| Data source · stub / mock / sample | outline + hatch | dashed `border` plus a 45° `rgba(245,240,232,.06)` hatch |
+| Data source · unavailable | strike | `text-tertiary`, struck through, hairline outline |
+| Evidence · not read | dashed underline | `text-tertiary`, dashed underline, 3px offset — *no source exists* |
+| Provenance · self-reported | dotted underline | `text-secondary`, **dotted** underline, 3px offset — *a source exists and it is the user* |
+
+> **Not-read and self-reported must not share a carrier.** The first says Omen has no data; the
+> second says Omen has data it cannot verify. Those are opposite claims, and the published canvas
+> draws both as a dashed underline. Dashed stays with the data-source family (provisional data);
+> self-reported provenance moves to **dotted**. The Ledger rule that self-reported rows are never
+> blended with verified ones cannot hold if the two look the same.
+
+> **Ship order is not optional.** The data-source treatments are safety-bearing: `AGENT.md` requires
+> mock data to be clearly labelled and never presented as live advice, and colour was doing that
+> job. **`data-stub` and `data-mock` may not be deleted from `OmenColor.kt` or `OmenColor.swift` in
+> any commit that does not also land the hatch and dashed treatments as locked components.** A
+> commit that removes the colour first leaves mock data visually identical to live data — a P0, not
+> a cosmetic regression.
+
+**Rule:** team theming, moment overlays and theme packs run in surfaces, accents, chip fills and
+chant frames. They may not touch provider identity or risk at all, and may not weaken any carrier in
+the tables above.
 
 ### 2.4 Typography tokens
 
-Live font stack (source of truth `index.css`): **Alegreya Sans** (headings, UI, buttons, labels), **Alegreya** (body/long reading), **DM Mono** (numeric/score/table). Cormorant Garamond is retired; the Cinzel/Inter names in `component-lock-v1.md` §5 are superseded by the live Alegreya stack (PageHero build confirmed this). M1 uses the live stack.
+> **Wix Madefor, founder decision 2026-09-12 (D3), reaffirmed 2026-09-13.** One superfamily, two
+> optical cuts: **Wix Madefor Display** (400/500/600/700/800) for headings, scores and tab labels;
+> **Wix Madefor Text** (400/500/600/700) for body, reasoning, labels and metadata. SIL Open Font
+> License 1.1, committed with `OFL.txt` intact under `core/designsystem/src/main/res/font/` and
+> `mobile/ios/OmenIOS/OmenIOS/Fonts`.
+>
+> This supersedes the Alegreya Sans / Alegreya / DM Mono split of 2026-07-19 **and** the
+> single-family Alegreya Sans decision of 2026-09-07. Two cuts of one superfamily under one licence
+> is not a return to the three-family split, and must not be read as permission to reintroduce one.
+>
+> **Alegreya Sans is out.** Three weights currently ship as real `.ttf` on both platforms
+> (`mobile/ios/OmenIOS/OmenIOS/Fonts/`, `mobile/android/core/designsystem/src/main/res/font/`).
+> They are replaced, not kept as a fallback — a fallback family is a third family by another name.
 
 | Role | Font | Size / Line | Weight | Use |
 |---|---|---|---|---|
-| `display` | Alegreya Sans | 48/56 | 700 | Marketing hero only, one per screen |
-| `h1` | Alegreya Sans | 32/40 | 700 | Product screen hero title |
-| `h2` | Alegreya Sans | 20/28 | 600 | Card titles |
-| `h3` | Alegreya Sans | 16/24 | 600 | Sub-section headers |
-| `body` | Alegreya | 15/24 | 400 | Body copy |
-| `body-sm` | Alegreya | 13/20 | 400 | Meta / secondary |
-| `label` | Alegreya Sans | 12/16 | 500 (+0.05em) | Form labels |
-| `eyebrow` | DM Mono | 12/16 | 500 (+0.12em, upper) | Eyebrow above hero |
-| `chip` | DM Mono | 11/14 | 500 (+0.10em, upper) | Chip/badge text |
-| `numeric` | DM Mono | contextual | 500 | Scores, cell values |
+| `display` | Wix Madefor **Display** | 48/56 | 800 | Marketing hero only, one per screen |
+| `h1` | Wix Madefor **Display** | 32/40 | 800 | Product screen hero title |
+| `h2` | Wix Madefor **Display** | 20/28 | 700 | Card titles |
+| `h3` | Wix Madefor **Display** | 16/24 | 600 | Sub-section headers |
+| `body` | Wix Madefor **Text** | 15/24 | 400 | Body copy |
+| `body-sm` | Wix Madefor **Text** | 13/20 | 400 | Meta / secondary |
+| `label` | Wix Madefor **Text** | 12/16 | 500 (+0.05em) | Form labels |
+| `eyebrow` | Wix Madefor **Text** | 12/16 | 700 (+0.16em, upper) | Eyebrow above hero |
+| `chip` | Wix Madefor **Text** | 11/14 | 700 (+0.12em, upper) | Chip/badge text |
+| `numeric` | Wix Madefor **Display** | contextual | 800, `tnum` | Scores, cell values |
 
-**Role split (locked, Justin 2026-07-19):** Alegreya Sans = UI, headings, controls; Alegreya = longer reading copy; DM Mono = scores, numeric data, code-like values. On native, **preserve this hierarchy even when platform font-fallback is needed for accessibility** (e.g., Dynamic Type / large-text substitution) — the role relationship must survive substitution. All type roles must scale with Dynamic Type (iOS) / font scale (Android); no fixed-pt text that ignores the accessibility scale. Cinzel/Inter must not be revived.
+**Role split (Amendment 01):** Display = headings, scores, tab labels, the Omen call. Text = body,
+reasoning, labels, metadata. Preserve the hierarchy through platform font-fallback; all roles scale
+with Dynamic Type and Android font scale.
+
+**Wix Madefor has a real 600.** The SemiBold-declared-against-Bold workaround in
+`OmenTypography.kt` and `OmenTypography.swift`, written because Alegreya Sans ships no 600, is
+**deleted rather than ported**. Verify against a rendered screen that 600 resolves as 600 before
+assuming parity with the approved artboards.
+
+**iOS: PostScript names differ from file names.** Verify with a build, not by inspection. This is
+the failure that went unnoticed for the whole life of the three-family seam.
+
+`numeric` keeps tabular alignment via `tnum` / `.monospacedDigit()`, which works on any font — **do
+not reintroduce a mono family to fix column alignment.** Cormorant Garamond, Cinzel, Inter and
+DM Mono remain retired.
+
+> **⚠️ FLAGGED MISFIT — the approved canvas runs a denser scale than this table, 2026-09-13.**
+> Amendment 01 specified the role table above and it is applied here as written. It does not
+> reconcile with `design/native-visual-lock-2026-09-13/`, which the canvas README fixes as its own
+> scale and instructs readers to "treat a size not on this list as a defect." Two fixed scales for
+> one app is two sources of truth, and this one is the token contract.
+>
+> The canvas needs **four roles this table does not name** — scoreboard leading (27), scoreboard
+> trailing (22), the Omen call (24), screen title (21) — and runs **two sizes below the smallest
+> role here**: reasoning copy at 12.3 and uppercase labels at 9.5, against `chip` at 11. The
+> published artboards also carry 8–8.5px caps, which no role in this registry sanctions and which
+> the accessibility review flagged independently.
+>
+> This is not improvised into the table. **It is a contract change that needs its own decision**,
+> and it is the same trade as §2.5 below: the density is what buys the D11 no-scroll constraint on
+> Command Center and Omen, so snapping the canvas up to these roles will cost the fold. Resolve
+> before U2 or U3 — not during. Tracked as `C7-TypeScaleReconciliation`.
 
 ### 2.5 Spacing scale
 
-`4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96`. No ad-hoc values. Rhythm: card interior 24; header→body 16; body→footer 24; section stack 48; hero→first section 32; field→field 16; label→input 8; input→hint 4. iOS expresses as spacing constants; Android as `dp` spacing tokens.
+**Replaced 2026-09-13 (founder).** The previous scale was `4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96`
+with "no ad-hoc values."
+
+**New scale — base-2 modular:**
+
+```
+2 · 4 · 6 · 8 · 10 · 12 · 14 · 16 · 20 · 24 · 32 · 40 · 48 · 64 · 96
+```
+
+Every value is `2 × n`. It doubles cleanly along `2 → 4 → 8 → 16 → 32 → 64`, and every value at or
+above 16 stays on the old 4/8 grid, so nothing already built to the previous scale moves.
+
+**Why it changed.** The old scale's steps below 16 were 4, 8, 12 — too coarse for a 390pt phone on
+which two screens must render with nothing below the fold. The density that buys the D11 no-scroll
+constraint lives in the 6–14 range, and a scale that skips 6, 10 and 14 forces every card to round
+up and costs the fold. The approved canvas runs on 7, 9, 10, 11, 13 and 14; under the old scale
+**every screen built from it was a spec violation by default**, which is a sign the scale was wrong,
+not that the screens were.
+
+Snapping the canvas to this scale moves 7→8, 9→10, 11→12 and 13→14 — one pixel each, imperceptible,
+and it makes every value checkable.
+
+Rhythm (unchanged in intent, re-expressed on the new steps): card interior 24; header→body 16;
+body→footer 24; section stack 48; hero→first section 32; field→field 16; label→input 8; input→hint
+4; chip interior 6/10; inline gap 10.
+
+iOS expresses these as spacing constants; Android as `dp` spacing tokens. **No ad-hoc values** — the
+rule survives the rescale; only the vocabulary widened.
 
 ### 2.6 Cross-platform token expression rule
 
@@ -202,6 +400,21 @@ Every token above exists as: (a) this Markdown row, (b) a SwiftUI definition (e.
 ## 3. Component registry
 
 Two levels: **Foundation** (generic primitives) and **Omen composition** (product components). Each row names variants, required states, key token aliases, and the native control each platform maps to. Per-component anatomy/APIs are M1 build briefs.
+
+> **⚠️ Token columns below predate Amendment 01 and are not yet reconciled, 2026-09-13.** Several
+> rows name tokens §2.3 withdrew: the `omen` tone on **Button**, **Card / Surface** and **Chip**;
+> `data-*` and `pos-*` on **Badge** and **Chip**; and the confidence "value tokens" on **Meter**,
+> which §2.3 replaces with a band and no gradient.
+>
+> **These rows are deliberately not edited here.** Component APIs are owned by
+> `Blueprints/specs/design/component-lock-v1.md`, and Amendment 01 lists that file as carrying its
+> own obligation; rewriting the columns in this registry first would put two half-reconciled
+> component contracts in the repo at once. Sequenced as **C2 → U2** in
+> `omen-native-contract-work-v1.md`.
+>
+> `risk-high` and `risk-medium` references stay valid — risk kept its hue (§2.3). `data-stub` and
+> `data-mock` references also stay valid **and stay in the code**, because the §2.3 ship-order gate
+> forbids deleting them before the hatch and dashed treatments land as locked components.
 
 ### 3.1 Foundation components
 
@@ -228,7 +441,16 @@ Two levels: **Foundation** (generic primitives) and **Omen composition** (produc
 | **Stepper** | numeric | value, min, max, disabled | `surface-1`, `accent` | `Stepper` | custom stepper |
 | **State surfaces** | Empty, Loading, Error, Disconnected, Stale, Mock | the state itself | `border` (dashed empty), `risk-high` (error), `data-mock`/`data-stub` (mock/stale) | composed views + `ProgressView` | composed + `CircularProgressIndicator` |
 
-**Chip tones, and why `omen` exists (added 2026-09-04).** The tone set was position
+**Chip tones, and why `omen` exists (added 2026-09-04) — SUPERSEDED 2026-09-13 (D7).**
+
+> The `omen` chip tone drew on verdigris, which D7 withdrew from the app. The **problem** this note
+> describes is still real and still unsolved: Omen's own controls — **All**, **+ Add League**, the
+> **Waiver / Ledger / Pulse** tabs — are neither a position nor a provider, and borrowing a platform
+> tone for them reads as a fourth provider. Under brass-led the answer is **brass**, which is what
+> the switcher contract's Verdigris `Add league` control also becomes (see the contract audit).
+> Read the reasoning below; do not read the token.
+
+The tone set was position
 (`rb`/`wr`/`qb`/`te`/`def`/`k`), platform (`sleeper`/`yahoo`/`espn`) and `demo` — every one of
 them *means* something about the thing it labels. Omen's own controls had no tone: **All**,
 **+ Add League**, and the **Waiver / Ledger / Pulse** tabs are not a position and not a
@@ -366,9 +588,20 @@ Top-level: **Command Center, Omen, Trade, League**. Draft is a strong **seasonal
 
 ---
 
-## Amendment — 2026-08-31: DM Mono is retired, app-wide
+## Amendment — 2026-08-31: DM Mono is retired, app-wide — **SUPERSEDED 2026-09-13**
 
-**Founder decision.** The locked family list is now **Alegreya Sans** (UI, headings, controls,
+> **⚠️ SUPERSEDED by Registry Amendment 01 (D3, Wix Madefor).** This block is retained as
+> provenance, not as instruction. It names **Alegreya Sans + Alegreya** as the locked families;
+> both are retired. The live type decision is §2.4 above — **Wix Madefor Display + Text**. Read this
+> block only for the reasoning on why tracking and case, not a third typeface, separate the
+> `eyebrow` / `chip` / `numeric` roles — that reasoning still holds and carries forward.
+>
+> Between 2026-08-31 and 2026-09-13 this file carried **three** live type decisions at once: the
+> §2.4 three-family table, this two-family amendment, and the one-family decision of 2026-09-07 that
+> reached the code but never reached this document. A reader who stopped at the first table got the
+> wrong answer for six weeks.
+
+**Founder decision (2026-08-31, superseded).** The locked family list is now **Alegreya Sans** (UI, headings, controls,
 labels, chips, eyebrows, numerics) and **Alegreya** (longer reading copy). **DM Mono is removed from
 the app entirely** — every page, every section, every surface, both platforms and web. This
 supersedes the 2026-07-19 three-family role split in §2.4, the `eyebrow` / `chip` / `numeric` rows,
@@ -392,3 +625,55 @@ Native was the surface carrying the third family.
 as `W2-Typography` in Wave 2 (the design-system and accessibility wave), not applied ad hoc.
 
 **Still locked:** Cormorant Garamond, Cinzel, and Inter must not be revived.
+
+
+---
+
+## Amendment 01 — 2026-09-13: dark-only, brass-led, Wix Madefor, risk restored
+
+**Applied from** `Blueprints/specs/mobile/omen-registry-amendment-01.md`, which carries the full
+drafting rationale. **Authority:** founder decisions D1–D8 of 2026-09-12
+(`omen-native-visual-lock-v1.md`), plus four founder calls of 2026-09-13 recorded below.
+
+**Sections changed:** §2.1, §2.2, §2.3, §2.4, §2.5.
+
+### What the amendment specified, applied as written
+
+| # | Change | Section |
+|---|---|---|
+| D1 | Dark-only. Light column withdrawn, values retained for future packs. | §2.2 |
+| D3 | Wix Madefor Display + Text replaces Alegreya Sans. | §2.4 |
+| D6 | Smoky grey `#1F1F1D` confirmed — no change, already shipped. | §2.2 |
+| D7 | Data-semantic row split; carrier may be form rather than hue. | §2.1, §2.3 |
+| D8 | Provider colours are the sole colour exception. | §2.1, §2.3 |
+| — | Provider chip ring at `.38`, asserted by ratio not alpha. | §2.2 |
+
+### Four founder calls of 2026-09-13 that changed the amendment
+
+1. **Risk colour is restored** — *"I want the risk colours but they gotta be tasteful."* Amendment 01
+   as drafted deleted `risk-low/medium/high` outright. Risk is now the one data-semantic family that
+   keeps a hue: **one hue, two weights, plus absence.** Crimson is a fill and never ink, because
+   `#7E1717` measures 1.02:1 on `surface-3` and every lightness that clears 3:1 there has stopped
+   being crimson. **No amber**, because muted amber lands within 0.3 of brass and brass means action,
+   never danger. See §2.3.
+2. **Platinum is ratified** as a named exception beside provider identity, **both platforms**, scoped
+   to favourite and selection marks. Amendment 01 left this open. See §2.1.
+3. **Wix Madefor is confirmed** as an amendment to the one-family decision of 2026-09-07. Alegreya
+   Sans is replaced, not kept as a fallback.
+4. **The spacing scale is replaced** with a base-2 modular scale. Not in Amendment 01's scope; added
+   because applying the amendment to the approved canvas made every screen a §2.5 violation. See §2.5.
+
+### Flagged rather than improvised
+
+- **`C7-TypeScaleReconciliation`** — the approved canvas runs four roles §2.4 does not name and two
+  sizes below its smallest role. Amendment 01's role table is applied as written; the conflict is
+  recorded in §2.4 and must be decided before U2 or U3.
+- **Not-read vs self-reported** shared a dashed underline in the published canvas. Split in §2.3:
+  dashed stays with provisional data, self-reported provenance moves to dotted. Two opposite claims
+  cannot share a carrier.
+
+### Obligations this amendment creates in code — none applied here
+
+This is a spec change. `OmenColor.kt`, `OmenColor.swift`, `OmenTypography.*`, `OmenColorTest`,
+`OmenColorContrastTest` and `component-lock-v1.md` all carry obligations from it and are sequenced as
+`C2 → U2` in `omen-native-contract-work-v1.md`. **The §2.3 ship-order gate governs all of them.**
