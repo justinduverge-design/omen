@@ -4,6 +4,13 @@ key=/home/darthslops/.ssh/slops-alerting_ed25519
 state=/var/lib/slops-alerting/last-signature
 football_state=/var/lib/slops-alerting/football-last-signature
 a4_state=/var/lib/slops-alerting/a4-gates-last-signature
+# Day-stamp of the last delivered notification. Edge-triggered alerting is the
+# right default for noise, but it made a CRITICAL condition invisible: the
+# football signature latched on 2026-08-27 when capture began failing and stayed
+# silent for 17 days, because an unchanged signature never re-sends. A once-daily
+# re-send of whatever is still active bounds that blind spot to 24h without
+# reintroducing per-run spam.
+reminder_state=/var/lib/slops-alerting/last-reminder-day
 webhook=/etc/slops-alerting/discord-webhook-url
 # Build the payload with a real JSON encoder rather than string interpolation.
 # The old form could only ever deliver a SINGLE-LINE alert: a multi-signal
@@ -40,6 +47,21 @@ try:
  for row in sorted(rows,key=lambda r:r["code"]): print("Omen football: %s severity=%s"%(row["code"],row.get("severity","high")))
 except Exception:
  print("Omen football: witness_outage severity=high")' /var/lib/omen-football-witness/signals.json)"
+# A production status payload that stops ADVANCING is invisible to every check
+# above. The fetch keeps succeeding, so the file mtime refreshes every run while
+# generated_at_utc inside it stays frozen - which is exactly how the Aug 27
+# capture failure hid for 17 days. Age the payload contents explicitly. 30h
+# tolerates the daily 09:15 capture slipping or a single missed run.
+stale="$(python3 -c 'import json,sys,datetime
+try:
+ d=json.load(open(sys.argv[1],encoding="utf-8"))
+ t=datetime.datetime.fromisoformat(d["generated_at_utc"].replace("Z","+00:00"))
+ hours=(datetime.datetime.now(datetime.timezone.utc)-t).total_seconds()/3600
+ if hours>30: print("Omen football status payload is STALE: %d hours old (generated %s)"%(hours,d["generated_at_utc"]))
+except FileNotFoundError:
+ pass
+except Exception:
+ print("Omen football status payload is unreadable or malformed")' /var/lib/omen-football-witness/remote/kvm1-status.json)"
 football_old="$(cat "$football_state" 2>/dev/null || true)"
 if [ "$football" != "$football_old" ]; then
   if [ -n "$football" ]; then
@@ -78,9 +100,22 @@ $a4"
   fi
   printf '%s\n' "$a4" > "$a4_state"
 fi
-sig="$(printf '%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" | sed '/^$/d' | sort)"
+sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" | sed '/^$/d' | sort)"
 old="$(cat "$state" 2>/dev/null || true)"
-[ "$sig" = "$old" ] && exit 0
+today="$(date -u +%Y-%m-%d)"
+# Unchanged signature: stay quiet, EXCEPT once per day while anything is still
+# active. The reminder deliberately spans the football and A4 signatures too -
+# those latch in their own state files and were the ones that went silent, so a
+# reminder that only covered "$sig" would have missed the 17-day outage entirely.
+if [ "$sig" = "$old" ]; then
+  active="$(printf '%s\n%s' "$sig" "$football" | sed '/^$/d')"
+  [ -z "$active" ] && exit 0
+  [ "$today" = "$(cat "$reminder_state" 2>/dev/null || true)" ] && exit 0
+  send "SLOPS REMINDER: these conditions are still active
+$active"
+  printf '%s\n' "$today" > "$reminder_state"
+  exit 0
+fi
 # Deliver BEFORE persisting. The old order recorded the new signature first, so
 # a failed send was never retried - the state said "already reported" for an
 # alert that never left the machine. Under set -e a failed send exits non-zero
@@ -88,3 +123,5 @@ old="$(cat "$state" 2>/dev/null || true)"
 if [ -n "$sig" ]; then send "SLOPS ALERT: CRITICAL state change
 $sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
 printf '%s\n' "$sig" > "$state"
+# A real alert counts as today's notification: no reminder on top of it.
+printf '%s\n' "$today" > "$reminder_state"
