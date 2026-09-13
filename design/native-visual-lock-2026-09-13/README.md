@@ -73,11 +73,49 @@ The provider chip ring is `rgba(245,240,232,.38)` — see Amendment 01 §2.2 for
 Weight and letterspacing carry emphasis, not size. This scale drifted twice before it was written
 down; treat a size not on this list as a defect.
 
-## Known gaps, carried from the accessibility audit
+## Conformance pass — 2026-09-13, after Registry Amendment 01
 
-- Unstarred favourite `#4A4A4E` measures 1.63:1 on `surface-1` — invisible. `#7A766E` or the
-  `border` token fixes it. Not applied here because it is a switcher-contract change.
-- The switcher `+` and chevron are under the 44pt touch floor. Pad the hit area, not the glyph.
-- Scoreboard numerals are what breaks first at 200% Dynamic Type. Behaviour undefined.
-- The quiet-week **straight** variant — after a loss, an injury, a breakage — is not drawn. Only the
-  neutral one is. That is the voice fence and it is the half that matters.
+Applied across all eight artboards. Verified by rendering: **Command Center, Omen and the quiet week
+all still report 0px overflow** in an 844px frame, so D11 survives the pass.
+
+| Fixed | Was | Now |
+|---|---|---|
+| Provider marks had no silhouette | raw hex + `rgba(...,.24)` inset — Yahoo 1.13:1, ESPN ~1.26:1 on `surface-1` | `--ring rgba(245,240,232,.38)`, the registry `fill-ring` token |
+| Unstarred favourite invisible | `#4A4A4E`, **1.63:1** on `surface-1` | `#8A8272`, the `border` token, 3.78:1 |
+| Self-reported shared a carrier with not-read | both dashed underline | self-reported is **dotted**; dashed stays with provisional data |
+| Type below any sanctioned floor | 8px and 8.5px uppercase labels | 10px |
+| Focus had no specification | absent | `.focus, :focus-visible` rule present in every file |
+
+**Why the ring is `.38` and not `.24`.** `.22` was tried first and composites to `#575651` over
+`surface-1` — **1.96:1**, too faint to restore the silhouette it existed to restore. `.38`
+composites to `#777570` at **3.13:1**, clearing WCAG 1.4.11's non-text floor. The artboards had
+shipped `.24`, which is the same mistake one point along.
+
+**Why not-read and self-reported had to split.** *Not read* says Omen has no source. *Self-reported*
+says a source exists and it is the user. Those are opposite claims, and the Ledger rule that
+self-reported rows are never blended with verified ones cannot hold while they look identical.
+
+**Focus is specified, not drawn.** Artboards show resting state, so no element carries `.focus`. The
+rule is in every file for the build to read, and registry §4 requires a visible outline **plus**
+platform-native focus behaviour — never the brass colour alone. Verify on device.
+
+## Known gaps — still open
+
+Tracked as `V-CanvasConformance` and `C7-TypeScaleReconciliation` in `Direction/current_sprint.md`.
+
+- **Spacing is not yet on the amended scale.** Registry §2.5 is now
+  `2·4·6·8·10·12·14·16·20·24·32·40·48·64·96`; these files still run 7, 9, 11 and 13. Snapping is one
+  pixel per value, but it moves vertical rhythm on three screens that must not scroll, so it is done
+  with a render check rather than a find-and-replace.
+- **The type scale conflicts with registry §2.4.** This canvas needs four roles the registry does
+  not name — 27, 22, 24, 21 — and runs reasoning copy at 12.3 and labels at 9.5 against `chip` at
+  11. **Two fixed scales for one app is two sources of truth.** Founder call, blocking `U2`/`U3`.
+- **The switcher `+`, the chevron and the favourite star are under the 44pt touch floor.** Not fixed
+  here on purpose: padding the hit area without moving the glyph is a build-brief concern, and
+  growing the geometry in the artboard would make the artboard wrong. Registry §4 governs it.
+- **Scoreboard numerals are what breaks first at 200% Dynamic Type.** Behaviour undefined.
+- **The quiet-week straight variant** — after a loss, an injury, a breakage — is still not drawn.
+  Only the neutral one is. That is the voice fence and it is the half that matters. Now tracked as
+  its own item, `V-QuietWeekStraight`, because the switching predicate is server-side and the copy
+  cannot be invented at build time.
+
