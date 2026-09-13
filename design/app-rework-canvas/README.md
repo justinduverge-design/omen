@@ -1,5 +1,21 @@
 # Omen app rework — canvas source
 
+> ## ⚠️ Partially superseded — 2026-09-13
+>
+> **`design/native-visual-lock-2026-09-13/` is the artifact of record for eight screens:** Command
+> Center, the quiet week, Omen, League, Trade, the Ledger, the switcher sheet and Account. Where
+> that folder and this one disagree on any of those, **that folder wins.**
+>
+> Everything here predates founder decisions D1–D8 of 2026-09-12 and the four calls of 2026-09-13.
+> Concretely, these artboards are **Raven Black `#0A0A0B`** on the pre-smoke ground, the **Alegreya**
+> stack rather than Wix Madefor, and pastel provider pills. They were last touched 2026-09-05, six
+> days before the smoky-grey call.
+>
+> **This folder is not deleted, because it still holds four screens the new canvas does not:**
+> sign-in, email code, connect-your-league, and the share card. For those four it remains the
+> artifact of record — but read them for **layout and flow**, not for colour or type.
+
+
 **These files are the screen artifact of record** for the native rework, per
 `Direction/facts-of-record.md` #20 (an approved Claude Design canvas is a valid screen artifact
 alongside Figma; Figma stays authoritative for vector assets).
