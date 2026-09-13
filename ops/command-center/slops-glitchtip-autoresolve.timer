@@ -1,0 +1,13 @@
+[Unit]
+Description=Sweep stale GlitchTip issues once a day
+
+[Timer]
+# Daily is deliberate. The sweep only clears a graveyard; running it more often
+# buys nothing, and a slower cadence keeps a just-resolved issue visible long
+# enough for a human to notice it went quiet.
+OnBootSec=15min
+OnUnitActiveSec=24h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

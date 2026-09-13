@@ -1,0 +1,7 @@
+[Unit]
+Description=Auto-resolve GlitchTip issues that have stopped happening
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/slops-glitchtip-autoresolve
