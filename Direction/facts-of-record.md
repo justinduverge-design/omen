@@ -48,6 +48,26 @@
 14. **Rollback capability and periodic rollback proof are mandatory operating practice, not optional founder-approval items** (decided 2026-08-22). Founder-only production access identifies the executor and the need for a controlled window; it does not make the drill discretionary. Authorization is not evidence: a rollback item closes only after the documented path is actually exercised against a non-critical deployment, health and recovery time are recorded, and the current version is restored.
 
 16. **The app-wide page workshop is the product direction of record for native screens** (decided 2026-08-31). `Blueprints/specs/mobile/omen-app-pages-workshop-v1.md` supersedes prior screen-level assumptions wherever they conflict. Its load-bearing corrections: Command Center is a **Small Council** (Omen's advisors giving short reads, one voice, seats labelled by subject); **Omen returns one call per week whose type is not fixed** — start/sit, pickup, drop, or trade; **Waiver is its own section inside the League destination**, not inside Omen and not a fifth tab; confidence is expressed as a **band, never a percentage**; and Omen **issues no trade call at all** where a provider will not give it the other teams' rosters. Wave 1 is contracted in `omen-wave1-contract-v1.md`.
+    - **Amended 2026-09-13 (founder) — the League section order changes.** The workshop locks League
+      as *Matchup → Standings → Waiver → Activity*. It is now **Your week (strip) → The Table →
+      Trade targets → Waiver → Activity**. The founder's framing is a **scout's nest**: "keeping
+      your eye on the league and other players." The locked order made League a readout of the
+      user's own week, which Command Center already owns, so the destination opened by repeating its
+      neighbour. Inverting the subject to *watching other managers* gives **terrain → opportunity →
+      movement**. Terrain stays above opportunity because the table is what makes a trade target
+      legible; Activity stays last because it is partial on ESPN and Yahoo, and a degraded section
+      high on a screen teaches people the screen is unreliable. Every other clause of #16 is
+      unchanged — Small Council, one call per week, Waiver inside League, confidence as a band, and
+      no trade call without rosters. Reasoning in `Direction/decision_log.md`, 2026-09-13.
+
+    - **Amended 2026-09-13 (founder) — the native visual direction is locked.** Dark-only
+      (`bg #1F1F1D`), brass-led (`accent #C4933B` the sole brand-expression accent in chrome),
+      provider hexes the sole colour exception, **Wix Madefor Display + Text** replacing Alegreya
+      Sans, Platinum a named exception on favourite and selection marks, and **risk keeps one hue in
+      two weights** while every other data-semantic state carries form rather than colour. Screen
+      artifact of record: `design/native-visual-lock-2026-09-13/`. Registry: Amendment 01, applied.
+      **The ship-order gate is part of this fact:** `data-stub` and `data-mock` may not be deleted
+      from either token file in any commit that does not also land the hatch and dashed treatments.
 
 17. **Telemetry posture: nothing about users leaves our infrastructure** (decided 2026-08-31). Product analytics are **built in-house** — events counted into Supabase, read by the Founder Digest. **No third-party analytics SDK** (PostHog, Amplitude, or otherwise) may be introduced without an explicit reversal of this decision; the founder chose privacy over a clickable dashboard knowingly, and "a dashboard would be handy" is not a reversal. Beta reports are summarized by the **local Ollama** path only. `AI_PROVIDER=cloud` stays fail-closed at `cloud_disabled_zero_budget` and the public-host guard in `src/services/llm.js` stays; relaxing either is a founder budget decision **and** an egress decision about other people's words, never a config change.
 

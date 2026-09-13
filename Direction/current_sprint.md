@@ -323,6 +323,199 @@ attention, not task count. Five separate items needing one deploy approval is on
 - **Done when:** both apps are installable by invited testers on their approved beta tracks and 10+ real testers in real leagues have access.
 - **Do not touch:** public store release or production tracks before Phase 6.
 
+## V. Native visual lock — contract work before build
+
+**Minted 2026-09-13** from `Blueprints/specs/mobile/omen-native-contract-work-v1.md` §1, in the
+order that document gives. Authority: founder decisions D1–D8
+(`Blueprints/specs/mobile/omen-native-visual-lock-v1.md`) plus the four founder calls of 2026-09-13
+recorded in `Direction/decision_log.md`.
+
+**Screen artifact of record:** `design/native-visual-lock-2026-09-13/` — eight artboards. It
+supersedes `design/app-rework-canvas/` for those eight screens only.
+
+**The sequence, and nothing in the U row starts before its C row merges:**
+
+```
+C1 confidence bands ──┐
+                      ├──► U1 Omen screen
+C2 registry amendment ┤
+                      ├──► U2 token + type swap ──► U3 Command / League / Trade
+C3 data-source form ──┘                                    │
+                                                           │
+C4 ledger index ───────────────────────────────────────────┴──► U4 Ledger screen
+
+C5 waiver copy contract ──► U3 (League)     C6 fill-ring ──► U2     C7 type scale ──► U2
+```
+
+**The finding that shapes this lane:** the backend is further ahead than the design was. Payloads
+for four of five destinations already exist and already encode the honesty rules. This is a small
+number of pointed contract changes plus a governance amendment — not a build-out.
+
+> ### ⛔ Standing gate for this entire lane — ship order
+>
+> **`data-stub` and `data-mock` may not be deleted from `OmenColor.kt` or `OmenColor.swift` in any
+> commit that does not also land the hatch and dashed treatments as locked components.** `AGENT.md`
+> requires mock data to be clearly labelled and never presented as live advice; colour was doing
+> that job. A commit that removes the colour first leaves mock data visually identical to live data.
+> **That is a P0, not a cosmetic regression,** and it blocks close-out for whoever lands it.
+
+### C1-ConfidenceBands — Version the decision brief to bands, delete the numeral
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — blocking for `U1`, and breaking, so it wants the longest runway.
+- **Cost:** medium
+- **Agent-buildable:** yes.
+- **Source:** `omen-app-pages-workshop-v1.md` locks confidence to **Confident / Leaning / Coin flip** and flags this itself as a breaking change to shipped surfaces, against `OmenDecisionBriefPayload.confidence` and the `/omen` endpoints.
+- **Scope:** version the payload to `omen-decision-brief.v2`; **do not mutate v1 in place** — web is live on it. Shape is `confidence: { band: "confident" | "leaning" | "coin_flip", drivers: string[] }`. The band never travels without its drivers; that pairing is the locked rule.
+- **Compute the band server-side.** A client-side threshold is a model calibration living in the UI layer, which is the exact failure the ban on percentages exists to prevent.
+- **Done when:** `omen-decision-brief.v2` ships with no numeric confidence field anywhere in the response; a contract test asserts both that absence and that `drivers` is non-empty for every band; `Blueprints/api-routes.md` carries the migration note; and a row lands in `Blueprints/handoffs/backend-to-frontend.md`.
+- **Do not touch:** do not keep the numeric field "for internal use" — a number in the payload becomes a number on a screen within two sprints. Do not break v1 while web reads it.
+
+### C2-RegistryAmendment — Apply Amendment 01 to the design-system registry
+
+- **Status:** VERIFIED
+- **Blocked by:** None
+- **Priority:** P1 — governance, no code, unblocks everything visual.
+- **Cost:** small
+- **Evidence:** commit `952eb75`, `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md` §§2.1–2.5 and the trailing `Amendment 01` record; `Direction/decision_log.md` 2026-09-13; `Direction/facts-of-record.md` #16 amended in place.
+- **What landed:** §2.1 data-semantic row split into Provider identity / Named exception / Data-semantic; §2.2 Light column withdrawn (values retained), `platinum` and `fill-ring` added; §2.3 replaced with the form table plus the restored risk hue; §2.4 Wix Madefor Display + Text; §2.5 replaced with the base-2 modular scale. The 2026-08-31 DM Mono amendment is retired as superseded.
+- **Deviations from the amendment as drafted, all founder-directed 2026-09-13:** risk colour restored rather than deleted; Platinum ratified on both platforms; spacing scale replaced (out of the amendment's scope); the provider-chip ring generalised to a `fill-ring` token covering risk blocks under one rule.
+- **Carried forward, not resolved here:** `C7`, and the §3 component token columns, which name withdrawn tokens and belong to `component-lock-v1.md` under `U2`.
+
+### C3-DataSourceForm — Lock the three data-source treatments as components
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — **safety-gated.** This is the item that releases the standing gate above.
+- **Cost:** medium
+- **Agent-buildable:** yes.
+- **Scope:** specify as components with fixed anatomy, not as descriptions, in `Blueprints/specs/design/component-lock-v1.md`: **Live** (solid `surface-3`, `text-primary`), **Sample / stub / mock** (dashed `border` + 45° `rgba(245,240,232,.06)` hatch), **Unavailable** (`text-tertiary`, struck through, hairline outline). Both platforms build the same object.
+- **Also in scope — the carrier split.** The published canvas draws *not-read* and *self-reported* identically as a dashed underline. Registry §2.3 splits them: dashed stays with provisional data, **self-reported provenance moves to dotted**. Those are opposite claims — no source exists, versus a source exists and it is the user — and the Ledger rule that self-reported rows are never blended with verified ones cannot hold if they look the same. The canvas needs the same edit.
+- **Done when:** the three treatments plus the dotted provenance carrier are in `component-lock-v1.md` with fixed anatomy; a screenshot test per platform shows a mock row and a live row side by side; and `slops-native-ui-audit` grades the pair.
+- **Do not touch:** the standing gate. Deleting the colours is part of `U2`, and only after this item merges.
+
+### C4-LedgerIndex — Verify, then specify, the Ledger list contract
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2 — blocking for `U4` only.
+- **Cost:** small
+- **Agent-buildable:** yes.
+- **Verify first.** `move-detail.v1` is the receipt for **one** call; the Ledger screen is a list. `GET /api/moves` is deployed and returns `moves-history.v1` — **check whether that already satisfies the index** before specifying anything new. The contract-work doc flags this as unverified, and the cheapest outcome is that this item closes as a documentation fix.
+- **Scope if an index is genuinely missing:** `moves-index.v1` rows of `{ id, issued_at, issued_at_timezone, move_type, headline, followed, outcome, provenance }`.
+- **`provenance: "verified" | "self_reported"` is required on every row**, never inferred, and the client must render the distinction.
+- **`followed: true | false | null`** — `null` means not safely known, matching `move-detail.v1`.
+- **Done when:** either `moves-history.v1` is shown to satisfy the index and `api-routes.md` says so, or `moves-index.v1` ships with a contract test asserting `provenance` is present and non-null on every row.
+- **Do not touch:** no aggregate hit-rate in v1. A percentage across mixed-provenance rows is a fabricated statistic, and a ledger that only shows wins is marketing.
+
+### C5-WaiverCopyContract — Pin who writes the waiver reason, and the sentence pattern
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2 — non-blocking; rides along with `U3`.
+- **Cost:** small
+- **Agent-buildable:** yes. Route `slops-ux-copy`.
+- **Source:** D5 locks the row to reason → drop → outcome in the second person. `waiver-analysis.v1` already returns the drop and its stated cost; what it does not pin is voice.
+- **Server-authored, and this is close to settled already.** `src/services/waiverAnalysis.js` already writes reasons under an evidence discipline — `evidenceFor()` emits typed, categorised statements only where data supports one, and its own comment says *"Naming the absence beats inventing a sentence."* `chooseDrop()` refuses an unprojected bench player as a low-cost drop. The published canvas, by contrast, writes the reason client-side and produces claims the server would refuse: *"Achane is out three weeks"* is a rest-of-season durability claim, and *"the schedule softens after the bye"* is a strength-of-schedule read Omen has no source for. **The canvas copy is a regression against a contract that already exists**, and that is the argument for closing the door in the contract rather than in review.
+- **The open half is voice, not location.** The server's current statements are honest but flat. Moving authorship server-side makes the voice problem a server problem, so the contract must say the server emits a **sentence**, not only a fact — otherwise invented prose is traded for correct prose nobody reads.
+- **Done when:** a copy contract names the server as author, gives the sentence pattern in the second person, names the cost of doing nothing rather than only the benefit of acting, and covers the honest-negative cases `no_credible_move` and `no_low_cost_drop` — which already exist in the contract and are the most under-used thing in it.
+- **Do not touch:** never three rows all reading "Claim." A row that says *hold off, nothing to do today* is what makes the other rows credible.
+
+### C6-FillRing — Give every sub-3:1 fill its silhouette
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2 — non-blocking, tiny, and visible.
+- **Cost:** small
+- **Agent-buildable:** yes.
+- **Source:** provider colour and risk colour are the only hues left in the app, and several of their fills are darker than the ground behind them. Yahoo `#410093` measures **1.29:1** against `bg #1F1F1D` — the fill is the same value as the ground, so only the white lettering renders. ESPN is 2.40:1, Sleeper 3.12:1, `risk-high #7E1717` is 1.59:1.
+- **Scope:** add `fill-ring` `rgba(245,240,232,.38)` to both token files; apply to all three provider chips and both risk blocks. Declared brand hexes unchanged — lifting Yahoo to reach contrast abandons the sourced purple and defeats D8.
+- **Done when:** `OmenColorContrastTest` asserts **the ring, not the fill**, separates the object from its ground, and asserts **the ratio, not the alpha**, so the value can be tuned later without weakening the guarantee.
+- **Do not touch:** do not tune any sourced provider hex for legibility. The first draft of this specified `.22`, which composites to `#575651` over `surface-1` at **1.96:1** and was too faint to restore the silhouette it existed to restore — do not regress to it.
+
+### C7-TypeScaleReconciliation — Decide one type scale, registry or canvas
+
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — which scale is authoritative, and whether the D11 no-scroll constraint or the registry role table gives way.
+- **Priority:** P1 — blocking for `U2` and `U3`. Two fixed type scales for one app is two sources of truth.
+- **Cost:** small to decide, medium if the canvas is re-cut.
+- **Agent-buildable:** proposal yes; the call is the founder's.
+- **The conflict.** Registry §2.4 after Amendment 01 names ten roles from 48/56 down to `chip` 11/14. `design/native-visual-lock-2026-09-13/README.md` fixes its own scale and instructs readers to treat a size not on its list as a defect. The canvas needs **four roles §2.4 does not name** — scoreboard leading 27, scoreboard trailing 22, the Omen call 24, screen title 21 — and runs **two sizes below the registry's smallest**: reasoning copy at 12.3 and uppercase labels at 9.5. The artboards also carry 8–8.5px caps, which no role sanctions and which the accessibility review flagged independently.
+- **The trade, stated plainly.** The canvas's density is what buys D11 — Command Center, Omen and the quiet week rendering with nothing below the fold. Snapping up to the registry roles will cost the fold on at least one of them. This is the same trade the spacing scale already resolved in the canvas's favour, and that precedent is an argument, not a decision.
+- **Done when:** one scale is authoritative and the other is amended to match; fractional sizes are integers; nothing below the sanctioned floor survives; and the losing document carries a pointer rather than a stale table.
+- **Do not touch:** do not resolve this by quietly adding the canvas sizes to §2.4. Amendment 01's table was applied as written on purpose, and improvising the reconciliation is what the flag exists to prevent.
+
+### U1-OmenScreen — Build the Omen destination
+
+- **Status:** READY
+- **Blocked by:** TASK-C1-ConfidenceBands — the band vocabulary and drivers must ship before the screen reads them.
+- **Priority:** P1
+- **Cost:** medium
+- **Scope:** one call for the week, band, risk, evidence on tap. Artboard: `design/native-visual-lock-2026-09-13/OmenCall.dc.html`.
+- **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, the factor line names what Omen could not read, and **the screen fits with nothing below the fold** (D11).
+- **Do not touch:** no numeric confidence, no gradient meter. A gradient encodes nothing the band does not already say.
+
+### U2-TokenTypeSwap — Dark-only, Wix Madefor, fill-ring, risk blocks
+
+- **Status:** READY
+- **Blocked by:** TASK-C6-FillRing — the ring ships with the token pass.
+- **Blocked by:** TASK-C7-TypeScaleReconciliation — do not swap the type seam against two competing scales.
+- **Blocked by:** TASK-C3-DataSourceForm — the standing gate. Colours come out only alongside their replacement carriers.
+- **Priority:** P1 — the visible win. Dark-only plus the type swap changes the whole app's read for a small diff.
+- **Cost:** medium
+- **Scope:** delete `OmenLightColors` / `lightDataSemantics`; scheme selector returns `OmenDarkColors` unconditionally; `android:theme` and `UIUserInterfaceStyle` set to dark. Swap the type seam to Wix Madefor Display + Text, both platforms, `OFL.txt` intact. Add `fill-ring`, `platinum` on Android, the two risk fills. Delete the withdrawn tokens **subject to the gate**.
+- **Done when:** both token files agree (`node scripts/check-token-parity.js`), `platinum` leaves `KNOWN_SINGLE_PLATFORM`, contrast tests carry the ring case and no longer assert a light scheme, and a rendered screen proves 600 resolves as 600.
+- **Do not touch:** **keep `OmenColorScheme` a data class.** Collapsing it to constants makes the theme packs in registry §2.1 expensive to reintroduce, which is the whole reason the indirection exists. Delete the SemiBold-against-Bold workaround rather than porting it — Wix Madefor has a real 600. On iOS, PostScript names differ from file names: verify with a build, not by inspection.
+
+### U3-CommandLeagueTrade — Build the three remaining destinations
+
+- **Status:** READY
+- **Blocked by:** TASK-U2-TokenTypeSwap
+- **Blocked by:** TASK-C3-DataSourceForm
+- **Blocked by:** TASK-C5-WaiverCopyContract — League carries the waiver row.
+- **Priority:** P1
+- **Cost:** large
+- **Scope:** Command Center seats, League in the **scout's-nest order** — Your week strip → The Table → Trade targets → Waiver → Activity, per the 2026-09-13 founder call amending fact-of-record #16 — and Trade's two paths. Artboards: `CommandCenter.dc.html`, `CommandQuiet.dc.html`, `LeagueTable.dc.html`, `TradeBuild.dc.html`.
+- **Done when:** all four render against live contracts; Command Center and the quiet week fit with nothing below the fold (D11); League scrolls by design; and `slops-canvas-to-code` reports no drift against the artboards.
+- **Do not touch:** the quiet-week **straight** variant is not drawn and must not be invented at build time — see `V-QuietWeekStraight`. Trade never claims an offer was sent: `submission: handoff_only`.
+
+### U4-LedgerScreen — Build the Ledger as its own destination
+
+- **Status:** READY
+- **Blocked by:** TASK-C4-LedgerIndex
+- **Blocked by:** TASK-U2-TokenTypeSwap
+- **Priority:** P2
+- **Cost:** medium
+- **Scope:** every call, whether it was followed, whether it worked. Artboard: `design/native-visual-lock-2026-09-13/Ledger.dc.html`.
+- **Done when:** self-reported rows render with the dotted carrier from `C3` and are never blended with verified ones; losses are present; `followed: null` renders honestly rather than as "no".
+- **Do not touch:** no aggregate hit rate.
+
+### V-QuietWeekStraight — Write the straight variant of the quiet week
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P1 — it gates `U3`, and it is the half of the voice fence that matters.
+- **Cost:** small
+- **Agent-buildable:** yes. Route `slops-ux-copy`.
+- **Source:** `omen-app-pages-workshop-v1.md` lines 55–57 — playful is allowed only in genuinely neutral quiet; when the user has just lost, a starter is hurt, or something is broken, Omen goes straight. *"A joke on a bad day reads as an app that is not paying attention."* The neutral variant is drawn (`CommandQuiet.dc.html`); the straight one is not, and the canvas README names it as the gap that matters.
+- **Scope — the words.** The straight variant is not a second tone: it is the same sentence with the joke removed and one fact added. The neutral line works because it *explains* the silence; on a bad day the user already knows why it is silent, so the line's job changes from explaining to **not pretending nothing happened**. Acknowledge, state the absence, stop. No consolation, no next-week optimism. Two variants behind one switch — a third state is the trap.
+- **Scope — the trigger, which is the harder half.** Name the predicate, server-side. A loss and an injured starter are trivially detectable. *"Something is broken"* is the interesting one: if the straight variant fires on a provider outage, the voice fence is also an honest-states rule and not only a copy rule.
+- **Done when:** both variants exist as locked copy, the switching predicate is specified server-side, and the straight variant is drawn on the artboard.
+- **Do not touch:** nothing dashed or struck through in either variant. A healthy quiet state must not borrow broken vocabulary — the canvas already gets this right and it is easy to lose.
+
+### V-CanvasConformance — Bring the artboards onto the amended registry
+
+- **Status:** READY
+- **Blocked by:** TASK-C7-TypeScaleReconciliation — the type half cannot be done twice.
+- **Priority:** P2
+- **Cost:** medium
+- **Agent-buildable:** yes.
+- **Scope:** snap spacing to the new base-2 scale (7→8, 9→10, 11→12, 13→14 — one pixel each); apply `fill-ring` to the provider dots, which currently draw the raw hex at 1.13:1 for Yahoo and ~1.26:1 for ESPN and reintroduce the exact failure registry §2.2 documents and fixed; split the dashed carrier per `C3`; raise the 8–8.5px caps above the sanctioned floor; draw a focus state, which no artboard currently shows though registry §4 requires one; pad the switcher `+`, chevron and favourite star to 44pt without growing the glyphs; and fix the unstarred-star `#4A4A4E` at 1.63:1 on `surface-1`.
+- **Also:** three stale numbers inside the canvas's own prose — it says the scoreboard is 42px and the Omen call 29px, while its scale table and its CSS both say 27 and 24. The scale table exists because the scale drifted; it drifted again in the same document.
+- **Done when:** `slops-native-ui-audit` grades the artboards clean against the amended registry, and the README's scale table, the prose and the CSS agree.
+- **Do not touch:** `design/app-rework-canvas/` keeps its four screens the new canvas does not hold — sign-in, email code, connect, share card. It gets a supersession banner, not a deletion.
+
 ## M. Native mobile execution lane
 
 **Phase 2.** D7-equivalent scope (new auth providers) is deferred — every new provider is new store-review surface during the tightest five weeks.
