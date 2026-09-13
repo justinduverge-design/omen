@@ -1,0 +1,76 @@
+{
+  "artboards": [
+    {
+      "file": "CommandCenter.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Command Center — scoreboard, waiver seat, ledger row",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "OmenCall.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Omen — one call per team, per week",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "LeagueTable.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "League — the table and trade targets",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "TradeBuild.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — partners, filters, three teams",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "Ledger.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "The Ledger — every call and how it went",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "SwitchSheet.dc.html",
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Team switcher sheet",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "CommandQuiet.dc.html",
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Command Center — quiet week",
+      "page": "native-visual-lock-2026-09-13"
+    },
+    {
+      "file": "Account.dc.html",
+      "x": 3290,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Account",
+      "page": "native-visual-lock-2026-09-13"
+    }
+  ]
+}
