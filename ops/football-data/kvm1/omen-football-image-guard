@@ -24,6 +24,18 @@ tag=omen-football-local
 
 log() { printf 'omen-football-image-guard: %s\n' "$1" >&2; }
 
+# `docker build` runs through buildx, which keeps its state in $HOME/.docker.
+# The units that call this guard set ProtectHome=true, so /root is not readable
+# and buildx cannot initialise - the build then fails in about a second with no
+# useful output. Point DOCKER_CONFIG at a private writable directory instead;
+# PrivateTmp=true gives us a per-invocation /tmp, so this costs nothing and
+# leaves no residue. `docker run` in omen-football-run is unaffected, which is
+# why the capture path never hit this.
+DOCKER_CONFIG="$(mktemp -d)"
+export DOCKER_CONFIG
+cleanup() { rm -rf "$DOCKER_CONFIG"; }
+trap cleanup EXIT HUP INT TERM
+
 [ -r "$digest_file" ] || { log "missing $digest_file"; exit 64; }
 pinned="$(cat "$digest_file")"
 
@@ -63,10 +75,17 @@ done
 commit="$(basename "$selected")"
 log "rebuilding from $commit"
 
-if ! docker build -f "${selected}${dockerfile_rel}" -t "${tag}:${commit}" "$selected" >/dev/null 2>&1; then
-  log "rebuild from $commit FAILED; leaving pin untouched"
+# Keep the build output. The first deployment of this guard discarded it, so a
+# buildx failure surfaced in the journal as three words and no cause. A heal
+# path that cannot explain its own failure is barely better than no heal path.
+build_log="$(mktemp)"
+if ! docker build -f "${selected}${dockerfile_rel}" -t "${tag}:${commit}" "$selected" >"$build_log" 2>&1; then
+  log "rebuild from $commit FAILED; leaving pin untouched. Build output follows:"
+  tail -n 20 "$build_log" >&2
+  rm -f "$build_log"
   exit 71
 fi
+rm -f "$build_log"
 
 built="$(docker images --no-trunc -q "${tag}:${commit}" | head -1)"
 [ -n "$built" ] || { log "rebuild produced no image id"; exit 71; }

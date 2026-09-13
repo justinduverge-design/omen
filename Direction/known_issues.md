@@ -1,6 +1,6 @@
 # Omen Known Issues
 
-Last updated: 2026-09-06 (both 2026-09-05 outage entries reconciled — same bug, fixed)
+Last updated: 2026-09-13 (auto-heal deployed and proven under systemd; entry resolved same day)
 
 ## 🟡 OPEN — leagues that score defence or IDP cannot reach a `supported` scoring contract
 
@@ -348,3 +348,53 @@ Every fixed, resolved, and closed entry moved to `Direction/known_issues-resolve
 They are kept, not deleted: a resolved issue is the best record of how a class of defect behaves,
 and more than one here has been re-opened. Read it when a symptom looks familiar.
 
+
+## 🟢 RESOLVED 2026-09-13 — auto-heal was inert on live KVM1; now deployed and proven
+
+**Found 2026-09-13, during the capture-outage fix.**
+
+`omen-football-image-guard` is installed on KVM1 and works when run by hand. Under systemd it
+currently cannot do the one thing it exists for.
+
+The interim drop-in installed this session
+(`/etc/systemd/system/omen-football-{capture,validate,retry}.service.d/10-image-guard.conf`) adds the
+guard as `ExecStartPre` but does **not** widen `ReadWritePaths`. All three units run
+`ProtectSystem=strict`, which mounts the hierarchy read-only except `/dev`, `/proc`, `/sys` and the
+write-list — and the write-list is `/var/lib/omen-football-data /run/docker.sock`. The guard writes
+`/etc/omen-football/image-digest`. So it can detect a missing image, rebuild it, and verify it, then
+fail to record the result.
+
+The manual test passed because it ran outside the sandbox. That is the gap: **the heal path has
+never been exercised under systemd.**
+
+PR #428 fixes this by adding `/etc/omen-football` to `ReadWritePaths` in all three units. The fix is
+merged but **not deployed**.
+
+### Closing it
+
+Deploy the merged units, delete the three `10-image-guard.conf` drop-ins, `daemon-reload`, then pin a
+bogus digest and run `systemctl start omen-football-capture.service` — verifying the pin is
+*rewritten*, not just that the service succeeds.
+
+Stated from documented systemd behaviour; not empirically confirmed on the box.
+
+### How it actually closed
+
+Deploying the merged units was necessary but **not sufficient**, and the first sandboxed run proved
+it. `/etc` being read-only was the *second* barrier; the guard never reached it. `docker build` runs
+through buildx, whose state lives in `$HOME/.docker/buildx`, and `ProtectHome=true` makes `/root`
+unreachable — so the build failed in about a second. `docker run` needs no such state, which is why
+capture itself always worked and why nothing caught this until the guard was exercised under
+systemd.
+
+Two fixes: the guard now points `DOCKER_CONFIG` at a private temp directory (`PrivateTmp=true`
+already supplies one per invocation), and it no longer discards build output — the original version
+reported a buildx failure as three words with no cause.
+
+Proven 2026-09-13 19:39Z: pinned a bogus digest, `systemctl start omen-football-capture.service`,
+`ExecStartPre` exited 0 having rewritten the pin, capture exited 0, status returned `state: pass`
+with `alerts: []`.
+
+The lesson worth keeping: reasoning about a unit file is not the same as running it. The
+`ReadWritePaths` defect was found by reading and was real; the buildx defect was found only by
+execution, and it was the one actually blocking.
