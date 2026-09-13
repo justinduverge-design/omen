@@ -2971,3 +2971,25 @@ behaving; until then this entry records intent, not proof.
   output, so a diagnosable buildx error reached the journal as `rebuild from d2d327f FAILED`. It now
   logs the tail of the build. Proven end to end 2026-09-13 19:39Z against a deliberately bogus pin:
   guard rewrote the pin, capture returned `state: pass`, `alerts: []`.
+
+- **Decision: GlitchTip resolves its own dead issues, daily.** GlitchTip 6.2.6 has no auto-resolve
+  setting — Sentry's equivalent is not implemented, and the only resolve-adjacent column in the
+  schema is `resolved_in_release_id`. Issues therefore stayed unresolved forever unless a human
+  clicked them, and the dispatcher lists every unresolved issue in every alert body.
+  `slops-glitchtip-autoresolve` sweeps issues with no events in 7 days via the Sentry-compatible
+  REST API, not by writing `issue_events_issueindex.status`: that schema has already moved under us
+  once, and a direct write is one upgrade away from silently corrupting issue state.
+
+- **Finding: the obvious recency filter would not have worked, and only measurement showed it.** The
+  first fix drafted was a staleness clause in the dispatcher's GlitchTip query. Measured against the
+  live database, 8 of 12 issues had events inside 14 days — three from two days prior. Any window
+  loose enough to be safe was too loose to have helped on the day; one tight enough to help would
+  have hidden genuinely intermittent errors. Resolution was the right mechanism all along; it just
+  needed to stop requiring a human.
+
+- **Finding: neither reported bug existed.** GlitchTip #6 was real and had already been fixed on
+  2026-09-05 in `src/routes/leagues.js` (`23334ec`), 25 minutes after its last-ever event — it was
+  diagnosed against an Aug-20 checkout that predated the fix and blamed `yahoo.js`, a file that
+  cannot violate either unique index. #9 (CORS to Mozilla's observatory) returns zero hits from both
+  `git grep` and a full filesystem scan; the app never calls that URL. Pull before reading code, and
+  check whether an error is still happening before treating it as a defect.
