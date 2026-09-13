@@ -1,0 +1,89 @@
+#!/bin/sh
+set -eu
+# Auto-resolve GlitchTip issues that have stopped happening.
+#
+# GlitchTip 6.2.6 has no auto-resolve setting - Sentry's equivalent is simply not
+# implemented, and the only resolve-adjacent column in the schema is
+# `resolved_in_release_id`. Issues therefore stay unresolved forever unless a
+# human clicks them, and slops-alert-dispatcher lists every unresolved issue in
+# every alert body. On 2026-09-13 that meant nine dead issues - newest event four
+# days old, several from August - riding along on an unrelated state change and
+# reading as a nine-alarm fire.
+#
+# A recency filter in the dispatcher was considered and rejected: 8 of 12 issues
+# had events inside 14 days, so any window loose enough to be safe was too loose
+# to help, and one tight enough to help would have hidden genuinely intermittent
+# errors. Resolution is the right mechanism; it just needed to happen without a
+# human in the loop.
+#
+# This uses the Sentry-compatible REST API rather than writing
+# issue_events_issueindex.status directly. The schema has already moved under us
+# once (this version's issue table has no last_seen or status column at all), so
+# a direct write is an upgrade away from silently corrupting issue state. The API
+# is the supported surface.
+#
+# An issue that recurs generates new events and GlitchTip reopens it, so this
+# cannot permanently hide a live problem - it only clears the graveyard.
+
+api=http://100.98.81.0:8000
+org=valor-ventures
+token_file=/etc/slops-alerting/glitchtip-token
+days="${SLOPS_AUTORESOLVE_DAYS:-7}"
+
+log() { printf 'slops-glitchtip-autoresolve: %s\n' "$1" >&2; }
+
+[ -r "$token_file" ] || { log "no token at $token_file; nothing to do"; exit 0; }
+token="$(cat "$token_file")"
+[ -n "$token" ] || { log "token file is empty; nothing to do"; exit 0; }
+
+# Ask for unresolved issues only. `lastSeen` is what decides staleness - not
+# first_seen, and not the event count, which says nothing about whether the
+# error is still happening.
+issues="$(curl -fsS --max-time 30 \
+  -H "Authorization: Bearer $token" \
+  "$api/api/0/organizations/$org/issues/?query=is%3Aunresolved&limit=100" 2>/dev/null)" || {
+  log "issue query failed; leaving everything unresolved"
+  exit 0
+}
+
+stale="$(printf '%s' "$issues" | python3 -c '
+import json,sys,datetime
+try:
+    rows=json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+if not isinstance(rows,list):
+    sys.exit(0)
+cutoff=datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(days=float(sys.argv[1]))
+for row in rows:
+    seen=row.get("lastSeen")
+    if not seen:
+        continue
+    try:
+        when=datetime.datetime.fromisoformat(seen.replace("Z","+00:00"))
+    except Exception:
+        continue
+    if when < cutoff:
+        print("%s\t%s" % (row.get("id"), (row.get("title") or "")[:60]))
+' "$days")"
+
+[ -n "$stale" ] || { log "no issues older than ${days}d; nothing to resolve"; exit 0; }
+
+count=0
+printf '%s\n' "$stale" | while IFS="$(printf '\t')" read -r id title; do
+  [ -n "$id" ] || continue
+  if curl -fsS --max-time 20 -X PUT \
+    -H "Authorization: Bearer $token" \
+    -H 'Content-Type: application/json' \
+    -d '{"status":"resolved"}' \
+    "$api/api/0/issues/$id/" >/dev/null 2>&1; then
+    log "resolved #$id: $title"
+    count=$((count + 1))
+  else
+    # One failure must not abort the sweep - the next issue may well succeed,
+    # and the next run retries this one anyway.
+    log "FAILED to resolve #$id: $title"
+  fi
+done
+
+exit 0
