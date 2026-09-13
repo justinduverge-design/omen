@@ -1,0 +1,92 @@
+#!/bin/sh
+set -eu
+# Preflight guard for the Omen football capture chain.
+#
+# Aug 26 2026: /etc/omen-football/image-digest was re-pinned to a BARE image ID
+# (sha256:<hex>, not repo@sha256:<hex>). A bare ID names a local image only - it
+# can never be pulled from a registry. The image was later pruned, so from the
+# very next run onward every capture died with `docker run` exit 125 and the
+# production status payload froze at 2026-08-27T09:15Z. Nothing noticed for 17
+# days: the alert dispatcher is edge-triggered, so a condition that latches goes
+# silent. See also the daily re-alert change in slops-alert-dispatcher.
+#
+# This guard makes the failure self-correcting: if the pinned image is absent,
+# rebuild it from the deployed source tree and re-pin. Bounded and idempotent -
+# it rebuilds at most once per invocation, never pulls, never deletes, and exits
+# non-zero (leaving the old pin in place) rather than guessing when it cannot
+# identify a source tree. Capture then fails loudly, which is the correct
+# outcome: a wrong image is worse than no capture.
+
+digest_file=/etc/omen-football/image-digest
+source_root=/opt/omen-football/source
+dockerfile_rel=ops/football-data/kvm1/Dockerfile
+tag=omen-football-local
+
+log() { printf 'omen-football-image-guard: %s\n' "$1" >&2; }
+
+[ -r "$digest_file" ] || { log "missing $digest_file"; exit 64; }
+pinned="$(cat "$digest_file")"
+
+# Happy path: the pin resolves. Nothing to do - this is the common case and
+# costs one inspect call.
+if docker image inspect "$pinned" >/dev/null 2>&1; then
+  exit 0
+fi
+
+log "pinned image $pinned is not present locally; attempting rebuild"
+
+# A repo@sha256 pin IS pullable. Prefer pulling it back over rebuilding, since
+# that reproduces the exact intended image rather than a fresh build of source.
+case "$pinned" in
+  *@sha256:*)
+    if docker pull "$pinned" >/dev/null 2>&1; then
+      log "recovered pinned image by pull; pin unchanged"
+      exit 0
+    fi
+    log "pull of $pinned failed; falling back to source rebuild"
+    ;;
+esac
+
+# Newest source tree that actually carries both the Dockerfile and the
+# footballData sources it COPYs. Ordering by mtime matches how the trees are
+# laid down at deploy time.
+selected=
+for dir in $(ls -1dt "$source_root"/*/ 2>/dev/null); do
+  if [ -f "${dir}${dockerfile_rel}" ] && [ -d "${dir}src/services/footballData" ]; then
+    selected="$dir"
+    break
+  fi
+done
+
+[ -n "$selected" ] || { log "no source tree with $dockerfile_rel + src/services/footballData"; exit 70; }
+
+commit="$(basename "$selected")"
+log "rebuilding from $commit"
+
+if ! docker build -f "${selected}${dockerfile_rel}" -t "${tag}:${commit}" "$selected" >/dev/null 2>&1; then
+  log "rebuild from $commit FAILED; leaving pin untouched"
+  exit 71
+fi
+
+built="$(docker images --no-trunc -q "${tag}:${commit}" | head -1)"
+[ -n "$built" ] || { log "rebuild produced no image id"; exit 71; }
+
+# Verify the rebuilt image actually speaks the CLI before we trust it. `status`
+# is the safe probe: it runs with --network none and only reads state.
+if ! docker run --rm \
+  --user "$(id -u omen-football):$(id -g omen-football)" \
+  --cap-drop ALL --security-opt no-new-privileges --read-only \
+  --network none --pids-limit 128 --memory 1536m --cpus 1.0 \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --volume /var/lib/omen-football-data:/state:rw \
+  "$built" status >/dev/null 2>&1; then
+  log "rebuilt image $built failed its status probe; leaving pin untouched"
+  exit 72
+fi
+
+# Keep every pin we replace. These files are tiny and they are the only record
+# of what was running before a heal.
+cp -a "$digest_file" "${digest_file}.bak-$(date -u +%Y%m%d-%H%M%S)"
+printf '%s\n' "$built" > "$digest_file"
+log "healed: re-pinned to $built (rebuilt from $commit)"
+exit 0
