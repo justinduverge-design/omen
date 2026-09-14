@@ -1,5 +1,25 @@
 # `slops-taste` run brief — native visual lock
 
+> ## ⚠️ CORRECTED 2026-09-14 — this brief pointed the wrong skill at the job
+>
+> **`slops-taste` generates; it does not grade.** Its Outputs are *"Frontend code (via Codex) OR
+> reference images"*, and its own **Does NOT** says it does not replace `slops-ui-ux-audit` because
+> *"audit is separate from generation."* The four questions below are grading questions, and asking
+> taste to answer them was an error in this brief.
+>
+> **It is also not installed.** `.claude/skills/slops-taste/` holds only the Slops wrapper; the
+> upstream variants are absent and installing them is a founder boundary
+> (`npx skills add https://github.com/Leonxlnx/taste-skill`).
+>
+> **The four questions were answered directly instead**, and the answers plus three founder
+> decisions are in **`Direction/reviews/2026-09-14-native-canvas-taste-pass.md`**. Read that, not
+> this. The inputs below remain accurate and are still the right reference for any pass over this
+> canvas.
+>
+> **The real gap:** nothing in the library grades a native artboard. `slops-ui-ux-audit` is web-only,
+> `slops-native-ui-audit` needs a built screen on both platforms, and the artboard sits between them
+> — the stage where a visual problem is cheapest to fix.
+
 **Prepared:** 2026-09-14
 **Subject:** `design/native-visual-lock-2026-09-13/` — 30 artboards
 **Run this after:** the branch merges. **Run this before:** `slops-canvas-to-code`.
