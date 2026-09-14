@@ -491,7 +491,11 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### V-QuietWeekStraight — Write the straight variant of the quiet week
 
-- **Status:** READY
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-09-13 Claude — copy and artboard landed; the switching predicate is still owed.
+- **Done (2026-09-13):** the straight variant is drawn — `design/native-visual-lock-2026-09-13/CommandQuietStraight.dc.html`, commit `a598d0e`. *"Rough week. Nothing worth moving for. You lost by four, Achane is out, and there is nobody on the wire who fixes that. Holding is the call."* Same sentence as the neutral variant with the joke removed and one fact added: acknowledge, state the absence, stop. Both variants now carry a confidence band, which neither did before the `slops-ux-copy` pass — the voice rule is that confidence stays visible wherever a recommendation exists, and *"Holding is the call"* is a recommendation.
+- **Still owed — the harder half.** The **switching predicate**, server-side. Loss and injured-starter are trivially detectable; *"something is broken"* is the interesting one, and if the straight variant fires on a provider outage then the voice fence is an honest-states rule and not only a copy rule. Route with `C5`.
+- **Blocked by:** None
 - **Blocked by:** None
 - **Priority:** P1 — it gates `U3`, and it is the half of the voice fence that matters.
 - **Cost:** small
@@ -504,8 +508,12 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### V-CanvasConformance — Bring the artboards onto the amended registry
 
-- **Status:** READY
-- **Blocked by:** TASK-C7-TypeScaleReconciliation — the type half cannot be done twice.
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-09-13 Claude — type, spacing, carriers and identity marks landed; annotation overlays and scrolling-screen spacing verification remain.
+- **Blocked by:** None — `C7` closed 2026-09-13 and unblocked the type half.
+- **Landed (commits `2b84208`, `eb0116a`, `a598d0e`, `8172ed3`, `90229a7`):** `fill-ring` on every provider mark; the unstarred favourite off `#4A4A4E` (1.63:1); dashed/dotted carrier split; type floor raised and the whole canvas snapped to the §2.4 ramp; spacing snapped to the §2.5 base-2 scale; a focus rule in every file; the canvas taken from 8 artboards to **30**; entity normalisation; and the identity-provider marks with Apple moved off a brass fill.
+- **Also landed:** `_shared.css` as the single CSS source, with `scripts/sync-canvas-css.mjs --check` proving all 30 agree. Artboards went from ~25KB to ~3KB each.
+- **Remaining:** the **annotation overlay** variants (vocabulary is in `_shared.css`; none drawn yet — founder asked for maximum depth); **44pt touch targets** on the switcher `+`, chevron and favourite star, which is still a build-brief concern rather than an artboard one; **Dynamic Type at 200%**, where scoreboard numerals break first and behaviour is undefined; and **overflow verification on the seventeen scrolling artboards** — the thirteen declared-fits screens are all verified at 0px.
 - **Priority:** P2
 - **Cost:** medium
 - **Agent-buildable:** yes.
