@@ -27,7 +27,7 @@ only confirmed beta failure on record — undrawn.
 
 | File | Screen | Scroll |
 |---|---|---|
-| `SignIn.dc.html` | One door, three ways through | fits |
+| `SignIn.dc.html` | One door, four ways through | fits |
 | `EmailCode.dc.html` | Six digits, one screen | fits |
 | `ConnectLeague.dc.html` | Three providers, honest about each | fits |
 | `EspnConnect.dc.html` | **ESPN — consent before the sheet** | scrolls |

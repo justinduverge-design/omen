@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Omen · Sign in — one door, three ways through</title>
+<title>Omen · Sign in — one door, four ways through</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400;500;600;700;800&family=Wix+Madefor+Text:wght@400;500;600;700&display=swap">
 <style>
 /* Omen native visual lock — shared artboard stylesheet.
@@ -17,6 +17,7 @@
     --t1:#F5F0E8;--t2:#BDB5A9;--t3:#A79E90;
     --ac:#C4933B;--acH:#D8A648;--acM:#3A2A0A;--onAc:#14140F;
     --espn:#B21826;--sleeper:#0F70B0;--yahoo:#410093;
+    --gBlue:#4285F4;--gGreen:#34A853;--gYellow:#FBBC05;--gRed:#EA4335;--discord:#5865F2;
     --riskHi:#7E1717;--riskMed:#4A1818;
     --ring:rgba(245,240,232,.38);--lip:rgba(196,147,59,.34);--up:rgba(245,240,232,.09);--dn:rgba(0,0,0,.45);
     --page:#141413;--panel:#1C1C1A;--pline:#292926;
@@ -360,11 +361,30 @@
 .annokey i.k-hit::before{background:rgba(79,174,129,.35);outline:1px dashed rgba(79,174,129,.9)}
 .annokey i.k-tok::before{background:var(--ac)}
 .annokey i.k-rule::before{background:transparent;border-top:1px dashed rgba(196,147,59,.85);height:0;border-radius:0}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Identity providers — Apple, Google, Discord, email.
+   A second colour exception beside the fantasy providers, and a narrower one:
+   the MARK carries brand colour, the BUTTON stays neutral. That is what keeps
+   brass-only chrome intact and it is also what each vendor requires.
+     Apple  — the button must be black, white, or outlined white. Never brass.
+     Google — this is Google's own dark-theme button: dark surface, four-colour
+              G, light label.
+   Measured on --bg: Discord 3.58, Google blue 4.63, green 5.40, red 4.21,
+   yellow 9.67. All clear the 3:1 non-text floor, so no fill-ring is needed.
+   ───────────────────────────────────────────────────────────────────────────── */
+.auth{margin:0 16px 10px;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:11px;
+  background:var(--s1);box-shadow:inset 0 1px 0 var(--up);font-size:15px;font-weight:700;
+  letter-spacing:-.018em;color:var(--t1)}
+.auth svg{width:18px;height:18px;flex:none}
+.auth .lb{flex:1;text-align:center;margin-right:18px}
+.auth.mail svg{fill:var(--t2)}
 </style>
 </head>
 <body>
 <div class="screen">
-  <div class="sbody"><div class="statusbar"><span>3:50</span><span>5G · 42%</span></div><div class="top" style="padding-top:48px"><div><p class="kick">Omen</p><h2 class="ttl">See the move before<br>the league does.</h2></div></div><p class="qp" style="margin:12px 16px 0;max-width:34ch">One call a week for every team you manage. Plain English, and it shows its work.</p><div style="height:32px"></div><div class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.7-.7-1.4 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2.1 2.6 2 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.2 1.1-2.3 0-.05-2.2-.9-2.3-3.4Zm-2.1-6.2c.6-.7 1-1.7.9-2.6-.8 0-1.9.6-2.5 1.3-.6.6-1 1.6-.9 2.6.9.06 1.9-.5 2.5-1.3Z"/></svg>Continue with Apple</div><div class="btn ghost" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M21.8 12.2c0-.7-.06-1.4-.2-2H12v3.9h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3-4.3 3-7.5Z"/><path d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.2H2.9v2.6A10 10 0 0 0 12 22Z"/><path d="M6.2 13.9a6 6 0 0 1 0-3.8V7.5H2.9a10 10 0 0 0 0 9l3.3-2.6Z"/><path d="M12 5.9c1.5 0 2.8.5 3.9 1.5l2.9-2.9A10 10 0 0 0 2.9 7.5l3.3 2.6C7 7.7 9.3 5.9 12 5.9Z"/></svg>Continue with Google</div><div class="btn ghost">Continue with email</div><div class="spacer"></div><p class="qp" style="margin:0 16px;font-size:12px;color:var(--t3);text-align:center;max-width:none">By continuing you agree to the <span style="color:var(--ac)">Terms</span> and <span style="color:var(--ac)">Privacy Policy</span>.</p><div style="height:24px"></div></div>
+  <div class="sbody"><div class="statusbar"><span>3:50</span><span>5G · 42%</span></div><div class="top" style="padding-top:48px"><div><p class="kick">Omen</p><h2 class="ttl">See the move before<br>the league does.</h2></div></div><p class="qp" style="margin:12px 16px 0;max-width:34ch">One call a week for every team you manage. Plain English, and it shows its work.</p><div style="height:32px"></div><div class="auth"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#FFFFFF" d="M16.4 12.8c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.7-.7-1.4 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2.1 2.6 2 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.2 1.1-2.3 0-.05-2.2-.9-2.3-3.4Zm-2.1-6.2c.6-.7 1-1.7.9-2.6-.8 0-1.9.6-2.5 1.3-.6.6-1 1.6-.9 2.6.9.06 1.9-.5 2.5-1.3Z"/></svg><span class="lb">Continue with Apple</span></div><div class="auth"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--gBlue)" d="M21.8 12.2c0-.7-.06-1.4-.2-2H12v3.9h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3-4.3 3-7.5Z"/><path fill="var(--gGreen)" d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.2H2.9v2.6A10 10 0 0 0 12 22Z"/><path fill="var(--gYellow)" d="M6.2 13.9a6 6 0 0 1 0-3.8V7.5H2.9a10 10 0 0 0 0 9l3.3-2.6Z"/><path fill="var(--gRed)" d="M12 5.9c1.5 0 2.8.5 3.9 1.5l2.9-2.9A10 10 0 0 0 2.9 7.5l3.3 2.6C7 7.7 9.3 5.9 12 5.9Z"/></svg><span class="lb">Continue with Google</span></div><div class="auth"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--discord)" d="M19.3 5.3A16.8 16.8 0 0 0 15.1 4l-.2.4a15.6 15.6 0 0 1 3.7 1.2 12.9 12.9 0 0 0-11.2 0A15.6 15.6 0 0 1 11.1 4.4L10.9 4a16.8 16.8 0 0 0-4.2 1.3C4 9.3 3.3 13.2 3.6 17a16.9 16.9 0 0 0 5.2 2.6l1.1-1.8a11 11 0 0 1-1.7-.8l.4-.3a12.1 12.1 0 0 0 10.8 0l.4.3a11 11 0 0 1-1.7.8l1.1 1.8a16.9 16.9 0 0 0 5.2-2.6c.4-4.4-.7-8.3-2.8-11.7ZM9.3 14.8c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Zm5.4 0c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Z"/></svg><span class="lb">Continue with Discord</span></div><div class="auth mail"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.8A1.8 1.8 0 0 1 4.8 4h14.4A1.8 1.8 0 0 1 21 5.8v12.4A1.8 1.8 0 0 1 19.2 20H4.8A1.8 1.8 0 0 1 3 18.2V5.8Zm2.1.2 6.9 5.2L18.9 6H5.1ZM19 7.6l-6.4 4.8a1 1 0 0 1-1.2 0L5 7.6v10.3h14V7.6Z"/></svg><span class="lb">Continue with email</span></div><div class="spacer"></div><p class="qp" style="margin:0 16px;font-size:12px;color:var(--t3);text-align:center;max-width:none">By continuing you agree to the <span style="color:var(--ac)">Terms</span> and <span style="color:var(--ac)">Privacy Policy</span>.</p><div style="height:24px"></div></div>
   
 </div>
 </body>

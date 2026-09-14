@@ -231,7 +231,28 @@ family that keeps a hue, under the constraints below.
 | Family | Tokens | Note |
 |---|---|---|
 | Platform brand | `platform-sleeper #1FA3E8`, `platform-yahoo #410093`, `platform-espn #C81E2C`; chip legibility overrides `platform-sleeper-chip #0F70B0`, `platform-yahoo-chip #410093`, `platform-espn-chip #B21826`; `on-platform-sleeper/yahoo/espn #FFFFFF` | never on button chrome; lives on PlatformBadge; chip fills tuned for WCAG AA (>=4.5:1) against white. **Every chip carries `fill-ring`** — see §2.2. |
+| Identity provider | `google-blue #4285F4`, `google-green #34A853`, `google-yellow #FBBC05`, `google-red #EA4335`, `discord #5865F2`; Apple mark is `#FFFFFF` or `#000000` only | **the mark carries colour, the button stays neutral** — see below |
 | Risk | `risk-high #7E1717`, `risk-medium #4A1818` | **fills, never ink.** See the risk table below. `risk-low` has no token: absence is the state. |
+
+> **Identity providers are a second colour exception, 2026-09-13 (founder).** Apple, Google and
+> Discord are all enabled auth providers (five on the Supabase project: email, Google, Apple,
+> Discord, passkeys). Their marks must render in brand colour — a monochrome Google G is not a
+> permitted use of that mark.
+>
+> **The rule is narrower than the fantasy-provider exception: the mark carries colour, the button
+> stays neutral.** Auth buttons are `surface-1` with a bone label; only the glyph is branded. That
+> keeps brass-only chrome intact, and it is independently what each vendor requires.
+>
+> **This corrected a real review risk, not only an asset.** The sign-in screen had rendered
+> "Continue with Apple" as a **brass fill** with the Apple mark inheriting `currentColor`. Apple's
+> guidelines permit the button in black, white, or outlined white and nothing else, so a gold Apple
+> button is an App Store rejection surface. The neutral treatment is the black variant. Google's own
+> dark-theme button is likewise a dark surface with the four-colour G and a light label, so the same
+> neutral row satisfies both.
+>
+> Measured against `bg #1F1F1D`: Discord **3.58**, Google blue **4.63**, green **5.40**, red
+> **4.21**, yellow **9.67**. All clear the 3:1 non-text floor, so **no `fill-ring` is required** —
+> unlike the fantasy chips, these marks hold their own silhouette.
 
 **Leaving the app token set** — `omen`, `omen-chip`, `data-live/stub/mock/unavailable`,
 `confidence-floor/ceiling`, `pos-*`, `demo-text`, `demo-text-secondary`. They remain in
