@@ -293,6 +293,19 @@ async function post(app, { headers = {}, body = {} } = {}) {
   }
 }
 
+test("native v2 negotiates bands without leaking numeric confidence or changing v1", async () => {
+  const { app } = buildApp();
+  const headers = { authorization: "Bearer valid-token" };
+  const v2 = await post(app, { headers, body: { contract_version: "omen-decision-brief.v2" } });
+  assert.equal(v2.body.contract_version, "omen-decision-brief.v2");
+  assert.equal(v2.body.recommendation.confidence.band, "confident");
+  assert.ok(v2.body.recommendation.confidence.drivers.length);
+  assert.equal(v2.body.recommendation.confidence.score, undefined);
+  assert.doesNotMatch(JSON.stringify(v2.body), /82 out of 100/);
+  const v1 = await post(app, { headers });
+  assert.equal(v1.body.recommendation.confidence.score, 82);
+});
+
 test("POST /api/omen/mvp-move requires auth for live requests", async () => {
   const { app, state } = buildApp();
   const res = await post(app);

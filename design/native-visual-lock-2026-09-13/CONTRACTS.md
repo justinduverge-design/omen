@@ -4,9 +4,9 @@
 page adds the other two things a builder needs and a picture cannot carry: **why** a block is there,
 and **what data makes it work**.
 
-Every contract below is verified against `Blueprints/api-routes.md`. Where a contract does **not**
-exist, it says so and names the sprint item that creates it — **those are the only places a builder
-is allowed to not know, and they must be raised, not invented.**
+Every contract below is verified against `Blueprints/api-routes.md` plus the 2026-09-14 binding
+work in this branch. Where a contract remains capped or storage-gated, it says so directly; a
+builder must render that honest state rather than infer a happier one.
 
 **Read order for a builder:** this page → the artboard → the governing spec in the Rule column.
 
@@ -26,17 +26,17 @@ is allowed to not know, and they must be raised, not invented.**
 
 | Artboard | Data | Rule | Notes |
 |---|---|---|---|
-| `CommandCenter` | `dashboard-summary.v1` + `league-overview.v1` + `waiver-analysis.v1` + `moves-history.v1` | pages workshop — Small Council | Headline rotates on `game_week.phase`. **Every section fails independently**; a dead matchup read sits beside live standings. |
-| `CommandQuiet` | same, quiet predicate | voice fence, workshop lines 55–57 | Neutral variant. Playful is permitted **only** here. |
-| `CommandQuietStraight` | same | same | **⚠ The switching predicate does not exist.** Copy is locked; the server-side trigger is owed by `V-QuietWeekStraight`. A builder must not infer it from the client. |
+| `CommandCenter` | `dashboard-summary.v1` + `league-overview.v1` + `waiver-analysis.v1` + `moves-history.v2` | pages workshop — Small Council | Headline rotates on `game_week.phase`. **Every section fails independently**; a dead matchup read sits beside live standings. Ledger rows require explicit `platform` and `league_id`. |
+| `CommandQuiet` | `GET /api/dashboard/quiet-week` → `quiet-week.v1` | voice fence, workshop lines 55–57 | Neutral variant. Playful is permitted **only** here, and only when the server has positive quiet-week evidence. |
+| `CommandQuietStraight` | `GET /api/dashboard/quiet-week` → `quiet-week.v1` | same | Predicate is now server-owned: straight fires on loss, injured starter, provider failure, or unknown quiet inputs. Copy stays locked to the artboard. |
 | `CommandNoLeague` | `dashboard-summary.v1`, no active connection | — | Zero state. Not an error state — nothing dashed or struck through. |
-| `ReportPill` | **no contract yet** | `W1-B` | Sends screen, app version, provider. **Never league data.** Route unbuilt. |
+| `ReportPill` | `GET /api/beta/reports/schema`; `POST /api/beta/reports` → `beta-report.v1` | `W1-B` | Metadata-only route exists. Sends screen, app/build/OS/device, provider connection state, recent scrubbed error codes and a user note. **Never league data, rosters, screenshots or credentials.** Storage SQL is review-only until migration approval. |
 
 ## Omen
 
 | Artboard | Data | Rule | Notes |
 |---|---|---|---|
-| `OmenCall` | `POST /api/omen/mvp-move` → **`omen-decision-brief.v2`** | D-band, workshop | **⚠ v2 does not exist yet — `C1` creates it.** v1 ships a numeric confidence; the artboard shows a band. Do not build against v1 and do not keep the numeral. |
+| `OmenCall` | `POST /api/omen/mvp-move` with `contract_version: "omen-decision-brief.v2"` → `omen-decision-brief.v2` | D-band, workshop | v2 exists behind explicit negotiation. It returns a band plus drivers and strips numeric confidence from the response. v1 remains available for old clients. |
 | `OmenEvidence` | same, expanded | §5.2 evidence categories | Each entry carries its own `kind` — `verified` / `projection` / `model` / `inference` / `limitation`. **A projection is never rendered as a fact.** |
 | `StartSitClear` | `GET /api/start-sit/detail` → `start-sit-detail.v1`, `state: "clear_decision"` | visual briefs §5 | |
 | `StartSitIncomplete` | same, `state: "incomplete_data"` | §5 | An unverified scoring format is stated as a limitation and **never assumed to be PPR**. |
@@ -56,8 +56,8 @@ is allowed to not know, and they must be raised, not invented.**
 
 | Artboard | Data | Rule | Notes |
 |---|---|---|---|
-| `TradeBuild` | `POST /api/trade/compare` → `trade-compare.v2` | trade workshop | Free and public; `league_context` + bearer opts into personalised analysis. |
-| `TradeRoster` | `trade-compare.v2` `league_context`, rosters via `league-overview.v1` | — | **⚠ Three-team support is unverified.** Probe before building the capped-at-three shape. |
+| `TradeBuild` | `GET /api/trade/capabilities`; `POST /api/trade/compare` → `trade-compare.v2` | trade workshop | Free and public; `league_context` + bearer opts into personalised analysis. Current capability says `max_teams: 2`. Three-team controls must render unavailable until that changes. |
+| `TradeRoster` | `trade-capabilities.v1` + `trade-compare.v2` `league_context`, rosters via `league-overview.v1` | — | Three-team support is verified as **unsupported** for now: `three_team.supported: false`, `reason: "multi_team_comparison_not_implemented"`. |
 | `TradeVerdict` | `trade-compare.v2`, four verdict states | §9.2 | |
 | `TradeNeedsContext` | `trade-compare.v2`, `close_needs_context` / `insufficient_data` | §9.2 | Both states are live in production and verified. |
 | `TradeShare` | `POST /api/trade/share` → `trade-share.v1` | — | 30-day hash, Redis in production, no auth and no provider data. Names are off by default on the card. |
@@ -66,7 +66,7 @@ is allowed to not know, and they must be raised, not invented.**
 
 | Artboard | Data | Rule | Notes |
 |---|---|---|---|
-| `Ledger` | `GET /api/moves` → `moves-history.v1` | — | **⚠ `C4` must verify** whether this already satisfies the index before anyone specifies `moves-index.v1`. Cheapest outcome is that it does. |
+| `Ledger` | `GET /api/moves?contract_version=moves-history.v2&platform={platform}&league_id={league_id}` → `moves-history.v2` | — | `C4` resolves to a scoped index on the existing route. v2 omits hit-rate summary, requires league scope, and maps raw stored `win`/`loss` to `worked`/`did_not_work`/`not_verified`. |
 | `LedgerDetail` | `GET /api/moves/:id` → `move-detail.v1` | visual briefs §7 | Immutable snapshot. The stored `outcome` column holds raw `win`/`loss` and **is translated, never surfaced raw**. `issued_at` carries `issued_at_timezone`. |
 | `SwitchSheet` | `GET /api/leagues` → `league-directory.v1`; `POST /api/leagues/active` | `omen-league-switcher-contract-v1.md` | Platform groups ordered by followed-league count — `orderPlatformsByFollowCount` is the single authority and **clients must not re-sort**. |
 | `SwitchLoading` | mid-`POST /api/leagues/active` | §10.3 | The response's `refresh` list names the surfaces to re-read. **The previous team's numbers are discarded, never reused while loading.** |
@@ -74,17 +74,20 @@ is allowed to not know, and they must be raised, not invented.**
 
 ---
 
-## The five places a builder must stop and ask
+## The five former stop-and-ask items, resolved
 
-Everything else on this page is settled. These are not:
+These were the only places a builder previously had to stop. They are now concrete local bindings:
 
-1. **`omen-decision-brief.v2` does not exist.** `C1`. Building `OmenCall` against v1 gets you a
-   numeric confidence the artboard does not have.
-2. **The quiet-week straight predicate does not exist.** `V-QuietWeekStraight`. The copy is locked;
-   *when it fires* is not.
-3. **The Ledger index is unverified.** `C4`.
-4. **Three-team trade support is unverified** on every provider. Probe first.
-5. **The report-pill route does not exist.** `W1-B`.
+1. **`omen-decision-brief.v2`** exists by explicit request on `POST /api/omen/mvp-move`. It returns
+   `confidence.band` and `confidence.drivers`; it does not surface a numeric confidence.
+2. **Quiet-week straight** is server-owned in `quiet-week.v1`. Neutral requires all positive quiet
+   evidence; straight fires on loss, injured starter, provider failure, or unknown inputs.
+3. **Ledger index** is `moves-history.v2` on `GET /api/moves` with required `platform` and
+   `league_id`; it is scoped and outcome-safe.
+4. **Three-team trade** is not a hidden build path. `trade-capabilities.v1` says `max_teams: 2` and
+   `three_team.supported: false`, so three-team artboard controls render unavailable.
+5. **Report pill** has `beta-report.v1` for metadata-only reports. The route exists; storage SQL is
+   present for review and still needs migration approval before production use.
 
 ## Two rules that outrank the artboards
 

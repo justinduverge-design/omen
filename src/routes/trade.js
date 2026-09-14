@@ -350,6 +350,12 @@ function createTradeRouter({
 } = {}) {
   const router = express.Router();
 
+  router.get("/capabilities", (_req, res) => res.json({
+    contract_version: "trade-capabilities.v1", max_teams: 2,
+    comparison: "two_sided", submission: "handoff_only",
+    three_team: { supported: false, reason: "multi_team_comparison_not_implemented" },
+  }));
+
   router.get("/pulse", async (_req, res) => {
     const unavailable = () => res.json({
       contract_version: "trade-pulse.v1", status: "unavailable", is_mock: false,
@@ -420,6 +426,13 @@ function createTradeRouter({
 
   router.post("/compare", async (req, res, next) => {
     try {
+      if (req.body?.teams != null || req.body?.participants != null
+        || (req.body?.team_count != null && req.body.team_count !== 2)) {
+        return res.status(422).json({
+          error: "multi_team_trade_unsupported", max_teams: 2,
+          message: "Omen compares two teams at a time. No three-team analysis was performed.",
+        });
+      }
       const validationError = validateTradePayload(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });

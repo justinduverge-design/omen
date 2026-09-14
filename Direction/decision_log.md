@@ -3116,3 +3116,17 @@ behaving; until then this entry records intent, not proof.
   cannot violate either unique index. #9 (CORS to Mozilla's observatory) returns zero hits from both
   `git grep` and a full filesystem scan; the app never calls that URL. Pull before reading code, and
   check whether an error is still happening before treating it as a defect.
+
+## 2026-09-14 — visual-lock contracts get local backend bindings before native build
+
+- **Decision: the five canvas binding gaps are backend-contract work before native screen work.** The 2026-09-13 visual lock named five places where implementation must stop instead of inferring: confidence bands, quiet-week straight, Ledger list semantics, three-team Trade support, and the report pill. This pass resolves them locally as explicit contracts so the next native build can bind to named server behavior instead of app-side judgment.
+
+- **Decision: `omen-decision-brief.v2` is additive and opt-in.** The existing Omen route keeps its prior default contract, while native can request the v2 presenter and receive qualitative confidence bands plus drivers without leaking numeric confidence fields into the screen contract.
+
+- **Decision: quiet-week straight is a server-owned predicate.** A quiet week is straight only when Omen is connected, no weekly move is available, the last result was a win, no starter injury is known, roster status is live, and no non-live signal was used. Loss, unknown result, injured starter, unknown starter health, and provider-read incompleteness produce the reflective quiet-week state instead of the straight variant.
+
+- **Decision: Ledger native list binds to `moves-history.v2`, scoped by platform and league.** The v2 list requires `platform` and `league_id`, omits summary hit-rate math, preserves unknown follow-through as `null`, and only maps a raw stored result into `worked` or `did_not_work` when reconciliation is exact.
+
+- **Decision: Trade declares two-team capability server-side.** `trade-capabilities.v1` says the native surface supports two-sided comparison and handoff-only submission. Three-team input returns an unsupported envelope; the client renders unavailable rather than presenting an entry point that the server cannot evaluate.
+
+- **Decision: beta reports are metadata-only with review-only storage SQL.** The API accepts only allowlisted screen, state, connection, message, consent, and diagnostic metadata. It rejects credentials, league/roster payloads, screenshots, and unacknowledged disclosure. The table definition lives in `sql/2026-09-14_beta_reports_review.sql` and has not been applied.
