@@ -237,3 +237,52 @@ gitignored — the pins are tracked, the payloads are not.
   locally, so this is a placement decision rather than a blocker.
 - **`playwright-core@1.49.1`** is 14 minors behind current.
 
+---
+
+# Addendum 3 — the three open items closed, both traps made structural
+
+## The three
+
+1. **LaTeX — installed.** `brew install --cask basictex` fails without a terminal password (the cask
+   runs `/usr/sbin/installer` under `sudo`). **TinyTeX** is the no-root equivalent: same TeX Live,
+   unpacked into `~/Library/TinyTeX`. Its installer was **read before running** rather than piped
+   from curl to sh; `--no-path` skips its only `sudo`, and binaries were linked into `~/.local/bin`
+   via `tlmgr`. `tlmgr` errored during `fmtutil`, so the only thing that settled it was rendering a
+   real `MathTex` scene. It renders.
+2. **Browser binaries — installed and exercised.** Chromium 131.0.6778.33 and WebKit 18.2, both
+   launched at 390×844 running this skill's own touch-target axis, which correctly flagged a 30px
+   button. Not "the file exists".
+3. **Render host — this was a defect, not a decision.** Both render skills said renders run on
+   **KVM1**. `AGENT.md` § Infrastructure Boundary: KVM1 is the **live app hosting lane** —
+   `omen_api` and `omen_cron` serving `https://slopssaloon.com`. It is the production API host, not
+   a render farm; a multi-minute CPU-saturating render there risks the live service to save a file
+   copy. **Corrected to local in both**, which is proved for both pipelines. The instruction
+   survived for months because the tools had never been installed, so it was never tested against
+   what KVM1 actually is.
+
+## Both traps are now caught by the tool, not by a note
+
+A note in a file is a control only if someone reads it.
+
+- **`min_version` in `requires:`** — `markitdown >= 0.1.0`, `manim >= 0.19.0`,
+  `headroom >= 0.30.0`. The uv-backtracking trap (a silently-installed two-year-old alpha) now
+  reports **NEEDS-INSTALL**, not READY. Tested with an impossible floor:
+  *"found 0.1.7 — BELOW the required 99.0.0."*
+- **manim's system libraries are declared dependencies**, not prose — `cairo`, `pango`, `pkgconf`,
+  `latex`, `dvisvgm`, `ffmpeg` are probed by name, so the checker states the cause before `pycairo`
+  fails with an opaque build error.
+
+## Two bugs of my own, found by the number moving
+
+The check went 8 → 7 after I added those probes. Both were mine: the `path:` probe could not expand
+`~`, so a machine-local cache in `$HOME` read as absent for binaries I had just launched; and an
+inserted `requires:` entry absorbed the previous entry's `install:`/`note:` lines. **The count
+moving in the wrong direction was the only signal** — every individual line still looked plausible.
+
+## Gates
+
+`skill-deps` **ready 8 · needs-install 1 · undeclared 0 · unreadable 0** · `link-skills` OK ·
+`truth-gate` **P0 0 P1 0** P2 2 · `valor-brain` 4/4 · `kickoff-drift` PASS · `npm test` 1100/1100.
+
+The remaining `needs-install` is `slops-voiceover`, hosted on another machine — correct, not a gap.
+
