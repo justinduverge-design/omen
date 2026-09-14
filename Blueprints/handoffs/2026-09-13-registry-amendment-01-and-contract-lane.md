@@ -211,3 +211,135 @@ not location: the contract must say the server emits a *sentence*, not only a fa
 nobody reads replaces invented prose people do.
 
 **Do not touch the ship-order gate** without landing `C3` in the same commit.
+
+
+---
+
+# Addendum — the scope-C canvas pass
+
+**Same day, after the founder answered the five open decisions.** Commits `4852fd7`, `eb0116a`,
+`a598d0e`, `8172ed3`, `90229a7`, `b22bd97`.
+
+## The five decisions
+
+| | Decision | Outcome |
+|---|---|---|
+| 1 | C7 — **the canvas wins**, registry grows to fit it | §2.4 replaced with a ramp |
+| 2 | Scope — **C, every screen** | 8 artboards → **30** |
+| 3 | Honest states — **fold them in** | one folder, states beside their parent screen |
+| 4 | Depth — **maximum** | annotation vocabulary added; overlays still to draw |
+| 5 | Quiet week — **draw it, split the predicate** | copy landed, predicate routed to `C5` |
+
+## 7. C7 — the audit changed the shape of the fix
+
+The canvas README fixed **nine** sizes and told readers to treat anything off that list as a defect.
+The CSS in those same eight files ran **twenty-two**. The canvas had been breaking its own rule
+thirteen times over, so this could not close by adding four rows to §2.4 — it needed a ramp:
+
+```
+10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 22 · 24 · 27 · 32 · 48
+```
+
+Fifteen roles, fourteen steps, floor at **10**. Every canvas value moved by at most 1px, and only
+two visibly: `21 → 22` on the screen title and `9 → 10` on the smallest labels — the second being
+the accessibility floor rather than a rounding. The floor is 10 and not Amendment 01's `chip` 11
+because holding 11 moved five distinct sizes and cost vertical room on three screens D11 requires
+not to scroll.
+
+## 8. One stylesheet, and why the obvious answer was wrong
+
+Thirty copies of 24KB of CSS drift — the 2026-08-31 registry is this repo's own proof.
+
+A shared `<link rel="stylesheet">` was tried **first and reverted**. It breaks the moment an artboard
+is opened from a `data:` URL, mailed, or unzipped, which is exactly the *open one file and it
+renders* property the `.dc.html` convention exists to protect. That was verified broken in the
+preview pane rather than assumed.
+
+The resolution keeps both properties: artboards stay **self-contained**, `_shared.css` is the
+**single source**, and a script writes one into the other.
+
+```bash
+node scripts/sync-canvas-css.mjs design/native-visual-lock-2026-09-13
+node scripts/sync-canvas-css.mjs design/native-visual-lock-2026-09-13 --check
+```
+
+Editing CSS inside an artboard is the mistake `--check` exists to catch. Artboards went ~25KB → ~3KB.
+
+## 9. Thirty screens — and the two gaps that justified scope C
+
+**The honest states had nowhere to live.** `C3`'s hatch and dashed treatments are what release the
+ship-order gate, and **you cannot lock a component that appears on no artboard.** The eight locked
+screens were all populated best-case. The carriers now exist on real screens: live is a solid fill,
+stub/sample is dashed plus a 45° hatch, unavailable is struck through, not-read is a dashed
+underline and self-reported a dotted one.
+
+**ESPN was undrawn** — the only confirmed beta failure on record, where iPhone had no path at all.
+`EspnConnect` states plainly that ESPN has no read-only sign-in, names both cookies without ever
+showing a value, and lists what Omen never does. `ConnectFailed` gives the 401 with an ordered
+recovery and says the other two leagues are unaffected.
+
+**Several screens exist to say no**, which is the part worth keeping:
+
+- `StartSitIncomplete` refuses a call across six of nine slots — *"would look like advice and be a guess."*
+- `WaiverNotDetermined` gives the player read and withholds the bid, because a bid invented without
+  the budget is worse than no bid.
+- `LeagueNoRosters` says the limit is **permanent for that provider, not an outage**, so nobody
+  builds a retry for it.
+- `TradeNeedsContext` calls itself a coin flip rather than dressing one as advice.
+
+Deliberately not carried forward: `CommandSwipe2` (the carousel, retired by the one-switcher
+decision) and `Main` (superseded by `CommandCenter`).
+
+## 10. `slops-ux-copy` — two real defects, and a stale skill
+
+**The sign-in hero read "Know the move."** `brand-system.md` lists *"Know your move before you make
+it"* under **Do not use**, because it implies the user already has the right answer and Omen tests
+instinct rather than flattering it. One word apart carries the same echo. Replaced with the approved
+alternate, **"See the move before the league does."**
+
+**Both quiet variants stated a call and carried no confidence band.** The voice rule is that
+confidence and risk stay visible wherever a recommendation exists, and `WaiverNoMove` already
+honoured it for the same kind of do-nothing call — the two quiet screens were the inconsistency.
+
+**Reported, not fixed:** the `slops-ux-copy` skill file itself cites *"Less guessing. Better moves."*
+as an approved anchor. `brand-system.md` retired that line with the Corvus name. The skill is a
+Layer 0 file and is not this repo's to edit.
+
+## 11. Identity providers — an asset request that was a review risk
+
+The founder asked for real brand colours on Google and Discord and an icon for email. Checking the
+spec first turned it into a governance item: `m4-auth-providers-v1-brief.md` records **five** enabled
+Supabase providers — email, Google, Apple, Discord, passkeys — with Discord already merged. The row
+was short a provider as well as wrong about two marks.
+
+**The bigger find:** "Continue with Apple" was a **brass fill** with the mark on `currentColor`.
+Apple permits that button in black, white, or outlined white and nothing else. **A gold Apple button
+is an App Store rejection surface**, and it would have shipped.
+
+The rule, now in registry §2.3 as a second colour exception and a narrower one: **the mark carries
+brand colour, the button stays neutral.** That keeps brass-only chrome intact and is independently
+what each vendor requires — the neutral row is Apple's black variant and also Google's own
+dark-theme button. No `fill-ring`: measured against `bg`, Discord is **3.58**, Google blue **4.63**,
+green **5.40**, red **4.21**, yellow **9.67**, so unlike the fantasy chips these marks hold their own
+silhouette.
+
+## 12. What was verified rather than asserted
+
+- Every class used in every artboard **is defined** in `_shared.css`.
+- All **30** artboards agree with the shared source (`--check`).
+- All **thirteen** declared-fits artboards measure **0px overflow** in the 844px frame, re-measured
+  after the type-floor change, after the ramp snap, and after the copy edits.
+- The four auth rows are **47px** each, clearing the 44pt touch floor.
+
+## 13. What remains, stated plainly
+
+- **Annotation overlays are not drawn.** The vocabulary is in `_shared.css`; the founder asked for
+  maximum depth and this is the part of that ask still outstanding.
+- **Overflow is unverified on the seventeen scrolling artboards.** They are declared scrolling, so
+  overflow is expected — but nothing has confirmed they are not overflowing *horizontally*.
+- **44pt touch targets** on the switcher `+`, chevron and favourite star remain a build-brief
+  concern; growing the geometry in an artboard would make the artboard wrong.
+- **Dynamic Type at 200%** is undefined, and scoreboard numerals break first.
+- **`slops-taste` and `slops-canvas-to-code` have not been run.** Taste is now unblocked because the
+  palette and ramp are settled; canvas-to-code should run last, as the exit gate that compiles each
+  artboard into a build contract.
