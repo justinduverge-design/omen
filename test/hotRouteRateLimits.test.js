@@ -330,7 +330,7 @@ test("server.js applies the hot-route limits before it mounts any router", () =>
 
 test("every documented hot route carries both a per-IP and a per-credential budget", () => {
   const documented = Object.entries(HOT_ROUTE_LIMITS);
-  assert.equal(documented.length, 3);
+  assert.equal(documented.length, 5);
 
   for (const [routeKey, spec] of documented) {
     assert.ok(Number.isInteger(spec.perIp) && spec.perIp > 0, `${routeKey} needs a per-IP budget`);

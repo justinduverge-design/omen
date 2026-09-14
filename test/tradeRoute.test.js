@@ -74,6 +74,20 @@ test("POST /api/trade/compare requires send array", async () => {
   assert.equal(res.body.error, "send must be a non-empty array");
 });
 
+test("Trade reports its two-team boundary and never silently drops a third team", async () => {
+  const app = buildApp();
+  const capabilities = await get(app, "/api/trade/capabilities");
+  assert.equal(capabilities.body.max_teams, 2);
+  for (const platform of ["espn", "yahoo", "sleeper"]) {
+    const res = await request(app, { body: {
+      send: [{ name: "A" }], receive: [{ name: "B" }],
+      teams: [{ id: 1 }, { id: 2 }, { id: 3 }], league_context: { platform },
+    } });
+    assert.equal(res.status, 422);
+    assert.equal(res.body.error, "multi_team_trade_unsupported");
+  }
+});
+
 test("GET /api/trade/pulse is explicitly unavailable without live ADP", async () => {
   const router = tradeRoutes.createTradeRouter({ tradePulseRedisClient: null });
   const res = await get(buildApp(router), "/api/trade/pulse");

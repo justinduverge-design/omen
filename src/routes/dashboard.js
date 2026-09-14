@@ -12,6 +12,7 @@ const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const sleeperAdapter = require("../adapters/sleeper");
 const yahooAdapter = require("../adapters/yahoo");
 const espnAdapter = require("../adapters/espn");
+const { quietWeek } = require("../services/quietWeek");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -286,6 +287,27 @@ router.get("/summary", requireAuth, async (req, res, next) => {
     });
   } catch (e) {
     return next(e);
+  }
+});
+
+// Opt-in so the ordinary dashboard never pays for recommendation generation.
+// This read does not issue or persist a move. Non-empty answers return no quiet variant.
+router.get("/quiet-week", requireAuth, async (req, res) => {
+  try {
+    const { buildLiveOmenMvpMoveForUser } = require("../services/omen");
+    if (req.query.context_id != null && (typeof req.query.context_id !== "string" || req.query.context_id.length > 128)) {
+      return res.status(400).json({ error: "invalid_context_id" });
+    }
+    const { body, status } = await buildLiveOmenMvpMoveForUser(req.user.id, { contextId: req.query.context_id ?? null });
+    let lastResult = null;
+    if (body.state === "empty") {
+      const rows = (await getPlatformRows(req.user.id)).filter((row) => row.platform === body.platform?.name && String(row.league_id) === String(body.league?.id));
+      const platforms = await buildPlatformSummaryForUser(rows, req.user.id);
+      lastResult = platforms[body.platform?.name]?.lastResult ?? null;
+    }
+    return res.status(status).json(quietWeek(body, lastResult));
+  } catch {
+    return res.status(503).json({ ...quietWeek(null, null), error: "quiet_week_unavailable" });
   }
 });
 

@@ -110,6 +110,38 @@ function seedStore() {
       { user_id: "user-1", id: "move-1", feature: "omen", move_type: "start_sit", created_at: "2026-01-01T00:00:00.000Z" },
       { user_id: "user-2", id: "move-2", feature: "omen", move_type: "waiver", created_at: "2026-01-01T00:00:00.000Z" },
     ],
+    beta_reports: [
+      {
+        user_id: "user-1",
+        id: "report-1",
+        screen: "command_center",
+        message: "owner report",
+        app_version: "1.0",
+        build: "100",
+        os_version: "iOS 26.0",
+        device_model: "iPhone",
+        connection_state: "espn:connected",
+        recent_error_codes: ["sample"],
+        disclosure_accepted: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        expires_at: "2026-01-31T00:00:00.000Z",
+      },
+      {
+        user_id: "user-2",
+        id: "report-2",
+        screen: "trade",
+        message: "other user report",
+        app_version: "1.0",
+        build: "100",
+        os_version: "Android 17",
+        device_model: "Pixel",
+        connection_state: "sleeper:connected",
+        recent_error_codes: ["other"],
+        disclosure_accepted: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        expires_at: "2026-01-31T00:00:00.000Z",
+      },
+    ],
     oauth_state: [
       { user_id: "user-1", state: "state-1", platform: "yahoo" },
       { user_id: "user-2", state: "state-2", platform: "yahoo" },
@@ -185,12 +217,14 @@ test("GET /export returns only the requesting user's data, never another user's"
   assert.deepEqual(res.body.platform_connections.map((c) => c.platform_username), ["user-1-handle"]);
   assert.deepEqual(res.body.consent_records.map((c) => c.user_id), ["user-1"]);
   assert.deepEqual(res.body.moves.map((m) => m.id), ["move-1"]);
+  assert.deepEqual(res.body.beta_reports.map((r) => r.id), ["report-1"]);
 
   // Cross-user leak assertions: user-2's data must not appear anywhere in the response.
   const serialized = JSON.stringify(res.body);
   assert.ok(!serialized.includes("user-2"));
   assert.ok(!serialized.includes("user2@example.com"));
   assert.ok(!serialized.includes("user-2-handle"));
+  assert.ok(!serialized.includes("other user report"));
 });
 
 test("POST /consent upserts a consent row scoped to the authenticated user, ignoring any body-supplied user id", async () => {
@@ -245,6 +279,7 @@ test("DELETE /delete removes only the requesting user's rows, never another user
 
   // user-1's rows are gone from every user-owned table.
   assert.equal(store.moves.some((m) => m.user_id === "user-1"), false);
+  assert.equal(store.beta_reports.some((r) => r.user_id === "user-1"), false);
   assert.equal(store.platform_connections.some((c) => c.user_id === "user-1"), false);
   assert.equal(store.oauth_state.some((s) => s.user_id === "user-1"), false);
   assert.equal(store.consent_records.some((c) => c.user_id === "user-1"), false);
@@ -252,6 +287,7 @@ test("DELETE /delete removes only the requesting user's rows, never another user
 
   // user-2's rows are untouched.
   assert.equal(store.moves.some((m) => m.user_id === "user-2"), true);
+  assert.equal(store.beta_reports.some((r) => r.user_id === "user-2"), true);
   assert.equal(store.platform_connections.some((c) => c.user_id === "user-2"), true);
   assert.equal(store.oauth_state.some((s) => s.user_id === "user-2"), true);
   assert.equal(store.consent_records.some((c) => c.user_id === "user-2"), true);

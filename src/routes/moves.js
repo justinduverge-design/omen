@@ -82,21 +82,42 @@ function buildSummary(moves = []) {
 
 router.get("/", requireAuth, async (req, res, next) => {
   try {
+    const native = req.query.contract_version === "moves-history.v2";
+    if (req.query.contract_version && !native && req.query.contract_version !== "moves-history.v1") {
+      return res.status(400).json({ error: "unsupported_moves_contract" });
+    }
+    if (native && (!["espn", "yahoo", "sleeper"].includes(req.query.platform)
+      || typeof req.query.league_id !== "string" || !req.query.league_id.trim() || req.query.league_id.length > 128)) {
+      return res.status(400).json({ error: "ledger_context_required" });
+    }
     const season = parsePositiveInteger(req.query.season, defaultSeason(), { max: 9999 });
     const limit = parsePositiveInteger(req.query.limit, 20, { max: 100 });
 
     if (!season) return res.status(400).json({ error: "season must be a positive integer" });
     if (!limit) return res.status(400).json({ error: "limit must be an integer between 1 and 100" });
 
-    const { data, error } = await supabase
+    const load = (columns) => {
+      let query = supabase
       .from("moves")
-      .select("id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at")
+      .select(columns)
       .eq("user_id", req.user.id)
       .eq("season", season)
       .order("created_at", { ascending: false })
       .limit(limit);
+      if (native) query = query.eq("platform", req.query.platform).eq("league_id", req.query.league_id);
+      return query;
+    };
+
+    let { data, error } = await load(native ? DETAIL_COLUMNS : "id,week_num,season,move_type,headline,reasoning,followed,user_stars,outcome,eff,created_at");
+    if (native && error && isMissingColumnError(error)) ({ data, error } = await load(DETAIL_COLUMNS_LEGACY));
 
     if (error) throw new Error(`moves lookup failed: ${error.message}`);
+
+    if (native) return res.json({
+      contract_version: "moves-history.v2",
+      generated_at: nowIso(), season,
+      moves: (Array.isArray(data) ? data : []).map(ledgerRow),
+    });
 
     const moves = (Array.isArray(data) ? data : []).map(normalizeMove);
     return res.json({
@@ -110,6 +131,22 @@ router.get("/", requireAuth, async (req, res, next) => {
     return next(e);
   }
 });
+
+function ledgerRow(row) {
+  // Legacy records have no provenance field. Do not equate a result string or
+  // a user's follow report with provider-verified scoring.
+  const verified = row.reconciliation_state === "exact" && ["win", "loss"].includes(row.outcome);
+  return {
+    id: row.id, season: row.season, week: row.week_num,
+    move_type: row.move_type || null, headline: recommendationFrom(row),
+    issued_at: row.created_at || null, issued_at_timezone: "UTC",
+    followed: typeof row.followed === "boolean" ? row.followed : null,
+    action_provenance: typeof row.followed === "boolean" ? "self_reported" : "unknown",
+    provenance: verified ? "verified" : "unknown",
+    outcome: row.outcome === "pending" || !row.outcome ? "pending"
+      : verified ? (row.outcome === "win" ? "worked" : "did_not_work") : "not_verified",
+  };
+}
 
 
 // --- Ledger detail (visual briefs §7) ---------------------------------------

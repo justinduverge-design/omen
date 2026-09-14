@@ -163,6 +163,23 @@ test("GET /api/moves returns empty history with current season default", async (
   assert.deepEqual(res.body.moves, []);
 });
 
+test("Ledger v2 scopes rows and exposes unknown provenance without raw outcomes or hit rates", async () => {
+  const rows = [
+    { id: "a", user_id: "user-1", platform: "espn", league_id: "123", season: 2026, week_num: 1, headline: "Hold", followed: null, outcome: "loss", created_at: "2026-09-10T00:00:00Z" },
+    { id: "other-league", user_id: "user-1", platform: "espn", league_id: "456", season: 2026, headline: "Other team" },
+    { id: "private", user_id: "user-2", season: 2026, week_num: 1, headline: "Private" },
+  ];
+  const { app } = buildApp({ rows });
+  const res = await request(app, "/api/moves?contract_version=moves-history.v2&platform=espn&league_id=123");
+  assert.equal(res.body.contract_version, "moves-history.v2");
+  assert.equal(res.body.moves.length, 1);
+  assert.equal(res.body.moves[0].followed, null);
+  assert.equal(res.body.moves[0].provenance, "unknown");
+  assert.equal(res.body.moves[0].issued_at_timezone, "UTC");
+  assert.equal(res.body.moves[0].outcome, "not_verified");
+  assert.equal(res.body.summary, undefined);
+});
+
 test("GET /api/moves maps moves and computes W/L effectiveness summary", async () => {
   const rows = [
     {

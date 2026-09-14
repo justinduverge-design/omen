@@ -235,6 +235,8 @@ try {
 }
 
 // --- Mount /api/moves (Omen history + W/L effectiveness) --------
+app.use("/api/beta/reports", require("./routes/betaReports").createBetaReportsRouter());
+
 try {
   const movesRoutes = require("./routes/moves");
   app.use("/api/moves", movesRoutes);

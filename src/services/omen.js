@@ -736,6 +736,7 @@ function liveEmptyMvpResponse({ roster, connection, connectedPlatforms, waiverSi
     data_used: [`${platformLabel} roster`, "normalized lineup slots", "optimizer projection edge"],
   };
   response.confidence = confidence(68, "medium", `No ${platformLabel} lineup swap cleared the optimizer threshold.`);
+  response.quiet_inputs = { injured_starter: require("./quietWeek").starterInjuryState(roster) };
   return { status: 200, body: response };
 }
 

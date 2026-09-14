@@ -74,6 +74,8 @@ const HOT_ROUTE_WINDOW_MS = 60 * 1000;
  *   the loosest of the three.
  */
 const HOT_ROUTE_LIMITS = Object.freeze({
+  quiet_week: Object.freeze({ method: "GET", path: "/api/dashboard/quiet-week", perIp: 20, perUser: 10 }),
+  beta_report: Object.freeze({ method: "POST", path: "/api/beta/reports", perIp: 20, perUser: 5 }),
   omen_mvp_move: Object.freeze({
     method: "POST",
     path: "/api/omen/mvp-move",

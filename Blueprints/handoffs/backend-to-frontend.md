@@ -4138,3 +4138,44 @@ branches correctly today needs no rework then.
   bid constants (`SEASON_DEFINING_POINTS`, `VALUATION_HORIZON_WEEKS`) are judgement calls and are
   **not founder-ratified** — they shape every bid and have never been checked against a real
   waiver period.
+
+## Native visual-lock bindings — 2026-09-14
+
+Status: implemented locally on `design/canvas-as-source-of-truth`; not pushed, merged, deployed, or production-smoked. Storage SQL is review-only and has not been applied.
+
+### `POST /api/omen/mvp-move` — optional `omen-decision-brief.v2`
+
+Clients may pass `contract_version: "omen-decision-brief.v2"`. The legacy default remains `2026-05-18.omen-live.v1` for existing callers. v2 replaces numeric confidence presentation with:
+
+```json
+{
+  "confidence": {
+    "band": "confident",
+    "drivers": ["Clearer weekly edge", "Live roster read"]
+  }
+}
+```
+
+The v2 response strips numeric confidence aliases from nested payloads. Unsupported requested contracts return `400 unsupported_omen_contract`.
+
+### `GET /api/dashboard/quiet-week`
+
+Authenticated. Optional query: `context_id` up to 128 characters. Response contract: `quiet-week.v1`.
+
+A straight quiet-week variant appears only when the user is connected, no weekly move exists, the most recent result was a win, no starter injury is known, the roster read is live, and no non-live signal was used. Otherwise the response names the reason, such as `recent_loss`, `recent_result_unknown`, `injured_starter`, `starter_health_unknown`, or `provider_read_incomplete`. Clients render the returned `variant`; do not re-derive this locally.
+
+### `GET /api/moves?contract_version=moves-history.v2&platform={platform}&league_id={league_id}`
+
+Authenticated. `platform` is `espn`, `yahoo`, or `sleeper`; `league_id` is required. Missing scope returns `400 ledger_context_required`. v2 is scoped to the requested league, omits hit-rate summary math, preserves unknown follow-through as `null`, and exposes `worked`, `did_not_work`, or `not_verified` only after exact reconciliation.
+
+### `GET /api/trade/capabilities` and `POST /api/trade/compare`
+
+`GET /api/trade/capabilities` returns `trade-capabilities.v1` with `max_teams: 2`, `comparison: "two_sided"`, `submission: "handoff_only"`, and `three_team.supported: false`. `POST /api/trade/compare` rejects three-team or multi-participant requests with `422 multi_team_trade_unsupported`. Native should render the three-team state as unavailable, not as a hidden calculation.
+
+### `GET /api/beta/reports/schema` and `POST /api/beta/reports`
+
+`GET /api/beta/reports/schema` returns `beta-report.v1`, the supported screen enum, `screenshots_supported: false`, and the required disclosure string. `POST /api/beta/reports` is authenticated and metadata-only: screen, state, connection state, message, optional client timestamp, app/device metadata, consent flag, and short recent error codes. It rejects screenshots, credentials, league data, roster data, unknown fields, and missing disclosure acknowledgement.
+
+Storage uses `public.beta_reports`; the review-only SQL is `sql/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
+
+Verification: `npm test` 1100/1100, including `test/omenMvpLiveRoute.test.js`, `test/dashboardQuietWeekRoute.test.js`, `test/movesRoute.test.js`, `test/tradeRoute.test.js`, `test/betaReports.test.js`, `test/userPrivacyIsolation.test.js`, and hot-route rate-limit coverage. `git diff --check` clean.

@@ -21,6 +21,7 @@ const {
 } = require("../services/omen");
 const llm = require("../services/llm");
 const matchupService = require("../services/matchupService");
+const { CONTRACT: BRIEF_V2, decisionBriefV2 } = require("../services/decisionBriefV2");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -549,6 +550,11 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
 });
 
 router.post("/mvp-move", async (req, res) => {
+  const requestedContract = req.body?.contract_version;
+  if (requestedContract != null && ![BRIEF_V2, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
+    return res.status(400).json({ error: "unsupported_omen_contract" });
+  }
+  const present = (body) => requestedContract === BRIEF_V2 ? decisionBriefV2(body) : body;
   if (!isExplicitMockRequest(req.body || {})) {
     const result = await liveOmenResult(req);
     try {
@@ -564,7 +570,7 @@ router.post("/mvp-move", async (req, res) => {
     try {
       await persistLiveRecommendation(result.authenticatedUser, result.body);
     } catch {
-      return res.status(503).json({
+      return res.status(503).json(present({
         ...result.body,
         state: "error",
         recommendation: null,
@@ -573,9 +579,9 @@ router.post("/mvp-move", async (req, res) => {
           message: "Omen could not safely record this recommendation, so no move was issued.",
           retryable: true,
         },
-      });
+      }));
     }
-    return res.status(result.status).json(result.body);
+    return res.status(result.status).json(present(result.body));
   }
 
   const result = buildOmenMvpMoveResponse(req.body || {});
@@ -589,7 +595,7 @@ router.post("/mvp-move", async (req, res) => {
   } catch {
     // LLM explanation is an enhancement only. Keep deterministic response.
   }
-  return res.status(result.status).json(result.body);
+  return res.status(result.status).json(present(result.body));
 });
 
 module.exports = router;

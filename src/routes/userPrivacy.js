@@ -58,6 +58,7 @@ async function selectRows(table, columns, userId) {
     .from(table)
     .select(columns)
     .eq("user_id", userId);
+  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return [];
   if (error) throw new Error(`${table} export failed: ${error.message}`);
   return Array.isArray(data) ? data : [];
 }
@@ -74,6 +75,7 @@ async function selectUserProfile(userId) {
 
 async function deleteWhereUserId(table, userId) {
   const { error } = await supabase.from(table).delete().eq("user_id", userId);
+  if (table === "beta_reports" && ["42P01", "PGRST205"].includes(error?.code)) return;
   if (error) throw new Error(`${table} delete failed: ${error.message}`);
 }
 
@@ -114,6 +116,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       platformRows,
       consentRows,
       moveRows,
+      reportRows,
     ] = await Promise.all([
       selectUserProfile(userId),
       selectRows(
@@ -123,6 +126,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       ),
       selectRows("consent_records", "consent_type,granted,granted_at,withdrawn_at,ip_address,user_agent", userId),
       selectRows("moves", "id,feature,move_type,created_at,updated_at", userId),
+      selectRows("beta_reports", "id,message,screen,app_version,build,os_version,device_model,connection_state,recent_error_codes,disclosure_accepted,created_at,expires_at", userId),
     ]);
 
     return res.json({
@@ -132,6 +136,7 @@ router.get("/export", requireAuth, async (req, res, next) => {
       platform_connections: platformRows.map(redactPlatformConnection),
       consent_records: consentRows,
       moves: moveRows,
+      beta_reports: reportRows,
       redactions: [
         "Raw OAuth tokens are excluded.",
         "ESPN cookies are excluded.",
@@ -231,6 +236,7 @@ router.delete("/delete", requireAuth, async (req, res, next) => {
 
     await Promise.all([
       deleteWhereUserId("moves", userId),
+      deleteWhereUserId("beta_reports", userId),
       deleteWhereUserId("platform_connections", userId),
       deleteWhereUserId("oauth_state", userId),
       deleteWhereUserId("consent_records", userId),
