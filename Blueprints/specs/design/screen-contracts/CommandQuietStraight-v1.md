@@ -23,6 +23,18 @@ Compiled from `design/native-visual-lock-2026-09-13/CommandQuietStraight.dc.html
 - `data-stub` and `data-mock` stay in platform token files until C3 lands dashed/hatch carriers.
 - Components are resolved to foundation or Omen composition names. If a platform has no matching component, implement the named component first; do not invent a local primitive.
 
+## Experience contract
+
+Command is the general manager view, not the head coach headset. It should feel like stepping back from the field to see the whole organization for this week: matchup state, lineup pressure, waiver opportunity, trade openings, league movement, and recent evidence. Each card is a light brief that helps the user decide where to go next.
+
+Build acceptance:
+
+- Show breadth before depth: one scannable read per active domain, then route to the destination that owns the detail.
+- Keep the tone current and calm. Command can say what matters now, but it does not litigate every calculation.
+- Do not duplicate Omen's single-move authority. If a card points at Omen, it says why the user should inspect it; it does not become the Omen result.
+- Do not hide unavailable domains. If waivers, league activity, trades, or ledger evidence are unavailable, Command names the gap and keeps the rest of the desk useful.
+- The screen passes only if a user can answer, in under ten seconds: what is happening this week, what area needs attention, and where to tap for depth.
+
 ## Literal strings
 
 - `3:50`

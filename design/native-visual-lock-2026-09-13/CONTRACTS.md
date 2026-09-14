@@ -12,6 +12,16 @@ builder must render that honest state rather than infer a happier one.
 
 ---
 
+## Experience model added 2026-09-14
+
+The verified route binding is necessary, but the native build also inherits the destination job. These are governing rules for the contracts in `Blueprints/specs/design/screen-contracts/`:
+
+- **Command** is the general manager's desk: an aerial, light, weekly brief across matchup, roster pressure, waiver opportunity, trade openings, league movement, and recent evidence. It routes to depth; it does not become the detailed surface for every domain.
+- **Omen** is the single weekly play: start, sit, pickup, drop, or trade. When there is no defensible single play, the page explains why holding is the recommendation instead of filling the screen with a weak move.
+- **Trade** is the argument-settler: the place a manager opens when the league chat is debating fairness, value, veto, or whether to make the offer. It must show both sides and state the caveat.
+- **League** is the scout room: standings pressure, opponent needs, trade openings, waiver context, and activity. It surfaces intelligence quality, including provider gaps, rather than hiding asymmetry.
+- **Ledger** is the receipts: verified outcomes, self-reported action, and unknown follow-through stay visually and semantically separate.
+
 ## Onboarding & connection
 
 | Artboard | Data | Rule | Notes |

@@ -23,6 +23,18 @@ Compiled from `design/native-visual-lock-2026-09-13/LeagueTable.dc.html` on 2026
 - `data-stub` and `data-mock` stay in platform token files until C3 lands dashed/hatch carriers.
 - Components are resolved to foundation or Omen composition names. If a platform has no matching component, implement the named component first; do not invent a local primitive.
 
+## Experience contract
+
+League is the scout room. It should feel like Omen has people watching the whole league: standings pressure, opponent needs, trade openings, waiver shape, matchup context, and recent movement. This is where the user learns what everyone else is likely to do next.
+
+Build acceptance:
+
+- Put league intelligence before decoration: standings, pressure, needs, openings, waiver context, and activity each earn their space by changing what the user would do.
+- Provider gaps are part of the intelligence picture. If ESPN, Yahoo, or Sleeper cannot provide a feed, say which section is partial instead of averaging the league into a false complete state.
+- The League screen can suggest where to hunt, but the detailed trade verdict belongs in Trade and the final weekly move belongs in Omen.
+- Opponent reads must be specific enough to act on: "thin at RB" beats generic strength/weakness labels.
+- The screen passes only if it helps a user spot an opening they would have missed by looking only at their own roster.
+
 ## Literal strings
 
 - `3:50`

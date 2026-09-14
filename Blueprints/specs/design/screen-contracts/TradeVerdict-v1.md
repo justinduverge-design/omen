@@ -23,6 +23,18 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeVerdict.dc.html` on 202
 - `data-stub` and `data-mock` stay in platform token files until C3 lands dashed/hatch carriers.
 - Components are resolved to foundation or Omen composition names. If a platform has no matching component, implement the named component first; do not invent a local primitive.
 
+## Experience contract
+
+Trade is the argument-settler and advisor. A user should open it when a league chat is debating whether a deal is fair, smart, close, insulting, or veto-worthy. It must be good enough to become the shared reference in that argument.
+
+Build acceptance:
+
+- Show both sides in a way a commissioner, manager, or skeptical friend can understand without reading hidden math.
+- State the verdict plainly: who benefits, whether it is close, what risk could change the answer, and whether the result supports a fair-trade or veto conversation.
+- Keep advice separate from action. Until the server supports sending offers, Trade is analysis and handoff only.
+- Close or insufficient-data trades must still help: name the missing context and what would make the answer stronger.
+- The share state must be quotable: it should carry the verdict, the why, and the caveat without leaking private roster data beyond what the user chose to analyze.
+
 ## Literal strings
 
 - `3:50`

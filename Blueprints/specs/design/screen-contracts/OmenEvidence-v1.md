@@ -23,6 +23,18 @@ Compiled from `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html` on 202
 - `data-stub` and `data-mock` stay in platform token files until C3 lands dashed/hatch carriers.
 - Components are resolved to foundation or Omen composition names. If a platform has no matching component, implement the named component first; do not invent a local primitive.
 
+## Experience contract
+
+Omen is the single weekly play. The server may choose a start, sit, pickup, drop, or trade, but the screen must behave like one decisive recommendation, not a menu of maybe-actions.
+
+Build acceptance:
+
+- Lead with the move when there is one, then explain why it matters, confidence band, risk, and the live evidence behind it.
+- If there is no defensible play, the screen leads with the reason there is no Omen this week: optimized roster, no safe edge, missing provider read, off-season, or unavailable scoring evidence.
+- A no-play week is still useful. It should tell the user what was checked and why forcing a move would be worse.
+- Never rank several candidates on the Omen screen. Other destinations can explore; Omen decides or declines to decide.
+- A fallback state must not sound apologetic or broken when the honest answer is "hold."
+
 ## Literal strings
 
 - `3:50`

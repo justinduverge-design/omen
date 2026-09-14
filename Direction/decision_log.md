@@ -3130,3 +3130,13 @@ behaving; until then this entry records intent, not proof.
 - **Decision: Trade declares two-team capability server-side.** `trade-capabilities.v1` says the native surface supports two-sided comparison and handoff-only submission. Three-team input returns an unsupported envelope; the client renders unavailable rather than presenting an entry point that the server cannot evaluate.
 
 - **Decision: beta reports are metadata-only with review-only storage SQL.** The API accepts only allowlisted screen, state, connection, message, consent, and diagnostic metadata. It rejects credentials, league/roster payloads, screenshots, and unacknowledged disclosure. The table definition lives in `sql/2026-09-14_beta_reports_review.sql` and has not been applied.
+
+## 2026-09-14 — destination jobs for native visual lock
+
+- **Decision: Command is the general manager's desk.** It is an aerial weekly brief across the team, matchup, waivers, trade openings, league movement, and recent evidence. It should feel light and current, not like the head coach headset or a deep analytics page. Command routes to depth; it does not master every domain inside one screen.
+
+- **Decision: Omen is the single weekly play, including the honest no-play.** Omen may recommend a start, sit, pickup, drop, or trade. If there is no defensible singular move, the product still owes the user a useful answer: what was checked, why no move clears the bar, and whether holding is better than forcing action.
+
+- **Decision: Trade is the argument-settler.** The Trade destination should become the place a fantasy group chat opens when people are debating fairness, value, veto, or whether to make an offer. The contract must make both sides, verdict, caveat, and shareable reasoning obvious.
+
+- **Decision: League is the scout room.** League should feel like Omen has people watching everyone else: standings pressure, opponent needs, waiver shape, trade openings, and recent movement. Provider gaps are part of the intelligence quality and should be shown honestly rather than smoothed over.

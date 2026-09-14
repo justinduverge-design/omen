@@ -12,6 +12,19 @@ These are build contracts, not native screen code. They bind every artboard to t
 - Feature screens must use registry token names, type roles, and spacing constants. Do not use raw hex or ad-hoc spacing.
 - `data-stub` and `data-mock` remain in both native token files until C3 lands the hatch/dashed carriers.
 
+
+## Destination experience contract
+
+These contracts carry the experience model as a build requirement. The element tables say what to draw; this section says what each destination must feel like when the data is real, missing, or disputed.
+
+| Destination | Product job | Contract test |
+|---|---|---|
+| Command | The general manager's desk: an aerial weekly read across the team, the matchup, waivers, trade openings, league movement, and recent evidence. It is light, current, and directional. | It must give one scannable read per domain and route to depth. It must not become the detailed Trade, League, Ledger, or Omen screen inside Command. |
+| Omen | The one weekly play: start, sit, pickup, drop, or trade. | If there is no defensible single move, the screen must explain why: already optimized, no safe edge, missing provider read, or unavailable scoring evidence. It must never invent a move to fill the page. |
+| Trade | The place people open when the group chat is arguing whether a trade is fair, worth doing, or veto-worthy. | It must answer the argument in plain language, show both sides, name close calls, and keep submission handoff-only until the server supports real sending. |
+| League | The scout room: league intelligence, opponent needs, standings pressure, waiver context, recent activity, and exploitable openings. | It must expose what Omen knows about the league and say exactly which feeds are partial or unavailable. Provider asymmetry is shown as intelligence quality, not hidden. |
+| Ledger | The receipts. | It must separate verified outcomes from self-reported or unknown action. Unknown follow-through stays unknown. |
+
 ## Ordered contracts
 
 | Order | Contract | API contract | Scroll | Elements | Strings | Controls | Symbols |
