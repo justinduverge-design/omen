@@ -17,25 +17,98 @@ artifact of record for those.
 
 Where the two disagree on a screen listed below, **this folder wins**.
 
-## The screens
+## The screens — 30 artboards, six families
+
+**Scope C, founder 2026-09-13: every screen, not just the happy path.** The eight locked screens
+were all populated best-case, which left the honest states with nowhere to live and left ESPN — the
+only confirmed beta failure on record — undrawn.
+
+### Onboarding & connection
 
 | File | Screen | Scroll |
 |---|---|---|
-| `CommandCenter.dc.html` | Command Center — scoreboard, waiver seat, ledger row | fits |
-| `OmenCall.dc.html` | Omen — one call per team, per week | fits |
-| `CommandQuiet.dc.html` | Command Center — quiet week, neutral variant | fits |
-| `LeagueTable.dc.html` | League — table, trade targets, waiver, activity | scrolls |
-| `TradeBuild.dc.html` | Trade — partners, filters, three teams, execution steps | scrolls |
-| `Ledger.dc.html` | The Ledger — every call and how it went | scrolls |
-| `SwitchSheet.dc.html` | Team switcher sheet over Trade | — |
-| `Account.dc.html` | Account | scrolls |
+| `SignIn.dc.html` | One door, three ways through | fits |
+| `EmailCode.dc.html` | Six digits, one screen | fits |
+| `ConnectLeague.dc.html` | Three providers, honest about each | fits |
+| `EspnConnect.dc.html` | **ESPN — consent before the sheet** | scrolls |
+| `ConnectFailed.dc.html` | **ESPN — failed, and what to do** | scrolls |
 
-Each is one 390×844 artboard, plain HTML with inline styles and a Google Fonts link. Open one in a
-browser and it renders on its own — no build step, no `support.js`. `canvas.json` is the layout.
+### Command Center
 
-**"Fits" is a requirement, not an observation** (D11). Command Center, Omen and the quiet week must
-render with nothing below the fold and nothing clipped by the tab bar. If an edit pushes content out
-of the 844px frame, the edit is wrong, not the frame.
+| File | Screen | Scroll |
+|---|---|---|
+| `CommandCenter.dc.html` | The week — scoreboard, waiver seat, ledger row | **fits** |
+| `CommandQuiet.dc.html` | Quiet week, **neutral** variant | **fits** |
+| `CommandQuietStraight.dc.html` | Quiet week, **straight** variant — the voice fence | **fits** |
+| `CommandNoLeague.dc.html` | No league connected | fits |
+| `ReportPill.dc.html` | The beta report pill in place | fits |
+
+### Omen
+
+| File | Screen | Scroll |
+|---|---|---|
+| `OmenCall.dc.html` | One call per team, per week | **fits** |
+| `OmenEvidence.dc.html` | The full argument, expanded | scrolls |
+| `StartSitClear.dc.html` | Nothing to change, said confidently | fits |
+| `StartSitIncomplete.dc.html` | Six of nine slots — so no call at all | scrolls |
+
+### League & waiver
+
+| File | Screen | Scroll |
+|---|---|---|
+| `LeagueTable.dc.html` | The table, trade targets, waiver, activity | scrolls |
+| `LeagueWaiver.dc.html` | The waiver section in full | scrolls |
+| `WaiverNoMove.dc.html` | Nothing on the wire beats what you have | fits |
+| `WaiverNotDetermined.dc.html` | The waiver system itself is unknown | scrolls |
+| `LeagueDegraded.dc.html` | Partial provider, section by section | scrolls |
+| `LeagueNoRosters.dc.html` | No rosters, so no trade read — permanently | scrolls |
+
+### Trade
+
+| File | Screen | Scroll |
+|---|---|---|
+| `TradeBuild.dc.html` | Partners, filters, three teams, execution steps | scrolls |
+| `TradeRoster.dc.html` | Picking from real rosters | scrolls |
+| `TradeVerdict.dc.html` | The read and the counter | scrolls |
+| `TradeNeedsContext.dc.html` | Too close to call blind | scrolls |
+| `TradeShare.dc.html` | Share the read, names off by default | scrolls |
+
+### Ledger, switcher, account
+
+| File | Screen | Scroll |
+|---|---|---|
+| `Ledger.dc.html` | Every call and how it went | scrolls |
+| `LedgerDetail.dc.html` | One call, in full — including a loss | scrolls |
+| `SwitchSheet.dc.html` | The sheet, favourites in star order | fits |
+| `SwitchLoading.dc.html` | Mid-switch — nothing reused, nothing invented | fits |
+| `Account.dc.html` | Identity, connections, support | scrolls |
+
+**"Fits" is a requirement, not an observation** (D11) and it is **measured, not eyeballed**. Thirteen
+artboards are declared fits and every one reports **0px overflow** in the 844px frame. If an edit
+pushes content out, the edit is wrong, not the frame.
+
+### Deliberately not carried forward
+
+- **`CommandSwipe2`** — the Command Center carousel. Retired by the one-switcher decision; the
+  matchup rail already swipes leagues, so the carousel was the same gesture twice, six pixels apart.
+- **`Main`** — superseded by `CommandCenter.dc.html`.
+
+## How the CSS works — read this before editing
+
+Every artboard carries the **same stylesheet inline**, so opening one file in a browser renders it
+with no build step, no sibling fetch, and no server. That property is the point of the `.dc.html`
+convention and it is worth keeping: a relative `<link>` breaks the moment an artboard is opened from
+a `data:` URL, mailed, or unzipped. That was tried here first and is why it was reverted.
+
+The cost of that choice is thirty copies of the same CSS, which drift. So:
+
+```bash
+node scripts/sync-canvas-css.mjs design/native-visual-lock-2026-09-13
+node scripts/sync-canvas-css.mjs design/native-visual-lock-2026-09-13 --check
+```
+
+`_shared.css` is the **single source**. Editing CSS inside an artboard is the mistake `--check`
+exists to catch. Run the sync after touching `_shared.css`; run `--check` before you commit.
 
 ## Reading the tokens out
 
