@@ -8,6 +8,11 @@ default_agent: Claude
 trigger: none
 version: 0.2.0
 upstream: voicebox@v0.5.0
+requires:
+  - name: voicebox (local REST)
+    http: http://127.0.0.1:17493/health
+    install: FOUNDER-ONLY — install voicebox v0.5.0 from github.com/jamiepine/voicebox/releases and start it. Detect-only by design; this skill never installs it.
+    note: loopback-only probe. A non-loopback host is refused, so this check can never become egress.
 owner: Justin
 ---
 

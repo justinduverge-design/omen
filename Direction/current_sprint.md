@@ -82,8 +82,9 @@ Every task plan must name the selected skills and explain why any normally requi
 
 - **Core docs:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-git-flow`
 - **Core implementation:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-quality-baseline`, `slops-code-review`
-- **UI / UX — web:** core implementation + `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change
-- **UI / UX — native (iOS + Android):** core implementation + `slops-taste`, **`slops-canvas-to-code`** (before the build, whenever the screen has an artboard), **`slops-native-ui-audit`** (for the verdict), `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change. **Do not use `slops-ui-ux-audit` for native** — it audits a partially-superseded web spec in web units.
+- **UI / UX — web:** core implementation + **`slops-taste` §A (the web route)**, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change. `slops-mobile-smoke` currently reports `NEEDS-INSTALL` — `playwright-core` is absent despite the skill having claimed it was vendored.
+- **UI / UX — native (iOS + Android):** core implementation + **`slops-taste` §B (the native route — not §A)**, **`slops-canvas-to-code`** (before the build, whenever the screen has an artboard), **`slops-native-ui-audit`** (for the verdict); add `slops-ux-copy` when user-facing words change. **Do not use `slops-ui-ux-audit` for native** — it audits a partially-superseded web spec in web units. **Do not use `slops-mobile-smoke` for native either** — it is web-only, drives a desktop browser at phone viewports, and cannot launch either native app. Use `slops-native-sim-drive` for captures.
+  - **Corrected 2026-09-14 (two errors on this line).** It named `slops-taste` with no route qualifier, and it named `slops-mobile-smoke`, which is web-only and says so in its own description. `slops-taste` now has two routes because its upstream *explicitly excludes product UI* and carries zero SwiftUI/Compose material — §A delegates web to the upstream, §B is the Omen native half. Pointing the bare name at a native screen is what failed on 2026-09-14, and the skill was not installed either, so the failure showed up as absence rather than as mis-scope. Both are now checkable: `node ../../Blueprints/tools/skill-link/check-skill-deps.mjs`.
   - The two native skills answer **different questions and both are needed**: `slops-canvas-to-code` asks *does the screen match its artboard*; `slops-native-ui-audit` asks *is the screen any good*. Neither substitutes for the other.
   - **Added 2026-09-07.** Both skills existed and neither was routed anywhere, so the page-by-page canvas work was done by hand. `slops-canvas-to-code` was written for precisely that failure and quotes it: *"When I tried to build the pages with codex I ran out of rate limits because I didn't do the job exactly like the canvas presented it, forgot placements and icons. It was bad."*
 - **Trust boundary:** core implementation + `security-privacy-evidence`, `rbac-risk-review`; add `slops-legal-spot-check` when provider claims, privacy, terms, attribution, or public data-use copy changes
@@ -1283,6 +1284,48 @@ build, and no tester report can be tied to the code they were actually running.
 **Founder's stated intent for 1.7 beyond tagging:** "with 1.7 I wanna start working on it
 differently" — more structured, page by page. The `slops-native-sim-drive` skill was authored
 2026-09-11 in service of that. See the note on skill reach below.
+
+### X5-VetWrappers — Vet every wrapper upstream before installing it
+
+- **Status:** VERIFIED — 2026-09-14. All 8 wrappers vetted. Two adopted and installed; the rest
+  carry a verdict and a recorded condition.
+- **Evidence:** one `notes/prior-use-review.md` per wrapper, beside each `SKILL.md`. Handoff:
+  `Blueprints/handoffs/2026-09-14-skill-dependency-checker-and-taste-vetting.md`.
+- **Source:** founder, 2026-09-14: *"we do not just install other people's software and inherit it."*
+
+**Verdicts:**
+
+| Wrapper | Licence | Verdict | Condition |
+|---|---|---|---|
+| `slops-taste` | MIT | **ADOPT — installed** | Split web/native; upstream cannot serve native |
+| `slops-mobile-smoke` | Apache-2.0 | **KEEP — cleared to install** | Install with `--save-dev`, not `--no-save` |
+| `slops-voiceover` | MIT | **ALREADY CORRECT** | Detect-only by design; reference example for wrapper authoring |
+| `slops-animation-render` | **NOT open source** | **ADOPT — conditional** | Free only to 3 employees; tied to facts-of-record #15 |
+| `slops-explainer-cut` | MIT | **ADOPT — defer install** | Python ≥3.11 + system LaTeX/ffmpeg; renders on KVM1 |
+| `slops-markitdown` | MIT | **ADOPT — not with `[all]`** | `[all]` installs the Azure SDKs this skill bans |
+| `compliance-by-template` | Apache-2.0 | **ADOPT — hard scope line** | NOTICE obligation; counsel gate was wrongly tied to paid tiers |
+| `slops-headroom` | Apache-2.0 | **LIBRARY ONLY — defer** | The proxy is a cloud-LLM path; #17 forecloses it |
+
+**Three findings that outlived their own wrapper:**
+
+1. **A Python floor blocks three of them at once** — markitdown ≥3.10, manim ≥3.11, headroom.
+   This workstation runs 3.9.6 with no Homebrew Python, `pipx` or `uv`. **This is one standing
+   platform decision, not three package decisions.** `uv` is the lightest path.
+2. **Two skills render on KVM1, and neither names a project root.** `slops-explainer-cut` and
+   `slops-animation-render` both say renders happen there, so both `NEEDS-INSTALL` results are
+   **noise** — the checker is answering for the wrong machine and cannot know it. Record the render
+   host per skill so a local miss is legible as expected rather than as a gap.
+3. **Two wrappers banned a capability in prose while installing it in their own command**
+   (markitdown's `[all]`) or endorsing it in scope (headroom's proxy). A control that exists only
+   as a sentence is not a control.
+
+- **Remaining, and they are founder decisions not agent work:**
+  - Choose the Python interpreter (unblocks 3).
+  - Confirm the KVM1 render host and project roots (unblocks 2).
+  - Decide whether `playwright-core@1.49.1` is still the right pin (14 minors behind).
+  - Accept or revisit the Remotion headcount condition when facts-of-record #15 is next re-derived.
+- **Do not touch:** do not install anything to make the checker go green. A `NEEDS-INSTALL` that
+  reflects a deliberate "not adopted" or a different render host is a **correct** result.
 
 ### X4-SkillReach — The Slops skills are documents, not skills the tooling can reach
 
