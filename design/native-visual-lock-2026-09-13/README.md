@@ -87,11 +87,28 @@ only confirmed beta failure on record — undrawn.
 artboards are declared fits and every one reports **0px overflow** in the 844px frame. If an edit
 pushes content out, the edit is wrong, not the frame.
 
+**The frame is 390×844 and that is the floor (founder, 2026-09-14).** iPhone SE at 375×667 gives a
+604pt content area; Omen needs 642 and Command Center 616, so **both scroll on SE and that is
+accepted**. Do not re-cut these screens to fit 667 — it costs 39pt on Omen permanently, on every
+phone, to satisfy the smallest one. **iPad is deferred**; the device family declares it and no
+artboard covers it yet.
+
 ### Deliberately not carried forward
 
 - **`CommandSwipe2`** — the Command Center carousel. Retired by the one-switcher decision; the
   matchup rail already swipes leagues, so the carousel was the same gesture twice, six pixels apart.
 - **`Main`** — superseded by `CommandCenter.dc.html`.
+
+## `CONTRACTS.md` — read it before building any screen
+
+An artboard shows **what goes where**. It cannot show **why**, and it cannot show **what data makes
+it work**. `CONTRACTS.md` in this folder binds every one of the 30 artboards to its verified API
+contract, its governing spec rule, and its honest-state siblings.
+
+It also names **the five places a builder must stop and ask** rather than infer — the decision-brief
+v2 that does not exist yet, the quiet-week straight predicate, the unverified Ledger index, the
+unverified three-team trade support, and the unbuilt report-pill route. Everything not on that list
+is settled and should not be re-litigated at build time.
 
 ## How the CSS works — read this before editing
 

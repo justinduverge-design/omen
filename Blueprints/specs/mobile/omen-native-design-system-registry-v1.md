@@ -400,6 +400,22 @@ the failure that went unnoticed for the whole life of the three-family seam.
 not reintroduce a mono family to fix column alignment.** Cormorant Garamond, Cinzel, Inter and
 DM Mono remain retired.
 
+> **D11 is measured at 390×844, and iPhone SE scrolls (founder, 2026-09-14).** D11 requires Command
+> Center, Omen and the quiet week to render with nothing below the fold. It never named a device,
+> which is how the following went unnoticed until the 2026-09-14 taste pass measured it.
+>
+> `IPHONEOS_DEPLOYMENT_TARGET = 17.0` runs on **iPhone SE 2nd and 3rd generation** — 375×667, a
+> 604pt content area once the 64pt tab bar is subtracted. Omen needs **642pt** and Command Center
+> **616pt**. Both scroll there, and that is now **accepted rather than a defect**.
+>
+> **The floor D11 is measured against is 390×844.** Anything smaller may scroll. Making it hold at
+> 375×667 would cost 39pt on Omen — roughly the ghost secondary button or one evidence row — and
+> that is a permanent content tax on every phone to satisfy the smallest one.
+>
+> **iPad is deferred (founder, 2026-09-14).** `TARGETED_DEVICE_FAMILY = "1,2"` declares iPad and
+> every artboard is 390 wide. An iPad pass comes later; until it does, the device family is ahead of
+> the design and that is a known, accepted state rather than an oversight.
+
 ### 2.5 Spacing scale
 
 **Replaced 2026-09-13 (founder).** The previous scale was `4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96`

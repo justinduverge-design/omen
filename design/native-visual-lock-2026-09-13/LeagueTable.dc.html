@@ -80,10 +80,16 @@
   .dots i{width:5px;height:5px;border-radius:50%;background:var(--hair);display:block}
   .dots i.on{background:var(--ac);width:16px;border-radius:3px}
 
-  .sh{display:flex;justify-content:space-between;align-items:baseline;padding:0 16px;margin:12px 0 6px;flex:none}
+  .sh{display:flex;justify-content:space-between;align-items:center;padding:0 16px;margin:12px 0 6px;flex:none}
   .sh b{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);font-weight:800}
   .sh a,.sh span{font-size:10px;color:var(--t3);text-decoration:none;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
-  .sh a{color:var(--ac);letter-spacing:.02em;text-transform:none;font-size:11px;font-weight:700}
+  /* Section links are DESTINATIONS. Brass is "action and outcome" (visual lock §4.1), and a
+     status is neither — see .lo.pend below. The chevron and the padded hit area are what
+     separate a thing you can tap from a thing you can only read. Negative margin keeps the
+     label on its original baseline while the target grows to a real one. */
+  .sh a{color:var(--ac);letter-spacing:.02em;text-transform:none;font-size:12px;font-weight:700;
+    display:inline-flex;align-items:center;gap:4px;padding:15px 0 15px 16px;margin:-15px 0}
+  .sh a::after{content:"\203a";font-size:14px;font-weight:800;line-height:1}
   .card{margin:0 16px;border-radius:13px;background:var(--s1);border-top:1px solid rgba(245,240,232,.07);padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 0 rgba(0,0,0,.3);flex:none}
   .card.hero{border-top-color:var(--lip)}
   .lead{font-size:14px;font-weight:700;letter-spacing:-.026em;line-height:1.26;color:var(--t1);margin:0;font-family:'Wix Madefor Display',sans-serif}
@@ -115,7 +121,9 @@
   .lrow .lo{flex:none;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
   .lrow .lo.good{color:var(--t1)}
   .lrow .lo.bad{color:var(--t3)}
-  .lrow .lo.pend{color:var(--acH)}
+  /* Matches .o-p in the Ledger: the same state, the same carrier, on both screens.
+     Italic is the form carrier; the colour is deliberately not brass. */
+  .lrow .lo.pend{color:var(--t2);font-style:italic;text-transform:none;letter-spacing:.01em}
   .oneline{margin:0 16px;display:flex;align-items:center;gap:10px;padding:10px 0 0;border-top:1px solid var(--hair);flex:none}
   .oneline .tx{flex:1;min-width:0;font-size:12px;color:var(--t2);line-height:1.4}
   .oneline .tx b{color:var(--t1);font-weight:700}
@@ -384,7 +392,7 @@
 </head>
 <body>
 <div class="screen">
-  <div class="sbody scrolls"><div class="statusbar"><span>3:50</span><span>5G · 42%</span></div><div class="sw"><span class="cr">TTO</span><span class="who"><b>Titans of Slopsilonia</b><i><em style="background:var(--espn)"></em>ESPN · Slops Saloon</i></span><span class="chev">▾</span><span class="plus">+</span></div><div class="top"><div><p class="kick">Week 7 · 12 teams</p><h2 class="ttl">The Table</h2></div><div class="av">JD</div></div><div class="strip"><span class="prov"><i style="background:var(--espn)"></i></span><span class="sc">64.8</span><span class="vs">VS</span><span class="sc d">51.2</span><span class="lb">Live · Q2</span><a>Your week →</a></div>
+  <div class="sbody scrolls"><div class="statusbar"><span>3:50</span><span>5G · 42%</span></div><div class="sw"><span class="cr">TTO</span><span class="who"><b>Titans of Slopsilonia</b><i><em style="background:var(--espn)"></em>ESPN · Slops Saloon</i></span><span class="chev">▾</span><span class="plus">+</span></div><div class="top"><div><p class="kick">Week 7 · 12 teams</p><h2 class="ttl">The Table</h2></div><div class="av">JD</div></div><div class="strip"><span class="prov"><i style="background:var(--espn)"></i></span><span class="sc">64.8</span><span class="vs">VS</span><span class="sc d">51.2</span><span class="lb">Live · Q2</span><a>Your week</a></div>
    <div class="sh"><b>The table</b><span>Form · last 5</span></div>
    <div class="trow"><span class="rk">1</span><span class="cr">GMR</span><span class="nm">Gibbs me some Rice</span><span class="form"><i class="w"></i><i class="w"></i><i></i><i class="w"></i><i class="w"></i></span><span class="rec">6–1</span></div>
    <div class="trow"><span class="rk">2</span><span class="cr">PAK</span><span class="nm">Puk Around &amp; Find Out</span><span class="form"><i class="w"></i><i></i><i class="w"></i><i class="w"></i><i class="w"></i></span><span class="rec">5–2</span></div>
