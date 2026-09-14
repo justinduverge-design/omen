@@ -314,22 +314,58 @@ the tables above.
 > (`mobile/ios/OmenIOS/OmenIOS/Fonts/`, `mobile/android/core/designsystem/src/main/res/font/`).
 > They are replaced, not kept as a fallback — a fallback family is a third family by another name.
 
+**The ramp — resolved 2026-09-13 (C7, founder: the canvas wins).**
+
+```
+10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 22 · 24 · 27 · 32 · 48
+```
+
+Fourteen steps. 1px at the small end, where legibility differences are fine-grained, widening as
+size grows. **The floor is 10.** Nothing below it ships, at any weight, in any case.
+
 | Role | Font | Size / Line | Weight | Use |
 |---|---|---|---|---|
-| `display` | Wix Madefor **Display** | 48/56 | 800 | Marketing hero only, one per screen |
-| `h1` | Wix Madefor **Display** | 32/40 | 800 | Product screen hero title |
-| `h2` | Wix Madefor **Display** | 20/28 | 700 | Card titles |
-| `h3` | Wix Madefor **Display** | 16/24 | 600 | Sub-section headers |
-| `body` | Wix Madefor **Text** | 15/24 | 400 | Body copy |
-| `body-sm` | Wix Madefor **Text** | 13/20 | 400 | Meta / secondary |
-| `label` | Wix Madefor **Text** | 12/16 | 500 (+0.05em) | Form labels |
-| `eyebrow` | Wix Madefor **Text** | 12/16 | 700 (+0.16em, upper) | Eyebrow above hero |
-| `chip` | Wix Madefor **Text** | 11/14 | 700 (+0.12em, upper) | Chip/badge text |
-| `numeric` | Wix Madefor **Display** | contextual | 800, `tnum` | Scores, cell values |
+| `display` | Display | 48/56 | 800 | Marketing hero only, one per screen |
+| `h1` | Display | 32/40 | 800 | Product screen hero title |
+| `score-lead` | Display | 27/28 | 800, `tnum` | Scoreboard — leading score |
+| `call` | Display | 24/26 | 800 | The Omen call. The only thing at this size in the app |
+| `score-trail` | Display | 22/24 | 800, `tnum` | Scoreboard — trailing score |
+| `screen-title` | Display | 22/26 | 800 | Screen title in the header |
+| `h2` | Display | 20/26 | 700 | Card titles, quiet-state headline |
+| `h3` | Display | 18/24 | 700 | Sub-section headers, verdict headline |
+| `body` | Text | 15/22 | 400 | Body copy |
+| `card-lead` | Display | 14/18 | 700 | Card lead line |
+| `name` | Text | 13/16 | 700 | Player and team names, switcher |
+| `body-sm` | Text | 12/17 | 400 | Reasoning copy, meta, secondary |
+| `label` | Text | 11/14 | 700 (+0.12em, upper) | Labels, chips, badges |
+| `micro` | Text | 10/13 | 800 (+0.16em, upper) | Eyebrows, dividers, section rules |
+| `numeric` | Display | contextual | 800, `tnum` | Any columnar value |
 
 **Role split (Amendment 01):** Display = headings, scores, tab labels, the Omen call. Text = body,
 reasoning, labels, metadata. Preserve the hierarchy through platform font-fallback; all roles scale
 with Dynamic Type and Android font scale.
+
+> **How C7 was resolved, 2026-09-13.** Amendment 01 named ten roles with `chip` 11/14 at the floor.
+> The approved canvas needed four roles that table did not have — scoreboard leading and trailing,
+> the Omen call, the screen title — and ran below its floor. **The founder's call: the canvas wins,
+> and the registry grows to fit it.**
+>
+> **What the audit of the canvas actually found is why this needed a scale and not four new rows.**
+> `design/native-visual-lock-2026-09-13/README.md` fixes nine sizes and instructs readers to treat
+> anything off that list as a defect. The CSS in those same files runs **twenty-two** distinct sizes
+> — 27, 24, 22, 21, 19, 18, 17, 15, 14, 13.5, 13, 12.8, 12.5, 12.3, 12.2, 12, 11.5, 11, 10.5, 10,
+> 9.5, 9. The canvas was already violating its own rule thirteen times over, and a scale that a
+> document breaks while asserting it is not a scale.
+>
+> The ramp above consolidates all twenty-two into fourteen named roles. **Every canvas value moves by
+> at most 1px**, and only two move at all in a way anyone could see: `21 → 22` on the screen title
+> and `9 → 10` on the smallest labels. The second of those is the accessibility floor, not a
+> rounding.
+>
+> **Why 10 and not 11.** Amendment 01 put the floor at `chip` 11. Holding it would have moved five
+> distinct sizes and cost vertical room on three screens that D11 requires not to scroll. 10 is
+> defensible as a floor for uppercase tracked labels with a 13px line box; 8 and 8.5, which the
+> canvas shipped, are not defensible at any weight.
 
 **Wix Madefor has a real 600.** The SemiBold-declared-against-Bold workaround in
 `OmenTypography.kt` and `OmenTypography.swift`, written because Alegreya Sans ships no 600, is
@@ -342,23 +378,6 @@ the failure that went unnoticed for the whole life of the three-family seam.
 `numeric` keeps tabular alignment via `tnum` / `.monospacedDigit()`, which works on any font — **do
 not reintroduce a mono family to fix column alignment.** Cormorant Garamond, Cinzel, Inter and
 DM Mono remain retired.
-
-> **⚠️ FLAGGED MISFIT — the approved canvas runs a denser scale than this table, 2026-09-13.**
-> Amendment 01 specified the role table above and it is applied here as written. It does not
-> reconcile with `design/native-visual-lock-2026-09-13/`, which the canvas README fixes as its own
-> scale and instructs readers to "treat a size not on this list as a defect." Two fixed scales for
-> one app is two sources of truth, and this one is the token contract.
->
-> The canvas needs **four roles this table does not name** — scoreboard leading (27), scoreboard
-> trailing (22), the Omen call (24), screen title (21) — and runs **two sizes below the smallest
-> role here**: reasoning copy at 12.3 and uppercase labels at 9.5, against `chip` at 11. The
-> published artboards also carry 8–8.5px caps, which no role in this registry sanctions and which
-> the accessibility review flagged independently.
->
-> This is not improvised into the table. **It is a contract change that needs its own decision**,
-> and it is the same trade as §2.5 below: the density is what buys the D11 no-scroll constraint on
-> Command Center and Omen, so snapping the canvas up to these roles will cost the fold. Resolve
-> before U2 or U3 — not during. Tracked as `C7-TypeScaleReconciliation`.
 
 ### 2.5 Spacing scale
 

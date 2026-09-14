@@ -436,15 +436,13 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### C7-TypeScaleReconciliation — Decide one type scale, registry or canvas
 
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — which scale is authoritative, and whether the D11 no-scroll constraint or the registry role table gives way.
-- **Priority:** P1 — blocking for `U2` and `U3`. Two fixed type scales for one app is two sources of truth.
-- **Cost:** small to decide, medium if the canvas is re-cut.
-- **Agent-buildable:** proposal yes; the call is the founder's.
-- **The conflict.** Registry §2.4 after Amendment 01 names ten roles from 48/56 down to `chip` 11/14. `design/native-visual-lock-2026-09-13/README.md` fixes its own scale and instructs readers to treat a size not on its list as a defect. The canvas needs **four roles §2.4 does not name** — scoreboard leading 27, scoreboard trailing 22, the Omen call 24, screen title 21 — and runs **two sizes below the registry's smallest**: reasoning copy at 12.3 and uppercase labels at 9.5. The artboards also carry 8–8.5px caps, which no role sanctions and which the accessibility review flagged independently.
-- **The trade, stated plainly.** The canvas's density is what buys D11 — Command Center, Omen and the quiet week rendering with nothing below the fold. Snapping up to the registry roles will cost the fold on at least one of them. This is the same trade the spacing scale already resolved in the canvas's favour, and that precedent is an argument, not a decision.
-- **Done when:** one scale is authoritative and the other is amended to match; fractional sizes are integers; nothing below the sanctioned floor survives; and the losing document carries a pointer rather than a stale table.
-- **Do not touch:** do not resolve this by quietly adding the canvas sizes to §2.4. Amendment 01's table was applied as written on purpose, and improvising the reconciliation is what the flag exists to prevent.
+- **Status:** VERIFIED
+- **Closure basis:** founder call 2026-09-13 — **the canvas wins and the registry grows to fit it.**
+- **Evidence:** `Blueprints/specs/mobile/omen-native-design-system-registry-v1.md` §2.4, the ramp `10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 22 · 24 · 27 · 32 · 48` and fifteen named roles; `Direction/decision_log.md` 2026-09-13.
+- **What the audit found, which changed the shape of the fix.** The canvas README fixes **nine** sizes and says to treat anything off that list as a defect. The CSS in those same eight files runs **twenty-two** — 27, 24, 22, 21, 19, 18, 17, 15, 14, 13.5, 13, 12.8, 12.5, 12.3, 12.2, 12, 11.5, 11, 10.5, 10, 9.5, 9. The canvas was breaking its own rule thirteen times over, so this could not be closed by adding four rows to the registry: it needed a ramp.
+- **Resolution:** fourteen steps, 1px at the small end widening as size grows, floor at **10**. Every canvas value moves by at most 1px; only `21 → 22` and `9 → 10` are visible, and the second is the accessibility floor rather than a rounding.
+- **Why the floor is 10 and not Amendment 01's 11:** holding 11 moves five distinct sizes and costs vertical room on three screens D11 requires not to scroll. 10 is defensible for uppercase tracked labels on a 13px line box. 8 and 8.5, which the canvas shipped, are not defensible at any weight.
+- **Unblocks:** `U2`, `U3`, and the type half of `V-CanvasConformance`.
 
 ### U1-OmenScreen — Build the Omen destination
 
