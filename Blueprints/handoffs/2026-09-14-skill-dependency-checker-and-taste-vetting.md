@@ -60,7 +60,22 @@ Full review: `Blueprints/skills/slops-taste/notes/prior-use-review.md`.
 - **Omen skill bundles** (`current_sprint.md`) named bare `slops-taste` for native, and named
   web-only `slops-mobile-smoke` for native. Both corrected.
 
-### 4. Follow-on — `X5-VetWrappers` minted (READY, P2)
+### 4. `link-skills.mjs` would have silently uninstalled taste — fixed
+
+Found only by running the full gate sweep after committing. `npx skills add` installs into
+`.claude/skills/`, the directory `link-skills.mjs` manages, and its orphan sweep deleted anything it
+had not created. **One routine apply run would have removed the four taste variants**, flipping
+`slops-taste` back to `NEEDS-INSTALL` with nothing to explain why — the two tools taking turns
+undoing each other.
+
+Ownership is now decided by where a link **resolves**, not by its name: outside `Blueprints/skills/`
+reports `FOREIGN` and is left alone. Proven against the destructive path — a real apply run leaves
+all four in place and the checker still reads READY 4/4.
+
+**Worth noting as a pattern:** `--check` reported this as 4 × `ORPHAN` and exit 1, which reads as
+routine drift. The severity was only visible by asking what apply mode would *do* with that finding.
+
+### 5. Follow-on — `X5-VetWrappers` minted (READY, P2)
 
 Six vetting passes for the remaining unmet wrappers, each with the question it must answer.
 `slops-mobile-smoke` is first and its question is **should it exist** before **should we install it**.
@@ -72,6 +87,7 @@ Six vetting passes for the remaining unmet wrappers, each with the question it m
 | `check-skill-deps.mjs --check` | ready 2 · needs-install 7 · **undeclared 0** · provenance 9 · self-contained 44 → exit 1 (correct: 7 genuinely absent) |
 | `check-skill-deps.mjs --skill=slops-taste` | **READY** 4/4 after install |
 | `node scripts/check-kickoff-drift.js` | PASS |
+| `link-skills.mjs --check` | **SKILL-LINK: OK** — 122 in-sync, 0 drift, 4 FOREIGN left alone (after the fix; 4 ORPHAN before it) |
 | `node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet` (from L0 root) | see below |
 | `node ../../Blueprints/tools/valor-brain/validate.mjs` | see below |
 | `node scripts/check-sprint-staleness.js` | ran — only the 13 pre-existing standing findings |
