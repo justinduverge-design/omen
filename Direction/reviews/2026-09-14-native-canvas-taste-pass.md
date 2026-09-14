@@ -182,7 +182,53 @@ than an accident of it being last.
 
 1. **The device D11 is measured against.** 6.1" floor (recommended), or make it hold at 375×667.
 2. **iPad** — drop it from `TARGETED_DEVICE_FAMILY`, or scope an iPad pass.
-3. **Command Center's primary action** — does it get one, or is it deliberately a briefing with no
-   button?
+3. ~~**Command Center's primary action**~~ — **RESOLVED 2026-09-14, founder took option 1.**
+   Command Center stays a briefing with no CTA, per the Small Council framing; the fix was to make
+   its destinations read as destinations. See §5.
 4. **Whether to install upstream `taste-skill`** at all, given it generates rather than audits. The
    gap it would not fill is the artboard-grading one in §0.
+
+
+---
+
+## 5. Q2 resolved — Command Center keeps no CTA, and its routes now read as routes
+
+**Founder took option 1** on 2026-09-14: Command Center is a routing surface by design — *"the user
+picks what to go deeper on"* — so it does not get a button. The defect was that **the two things you
+could tap looked exactly like the thing you could not.**
+
+### What the measurement showed
+
+| | Largest brass fill | Largest brass element |
+|---|---|---|
+| Omen | **14,857px²** — `Make this move in ESPN` | the CTA |
+| Command Center *(before)* | **80px²** — the carousel dot | `Week 7 · Sunday`, an eyebrow |
+
+Brass carried six different jobs on that screen at one weight: a live dot, a page dot, a date, a
+confidence band, a **pending status**, and two navigation links.
+
+### The two changes, both from rules already written
+
+1. **Section links became destinations.** `.sh a` gets a padded hit area and a `›` disclosure
+   chevron, with a negative margin holding the label on its original baseline. **14pt → 45pt**,
+   clearing the 44pt floor. The literal `→` was removed from three artboards' markup, since the
+   chevron is now the component's own affordance rather than a character someone typed.
+2. **`Pending` came off brass.** Visual lock §4.1 fixes brass as *action and outcome*; a pending
+   status is neither, so it was competing with the links for the one colour that means *do this*.
+   The Ledger already carries this exact state as `.o-p` — quiet ink, italic, no brass — so
+   `.lo.pend` now matches it. **Same state, same carrier, on both screens.**
+
+### After
+
+| Rank | Brass element | Area |
+|---|---|---|
+| 1 | **League ›** | 3,082px² |
+| 2 | **See all ›** | 2,912px² |
+| 3 | `Week 7 · Sunday` | 1,464px² |
+| 4 | `Confident` | 1,171px² |
+
+**The two things you can tap are now the two largest brass elements on the screen**, and `Pending`
+has left the brass set entirely.
+
+**Verified:** all four fits-declared artboards that use a section header — Command Center,
+WaiverNoMove, StartSitClear, SwitchLoading — still measure **0px overflow** at 390×844.
