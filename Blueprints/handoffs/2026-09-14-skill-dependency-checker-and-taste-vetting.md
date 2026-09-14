@@ -183,3 +183,57 @@ gap.
 4. Accept the Remotion headcount condition, and re-check it whenever facts-of-record #15 is
    re-derived.
 
+---
+
+# Addendum 2 — everything installed
+
+**ready 8 · needs-install 1 · undeclared 0 · unreadable 0.** The remaining one is
+`slops-voiceover`, whose voicebox host is another machine — correct, not a gap.
+
+Full record with versions, exact commands and proof:
+`Blueprints/tools/skill-link/INSTALL-STATE.md` (L0).
+
+**Every Python tool runs on a pinned CPython 3.12 in an isolated `uv` venv.** System Python (3.9.6)
+untouched; no two tools share a dependency tree. That settles the Python decision that was blocking
+three wrappers, without a system-level change to reverse.
+
+**The verdicts were carried into the installs, not filed beside them:** markitdown has no Azure
+(`ModuleNotFoundError: No module named 'azure'`); headroom is library-only with the proxy
+deliberately not installed; `playwright-core` went in with `--save-dev` so `omen/package.json`
+records it and the long-false vendoring claim is true; open-agreements pinned to a commit.
+
+**Proven working, not just on PATH.** markitdown converted an HTML table with structure intact;
+pandoc produced a real Word 2007+ DOCX; manim rendered an MP4 in brass `#C4933B`; Remotion listed
+**ten real compositions** and rendered 60 frames of `OmenHypeVertical` to a 1080×1920 h264+aac file.
+
+## Two traps, recorded for the next machine
+
+1. **`uv` without `--python` silently resolved markitdown to `0.0.1a1`** — a two-year-old alpha. It
+   inherited system Python 3.9 and **backtracked past the `>=3.10` floor instead of failing**,
+   reporting it as `warning: does not have an extra named 'xlsx'` — which reads like a typo, not a
+   two-year downgrade. A resolver that succeeds against an unmet floor is a red flag.
+2. **manim needs `cairo`, `pango`, `pkgconf`** before pip can build `pycairo`. A pip-only line is
+   misleading. **LaTeX is still not installed**, so `Tex`/`MathTex` scenes fail — a real limit for a
+   math-explainer skill, not a footnote.
+
+## One gate change
+
+`truth-gate` gained `legal-templates` to `SKIP_DIRS`. Cloning open-agreements put **two P0s** on the
+board that were findings about the *upstream's own documents*. Vendored third-party checkouts are
+the `node_modules` category: read, never authored. `References/legal-templates/` and `.agents/` are
+gitignored — the pins are tracked, the payloads are not.
+
+## Gates
+
+`skill-deps` ready 8 / needs-install 1 / undeclared 0 / unreadable 0 · `link-skills` OK ·
+`truth-gate` **P0 0 P1 0** P2 2 · `valor-brain` 4/4 · `kickoff-drift` PASS ·
+**`npm test` 1100/1100** — run this time, because `omen/package.json` changed.
+
+## Still open
+
+- **LaTeX** for manim math scenes (`brew install --cask basictex`, ~100 MB).
+- **Browser binaries** for playwright-core — a separate first-run download, still founder-run.
+- **Confirm KVM1** as the render host and the Remotion project root. Both render pipelines now work
+  locally, so this is a placement decision rather than a blocker.
+- **`playwright-core@1.49.1`** is 14 minors behind current.
+
