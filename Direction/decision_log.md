@@ -1,5 +1,128 @@
 # Omen Decision Log
 
+## 2026-09-13 — the native visual lock: dark-only, brass-led, Wix Madefor, and risk keeps its colour
+
+**Founder decisions D1–D8 were taken 2026-09-12** in a Cowork session and are recorded in
+`Blueprints/specs/mobile/omen-native-visual-lock-v1.md`. Four further calls were made 2026-09-13 and
+are the subject of this entry, because each one **changed** the amendment that was drafted to
+implement D1–D8. Applied to the registry in `952eb75`.
+
+### 1. Risk keeps its colour — amends D7
+
+**Founder:** *"I want the risk colours but they gotta be tasteful."*
+
+D7 as decided removed crimson along with verdigris, position and data-source hues. Registry
+Amendment 01 was drafted on that basis and deleted `risk-low/medium/high` outright. That is now
+narrowed: **risk is the one data-semantic family that keeps a hue.**
+
+The shape is **one hue, two weights, plus absence** — `risk-high #7E1717` solid, `risk-medium
+#4A1818` muted, `risk-low` nothing at all. It mirrors the `accent` / `accent-muted` pair that
+already exists, so it adds a pattern the system already has rather than a new one.
+
+**Crimson is a fill and never ink, and that is measured, not stylistic.** `#7E1717` is **1.02:1**
+against `surface-3` — literally the same value as the surface — so a crimson marker drawn *on* a
+neutral container cannot exist. Every candidate lifted far enough to clear the 3:1 non-text floor
+there had stopped being crimson: `#DA6250` reaches only 2.94:1 and already reads as coral. Reversed
+out, the same hex carries `text-primary` at **9.15:1**. This is the registry's own standing rule
+from the 2026-09-11 smoky-grey note, arrived at independently a second time.
+
+**There is deliberately no amber.** A muted amber for the medium tier measures **4.92:1** on
+`surface-1` against brass at **5.20:1** — close enough to be confusable at chip size. The visual
+lock fixes brass as *action and outcome, never danger*, and that separation is the only thing making
+a single accent legible. An amber danger chip beside a brass CTA dissolves it. The medium tier takes
+the quieter crimson instead.
+
+**"Tasteful" was read as a frequency claim as much as a chroma one.** One hue, two weights,
+appearing only where a glance must land. Three tiers of tint is the pastel set the accessibility
+review already flagged as appearing in no design document.
+
+### 2. Platinum is a named exception — closes the open item in Amendment 01
+
+`platinum` `#C7CBD1` / `#69707B` is ratified as the one brand-expression colour besides brass
+permitted in app chrome, scoped to **favourite and selection marks only — never text, never borders,
+never a fill**, on **both platforms**.
+
+It was already shipping on iOS and carried in `scripts/check-token-parity.js`
+`KNOWN_SINGLE_PLATFORM` as a legitimate single-platform absence. So this decision ratifies a token
+that existed before it was blessed; the parity entry is removed when the Android value lands. Until
+then the exception is **ratified in spec and pending in code** — the opposite of the usual drift
+direction, recorded so a later reader does not mistake it for one.
+
+The reason it is not brass: a starred team must read as *marked*, not as a second call to action.
+Platinum's chroma is nearly nil, so it does not compete for attention.
+
+### 3. Wix Madefor is confirmed — amends the one-family decision of 2026-09-07
+
+**Founder:** *"wix is the new font the alegreya is not it."*
+
+Two optical cuts of one superfamily, Display and Text, under one SIL OFL 1.1 licence. This amends
+the 2026-09-07 decision that Alegreya Sans would be the only font in the app — which was itself
+taken six days before this — and it is **not** a return to the three-family split.
+
+**Alegreya Sans is replaced, not kept as a fallback.** A fallback family is a third family by
+another name. Three real `.ttf` weights currently ship on both platforms and come out under `U2`.
+
+**Worth recording because it nearly went the other way:** the 2026-09-07 entry notes there were no
+font files in the repo at all and the three locked families were resolving to platform stand-ins.
+Those files landed afterwards, so Wix Madefor is replacing a family that genuinely renders today —
+roughly three weights × two platforms × two cuts of new resources, plus the typography tests. It was
+put to the founder as a real cost rather than a free swap, and taken anyway.
+
+### 4. The spacing scale is replaced — not in Amendment 01's scope
+
+**Founder:** *"the spacing was terrible before that can be reworked."*
+
+Old: `4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96`, "no ad-hoc values."
+New: `2 · 4 · 6 · 8 · 10 · 12 · 14 · 16 · 20 · 24 · 32 · 40 · 48 · 64 · 96`.
+
+Every value is `2 × n`; it doubles along `2 → 4 → 8 → 16 → 32 → 64`; everything at or above 16 stays
+on the old 4/8 grid so nothing already built moves.
+
+**What forced it.** The approved canvas runs on 7, 9, 10, 11, 13 and 14. Under the old scale
+**every screen built from it was a spec violation by default** — and when a scale invalidates the
+approved artboards wholesale, the scale is what is wrong. The steps below 16 were too coarse for a
+390pt phone on which D11 requires two screens to render with nothing below the fold; the density
+that buys the fold lives in the 6–14 range, and skipping 6, 10 and 14 forces every card to round up.
+Snapping the canvas moves 7→8, 9→10, 11→12, 13→14 — one pixel each.
+
+### 5. League is a scout's nest — supersedes the section order in fact-of-record #16
+
+**Founder:** *"i just want it to be like your scout nest you know keeping your eye on the league and
+other players."*
+
+`omen-app-pages-workshop-v1.md` locks League as **Matchup → Standings → Waiver → Activity**. The new
+order is **Your week (strip) → The Table → Trade targets → Waiver → Activity**.
+
+**The reasoning, which is the part worth keeping.** The locked order makes the screen a readout of
+*your own week* by putting Matchup first — but your week already owns a whole destination in Command
+Center, so League opened by repeating its neighbour. A scout's nest inverts the subject: you are
+watching **other people**, and your own record is the vantage point rather than the view. The order
+that falls out is **terrain → opportunity → movement**.
+
+Two constraints that fix positions within it:
+
+- **Terrain before opportunity.** Trade targets is the more actionable section and there is a case
+  for floating it above the table. Rejected: the table is what *makes* a target legible — "3–4 and
+  fading, two RBs on byes 9 and 11" only reads as an opening because you just watched them slide
+  past the cut line. Opportunity first reads as a list of names.
+- **Activity stays last, and that is a data constraint not a preference.** It is the most
+  scout-native signal in the destination and it is partial on ESPN and Yahoo, which is why the
+  canvas hatches it. A degraded section high on a screen teaches people the screen is unreliable. It
+  rises when the transaction feeds do.
+
+`Direction/facts-of-record.md` #16 is amended in place rather than contradicted silently.
+
+### What was flagged rather than decided
+
+- **`C7-TypeScaleReconciliation`.** Amendment 01's role table and the approved canvas disagree: the
+  canvas needs four roles the registry does not name and runs two sizes below its smallest. The
+  amendment was applied as written and the conflict recorded. It is the same trade as the spacing
+  scale and it was not folded in on the agent's own judgement.
+- **Not-read vs self-reported provenance** shared a dashed underline in the published canvas. Split
+  in §2.3 — dashed stays with provisional data, dotted takes self-reported. They are opposite
+  claims: one says no source exists, the other says a source exists and it is the user. The Ledger
+  rule that self-reported rows are never blended with verified ones cannot hold if they look alike.
+
 ## 2026-09-12 — the always-read core is a cost, and it was 166,000 tokens
 
 **Decision (founder-approved before the rewrite):** `Direction/decision_log.md` leaves the up-front

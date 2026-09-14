@@ -1,0 +1,276 @@
+{
+  "name": "Omen native visual lock — 2026-09-13",
+  "note": "Artboards are self-contained by design. CSS lives in _shared.css and is written into each file by scripts/sync-canvas-css.mjs; --check proves they agree. Never edit CSS inside an artboard.",
+  "artboards": [
+    {
+      "file": "SignIn.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1 · Sign in",
+      "page": "Onboarding & connection"
+    },
+    {
+      "file": "EmailCode.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 · Email code",
+      "page": "Onboarding & connection"
+    },
+    {
+      "file": "ConnectLeague.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3 · Connect a league",
+      "page": "Onboarding & connection"
+    },
+    {
+      "file": "EspnConnect.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4 · ESPN — consent",
+      "page": "Onboarding & connection"
+    },
+    {
+      "file": "ConnectFailed.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "5 · ESPN — failed",
+      "page": "Onboarding & connection"
+    },
+    {
+      "file": "CommandCenter.dc.html",
+      "x": 0,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Command — the week",
+      "page": "Command Center"
+    },
+    {
+      "file": "CommandQuiet.dc.html",
+      "x": 470,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Command — quiet, neutral",
+      "page": "Command Center"
+    },
+    {
+      "file": "CommandQuietStraight.dc.html",
+      "x": 940,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Command — quiet, straight",
+      "page": "Command Center"
+    },
+    {
+      "file": "CommandNoLeague.dc.html",
+      "x": 1410,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Command — no league",
+      "page": "Command Center"
+    },
+    {
+      "file": "ReportPill.dc.html",
+      "x": 1880,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Command — report pill",
+      "page": "Command Center"
+    },
+    {
+      "file": "OmenCall.dc.html",
+      "x": 0,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Omen — the call",
+      "page": "Omen"
+    },
+    {
+      "file": "OmenEvidence.dc.html",
+      "x": 470,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Omen — the full argument",
+      "page": "Omen"
+    },
+    {
+      "file": "StartSitClear.dc.html",
+      "x": 940,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Start/sit — clear",
+      "page": "Omen"
+    },
+    {
+      "file": "StartSitIncomplete.dc.html",
+      "x": 1410,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Start/sit — incomplete",
+      "page": "Omen"
+    },
+    {
+      "file": "LeagueTable.dc.html",
+      "x": 0,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "League — the table",
+      "page": "League & waiver"
+    },
+    {
+      "file": "LeagueWaiver.dc.html",
+      "x": 470,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "League — waiver",
+      "page": "League & waiver"
+    },
+    {
+      "file": "WaiverNoMove.dc.html",
+      "x": 940,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Waiver — no move",
+      "page": "League & waiver"
+    },
+    {
+      "file": "WaiverNotDetermined.dc.html",
+      "x": 1410,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Waiver — system unknown",
+      "page": "League & waiver"
+    },
+    {
+      "file": "LeagueDegraded.dc.html",
+      "x": 1880,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "League — degraded",
+      "page": "League & waiver"
+    },
+    {
+      "file": "LeagueNoRosters.dc.html",
+      "x": 2350,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "League — no rosters",
+      "page": "League & waiver"
+    },
+    {
+      "file": "TradeBuild.dc.html",
+      "x": 0,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — build",
+      "page": "Trade"
+    },
+    {
+      "file": "TradeRoster.dc.html",
+      "x": 470,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — their roster",
+      "page": "Trade"
+    },
+    {
+      "file": "TradeVerdict.dc.html",
+      "x": 940,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — the read",
+      "page": "Trade"
+    },
+    {
+      "file": "TradeNeedsContext.dc.html",
+      "x": 1410,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — needs context",
+      "page": "Trade"
+    },
+    {
+      "file": "TradeShare.dc.html",
+      "x": 1880,
+      "y": 3936,
+      "w": 390,
+      "h": 844,
+      "title": "Trade — share",
+      "page": "Trade"
+    },
+    {
+      "file": "Ledger.dc.html",
+      "x": 0,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "The Ledger",
+      "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "LedgerDetail.dc.html",
+      "x": 470,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "Ledger — one call",
+      "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "SwitchSheet.dc.html",
+      "x": 940,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "Switcher — the sheet",
+      "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "SwitchLoading.dc.html",
+      "x": 1410,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "Switcher — mid-switch",
+      "page": "Ledger, switcher, account"
+    },
+    {
+      "file": "Account.dc.html",
+      "x": 1880,
+      "y": 4920,
+      "w": 390,
+      "h": 844,
+      "title": "Account",
+      "page": "Ledger, switcher, account"
+    }
+  ]
+}
