@@ -112,3 +112,74 @@ unknown `--skill` → exit 2 · report-only → exit 0 · `--check` with finding
 - Nothing pushed or merged. Both branches are local.
 - The only install run was the four `slops-taste` variants, after vetting.
 - **C2–C8 remain unrun and uncleared** — each needs its own pass under `X5-VetWrappers`.
+
+---
+
+# Addendum — all eight wrappers vetted
+
+The first pass did `slops-taste` and deferred the other seven into `X5-VetWrappers`. The brief said
+*"for each wrapper, in priority order (taste first)"* — taste first, not taste only. That was a
+scope narrowing and it is now closed. **`X5-VetWrappers` is VERIFIED, not READY.**
+
+| Wrapper | Licence | Verdict |
+|---|---|---|
+| `slops-taste` | MIT | ADOPT — installed, split web/native |
+| `slops-mobile-smoke` | Apache-2.0 | KEEP — cleared to install (`--save-dev`) |
+| `slops-voiceover` | MIT | Already correct; the reference example for wrapper authoring |
+| `slops-animation-render` | **Not open source** | ADOPT — conditional on headcount |
+| `slops-explainer-cut` | MIT | ADOPT — defer install |
+| `slops-markitdown` | MIT | ADOPT — **not** with `[all]` |
+| `compliance-by-template` | Apache-2.0 | ADOPT — hard scope line |
+| `slops-headroom` | Apache-2.0 | Library only — defer |
+
+## The four that changed a file
+
+1. **markitdown banned Azure in prose and installed it in its own command.** `[all]` pulls
+   `azure-ai-documentintelligence`, `azure-ai-contentunderstanding`, `azure-identity` — plus
+   `SpeechRecognition`, whose default recognizer is a cloud service. Narrowed to format extras so
+   the ban is structural.
+2. **Remotion is not open source** — free only to three employees. We qualify today under
+   facts-of-record #15 (sole owner). That eligibility was recorded nowhere, and #15's revisit
+   trigger is the same event as Remotion's. Now tied together explicitly.
+3. **headroom's proxy is a cloud-LLM path.** The library is local and fine; the proxy is what #17
+   forecloses. The skill endorsed all three components.
+4. **compliance-by-template gated counsel on "paid-tier products"** — and Omen is free, so the gate
+   was off. A Privacy Policy binds regardless of price.
+
+## One withdrawal
+
+I said `slops-mobile-smoke` might be worth retiring because the web app is paused. **Wrong.**
+`AGENTS.md` ships *"a secondary web app"*, `frontend/` is live, and what is paused is new *page
+migrations*. "Native is active authority" ranks surfaces; it does not delete them.
+
+## Three blockers that are shared, not per-package
+
+- **One Python decision blocks three wrappers** (markitdown ≥3.10, manim ≥3.11, headroom). This Mac
+  runs 3.9.6 with no Homebrew Python, `pipx`, or `uv`.
+- **Two skills render on KVM1 and neither names a project root**, so both `NEEDS-INSTALL` results
+  are noise — the checker is answering for the wrong machine and cannot know it.
+- **`playwright-core@1.49.1` is 14 minors behind current.** The pin should be a decision.
+
+## The checker found a bug in its own session
+
+A malformed `note:` I wrote dropped `slops-markitdown`'s `description`, and the harness fell back to
+showing the folder name — the skill became unroutable and nothing flagged it. The reader here is
+deliberately lenient; the harness parses real YAML. The checker now reports structural YAML hazards
+as `UNREADABLE` with the line number. Negative-tested against the actual failure, not a lookalike:
+the first guard I wrote did **not** catch it, and the passing test was the thing that revealed the
+gap.
+
+## Gates, re-run after the addendum
+
+`skill-deps` ready 2 / needs-install 7 / **undeclared 0** / **unreadable 0** ·
+`link-skills` OK (122 in-sync, 0 drift, 4 FOREIGN left alone) · `truth-gate` **P0 0 P1 0** P2 2 ·
+`valor-brain` 4/4 · `kickoff-drift` PASS · `npm test` **NOT RUN — no source changed.**
+
+## Founder decisions this leaves open
+
+1. Which Python (unblocks three wrappers).
+2. Confirm KVM1 as render host and the two project roots (unblocks two).
+3. Whether `playwright-core@1.49.1` is still the right pin.
+4. Accept the Remotion headcount condition, and re-check it whenever facts-of-record #15 is
+   re-derived.
+

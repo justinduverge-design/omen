@@ -1285,39 +1285,47 @@ build, and no tester report can be tied to the code they were actually running.
 differently" — more structured, page by page. The `slops-native-sim-drive` skill was authored
 2026-09-11 in service of that. See the note on skill reach below.
 
-### X5-VetWrappers — Vet the remaining wrapper upstreams before installing any of them
+### X5-VetWrappers — Vet every wrapper upstream before installing it
 
-- **Status:** READY
-- **Blocked by:** None
-- **Priority:** P2
-- **Cost:** small per wrapper; 6 passes
+- **Status:** VERIFIED — 2026-09-14. All 8 wrappers vetted. Two adopted and installed; the rest
+  carry a verdict and a recorded condition.
+- **Evidence:** one `notes/prior-use-review.md` per wrapper, beside each `SKILL.md`. Handoff:
+  `Blueprints/handoffs/2026-09-14-skill-dependency-checker-and-taste-vetting.md`.
 - **Source:** founder, 2026-09-14: *"we do not just install other people's software and inherit it."*
-- **Context:** `X4-SkillReach` made the library reachable; `check-skill-deps.mjs` (2026-09-14) made
-  install state visible. First run: 9 wrappers front an external tool, **2 ready, 7 unmet.**
-  `slops-taste` is vetted and installed. The other 7 are not, and installing before vetting is the
-  thing this item exists to prevent.
-- **Done when:** each wrapper below has a `notes/prior-use-review.md` recording licence,
-  maintenance, what it does, a verdict against facts-of-record #17 / no-cloud-fallback /
-  local-first, and — if adopted — the local deltas and whether any fix goes upstream.
-  **"Don't adopt" is a valid and cheap outcome.** Retiring the skill is a valid outcome too.
-- **Order, with the question each pass actually has to answer:**
-  1. `slops-mobile-smoke` — **should this exist at all?** Web-only, and the web app is paused under
-     the native pivot. Decide retire-vs-keep *before* deciding install. Its `playwright-core`
-     vendoring claim was false and is now corrected.
-  2. `compliance-by-template` — not on the original list; the checker found it. Two unmet deps
-     (`pandoc`, an `open-agreements` clone). Legal-template provenance needs its own read.
-  3. `slops-headroom` — its own SKILL.md demands a `tcpdump` soak to verify the local-only claim.
-     That verification *is* the vetting pass; do not install and trust the README.
-  4. `slops-markitdown` — **blocked on a toolchain decision:** needs Python 3.10+, this Mac has
-     3.9.6. The Python decision precedes the package decision.
-  5. `slops-explainer-cut` + `slops-animation-render` — one pass, shared question: both specify
-     rendering on **KVM1**, so a workstation install may be unnecessary. Neither skill names a
-     project root; the Remotion one was inferred from the only `package.json` in the tree.
-- **No pass needed:** `slops-voiceover` is detect-only by design and its recorded install is a
-  Windows `.msi` on another machine. Permanent `NEEDS-INSTALL` here is honest, not broken.
-- **Do not touch:** do not install anything to make the checker go green. Green is not the goal;
-  an accurate answer is. A `NEEDS-INSTALL` that reflects a deliberate "not adopted" is a correct
-  result.
+
+**Verdicts:**
+
+| Wrapper | Licence | Verdict | Condition |
+|---|---|---|---|
+| `slops-taste` | MIT | **ADOPT — installed** | Split web/native; upstream cannot serve native |
+| `slops-mobile-smoke` | Apache-2.0 | **KEEP — cleared to install** | Install with `--save-dev`, not `--no-save` |
+| `slops-voiceover` | MIT | **ALREADY CORRECT** | Detect-only by design; reference example for wrapper authoring |
+| `slops-animation-render` | **NOT open source** | **ADOPT — conditional** | Free only to 3 employees; tied to facts-of-record #15 |
+| `slops-explainer-cut` | MIT | **ADOPT — defer install** | Python ≥3.11 + system LaTeX/ffmpeg; renders on KVM1 |
+| `slops-markitdown` | MIT | **ADOPT — not with `[all]`** | `[all]` installs the Azure SDKs this skill bans |
+| `compliance-by-template` | Apache-2.0 | **ADOPT — hard scope line** | NOTICE obligation; counsel gate was wrongly tied to paid tiers |
+| `slops-headroom` | Apache-2.0 | **LIBRARY ONLY — defer** | The proxy is a cloud-LLM path; #17 forecloses it |
+
+**Three findings that outlived their own wrapper:**
+
+1. **A Python floor blocks three of them at once** — markitdown ≥3.10, manim ≥3.11, headroom.
+   This workstation runs 3.9.6 with no Homebrew Python, `pipx` or `uv`. **This is one standing
+   platform decision, not three package decisions.** `uv` is the lightest path.
+2. **Two skills render on KVM1, and neither names a project root.** `slops-explainer-cut` and
+   `slops-animation-render` both say renders happen there, so both `NEEDS-INSTALL` results are
+   **noise** — the checker is answering for the wrong machine and cannot know it. Record the render
+   host per skill so a local miss is legible as expected rather than as a gap.
+3. **Two wrappers banned a capability in prose while installing it in their own command**
+   (markitdown's `[all]`) or endorsing it in scope (headroom's proxy). A control that exists only
+   as a sentence is not a control.
+
+- **Remaining, and they are founder decisions not agent work:**
+  - Choose the Python interpreter (unblocks 3).
+  - Confirm the KVM1 render host and project roots (unblocks 2).
+  - Decide whether `playwright-core@1.49.1` is still the right pin (14 minors behind).
+  - Accept or revisit the Remotion headcount condition when facts-of-record #15 is next re-derived.
+- **Do not touch:** do not install anything to make the checker go green. A `NEEDS-INSTALL` that
+  reflects a deliberate "not adopted" or a different render host is a **correct** result.
 
 ### X4-SkillReach — The Slops skills are documents, not skills the tooling can reach
 
