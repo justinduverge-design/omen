@@ -8,6 +8,13 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 
 1. Read the skill's status in `../../../../Blueprints/skills/SKILL_ROUTING.md` resolved relative to this playbook file (`<SLOPS-root>/Blueprints/skills/SKILL_ROUTING.md`).
 2. If `retired`, do not use it. If `parked`, stop unless its named gate is satisfied or Justin explicitly overrides it.
+2a. **If it is a wrapper, check the tool is actually installed** before you plan around it:
+   `node ../../Blueprints/tools/skill-link/check-skill-deps.mjs --skill=<name>`.
+   Status answers *are you permitted*; this answers *is it here*. They are different questions and
+   may disagree. Added 2026-09-14 after a session planned a native canvas pass around `slops-taste`
+   and found at invocation time that it had never been installed. `READY` means found, not
+   functional, and every probe is local — a skill that renders on KVM1 may read `NEEDS-INSTALL` here
+   and be fine.
 3. Match the task to the trigger below and read the canonical `SKILL.md` before acting.
 4. Put selected skills and expected evidence in the plan-approval response.
 5. Execute the skill's own procedure and verification.
@@ -60,7 +67,7 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 | `demo-mode-pre-empty-state` | Required for demo/mock work | Demo route, fixtures, empty state, or real-data swap behavior changes | Mock/live labels, fixtures, swap contract |
 | `slops-headroom` | Conditional | Tool/log/RAG output would consume excessive context | Compressed artifact plus retained source pointer |
 | `slops-markitdown` | Conditional | Relevant PDF/DOCX/XLSX/PPTX/media must enter research context | Local Markdown conversion with source provenance |
-| `slops-taste` | Conditional creation | New/redesigned frontend needs layout/motion/density direction | Chosen variant/dials; final verdict still UI audit |
+| `slops-taste` | Conditional creation | New/redesigned UI needs layout/motion/density direction. **Route by surface:** §A (upstream variants) for web/marketing, §B (Omen native half) for iOS SwiftUI + Android Compose. The upstream excludes product UI and has no SwiftUI/Compose material, so §A on a native screen produces confident, irrelevant output. **Generation only** — never the verdict. | Chosen route/variant/dials; verdict still `slops-native-ui-audit` (native) or `slops-ui-ux-audit` (web) |
 | `slops-screenplay-loop` | Conditional content | A real Omen result needs an explainer script/storyboard | Script + beats approved for production |
 | `slops-explainer-cut` | Conditional content | Omen/Trade/ADP math needs a 30–90 second show-your-work video | Render + math/source verification |
 | `slops-animation-render` | Conditional content | Approved non-math brand/social/onboarding motion asset | Render + brand/accessibility QA |
@@ -70,7 +77,7 @@ Give every registered SLOPS skill an honest Omen route. This is the deterministi
 | `slops-financial-sketch` | Conditional founder decision | Hosting/model/vendor cost, runway, or free-product sustainability needs scenarios | Sanitized assumptions and sensitivity; no live books |
 | `slops-ai-integration-review` | Required for AI path change | Model/provider/prompt/fallback/cost/privacy architecture changes | Model/cost/fallback/data-flow verdict |
 | `slops-data-ingest-plan` | Required before new ingest | Sports/provider/telemetry ETL, cron, normalization, or storage flow changes | Source→transform→store→failure plan |
-| `slops-mobile-smoke` | Required for UI implementation | Automated phone viewport check before real-device gate | Viewport findings and screenshots |
+| `slops-mobile-smoke` | Conditional — **web only**, and currently `NEEDS-INSTALL` | Automated phone-viewport check of the **web app** before the real-device gate. It cannot launch either native app. Native captures are `slops-native-sim-drive`. `playwright-core` is absent despite the skill having claimed it was vendored; whether to install or retire it is open under `X5-VetWrappers`. | Viewport findings and screenshots |
 | `slops-product-pulse` | Required post-live cadence | 24h/7d/30d operating review or post-release measurement | Usage/performance/error/follow-up report |
 
 ## Native mobile execution bundle

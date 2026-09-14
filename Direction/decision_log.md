@@ -1,5 +1,95 @@
 # Omen Decision Log
 
+## 2026-09-14 — a wrapper skill must prove its tool is present, and `slops-taste` covers native by being split
+
+### 1. Install state is tracked, and it is a separate axis from status
+
+`SKILL_ROUTING.md` tracked `active`/`draft`/`parked` — **permission**. Nothing tracked **presence**.
+`link-skills.mjs` contains zero references to dependencies, so a wrapper whose upstream tool was
+never installed was indistinguishable from a working one until someone invoked it.
+
+`Blueprints/tools/skill-link/check-skill-deps.mjs` now answers presence, from `requires:` frontmatter
+probes. First run: 9 wrappers front an external tool, **2 ready, 7 unmet.**
+
+**The two axes are allowed to disagree and both must be read.** Installed-and-parked is a legitimate
+state; so is active-and-missing. Collapsing them is what produced the failure.
+
+Three design calls worth keeping:
+
+- **`upstream:` is overloaded** — it carries both *the tool this fronts* and *where the ideas came
+  from*. Probing on it alone fires on `slops-tdd` for citing `mattpocock/skills (MIT)`. `skill_type`
+  discriminates: `wrapper`/`package` needs a probe, `simple` is provenance. This cut 18 flags to 9.
+  **A gate full of false positives is one nobody reads**, which is the failure mode being fixed.
+- **Prose is not probed.** The tool surfaces an install *hint* from Preconditions, labelled
+  unverified, and refuses to synthesise a probe from it. A `wrapper` with an upstream and no
+  `requires:` reports `UNDECLARED` and fails `--check`. Guessing a probe and reporting `ready` would
+  make this tool the thing it was built to catch.
+- **Probes are loopback-only.** The one network probe kind refuses a non-loopback host rather than
+  fetching it, so a dependency check can never become egress (facts-of-record #17).
+
+**It never installs.** Installing stays a founder action.
+
+### 2. `slops-taste` is split into a web route and a native route
+
+**Founder:** *"we're building a native app, a web app, the native mobile app is iOS and Android. We
+need to make sure we have the skills like taste to work on both."*
+
+That requirement cannot be satisfied by installing anything. `Leonxlnx/taste-skill`'s own scope line
+reads *"Not dashboards, not data tables, not multi-step product UI"* — which is exactly what Omen
+native is — and measured across its 1,206 lines: React 32, Motion 52, Tailwind 12, **SwiftUI and
+Compose zero**. There is no native material upstream to apply.
+
+So the skill now has two routes. **§A** delegates web/marketing to the upstream variants. **§B** is
+an Omen native half written here, routing to the specs that already lock our native language
+(design house, component lock, team-theme contract, registry Amendment 01, brand system §8/§11).
+
+**§B invents no design doctrine.** Every rule in it derives from a locked spec or from a defect a
+real canvas pass caught — the 1.02:1 crimson fill, brass-means-action, the D11 floor at 375×667,
+colour never being the sole carrier. What was missing was never the doctrine; it was a
+generation-time discipline that reaches for it.
+
+**A rejected option:** re-scope taste to web-only and mark it `parked: K1`. That was the
+recommendation until the founder's requirement landed, and it was coherent — but it assumed the
+upstream's scope was the *skill's* scope. A wrapper is allowed to be more than its upstream. Taking
+the upstream's limits as our own would have left the most active lane in the repo with no anti-slop
+route at all.
+
+### 3. Dials are per-surface, and the old ones bound nothing
+
+Upstream v2 uses `DESIGN_VARIANCE` / `MOTION_INTENSITY` / `VISUAL_DENSITY` on a **1–10 integer**
+scale and says explicitly *"never invent aliases."* Ours read `VARIANCE: medium | MOTION: low |
+DENSITY: medium` — invented aliases, word values, against an integer scale. **It would have bound
+nothing and reported nothing**, under a comment claiming `brand-system.md` was unauthored months
+after it became authoritative. A stale placeholder at least announces itself; this did not.
+
+Now two sets, because one cannot serve both: web `6/3/4`, native `2/2/6`. A landing page wants
+variety and air; a product screen wants consistency and density. `MOTION_INTENSITY` derives from
+`brand-system.md` §8 (150–250ms, never spectacle); the other four are a recorded taste default, and
+are labelled as such rather than dressed as measurement.
+
+### 4. Three stale records corrected, not just the one reported
+
+`Less guessing. Better moves.` was retired with the Corvus name and sits in `brand-system.md` §2's
+"do not use" list. It was live in **three** places, not the one the ledger named: `slops-ux-copy`
+(citing it as *approved*), `slops-explainer-cut` (calling it *"the brand promise"*), and
+`slops-animation-render/assets/storyboard-template.md` — where it was the CTA line **in a template**,
+so every storyboard copied from it inherited a retired line.
+
+Two prior sessions logged these as *"Reported, not edited — it is Layer 0."* The report was correct
+and the correction was still owed. **A finding recorded in a ledger is not a fixed finding.**
+
+### 5. A wrapper asserted its own dependency was satisfied, and was wrong
+
+`slops-mobile-smoke` stated `playwright-core` was *"already vendored… No install required."* It is in
+neither `omen/node_modules` nor `omen/package.json`. Found by the new checker on the day it was
+written — the first instance of exactly the class it exists to catch. `_template/SKILL.md` now
+carries the rule: **never assert a dependency is satisfied; say where it comes from and let the probe
+answer.**
+
+Whether to install it is deliberately left open under `X5-VetWrappers`: it is web-only, the web app
+is paused, and `retired` may beat `ready`. **Going green is not the goal; an accurate answer is.**
+
+
 ## 2026-09-13 — the native visual lock: dark-only, brass-led, Wix Madefor, and risk keeps its colour
 
 **Founder decisions D1–D8 were taken 2026-09-12** in a Cowork session and are recorded in

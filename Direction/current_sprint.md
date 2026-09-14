@@ -82,8 +82,9 @@ Every task plan must name the selected skills and explain why any normally requi
 
 - **Core docs:** `slops-repo-inspector`, `planning-pass`, `slops-context-markdown`, `slops-git-flow`
 - **Core implementation:** `slops-repo-inspector`, `planning-pass`, `slops-git-flow`, `slops-tdd`, `slops-quality-baseline`, `slops-code-review`
-- **UI / UX — web:** core implementation + `slops-taste`, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change
-- **UI / UX — native (iOS + Android):** core implementation + `slops-taste`, **`slops-canvas-to-code`** (before the build, whenever the screen has an artboard), **`slops-native-ui-audit`** (for the verdict), `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change. **Do not use `slops-ui-ux-audit` for native** — it audits a partially-superseded web spec in web units.
+- **UI / UX — web:** core implementation + **`slops-taste` §A (the web route)**, `slops-ui-ux-audit`, `slops-mobile-smoke`; add `slops-ux-copy` when user-facing words change. `slops-mobile-smoke` currently reports `NEEDS-INSTALL` — `playwright-core` is absent despite the skill having claimed it was vendored.
+- **UI / UX — native (iOS + Android):** core implementation + **`slops-taste` §B (the native route — not §A)**, **`slops-canvas-to-code`** (before the build, whenever the screen has an artboard), **`slops-native-ui-audit`** (for the verdict); add `slops-ux-copy` when user-facing words change. **Do not use `slops-ui-ux-audit` for native** — it audits a partially-superseded web spec in web units. **Do not use `slops-mobile-smoke` for native either** — it is web-only, drives a desktop browser at phone viewports, and cannot launch either native app. Use `slops-native-sim-drive` for captures.
+  - **Corrected 2026-09-14 (two errors on this line).** It named `slops-taste` with no route qualifier, and it named `slops-mobile-smoke`, which is web-only and says so in its own description. `slops-taste` now has two routes because its upstream *explicitly excludes product UI* and carries zero SwiftUI/Compose material — §A delegates web to the upstream, §B is the Omen native half. Pointing the bare name at a native screen is what failed on 2026-09-14, and the skill was not installed either, so the failure showed up as absence rather than as mis-scope. Both are now checkable: `node ../../Blueprints/tools/skill-link/check-skill-deps.mjs`.
   - The two native skills answer **different questions and both are needed**: `slops-canvas-to-code` asks *does the screen match its artboard*; `slops-native-ui-audit` asks *is the screen any good*. Neither substitutes for the other.
   - **Added 2026-09-07.** Both skills existed and neither was routed anywhere, so the page-by-page canvas work was done by hand. `slops-canvas-to-code` was written for precisely that failure and quotes it: *"When I tried to build the pages with codex I ran out of rate limits because I didn't do the job exactly like the canvas presented it, forgot placements and icons. It was bad."*
 - **Trust boundary:** core implementation + `security-privacy-evidence`, `rbac-risk-review`; add `slops-legal-spot-check` when provider claims, privacy, terms, attribution, or public data-use copy changes
@@ -1283,6 +1284,40 @@ build, and no tester report can be tied to the code they were actually running.
 **Founder's stated intent for 1.7 beyond tagging:** "with 1.7 I wanna start working on it
 differently" — more structured, page by page. The `slops-native-sim-drive` skill was authored
 2026-09-11 in service of that. See the note on skill reach below.
+
+### X5-VetWrappers — Vet the remaining wrapper upstreams before installing any of them
+
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Cost:** small per wrapper; 6 passes
+- **Source:** founder, 2026-09-14: *"we do not just install other people's software and inherit it."*
+- **Context:** `X4-SkillReach` made the library reachable; `check-skill-deps.mjs` (2026-09-14) made
+  install state visible. First run: 9 wrappers front an external tool, **2 ready, 7 unmet.**
+  `slops-taste` is vetted and installed. The other 7 are not, and installing before vetting is the
+  thing this item exists to prevent.
+- **Done when:** each wrapper below has a `notes/prior-use-review.md` recording licence,
+  maintenance, what it does, a verdict against facts-of-record #17 / no-cloud-fallback /
+  local-first, and — if adopted — the local deltas and whether any fix goes upstream.
+  **"Don't adopt" is a valid and cheap outcome.** Retiring the skill is a valid outcome too.
+- **Order, with the question each pass actually has to answer:**
+  1. `slops-mobile-smoke` — **should this exist at all?** Web-only, and the web app is paused under
+     the native pivot. Decide retire-vs-keep *before* deciding install. Its `playwright-core`
+     vendoring claim was false and is now corrected.
+  2. `compliance-by-template` — not on the original list; the checker found it. Two unmet deps
+     (`pandoc`, an `open-agreements` clone). Legal-template provenance needs its own read.
+  3. `slops-headroom` — its own SKILL.md demands a `tcpdump` soak to verify the local-only claim.
+     That verification *is* the vetting pass; do not install and trust the README.
+  4. `slops-markitdown` — **blocked on a toolchain decision:** needs Python 3.10+, this Mac has
+     3.9.6. The Python decision precedes the package decision.
+  5. `slops-explainer-cut` + `slops-animation-render` — one pass, shared question: both specify
+     rendering on **KVM1**, so a workstation install may be unnecessary. Neither skill names a
+     project root; the Remotion one was inferred from the only `package.json` in the tree.
+- **No pass needed:** `slops-voiceover` is detect-only by design and its recorded install is a
+  Windows `.msi` on another machine. Permanent `NEEDS-INSTALL` here is honest, not broken.
+- **Do not touch:** do not install anything to make the checker go green. Green is not the goal;
+  an accurate answer is. A `NEEDS-INSTALL` that reflects a deliberate "not adopted" is a correct
+  result.
 
 ### X4-SkillReach — The Slops skills are documents, not skills the tooling can reach
 
