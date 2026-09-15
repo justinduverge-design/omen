@@ -40,8 +40,10 @@ COPY package.json ./
 # Format:   min hour day month weekday command
 # Weekday 2 = Tuesday
 # Output is appended to /var/log/omen_cron.log
-RUN echo "0 6 * * 2 node /app/src/omen_tuesday_cron.js >> /var/log/omen_cron.log 2>&1" \
-    > /var/spool/cron/crontabs/ssffmvp
+RUN { \
+      echo "*/5 * * * * node /app/src/league_office_sync_worker.js >> /var/log/omen_cron.log 2>&1"; \
+      echo "0 6 * * 2 node /app/src/omen_tuesday_cron.js >> /var/log/omen_cron.log 2>&1"; \
+    } > /var/spool/cron/crontabs/ssffmvp
 
 # Ensure permissions are correct for the crond daemon to read it
 RUN chmod 0600 /var/spool/cron/crontabs/ssffmvp
