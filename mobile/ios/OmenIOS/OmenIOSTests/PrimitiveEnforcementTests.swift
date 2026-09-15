@@ -1,4 +1,6 @@
 import XCTest
+import CoreGraphics
+@testable import Omen
 
 /// M1-P P4 enforcement: files under `OmenIOS/App/` must compose approved shared `Omen*`
 /// primitives from `DesignSystem/`, not clone raw SwiftUI primitives or color literals.
@@ -136,3 +138,55 @@ final class PrimitiveEnforcementTests: XCTestCase {
         return root
     }
 }
+
+/// Locks registry §2.5 as replaced by the founder on 2026-09-13.
+///
+/// **Filed here, not in its own file, only because a new test file needs a `project.pbxproj`
+/// entry** and this file is already in the test target and already enforces design-system rules.
+/// It should move to `OmenSpacingTests.swift` the next time the project file is edited.
+///
+/// The amendment landed in the registry on 2026-09-13 and in the token files on **2026-09-15**.
+/// For two days the scale and its own implementation disagreed, and the visual-lock screens could
+/// not be built to contract because the steps they needed did not exist. The registry's reasoning
+/// is why this is asserted rather than left to review: the density that buys D11's no-scroll
+/// constraint lives in the **6–14 range**, so dropping 6, 10 or 14 does not cost tidiness — it
+/// costs the fold. Android mirror: `OmenSpacingTest`.
+final class OmenSpacingScaleTests: XCTestCase {
+
+    private var scale: [CGFloat] {
+        [OmenSpacing.step2, OmenSpacing.step4, OmenSpacing.step6, OmenSpacing.step8,
+         OmenSpacing.step10, OmenSpacing.step12, OmenSpacing.step14, OmenSpacing.step16,
+         OmenSpacing.step20, OmenSpacing.step24, OmenSpacing.step32, OmenSpacing.step40,
+         OmenSpacing.step48, OmenSpacing.step64, OmenSpacing.step96]
+    }
+
+    func testTheScaleIsTheBaseTwoModularFifteen() {
+        XCTAssertEqual(scale, [2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 32, 40, 48, 64, 96])
+    }
+
+    /// Every value at or above 16 is unchanged, so nothing built to the previous scale moves.
+    func testTheRescaleDidNotMoveAnythingAtOrAboveSixteen() {
+        XCTAssertEqual(OmenSpacing.step16, 16)
+        XCTAssertEqual(OmenSpacing.step24, 24)
+        XCTAssertEqual(OmenSpacing.step32, 32)
+        XCTAssertEqual(OmenSpacing.step48, 48)
+        XCTAssertEqual(OmenSpacing.step64, 64)
+        XCTAssertEqual(OmenSpacing.step96, 96)
+    }
+
+    /// Every step is `2 × n`. A step that is not even is not on this scale.
+    func testEveryStepIsAMultipleOfTwo() {
+        for step in scale {
+            XCTAssertEqual(step.truncatingRemainder(dividingBy: 2), 0, "step \(step) is not 2 × n")
+        }
+    }
+
+    /// The rhythm aliases the registry names must resolve onto the scale, not beside it.
+    func testTheRhythmAliasesResolveOntoNamedSteps() {
+        XCTAssertEqual(OmenSpacing.chipInteriorVertical, OmenSpacing.step6)
+        XCTAssertEqual(OmenSpacing.chipInteriorHorizontal, OmenSpacing.step10)
+        XCTAssertEqual(OmenSpacing.inlineGap, OmenSpacing.step10)
+        XCTAssertEqual(OmenSpacing.cardInterior, OmenSpacing.step24)
+    }
+}
+
