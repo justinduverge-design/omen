@@ -261,10 +261,16 @@ private fun ActivitySection(overview: LeagueOverview) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         SectionLabel("Around the League")
 
-        if (overview.activity.items.isEmpty()) {
+        if (overview.activity.status == LeagueOverview.Activity.Status.Unavailable) {
+            OmenStateSurface(
+                kind = OmenStateSurfaceKind.Error,
+                title = "League activity unavailable",
+                message = "Omen couldn't read league activity. This is an unread feed, not an empty one.",
+            )
+        } else if (overview.activity.items.isEmpty()) {
             OmenStateSurface(
                 kind = OmenStateSurfaceKind.Empty,
-                title = "No major league activity to flag right now",
+                title = if (overview.activity.unavailableFamilies.isEmpty()) "No major league activity to flag right now" else "League activity is incomplete",
                 message = activityMessage(overview.activity),
             )
         } else {
@@ -279,6 +285,10 @@ private fun ActivitySection(overview: LeagueOverview) {
                     }
                 }
             }
+        }
+        if (overview.activity.items.isNotEmpty() && overview.activity.unavailableFamilies.isNotEmpty()) {
+            Text("Unavailable feeds: ${overview.activity.unavailableFamilies.joinToString(", ")}",
+                style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
         }
     }
 }

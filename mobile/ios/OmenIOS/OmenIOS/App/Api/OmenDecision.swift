@@ -64,8 +64,18 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
 
     struct Confidence: Decodable, Equatable {
         let score: Int?
+        let band: String?
+        let drivers: [String]?
+        /// Present only when the server produced no confidence at all. Says what Omen could
+        /// not read, rather than naming a fourth, worst band.
+        let unavailableReason: [String]?
         let label: String?
         let rationale: String?
+
+        enum CodingKeys: String, CodingKey {
+            case score, band, drivers, label, rationale
+            case unavailableReason = "unavailable_reason"
+        }
     }
 
     struct Risk: Decodable, Equatable {
@@ -166,6 +176,9 @@ extension OmenDecisionEnvelope {
             // `Number.isFinite` guard — the server treats absence as a real, expected state,
             // and the client must not manufacture a number the server declined to give.
             confidence: conf?.score,
+            confidenceBand: Self.confidenceBand(conf?.band),
+            confidenceDrivers: conf?.drivers ?? [],
+            confidenceUnavailableReason: conf?.unavailableReason ?? [],
             risk: Self.riskLevel(recommendation.risk?.level),
             riskReasons: recommendation.risk?.reasons ?? [],
             explanation: Self.explanationLines(explanationBlock),
@@ -173,6 +186,11 @@ extension OmenDecisionEnvelope {
             signals: Self.signalItems(signals),
             alternatives: Self.alternatives(from: recommendation)
         )
+    }
+
+    private static func confidenceBand(_ raw: String?) -> OmenConfidenceBand? {
+        guard let raw else { return nil }
+        return OmenConfidenceBand(rawValue: raw)
     }
 
     private static func signalItems(_ signals: [String: Signal]?) -> [OmenSignalItem] {

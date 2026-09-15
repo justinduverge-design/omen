@@ -72,6 +72,8 @@ struct OmenCommandCenterScreen: View {
 
     @State private var showWaiverDetail = false
     @State private var ledgerDetailEntry: OmenLedgerEntry?
+    @State private var showLedgerHistory = false
+    var loadReceipt: ((String) async -> Result<MoveReceipt, OmenApiError>)?
     /// Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
     /// one of the three that is ever time-critical, and a user who never swipes should land on
     /// the page that can expire.
@@ -89,9 +91,11 @@ struct OmenCommandCenterScreen: View {
         onConnectPlatform: ((OmenPlatform) -> Void)? = nil,
         carousel: LeagueCarouselViewModel? = nil,
         userID: String? = nil,
-        onContextChanged: (([String]) -> Void)? = nil
+        onContextChanged: (([String]) -> Void)? = nil,
+        loadReceipt: ((String) async -> Result<MoveReceipt, OmenApiError>)? = nil
     ) {
         self.carousel = carousel
+        self.loadReceipt = loadReceipt
         self.userID = userID
         self.onContextChanged = onContextChanged
         self.onConnectPlatform = onConnectPlatform
@@ -176,7 +180,29 @@ struct OmenCommandCenterScreen: View {
         }
         .sheet(item: $ledgerDetailEntry) { entry in
             CommandCenterDetailSheet(title: "The Ledger") {
-                ledgerDetailBody(selected: entry)
+                LedgerReceiptView(entry: entry, load: loadReceipt)
+            }
+        }
+        .sheet(isPresented: $showLedgerHistory) {
+            CommandCenterDetailSheet(title: "The Ledger") {
+                NavigationStack {
+                    ScrollView {
+                        if case .entries(let entries) = state.ledger {
+                            ForEach(entries) { entry in
+                                NavigationLink {
+                                    LedgerReceiptView(entry: entry, load: loadReceipt)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                        Text(entry.period).omenTextStyle(OmenTypography.label)
+                                        Text(entry.summary).omenTextStyle(OmenTypography.h3)
+                                        Text(entry.outcome).omenTextStyle(OmenTypography.bodySmall)
+                                        if let action = entry.actionStatus { Text(action).omenTextStyle(OmenTypography.bodySmall) }
+                                    }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
+                                }
+                            }
+                        } else { ledgerRows(limit: Int.max) }
+                    }
+                }
             }
         }
     }
@@ -279,7 +305,7 @@ struct OmenCommandCenterScreen: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: OmenSpacing.step4) {
                 Text("Command Center")
-                    .omenTextStyle(OmenTypography.eyebrow)
+                    .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textSecondary)
                 Text(state.greeting)
                     // `h2` on one line, not `h1` across two. At 32pt the headline took roughly
@@ -378,13 +404,13 @@ struct OmenCommandCenterScreen: View {
             OmenCard(variant: .preview) {
                 VStack(alignment: .leading, spacing: OmenSpacing.step12) {
                     Rectangle().fill(OmenColor.accent).frame(height: OmenSpacing.step4)
-                    Text("Best Move").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accent)
+                    Text("Best Move").omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.accent)
                     opportunityContent(bestMove)
                 }
             }
             if showDetailLink { waiverDetailButton(title: "Review waiver analysis") }
             if !longHorizonMoves.isEmpty {
-                Text("For the long horizon").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
+                Text("For the long horizon").omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textSecondary)
                 ForEach(Array(longHorizonMoves.prefix(2))) { opportunity in
                     opportunityRow(opportunity)
                 }
@@ -469,21 +495,24 @@ struct OmenCommandCenterScreen: View {
     /// the preview to the full Ledger, and dropping it would strand the section.
     @ViewBuilder
     private var ledgerSeeAll: some View {
-        if case .entries = state.ledger, let first = state.ledger.entries.first {
-            OmenButton(title: "See all →", action: { ledgerDetailEntry = first }, variant: .link, size: .md)
-        }
+        OmenButton(title: "See all →", action: { showLedgerHistory = true }, variant: .link, size: .md)
     }
 
     @ViewBuilder
     private var ledgerPreviewBody: some View {
+        ledgerRows(limit: 3)
+    }
+
+    @ViewBuilder
+    private func ledgerRows(limit: Int) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             switch state.ledger {
             case .entries(let entries):
                 VStack(spacing: 0) {
-                    ForEach(Array(entries.prefix(3))) { entry in
+                    ForEach(Array(entries.prefix(limit))) { entry in
                         OmenListRow(
                             title: "\(entry.period) · \(entry.callType)",
-                            subtitle: "\(entry.summary)\n\(entry.outcome)",
+                            subtitle: [entry.summary, entry.outcome, entry.actionStatus].compactMap { $0 }.joined(separator: "\n"),
                             action: { ledgerDetailEntry = entry },
                             leading: {
                                 Rectangle()
@@ -515,7 +544,7 @@ struct OmenCommandCenterScreen: View {
             OmenCard(variant: .preview) {
                 VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                     Text("\(selected.period) · \(selected.callType)")
-                        .omenTextStyle(OmenTypography.eyebrow)
+                        .omenTextStyle(OmenTypography.micro)
                         .foregroundStyle(OmenColor.accent)
                     Text(selected.summary)
                         .omenTextStyle(OmenTypography.h2)
@@ -523,7 +552,17 @@ struct OmenCommandCenterScreen: View {
                     Text(selected.outcome)
                         .omenTextStyle(OmenTypography.body)
                         .foregroundStyle(OmenColor.textSecondary)
+                    if let actionStatus = selected.actionStatus {
+                        Text(actionStatus)
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    }
                 }
+            }
+            OmenCard(variant: .preview) {
+                Text("This receipt is frozen as it was issued. Losses stay in the Ledger — a record that only shows wins is marketing.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
             }
             ledgerPreviewBody
         }
@@ -564,7 +603,7 @@ struct OmenCommandCenterScreen: View {
                             Text(cutLine).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
                         }
                         if let activity {
-                            Text("Around the League").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.textSecondary)
+                            Text("Around the League").omenTextStyle(OmenTypography.micro).foregroundStyle(OmenColor.textSecondary)
                             Text(activity).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
                         }
                     }
@@ -643,14 +682,61 @@ enum OmenLedgerPreviewState {
     }
 }
 
+private struct LedgerReceiptView: View {
+    let entry: OmenLedgerEntry
+    let load: ((String) async -> Result<MoveReceipt, OmenApiError>)?
+    @State private var result: Result<MoveReceipt, OmenApiError>?
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                switch result {
+                case .success(let receipt):
+                    Text(receipt.snapshot.recommendation ?? entry.summary).omenTextStyle(OmenTypography.h2)
+                    if let issued = receipt.snapshot.issuedAt {
+                        Text("Issued \(issued) · \(receipt.snapshot.issuedAtTimezone ?? "Time zone unavailable")").omenTextStyle(OmenTypography.bodySmall)
+                    }
+                    ForEach(Array(receipt.evidenceAtTheTime.enumerated()), id: \.offset) { _, evidence in
+                        OmenCard(variant: .outlined) {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                                Text(evidence.kind).omenTextStyle(OmenTypography.label)
+                                Text(evidence.statement).omenTextStyle(OmenTypography.body)
+                            }
+                        }
+                    }
+                    Text(receipt.userAction.statement).omenTextStyle(OmenTypography.body)
+                    Text(receipt.observedOutcome.statement).omenTextStyle(OmenTypography.body)
+                    Text(receipt.fairnessNote).omenTextStyle(OmenTypography.bodySmall)
+                case .failure:
+                    OmenStateSurface(kind: .error, title: "The receipt didn’t load", message: "The recorded evidence is unavailable. Return to the Ledger and try again.")
+                case nil:
+                    OmenStateSurface(kind: .loading, title: "Reading the receipt", message: "Loading the evidence recorded at issue time.")
+                }
+            }.foregroundStyle(OmenColor.textPrimary).padding(OmenSpacing.step16)
+        }.background(OmenColor.bg)
+        .task(id: entry.id) { result = nil; result = await load?(entry.id) ?? .failure(.network) }
+    }
+}
+
 struct OmenLedgerEntry: Identifiable {
     let id: String
     let period: String
     let callType: String
     let summary: String
     let outcome: String
+    let actionStatus: String?
+    let outcomeProvenance: String?
 
-    var accessibilityLabel: String { [period, callType, summary, outcome].joined(separator: ", ") }
+    init(id: String, period: String, callType: String, summary: String, outcome: String, actionStatus: String? = nil, outcomeProvenance: String? = nil) {
+        self.id = id
+        self.period = period
+        self.callType = callType
+        self.summary = summary
+        self.outcome = outcome
+        self.actionStatus = actionStatus
+        self.outcomeProvenance = outcomeProvenance
+    }
+
+    var accessibilityLabel: String { [period, callType, summary, outcome, actionStatus].compactMap { $0 }.joined(separator: ", ") }
 }
 
 enum OmenLeaguePulseState {

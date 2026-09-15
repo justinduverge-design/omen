@@ -246,7 +246,7 @@ fun OmenMatchupHero(
 private fun MatchupEyebrow(text: String) {
     Text(
         text = text,
-        style = OmenTheme.typography.eyebrow.toTextStyle(),
+        style = OmenTheme.typography.micro.toTextStyle(),
         color = OmenTheme.color.textSecondary,
     )
 }
@@ -268,7 +268,7 @@ private fun ColumnHeader() {
         Spacer(Modifier.weight(1f))
         Text(
             text = "PROJ",
-            style = type.eyebrow.toTextStyle(),
+            style = type.micro.toTextStyle(),
             color = colors.textSecondary,
             textAlign = TextAlign.End,
             modifier = Modifier.width(PROJ_COLUMN_WIDTH),
@@ -276,7 +276,7 @@ private fun ColumnHeader() {
         Spacer(Modifier.width(OmenTheme.spacing.step8))
         Text(
             text = "SCORE",
-            style = type.eyebrow.toTextStyle(),
+            style = type.micro.toTextStyle(),
             color = colors.textSecondary,
             textAlign = TextAlign.End,
             modifier = Modifier.width(SCORE_COLUMN_WIDTH),
@@ -458,7 +458,7 @@ private fun WhatToWatchRail(signal: String) {
     ) {
         Text(
             text = "WHAT TO WATCH",
-            style = type.eyebrow.toTextStyle(),
+            style = type.micro.toTextStyle(),
             color = colors.textSecondary,
         )
         // Brief §1.2 constrains this to two-to-three lines maximum; enforce with maxLines.

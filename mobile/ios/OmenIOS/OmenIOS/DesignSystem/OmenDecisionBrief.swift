@@ -26,6 +26,13 @@ struct OmenDecisionBriefPayload {
     /// never made, and indistinguishable from genuine zero confidence. The struct's own
     /// contract above already said any field may be absent; this one did not honour it.
     let confidence: Int?
+    /// `omen-decision-brief.v2`: a qualitative band chosen server-side. Not a calibrated
+    /// probability — the server's own policy note says so, and neither is the vocabulary a
+    /// relabelled percentage the client may re-derive.
+    let confidenceBand: OmenConfidenceBand?
+    let confidenceDrivers: [String]
+    /// What Omen could not read, when there is no band at all. Never rendered alongside one.
+    let confidenceUnavailableReason: [String]
     let risk: OmenRiskLevel
     let riskReasons: [String]
     let explanation: [String]
@@ -38,6 +45,9 @@ struct OmenDecisionBriefPayload {
         move: String,
         impact: String? = nil,
         confidence: Int? = nil,
+        confidenceBand: OmenConfidenceBand? = nil,
+        confidenceDrivers: [String] = [],
+        confidenceUnavailableReason: [String] = [],
         risk: OmenRiskLevel,
         riskReasons: [String] = [],
         explanation: [String] = [],
@@ -49,6 +59,9 @@ struct OmenDecisionBriefPayload {
         self.move = move
         self.impact = impact
         self.confidence = confidence
+        self.confidenceBand = confidenceBand
+        self.confidenceDrivers = confidenceDrivers
+        self.confidenceUnavailableReason = confidenceUnavailableReason
         self.risk = risk
         self.riskReasons = riskReasons
         self.explanation = explanation
@@ -56,6 +69,11 @@ struct OmenDecisionBriefPayload {
         self.signals = signals
         self.alternatives = alternatives
     }
+}
+
+enum OmenConfidenceBand: String, Equatable {
+    case confident, leaning, coinFlip = "coin_flip"
+    var label: String { self == .coinFlip ? "Coin flip" : rawValue.capitalized }
 }
 
 /// One "considered but not recommended" player row under the primary recommendation.
@@ -204,8 +222,15 @@ struct OmenDecisionBrief<Feedback: View>: View {
             }
             // Absent means absent. No placeholder bar, no em dash, no zero — a greyed bar
             // still occupies the position a number belongs in and reads as a number.
-            if let confidence = payload.confidence {
-                OmenConfidenceBar(score: confidence, label: "Confidence")
+            //
+            // There is deliberately **no numeric fallback here.** C1 deleted the numeral and
+            // fact-of-record #16 states confidence is a band and never a percentage; a
+            // `OmenConfidenceBar` branch behind an `else` is still a live path to the banned
+            // component, reachable the moment a payload arrives without a band.
+            if let band = payload.confidenceBand {
+                OmenConfidenceBandPanel(band: band, drivers: payload.confidenceDrivers)
+            } else if !payload.confidenceUnavailableReason.isEmpty {
+                OmenConfidenceUnavailablePanel(reasons: payload.confidenceUnavailableReason)
             }
             OmenRiskPanel(level: payload.risk, reasons: payload.riskReasons)
             ForEach(Array(payload.explanation.enumerated()), id: \.offset) { _, paragraph in
@@ -228,6 +253,45 @@ struct OmenDecisionBrief<Feedback: View>: View {
             }
             feedback
         }
+    }
+}
+
+private struct OmenConfidenceBandPanel: View {
+    let band: OmenConfidenceBand
+    let drivers: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            OmenBadge(label: band.label, tone: .neutral)
+            ForEach(drivers, id: \.self) { driver in
+                Text(driver)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+            }
+        }
+    }
+}
+
+/// Shown where a band would be, when Omen produced no confidence value at all.
+///
+/// It must not read as a fourth band. A band is a graded verdict; this is the absence of one,
+/// so it carries no rule mark, states what was missing, and never borrows the band vocabulary.
+private struct OmenConfidenceUnavailablePanel: View {
+    let reasons: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+            Text("No confidence read")
+                .omenTextStyle(OmenTypography.micro)
+                .foregroundStyle(OmenColor.textTertiary)
+            ForEach(reasons, id: \.self) { reason in
+                Text(reason)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No confidence read. " + reasons.joined(separator: ". "))
     }
 }
 

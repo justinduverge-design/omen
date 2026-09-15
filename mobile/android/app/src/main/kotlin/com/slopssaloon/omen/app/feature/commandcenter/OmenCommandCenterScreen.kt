@@ -102,12 +102,14 @@ fun OmenCommandCenterScreen(
     userId: String? = null,
     /** Only meaningful alongside [carousel]. Re-reads the surfaces the server named. */
     onContextChanged: ((List<String>) -> Unit)? = null,
+    loadReceipt: (suspend (String) -> com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>)? = null,
 ) {
     // Drives the tap-through detail sheet. The sheet carries the existing
     // OmenPlatformConnectionCard content — that content is moved off the main surface, not new.
     var detailRow by remember { mutableStateOf<OmenPlatformRowState?>(null) }
     var showWaiverDetail by remember { mutableStateOf(false) }
     var ledgerDetailEntry by remember { mutableStateOf<OmenLedgerEntry?>(null) }
+    var showLedgerHistory by remember { mutableStateOf(false) }
     // Which of the three secondary widgets is showing. Opens on Waiver Watch: it is the only
     // one of the three that is ever time-critical, and a user who never swipes should land on
     // the page that can expire.
@@ -208,12 +210,12 @@ fun OmenCommandCenterScreen(
                 // `waiverCallToActionOnly`. The full briefing is unchanged and still one tap
                 // away in the sheet below — `WaiverWatch` is NOT dead code.
                 waiver = { WaiverCallToActionOnly(state.waiverWatch) { showWaiverDetail = true } },
-                ledger = { LedgerPreview(state.ledger, { ledgerDetailEntry = it }, showLabel = false) },
+                ledger = { LedgerPreview(state.ledger, { ledgerDetailEntry = it }, showLabel = false, onSeeAll = { showLedgerHistory = true }) },
                 pulse = { LeaguePulse(state.leaguePulse, onOpenLeague, showLabel = false) },
             )
         } else {
             WaiverWatch(state = state.waiverWatch, onOpenWaiver = { showWaiverDetail = true })
-            LedgerPreview(state = state.ledger, onOpenLedger = { ledgerDetailEntry = it })
+            LedgerPreview(state = state.ledger, onOpenLedger = { ledgerDetailEntry = it }, onSeeAll = { showLedgerHistory = true })
             LeaguePulse(state = state.leaguePulse, onOpenLeague = onOpenLeague)
         }
     }
@@ -249,9 +251,17 @@ fun OmenCommandCenterScreen(
             WaiverWatch(state.waiverWatch, onOpenWaiver = null, showLabel = false, showDetailLink = false)
         }
     }
+    if (showLedgerHistory) {
+        CommandCenterDetailSheet(title = "The Ledger", onDismiss = { showLedgerHistory = false }) {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                LedgerPreview(state.ledger, { showLedgerHistory = false; ledgerDetailEntry = it },
+                    showLabel = false, rowLimit = Int.MAX_VALUE)
+            }
+        }
+    }
     ledgerDetailEntry?.let { entry ->
         CommandCenterDetailSheet(title = "The Ledger", onDismiss = { ledgerDetailEntry = null }) {
-            LedgerDetail(entry = entry, state = state.ledger)
+            LedgerReceipt(entry, loadReceipt)
         }
     }
 }
@@ -269,7 +279,7 @@ private fun HeaderBlock(greeting: String, onOpenAccount: (() -> Unit)?) {
         ) {
             Text(
                 text = "Command Center",
-                style = OmenTheme.typography.eyebrow.toTextStyle(),
+                style = OmenTheme.typography.micro.toTextStyle(),
                 color = OmenTheme.color.textSecondary,
             )
             Text(
@@ -361,13 +371,13 @@ private fun UrgentWaiverBriefing(
         OmenCard(variant = OmenCardVariant.Preview) {
             Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
                 Box(Modifier.fillMaxWidth().height(OmenTheme.spacing.step4).background(OmenTheme.color.accent))
-                Text("Best Move", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.accent)
+                Text("Best Move", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.accent)
                 OpportunityContent(state.bestMove)
             }
         }
         if (showDetailLink) OmenLinkButton("Review waiver analysis", onOpenWaiver)
         if (state.longHorizonMoves.isNotEmpty()) {
-            Text("For the long horizon", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
+            Text("For the long horizon", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textSecondary)
             state.longHorizonMoves.take(2).forEach { OpportunityRow(it) }
         }
     }
@@ -487,14 +497,56 @@ private fun LedgerDetail(entry: OmenLedgerEntry, state: OmenLedgerPreviewState) 
             Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
                 Text(
                     text = "${entry.period} · ${entry.callType}",
-                    style = OmenTheme.typography.eyebrow.toTextStyle(),
+                    style = OmenTheme.typography.micro.toTextStyle(),
                     color = OmenTheme.color.accent,
                 )
                 Text(entry.summary, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
                 Text(entry.outcome, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                entry.actionStatus?.let {
+                    Text(it, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
+                }
             }
         }
+        OmenCard(variant = OmenCardVariant.Preview) {
+            Text(
+                "This receipt is frozen as it was issued. Losses stay in the Ledger — a record that only shows wins is marketing.",
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+            )
+        }
         LedgerPreview(state = state, onOpenLedger = null, showLabel = false)
+    }
+}
+
+@Composable
+private fun LedgerReceipt(entry: OmenLedgerEntry,
+    load: (suspend (String) -> com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>)?) {
+    var result by remember(entry.id) { mutableStateOf<com.slopssaloon.omen.app.feature.api.OmenApiResult<com.slopssaloon.omen.app.feature.api.MoveReceipt>?>(null) }
+    androidx.compose.runtime.LaunchedEffect(entry.id) {
+        result = load?.invoke(entry.id) ?: com.slopssaloon.omen.app.feature.api.OmenApiResult.Failure(com.slopssaloon.omen.app.feature.api.OmenApiError.Network)
+    }
+    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step16)) {
+        when (val value = result) {
+            is com.slopssaloon.omen.app.feature.api.OmenApiResult.Success -> {
+                val receipt = value.value
+                Text(receipt.recommendation ?: entry.summary, style = OmenTheme.typography.h2.toTextStyle(), color = OmenTheme.color.textPrimary)
+                receipt.issuedAt?.let { Text("Issued $it · ${receipt.timezone ?: "Time zone unavailable"}", style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary) }
+                receipt.evidence.forEach { (kind, statement) ->
+                    OmenCard(variant = OmenCardVariant.Outlined) {
+                        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+                            Text(kind, style = OmenTheme.typography.label.toTextStyle(), color = OmenTheme.color.textSecondary)
+                            Text(statement, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textPrimary)
+                        }
+                    }
+                }
+                listOf(receipt.action, receipt.outcome, receipt.fairnessNote).forEach {
+                    Text(it, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
+                }
+            }
+            is com.slopssaloon.omen.app.feature.api.OmenApiResult.Failure -> OmenStateSurface(kind = OmenStateSurfaceKind.Error,
+                title = "The receipt didn’t load", message = "The recorded evidence is unavailable. Return to the Ledger and try again.")
+            null -> OmenStateSurface(kind = OmenStateSurfaceKind.Loading, title = "Reading the receipt", message = "Loading the evidence recorded at issue time.")
+        }
     }
 }
 
@@ -507,6 +559,8 @@ private fun LedgerPreview(
     state: OmenLedgerPreviewState,
     onOpenLedger: ((OmenLedgerEntry) -> Unit)?,
     showLabel: Boolean = true,
+    onSeeAll: (() -> Unit)? = null,
+    rowLimit: Int = 3,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
         Row(
@@ -517,20 +571,20 @@ private fun LedgerPreview(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showLabel) SectionLabel("The Ledger")
-            if (state is OmenLedgerPreviewState.Entries && state.entries.isNotEmpty() && onOpenLedger != null) {
+            if (onSeeAll != null) {
                 OmenButton(
                     text = "See all →",
-                    onClick = { onOpenLedger(state.entries.first()) },
+                    onClick = onSeeAll,
                     variant = OmenButtonVariant.Link,
                     size = OmenButtonSize.Md,
                 )
             }
         }
         when (state) {
-            is OmenLedgerPreviewState.Entries -> state.entries.take(3).forEach { entry ->
+            is OmenLedgerPreviewState.Entries -> state.entries.take(rowLimit).forEach { entry ->
                 OmenListRow(
                     title = "${entry.period} · ${entry.callType}",
-                    subtitle = "${entry.summary}\n${entry.outcome}",
+                    subtitle = listOfNotNull(entry.summary, entry.outcome, entry.actionStatus).joinToString("\n"),
                     onClick = onOpenLedger?.let { callback -> { callback(entry) } },
                     leadingContent = {
                         Box(
@@ -600,7 +654,7 @@ private fun LeaguePulse(
                         Text(it, style = OmenTheme.typography.body.toTextStyle(), color = OmenTheme.color.textSecondary)
                     }
                     state.activity?.let {
-                        Text("Around the League", style = OmenTheme.typography.eyebrow.toTextStyle(), color = OmenTheme.color.textSecondary)
+                        Text("Around the League", style = OmenTheme.typography.micro.toTextStyle(), color = OmenTheme.color.textSecondary)
                         Text(it, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
                     }
                 }
@@ -676,8 +730,10 @@ data class OmenLedgerEntry(
     val callType: String,
     val summary: String,
     val outcome: String,
+    val actionStatus: String? = null,
+    val outcomeProvenance: String? = null,
 ) {
-    val accessibilityLabel: String = listOf(period, callType, summary, outcome).joinToString(", ")
+    val accessibilityLabel: String = listOfNotNull(period, callType, summary, outcome, actionStatus).joinToString(", ")
 }
 
 sealed interface OmenLeaguePulseState {

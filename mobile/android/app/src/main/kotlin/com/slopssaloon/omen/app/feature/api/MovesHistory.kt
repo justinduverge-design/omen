@@ -5,6 +5,23 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
+data class MoveReceipt(val recommendation: String?, val issuedAt: String?, val timezone: String?,
+    val evidence: List<Pair<String, String>>, val action: String, val outcome: String, val fairnessNote: String) {
+    companion object {
+        fun parse(raw: String): MoveReceipt? = runCatching {
+            val json = JSONObject(raw)
+            require(json.getString("contract_version") == "move-detail.v1")
+            val snapshot = json.getJSONObject("snapshot")
+            val rows = json.getJSONArray("evidence_at_the_time")
+            MoveReceipt(snapshot.optStringOrNull("recommendation"), snapshot.optStringOrNull("issued_at"),
+                snapshot.optStringOrNull("issued_at_timezone"), (0 until rows.length()).map {
+                    rows.getJSONObject(it).let { row -> row.getString("kind") to row.getString("statement") }
+                }, json.getJSONObject("user_action").getString("statement"),
+                json.getJSONObject("observed_outcome").getString("statement"), json.getString("fairness_note"))
+        }.getOrNull()
+    }
+}
+
 /**
  * M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v1`.
  * iOS mirror: `App/Api/MovesHistory.swift`.
@@ -48,6 +65,8 @@ data class MovesHistory(
         val moveType: String?,
         val recommendation: String?,
         val followed: Boolean?,
+        val actionProvenance: String? = null,
+        val provenance: String? = null,
         val stars: Int?,
         val outcome: String?,
         val effectivenessPct: Double?,
@@ -81,8 +100,10 @@ data class MovesHistory(
                             season = row.optIntOrNull("season"),
                             week = row.optIntOrNull("week"),
                             moveType = row.optStringOrNull("move_type"),
-                            recommendation = row.optStringOrNull("recommendation"),
+                            recommendation = row.optStringOrNull("headline") ?: row.optStringOrNull("recommendation"),
                             followed = row.optBooleanOrNull("followed"),
+                            actionProvenance = row.optStringOrNull("action_provenance"),
+                            provenance = row.optStringOrNull("provenance"),
                             stars = row.optIntOrNull("stars"),
                             outcome = row.optStringOrNull("outcome"),
                             effectivenessPct = row.optDoubleOrNull("effectiveness_pct"),
@@ -121,6 +142,8 @@ data class MovesHistory(
                 callType = callTypeFor(move),
                 summary = recommendation,
                 outcome = outcomeTextFor(move),
+                actionStatus = actionTextFor(move),
+                outcomeProvenance = move.provenance?.trim()?.lowercase(),
             )
         }
 
@@ -148,6 +171,9 @@ data class MovesHistory(
             val parts = mutableListOf<String>()
 
             when (outcome) {
+                "worked" -> parts += "Verified outcome: worked"
+                "did_not_work" -> parts += "Verified outcome: did not work"
+                "not_verified" -> parts += "Outcome not verified"
                 "win" -> parts += "Outcome: win"
                 "loss" -> parts += "Outcome: loss"
                 "pending", null, "" -> parts += "Outcome pending"
@@ -156,17 +182,23 @@ data class MovesHistory(
                 else -> parts += "Outcome: ${move.outcome}"
             }
 
-            when (move.followed) {
-                true -> parts += "followed"
-                false -> parts += "not followed"
-                null -> Unit // No feedback recorded. Silence is not "ignored".
-            }
-
             if ((outcome == "win" || outcome == "loss") && move.followed == true && move.effectivenessPct != null) {
                 parts += "${move.effectivenessPct.roundToInt()}% effective"
             }
 
             return parts.joinToString(" · ")
+        }
+
+        fun actionTextFor(move: Move): String? = when (move.actionProvenance?.trim()?.lowercase()) {
+            "self_reported" -> when (move.followed) {
+                true -> "You reported following this call"
+                false -> "You reported not following this call"
+                null -> "Action report is incomplete"
+            }
+            // Anything else is a provenance value this build has no copy for. Printing the
+            // raw token ("Action status: verified_import") leaks a machine word into the
+            // product; saying nothing is the honest fallback and the row still renders.
+            else -> null
         }
     }
 }

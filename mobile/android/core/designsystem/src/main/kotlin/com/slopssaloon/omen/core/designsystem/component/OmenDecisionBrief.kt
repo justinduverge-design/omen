@@ -39,6 +39,16 @@ data class OmenDecisionBriefPayload(
      * never made, and indistinguishable from genuine zero confidence.
      */
     val confidence: Int? = null,
+    /**
+     * `omen-decision-brief.v2`: a qualitative band chosen server-side. **Not** a calibrated
+     * probability — `decisionBriefV2.js` describes itself as a presentation policy, and the
+     * client must not re-derive or re-thresholds it.
+     */
+    val confidenceBand: OmenConfidenceBand? = null,
+    /** The server's reasons for the band. */
+    val confidenceDrivers: List<String> = emptyList(),
+    /** What Omen could not read, when there is no band at all. Never shown beside a band. */
+    val confidenceUnavailableReason: List<String> = emptyList(),
     val risk: OmenRiskLevel,
     val riskReasons: List<String> = emptyList(),
     val explanation: List<String> = emptyList(),
@@ -46,6 +56,8 @@ data class OmenDecisionBriefPayload(
     val signals: List<OmenSignalItem> = emptyList(),
     val alternatives: List<OmenDecisionBriefAlternative> = emptyList(),
 )
+
+enum class OmenConfidenceBand(val label: String) { Confident("Confident"), Leaning("Leaning"), CoinFlip("Coin flip") }
 
 /** One "considered but not recommended" player row shown under the primary recommendation. */
 data class OmenDecisionBriefAlternative(
@@ -236,7 +248,17 @@ private fun SuccessBody(
         }
         // Absent means absent. No placeholder bar, no dash, no zero — a greyed bar still
         // occupies the position a number belongs in and reads as a number.
-        payload.confidence?.let { OmenConfidenceBar(score = it, label = "Confidence") }
+        //
+        // There is deliberately **no numeric fallback here.** C1 deleted the numeral and
+        // fact-of-record #16 states confidence is a band and never a percentage; an
+        // `OmenConfidenceBar` behind an elvis operator is still a live path to the banned
+        // component, reachable the moment a payload arrives without a band.
+        val band = payload.confidenceBand
+        if (band != null) {
+            OmenConfidenceBandPanel(band = band, drivers = payload.confidenceDrivers)
+        } else if (payload.confidenceUnavailableReason.isNotEmpty()) {
+            OmenConfidenceUnavailablePanel(reasons = payload.confidenceUnavailableReason)
+        }
         OmenRiskPanel(level = payload.risk, reasons = payload.riskReasons)
         for (paragraph in payload.explanation) {
             Text(
@@ -267,6 +289,40 @@ private fun SuccessBody(
         }
         if (feedbackSlot != null) {
             feedbackSlot()
+        }
+    }
+}
+
+/**
+ * Shown where a band would be, when Omen produced no confidence value at all.
+ *
+ * It must not read as a fourth band. A band is a graded verdict; this is the absence of one, so
+ * it states what was missing and never borrows the band vocabulary.
+ */
+@Composable
+private fun OmenConfidenceUnavailablePanel(reasons: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+        Text(
+            text = "No confidence read",
+            style = OmenTheme.typography.micro.toTextStyle(),
+            color = OmenTheme.color.textTertiary,
+        )
+        for (reason in reasons) {
+            Text(
+                text = reason,
+                style = OmenTheme.typography.bodySmall.toTextStyle(),
+                color = OmenTheme.color.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OmenConfidenceBandPanel(band: OmenConfidenceBand, drivers: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+        OmenBadge(label = band.label, tone = OmenBadgeTone.Neutral)
+        for (driver in drivers) {
+            Text(text = driver, style = OmenTheme.typography.bodySmall.toTextStyle(), color = OmenTheme.color.textSecondary)
         }
     }
 }

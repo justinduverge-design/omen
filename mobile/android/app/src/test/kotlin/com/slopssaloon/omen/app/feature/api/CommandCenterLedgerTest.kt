@@ -52,6 +52,12 @@ class CommandCenterLedgerTest {
 
     private fun history(json: String): MovesHistory = requireNotNull(MovesHistory.parse(json))
     private fun waiver(json: String): WaiverAnalysis = requireNotNull(WaiverAnalysis.parse(json))
+    private fun overview(): LeagueOverview = requireNotNull(LeagueOverview.parse("""
+        {"contract_version":"league-overview.v1","platform":"sleeper","league_id":"1","league_name":"Slops Dynasty","season":2026,"week":8,
+         "matchup":{"status":"unavailable","you":null,"opponent":null,"unavailable_reason":"Unavailable"},
+         "standings":{"status":"empty","playoff_picture":null,"teams":[]},
+         "activity":{"status":"empty","unavailable_families":[],"items":[]}}
+    """.trimIndent()))
 
     private fun viewModel(
         omenStatus: String = "ready",
@@ -59,7 +65,10 @@ class CommandCenterLedgerTest {
         waiver: WaiverAnalysisRepository = StubWaiverAnalysisRepository(),
     ) = CommandCenterViewModel(
         repository = StubDashboardRepository(OmenApiResult.Success(summary(omenStatus))),
-        leagueRepository = StubLeagueRepository(OmenApiResult.Failure(OmenApiError.Network)),
+        leagueRepository = StubLeagueRepository(
+            result = OmenApiResult.Failure(OmenApiError.Network),
+            overviewResult = OmenApiResult.Success(overview()),
+        ),
         movesRepository = moves,
         waiverRepository = waiver,
         sessionManager = sessionManager(),
@@ -67,7 +76,7 @@ class CommandCenterLedgerTest {
 
     private class CountingMovesRepository : MovesRepository {
         var calls = 0
-        override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> {
+        override suspend fun fetchMoves(accessToken: String, platform: String, leagueId: String): OmenApiResult<MovesHistory> {
             calls += 1
             return OmenApiResult.Failure(OmenApiError.Network)
         }
@@ -101,7 +110,7 @@ class CommandCenterLedgerTest {
         val state = model.commandCenterState.ledger as OmenLedgerPreviewState.Entries
         assertEquals("41", state.entries.single().id)
         assertEquals("WEEK 6", state.entries.single().period)
-        assertEquals("Outcome: win · followed · 62% effective", state.entries.single().outcome)
+        assertEquals("Outcome: win · 62% effective", state.entries.single().outcome)
     }
 
     /** A real user with a connected league and no recorded moves. Empty is a real answer. */

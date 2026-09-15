@@ -169,7 +169,8 @@ struct CommandCenterView: View {
                                 await loadLeagueForSelectedContext()
                                 await omenDecisionViewModel.load(userID: userID)
                             }
-                        }
+                        },
+                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) }
                     )
                 }
             }
@@ -199,8 +200,10 @@ struct CommandCenterView: View {
                     onAdd: { name, side in tradeViewModel.add(name, to: side) },
                     onAddResult: { player, side in tradeViewModel.add(player, to: side) },
                     onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
-                    onCompare: { Task { await tradeViewModel.compare(userID: userID) } }
+                    onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
+                    capabilities: tradeViewModel.capabilities
                 )
+                .task { await tradeViewModel.loadCapabilities() }
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
@@ -338,6 +341,7 @@ private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
 /// M4 Omen destination assembly. State selection stays here; DecisionBrief owns its states.
 struct OmenDecisionScreen: View {
     let state: OmenDecisionBriefState
+    @State private var showingEvidence = false
 
     var body: some View {
         ScrollView {
@@ -349,7 +353,33 @@ struct OmenDecisionScreen: View {
                     // three things people ask here, so help sits with the title.
                     OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .omen))
                 }
+                Text("One call for this week. Evidence stays separate from the call.")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
                 OmenDecisionBrief(state: state)
+                if case .success(let payload) = state {
+                    OmenButton(
+                        title: showingEvidence ? "Hide the full argument" : "See the full argument",
+                        action: { showingEvidence.toggle() },
+                        variant: .link,
+                        size: .md
+                    )
+                    if showingEvidence {
+                        OmenCard {
+                            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                                Text("The argument")
+                                    .omenTextStyle(OmenTypography.h2)
+                                    .foregroundStyle(OmenColor.textPrimary)
+                                if !payload.signals.isEmpty { OmenSignalList(signals: payload.signals) }
+                                ForEach(payload.confidenceDrivers, id: \.self) { driver in
+                                    Text(driver)
+                                        .omenTextStyle(OmenTypography.body)
+                                        .foregroundStyle(OmenColor.textSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .padding(OmenSpacing.step24)
             .frame(maxWidth: .infinity, alignment: .leading)

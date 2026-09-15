@@ -177,10 +177,13 @@ struct OmenLeagueScreen: View {
         VStack(alignment: .leading, spacing: OmenSpacing.step12) {
             sectionLabel("Around the League")
 
-            if overview.activity.items.isEmpty {
+            if overview.activity.status == .unavailable {
+                OmenStateSurface(kind: .error, title: "League activity unavailable",
+                                 message: "Omen couldn't read league activity. This is an unread feed, not an empty one.")
+            } else if overview.activity.items.isEmpty {
                 OmenStateSurface(
                     kind: .empty,
-                    title: "No major league activity to flag right now",
+                    title: overview.activity.unavailableFamilies.isEmpty ? "No major league activity to flag right now" : "League activity is incomplete",
                     message: activityMessage(overview.activity)
                 )
             } else {
@@ -194,6 +197,11 @@ struct OmenLeagueScreen: View {
                         }
                     }
                 }
+            }
+            if !overview.activity.items.isEmpty && !overview.activity.unavailableFamilies.isEmpty {
+                Text("Unavailable feeds: \(overview.activity.unavailableFamilies.joined(separator: ", "))")
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
             }
         }
     }

@@ -14,11 +14,22 @@ import UIKit
 /// a new role with different rules.
 final class TypographyDerivationTests: XCTestCase {
 
+    /// Reads the weight CoreText actually resolved, rather than the weight we asked for.
+    /// A variable font reports its instance's own trait value (400 -> 0.0, 700 -> 0.4,
+    /// 800 -> 0.6), which does NOT equal Apple's `UIFont.Weight` constants — so this is
+    /// asserted for ordering and distinctness, never for equality with `.heavy`/`.bold`.
+    private func resolvedWeight(_ role: OmenTypeRoleSpec) -> Double {
+        let traits = role.resolvedUIFont.fontDescriptor.object(forKey: .traits)
+            as? [UIFontDescriptor.TraitKey: Any]
+        guard let n = traits?[.weight] as? NSNumber else { return .nan }
+        return n.doubleValue
+    }
+
     func testADerivationKeepsTheRolesFamilyCaseAndFigureRule() {
         let base = OmenTypography.numeric
         let derived = base.at(size: 24, weight: .semibold)
 
-        XCTAssertEqual(derived.design, base.design)
+        XCTAssertEqual(derived.family, base.family)
         XCTAssertEqual(derived.uppercase, base.uppercase)
         XCTAssertEqual(derived.tabularNumbers, base.tabularNumbers)
         // Kept, so a derived size still scales with Dynamic Type.
@@ -37,50 +48,112 @@ final class TypographyDerivationTests: XCTestCase {
     }
 
     /// Tracking is stored in POINTS at the role's own size, so a size change has to carry it
-    /// proportionally — otherwise a 27pt number would wear a 12pt label's letter spacing.
+    /// proportionally — otherwise a 27pt number would wear a 10pt eyebrow's letter spacing.
     func testTrackingScalesWithTheSizeRatherThanCarryingOverLiterally() {
-        let eyebrow = OmenTypography.eyebrow   // 12pt, tracking 12 * 0.12
-        let doubled = eyebrow.at(size: 24)
-        XCTAssertEqual(doubled.tracking, eyebrow.tracking * 2, accuracy: 0.0001)
+        let micro = OmenTypography.micro          // 10pt, tracking 10 * 0.16
+        let doubled = micro.at(size: micro.size * 2)
+        XCTAssertEqual(doubled.tracking, micro.tracking * 2, accuracy: 0.0001)
     }
 
-    /// The `numeric` role is tabular, which is the whole reason the scoreboard derives from it:
-    /// `100.7` and `95.8` have to sit in a column without the digits drifting.
-    ///
-    /// **Amended 2026-09-07.** This used to also assert `design == .monospaced`. The app moved to
-    /// a single typeface, so no role carries a mono family any more — but column alignment must
-    /// not move with it. Alignment comes from `.monospacedDigit()` applied at the modifier, not
-    /// from the family, so the property that actually matters is `tabularNumbers`. Reintroducing
-    /// a mono family to hold a column straight is prohibited (facts-of-record #21).
+    /// Column alignment must survive having no mono family. It comes from the tabular-figure
+    /// feature, not from the typeface. Reintroducing a mono family to hold a column straight
+    /// is prohibited (facts-of-record #21).
     func testTheScoreboardDerivesFromATabularRole() {
         XCTAssertTrue(OmenTypography.numeric.tabularNumbers)
+        XCTAssertTrue(OmenTypography.scoreLead.tabularNumbers)
+        XCTAssertTrue(OmenTypography.scoreTrail.tabularNumbers)
     }
 
-    /// The whole three-family seam shipped for months resolving to SF Pro / New York / SF Mono
+    /// The three-family seam shipped for months resolving to SF Pro / New York / SF Mono
     /// because no font file was ever committed, and nothing failed. This is the assertion that
     /// would have caught it: every role must resolve to the real family, not a system stand-in.
-    func testEveryRoleResolvesToTheRealAlegreyaSansFamily() {
-        let roles: [(String, OmenTypeRoleSpec)] = [
-            ("display", OmenTypography.display), ("h1", OmenTypography.h1),
-            ("h2", OmenTypography.h2), ("h3", OmenTypography.h3),
-            ("body", OmenTypography.body), ("bodySmall", OmenTypography.bodySmall),
-            ("label", OmenTypography.label), ("eyebrow", OmenTypography.eyebrow),
-            ("chip", OmenTypography.chip), ("numeric", OmenTypography.numeric)
-        ]
-        for (name, role) in roles {
+    func testEveryRoleResolvesToItsBundledWixOpticalCut() {
+        for (name, role) in Self.allRoles {
             XCTAssertEqual(
-                role.resolvedUIFont.familyName, "Alegreya Sans",
+                role.resolvedUIFont.familyName,
+                role.family == .display ? "Wix Madefor Display" : "Wix Madefor Text",
                 "role \(name) resolved to \(role.resolvedUIFont.familyName), not the bundled family"
             )
         }
     }
 
-    /// Alegreya Sans ships no 600 weight, so the two semibold roles resolve to Bold. Asserted
-    /// rather than left to chance: a silently synthesised weight is how a type scale rots.
-    func testSemiboldRolesResolveToBoldBecauseTheFamilyHasNo600() {
-        XCTAssertEqual(OmenTypography.h2.resolvedUIFont.fontName, "AlegreyaSans-Bold")
-        XCTAssertEqual(OmenTypography.h3.resolvedUIFont.fontName, "AlegreyaSans-Bold")
+    /// **The guard that matters.** A family-name assertion passes whether or not a weight was
+    /// ever applied, because both weights of a variable font share one family name. On
+    /// 2026-09-15 this app shipped a resolver that set a weight *trait* on an already-named
+    /// face, which does not move a variable font off its default instance: every role rendered
+    /// at 400 and the entire ramp was flat. The test in place at the time asserted
+    /// `OmenTypography.scoreLead.weight == .heavy` — a struct field read back out of a literal
+    /// twenty lines above it — and passed throughout.
+    ///
+    /// This asserts the resolved *output* instead, and cannot pass on a flat ramp.
+    func testWeightIsActuallyAppliedSoTheRampIsNotFlat() {
+        for family in [OmenFontFamily.display, .text] {
+            let regular = OmenTypeRoleSpec(family: family, lineHeight: 20, design: .default,
+                                           size: 16, weight: .regular, relativeTo: .body,
+                                           tracking: 0, uppercase: false, tabularNumbers: false)
+            let bold = regular.at(size: 16, weight: .bold)
+            let heavy = regular.at(size: 16, weight: .heavy)
+
+            XCTAssertLessThan(resolvedWeight(regular), resolvedWeight(bold),
+                              "\(family): bold did not resolve heavier than regular — the wght axis is not being applied")
+            XCTAssertLessThan(resolvedWeight(bold), resolvedWeight(heavy),
+                              "\(family): heavy did not resolve heavier than bold — the wght axis is not being applied")
+        }
     }
+
+    /// Registry §2.4 asks that 600 resolve as a real 600 rather than the SemiBold-against-Bold
+    /// workaround Alegreya Sans forced. No role uses 600 after C7 moved `h3` to 700, so this
+    /// keeps the claim honest and testable: the cut carries it, and the seam can reach it.
+    func testTheRegistrysRealSixHundredIsReachable() {
+        XCTAssertEqual(OmenFontFamily.axisValue(for: .semibold), 600)
+
+        let base = OmenTypeRoleSpec(family: .display, lineHeight: 20, design: .default, size: 16,
+                                    weight: .regular, relativeTo: .body, tracking: 0,
+                                    uppercase: false, tabularNumbers: false)
+        let semibold = resolvedWeight(base.at(size: 16, weight: .semibold))
+        XCTAssertGreaterThan(semibold, resolvedWeight(base.at(size: 16, weight: .regular)))
+        XCTAssertLessThan(semibold, resolvedWeight(base.at(size: 16, weight: .bold)))
+    }
+
+    /// The axis tops out at 800; `.black` must clamp there rather than silently overshoot.
+    func testTheWeightAxisCeilingIsExplicit() {
+        XCTAssertEqual(OmenFontFamily.axisValue(for: .black), 800)
+        XCTAssertEqual(OmenFontFamily.axisValue(for: .heavy), 800)
+    }
+
+    /// Locks the C7 ramp. Sizes only — the weights are proven by resolution above, not here.
+    func testTheRolesSitOnTheC7Ramp() {
+        let ramp: Set<CGFloat> = [10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 27, 32, 48]
+        for (name, role) in Self.allRoles {
+            XCTAssertTrue(ramp.contains(role.size), "role \(name) is \(role.size)pt, off the C7 ramp")
+        }
+        XCTAssertEqual(OmenTypography.call.size, 24)
+        XCTAssertEqual(OmenTypography.screenTitle.size, 22)
+        XCTAssertEqual(OmenTypography.micro.size, 10)
+        XCTAssertEqual(OmenTypography.body.lineHeight, 22)
+        XCTAssertEqual(OmenTypography.label.tracking, 11 * 0.12, accuracy: 0.0001)
+    }
+
+    /// Dynamic Type must be per-role, not one style for every heading and one for every label.
+    /// Collapsing it makes a 48pt hero scale at the same rate as an 18pt sub-header.
+    func testDynamicTypeIsMappedPerRoleRatherThanCollapsed() {
+        let styles = Set(Self.allRoles.map { $0.1.relativeTo })
+        XCTAssertGreaterThanOrEqual(styles.count, 6,
+            "type roles collapsed onto \(styles.count) Dynamic Type styles; the ramp needs its own curve per size band")
+        XCTAssertEqual(OmenTypography.display.relativeTo, .largeTitle)
+        XCTAssertEqual(OmenTypography.micro.relativeTo, .caption2)
+    }
+
+    static let allRoles: [(String, OmenTypeRoleSpec)] = [
+        ("display", OmenTypography.display), ("h1", OmenTypography.h1),
+        ("scoreLead", OmenTypography.scoreLead), ("call", OmenTypography.call),
+        ("scoreTrail", OmenTypography.scoreTrail), ("screenTitle", OmenTypography.screenTitle),
+        ("h2", OmenTypography.h2), ("h3", OmenTypography.h3),
+        ("body", OmenTypography.body), ("cardLead", OmenTypography.cardLead),
+        ("name", OmenTypography.name), ("bodySmall", OmenTypography.bodySmall),
+        ("label", OmenTypography.label), ("micro", OmenTypography.micro),
+        ("numeric", OmenTypography.numeric),
+    ]
 }
 
 /// The Add League chip's verdigris, 2026-09-06. `omenChip` is a legibility override on `omen`
@@ -97,7 +170,7 @@ final class VerdigrisChipTokenTests: XCTestCase {
         let dark = UITraitCollection(userInterfaceStyle: .dark)
         let light = UITraitCollection(userInterfaceStyle: .light)
 
-        XCTAssertEqual(hex(OmenColor.omenChip, dark), 0x3A9A70)
+        XCTAssertEqual(hex(OmenColor.omenChip, dark), 0x4FAE81)
         XCTAssertEqual(hex(OmenColor.omenChip, light), 0x1A5C3E)
 
         // Dark is a real lift off the base; light is deliberately identical to it.

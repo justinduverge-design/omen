@@ -27,7 +27,7 @@ struct OmenConfidenceBar: View {
             if let label {
                 HStack {
                     Text(label)
-                        .omenTextStyle(OmenTypography.eyebrow)
+                        .omenTextStyle(OmenTypography.micro)
                         .foregroundStyle(OmenColor.textSecondary)
                     Spacer(minLength: OmenSpacing.step8)
                     Text(scoreText)

@@ -36,7 +36,7 @@ final class MovesHistoryTests: XCTestCase {
         XCTAssertEqual(entries[0].period, "WEEK 6")
         XCTAssertEqual(entries[0].callType, "WAIVER")
         XCTAssertEqual(entries[0].summary, "Add Tyrone Tracy Jr.")
-        XCTAssertEqual(entries[0].outcome, "Outcome: win · followed · 72% effective")
+        XCTAssertEqual(entries[0].outcome, "Outcome: win · 72% effective")
     }
 
     /// Every nullable field null at once — the ordinary shape of a freshly written row. This
@@ -121,14 +121,14 @@ final class MovesHistoryTests: XCTestCase {
             recommendation: "Start Bijan Robinson", followed: false, stars: nil,
             outcome: "win", effectivenessPct: 88, createdAt: nil
         )
-        XCTAssertEqual(MovesHistory.outcomeText(for: unfollowed), "Outcome: win · not followed")
+        XCTAssertEqual(MovesHistory.outcomeText(for: unfollowed), "Outcome: win")
 
         let pendingWithScore = MovesHistory.Move(
             id: .int(2), season: 2026, week: 4, moveType: "start_sit",
             recommendation: "Start Bijan Robinson", followed: true, stars: nil,
             outcome: "pending", effectivenessPct: 88, createdAt: nil
         )
-        XCTAssertEqual(MovesHistory.outcomeText(for: pendingWithScore), "Outcome pending · followed")
+        XCTAssertEqual(MovesHistory.outcomeText(for: pendingWithScore), "Outcome pending")
     }
 
     /// An outcome this version has never seen is shown verbatim rather than bucketed into
@@ -154,5 +154,18 @@ final class MovesHistoryTests: XCTestCase {
         """)
 
         XCTAssertEqual(history.ledgerState.entries.first?.period, "2026 SEASON")
+    }
+
+    func testV2KeepsVerifiedOutcomeAndSelfReportAsSeparateFacts() throws {
+        let history = try decode("""
+        {"contract_version":"moves-history.v2","moves":[{"id":"receipt-1","week":2,"move_type":"trade","headline":"Accept the offer","followed":true,"action_provenance":"self_reported","provenance":"verified","outcome":"worked"}]}
+        """)
+        guard case .entries(let entries) = history.ledgerState, let entry = entries.first else {
+            return XCTFail("expected a Ledger receipt")
+        }
+        XCTAssertEqual(entry.summary, "Accept the offer")
+        XCTAssertEqual(entry.outcome, "Verified outcome: worked")
+        XCTAssertEqual(entry.actionStatus, "You reported following this call")
+        XCTAssertEqual(entry.outcomeProvenance, "verified")
     }
 }

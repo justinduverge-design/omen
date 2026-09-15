@@ -86,7 +86,7 @@ struct OmenChip: View {
     private var labelView: some View {
         HStack(spacing: OmenSpacing.step4) {
             if selected { Image(systemName: "checkmark").accessibilityHidden(true) }
-            Text(label).omenTextStyle(OmenTypography.chip)
+            Text(label).omenTextStyle(OmenTypography.label)
         }
         .foregroundStyle(enabled ? (isPlatform ? onPlatform : foreground) : OmenColor.textTertiary)
         .padding(.horizontal, OmenSpacing.step8)

@@ -126,34 +126,31 @@ class CommandCenterViewModel(
                 // refreshes again — it was just renewed.
                 val accessToken = (sessionManager.authorization() as? SessionAuthorization.Token)
                     ?.accessToken ?: return
-                // Both follow-ups run only after the shell is renderable, and they run
-                // CONCURRENTLY. They hit different routes and neither reads the other's result;
-                // running them in sequence made the Command Center three serial round trips
-                // deep, with the slowest (a live provider standings read) holding the Ledger
-                // behind it for no reason.
+                // The overview establishes the server-owned league scope for Ledger v2. Waiver
+                // analysis remains independent and can run alongside that read.
                 coroutineScope {
                     val contextJob = async {
                         // Slice C runs only when the shell says a provider is actually
                         // connected — asking a disconnected user's provider for standings is a
                         // guaranteed round-trip to an error.
-                        if (result.value.platforms.anyConnected) loadContext(accessToken)
-                    }
-                    val ledgerJob = async {
-                        // Slice E. Skipped entirely when the shell says no usable platform: that
-                        // user's Ledger is NotConnected by definition, and "no entries yet"
-                        // would be a weaker, slightly wrong answer bought with a pointless
-                        // round trip.
-                        if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
-                            loadLedger(accessToken)
-                        }
+                        if (result.value.platforms.anyConnected) loadContext(accessToken) else null
                     }
                     val waiverJob = async {
                         if (result.value.waiverStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
                             loadWaiverWatch(accessToken)
                         }
                     }
-                    contextJob.await()
-                    ledgerJob.await()
+                    val overview = contextJob.await()
+                    if (result.value.omenStatus != DashboardSummary.ToolStatus.NeedsPlatform) {
+                        // Trimmed, matching iOS. Whitespace in a scope key is a silent
+                        // mis-scope — it reads another league's Ledger or none — and the two
+                        // platforms previously applied three different rules to these two
+                        // adjacent values.
+                        val leagueId = overview?.leagueId?.trim()?.takeIf { it.isNotEmpty() }
+                        val platform = overview?.platform?.trim()?.takeIf { it.isNotEmpty() }
+                        if (platform != null && leagueId != null) loadLedger(accessToken, platform, leagueId)
+                        else ledger = OmenLedgerPreviewState.Error("Omen couldn't determine the selected league for this Ledger.")
+                    }
                     waiverJob.await()
                 }
             }
@@ -177,7 +174,7 @@ class CommandCenterViewModel(
      * Hero. It replaced a `league-standings.v1` read that filled only the strip while the other
      * two sections were hardwired to states no connected user could escape.
      */
-    private suspend fun loadContext(accessToken: String) {
+    private suspend fun loadContext(accessToken: String): LeagueOverview? {
         val overview = leagueRepository.fetchOverview(accessToken).successOrNull()
         context = overview?.contextStrip
         // The shell-derived default is Loading, which would spin forever if left alone — the
@@ -187,6 +184,7 @@ class CommandCenterViewModel(
         // than being replaced by a blank hero.
         leaguePulse = overview?.leaguePulse ?: OmenLeaguePulseState.Unavailable
         matchup = overview?.matchupHero
+        return overview
     }
 
     /**
@@ -197,9 +195,15 @@ class CommandCenterViewModel(
      * entries yet", which is a positive claim about the user's history, and rendering it after a
      * failed read would tell a user with a full Ledger that they have none.
      */
-    private suspend fun loadLedger(accessToken: String) {
+    suspend fun loadReceipt(id: String): OmenApiResult<MoveReceipt> {
+        val token = (sessionManager.authorization() as? SessionAuthorization.Token)?.accessToken
+            ?: return OmenApiResult.Failure(OmenApiError.Unauthorized)
+        return movesRepository.fetchReceipt(token, id)
+    }
+
+    private suspend fun loadLedger(accessToken: String, platform: String, leagueId: String) {
         ledger = OmenLedgerPreviewState.Loading
-        ledger = when (val result = movesRepository.fetchMoves(accessToken)) {
+        ledger = when (val result = movesRepository.fetchMoves(accessToken, platform, leagueId)) {
             is OmenApiResult.Success -> result.value.ledgerState
             // A 401 here is not routed to re-auth: the summary call that just succeeded used the
             // same token, so this is far more likely a route-level problem than a dead session,

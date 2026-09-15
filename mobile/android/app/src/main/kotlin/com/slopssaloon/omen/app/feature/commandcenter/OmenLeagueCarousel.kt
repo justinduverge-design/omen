@@ -150,7 +150,7 @@ fun OmenLeagueCarousel(
             // filter row over a single page would be a control with nothing to do.
             is LeagueCarouselViewModel.ViewState.Demo -> if (demoMatchup != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
-                    Text("DEMO LEAGUE", style = OmenTheme.typography.eyebrow.toTextStyle())
+                    Text("DEMO LEAGUE", style = OmenTheme.typography.micro.toTextStyle())
                     OmenMatchupHero(state = demoMatchup, onOpen = onOpenMatchup)
                 }
             } else {

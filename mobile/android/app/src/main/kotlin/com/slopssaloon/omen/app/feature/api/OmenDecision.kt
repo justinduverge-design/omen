@@ -3,6 +3,7 @@ package com.slopssaloon.omen.app.feature.api
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefAlternative
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
 import com.slopssaloon.omen.core.designsystem.component.OmenPosition
@@ -42,6 +43,10 @@ data class OmenDecisionEnvelope(
         val title: String?,
         val move: String?,
         val confidenceScore: Int?,
+        val confidenceBand: String?,
+        val confidenceDrivers: List<String>,
+        /** Present only when the server produced no confidence at all. */
+        val confidenceUnavailableReason: List<String>,
         val riskLevel: String?,
         val riskReasons: List<String>,
         val explanationLines: List<String>,
@@ -92,6 +97,10 @@ data class OmenDecisionEnvelope(
                 title = json.optStringOrNull("title"),
                 move = json.optStringOrNull("move"),
                 confidenceScore = json.optJSONObject("confidence")?.optIntOrNull("score"),
+                confidenceBand = json.optJSONObject("confidence")?.optStringOrNull("band"),
+                confidenceDrivers = json.optJSONObject("confidence")?.optJSONArray("drivers").toStringList(),
+                confidenceUnavailableReason = json.optJSONObject("confidence")
+                    ?.optJSONArray("unavailable_reason").toStringList(),
                 riskLevel = risk?.optStringOrNull("level"),
                 riskReasons = risk?.optJSONArray("reasons").toStringList(),
                 explanationLines = listOfNotNull(
@@ -177,6 +186,9 @@ data class OmenDecisionEnvelope(
             // Number.isFinite guard — the server treats absence as a real, expected state, and
             // the client must not manufacture a number the server declined to give.
             confidence = rec.confidenceScore,
+            confidenceBand = confidenceBand(rec.confidenceBand),
+            confidenceDrivers = rec.confidenceDrivers,
+            confidenceUnavailableReason = rec.confidenceUnavailableReason,
             risk = riskLevel(rec.riskLevel),
             riskReasons = rec.riskReasons,
             explanation = rec.explanationLines,
@@ -190,6 +202,13 @@ data class OmenDecisionEnvelope(
             },
             alternatives = alternatives(rec),
         )
+    }
+
+    private fun confidenceBand(raw: String?): OmenConfidenceBand? = when (raw) {
+        "confident" -> OmenConfidenceBand.Confident
+        "leaning" -> OmenConfidenceBand.Leaning
+        "coin_flip" -> OmenConfidenceBand.CoinFlip
+        else -> null
     }
 
     private fun signalSource(status: String?): OmenSignalSource = when (status) {

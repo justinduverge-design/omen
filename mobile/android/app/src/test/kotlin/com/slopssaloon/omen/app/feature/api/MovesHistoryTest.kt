@@ -44,7 +44,7 @@ class MovesHistoryTest {
         assertEquals("WEEK 6", state.entries[0].period)
         assertEquals("WAIVER", state.entries[0].callType)
         assertEquals("Add Tyrone Tracy Jr.", state.entries[0].summary)
-        assertEquals("Outcome: win · followed · 72% effective", state.entries[0].outcome)
+        assertEquals("Outcome: win · 72% effective", state.entries[0].outcome)
     }
 
     /**
@@ -139,10 +139,10 @@ class MovesHistoryTest {
             recommendation = "Start Bijan Robinson", followed = false, stars = null,
             outcome = "win", effectivenessPct = 88.0, createdAt = null,
         )
-        assertEquals("Outcome: win · not followed", MovesHistory.outcomeTextFor(unfollowed))
+        assertEquals("Outcome: win", MovesHistory.outcomeTextFor(unfollowed))
 
         val pendingWithScore = unfollowed.copy(followed = true, outcome = "pending")
-        assertEquals("Outcome pending · followed", MovesHistory.outcomeTextFor(pendingWithScore))
+        assertEquals("Outcome pending", MovesHistory.outcomeTextFor(pendingWithScore))
     }
 
     /** An unfamiliar outcome is shown verbatim rather than hidden behind a plausible word. */
@@ -177,5 +177,17 @@ class MovesHistoryTest {
     @Test
     fun malformedPayloadReturnsNullRatherThanThrowing() {
         assertNull(MovesHistory.parse("not json at all"))
+    }
+
+    @Test
+    fun v2KeepsVerifiedOutcomeAndSelfReportAsSeparateFacts() {
+        val history = parse(
+            """{"contract_version":"moves-history.v2","moves":[{"id":"receipt-1","week":2,"move_type":"trade","headline":"Accept the offer","followed":true,"action_provenance":"self_reported","provenance":"verified","outcome":"worked"}]}""",
+        )
+        val entry = (history.ledgerState as OmenLedgerPreviewState.Entries).entries.single()
+        assertEquals("Accept the offer", entry.summary)
+        assertEquals("Verified outcome: worked", entry.outcome)
+        assertEquals("You reported following this call", entry.actionStatus)
+        assertEquals("verified", entry.outcomeProvenance)
     }
 }

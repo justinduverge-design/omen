@@ -68,6 +68,7 @@ fun OmenTradeScreen(
     onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Unit)? = null,
     onRemove: ((Int, TradeViewModel.Side) -> Unit)? = null,
     onCompare: (() -> Unit)? = null,
+    capabilities: com.slopssaloon.omen.app.feature.api.TradeCapabilities? = null,
 ) {
     var sendDraft by remember { mutableStateOf("") }
     var receiveDraft by remember { mutableStateOf("") }
@@ -84,6 +85,14 @@ fun OmenTradeScreen(
             .padding(OmenTheme.spacing.step24),
         verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step24),
     ) {
+        // Standing format note, not a state. `OmenStateSurface(Empty)` means "there is nothing
+        // here" and was rendering above a populated form on every visit — a state treatment
+        // used as chrome. iOS mirror: `OmenTradeScreen.tradeFormatNote`.
+        Text(
+            text = tradeFormatNote(capabilities),
+            style = OmenTheme.typography.bodySmall.toTextStyle(),
+            color = OmenTheme.color.textSecondary,
+        )
         Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4)) {
             Text(
                 text = "Trade",
@@ -405,4 +414,27 @@ private fun unavailableCopy(reason: String): String = when (reason) {
     "unauthenticated" -> "Sign in to compare this with your league's settings."
     "provider_unsupported" -> "This provider doesn't support personalized trade analysis yet."
     else -> "Omen used standard scoring for this one."
+}
+
+/**
+ * Says what this build can actually analyse. With no capability read it states that the format
+ * is unknown rather than asserting a limit — "no additional team can be added" is a claim about
+ * the system, and a failed read does not establish it.
+ */
+private fun tradeFormatNote(capabilities: com.slopssaloon.omen.app.feature.api.TradeCapabilities?): String {
+    if (capabilities == null) {
+        return "Omen hasn't read this league's trade format yet, so it's analysing a two-team offer."
+    }
+    val three = if (capabilities.threeTeamSupported) {
+        "Three-team analysis is supported."
+    } else {
+        "Three-team analysis isn't available" +
+            (capabilities.threeTeamReason?.let { " — $it." } ?: ".")
+    }
+    val submission = if (capabilities.submission == "handoff_only") {
+        "Omen analyses the offer; you complete it in your league provider."
+    } else {
+        "Check your provider for submission options."
+    }
+    return "Up to ${capabilities.maxTeams} teams. $three $submission"
 }

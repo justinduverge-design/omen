@@ -103,7 +103,7 @@ fun OmenChip(
         else -> foreground
     }
     val shape = RoundedCornerShape(999.dp)
-    val chipLabel: @Composable () -> Unit = { Text(label, style = OmenTheme.typography.chip.toTextStyle()) }
+    val chipLabel: @Composable () -> Unit = { Text(label, style = OmenTheme.typography.label.toTextStyle()) }
 
     if (onClick == null) {
         Surface(
@@ -122,7 +122,7 @@ fun OmenChip(
             modifier = modifier.semantics { contentDescription = label },
             enabled = enabled,
             label = chipLabel,
-            leadingIcon = if (selected) { { Text("✓", style = OmenTheme.typography.chip.toTextStyle()) } } else null,
+            leadingIcon = if (selected) { { Text("✓", style = OmenTheme.typography.label.toTextStyle()) } } else null,
             shape = shape,
             border = FilterChipDefaults.filterChipBorder(
                 enabled = enabled,
@@ -147,7 +147,7 @@ fun OmenChip(
             modifier = modifier.semantics { contentDescription = label },
             enabled = enabled,
             label = chipLabel,
-            leadingIcon = if (selected) { { Text("✓", style = OmenTheme.typography.chip.toTextStyle()) } } else null,
+            leadingIcon = if (selected) { { Text("✓", style = OmenTheme.typography.label.toTextStyle()) } } else null,
             shape = shape,
             border = FilterChipDefaults.filterChipBorder(
                 enabled = enabled,

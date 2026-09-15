@@ -721,6 +721,7 @@ private fun SignedInDestination(
             } else {
                 OmenCommandCenterScreen(
                     state = commandCenterViewModel.commandCenterState,
+                    loadReceipt = { commandCenterViewModel.loadReceipt(it) },
                     // Passing this is what makes the strip's switch affordance render at
                     // all — OmenContextStrip hides it when onSwitch is null, which is why a
                     // user with a connected league previously had no way to choose it.
@@ -800,7 +801,9 @@ private fun SignedInDestination(
                     onAddResult = { player, side -> tradeViewModel.add(player, side) },
                     onRemove = { index, side -> tradeViewModel.remove(index, side) },
                     onCompare = { scope.launch { tradeViewModel.compare(userId) } },
+                    capabilities = tradeViewModel.capabilities,
                 )
+                LaunchedEffect(Unit) { tradeViewModel.loadCapabilities() }
             }
         }
         // M5 slice F: the League destination now renders `league-overview.v1`. It replaced an

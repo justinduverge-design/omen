@@ -213,11 +213,11 @@ struct OmenMatchupHero: View {
             Color.clear.frame(width: 3, height: 0)
             Spacer(minLength: 0)
             Text("PROJ")
-                .omenTextStyle(OmenTypography.eyebrow)
+                .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textSecondary)
                 .frame(width: Self.projColumnWidth, alignment: .trailing)
             Text("SCORE")
-                .omenTextStyle(OmenTypography.eyebrow)
+                .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textSecondary)
                 .frame(width: Self.scoreColumnWidth, alignment: .trailing)
         }
@@ -311,7 +311,7 @@ struct OmenMatchupHero: View {
     private func watchRail(signal: String) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step8) {
             Text("WHAT TO WATCH")
-                .omenTextStyle(OmenTypography.eyebrow)
+                .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textSecondary)
             Text(signal)
                 .omenTextStyle(OmenTypography.bodySmall)
@@ -322,7 +322,7 @@ struct OmenMatchupHero: View {
 
     private func eyebrow(_ text: String) -> some View {
         Text(text)
-            .omenTextStyle(OmenTypography.eyebrow)
+            .omenTextStyle(OmenTypography.micro)
             .foregroundStyle(OmenColor.textSecondary)
     }
 

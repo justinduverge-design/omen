@@ -22,6 +22,23 @@ struct OmenTradeScreen: View {
     var onAddResult: ((PlayerSearchResult, TradeViewModel.Side) -> Void)?
     var onRemove: ((Int, TradeViewModel.Side) -> Void)?
     var onCompare: (() -> Void)?
+    var capabilities: TradeCapabilities?
+
+    /// Says what this build can actually analyse. With no capability read, it states that the
+    /// limit is unknown rather than asserting one — "no additional team can be added" is a
+    /// claim about the system, and a failed read does not establish it.
+    private var tradeFormatNote: String {
+        guard let capability = capabilities else {
+            return "Omen hasn't read this league's trade format yet, so it's analysing a two-team offer."
+        }
+        let three = capability.threeTeam.supported
+            ? "Three-team analysis is supported."
+            : "Three-team analysis isn't available" + (capability.threeTeam.reason.map { " — \($0)." } ?? ".")
+        let submission = capability.submission == "handoff_only"
+            ? "Omen analyses the offer; you complete it in your league provider."
+            : "Check your provider for submission options."
+        return "Up to \(capability.maxTeams) teams. \(three) \(submission)"
+    }
 
     @State private var sendDraft: String = ""
     @State private var receiveDraft: String = ""
@@ -37,6 +54,14 @@ struct OmenTradeScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: OmenSpacing.step24) {
                 header
+                // Standing format note, not a state. `OmenStateSurface(.empty)` means "there
+                // is nothing here" and was rendering above a populated form on every visit —
+                // a state treatment used as chrome. This is a plain line in the screen's own
+                // voice instead.
+                Text(tradeFormatNote)
+                    .omenTextStyle(OmenTypography.bodySmall)
+                    .foregroundStyle(OmenColor.textSecondary)
+                    .accessibilityLabel("Trade format. " + tradeFormatNote)
                 side(title: "You send", side: .send, players: offer.send, draft: $sendDraft)
                 side(title: "You receive", side: .receive, players: offer.receive, draft: $receiveDraft)
                 compareButton
