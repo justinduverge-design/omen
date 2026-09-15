@@ -331,8 +331,15 @@ order that document gives. Authority: founder decisions D1–D8
 (`Blueprints/specs/mobile/omen-native-visual-lock-v1.md`) plus the four founder calls of 2026-09-13
 recorded in `Direction/decision_log.md`.
 
-**Screen artifact of record:** `design/native-visual-lock-2026-09-13/` — eight artboards. It
-supersedes `design/app-rework-canvas/` for those eight screens only.
+**Screen artifact of record:** `design/native-visual-lock-2026-09-13/` — 30 artboards. It
+supersedes `design/app-rework-canvas/` for these native visual-lock screens.
+
+**Active Trust Assignment:** `ATA-20260914-01` in `Blueprints/agents/AGENT_INDEX.md` authorizes
+Codex full-executor work for the native visual-lock implementation, starting with U1 and then the
+shared destination layer, Command/League/Trade and Ledger. It allows feature-branch code writes and
+local verification only. It does not authorize Supabase SQL application, production mutation, deploy,
+store/TestFlight/Play Console action, secrets/provider-credential handling, destructive work,
+dependency upgrades or main-branch merge without separate exact approval.
 
 **The sequence, and nothing in the U row starts before its C row merges:**
 
@@ -362,16 +369,16 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### C1-ConfidenceBands — Version the decision brief to bands, delete the numeral
 
-- **Status:** READY
+- **Status:** VERIFIED — merged in PR #440 (`946d0e58`).
 - **Blocked by:** None
-- **Priority:** P1 — blocking for `U1`, and breaking, so it wants the longest runway.
+- **Priority:** P1 — satisfied for U1.
 - **Cost:** medium
 - **Agent-buildable:** yes.
 - **Source:** `omen-app-pages-workshop-v1.md` locks confidence to **Confident / Leaning / Coin flip** and flags this itself as a breaking change to shipped surfaces, against `OmenDecisionBriefPayload.confidence` and the `/omen` endpoints.
 - **Scope:** version the payload to `omen-decision-brief.v2`; **do not mutate v1 in place** — web is live on it. Shape is `confidence: { band: "confident" | "leaning" | "coin_flip", drivers: string[] }`. The band never travels without its drivers; that pairing is the locked rule.
 - **Compute the band server-side.** A client-side threshold is a model calibration living in the UI layer, which is the exact failure the ban on percentages exists to prevent.
-- **Done when:** `omen-decision-brief.v2` ships with no numeric confidence field anywhere in the response; a contract test asserts both that absence and that `drivers` is non-empty for every band; `Blueprints/api-routes.md` carries the migration note; and a row lands in `Blueprints/handoffs/backend-to-frontend.md`.
-- **Do not touch:** do not keep the numeric field "for internal use" — a number in the payload becomes a number on a screen within two sprints. Do not break v1 while web reads it.
+- **Evidence:** `omen-decision-brief.v2` ships opt-in on `POST /api/omen/mvp-move`; tests assert no numeric-confidence leak and v1 remains unchanged; `Blueprints/api-routes.md` and `Blueprints/handoffs/backend-to-frontend.md` carry the migration note.
+- **Do not touch:** do not reintroduce numeric confidence on native screens. Do not break v1 while web reads it.
 
 ### C2-RegistryAmendment — Apply Amendment 01 to the design-system registry
 
@@ -398,17 +405,17 @@ number of pointed contract changes plus a governance amendment — not a build-o
 
 ### C4-LedgerIndex — Verify, then specify, the Ledger list contract
 
-- **Status:** READY
+- **Status:** VERIFIED — merged in PR #440 (`946d0e58`).
 - **Blocked by:** None
-- **Priority:** P2 — blocking for `U4` only.
+- **Priority:** P2 — satisfied for U4.
 - **Cost:** small
 - **Agent-buildable:** yes.
 - **Verify first.** `move-detail.v1` is the receipt for **one** call; the Ledger screen is a list. `GET /api/moves` is deployed and returns `moves-history.v1` — **check whether that already satisfies the index** before specifying anything new. The contract-work doc flags this as unverified, and the cheapest outcome is that this item closes as a documentation fix.
 - **Scope if an index is genuinely missing:** `moves-index.v1` rows of `{ id, issued_at, issued_at_timezone, move_type, headline, followed, outcome, provenance }`.
 - **`provenance: "verified" | "self_reported"` is required on every row**, never inferred, and the client must render the distinction.
 - **`followed: true | false | null`** — `null` means not safely known, matching `move-detail.v1`.
-- **Done when:** either `moves-history.v1` is shown to satisfy the index and `api-routes.md` says so, or `moves-index.v1` ships with a contract test asserting `provenance` is present and non-null on every row.
-- **Do not touch:** no aggregate hit-rate in v1. A percentage across mixed-provenance rows is a fabricated statistic, and a ledger that only shows wins is marketing.
+- **Evidence:** `moves-history.v2` now exists on `GET /api/moves` with required `platform` and `league_id`; tests cover scoped rows, unknown provenance, no raw outcomes and no hit-rate summary.
+- **Do not touch:** no aggregate hit-rate in native. A percentage across mixed-provenance rows is a fabricated statistic, and a ledger that only shows wins is marketing.
 
 ### C5-WaiverCopyContract — Pin who writes the waiver reason, and the sentence pattern
 
@@ -448,10 +455,10 @@ number of pointed contract changes plus a governance amendment — not a build-o
 ### U1-OmenScreen — Build the Omen destination
 
 - **Status:** READY
-- **Blocked by:** TASK-C1-ConfidenceBands — the band vocabulary and drivers must ship before the screen reads them.
+- **Blocked by:** None — `C1` shipped in PR #440 (`946d0e58`) and `ATA-20260914-01` authorizes the native implementation.
 - **Priority:** P1
 - **Cost:** medium
-- **Scope:** one call for the week, band, risk, evidence on tap. Artboard: `design/native-visual-lock-2026-09-13/OmenCall.dc.html`.
+- **Scope:** one call for the week, band, risk and evidence on tap. Artboards: `design/native-visual-lock-2026-09-13/OmenCall.dc.html` and `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html`.
 - **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, the factor line names what Omen could not read, and **the screen fits with nothing below the fold** (D11).
 - **Do not touch:** no numeric confidence, no gradient meter. A gradient encodes nothing the band does not already say.
 
@@ -470,33 +477,31 @@ number of pointed contract changes plus a governance amendment — not a build-o
 ### U3-CommandLeagueTrade — Build the three remaining destinations
 
 - **Status:** READY
-- **Blocked by:** TASK-U2-TokenTypeSwap
-- **Blocked by:** TASK-C3-DataSourceForm
-- **Blocked by:** TASK-C5-WaiverCopyContract — League carries the waiver row.
+- **Blocked by:** TASK-U1-OmenScreen — build the shared destination layer and prove the v2 Omen model first.
 - **Priority:** P1
 - **Cost:** large
+- **Inherited build gates:** `U2`, `C3` and `C5` move inside the shared component/server-copy implementation rather than staying as stale pre-build blockers. Keep `data-stub` and `data-mock` until the hatch/dashed and dotted carriers are built and tested.
 - **Scope:** Command Center seats, League in the **scout's-nest order** — Your week strip → The Table → Trade targets → Waiver → Activity, per the 2026-09-13 founder call amending fact-of-record #16 — and Trade's two paths. Artboards: `CommandCenter.dc.html`, `CommandQuiet.dc.html`, `LeagueTable.dc.html`, `TradeBuild.dc.html`.
 - **Done when:** all four render against live contracts; Command Center and the quiet week fit with nothing below the fold (D11); League scrolls by design; and `slops-canvas-to-code` reports no drift against the artboards.
-- **Do not touch:** the quiet-week **straight** variant is not drawn and must not be invented at build time — see `V-QuietWeekStraight`. Trade never claims an offer was sent: `submission: handoff_only`.
+- **Do not touch:** Trade never claims an offer was sent: `submission: handoff_only`. Quiet-week straight is now bound to `quiet-week.v1`; render the server variant rather than inferring it client-side.
 
 ### U4-LedgerScreen — Build the Ledger as its own destination
 
 - **Status:** READY
-- **Blocked by:** TASK-C4-LedgerIndex
-- **Blocked by:** TASK-U2-TokenTypeSwap
+- **Blocked by:** TASK-U1-OmenScreen — reuse the shared destination layer and evidence/state components first. `C4` shipped in PR #440 (`946d0e58`).
 - **Priority:** P2
 - **Cost:** medium
+- **Inherited build gates:** dotted self-reported provenance comes from the shared carrier work; do not blend it with verified outcomes.
 - **Scope:** every call, whether it was followed, whether it worked. Artboard: `design/native-visual-lock-2026-09-13/Ledger.dc.html`.
 - **Done when:** self-reported rows render with the dotted carrier from `C3` and are never blended with verified ones; losses are present; `followed: null` renders honestly rather than as "no".
 - **Do not touch:** no aggregate hit rate.
 
 ### V-QuietWeekStraight — Write the straight variant of the quiet week
 
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-09-13 Claude — copy and artboard landed; the switching predicate is still owed.
+- **Status:** VERIFIED — merged in PR #440 (`946d0e58`).
+- **Evidence:** artboards exist and `quiet-week.v1` owns the switching predicate server-side; route tests cover straight and neutral reasons.
 - **Done (2026-09-13):** the straight variant is drawn — `design/native-visual-lock-2026-09-13/CommandQuietStraight.dc.html`, commit `a598d0e`. *"Rough week. Nothing worth moving for. You lost by four, Achane is out, and there is nobody on the wire who fixes that. Holding is the call."* Same sentence as the neutral variant with the joke removed and one fact added: acknowledge, state the absence, stop. Both variants now carry a confidence band, which neither did before the `slops-ux-copy` pass — the voice rule is that confidence stays visible wherever a recommendation exists, and *"Holding is the call"* is a recommendation.
-- **Still owed — the harder half.** The **switching predicate**, server-side. Loss and injured-starter are trivially detectable; *"something is broken"* is the interesting one, and if the straight variant fires on a provider outage then the voice fence is an honest-states rule and not only a copy rule. Route with `C5`.
-- **Blocked by:** None
+- **Backend resolved 2026-09-14:** the switching predicate is server-side in `quiet-week.v1`. Loss, unknown result, injured starter, unknown starter health and provider-read incompleteness prevent the neutral joke state.
 - **Blocked by:** None
 - **Priority:** P1 — it gates `U3`, and it is the half of the voice fence that matters.
 - **Cost:** small
