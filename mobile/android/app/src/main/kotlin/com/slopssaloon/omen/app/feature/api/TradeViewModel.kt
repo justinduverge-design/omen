@@ -34,6 +34,13 @@ class TradeViewModel(
 
     enum class Side { Send, Receive }
 
+    var capabilities: TradeCapabilities? by mutableStateOf(null)
+        private set
+
+    suspend fun loadCapabilities() {
+        capabilities = repository.capabilities().successOrNull()
+    }
+
     var viewState: ViewState by mutableStateOf(ViewState.Idle)
         private set
 

@@ -139,13 +139,15 @@ extension CommandCenterViewModelTests {
     /// is exercised; pass `matchupStatus: "no_matchup"` for the bye case.
     private func overview(
         currentUser: Bool = true,
-        matchupStatus: String = "live"
+        matchupStatus: String = "live",
+        platform: String = "sleeper",
+        leagueId: String = "1"
     ) throws -> LeagueOverview {
         try JSONDecoder().decode(LeagueOverview.self, from: Data("""
         {
           "contract_version": "league-overview.v1",
-          "platform": "sleeper",
-          "league_id": "1",
+          "platform": "\(platform)",
+          "league_id": "\(leagueId)",
           "league_name": "Slops Dynasty",
           "season": 2026, "week": 8,
           "matchup": {
@@ -312,7 +314,7 @@ extension CommandCenterViewModelTests {
     func testMovesFillTheLedgerSectionAfterTheShellLoads() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network), overviewResult: .success(try overview())),
             movesRepository: StubMovesRepository(result: .success(try history("""
             {
               "contract_version": "moves-history.v1",
@@ -338,14 +340,46 @@ extension CommandCenterViewModelTests {
         XCTAssertEqual(entries[0].id, "41")
         XCTAssertEqual(entries[0].period, "WEEK 6")
         XCTAssertEqual(entries[0].callType, "START_SIT")
-        XCTAssertEqual(entries[0].outcome, "Outcome: win · followed · 62% effective")
+        XCTAssertEqual(entries[0].outcome, "Outcome: win · 62% effective")
+    }
+
+    /// The Ledger is scoped by `platform` + `league_id`, so whitespace in either is a silent
+    /// MIS-scope: it reads another league's Ledger, or none, and the user is told their history
+    /// is unavailable. Before 2026-09-15 this file's own conditional tested `platform` for
+    /// emptiness on a trimmed copy and then passed the untrimmed original, while trimming
+    /// `leagueId` — and Android applied a third rule again. Both values are trimmed now.
+    func testLeagueScopeIsTrimmedBeforeItBecomesAQueryParameter() async throws {
+        final class RecordingMovesRepository: MovesRepository {
+            var seenPlatform: String?
+            var seenLeagueId: String?
+            func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError> {
+                seenPlatform = platform
+                seenLeagueId = leagueId
+                return .failure(.network)
+            }
+        }
+        let moves = RecordingMovesRepository()
+        let viewModel = CommandCenterViewModel(
+            repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
+            leagueRepository: StubLeagueRepository(
+                result: .failure(.network),
+                overviewResult: .success(try overview(platform: "  sleeper  ", leagueId: " 1 "))
+            ),
+            movesRepository: moves,
+            sessionManager: makeSessionManager(withToken: "t")
+        )
+
+        await viewModel.load(userID: "user-1")
+
+        XCTAssertEqual(moves.seenPlatform, "sleeper", "platform reached the API padded")
+        XCTAssertEqual(moves.seenLeagueId, "1", "league id reached the API padded")
     }
 
     /// The honest-empty case: a real user with a connected league and no recorded moves.
     func testEmptyMoveListRendersTheEmptyLedgerRatherThanAnError() async throws {
         let viewModel = CommandCenterViewModel(
             repository: StubDashboardRepository(result: .success(try summary(omenStatus: "ready"))),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
+            leagueRepository: StubLeagueRepository(result: .failure(.network), overviewResult: .success(try overview())),
             movesRepository: StubMovesRepository(result: .success(try history("""
             {"contract_version":"moves-history.v1","season":2026,"summary":null,"moves":[]}
             """))),
@@ -383,7 +417,7 @@ extension CommandCenterViewModelTests {
     func testNeedsPlatformSkipsTheMovesCallEntirely() async throws {
         final class CountingMovesRepository: MovesRepository {
             var calls = 0
-            func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+            func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError> {
                 calls += 1
                 return .failure(.network)
             }
@@ -409,7 +443,7 @@ extension CommandCenterViewModelTests {
     func testDemoNeverIssuesTheMovesCallAndKeepsLabeledFixtures() async throws {
         final class CountingMovesRepository: MovesRepository {
             var calls = 0
-            func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+            func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError> {
                 calls += 1
                 return .failure(.network)
             }

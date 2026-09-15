@@ -1,6 +1,7 @@
 package com.slopssaloon.omen.app.feature.api
 
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * M5-Native-API-Client slices B and C — repository seams, mirroring `AccountRepository`.
@@ -104,9 +105,38 @@ class StubLeagueRepository(
  */
 interface TradeRepository {
     suspend fun compare(offer: TradeOffer, accessToken: String?): OmenApiResult<TradeCompare>
+    suspend fun capabilities(): OmenApiResult<TradeCapabilities> = OmenApiResult.Failure(OmenApiError.Network)
+}
+
+data class TradeCapabilities(val maxTeams: Int, val submission: String, val threeTeamSupported: Boolean, val threeTeamReason: String?) {
+    companion object {
+        /**
+         * Returns null for a payload this build cannot read as `trade-capabilities.v1`.
+         *
+         * A version mismatch and a malformed body both land here, and both are treated as
+         * "unread" rather than guessed at — the screen then says the format is unknown instead
+         * of asserting a limit. What it must never do is read a *different* contract's fields
+         * and present them as this one's, which is why the version is checked first.
+         */
+        fun parse(raw: String): TradeCapabilities? = runCatching {
+            val json = JSONObject(raw)
+            require(json.getString("contract_version") == "trade-capabilities.v1") {
+                "unsupported trade capabilities contract: ${json.optString("contract_version")}"
+            }
+            val three = json.getJSONObject("three_team")
+            TradeCapabilities(
+                maxTeams = json.getInt("max_teams"),
+                submission = json.getString("submission"),
+                threeTeamSupported = three.getBoolean("supported"),
+                threeTeamReason = if (three.isNull("reason")) null else three.getString("reason"),
+            )
+        }.getOrNull()
+    }
 }
 
 class ApiTradeRepository(private val client: OmenApiClient) : TradeRepository {
+    override suspend fun capabilities(): OmenApiResult<TradeCapabilities> =
+        client.getOptionalAuth("api/trade/capabilities", null, decode = TradeCapabilities::parse)
     override suspend fun compare(
         offer: TradeOffer,
         accessToken: String?,
@@ -142,7 +172,7 @@ interface OmenDecisionRepository {
 
 class ApiOmenDecisionRepository(private val client: OmenApiClient) : OmenDecisionRepository {
     override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> =
-        client.post("api/omen/mvp-move", accessToken, "{}", OmenDecisionEnvelope::parse)
+        client.post("api/omen/mvp-move", accessToken, "{\"contract_version\":\"omen-decision-brief.v2\"}", OmenDecisionEnvelope::parse)
 }
 
 class StubOmenDecisionRepository(
@@ -163,18 +193,27 @@ class StubOmenDecisionRepository(
  * "this season" is, which `getCurrentNflWeekContext()` already owns.
  */
 interface MovesRepository {
-    suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory>
+    suspend fun fetchMoves(accessToken: String, platform: String, leagueId: String): OmenApiResult<MovesHistory>
+    suspend fun fetchReceipt(accessToken: String, id: String): OmenApiResult<MoveReceipt> = OmenApiResult.Failure(OmenApiError.Network)
 }
 
 class ApiMovesRepository(private val client: OmenApiClient) : MovesRepository {
-    override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> =
-        client.get("api/moves", accessToken, MovesHistory::parse)
+    override suspend fun fetchReceipt(accessToken: String, id: String): OmenApiResult<MoveReceipt> {
+        if (runCatching { UUID.fromString(id) }.isFailure) return OmenApiResult.Failure(OmenApiError.Decode)
+        return client.get("api/moves/$id", accessToken, MoveReceipt::parse)
+    }
+    override suspend fun fetchMoves(accessToken: String, platform: String, leagueId: String): OmenApiResult<MovesHistory> =
+        client.getOptionalAuth(
+            path = "api/moves", accessToken = accessToken,
+            query = mapOf("contract_version" to "moves-history.v2", "platform" to platform, "league_id" to leagueId),
+            decode = MovesHistory::parse,
+        )
 }
 
 class StubMovesRepository(
     private val result: OmenApiResult<MovesHistory>,
 ) : MovesRepository {
-    override suspend fun fetchMoves(accessToken: String): OmenApiResult<MovesHistory> = result
+    override suspend fun fetchMoves(accessToken: String, platform: String, leagueId: String): OmenApiResult<MovesHistory> = result
 }
 
 // --- Waiver Watch -------------------------------------------------------------

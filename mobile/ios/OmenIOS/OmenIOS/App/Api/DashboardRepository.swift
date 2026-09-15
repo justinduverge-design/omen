@@ -144,7 +144,7 @@ struct ApiOmenDecisionRepository: OmenDecisionRepository {
     }
 
     func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
-        await client.post("api/omen/mvp-move", accessToken: accessToken, body: [:], as: OmenDecisionEnvelope.self)
+        await client.post("api/omen/mvp-move", accessToken: accessToken, body: ["contract_version": "omen-decision-brief.v2"], as: OmenDecisionEnvelope.self)
     }
 }
 
@@ -163,7 +163,12 @@ struct StubOmenDecisionRepository: OmenDecisionRepository {
 /// `moves` rows and makes no provider call. It is still independently failable, and the
 /// Command Center must not lose its shell because the Ledger request did.
 protocol MovesRepository {
-    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError>
+    func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError>
+    func fetchReceipt(accessToken: String, id: String) async -> Result<MoveReceipt, OmenApiError>
+}
+
+extension MovesRepository {
+    func fetchReceipt(accessToken: String, id: String) async -> Result<MoveReceipt, OmenApiError> { .failure(.network) }
 }
 
 struct ApiMovesRepository: MovesRepository {
@@ -173,18 +178,24 @@ struct ApiMovesRepository: MovesRepository {
         self.client = client
     }
 
-    /// No query string. `season` defaults to the current NFL season server-side and `limit`
-    /// defaults to 20 — the preview shows three. Sending our own season would mean the client
-    /// deciding what "this season" is, which `getCurrentNflWeekContext()` already owns.
-    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
-        await client.get("api/moves", accessToken: accessToken, as: MovesHistory.self)
+    func fetchReceipt(accessToken: String, id: String) async -> Result<MoveReceipt, OmenApiError> {
+        guard UUID(uuidString: id) != nil else { return .failure(.decode) }
+        return await client.get("api/moves/\(id)", accessToken: accessToken, as: MoveReceipt.self)
+    }
+
+    /// Scope comes from `league-overview.v1`, the server-owned selected league. Season remains
+    /// server-owned; the preview only limits its rendered rows.
+    func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError> {
+        await client.get("api/moves", accessToken: accessToken,
+                         query: ["contract_version": "moves-history.v2", "platform": platform, "league_id": leagueId],
+                         as: MovesHistory.self)
     }
 }
 
 struct StubMovesRepository: MovesRepository {
     let result: Result<MovesHistory, OmenApiError>
 
-    func fetchMoves(accessToken: String) async -> Result<MovesHistory, OmenApiError> {
+    func fetchMoves(accessToken: String, platform: String, leagueId: String) async -> Result<MovesHistory, OmenApiError> {
         result
     }
 }
@@ -362,6 +373,22 @@ struct StubWaiverAnalysisRepository: WaiverAnalysisRepository {
 /// signed-out caller still gets a real (neutral) answer.
 protocol TradeRepository {
     func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError>
+    func capabilities() async -> Result<TradeCapabilities, OmenApiError>
+}
+
+struct TradeCapabilities: Decodable, Equatable {
+    let contractVersion: String
+    let maxTeams: Int
+    let submission: String
+    let threeTeam: ThreeTeam
+    struct ThreeTeam: Decodable, Equatable { let supported: Bool; let reason: String? }
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version", maxTeams = "max_teams", submission, threeTeam = "three_team"
+    }
+}
+
+extension TradeRepository {
+    func capabilities() async -> Result<TradeCapabilities, OmenApiError> { .failure(.network) }
 }
 
 struct ApiTradeRepository: TradeRepository {
@@ -369,6 +396,10 @@ struct ApiTradeRepository: TradeRepository {
 
     init(client: OmenApiClient) {
         self.client = client
+    }
+
+    func capabilities() async -> Result<TradeCapabilities, OmenApiError> {
+        await client.get("api/trade/capabilities", optionalAccessToken: nil, as: TradeCapabilities.self)
     }
 
     func compare(offer: TradeOffer, accessToken: String?) async -> Result<TradeCompare, OmenApiError> {

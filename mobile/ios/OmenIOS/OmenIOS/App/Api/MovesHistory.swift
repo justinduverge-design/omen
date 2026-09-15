@@ -1,5 +1,27 @@
 import Foundation
 
+struct MoveReceipt: Decodable {
+    let snapshot: Snapshot
+    let evidenceAtTheTime: [Evidence]
+    let userAction: Statement
+    let observedOutcome: Statement
+    let fairnessNote: String
+    struct Snapshot: Decodable {
+        let recommendation: String?
+        let issuedAt: String?
+        let issuedAtTimezone: String?
+        enum CodingKeys: String, CodingKey {
+            case recommendation, issuedAt = "issued_at", issuedAtTimezone = "issued_at_timezone"
+        }
+    }
+    struct Evidence: Decodable { let kind: String; let statement: String }
+    struct Statement: Decodable { let known: Bool; let statement: String }
+    enum CodingKeys: String, CodingKey {
+        case snapshot, evidenceAtTheTime = "evidence_at_the_time", userAction = "user_action"
+        case observedOutcome = "observed_outcome", fairnessNote = "fairness_note"
+    }
+}
+
 /// M5-Native-API-Client slice E — `GET /api/moves` → `moves-history.v1`.
 ///
 /// Replaces the Ledger preview fixture. The approved composition (Figma node `72:2`) is
@@ -46,17 +68,56 @@ struct MovesHistory: Decodable, Equatable {
         let moveType: String?
         let recommendation: String?
         let followed: Bool?
+        let actionProvenance: String?
+        let provenance: String?
         let stars: Int?
         let outcome: String?
         let effectivenessPct: Double?
         let createdAt: String?
 
         enum CodingKeys: String, CodingKey {
-            case id, season, week, followed, stars, outcome
+            case id, season, week, followed, stars, outcome, provenance
             case moveType = "move_type"
             case recommendation
+            case headline
+            case actionProvenance = "action_provenance"
             case effectivenessPct = "effectiveness_pct"
             case createdAt = "created_at"
+        }
+
+        init(
+            id: Identifier, season: Int?, week: Int?, moveType: String?, recommendation: String?,
+            followed: Bool?, actionProvenance: String? = nil, provenance: String? = nil,
+            stars: Int?, outcome: String?, effectivenessPct: Double?, createdAt: String?
+        ) {
+            self.id = id
+            self.season = season
+            self.week = week
+            self.moveType = moveType
+            self.recommendation = recommendation
+            self.followed = followed
+            self.actionProvenance = actionProvenance
+            self.provenance = provenance
+            self.stars = stars
+            self.outcome = outcome
+            self.effectivenessPct = effectivenessPct
+            self.createdAt = createdAt
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(Identifier.self, forKey: .id)
+            season = try c.decodeIfPresent(Int.self, forKey: .season)
+            week = try c.decodeIfPresent(Int.self, forKey: .week)
+            moveType = try c.decodeIfPresent(String.self, forKey: .moveType)
+            recommendation = try c.decodeIfPresent(String.self, forKey: .headline) ?? c.decodeIfPresent(String.self, forKey: .recommendation)
+            followed = try c.decodeIfPresent(Bool.self, forKey: .followed)
+            actionProvenance = try c.decodeIfPresent(String.self, forKey: .actionProvenance)
+            provenance = try c.decodeIfPresent(String.self, forKey: .provenance)
+            stars = try c.decodeIfPresent(Int.self, forKey: .stars)
+            outcome = try c.decodeIfPresent(String.self, forKey: .outcome)
+            effectivenessPct = try c.decodeIfPresent(Double.self, forKey: .effectivenessPct)
+            createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
         }
     }
 
@@ -115,7 +176,9 @@ extension MovesHistory {
             period: period(for: move),
             callType: callType(for: move),
             summary: recommendation,
-            outcome: outcomeText(for: move)
+            outcome: outcomeText(for: move),
+            actionStatus: actionText(for: move),
+            outcomeProvenance: move.provenance?.trimmed.lowercased()
         )
     }
 
@@ -147,6 +210,9 @@ extension MovesHistory {
         var parts: [String] = []
 
         switch outcome {
+        case "worked": parts.append("Verified outcome: worked")
+        case "did_not_work": parts.append("Verified outcome: did not work")
+        case "not_verified": parts.append("Outcome not verified")
         case "win": parts.append("Outcome: win")
         case "loss": parts.append("Outcome: loss")
         case "pending", nil, "": parts.append("Outcome pending")
@@ -156,12 +222,6 @@ extension MovesHistory {
             parts.append("Outcome: \(move.outcome ?? "")")
         }
 
-        switch move.followed {
-        case true: parts.append("followed")
-        case false: parts.append("not followed")
-        case nil: break // No feedback recorded. Silence is not "ignored".
-        }
-
         if (outcome == "win" || outcome == "loss"),
            move.followed == true,
            let effectiveness = move.effectivenessPct {
@@ -169,6 +229,21 @@ extension MovesHistory {
         }
 
         return parts.joined(separator: " · ")
+    }
+
+    static func actionText(for move: Move) -> String? {
+        switch move.actionProvenance?.trimmed.lowercased() {
+        case "self_reported":
+            switch move.followed {
+            case true: return "You reported following this call"
+            case false: return "You reported not following this call"
+            case nil: return "Action report is incomplete"
+            }
+        // Anything else is a provenance value this build does not have copy for. Printing
+        // the raw token ("Action status: verified_import") leaks a machine word into the
+        // product; saying nothing is the honest fallback, and the row still renders.
+        default: return nil
+        }
     }
 }
 

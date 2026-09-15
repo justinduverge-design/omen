@@ -64,7 +64,7 @@ struct OmenTeamSwitcherSheet: View {
 
     private var header: some View {
         Text("Your teams")
-            .omenTextStyle(OmenTypography.eyebrow)
+            .omenTextStyle(OmenTypography.micro)
             .foregroundStyle(OmenColor.textSecondary)
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.top, OmenSpacing.step16)

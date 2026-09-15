@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum OmenBadgeTone { case success, neutral, risk, live, stub, mock, unavailable }
+enum OmenBadgeTone { case success, neutral, omen, risk, live, stub, mock, unavailable }
 
 /// Registry §3.1 semantic status/data-source label. The label always accompanies its color.
 struct OmenBadge: View {
@@ -11,6 +11,7 @@ struct OmenBadge: View {
         switch tone {
         case .success: return OmenColor.Data.riskLow
         case .neutral: return OmenColor.textSecondary
+        case .omen: return OmenColor.omenChip
         case .risk: return OmenColor.Data.riskHigh
         case .live: return OmenColor.Data.dataLive
         case .stub: return OmenColor.Data.dataStub
@@ -21,7 +22,7 @@ struct OmenBadge: View {
 
     var body: some View {
         Text(label)
-            .omenTextStyle(OmenTypography.chip)
+            .omenTextStyle(OmenTypography.label)
             .foregroundStyle(foreground)
             .padding(.horizontal, OmenSpacing.step8)
             .padding(.vertical, OmenSpacing.step4)

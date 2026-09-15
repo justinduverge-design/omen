@@ -37,7 +37,7 @@ struct OmenPlatformBadge: View {
 
     var body: some View {
         Text(label)
-            .omenTextStyle(OmenTypography.chip)
+            .omenTextStyle(OmenTypography.label)
             .foregroundStyle(onFill)
             .padding(.horizontal, OmenSpacing.step8)
             .padding(.vertical, OmenSpacing.step4)

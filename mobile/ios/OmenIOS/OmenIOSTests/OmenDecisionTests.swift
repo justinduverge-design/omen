@@ -16,6 +16,18 @@ final class OmenDecisionTests: XCTestCase {
         try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
     }
 
+    func testV2ConfidenceBandAndServerDriversSurviveMapping() throws {
+        let envelope = try decode("""
+        {"contract_version":"omen-decision-brief.v2","state":"success","mode":"live",
+         "recommendation":{"title":"Hold","move":"Keep your lineup.",
+         "confidence":{"band":"leaning","drivers":["Live roster read","Small weekly edge"]}}}
+        """)
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        XCTAssertEqual(payload.confidenceBand, .leaning)
+        XCTAssertEqual(payload.confidenceDrivers, ["Live roster read", "Small weekly edge"])
+        XCTAssertNil(payload.confidence, "v2 must not manufacture a retired numeric score")
+    }
+
     // MARK: - success
 
     func testSuccessDecodesIntoARenderableBrief() throws {
@@ -304,6 +316,65 @@ final class OmenDecisionTests: XCTestCase {
         guard case .success(let payload) = envelope.briefState() else { return nil }
         return payload
     }
+
+    /// `omen-decision-brief.v2` — a graded call carries a band and no explanation.
+    func testAGradedCallCarriesABandAndNoAbsenceExplanation() throws {
+        let envelope = try decode("""
+        {
+          "contract_version": "omen-decision-brief.v2",
+          "state": "success",
+          "mode": "live",
+          "recommendation": {
+            "type": "start_sit",
+            "title": "Start Achane",
+            "move": "Start Achane over Pollard.",
+            "confidence": {"band": "confident", "drivers": ["Volume is stable."]},
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Achane."}
+          }
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        XCTAssertEqual(payload.confidenceBand, .confident)
+        XCTAssertEqual(payload.confidenceDrivers, ["Volume is stable."])
+        XCTAssertTrue(payload.confidenceUnavailableReason.isEmpty,
+                      "a graded call has nothing to explain away")
+    }
+
+    /// The defect this replaced: the server returned `coin_flip` for a call it had never
+    /// scored, so the absence of a judgement rendered as a judgement. A missing confidence now
+    /// carries no band at all and says what Omen could not read instead.
+    ///
+    /// The brief renders the band panel only when a band exists, and the explanation only when
+    /// it does not — so this mapping is what keeps the two from ever appearing together.
+    func testAnUnscoredCallExplainsItselfRatherThanClaimingACoinFlip() throws {
+        let envelope = try decode("""
+        {
+          "contract_version": "omen-decision-brief.v2",
+          "state": "success",
+          "mode": "live",
+          "recommendation": {
+            "type": "start_sit",
+            "title": "Start Achane",
+            "move": "Start Achane over Pollard.",
+            "confidence": {
+              "band": null,
+              "drivers": [],
+              "unavailable_reason": ["Omen cannot yet verify every scoring rule for this league."]
+            },
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Achane."}
+          }
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        XCTAssertNil(payload.confidenceBand, "no score must not become a fourth, worst band")
+        XCTAssertEqual(payload.confidenceUnavailableReason,
+                       ["Omen cannot yet verify every scoring rule for this league."])
+        XCTAssertNil(payload.confidence, "and it must not fall back to a numeral either")
+    }
 }
 
 // MARK: - View model
@@ -390,5 +461,4 @@ final class OmenDecisionViewModelTests: XCTestCase {
             return XCTFail("the pre-request state must be loading, not empty")
         }
     }
-
 }

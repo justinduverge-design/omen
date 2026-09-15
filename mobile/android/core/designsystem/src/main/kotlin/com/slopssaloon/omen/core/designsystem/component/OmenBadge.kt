@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
 
 /** Registry §3.1 Badge: semantic status/data-source labels, never a standalone color signal. */
-enum class OmenBadgeTone { Success, Neutral, Risk, Live, Stub, Mock, Unavailable }
+enum class OmenBadgeTone { Success, Neutral, Omen, Risk, Live, Stub, Mock, Unavailable }
 
 @Composable
 fun OmenBadge(
@@ -22,6 +22,7 @@ fun OmenBadge(
     val foreground = when (tone) {
         OmenBadgeTone.Success -> colors.data.riskLow
         OmenBadgeTone.Neutral -> colors.textSecondary
+        OmenBadgeTone.Omen -> colors.omenChip
         OmenBadgeTone.Risk -> colors.data.riskHigh
         OmenBadgeTone.Live -> colors.data.dataLive
         OmenBadgeTone.Stub -> colors.data.dataStub
@@ -39,7 +40,7 @@ fun OmenBadge(
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = OmenTheme.spacing.step8, vertical = OmenTheme.spacing.step4),
-            style = OmenTheme.typography.chip.toTextStyle(),
+            style = OmenTheme.typography.label.toTextStyle(),
         )
     }
 }

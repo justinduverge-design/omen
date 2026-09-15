@@ -1,39 +1,43 @@
 import SwiftUI
 import UIKit
+import CoreText
 
-/// Native font-family seam (registry §2.4; m1-native-typography-build-brief-v1.md §3).
+/// Registry §2.4: the two bundled Wix Madefor optical cuts, resolved through one native seam.
 ///
-/// **One typeface, founder decision 2026-09-07.** The app previously carried a three-family role
-/// split — Alegreya Sans for UI, Alegreya for reading copy, DM Mono for eyebrow/chip/numeric.
-/// No font files had ever been committed, so that split rendered as SF Pro / New York / SF Mono
-/// on device and was never seen in its intended faces. The founder judged the result and chose to
-/// collapse to a single family rather than ship the three. Alegreya Sans is now the only family in
-/// the app; hierarchy is carried by size, weight, tracking and case alone.
+/// Both files are **variable fonts** carrying a single `wght` axis, 400–800, with named
+/// instances at Regular/Medium/SemiBold/Bold/ExtraBold. The `rawValue` is the PostScript name of
+/// the *default* instance — which is what `UIAppFonts` registration exposes — and a weight is
+/// selected by setting the axis, never by asking for a differently-named face.
 ///
-/// This supersedes `W2-Typography`, which retired only DM Mono.
+/// **Why the axis and not a weight trait.** Applying `UIFontDescriptor.TraitKey.weight` to a
+/// descriptor that already names a concrete face does not move a variable font off its default
+/// instance: the returned font is still `WixMadeforDisplay-Regular` with no axis coordinate set,
+/// so every role renders at 400 and the whole ramp goes flat. That is not a theory — it was the
+/// shipped behaviour of this file on 2026-09-15, and it is invisible to any test that asserts a
+/// family name, because the family name is identical either way. `TypographyDerivationTests`
+/// asserts the resolved *face* per role for exactly this reason.
 ///
-/// The files are committed under `OmenIOS/Fonts/` under the SIL Open Font License 1.1 with
-/// `OFL.txt` intact, and registered through `UIAppFonts` in `Info.plist`.
-///
-/// **Alegreya Sans has no 600 weight** (the family ships 100/300/400/500/700/800/900), so the
-/// two `.semibold` roles resolve to Bold. That is the same resolution the design canvas produced
-/// — CSS font matching promotes 600 to 700 against this family — so the shipped app matches the
-/// artboards the founder approved rather than silently synthesising a weight.
-///
-/// No call site may name a font family directly (registry §2.6); this enum stays the only seam.
-private enum OmenFontFamily {
-    /// The one family. `nil` from `UIFont(name:size:)` means the resource failed to register,
-    /// in which case the role falls back to the system face rather than rendering nothing.
-    static func postScriptName(for weight: UIFont.Weight) -> String {
+/// No call site may name a font directly (registry §2.6); this enum stays the only seam. It is
+/// internal rather than private only so the role guard test can read `role.family`.
+enum OmenFontFamily: String {
+    case display = "WixMadeforDisplay-Regular"
+    case text = "WixMadeforText-Regular"
+
+    /// The OpenType `wght` axis tag, `'w' 'g' 'h' 't'` packed big-endian.
+    static let weightAxis = 0x77676874
+
+    /// Maps a `UIFont.Weight` onto the axis. The axis tops out at 800, so `.black` is clamped
+    /// here deliberately rather than left for CoreText to clamp silently — an explicit ceiling
+    /// is reviewable; a silent one is the class of bug this file already shipped once.
+    static func axisValue(for weight: UIFont.Weight) -> Int {
         switch weight {
-        case .bold, .heavy, .black, .semibold: return "AlegreyaSans-Bold"
-        case .medium: return "AlegreyaSans-Medium"
-        default: return "AlegreyaSans-Regular"
+        case .medium: return 500
+        case .semibold: return 600
+        case .bold: return 700
+        case .heavy, .black: return 800
+        default: return 400
         }
     }
-
-    /// Retained as the fallback shape if the bundled resource ever fails to load.
-    static let fallbackDesign: UIFontDescriptor.SystemDesign = .default
 }
 
 /// One shared type role. `size`/`lineHeight` are literal points from the locked role map
@@ -42,6 +46,8 @@ private enum OmenFontFamily {
 /// accessibility text-size setting (brief §4 iOS — "custom fonts must scale through the
 /// system's relative-style mechanism").
 struct OmenTypeRoleSpec {
+    let family: OmenFontFamily
+    let lineHeight: CGFloat
     let design: UIFontDescriptor.SystemDesign
     let size: CGFloat
     let weight: UIFont.Weight
@@ -60,8 +66,18 @@ struct OmenTypeRoleSpec {
     /// on the real family rather than on a system stand-in — the failure that went unnoticed for
     /// the whole life of the three-family seam.
     var resolvedUIFont: UIFont {
-        if let named = UIFont(name: OmenFontFamily.postScriptName(for: weight), size: size) {
-            return named
+        // `UIFont(name:)` is the probe for "did the resource actually register?" — it returns
+        // nil when the family is missing, which is the failure this whole seam exists to expose.
+        // The font itself is then built from name + `wght` axis, which is the only mechanism that
+        // moves a variable font off its default instance. See `OmenFontFamily` above.
+        if UIFont(name: family.rawValue, size: size) != nil {
+            let descriptor = UIFontDescriptor(fontAttributes: [
+                .name: family.rawValue,
+                UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String): [
+                    OmenFontFamily.weightAxis: OmenFontFamily.axisValue(for: weight),
+                ],
+            ])
+            return UIFont(descriptor: descriptor, size: size)
         }
         let base = UIFont.systemFont(ofSize: size, weight: weight)
         let descriptor = base.fontDescriptor.withDesign(design) ?? base.fontDescriptor
@@ -84,6 +100,8 @@ struct OmenTypeRoleSpec {
     /// below are still the only entry points, and a derivation is always traceable to one.
     func at(size: CGFloat, weight: UIFont.Weight? = nil) -> OmenTypeRoleSpec {
         OmenTypeRoleSpec(
+            family: family,
+            lineHeight: lineHeight * (size / self.size),
             design: design,
             size: size,
             weight: weight ?? self.weight,
@@ -97,48 +115,39 @@ struct OmenTypeRoleSpec {
     }
 }
 
-/// The ten locked roles from the registry §2.4 / typography brief §2.
+/// The fifteen roles of registry §2.4, as resolved by C7 on 2026-09-13 ("the canvas wins, and
+/// the registry grows to fit it"). Sizes sit on the fourteen-step ramp
+/// `10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 22 · 24 · 27 · 32 · 48`, floor 10.
+///
+/// **`relativeTo` is chosen per role, by size.** Each role is matched to the system text style
+/// closest to its own point size, so the Dynamic Type curve applied to it is the one Apple
+/// designed for text at that size — large styles grow proportionally less at accessibility
+/// sizes than small ones, which is what keeps a 48pt hero and a 10pt eyebrow in the same
+/// relationship after scaling.
+///
+/// This was briefly collapsed to two styles — every Display role on `.title2`, every Text role
+/// on `.body` — which made a 48pt hero scale at the same rate as an 18pt sub-header and a 10pt
+/// eyebrow scale like body copy. Restored 2026-09-15. Behaviour at 200% is still unproven and
+/// belongs to `F11`; this file's job is to make the curve per-role rather than uniform.
+///
+/// Tracking is stored in **points at the role's own size**, written as the registry's em value
+/// times that size so the derivation stays visible and survives a size change.
 enum OmenTypography {
-    static let display = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 48, weight: .bold,
-        relativeTo: .largeTitle, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let h1 = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 32, weight: .bold,
-        relativeTo: .title1, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let h2 = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 20, weight: .semibold,
-        relativeTo: .title2, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let h3 = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 16, weight: .semibold,
-        relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let body = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 15, weight: .regular,
-        relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let bodySmall = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 13, weight: .regular,
-        relativeTo: .footnote, tracking: 0, uppercase: false, tabularNumbers: false
-    )
-    static let label = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 12, weight: .medium,
-        relativeTo: .caption1, tracking: 12 * 0.05, uppercase: false, tabularNumbers: false
-    )
-    static let eyebrow = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 12, weight: .medium,
-        relativeTo: .caption1, tracking: 12 * 0.12, uppercase: true, tabularNumbers: false
-    )
-    static let chip = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 11, weight: .medium,
-        relativeTo: .caption2, tracking: 11 * 0.10, uppercase: true, tabularNumbers: false
-    )
-    static let numeric = OmenTypeRoleSpec(
-        design: OmenFontFamily.fallbackDesign, size: 15, weight: .medium,
-        relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: true
-    )
+    static let display = OmenTypeRoleSpec(family: .display, lineHeight: 56, design: .default, size: 48, weight: .heavy, relativeTo: .largeTitle, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let h1 = OmenTypeRoleSpec(family: .display, lineHeight: 40, design: .default, size: 32, weight: .heavy, relativeTo: .title1, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let scoreLead = OmenTypeRoleSpec(family: .display, lineHeight: 28, design: .default, size: 27, weight: .heavy, relativeTo: .title2, tracking: 0, uppercase: false, tabularNumbers: true)
+    static let call = OmenTypeRoleSpec(family: .display, lineHeight: 26, design: .default, size: 24, weight: .heavy, relativeTo: .title2, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let scoreTrail = OmenTypeRoleSpec(family: .display, lineHeight: 24, design: .default, size: 22, weight: .heavy, relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: true)
+    static let screenTitle = OmenTypeRoleSpec(family: .display, lineHeight: 26, design: .default, size: 22, weight: .heavy, relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let h2 = OmenTypeRoleSpec(family: .display, lineHeight: 26, design: .default, size: 20, weight: .bold, relativeTo: .title3, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let h3 = OmenTypeRoleSpec(family: .display, lineHeight: 24, design: .default, size: 18, weight: .bold, relativeTo: .headline, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let body = OmenTypeRoleSpec(family: .text, lineHeight: 22, design: .default, size: 15, weight: .regular, relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let cardLead = OmenTypeRoleSpec(family: .display, lineHeight: 18, design: .default, size: 14, weight: .bold, relativeTo: .subheadline, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let name = OmenTypeRoleSpec(family: .text, lineHeight: 16, design: .default, size: 13, weight: .bold, relativeTo: .subheadline, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let bodySmall = OmenTypeRoleSpec(family: .text, lineHeight: 17, design: .default, size: 12, weight: .regular, relativeTo: .footnote, tracking: 0, uppercase: false, tabularNumbers: false)
+    static let label = OmenTypeRoleSpec(family: .text, lineHeight: 14, design: .default, size: 11, weight: .bold, relativeTo: .caption1, tracking: 11 * 0.12, uppercase: true, tabularNumbers: false)
+    static let micro = OmenTypeRoleSpec(family: .text, lineHeight: 13, design: .default, size: 10, weight: .heavy, relativeTo: .caption2, tracking: 10 * 0.16, uppercase: true, tabularNumbers: false)
+    static let numeric = OmenTypeRoleSpec(family: .display, lineHeight: 22, design: .default, size: 15, weight: .heavy, relativeTo: .body, tracking: 0, uppercase: false, tabularNumbers: true)
 }
 
 extension View {
@@ -149,6 +158,7 @@ extension View {
         return self
             .font(appliedFont)
             .tracking(role.tracking)
+            .lineSpacing(max(0, role.lineHeight - role.resolvedUIFont.lineHeight))
             .textCase(role.uppercase ? .uppercase : nil)
     }
 }

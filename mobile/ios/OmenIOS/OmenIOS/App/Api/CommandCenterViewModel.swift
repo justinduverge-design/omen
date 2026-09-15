@@ -107,34 +107,40 @@ final class CommandCenterViewModel: ObservableObject {
         switch await sessionManager.authorized({ await repository.fetchSummary(accessToken: $0) }) {
         case .success(let summary):
             viewState = .loaded(summary)
-            // Both follow-ups run only after the shell is renderable, and they run
-            // CONCURRENTLY. They hit different routes, neither reads the
-            // other's result, and running them in sequence made the Command Center three
-            // serial round trips deep — the standings call is a live provider read and the
-            // slowest of the three, so it was holding the Ledger behind it for no reason.
+            // The overview establishes the server-owned league scope for Ledger v2. Waiver
+            // analysis remains independent and can run alongside that read.
             // Re-read the bearer rather than reusing the one `authorized` sent: if that call
             // renewed mid-flight, the stored token is the live one and the sent one is
             // already retired. This never refreshes again — it was just renewed.
             guard case .token(let accessToken) = await sessionManager.authorization() else { break }
-            async let contextTask: Void = {
+            async let contextTask: LeagueOverview? = {
                 // Slice C runs only when the shell says a provider is actually connected —
                 // asking a disconnected user's provider for standings is a guaranteed
                 // round-trip to an error.
-                guard summary.platforms.anyConnected else { return }
-                await loadContext(accessToken: accessToken)
-            }()
-            async let ledgerTask: Void = {
-                // Slice E. Skipped entirely when the shell says no usable platform: that
-                // user's Ledger is `.notConnected` by definition, and "no entries yet" would
-                // be a weaker, slightly wrong answer bought with a pointless round trip.
-                guard summary.tools.omenOfTheWeek.status != .needsPlatform else { return }
-                await loadLedger(accessToken: accessToken)
+                guard summary.platforms.anyConnected else { return nil }
+                return await loadContext(accessToken: accessToken)
             }()
             async let waiverTask: Void = {
                 guard summary.tools.waiverWire.status != .needsPlatform else { return }
                 await loadWaiverWatch(accessToken: accessToken)
             }()
-            _ = await (contextTask, ledgerTask, waiverTask)
+            let overview = await contextTask
+            if summary.tools.omenOfTheWeek.status != .needsPlatform {
+                // Both values are trimmed before they become query parameters. The previous
+                // form tested `platform` for emptiness on a trimmed copy but passed the
+                // ORIGINAL, while trimming `leagueId` — so two adjacent scope values reached
+                // the API under different rules, and Android used a third. Whitespace in a
+                // scope key is a silent mis-scope, not a cosmetic issue: it reads another
+                // league's Ledger or none.
+                let platform = overview?.platform.trimmed
+                let leagueId = overview?.leagueId?.trimmed
+                if let platform, !platform.isEmpty, let leagueId, !leagueId.isEmpty {
+                    await loadLedger(accessToken: accessToken, platform: platform, leagueId: leagueId)
+                } else {
+                    ledger = .error("Omen couldn't determine the selected league for this Ledger.")
+                }
+            }
+            _ = await waiverTask
         case .failure(let error):
             // `authorized` has already forced a refresh, retried once, and routed a genuine
             // authorization failure to re-auth. Nothing left to do but render honestly.
@@ -150,13 +156,13 @@ final class CommandCenterViewModel: ObservableObject {
     /// One `league-overview.v1` read fills the context strip, League Pulse, AND the Matchup
     /// Hero. It replaced a `league-standings.v1` read that filled only the strip while the
     /// other two sections were hardwired to states no connected user could escape.
-    private func loadContext(accessToken: String) async {
+    private func loadContext(accessToken: String) async -> LeagueOverview? {
         guard case .success(let overview) = await leagueRepository.fetchOverview(accessToken: accessToken) else {
             // The shell-derived default is `.loading`, which would spin forever if left
             // alone — the original defect in a different costume. A failed read resolves to
             // an explicit resting state.
             leaguePulse = .unavailable
-            return
+            return nil
         }
         context = overview.contextStrip
         // `nil` from either mapping means "this payload cannot honestly support the section".
@@ -165,6 +171,7 @@ final class CommandCenterViewModel: ObservableObject {
         // by a blank hero.
         leaguePulse = overview.leaguePulse ?? .unavailable
         matchup = overview.matchupHero
+        return overview
     }
 
     /// Fills the Ledger section from `moves-history.v1`.
@@ -173,9 +180,14 @@ final class CommandCenterViewModel: ObservableObject {
     /// resting state — an unfilled strip claims nothing. The Ledger's resting state is "No
     /// Ledger entries yet", which is a positive claim about the user's history, and rendering
     /// it after a failed read would tell a user with a full Ledger that they have none.
-    private func loadLedger(accessToken: String) async {
+    func loadReceipt(id: String) async -> Result<MoveReceipt, OmenApiError> {
+        guard case .token(let token) = await sessionManager.authorization() else { return .failure(.unauthorized) }
+        return await movesRepository.fetchReceipt(accessToken: token, id: id)
+    }
+
+    private func loadLedger(accessToken: String, platform: String, leagueId: String) async {
         ledger = .loading
-        switch await movesRepository.fetchMoves(accessToken: accessToken) {
+        switch await movesRepository.fetchMoves(accessToken: accessToken, platform: platform, leagueId: leagueId) {
         case .success(let history):
             ledger = history.ledgerState
         case .failure(let error):
@@ -211,4 +223,8 @@ final class CommandCenterViewModel: ObservableObject {
             return "Your Ledger came back in a format this version of the app couldn't read."
         }
     }
+}
+
+private extension String {
+    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 }

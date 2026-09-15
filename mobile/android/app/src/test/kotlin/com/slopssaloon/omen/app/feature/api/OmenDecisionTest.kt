@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
 import com.slopssaloon.omen.core.designsystem.component.OmenSignalSource
@@ -31,6 +32,19 @@ class OmenDecisionTest {
 
     private fun parse(json: String): OmenDecisionEnvelope =
         requireNotNull(OmenDecisionEnvelope.parse(json)) { "envelope failed to parse: $json" }
+
+    @Test
+    fun `v2 confidence band and its server drivers survive mapping`() {
+        val payload = (parse(
+            """{"contract_version":"omen-decision-brief.v2","state":"success","mode":"live",
+              "recommendation":{"title":"Hold","move":"Keep your lineup.",
+              "confidence":{"band":"leaning","drivers":["Live roster read","Small weekly edge"]}}}""",
+        ).briefState() as OmenDecisionBriefState.Success).payload
+
+        assertEquals(OmenConfidenceBand.Leaning, payload.confidenceBand)
+        assertEquals(listOf("Live roster read", "Small weekly edge"), payload.confidenceDrivers)
+        assertNull("v2 must not manufacture a retired numeric score", payload.confidence)
+    }
 
     @Test
     fun successDecodesIntoARenderableBrief() {

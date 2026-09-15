@@ -15,6 +15,11 @@ final class TradeViewModel: ObservableObject {
 
     @Published private(set) var viewState: ViewState = .idle
     @Published var offer = TradeOffer()
+    @Published private(set) var capabilities: TradeCapabilities?
+
+    func loadCapabilities() async {
+        capabilities = try? await repository.capabilities().get()
+    }
 
     /// The six honest content states, applied to autocomplete.
     ///

@@ -57,7 +57,7 @@ fun OmenConfidenceBar(
             ) {
                 Text(
                     text = label,
-                    style = OmenTheme.typography.eyebrow.toTextStyle(),
+                    style = OmenTheme.typography.micro.toTextStyle(),
                     color = colors.textSecondary,
                 )
                 Text(

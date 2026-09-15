@@ -53,7 +53,7 @@ fun OmenPlatformBadge(
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = OmenTheme.spacing.step8, vertical = OmenTheme.spacing.step4),
-            style = OmenTheme.typography.chip.toTextStyle(),
+            style = OmenTheme.typography.label.toTextStyle(),
         )
     }
 }

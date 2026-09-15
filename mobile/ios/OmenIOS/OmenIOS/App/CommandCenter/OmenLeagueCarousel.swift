@@ -126,7 +126,7 @@ struct OmenLeagueCarousel: View {
         if let demoMatchup {
             VStack(alignment: .leading, spacing: OmenSpacing.step8) {
                 Text("DEMO LEAGUE")
-                    .omenTextStyle(OmenTypography.eyebrow)
+                    .omenTextStyle(OmenTypography.micro)
                     .foregroundStyle(OmenColor.textSecondary)
                 OmenMatchupHero(state: demoMatchup, onOpen: onOpenMatchup)
             }

@@ -117,13 +117,14 @@ if want "$PLATFORMS" android; then
       done
     done
   else
-    echo "note: no Android device attached — skipping android." >&2
+    echo "error: no Android device attached." >&2
+    FAILED+=("android/device-unavailable")
   fi
 fi
 
 # ---------- iOS ----------
 if want "$PLATFORMS" ios; then
-  IOS_UDID="$(ios_udid)"
+  IOS_UDID="$(ios_udid || true)"
   if [[ -n "$IOS_UDID" ]]; then
     if [[ "$DO_BUILD" == 1 ]]; then
       echo "building ios…"
@@ -148,7 +149,8 @@ if want "$PLATFORMS" ios; then
       done
     done
   else
-    echo "note: no booted simulator named '$IOS_DEVICE' — skipping ios." >&2
+    echo "error: no booted simulator named '$IOS_DEVICE'." >&2
+    FAILED+=("ios/device-unavailable")
   fi
 fi
 
