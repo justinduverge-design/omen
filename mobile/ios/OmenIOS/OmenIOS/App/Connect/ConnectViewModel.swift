@@ -43,67 +43,6 @@ final class ConnectViewModel: ObservableObject {
     /// holder; this is the same lifetime, moved one step later so the picker can exist.
     private var espnSession: (espnS2: String, swid: String)?
 
-    // MARK: - Multiselect
-    //
-    // A user with three ESPN leagues used to connect once and lose two of them: every picker
-    // took a single tap and bound one league, and there was nowhere else to say the others
-    // existed. The pickers now toggle, and the confirm step does two things — binds the first
-    // pick as the ACTIVE league (the one Omen reasons about) and follows all of them (the ones
-    // the carousel can swipe to).
-
-    /// League ids ticked in the current picker. Empty means "nothing chosen yet", which is why
-    /// confirm is disabled rather than defaulting to the first row.
-    @Published private(set) var selectedLeagueIDs: Set<String> = []
-
-    /// Set after a multiselect that the server accepted but could not store, so the copy can
-    /// say which leagues survive this session rather than claiming a save that did not happen.
-    /// Nil means "nothing to disclose" — either no multiselect ran, or it persisted.
-    @Published private(set) var followsNotPersisted: Bool = false
-
-    func toggleLeague(_ id: String) {
-        if selectedLeagueIDs.contains(id) {
-            selectedLeagueIDs.remove(id)
-        } else {
-            selectedLeagueIDs.insert(id)
-        }
-    }
-
-    func isLeagueSelected(_ id: String) -> Bool { selectedLeagueIDs.contains(id) }
-
-    /// At least one league, and nothing already in flight.
-    var canConfirmLeagueSelection: Bool { !selectedLeagueIDs.isEmpty && !state.isBusy }
-
-    /// The confirm button's label. Says how many, because the count is the whole point of the
-    /// change and a bare "Connect" would hide it.
-    var confirmLeagueSelectionTitle: String {
-        switch selectedLeagueIDs.count {
-        case 0: return "Pick a league"
-        case 1: return "Connect this league"
-        default: return "Connect \(selectedLeagueIDs.count) leagues"
-        }
-    }
-
-    private func clearLeagueSelection() {
-        selectedLeagueIDs.removeAll()
-    }
-
-    /// Records the followed set after the active league is bound.
-    ///
-    /// Runs AFTER the connect, never instead of it: following a league on a provider with no
-    /// stored credentials would be a row pointing at something Omen cannot read. A failure
-    /// here is deliberately not surfaced as a connect failure — the connection genuinely
-    /// succeeded, and turning a working connection into an error screen over the follow set
-    /// would be the worse outcome.
-    private func recordFollows(platform: String, leagues: [FollowedLeague]) async {
-        guard leagues.count > 1 else { return }
-        guard let accessToken = await bearer() else { return }
-        if case .success(let persisted) = await repository.followLeagues(
-            platform: platform, leagues: leagues, accessToken: accessToken
-        ) {
-            followsNotPersisted = !persisted
-        }
-    }
-
     private let repository: ConnectRepository
     private let sessionManager: SessionManager
     private let authSession: ProviderAuthSessionPresenting
@@ -230,7 +169,6 @@ final class ConnectViewModel: ObservableObject {
             accessToken: accessToken
         ) {
         case .success(let leagues) where !leagues.isEmpty:
-            clearLeagueSelection()
             state = .choosingEspnLeague(leagues)
         case .success:
             espnCheckNotice = EspnHandoffCopy.noLeaguesFound
@@ -242,21 +180,6 @@ final class ConnectViewModel: ObservableObject {
     }
 
     /// The user picked a league from the list ESPN reported.
-    /// Confirms the ESPN multiselect. Same rule as Sleeper: first ticked becomes active.
-    func confirmEspnSelection() async {
-        guard case .choosingEspnLeague(let options) = state, canConfirmLeagueSelection else { return }
-        let chosen = options.filter { selectedLeagueIDs.contains($0.id) }
-        guard let primary = chosen.first else { return }
-
-        await connectEspnLeague(primary)
-
-        if case .espnConnected = state {
-            await recordFollows(platform: "espn", leagues: chosen.map {
-                FollowedLeague(leagueID: $0.id, teamID: $0.teamId, leagueName: $0.name, season: $0.season)
-            })
-        }
-    }
-
     func connectEspnLeague(_ option: EspnLeagueOption) async {
         guard let session = espnSession, !state.isBusy else { return }
         guard let accessToken = await bearer() else { return }
@@ -355,22 +278,7 @@ final class ConnectViewModel: ObservableObject {
     }
 
     /// Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
-    ///
-    /// **Guarded, and the guard is the whole point.** The sign-in sheet is a `fullScreenCover`
-    /// bound to `state == .espnSigningIn`, so *any* move off that state dismisses it — and
-    /// SwiftUI reports every dismissal through the same setter, with no way to tell the user
-    /// swiping it away from the app navigating onward. Ungurded, a **successful** discovery
-    /// dismissed the sheet and then immediately cancelled itself: on a real phone the ESPN
-    /// sheet flashed red for a second and the user landed on "Nothing was connected."
-    ///
-    /// It hid until the discovery route was deployed, because before that discovery failed and
-    /// fell back to `.espnSigningIn` — the sheet never closed, so the setter never fired.
-    ///
-    /// Cancelling a sign-in that is no longer on screen is meaningless, so this is a no-op then.
-    /// The guard lives here rather than in the view's binding so no future call site can get it
-    /// wrong, and so it is testable without a view.
     func cancelEspnSignIn() {
-        guard state == .espnSigningIn else { return }
         clearEspnSession()
         state = .canceled
     }
@@ -431,47 +339,9 @@ final class ConnectViewModel: ObservableObject {
         state = .resolvingAccount
         switch await repository.resolveSleeper(username: trimmed, accessToken: accessToken) {
         case .success(let account):
-            clearLeagueSelection()
             state = .choosingLeague(account)
         case .failure(let failure):
             state = .retryableError(failure)
-        }
-    }
-
-    /// Confirms the Yahoo multiselect. Same rule: first ticked becomes active.
-    func confirmYahooSelection() async {
-        guard case .choosingYahooLeague(let leagues) = state, canConfirmLeagueSelection else { return }
-        let chosen = leagues.filter { selectedLeagueIDs.contains($0.id) }
-        guard let primary = chosen.first else { return }
-
-        await bindYahooLeague(primary)
-
-        if case .yahooConnected = state {
-            await recordFollows(platform: "yahoo", leagues: chosen.map {
-                FollowedLeague(leagueID: $0.id, teamID: nil, leagueName: $0.name, season: $0.season)
-            })
-        }
-    }
-
-    /// Confirms the Sleeper multiselect.
-    ///
-    /// The first ticked league in the picker's own order becomes the active one. "First in
-    /// the list the user was looking at" is the only ordering rule that needs no explanation
-    /// on screen — any other choice (most recent, alphabetical, largest) would have to be
-    /// taught.
-    func confirmSleeperSelection() async {
-        guard case .choosingLeague(let account) = state, canConfirmLeagueSelection else { return }
-        let chosen = account.leagues.filter { selectedLeagueIDs.contains($0.id) }
-        guard let primary = chosen.first else { return }
-
-        pendingRequestId = makeRequestId()
-        await connect(league: primary, username: account.username)
-
-        // Only once the connection actually exists.
-        if case .connected = state {
-            await recordFollows(platform: "sleeper", leagues: chosen.map {
-                FollowedLeague(leagueID: $0.id, teamID: nil, leagueName: $0.name, season: $0.season)
-            })
         }
     }
 
@@ -566,8 +436,7 @@ final class ConnectViewModel: ObservableObject {
             if leagues.count == 1, let only = leagues.first {
                 await bindYahooLeague(only)
             } else {
-                clearLeagueSelection()
-            state = .choosingYahooLeague(leagues)
+                state = .choosingYahooLeague(leagues)
             }
         case .failure(let failure):
             state = .retryableError(failure)
