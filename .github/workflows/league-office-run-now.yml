@@ -1,4 +1,5 @@
 name: League Office Run Now
+# Pushes to this workflow intentionally execute one immediate worker pass.
 
 on:
   workflow_dispatch:
