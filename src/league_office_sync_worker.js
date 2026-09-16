@@ -6,7 +6,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const config = require("./config");
 const { getAuthenticatedEspnCredentials } = require("./services/espnAuth");
-const { fetchEspnWeekMatchups } = require("./services/leagueOfficeSync");
+const espnAdapter = require("./adapters/espn");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey, {
   auth: { persistSession: false },
@@ -51,11 +51,11 @@ async function runJob(job) {
     }
 
     const credentials = await getAuthenticatedEspnCredentials(job.user_id);
-    const matchups = await fetchEspnWeekMatchups(
+    const matchups = await espnAdapter.fetchEspnLeagueWeek(
       job.league_id,
       credentials.espn_s2,
       credentials.swid,
-      { season: job.season, week: job.week }
+      { seasonId: job.season, week: job.week }
     );
 
     if (matchups.length) {
