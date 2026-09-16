@@ -1075,6 +1075,60 @@ async function fetchEspnLastResult(leagueId, espn_s2, swid, opts = {}) {
  * matchup's points change every few minutes, so serving them from that cache would show stale
  * scores during the games this section exists to cover.
  */
+function leagueWeekFromEspnData(data, { leagueId, week } = {}) {
+  const teams = Array.isArray(data?.teams) ? data.teams : [];
+  const names = new Map(teams.map((team) => [String(teamId(team)), teamName(team)]));
+  const games = Array.isArray(data?.schedule) ? data.schedule : [];
+  const targetWeek = Number(week);
+
+  return games.flatMap((game) => {
+    const scoringPeriod = Number(game?.matchupPeriodId ?? game?.scoringPeriodId);
+    if (Number.isFinite(targetWeek) && Number.isFinite(scoringPeriod) && scoringPeriod !== targetWeek) return [];
+
+    const home = game?.home || null;
+    const away = game?.away || null;
+    const homeId = espnMatchupTeamId(home);
+    const awayId = espnMatchupTeamId(away);
+    if (!homeId || !awayId) return [];
+
+    const winner = game?.winner;
+    const decided = winner === "HOME" || winner === "AWAY";
+    const homeScore = espnMatchupPoints(home);
+    const awayScore = espnMatchupPoints(away);
+    const noPointsYet = (homeScore ?? 0) === 0 && (awayScore ?? 0) === 0;
+
+    return [{
+      game_id: game?.id ? String(game.id) : `${leagueId}:${week}:${homeId}:${awayId}`,
+      home_team_id: homeId,
+      home_team_name: names.get(homeId) || null,
+      home_owner_name: null,
+      home_score: homeScore,
+      home_projected: espnMatchupProjected(home, week),
+      away_team_id: awayId,
+      away_team_name: names.get(awayId) || null,
+      away_owner_name: null,
+      away_score: awayScore,
+      away_projected: espnMatchupProjected(away, week),
+      status: decided ? "final" : noPointsYet ? "pregame" : "live",
+      winner_team_id: decided ? (winner === "HOME" ? homeId : awayId) : null,
+      source_verified: true,
+    }];
+  });
+}
+
+async function fetchEspnLeagueWeek(leagueId, espn_s2, swid, opts = {}) {
+  const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
+  const data = await fetchEspnApi(
+    leagueId,
+    espn_s2,
+    swid,
+    ["mTeam", "mMatchup", "mMatchupScore"],
+    scoringPeriodId,
+    opts
+  );
+  return leagueWeekFromEspnData(data, { leagueId, week: scoringPeriodId });
+}
+
 async function fetchEspnMatchup(leagueId, espn_s2, swid, opts = {}) {
   const scoringPeriodId = Number(opts.week || opts.scoringPeriodId || 1);
   // `mMatchupScore` is what carries the projected totals and the per-side roster the PROJ
@@ -1201,6 +1255,8 @@ module.exports = {
   fetchEspnWaiverPool,
   fetchEspnLastResult,
   fetchEspnMatchup,
+  fetchEspnLeagueWeek,
+  leagueWeekFromEspnData,
   verifyLeagueAccess,
   lastResultFromEspnSchedule,
   matchupFromEspnSchedule,
