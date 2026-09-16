@@ -147,6 +147,28 @@ async function runJob(job) {
     stage = "credentials";
     const credentials = await getAuthenticatedEspnCredentials(job.user_id);
     stage = "provider";
+    if (DIAGNOSE) {
+      for (const diagnosticWeek of [1, 2]) {
+        const raw = await espnAdapter.fetchEspnApi(
+          job.league_id,
+          credentials.espn_s2,
+          credentials.swid,
+          ["mTeam", "mMatchup", "mMatchupScore"],
+          diagnosticWeek,
+          { seasonId: job.season }
+        );
+        const games = (raw?.schedule || [])
+          .filter((game) => Number(game?.matchupPeriodId ?? game?.scoringPeriodId) === diagnosticWeek)
+          .map((game) => ({
+            id: game?.id == null ? null : String(game.id),
+            winner: game?.winner || null,
+            home: { team_id: game?.home?.teamId == null ? null : String(game.home.teamId), total_points: game?.home?.totalPoints ?? null, points: game?.home?.points ?? null },
+            away: { team_id: game?.away?.teamId == null ? null : String(game.away.teamId), total_points: game?.away?.totalPoints ?? null, points: game?.away?.points ?? null },
+          }));
+        log("diagnostic week", { week: diagnosticWeek, games });
+      }
+    }
+
     const matchups = await espnAdapter.fetchEspnLeagueWeek(
       job.league_id,
       credentials.espn_s2,
@@ -173,6 +195,24 @@ async function runJob(job) {
         throw persistError;
       }
     }
+
+    stage = "verify";
+    const { data: persisted, error: verifyError } = await supabase
+      .from("league_office_matchups")
+      .select("game_id,status,home_score,away_score")
+      .eq("platform", job.platform)
+      .eq("league_id", String(job.league_id))
+      .eq("season", Number(job.season))
+      .eq("week", Number(job.week));
+    if (verifyError || (persisted || []).length !== matchups.length) {
+      throw new Error("League Office persisted matchup verification failed");
+    }
+    const expected = new Map(matchups.map((row) => [String(row.game_id), row]));
+    const mismatch = (persisted || []).some((row) => {
+      const source = expected.get(String(row.game_id));
+      return !source || row.status !== source.status || Number(row.home_score) !== Number(source.home_score) || Number(row.away_score) !== Number(source.away_score);
+    });
+    if (mismatch) throw new Error("League Office persisted matchup verification mismatch");
 
     stage = "complete";
     await markJob(job.id, {
