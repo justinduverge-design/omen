@@ -13,7 +13,7 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey, {
 });
 
 const LEAGUE_OFFICE_LEAGUE_ID = process.env.LEAGUE_OFFICE_LEAGUE_ID || "13338821";
-const LEAGUE_OFFICE_PLATFORM = "espn";
+const LEAGUE_OFFICE_PLATFORM = "espn";\nconst DIAGNOSE = process.env.LEAGUE_OFFICE_DIAGNOSE === "1";
 
 function log(message, meta = {}) {
   console.log("[league-office-sync]", message, JSON.stringify(meta));
