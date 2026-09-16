@@ -16,9 +16,15 @@ function log(message, meta = {}) {
   console.log("[league-office-sync]", message, JSON.stringify(meta));
 }
 
-function safeErrorCode(error) {
+function safeErrorCode(error, stage = "unknown") {
   if (error?.status === 401) return "provider_reconnect_required";
   if (error?.status === 404) return "league_or_connection_not_found";
+  if (error?.status === 429) return "provider_rate_limited";
+  if (error?.status === 400) return "provider_request_invalid";
+  if (error?.status >= 500) return "provider_unavailable";
+  if (stage === "credentials") return "credential_read_failed";
+  if (stage === "provider") return "provider_read_failed";
+  if (stage === "persist") return "matchup_persist_failed";
   return "sync_failed";
 }
 
@@ -43,6 +49,7 @@ async function markJob(id, values) {
 
 async function runJob(job) {
   await markJob(job.id, { status: "running", started_at: new Date().toISOString(), error_code: null });
+  let stage = "validate";
   try {
     if (job.platform !== "espn") {
       const err = new Error("Provider not implemented for League Office sync");
@@ -50,7 +57,9 @@ async function runJob(job) {
       throw err;
     }
 
+    stage = "credentials";
     const credentials = await getAuthenticatedEspnCredentials(job.user_id);
+    stage = "provider";
     const matchups = await espnAdapter.fetchEspnLeagueWeek(
       job.league_id,
       credentials.espn_s2,
@@ -59,6 +68,7 @@ async function runJob(job) {
     );
 
     if (matchups.length) {
+      stage = "persist";
       const rows = matchups.map((row) => ({ ...row, user_id: job.user_id }));
       const { error } = await supabase
         .from("league_office_matchups")
@@ -66,6 +76,7 @@ async function runJob(job) {
       if (error) throw new Error("League Office matchup persistence failed");
     }
 
+    stage = "complete";
     await markJob(job.id, {
       status: "completed",
       completed_at: new Date().toISOString(),
@@ -76,9 +87,9 @@ async function runJob(job) {
     await markJob(job.id, {
       status: "failed",
       completed_at: new Date().toISOString(),
-      error_code: safeErrorCode(error),
+      error_code: safeErrorCode(error, stage),
     }).catch(() => {});
-    log("job failed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, error_code: safeErrorCode(error) });
+    log("job failed", { id: job.id, league_id: job.league_id, season: job.season, week: job.week, error_code: safeErrorCode(error, stage), stage });
   }
 }
 
