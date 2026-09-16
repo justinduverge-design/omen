@@ -38,3 +38,14 @@ test("leagueWeekFromEspnData keeps every matchup and no credential material", ()
   assert.equal(JSON.stringify(rows).includes("espn_s2"), false);
   assert.equal(JSON.stringify(rows).includes("SWID"), false);
 });
+
+
+test("leagueWeekFromEspnData accepts ESPN schedule sides that expose teamId directly", () => {
+  const rows = adapter.leagueWeekFromEspnData({
+    teams: [{ id: 1, location: "Titans", nickname: "Of Slopssilonia" }, { id: 2, location: "Other", nickname: "Team" }],
+    schedule: [{ id: 99, matchupPeriodId: 3, winner: "UNDECIDED", home: { teamId: 1, totalPoints: 0 }, away: { teamId: 2, totalPoints: 0 } }],
+  }, { leagueId: "13338821", week: 3 });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].home_team_name, "Titans Of Slopssilonia");
+  assert.equal(rows[0].status, "pregame");
+});
