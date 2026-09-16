@@ -1,0 +1,21 @@
+name: League Office Run Now
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/league-office-run-now.yml"
+
+jobs:
+  run:
+    runs-on: [self-hosted, kvm1, omen-deploy]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Run League Office worker now
+        run: |
+          set -euo pipefail
+          cd /opt/omen/deploy/hostinger
+          sudo docker compose -f docker-compose.prod.yml --project-name omen exec -T cron             node /app/src/league_office_sync_worker.js
