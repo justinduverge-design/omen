@@ -166,7 +166,7 @@ async function runJob(job) {
       }));
       const { error } = await supabase
         .from("league_office_matchups")
-        .upsert(rows, { onConflict: "user_id,platform,league_id,season,week,game_id" });
+        .upsert(rows, { onConflict: "platform,league_id,season,week,game_id" });
       if (error) {
         const persistError = new Error("League Office matchup persistence failed");
         persistError.code = error.code || null;
