@@ -92,7 +92,7 @@ struct EspnWebSignIn: UIViewRepresentable {
     /// renders a signed-out content hub whose sign-in entry is buried in the hamburger menu.
     /// `www.espn.com/login` exists and returns 200, but renders as a nav stub rather than a form,
     /// so it was not adopted on markup evidence alone.
-    static let entryURL = URL(string: "https://fantasy.espn.com/football/team")!
+    static let entryURL = URL(string: "https://www.espn.com/login")!
 
     /// Where the user is sent once ESPN has a session and the current page names no league.
     ///
