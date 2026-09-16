@@ -24,6 +24,7 @@ function safeErrorCode(error, stage = "unknown") {
   if (error?.status >= 500) return "provider_unavailable";
   if (stage === "credentials") return "credential_read_failed";
   if (stage === "provider") return "provider_read_failed";
+  if (stage === "persist" && error?.code) return `matchup_persist_${String(error.code).toLowerCase()}`;
   if (stage === "persist") return "matchup_persist_failed";
   return "sync_failed";
 }
@@ -73,7 +74,11 @@ async function runJob(job) {
       const { error } = await supabase
         .from("league_office_matchups")
         .upsert(rows, { onConflict: "user_id,platform,league_id,season,week,game_id" });
-      if (error) throw new Error("League Office matchup persistence failed");
+      if (error) {
+        const persistError = new Error("League Office matchup persistence failed");
+        persistError.code = error.code || null;
+        throw persistError;
+      }
     }
 
     stage = "complete";
