@@ -19,4 +19,4 @@ jobs:
         run: |
           set -euo pipefail
           cd /opt/omen/deploy/hostinger
-          sudo docker compose -f docker-compose.prod.yml --project-name omen exec -T cron             node /app/src/league_office_sync_worker.js
+          sudo docker compose -f docker-compose.prod.yml --project-name omen exec -T -e LEAGUE_OFFICE_DIAGNOSE=1 cron node /app/src/league_office_sync_worker.js
