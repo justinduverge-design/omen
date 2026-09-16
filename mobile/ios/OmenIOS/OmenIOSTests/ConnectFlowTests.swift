@@ -183,8 +183,8 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertNil(viewModel.espnCookieStore, "session must be dropped once connected")
     }
 
-    /// Discovery failing is not a failed connection — nothing was connected. The user falls back
-    /// to typing an id rather than being thrown out of the flow for Omen's lookup problem.
+    /// ESPN's directory can lag the WebKit session by a moment. Omen retries once before it
+    /// offers manual entry, so a friend sees the same picker path as the first successful user.
     func testDiscoveryFailingFallsBackToManualEntryRatherThanFailingTheConnection() async {
         var repository = StubConnectRepository()
         repository.espnDiscoverResult = .failure(.network)
@@ -192,6 +192,8 @@ final class ConnectFlowTests: XCTestCase {
 
         XCTAssertEqual(viewModel.state, .espnSigningIn)
         XCTAssertEqual(viewModel.espnCheckNotice, EspnHandoffCopy.discoveryUnavailable)
+        XCTAssertTrue(viewModel.espnDiscoveryFallbackAvailable)
+        XCTAssertEqual(repository.recorder.espnDiscoveries, 2)
     }
 
     /// An account with no football leagues is an honest empty answer, not an error.

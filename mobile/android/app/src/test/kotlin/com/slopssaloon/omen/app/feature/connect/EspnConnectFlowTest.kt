@@ -156,6 +156,7 @@ class EspnConnectFlowTest {
 
         assertEquals(ConnectState.EspnSigningIn, viewModel.state)
         assertEquals(EspnHandoffCopy.DISCOVERY_UNAVAILABLE, viewModel.espnNotice)
+        assertTrue(viewModel.espnDiscoveryFallbackAvailable)
     }
 
     /** An account with no football leagues is an honest empty answer, not an error. */

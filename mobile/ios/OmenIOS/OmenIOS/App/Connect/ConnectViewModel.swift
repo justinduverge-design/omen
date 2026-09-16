@@ -43,6 +43,77 @@ final class ConnectViewModel: ObservableObject {
     /// holder; this is the same lifetime, moved one step later so the picker can exist.
     private var espnSession: (espnS2: String, swid: String)?
 
+    /// ESPN can expose the browser session just before its fan directory is ready to answer.
+    /// Keep the same in-memory session and make one bounded second request before exposing the
+    /// manual League ID escape hatch. This is a recovery for Omen's timing, never a user chore.
+    private var espnDiscoveryAttempts = 0
+    private let maxEspnDiscoveryAttempts = 2
+
+    /// The manual field is an escape hatch after Omen's own directory lookup has exhausted its
+    /// bounded retry. It must not be the normal post-sign-in screen.
+    @Published private(set) var espnDiscoveryFallbackAvailable = false
+
+    // MARK: - Multiselect
+    //
+    // A user with three ESPN leagues used to connect once and lose two of them: every picker
+    // took a single tap and bound one league, and there was nowhere else to say the others
+    // existed. The pickers now toggle, and the confirm step does two things — binds the first
+    // pick as the ACTIVE league (the one Omen reasons about) and follows all of them (the ones
+    // the carousel can swipe to).
+
+    /// League ids ticked in the current picker. Empty means "nothing chosen yet", which is why
+    /// confirm is disabled rather than defaulting to the first row.
+    @Published private(set) var selectedLeagueIDs: Set<String> = []
+
+    /// Set after a multiselect that the server accepted but could not store, so the copy can
+    /// say which leagues survive this session rather than claiming a save that did not happen.
+    /// Nil means "nothing to disclose" — either no multiselect ran, or it persisted.
+    @Published private(set) var followsNotPersisted: Bool = false
+
+    func toggleLeague(_ id: String) {
+        if selectedLeagueIDs.contains(id) {
+            selectedLeagueIDs.remove(id)
+        } else {
+            selectedLeagueIDs.insert(id)
+        }
+    }
+
+    func isLeagueSelected(_ id: String) -> Bool { selectedLeagueIDs.contains(id) }
+
+    /// At least one league, and nothing already in flight.
+    var canConfirmLeagueSelection: Bool { !selectedLeagueIDs.isEmpty && !state.isBusy }
+
+    /// The confirm button's label. Says how many, because the count is the whole point of the
+    /// change and a bare "Connect" would hide it.
+    var confirmLeagueSelectionTitle: String {
+        switch selectedLeagueIDs.count {
+        case 0: return "Pick a league"
+        case 1: return "Connect this league"
+        default: return "Connect \(selectedLeagueIDs.count) leagues"
+        }
+    }
+
+    private func clearLeagueSelection() {
+        selectedLeagueIDs.removeAll()
+    }
+
+    /// Records the followed set after the active league is bound.
+    ///
+    /// Runs AFTER the connect, never instead of it: following a league on a provider with no
+    /// stored credentials would be a row pointing at something Omen cannot read. A failure
+    /// here is deliberately not surfaced as a connect failure — the connection genuinely
+    /// succeeded, and turning a working connection into an error screen over the follow set
+    /// would be the worse outcome.
+    private func recordFollows(platform: String, leagues: [FollowedLeague]) async {
+        guard leagues.count > 1 else { return }
+        guard let accessToken = await bearer() else { return }
+        if case .success(let persisted) = await repository.followLeagues(
+            platform: platform, leagues: leagues, accessToken: accessToken
+        ) {
+            followsNotPersisted = !persisted
+        }
+    }
+
     private let repository: ConnectRepository
     private let sessionManager: SessionManager
     private let authSession: ProviderAuthSessionPresenting
@@ -118,6 +189,8 @@ final class ConnectViewModel: ObservableObject {
     func beginEspnSignIn(cookieStore: EspnCookieReading? = nil) {
         espnSignInProgress = .signedOut(diagnostic: "")
         espnCookieStore = cookieStore ?? EspnWebCookieStore()
+        espnDiscoveryAttempts = 0
+        espnDiscoveryFallbackAvailable = false
         state = .espnSigningIn
     }
 
@@ -153,30 +226,46 @@ final class ConnectViewModel: ObservableObject {
 
     /// Captures the session and asks ESPN for the account's leagues.
     ///
-    /// A failure here is **not** a failed connection — nothing has been connected yet. It falls
-    /// back to the manual league-id field rather than throwing the user out of the flow, because
-    /// a lookup Omen could not perform is Omen's problem, not the user's.
+    /// A failure here is **not** a failed connection — nothing has been connected yet. ESPN can
+    /// make the WebKit session visible a moment before its directory accepts it, so retry once
+    /// with the same in-memory session before offering the manual escape hatch.
     func discoverEspnLeagues() async {
-        guard let cookieStore = espnCookieStore, espnSession == nil else { return }
-        guard let session = await cookieStore.takeSession() else { return }
-        espnSession = session
+        guard let cookieStore = espnCookieStore else { return }
+        if espnSession == nil {
+            guard let session = await cookieStore.takeSession() else { return }
+            espnSession = session
+        }
+        guard let session = espnSession else { return }
         guard let accessToken = await bearer() else { return }
 
         state = .discoveringEspnLeagues
-        switch await repository.discoverEspnLeagues(
-            espnS2: session.espnS2,
-            swid: session.swid,
-            accessToken: accessToken
-        ) {
-        case .success(let leagues) where !leagues.isEmpty:
-            state = .choosingEspnLeague(leagues)
-        case .success:
-            espnCheckNotice = EspnHandoffCopy.noLeaguesFound
-            state = .espnSigningIn
-        case .failure:
-            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
-            state = .espnSigningIn
+        var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
+        while espnDiscoveryAttempts < maxEspnDiscoveryAttempts {
+            espnDiscoveryAttempts += 1
+            let result = await repository.discoverEspnLeagues(
+                espnS2: session.espnS2,
+                swid: session.swid,
+                accessToken: accessToken
+            )
+            if case .success(let leagues) = result, !leagues.isEmpty {
+                clearLeagueSelection()
+                state = .choosingEspnLeague(leagues)
+                return
+            }
+            finalResult = result
+            if espnDiscoveryAttempts < maxEspnDiscoveryAttempts {
+                try? await Task.sleep(for: .seconds(1))
         }
+        }
+
+        espnDiscoveryFallbackAvailable = true
+        switch finalResult {
+        case .some(.success):
+            espnCheckNotice = EspnHandoffCopy.noLeaguesFound
+        case .some(.failure), .none:
+            espnCheckNotice = EspnHandoffCopy.discoveryUnavailable
+        }
+        state = .espnSigningIn
     }
 
     /// The user picked a league from the list ESPN reported.

@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.connect
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.setValue
 import com.slopssaloon.omen.core.session.SessionAuthorization
 import com.slopssaloon.omen.core.session.SessionManager
@@ -186,6 +187,14 @@ class ConnectViewModel(
      */
     private var espnSession: Pair<String, String>? = null
 
+    /** One short retry covers ESPN's session-to-directory propagation lag. */
+    private var espnDiscoveryAttempts = 0
+    private val maxEspnDiscoveryAttempts = 2
+
+    /** Manual ID entry is an escape hatch, not the normal signed-in path. */
+    var espnDiscoveryFallbackAvailable: Boolean by mutableStateOf(false)
+        private set
+
     /** Contract §W1-A allows one retry on an unreadable session, then the desktop path. */
     private var espnUnreadableRetries = 0
 
@@ -247,6 +256,8 @@ class ConnectViewModel(
     fun beginEspnSignIn(reader: EspnCookieReader = AndroidEspnCookieReader()) {
         espnSignInProgress = EspnSignInProgress.SignedOut()
         espnCookieReader = reader
+        espnDiscoveryAttempts = 0
+        espnDiscoveryFallbackAvailable = false
         state = ConnectState.EspnSigningIn
     }
 
@@ -283,32 +294,35 @@ class ConnectViewModel(
     /**
      * Captures the session and asks ESPN for the account's leagues.
      *
-     * A failure here is **not** a failed connection — nothing has been connected yet. It falls
-     * back to the manual league-id field rather than throwing the user out of the flow, because a
-     * lookup Omen could not perform is Omen's problem, not the user's.
+     * ESPN can make a browser session visible just before its fan directory accepts it. Retry
+     * once with that same in-memory session before exposing manual League ID entry.
      */
     suspend fun discoverEspnLeagues() {
         val reader = espnCookieReader ?: return
-        if (espnSession != null) return
-        val session = reader.takeSession() ?: return
-        espnSession = session
+        val session = espnSession ?: reader.takeSession()?.also { espnSession = it } ?: return
         val accessToken = bearer() ?: return
 
         state = ConnectState.DiscoveringEspnLeagues
-        repository.discoverEspnLeagues(session.first, session.second, accessToken)
-            .onSuccess { leagues ->
-                if (leagues.isNotEmpty()) {
-                    clearLeagueSelection()
-                    state = ConnectState.ChoosingEspnLeague(leagues)
-                } else {
-                    espnNotice = EspnHandoffCopy.NO_LEAGUES_FOUND
-                    state = ConnectState.EspnSigningIn
-                }
+        var finalResult: Result<List<EspnLeagueOption>>? = null
+        while (espnDiscoveryAttempts < maxEspnDiscoveryAttempts) {
+            espnDiscoveryAttempts++
+            val result = repository.discoverEspnLeagues(session.first, session.second, accessToken)
+            result.getOrNull()?.takeIf { it.isNotEmpty() }?.let { leagues ->
+                clearLeagueSelection()
+                state = ConnectState.ChoosingEspnLeague(leagues)
+                return
             }
-            .onFailure {
-                espnNotice = EspnHandoffCopy.DISCOVERY_UNAVAILABLE
-                state = ConnectState.EspnSigningIn
-            }
+            finalResult = result
+            if (espnDiscoveryAttempts < maxEspnDiscoveryAttempts) delay(1_000)
+        }
+
+        espnDiscoveryFallbackAvailable = true
+        espnNotice = if (finalResult?.isSuccess == true) {
+            EspnHandoffCopy.NO_LEAGUES_FOUND
+        } else {
+            EspnHandoffCopy.DISCOVERY_UNAVAILABLE
+        }
+        state = ConnectState.EspnSigningIn
     }
 
     /** The user picked a league from the list ESPN reported. */

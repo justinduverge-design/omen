@@ -356,7 +356,7 @@ fun ConnectScreen(
                             color = OmenTheme.color.textTertiary,
                         )
                     }
-                if (viewModel.espnSignInProgress.isSignedIn) {
+                if (viewModel.espnSignInProgress.isSignedIn && viewModel.espnDiscoveryFallbackAvailable) {
                     OmenTextField(
                         value = viewModel.espnLeagueId,
                         onValueChange = { viewModel.espnLeagueId = it },

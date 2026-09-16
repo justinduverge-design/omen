@@ -123,7 +123,7 @@ struct ConnectView: View {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(ConnectProvider.allCases) { provider in
                     OmenProviderCard(
-                        platform: provider.omenPlatform,
+                        platform: provider.platform,
                         title: provider.displayName,
                         subtitle: availabilityLabel(provider),
                         action: { viewModel.selectProvider(provider) }
@@ -439,67 +439,63 @@ struct ConnectView: View {
                 EspnWebSignIn(store: store) { progress in
                     viewModel.espnSignInProgressed(progress)
                 }
-                .ignoresSafeArea(edges: .bottom)
             } else {
                 Spacer(minLength: 0)
             }
 
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                Text(viewModel.espnSignInProgress.isSignedIn
-                     ? EspnHandoffCopy.signInReady
-                     : EspnHandoffCopy.signInWaiting)
+            // During ESPN / MyDisney authentication, this sheet belongs entirely to the
+            // provider. A persistent Omen footer steals vertical space from the field being
+            // edited and can cover it when iOS raises the keyboard. There is no useful Omen
+            // action before sign-in: the provider's own close control exits normally, and a
+            // valid session automatically moves on to discovery. The fallback panel below is
+            // deliberately the only exception, shown after both safe discovery attempts fail.
+            if viewModel.espnSignInProgress.isSignedIn,
+               viewModel.espnDiscoveryFallbackAvailable {
+                espnManualFallbackPanel
+            }
+        }
+        .background(OmenColor.bg.ignoresSafeArea())
+    }
+
+    /// The manual League ID path is recovery-only. Keeping it outside the provider sign-in
+    /// state protects the MyDisney form's usable viewport while retaining an honest escape hatch
+    /// for an account whose directory cannot be read.
+    private var espnManualFallbackPanel: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            if let notice = viewModel.espnCheckNotice {
+                Text(notice)
                     .omenTextStyle(OmenTypography.bodySmall)
                     .foregroundStyle(OmenColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Shown only once ESPN has a session, so a signed-out user is not asked for a
-                // league id they cannot yet use. Pre-filled by detection when ESPN's URL happens
-                // to carry one; typed by the user when it does not. The desktop helper has had
-                // exactly this field since it shipped.
-                if let diagnostic = viewModel.espnSignInProgress.diagnostic, !diagnostic.isEmpty {
-                    // Presence and host names only. `extension/popup.js` shows the same thing for
-                    // the same reason — "we can't see your session" is unactionable without
-                    // knowing which half is missing. No value ever reaches this string.
-                    Text(diagnostic)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if viewModel.espnSignInProgress.isSignedIn {
-                    OmenTextField(
-                        value: $viewModel.espnLeagueId,
-                        label: "ESPN League ID",
-                        placeholder: "e.g. 156664",
-                        enabled: !viewModel.state.isBusy
-                    )
-                    Text(EspnHandoffCopy.leagueIdHint)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                // Omen never submits on the user's behalf — the same rule the desktop helper
-                // follows. Disabled until there is both a session and a league.
-                OmenButton(
-                    title: EspnHandoffCopy.signInConnectTitle,
-                    action: { Task { await viewModel.confirmEspnConnection() } },
-                    variant: .primary,
-                    size: .md,
-                    enabled: viewModel.canConnectEspn
-                )
-                OmenButton(
-                    title: EspnHandoffCopy.signInCancelTitle,
-                    action: { viewModel.cancelEspnSignIn() },
-                    variant: .link,
-                    size: .sm
-                )
             }
-            .padding(OmenSpacing.step16)
-            .background(OmenColor.bg)
+
+            OmenTextField(
+                value: $viewModel.espnLeagueId,
+                label: "ESPN League ID",
+                placeholder: "e.g. 156664",
+                enabled: !viewModel.state.isBusy
+            )
+            Text(EspnHandoffCopy.leagueIdHint)
+                .omenTextStyle(OmenTypography.bodySmall)
+                .foregroundStyle(OmenColor.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            OmenButton(
+                title: EspnHandoffCopy.signInConnectTitle,
+                action: { Task { await viewModel.confirmEspnConnection() } },
+                variant: .primary,
+                size: .md,
+                enabled: viewModel.canConnectEspn
+            )
+            OmenButton(
+                title: EspnHandoffCopy.signInCancelTitle,
+                action: { viewModel.cancelEspnSignIn() },
+                variant: .link,
+                size: .sm
+            )
         }
-        .background(OmenColor.bg.ignoresSafeArea())
+        .padding(OmenSpacing.step16)
+        .background(OmenColor.bg)
     }
 
     // MARK: - ESPN handoff
@@ -686,4 +682,3 @@ private struct EspnHandoffStepRow: View {
         .accessibilityLabel("Step \(step.index). \(step.title). \(step.detail)")
     }
 }
-
