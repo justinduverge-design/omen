@@ -12,6 +12,9 @@ const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey, {
   auth: { persistSession: false },
 });
 
+const LEAGUE_OFFICE_LEAGUE_ID = process.env.LEAGUE_OFFICE_LEAGUE_ID || "13338821";
+const LEAGUE_OFFICE_PLATFORM = "espn";
+
 function log(message, meta = {}) {
   console.log("[league-office-sync]", message, JSON.stringify(meta));
 }
@@ -27,6 +30,89 @@ function safeErrorCode(error, stage = "unknown") {
   if (stage === "persist" && error?.code) return `matchup_persist_${String(error.code).toLowerCase()}`;
   if (stage === "persist") return "matchup_persist_failed";
   return "sync_failed";
+}
+
+function nflSeasonAndWeek(now = new Date()) {
+  const year = now.getUTCFullYear();
+  // NFL regular season week 1 is the week containing the first Thursday in September.
+  // Use Thursday as the rollover boundary so Tuesday/Wednesday League Office runs still
+  // archive the week that just completed rather than jumping to the upcoming slate.
+  const septemberFirst = new Date(Date.UTC(year, 8, 1));
+  const daysToThursday = (4 - septemberFirst.getUTCDay() + 7) % 7;
+  const opener = new Date(Date.UTC(year, 8, 1 + daysToThursday));
+  const diffDays = Math.floor((now.getTime() - opener.getTime()) / 86400000);
+  if (diffDays < 0) return { season: year, week: 1 };
+  return { season: year, week: Math.max(1, Math.min(25, Math.floor(diffDays / 7) + 1)) };
+}
+
+async function ensureCurrentLeagueOfficeJob(now = new Date()) {
+  const { season, week } = nflSeasonAndWeek(now);
+
+  // Find the authenticated Omen user whose active ESPN connection is Slops Saloon.
+  // This avoids hard-coding a user UUID and keeps credentials in Vault.
+  const { data: connection, error: connectionError } = await supabase
+    .from("platform_connections")
+    .select("user_id,league_id,is_active")
+    .eq("platform", LEAGUE_OFFICE_PLATFORM)
+    .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (connectionError) throw new Error("League Office connection lookup failed");
+  if (!connection?.user_id) {
+    log("league connection unavailable", { league_id: LEAGUE_OFFICE_LEAGUE_ID, season, week });
+    return null;
+  }
+
+  // A completed job is safe to re-queue: matchup persistence is an upsert, so this lets
+  // Tuesday/Wednesday reruns capture stat corrections without duplicating record-book rows.
+  const { data: existing, error: existingError } = await supabase
+    .from("league_office_sync_jobs")
+    .select("id,status")
+    .eq("user_id", connection.user_id)
+    .eq("platform", LEAGUE_OFFICE_PLATFORM)
+    .eq("league_id", LEAGUE_OFFICE_LEAGUE_ID)
+    .eq("season", season)
+    .eq("week", week)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) throw new Error("League Office current-week lookup failed");
+
+  if (existing?.id) {
+    if (existing.status === "queued" || existing.status === "running") return existing.id;
+    const { error } = await supabase
+      .from("league_office_sync_jobs")
+      .update({
+        status: "queued",
+        error_code: null,
+        started_at: null,
+        completed_at: null,
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error("League Office current-week requeue failed");
+    log("current week requeued", { id: existing.id, league_id: LEAGUE_OFFICE_LEAGUE_ID, season, week });
+    return existing.id;
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("league_office_sync_jobs")
+    .insert({
+      user_id: connection.user_id,
+      platform: LEAGUE_OFFICE_PLATFORM,
+      league_id: LEAGUE_OFFICE_LEAGUE_ID,
+      season,
+      week,
+      status: "queued",
+    })
+    .select("id")
+    .single();
+
+  if (insertError) throw new Error("League Office current-week enqueue failed");
+  log("current week enqueued", { id: inserted.id, league_id: LEAGUE_OFFICE_LEAGUE_ID, season, week });
+  return inserted.id;
 }
 
 async function claimQueuedJobs(limit = 10) {
@@ -106,6 +192,7 @@ async function runJob(job) {
 }
 
 async function main() {
+  await ensureCurrentLeagueOfficeJob();
   const jobs = await claimQueuedJobs();
   for (const job of jobs) await runJob(job);
   if (!jobs.length) log("queue empty");
@@ -118,4 +205,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { claimQueuedJobs, runJob, main, safeErrorCode };
+module.exports = { claimQueuedJobs, ensureCurrentLeagueOfficeJob, nflSeasonAndWeek, runJob, main, safeErrorCode };
