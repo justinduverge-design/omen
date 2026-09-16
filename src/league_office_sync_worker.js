@@ -70,7 +70,14 @@ async function runJob(job) {
 
     if (matchups.length) {
       stage = "persist";
-      const rows = matchups.map((row) => ({ ...row, user_id: job.user_id }));
+      const rows = matchups.map((row) => ({
+        ...row,
+        user_id: job.user_id,
+        platform: job.platform,
+        league_id: String(job.league_id),
+        season: Number(job.season),
+        week: Number(job.week),
+      }));
       const { error } = await supabase
         .from("league_office_matchups")
         .upsert(rows, { onConflict: "user_id,platform,league_id,season,week,game_id" });
