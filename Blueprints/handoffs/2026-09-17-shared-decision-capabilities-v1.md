@@ -100,3 +100,13 @@ three existing `footballDataProductionOps` Python-harness cases: this host resol
 through an Xcode Command Line Tools shim, which exits 69 until the machine owner accepts the Xcode
 licence. The Omen route's previous mock-enrichment failures are resolved (route/evidence 38/38).
 No licence acceptance or host configuration change was attempted.
+
+## 2026-09-17 destination completion — Command, League, and Ledger
+
+The backend now carries the same source-safe capability language through all destination data
+paths. Command summary adds compact routing coverage only; it does not claim it made a football
+decision. League overview adds independently resolved standings, matchup, playoff, activity, and
+not-requested transaction records without extra provider fan-out. Ledger detail preserves only
+issue-time receipt and reconciliation evidence; non-exact and legacy outcomes remain explicitly
+non-verified. Focused combined verification: 64/64 Node assertions. Native transport is additive;
+Canvas/native rendering remains a separate visual implementation phase.

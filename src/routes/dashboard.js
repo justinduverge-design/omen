@@ -13,6 +13,7 @@ const sleeperAdapter = require("../adapters/sleeper");
 const yahooAdapter = require("../adapters/yahoo");
 const espnAdapter = require("../adapters/espn");
 const { quietWeek } = require("../services/quietWeek");
+const { CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -224,6 +225,57 @@ function buildWaiverTool({ rows = [] }) {
     : { available: false, mode: "free", status: "needs_platform" };
 }
 
+/**
+ * Command is an orientation surface, not a recommendation engine. Its manifest
+ * therefore reports only the two source facts this summary itself uses for
+ * routing and headline copy. Feature-specific sources (waiver pool, roster,
+ * matchup, ledger, or a live Omen call) remain owned by their dedicated routes.
+ */
+function buildCommandCapabilities({ rows = [], generatedAt = null } = {}) {
+  const activeRows = rows.filter((row) => row?.is_active);
+  const hasUsableContext = activeRows.some((row) => isOmenReadyConnection(row));
+  const selectedContext = hasUsableContext
+    ? {
+        name: "selected_context",
+        state: "live",
+        used: false,
+        kind: "verified",
+        source: "platform_connections",
+        statement: "Command has a usable league connection for routing.",
+        observed_at: generatedAt,
+        fresh_until: null,
+      }
+    : {
+        name: "selected_context",
+        state: "unavailable",
+        used: false,
+        kind: "limitation",
+        source: "platform_connections",
+        statement: activeRows.length
+          ? "Command needs a complete usable league connection before it can route league-aware sections."
+          : "Connect a league before Command can route league-aware sections.",
+        observed_at: null,
+        fresh_until: null,
+        reason_code: activeRows.length
+          ? "selected_league_context_incomplete"
+          : "no_active_platform_connection",
+      };
+
+  return [
+    selectedContext,
+    {
+      name: "game_week",
+      state: "live",
+      used: false,
+      kind: "verified",
+      source: "nfl_game_week",
+      statement: "Command uses the server-owned NFL game-week context for its headline.",
+      observed_at: generatedAt,
+      fresh_until: null,
+    },
+  ].sort((left, right) => left.name.localeCompare(right.name));
+}
+
 async function getPlatformRows(userId) {
   const { data, error } = await supabase
     .from("platform_connections")
@@ -256,10 +308,11 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       getPlatformRows(req.user.id),
       getUserProfile(req.user.id),
     ]);
+    const generatedAt = nowIso();
 
     return res.json({
       contract_version: "dashboard-summary.v1",
-      generated_at: nowIso(),
+      generated_at: generatedAt,
       is_mock: false,
       // Additive. The Command Center headline rotates with the NFL game week — "preparing"
       // on Tuesday, "ready" on Wednesday, "live" Thursday through Monday — and the client
@@ -273,6 +326,10 @@ router.get("/summary", requireAuth, async (req, res, next) => {
       game_week: getNflGameWeek(),
       user: userProfile,
       platforms: await buildPlatformSummaryForUser(rows, req.user.id),
+      // Additive routing coverage only. This is deliberately not a
+      // shared-decision-context receipt: Command does not issue a move here.
+      capability_contract: CAPABILITY_CONTRACT,
+      capabilities: buildCommandCapabilities({ rows, generatedAt }),
       tools: {
         // `draft_assistant` was hardcoded `available: true, status: "ready"`
         // here and removed 2026-08-16 (P1-DraftAssistantSideline). Draft
@@ -316,5 +373,6 @@ module.exports.buildPlatformSummary = buildPlatformSummary;
 module.exports.buildPlatformSummaryForUser = buildPlatformSummaryForUser;
 module.exports.buildOmenTool = buildOmenTool;
 module.exports.buildWaiverTool = buildWaiverTool;
+module.exports.buildCommandCapabilities = buildCommandCapabilities;
 module.exports.isExpiredYahooToken = isExpiredYahooToken;
 module.exports.emptyLastResult = emptyLastResult;

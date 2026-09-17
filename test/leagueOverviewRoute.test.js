@@ -181,6 +181,10 @@ const ESPN_CONNECTION = {
   espn_team_id: "9",
 };
 
+function byName(records, name) {
+  return records.find((record) => record.name === name);
+}
+
 test("GET /api/league/overview returns a real matchup built from data that was being discarded", async () => {
   const app = buildApp({ connections: [SLEEPER_CONNECTION] });
 
@@ -198,6 +202,40 @@ test("GET /api/league/overview returns a real matchup built from data that was b
   assert.equal(res.body.matchup.you.points, 88.4);
   assert.equal(res.body.matchup.opponent.team_name, "Top Dogs");
   assert.equal(res.body.matchup.opponent.points, 91.1);
+
+  // The overview remains league-overview.v1; the capability/receipt layer is additive and
+  // describes only sources already resolved by this request.
+  assert.equal(res.body.capability_contract, "decision-capabilities.v1");
+  assert.equal(res.body.decision_context.contract_version, "shared-decision-context.v1");
+  assert.equal(res.body.decision_context.profile, "league");
+  assert.deepEqual(res.body.decision_context.inputs_used, [
+    "league_activity",
+    "league_matchup",
+    "league_playoff_settings",
+    "league_standings",
+    "selected_context",
+  ]);
+  assert.deepEqual(res.body.decision_context.inputs.league_standings, {
+    state: "live", used: true, source: "sleeper_league_standings", observed_at: res.body.generated_at,
+  });
+  assert.deepEqual(res.body.decision_context.inputs.league_transactions, {
+    state: "not_requested", used: false, source: "provider_transactions", reason_code: "not_requested",
+  });
+  assert.deepEqual(res.body.decision_context.limitations, [{
+    name: "league_transactions", state: "not_requested", reason_code: "not_requested",
+  }]);
+  assert.deepEqual(byName(res.body.capabilities, "league_standings"), {
+    name: "league_standings",
+    state: "live",
+    used: true,
+    kind: "verified",
+    source: "sleeper_league_standings",
+    statement: "Omen read the current standings from your connected Sleeper league.",
+    observed_at: res.body.generated_at,
+    fresh_until: null,
+  });
+  assert.equal(byName(res.body.capabilities, "league_transactions").state, "unavailable");
+  assert.equal(byName(res.body.capabilities, "league_transactions").reason_code, "not_requested");
 });
 
 test("GET /api/league/overview reports standings position", async () => {
@@ -209,6 +247,25 @@ test("GET /api/league/overview reports standings position", async () => {
   assert.equal(res.body.standings.teams.length, 3);
   assert.equal(res.body.standings.playoff_picture.rank, 2);
   assert.equal(res.body.standings.playoff_picture.team_count, 3);
+});
+
+test("League receipt decorates already-resolved sections without a second provider fan-out", async () => {
+  const calls = [];
+  const base = defaultSleeperAdapter();
+  const sleeperAdapter = {
+    ...base,
+    fetchSleeperLeague: async (...args) => { calls.push("league"); return base.fetchSleeperLeague(...args); },
+    fetchSleeperStandings: async (...args) => { calls.push("standings"); return base.fetchSleeperStandings(...args); },
+    fetchSleeperRoster: async (...args) => { calls.push("roster"); return base.fetchSleeperRoster(...args); },
+    fetchSleeperMatchups: async (...args) => { calls.push("matchups"); return base.fetchSleeperMatchups(...args); },
+    fetchSleeperProjections: async (...args) => { calls.push("projections"); return base.fetchSleeperProjections(...args); },
+  };
+
+  const res = await request(buildApp({ connections: [SLEEPER_CONNECTION], sleeperAdapter }), "/api/league/overview");
+
+  assert.equal(res.status, 200);
+  assert.ok(res.body.decision_context);
+  assert.deepEqual(calls.sort(), ["league", "matchups", "projections", "roster", "standings"]);
 });
 
 // This test used to assert `settings_known: false` and a bare "2nd of 3", on the reasoning that
@@ -244,6 +301,11 @@ test("a dead matchup read still returns standings — sections fail independentl
   // The whole point: one dead section must not blank the destination.
   assert.equal(res.body.standings.status, "available");
   assert.equal(res.body.standings.teams.length, 3);
+  assert.deepEqual(res.body.decision_context.inputs.league_matchup, {
+    state: "unavailable", used: false, source: "sleeper_matchups", reason_code: "provider_failed",
+  });
+  assert.ok(!res.body.decision_context.inputs_used.includes("league_matchup"));
+  assert.equal(byName(res.body.capabilities, "league_matchup").kind, "limitation");
 });
 
 test("a bye week is reported as no_matchup, not as a provider failure", async () => {
@@ -258,6 +320,12 @@ test("a bye week is reported as no_matchup, not as a provider failure", async ()
 
   assert.equal(res.body.matchup.status, "no_matchup");
   assert.equal(res.body.matchup.you, null);
+  // A provider-confirmed bye is a completed live read, not a provider outage.
+  assert.deepEqual(res.body.decision_context.inputs.league_matchup, {
+    state: "live", used: true, source: "sleeper_matchups", reason_code: "no_matchup", observed_at: res.body.generated_at,
+  });
+  assert.equal(byName(res.body.capabilities, "league_matchup").state, "live");
+  assert.equal(byName(res.body.capabilities, "league_matchup").reason_code, "no_matchup");
 });
 
 test("ESPN overview reads its own matchup path", async () => {
@@ -269,6 +337,11 @@ test("ESPN overview reads its own matchup path", async () => {
   assert.equal(res.body.platform, "espn");
   assert.equal(res.body.matchup.status, "final");
   assert.equal(res.body.matchup.opponent.team_name, "Rivals");
+  assert.equal(res.body.decision_context.inputs.league_standings.source, "espn_league_context");
+  assert.equal(res.body.decision_context.inputs.league_matchup.source, "espn_matchup");
+  // ESPN's mapped overview does not currently read a playoff-team setting; this is an
+  // implementation limitation, not a claim that ESPN cannot provide one.
+  assert.equal(res.body.decision_context.inputs.league_playoff_settings.reason_code, "settings_not_read");
 });
 
 test("the off-season gate returns explicit section states, never fabricated ones", async () => {
@@ -281,6 +354,11 @@ test("the off-season gate returns explicit section states, never fabricated ones
   assert.equal(res.body.matchup.unavailable_reason, "off_season");
   assert.equal(res.body.standings.status, "off_season");
   assert.deepEqual(res.body.standings.teams, []);
+  assert.equal(res.body.decision_context.inputs.selected_context.state, "live");
+  for (const name of ["league_standings", "league_matchup", "league_playoff_settings", "league_activity"]) {
+    assert.equal(res.body.decision_context.inputs[name].state, "unavailable");
+    assert.equal(res.body.decision_context.inputs[name].reason_code, "off_season");
+  }
 });
 
 test("GET /api/league/overview reuses the standings error contract verbatim", async () => {
@@ -353,6 +431,12 @@ test("a provider that does not supply playoff settings stays honestly unknown", 
   // Position without a boundary is still true; inventing the boundary is not.
   assert.equal(picture.line, "2nd of 3");
   assert.equal(res.body.activity.status, "empty");
+  assert.deepEqual(res.body.decision_context.inputs.league_playoff_settings, {
+    state: "unavailable", used: false, source: "sleeper_league_settings", reason_code: "settings_not_read",
+  });
+  assert.deepEqual(res.body.decision_context.inputs.league_activity, {
+    state: "unavailable", used: false, source: "derived_standings", reason_code: "settings_not_read",
+  });
 });
 
 test("standings-derived activity populates, and names the family it still lacks", async () => {

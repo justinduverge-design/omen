@@ -223,6 +223,7 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
 
   assert.equal(res.status, 200);
   assert.equal(res.body.contract_version, "dashboard-summary.v1");
+  assert.equal(res.body.capability_contract, "decision-capabilities.v1");
   assert.equal(res.body.is_mock, false);
   assert.deepEqual(res.body.user, { favorite_team: "KC" });
   assert.equal(res.body.subscription, undefined);
@@ -256,6 +257,93 @@ test("GET /api/dashboard/summary returns platform-aware tool summary", async () 
     mode: "free",
     status: "ready",
   });
+  assert.deepEqual(res.body.capabilities.map((capability) => ({
+    name: capability.name,
+    state: capability.state,
+    used: capability.used,
+    kind: capability.kind,
+    source: capability.source,
+    reason_code: capability.reason_code,
+  })), [
+    {
+      name: "game_week",
+      state: "live",
+      used: false,
+      kind: "verified",
+      source: "nfl_game_week",
+      reason_code: undefined,
+    },
+    {
+      name: "selected_context",
+      state: "live",
+      used: false,
+      kind: "verified",
+      source: "platform_connections",
+      reason_code: undefined,
+    },
+  ]);
+  assert.ok(Number.isFinite(Date.parse(res.body.generated_at)));
+  assert.ok(res.body.capabilities.every((capability) => capability.observed_at === null
+    || Number.isFinite(Date.parse(capability.observed_at))));
+  const serialized = JSON.stringify(res.body.capabilities);
+  assert.ok(!serialized.includes("secret-id"));
+  assert.ok(!serialized.includes("449.l.123"));
+});
+
+test("GET /api/dashboard/summary keeps Command routing coverage honest without a usable league", async () => {
+  const app = buildApp({
+    platformRows: [
+      {
+        user_id: "test-user",
+        platform: "sleeper",
+        is_active: true,
+        platform_username: "sleepy",
+      },
+    ],
+    userRows: [{ id: "test-user" }],
+  });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.capabilities, [
+    {
+      name: "game_week",
+      state: "live",
+      used: false,
+      kind: "verified",
+      source: "nfl_game_week",
+      statement: "Command uses the server-owned NFL game-week context for its headline.",
+      observed_at: res.body.generated_at,
+      fresh_until: null,
+    },
+    {
+      name: "selected_context",
+      state: "unavailable",
+      used: false,
+      kind: "limitation",
+      source: "platform_connections",
+      statement: "Command needs a complete usable league connection before it can route league-aware sections.",
+      observed_at: null,
+      fresh_until: null,
+      reason_code: "selected_league_context_incomplete",
+    },
+  ]);
+});
+
+test("GET /api/dashboard/summary names no active league connection as unavailable routing coverage", async () => {
+  const app = buildApp({ userRows: [{ id: "test-user" }] });
+
+  const res = await request(app, "/api/dashboard/summary", {
+    headers: { authorization: "Bearer valid-token" },
+  });
+
+  assert.equal(res.status, 200);
+  const selectedContext = res.body.capabilities.find((capability) => capability.name === "selected_context");
+  assert.equal(selectedContext.state, "unavailable");
+  assert.equal(selectedContext.reason_code, "no_active_platform_connection");
 });
 
 test("GET /api/dashboard/summary marks expired Yahoo OAuth token for reconnect UI", async () => {
