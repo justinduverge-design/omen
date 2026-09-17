@@ -85,9 +85,19 @@ struct ConnectView: View {
         // user lands on Omen's own picker rather than being left on a web page they are done with.
         .fullScreenCover(isPresented: Binding(
             get: { viewModel.state == .espnSigningIn },
-            set: { if !$0 { viewModel.cancelEspnSignIn() } }
+            // A presentation dismissal is not evidence that the person chose to abandon ESPN.
+            // MyDisney's verification handoff can briefly change presentation focus while its
+            // one-time-code page returns to ESPN. Treating that as a cancellation strands a
+            // successful sign-in on Omen's generic "Nothing was connected" screen before the
+            // WebKit cookie observer has a chance to begin league discovery. The cover closes
+            // only when the view model moves to a real next state (picker, recovery, or error).
+            set: { _ in }
         )) {
             espnSignInSheet
+                // Prevent an accidental sheet gesture from racing the MyDisney return. This
+                // does not inspect the provider form or alter its page; it simply preserves the
+                // app-owned presentation until ESPN reports its session.
+                .interactiveDismissDisabled()
         }
     }
 
