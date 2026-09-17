@@ -2,11 +2,14 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerEntry
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
 data class MoveReceipt(val recommendation: String?, val issuedAt: String?, val timezone: String?,
-    val evidence: List<Pair<String, String>>, val action: String, val outcome: String, val fairnessNote: String) {
+    val evidence: List<Pair<String, String>>, val action: String, val outcome: String, val fairnessNote: String,
+    /** Issue-time snapshot only; a receipt must never re-read current capability state. */
+    val capabilities: List<OmenDecisionCapability> = emptyList()) {
     companion object {
         fun parse(raw: String): MoveReceipt? = runCatching {
             val json = JSONObject(raw)
@@ -17,7 +20,8 @@ data class MoveReceipt(val recommendation: String?, val issuedAt: String?, val t
                 snapshot.optStringOrNull("issued_at_timezone"), (0 until rows.length()).map {
                     rows.getJSONObject(it).let { row -> row.getString("kind") to row.getString("statement") }
                 }, json.getJSONObject("user_action").getString("statement"),
-                json.getJSONObject("observed_outcome").getString("statement"), json.getString("fairness_note"))
+                json.getJSONObject("observed_outcome").getString("statement"), json.getString("fairness_note"),
+                json.decisionCapabilities())
         }.getOrNull()
     }
 }

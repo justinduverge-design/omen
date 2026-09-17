@@ -17,6 +17,7 @@ const { resolveTradeLeagueContext } = require("../services/tradeLeagueContext");
 const { authenticateOmenRequest, getActivePlatformConnections } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { logger } = require("../middleware/logging");
+const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const sleeperAdapter = require("../adapters/sleeper");
 
 const MAX_PLAYERS_PER_SIDE = 10;
@@ -329,6 +330,38 @@ function buildShareSnapshot({
   };
 }
 
+function attachTradeDecisionReceipt(result, analysis = {}) {
+  const context = createDecisionContext({ profile: "trade" });
+  const personalized = analysis.mode === "personalized";
+  const applied = new Set(Array.isArray(analysis.applied) ? analysis.applied : []);
+  const missingProjectionCount = Number(result?.send?.missing_projection_count || 0)
+    + Number(result?.receive?.missing_projection_count || 0);
+
+  context.record("selected_context", personalized
+    ? { state: "live", source: "owned_platform_connection" }
+    : { state: "not_requested", source: "trade_request", reason_code: "league_context_not_requested" });
+  context.record("roster", personalized && applied.has("roster_depth")
+    ? { state: "live", source: "selected_league_roster" }
+    : { state: "not_requested", source: "selected_league_roster", reason_code: "roster_context_not_used" });
+  context.record("league_scoring", personalized && applied.has("scoring_format")
+    ? { state: "live", source: "league_settings" }
+    : { state: "not_requested", source: "league_settings", reason_code: "league_scoring_not_used" });
+  // Player identity/value inputs were server-resolved before compareTrade. The
+  // receipt names that evaluation input without serializing player IDs or raw
+  // resolver output.
+  context.record("projections", {
+    state: missingProjectionCount === 0 ? "live" : "unavailable",
+    source: "resolved_player_inputs",
+    ...(missingProjectionCount === 0 ? {} : { reason_code: "projection_incomplete" }),
+  });
+
+  if (missingProjectionCount === 0) context.use("projections");
+  if (personalized) context.use("selected_context");
+  if (personalized && applied.has("roster_depth")) context.use("roster");
+  if (personalized && applied.has("scoring_format")) context.use("league_scoring");
+  return attachDecisionReceipt(result, context);
+}
+
 function handleStorageError(res, error) {
   if (error?.code === "trade_share_storage_unavailable") {
     res.status(503).json({ error: "trade_share_storage_unavailable" });
@@ -495,6 +528,7 @@ function createTradeRouter({
       result.evaluability = evaluability;
       result.verdict_state = verdictStateFor(result, evaluability);
       result.analysis_context = analysis;
+      attachTradeDecisionReceipt(result, analysis);
 
       result.explanation = await tradeExplainer({
         send,
@@ -589,3 +623,4 @@ module.exports.validateLeagueContext = validateLeagueContext;
 module.exports.evaluabilityFor = evaluabilityFor;
 module.exports.verdictStateFor = verdictStateFor;
 module.exports.TRADE_COMPARE_CONTRACT = TRADE_COMPARE_CONTRACT;
+module.exports.attachTradeDecisionReceipt = attachTradeDecisionReceipt;

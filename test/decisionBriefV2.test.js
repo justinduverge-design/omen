@@ -3,7 +3,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { bandedConfidence, limitationStatements, decisionBriefV2 } = require("../src/services/decisionBriefV2");
+const {
+  CONTRACT_V3,
+  bandedConfidence,
+  limitationStatements,
+  decisionBriefV2,
+  decisionBriefV3,
+} = require("../src/services/decisionBriefV2");
 
 // A score maps to a band. This is a presentation policy, not a calibration — the module says
 // so itself, and these tests lock the mapping rather than endorsing it as a probability.
@@ -81,4 +87,35 @@ test("limitationStatements ignores live signals and malformed entries", () => {
     }),
     ["trimmed"]
   );
+});
+
+test("v3 adds canonical capabilities without changing the v2 compatibility envelope", () => {
+  const brief = decisionBriefV3({
+    generated_at: "2026-09-16T12:00:00.000Z",
+    signals: {
+      game_time_tv: {
+        status: "stub",
+        used: false,
+        source: "pending_schedule_context",
+        message: "Kickoff context is not available for this call.",
+      },
+      projections: {
+        status: "live",
+        used: true,
+        source: "optimizer",
+        message: "Projection edge is live.",
+      },
+    },
+  });
+
+  assert.equal(brief.contract_version, CONTRACT_V3);
+  assert.equal(brief.capability_contract, "decision-capabilities.v1");
+  assert.deepEqual(brief.capabilities.map(({ name, state, kind, used }) => ({ name, state, kind, used })), [
+    { name: "game_time_tv", state: "unavailable", kind: "limitation", used: false },
+    { name: "projections", state: "live", kind: "projection", used: true },
+  ]);
+  assert.deepEqual(brief.evidence.map(({ name, source_status, kind }) => ({ name, source_status, kind })), [
+    { name: "game_time_tv", source_status: "unavailable", kind: "limitation" },
+    { name: "projections", source_status: "live", kind: "projection" },
+  ]);
 });

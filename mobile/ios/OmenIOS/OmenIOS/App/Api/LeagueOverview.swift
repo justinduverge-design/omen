@@ -25,13 +25,15 @@ struct LeagueOverview: Decodable, Equatable {
     let matchup: Matchup
     let standings: Standings
     let activity: Activity
+    /// Additive shared coverage. Each section continues to own its own UI and failure state.
+    let capabilities: [OmenDecisionCapability]
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case platform
         case leagueId = "league_id"
         case leagueName = "league_name"
-        case season, week, matchup, standings, activity
+        case season, week, matchup, standings, activity, capabilities
     }
 
     /// Custom decoding so a missing section degrades to its own `unavailable` state instead of
@@ -48,6 +50,7 @@ struct LeagueOverview: Decodable, Equatable {
         matchup = (try? c.decode(Matchup.self, forKey: .matchup)) ?? .unreadable
         standings = (try? c.decode(Standings.self, forKey: .standings)) ?? .unreadable
         activity = (try? c.decode(Activity.self, forKey: .activity)) ?? .unreadable
+        capabilities = try c.decodeIfPresent([OmenDecisionCapability].self, forKey: .capabilities) ?? []
     }
 
     // MARK: - Matchup

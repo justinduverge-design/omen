@@ -16,12 +16,14 @@ struct DashboardSummary: Decodable, Equatable {
     /// Where we are in the NFL game week. Optional because it is additive and a server that
     /// predates it must not fail the decode — the headline falls back to a status-only line.
     let gameWeek: GameWeek?
+    /// Compact coverage/routing only. Command keeps its independent section failures.
+    let capabilities: [OmenDecisionCapability]?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
         case isMock = "is_mock"
         case gameWeek = "game_week"
-        case user, platforms, tools
+        case user, platforms, tools, capabilities
     }
 
     /// `game_week` — the Command Center headline's clock.

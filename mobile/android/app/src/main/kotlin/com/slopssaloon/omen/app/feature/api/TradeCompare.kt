@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import org.json.JSONArray
 import org.json.JSONObject
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 
 /**
  * `POST /api/trade/compare` → `trade-compare.v2`. iOS mirror: `App/Api/TradeCompare.swift`.
@@ -19,6 +20,8 @@ data class TradeCompare(
     val analysisContext: AnalysisContext,
     val netValue: Double?,
     val explanation: String?,
+    /** Server-owned supporting coverage; it never creates a verdict on-device. */
+    val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
     /** Visual briefs §9.2. */
     enum class VerdictState(val wire: String) {
@@ -130,6 +133,7 @@ data class TradeCompare(
                     null
                 },
                 explanation = root.optStringOrNull("explanation"),
+                capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
     }

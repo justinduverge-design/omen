@@ -29,7 +29,11 @@ const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
-const { buildStartSitDetail } = require("../services/startSitDetail");
+const {
+  CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
+  buildStartSitDetail,
+} = require("../services/startSitDetail");
 const sleeperAdapter = require("../adapters/sleeper");
 const espnAdapter = require("../adapters/espn");
 
@@ -103,11 +107,24 @@ function parseWeek(value) {
   return parsed;
 }
 
+function parseContractVersion(value) {
+  if (value == null || value === "") return CONTRACT_VERSION;
+  return [CONTRACT_VERSION, CONTRACT_VERSION_V2].includes(value) ? value : undefined;
+}
+
 router.get("/detail", requireAuth, async (req, res, next) => {
   const week = parseWeek(req.query.week);
   if (week === undefined) {
     return res.status(400).json(detailError({
       code: "invalid_week", message: "Week must be between 1 and 18.", action: "retry",
+    }));
+  }
+  const contractVersion = parseContractVersion(req.query.contract_version);
+  if (contractVersion === undefined) {
+    return res.status(400).json(detailError({
+      code: "unsupported_contract_version",
+      message: "This Start/Sit contract version is not supported by Omen.",
+      action: "retry",
     }));
   }
 
@@ -155,6 +172,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
       scoringFormat: loaded.scoringFormat,
       slot: req.query.slot ? String(req.query.slot) : null,
       offSeason: suppressLiveFootballData(),
+      contractVersion,
     }));
   } catch (e) {
     logger.error("Start/Sit detail failed", { err: e.message });

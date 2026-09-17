@@ -18,10 +18,11 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     let confidence: Confidence?
     let warnings: [String]?
     let signals: [String: Signal]?
+    let capabilities: [OmenDecisionCapability]?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
-        case state, mode, recommendation, recovery, explanation, confidence, warnings, signals
+        case state, mode, recommendation, recovery, explanation, confidence, warnings, signals, capabilities
     }
 
     struct Recommendation: Decodable, Equatable {
@@ -102,6 +103,7 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
         let source: String?
         let message: String?
     }
+
 }
 
 // MARK: - Contract → screen state
@@ -183,7 +185,7 @@ extension OmenDecisionEnvelope {
             riskReasons: recommendation.risk?.reasons ?? [],
             explanation: Self.explanationLines(explanationBlock),
             metrics: Self.metrics(from: recommendation),
-            signals: Self.signalItems(signals),
+            signals: Self.signalItems(capabilities: capabilities, legacySignals: signals),
             alternatives: Self.alternatives(from: recommendation)
         )
     }
@@ -193,7 +195,17 @@ extension OmenDecisionEnvelope {
         return OmenConfidenceBand(rawValue: raw)
     }
 
-    private static func signalItems(_ signals: [String: Signal]?) -> [OmenSignalItem] {
+    private static func signalItems(capabilities: [OmenDecisionCapability]?, legacySignals signals: [String: Signal]?) -> [OmenSignalItem] {
+        if let capabilities, !capabilities.isEmpty {
+            return capabilities.sorted { ($0.name ?? "") < ($1.name ?? "") }.map { capability in
+                OmenSignalItem(
+                    label: signalLabel(capability.name ?? "unknown_capability"),
+                    source: signalSource(capability.state),
+                    detail: capability.statement ?? capability.source,
+                    kind: evidenceKind(capability.kind)
+                )
+            }
+        }
         guard let signals else { return [] }
         return signals.keys.sorted().compactMap { key in
             guard let signal = signals[key] else { return nil }
@@ -212,6 +224,10 @@ extension OmenDecisionEnvelope {
         case "mock", "demo": return .mock
         default: return .unavailable
         }
+    }
+
+    private static func evidenceKind(_ raw: String?) -> OmenEvidenceKind? {
+        raw.flatMap(OmenEvidenceKind.init(rawValue:))
     }
 
     private static func signalLabel(_ key: String) -> String {

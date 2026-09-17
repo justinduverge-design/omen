@@ -295,6 +295,11 @@ test("analysis_context names what was actually applied", async () => {
   assert.ok(context.applied.includes("roster_construction"));
   assert.ok(context.applied.includes("roster_depth"));
   assert.equal(context.unavailable_reason, null);
+  assert.equal(res.body.decision_context.contract_version, "shared-decision-context.v1");
+  assert.ok(res.body.decision_context.inputs_used.includes("selected_context"));
+  assert.ok(res.body.decision_context.inputs_used.includes("roster"));
+  assert.ok(res.body.decision_context.inputs_used.includes("league_scoring"));
+  assert.equal(res.body.decision_context.inputs.projections.used, true);
 });
 
 /* ---------------------------------------------------------------- *
@@ -370,6 +375,8 @@ test("every response carries the additive contract version", async () => {
     receive: [{ name: "WR B", position: "WR", projected_points: 12 }],
   });
   assert.equal(res.body.contract_version, "trade-compare.v2");
+  assert.equal(res.body.decision_context.inputs.selected_context.state, "not_requested");
+  assert.deepEqual(res.body.decision_context.inputs_used, ["projections"]);
 });
 
 /* ---------------------------------------------------------------- *

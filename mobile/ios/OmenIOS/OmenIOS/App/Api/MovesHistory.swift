@@ -6,6 +6,8 @@ struct MoveReceipt: Decodable {
     let userAction: Statement
     let observedOutcome: Statement
     let fairnessNote: String
+    /// Issue-time capability snapshot only; current capability reads never revise a receipt.
+    let capabilities: [OmenDecisionCapability]?
     struct Snapshot: Decodable {
         let recommendation: String?
         let issuedAt: String?
@@ -18,7 +20,7 @@ struct MoveReceipt: Decodable {
     struct Statement: Decodable { let known: Bool; let statement: String }
     enum CodingKeys: String, CodingKey {
         case snapshot, evidenceAtTheTime = "evidence_at_the_time", userAction = "user_action"
-        case observedOutcome = "observed_outcome", fairnessNote = "fairness_note"
+        case observedOutcome = "observed_outcome", fairnessNote = "fairness_note", capabilities
     }
 }
 

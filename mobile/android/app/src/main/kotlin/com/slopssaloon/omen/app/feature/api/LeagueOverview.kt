@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupTeam
 import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
@@ -29,6 +30,8 @@ data class LeagueOverview(
     val matchup: Matchup,
     val standings: Standings,
     val activity: Activity,
+    /** Additive shared coverage. League sections still fail and render independently. */
+    val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
     data class Matchup(
         val status: Status,
@@ -310,6 +313,7 @@ data class LeagueOverview(
                 matchup = parseMatchup(root.optJSONObject("matchup")),
                 standings = parseStandings(root.optJSONObject("standings")),
                 activity = parseActivity(root.optJSONObject("activity")),
+                capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
 

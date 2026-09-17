@@ -25,6 +25,10 @@ const espnAdapter = require("../adapters/espn");
 const { logger } = require("../middleware/logging");
 const { findTradeCandidate } = require("./tradeLineup");
 const { compareTrade } = require("./tradeValue");
+const {
+  attachDecisionReceipt,
+  createDecisionContext,
+} = require("./decisionContext");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 const ACTIVE_STATUSES = new Set(["", "P", "PROBABLE", "ACTIVE"]);
@@ -1622,6 +1626,38 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     }
     throw err;
   }
+
+  // The selector already consumes this selected roster and its projections.
+  // Put those facts into the shared receipt before candidate construction, but
+  // do not mark them used until a candidate (or an honest empty conclusion)
+  // has actually depended on them. This is intentionally request-scoped:
+  // adapter-level caches remain responsible for safely keyed cross-request
+  // caching and no user/league input is retained by this context.
+  const rosterPlayers = [
+    ...(Array.isArray(roster?.slots?.starters) ? roster.slots.starters : []),
+    ...(Array.isArray(roster?.slots?.bench) ? roster.slots.bench : []),
+  ];
+  const hasLiveProjection = rosterPlayers.some((player) =>
+    player?.projected_points != null && Number.isFinite(Number(player.projected_points))
+  );
+  const decisionContext = createDecisionContext({
+    profile: "omen_mvp",
+    loaders: {
+      selected_context: async () => ({ state: "live", source: "owned_platform_connection" }),
+      roster: async () => ({ state: "live", source: `${connection.platform}_normalized_roster` }),
+      projections: async () => hasLiveProjection
+        ? { state: "live", source: `${connection.platform}_weekly_projections` }
+        : { state: "unavailable", source: `${connection.platform}_weekly_projections`, reason_code: "projection_unavailable" },
+    },
+  });
+  await decisionContext.resolveMany(["selected_context", "roster", "projections"]);
+
+  function finalizeDecisionResult(result, inputNames = []) {
+    for (const name of inputNames) decisionContext.use(name);
+    attachDecisionReceipt(result.body, decisionContext);
+    return result;
+  }
+
   // B2-D4 deterministic selection. Generate a candidate per supported type,
   // then rank — an order of operations, not a type priority. See
   // `Blueprints/specs/b2d-canonical-omen-context-and-capability-contract-v1.md`
@@ -1665,7 +1701,10 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     // decision exists. Preserve its existing live-or-unavailable boundary.
     if (connection.platform === "yahoo") {
       if (unavailableYahooStarters(roster).length === 0) {
-        return liveEmptyMvpResponse({ roster, connection, connectedPlatforms });
+        return finalizeDecisionResult(
+          liveEmptyMvpResponse({ roster, connection, connectedPlatforms }),
+          ["selected_context", "roster", "projections"]
+        );
       }
       try {
         const rawWaiverPool = await yahooClient.getAvailablePlayers(connection.league_id, {
@@ -1677,12 +1716,14 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
           rosterSvc.normalizeYahooWaivers(rawWaiverPool)
         );
         if (waiver) {
-          return {
+          decisionContext.record("waivers", { state: "live", source: "yahoo_available_players" });
+          return finalizeDecisionResult({
             status: 200,
             body: mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatforms }),
-          };
+          }, ["selected_context", "roster", "waivers"]);
         }
-        return liveEmptyMvpResponse({
+        decisionContext.record("waivers", { state: "live", source: "yahoo_available_players" });
+        return finalizeDecisionResult(liveEmptyMvpResponse({
           roster,
           connection,
           connectedPlatforms,
@@ -1692,9 +1733,9 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
             "yahoo_available_players",
             "Yahoo returned live available-player data, but no safe same-position replacement was found."
           ),
-        });
+        }), ["selected_context", "roster", "projections", "waivers"]);
       } catch {
-        return liveEmptyMvpResponse({
+        return finalizeDecisionResult(liveEmptyMvpResponse({
           roster,
           connection,
           connectedPlatforms,
@@ -1704,7 +1745,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
             "yahoo_available_players",
             "Yahoo available-player data is unavailable, so Omen will not generate waiver advice."
           ),
-        });
+        }), ["selected_context", "roster", "projections"]);
       }
     }
 
@@ -1713,17 +1754,21 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     // exists and simply has no move worth making). An undrafted league must
     // never be told its lineup is fine.
     const preDraft = await preDraftGuard({ connection, roster, connectedPlatforms });
-    if (preDraft) return preDraft;
-    return liveEmptyMvpResponse({
+    if (preDraft) return finalizeDecisionResult(preDraft, ["selected_context", "roster"]);
+    return finalizeDecisionResult(liveEmptyMvpResponse({
       roster,
       connection,
       connectedPlatforms,
       waiverSignal,
-    });
+    }), ["selected_context", "roster", "projections"]);
   }
 
   if (selected.type === "waiver_pickup") {
-    return mapWaiverPickupToMvpMove({
+    decisionContext.record("waivers", {
+      state: "live",
+      source: connection.platform === "espn" ? "espn_available_players" : "sleeper_available_players",
+    });
+    return finalizeDecisionResult(mapWaiverPickupToMvpMove({
       roster,
       connection,
       connectedPlatforms,
@@ -1731,11 +1776,12 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
       pickup: selected.pickup,
       waiverSignal,
       waiverSystemModel,
-    });
+    }), ["selected_context", "roster", "projections", "waivers"]);
   }
 
   if (selected.type === "trade_suggestion") {
-    return {
+    decisionContext.record("trade_rosters", { state: "live", source: "sleeper_league_rosters" });
+    return finalizeDecisionResult({
       status: 200,
       body: mapTradeSuggestionToMvpMove({
         roster,
@@ -1743,7 +1789,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
         connectedPlatforms,
         trade: selected.trade,
       }),
-    };
+    }, ["selected_context", "roster", "projections", "trade_rosters"]);
   }
 
   const result = {
@@ -1756,7 +1802,7 @@ async function buildLiveOmenMvpMoveForUser(userId, { contextId = null } = {}) {
     }),
   };
   if (waiverSignal) result.body.signals.waivers = waiverSignal;
-  return result;
+  return finalizeDecisionResult(result, ["selected_context", "roster", "projections"]);
 }
 
 function confidence(score, label, rationale) {
@@ -1785,6 +1831,14 @@ function successResponse(body = {}) {
       name: "Trent Holloway",
       position: "WR",
       team: "CHI",
+    },
+    // This fixture's DvP lookup is permitted only because the opponent is
+    // explicitly declared as fixture schedule context. Live responses must
+    // still obtain this from the ESPN scoreboard enrichment in the route.
+    matchup_context: {
+      opponent_team: "PHI",
+      source: "mock_schedule_fixture",
+      status: "mock",
     },
     expected_value_delta: {
       points: 4.2,

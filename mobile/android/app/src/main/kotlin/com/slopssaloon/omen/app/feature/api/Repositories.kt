@@ -172,13 +172,82 @@ interface OmenDecisionRepository {
 
 class ApiOmenDecisionRepository(private val client: OmenApiClient) : OmenDecisionRepository {
     override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> =
-        client.post("api/omen/mvp-move", accessToken, "{\"contract_version\":\"omen-decision-brief.v2\"}", OmenDecisionEnvelope::parse)
+        client.post("api/omen/mvp-move", accessToken, "{\"contract_version\":\"omen-decision-brief.v3\"}", OmenDecisionEnvelope::parse)
 }
 
 class StubOmenDecisionRepository(
     private val result: OmenApiResult<OmenDecisionEnvelope>,
 ) : OmenDecisionRepository {
     override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> = result
+}
+
+// --- Shared Decision Capabilities v1 — Start/Sit transport seam ----------------
+
+/** `GET /api/start-sit/detail?contract_version=start-sit-detail.v2`.
+ *
+ * This is deliberately a transport seam, not a new screen. The later Start/Sit UI must consume
+ * server-owned evidence and capabilities rather than inventing a parallel client model.
+ */
+data class StartSitDetail(
+    val contractVersion: String?,
+    val state: String,
+    val message: String?,
+    val recommendation: Recommendation?,
+    val evidence: List<Evidence>,
+    val capabilities: List<com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability>,
+) {
+    data class Recommendation(val slot: String?, val pointsDelta: Double?)
+    data class Evidence(val category: String?, val kind: String?, val statement: String?)
+
+    companion object {
+        fun parse(json: String): StartSitDetail? = runCatching {
+            val root = JSONObject(json)
+            val rec = root.optJSONObject("recommendation")
+            val evidence = root.optJSONArray("evidence")
+            StartSitDetail(
+                contractVersion = root.optStringOrNull("contract_version"),
+                state = root.optStringOrNull("state") ?: "incomplete_data",
+                message = root.optStringOrNull("message"),
+                recommendation = rec?.let {
+                    Recommendation(
+                        it.optStringOrNull("slot"),
+                        if (it.has("points_delta") && !it.isNull("points_delta")) it.optDouble("points_delta") else null,
+                    )
+                },
+                evidence = buildList {
+                    for (index in 0 until (evidence?.length() ?: 0)) {
+                        evidence?.optJSONObject(index)?.let {
+                            add(Evidence(it.optStringOrNull("category"), it.optStringOrNull("kind"), it.optStringOrNull("statement")))
+                        }
+                    }
+                },
+                capabilities = root.decisionCapabilities(),
+            )
+        }.getOrNull()
+    }
+}
+
+interface StartSitDetailRepository {
+    suspend fun fetchDetail(accessToken: String, slot: String? = null): OmenApiResult<StartSitDetail>
+}
+
+class ApiStartSitDetailRepository(private val client: OmenApiClient) : StartSitDetailRepository {
+    override suspend fun fetchDetail(accessToken: String, slot: String?): OmenApiResult<StartSitDetail> =
+        client.getOptionalAuth(
+            path = "api/start-sit/detail",
+            accessToken = accessToken,
+            query = buildMap {
+                put("contract_version", "start-sit-detail.v2")
+                slot?.takeIf { it.isNotEmpty() }?.let { put("slot", it) }
+            },
+            decode = StartSitDetail::parse,
+        )
+}
+
+class StubStartSitDetailRepository(
+    private val result: OmenApiResult<StartSitDetail>,
+) : StartSitDetailRepository {
+    override suspend fun fetchDetail(accessToken: String, slot: String?): OmenApiResult<StartSitDetail> = result
 }
 
 /**

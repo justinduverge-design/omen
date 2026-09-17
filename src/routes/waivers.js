@@ -25,6 +25,8 @@ const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../servi
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
 const { buildWaiverAnalysis } = require("../services/waiverAnalysis");
+const { waiverCapabilitiesEnvelope } = require("../services/waiverScoringCapabilities");
+const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const waiverSystem = require("../services/waiverSystem");
 const rosterSvc = require("../services/roster");
 const sleeperAdapter = require("../adapters/sleeper");
@@ -34,6 +36,8 @@ const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 const ERROR_CONTRACT = "waiver-analysis-error.v1";
+const WAIVER_ANALYSIS_V1 = "waiver-analysis.v1";
+const WAIVER_ANALYSIS_V2 = "waiver-analysis.v2";
 const CONNECTION_COLUMNS =
   // token_expires_at is load-bearing: isOmenReadyConnection() treats an absent
 // expiry as expired, so omitting it here would make every Yahoo connection
@@ -49,6 +53,47 @@ function errorBody({ code, message, action, platform = null }) {
     action,
     ...(platform ? { platform } : {}),
   };
+}
+
+// v2 is additive: v1 consumers retain their exact payload, while a caller that
+// opts in receives the canonical capability record alongside the existing
+// waiver decision. The wrapper never recalculates availability, bids, or
+// waiver-system fields.
+function presentAnalysis(analysis, contractVersion = null) {
+  if (contractVersion !== WAIVER_ANALYSIS_V2) return analysis;
+  const capabilityEnvelope = waiverCapabilitiesEnvelope(analysis);
+  const response = {
+    ...analysis,
+    contract_version: WAIVER_ANALYSIS_V2,
+    ...capabilityEnvelope,
+  };
+  // The route has already read the selected roster and evaluated this pool.
+  // Emit that fact in the shared receipt without widening v1 or inferring
+  // provider projection coverage from a no-move result.
+  const context = createDecisionContext({ profile: "waiver" });
+  context.record("selected_context", {
+    state: response.platform && response.league_id ? "live" : "unavailable",
+    source: "selected_platform_connection",
+    ...(response.platform && response.league_id ? {} : { reason_code: "context_unavailable" }),
+  });
+  context.record("roster", { state: "live", source: `${response.platform}_normalized_roster` });
+  const waiver = capabilityEnvelope.capabilities[0];
+  context.record("waivers", {
+    state: waiver?.state === "live" ? "live" : "unavailable",
+    source: waiver?.source || `${response.platform}_available_players`,
+    ...(waiver?.state === "live" ? {} : { reason_code: "availability_unconfirmed" }),
+  });
+  context.record("projections", {
+    state: "unavailable",
+    source: `${response.platform}_available_players`,
+    reason_code: "projection_coverage_not_emitted",
+  });
+  if (response.best_move || response.state === "no_credible_move") {
+    context.use("selected_context");
+    context.use("roster");
+    context.use("waivers");
+  }
+  return attachDecisionReceipt(response, context);
 }
 
 function scoringFormatFromSleeperLeague(league) {
@@ -216,6 +261,14 @@ function parseWeek(value) {
 }
 
 router.get("/analysis", requireAuth, async (req, res, next) => {
+  const requestedContract = req.query.contract_version;
+  if (requestedContract != null && ![WAIVER_ANALYSIS_V1, WAIVER_ANALYSIS_V2].includes(requestedContract)) {
+    return res.status(400).json(errorBody({
+      code: "unsupported_waiver_analysis_contract",
+      message: "This version of waiver analysis is not supported.",
+      action: "retry",
+    }));
+  }
   const requestedWeek = parseWeek(req.query.week);
   if (requestedWeek === undefined) {
     return res.status(400).json(errorBody({
@@ -273,7 +326,7 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
       offSeason: suppressLiveFootballData(),
     });
 
-    return res.json({ ...analysis, limitations: loaded.limitations });
+    return res.json(presentAnalysis({ ...analysis, limitations: loaded.limitations }, requestedContract));
   } catch (e) {
     logger.error("Waiver analysis failed", { err: e.message });
     return next(e);
@@ -282,3 +335,4 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
 
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
+module.exports.presentAnalysis = presentAnalysis;

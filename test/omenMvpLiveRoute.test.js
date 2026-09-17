@@ -22,6 +22,9 @@ function liveEnvelope() {
     team: { id: "414.t.7", name: null },
     signals: {
       roster: { status: "live", used: true, source: "yahoo_roster", message: "Roster imported." },
+      matchup_dvp: { status: "stub", used: false, source: "pending_nflverse_data", message: "Matchup context is not available." },
+      llm_reasoning: { status: "unavailable", used: false, source: "ollama_gemma", message: "Private narration is not available." },
+      waivers: { status: "unavailable", used: false, source: "yahoo_waivers", message: "Waiver context is not available." },
     },
     recommendation: {
       id: "live_omen_start_sit_test",
@@ -162,6 +165,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
     appUsers: [],
     llmPayloads: [],
     dvpLookups: [],
+    scheduleLookups: [],
     liveUserIds: [],
     liveRequests: [],
     moveUpserts: [],
@@ -225,6 +229,64 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
           return { status: 200, body: liveResponse() };
         },
         buildOmenMvpMoveResponse: () => ({ status: 200, body: liveResponse() }),
+      };
+    }
+    if (request === "../services/scheduleTravelCapabilities" && parent?.filename === routePath) {
+      return {
+        resolveScheduleTravelCapabilities: async ({ nflTeam }) => {
+          state.scheduleLookups.push(nflTeam);
+          return {
+            game_time_tv: {
+              status: "live", resolution: "available", used: false, source: "espn_scoreboard",
+              message: "Kickoff is Sunday at 1:00 PM; away vs NYG.",
+              observed_at: "2026-05-25T00:00:00.000Z", fresh_until: null,
+              facts: [{ name: "opponent", kind: "verified", source: "espn_scoreboard", statement: "Opponent: NYG.", value: "NYG" }],
+            },
+            travel_home_away: {
+              status: "live", resolution: "available", used: false, source: "omen_stadium_distance",
+              message: "Away vs NYG. Omen estimates travel from static stadium coordinates.",
+              observed_at: "2026-05-25T00:00:00.000Z", fresh_until: null, facts: [],
+            },
+          };
+        },
+      };
+    }
+    if (request === "../services/mvpEvidenceEnrichment" && parent?.filename === routePath) {
+      return {
+        resolveMvpDvpContext: async (response, options) => {
+          if (response.recommendation?.type === "waiver_pickup") return null;
+          state.dvpLookups.push({ response, options });
+          return dvp;
+        },
+        applyDvpContext: (response, value) => {
+          if (!response.signals?.matchup_dvp || !value) return false;
+          response.signals.matchup_dvp = {
+            status: "live", used: true, source: "nflverse_data",
+            message: `Matchup DvP is ${value.dvp_label}.`,
+          };
+          return true;
+        },
+        generateMvpLlmNarration: async (response) => {
+          state.llmPayloads.push({ state: response.state });
+          return {
+            source: "ollama_gemma", model: "gemma4:e2b-q4_0",
+            explanation: {
+              summary: "Live Gemma says this is the move.",
+              why_it_matters: "It adds value without changing the rest of the roster.",
+              risk: response.recommendation?.explanation?.risk,
+              confidence: response.recommendation?.explanation?.confidence,
+              data_used: response.recommendation?.explanation?.data_used || [],
+            },
+          };
+        },
+        applyMvpLlmNarration: (response, narration) => {
+          Object.assign(response.recommendation.explanation, narration.explanation);
+          response.signals.llm_reasoning = {
+            status: "live", used: true, source: narration.source, model: narration.model,
+            generated_fields: ["summary", "why_it_matters"], message: "Live private narration.",
+          };
+          return true;
+        },
       };
     }
     if (request === "../services/llm" && parent?.filename === routePath) {
@@ -304,6 +366,32 @@ test("native v2 negotiates bands without leaking numeric confidence or changing 
   assert.doesNotMatch(JSON.stringify(v2.body), /82 out of 100/);
   const v1 = await post(app, { headers });
   assert.equal(v1.body.recommendation.confidence.score, 82);
+});
+
+test("native v3 adds typed shared capabilities while retaining v2's band policy", async () => {
+  const { app } = buildApp();
+  const v3 = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { contract_version: "omen-decision-brief.v3" },
+  });
+
+  assert.equal(v3.status, 200);
+  assert.equal(v3.body.contract_version, "omen-decision-brief.v3");
+  assert.equal(v3.body.capability_contract, "decision-capabilities.v1");
+  assert.equal(v3.body.recommendation.confidence.score, undefined);
+  assert.ok(Array.isArray(v3.body.capabilities));
+  const byName = Object.fromEntries(v3.body.capabilities.map((capability) => [capability.name, capability]));
+  assert.equal(byName.roster.state, "live");
+  assert.equal(byName.game_time_tv.state, "live");
+  assert.equal(byName.game_time_tv.kind, "verified");
+  assert.equal(byName.travel_home_away.state, "live");
+  assert.equal(byName.travel_home_away.kind, "model");
+  assert.equal(byName.waivers.state, "unavailable");
+  assert.equal(byName.waivers.reason_code, "availability_unknown");
+  assert.equal(byName.league_exact_scoring.state, "unavailable");
+  assert.equal(byName.league_exact_scoring.coverage_state, "pending");
+  assert.equal(byName.matchup_dvp.state, "unavailable");
+  assert.equal(byName.llm_reasoning.state, "unavailable");
 });
 
 test("POST /api/omen/mvp-move requires auth for live requests", async () => {

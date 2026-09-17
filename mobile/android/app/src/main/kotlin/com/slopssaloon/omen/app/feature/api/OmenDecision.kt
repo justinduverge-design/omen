@@ -3,6 +3,8 @@ package com.slopssaloon.omen.app.feature.api
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefAlternative
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefPayload
 import com.slopssaloon.omen.core.designsystem.component.OmenDecisionBriefState
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
+import com.slopssaloon.omen.core.designsystem.component.OmenEvidenceKind
 import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricItem
@@ -31,6 +33,7 @@ data class OmenDecisionEnvelope(
     val recoveryMessage: String? = null,
     val explanationSummary: String? = null,
     val signals: List<Signal> = emptyList(),
+    val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
     data class Signal(
         val key: String,
@@ -69,6 +72,7 @@ data class OmenDecisionEnvelope(
                 recoveryMessage = root.optJSONObject("recovery")?.optStringOrNull("message"),
                 explanationSummary = root.optJSONObject("explanation")?.optStringOrNull("summary"),
                 signals = parseSignals(root.optJSONObject("signals")),
+                capabilities = root.decisionCapabilities(),
             )
         }
 
@@ -193,11 +197,12 @@ data class OmenDecisionEnvelope(
             riskReasons = rec.riskReasons,
             explanation = rec.explanationLines,
             metrics = metrics(rec),
-            signals = signals.map { signal ->
+            signals = displaySignals().map { signal ->
                 OmenSignalItem(
                     label = signalLabel(signal.key),
-                    source = signalSource(signal.status),
-                    detail = signal.message ?: signal.source,
+                    source = signal.source,
+                    detail = signal.detail,
+                    kind = signal.kind,
                 )
             },
             alternatives = alternatives(rec),
@@ -208,6 +213,42 @@ data class OmenDecisionEnvelope(
         "confident" -> OmenConfidenceBand.Confident
         "leaning" -> OmenConfidenceBand.Leaning
         "coin_flip" -> OmenConfidenceBand.CoinFlip
+        else -> null
+    }
+
+    private data class DisplaySignal(
+        val key: String,
+        val source: OmenSignalSource,
+        val detail: String?,
+        val kind: OmenEvidenceKind?,
+    )
+
+    private fun displaySignals(): List<DisplaySignal> = if (capabilities.isNotEmpty()) {
+        capabilities.map { capability ->
+            DisplaySignal(
+                key = capability.name.orEmpty(),
+                source = signalSource(capability.state),
+                detail = capability.statement ?: capability.source,
+                kind = evidenceKind(capability.kind),
+            )
+        }
+    } else {
+        signals.map { signal ->
+            DisplaySignal(
+                key = signal.key,
+                source = signalSource(signal.status),
+                detail = signal.message ?: signal.source,
+                kind = null,
+            )
+        }
+    }
+
+    private fun evidenceKind(raw: String?): OmenEvidenceKind? = when (raw) {
+        "verified" -> OmenEvidenceKind.Verified
+        "projection" -> OmenEvidenceKind.Projection
+        "model" -> OmenEvidenceKind.Model
+        "inference" -> OmenEvidenceKind.Inference
+        "limitation" -> OmenEvidenceKind.Limitation
         else -> null
     }
 
@@ -271,4 +312,26 @@ data class OmenDecisionEnvelope(
         "K" -> OmenPosition.K
         else -> null
     }
+}
+
+/** Shared JSON binding for the additive `decision-capabilities.v1` field. */
+internal fun JSONObject.decisionCapabilities(): List<OmenDecisionCapability> {
+    val json = optJSONArray("capabilities") ?: return emptyList()
+    return (0 until json.length()).mapNotNull { index ->
+        json.optJSONObject(index)?.let { capability ->
+            OmenDecisionCapability(
+                name = capability.optStringOrNull("name"),
+                state = capability.optStringOrNull("state"),
+                used = if (capability.has("used") && !capability.isNull("used")) capability.optBoolean("used") else null,
+                kind = capability.optStringOrNull("kind"),
+                source = capability.optStringOrNull("source"),
+                statement = capability.optStringOrNull("statement"),
+                observedAt = capability.optStringOrNull("observed_at"),
+                freshUntil = capability.optStringOrNull("fresh_until"),
+                reasonCode = capability.optStringOrNull("reason_code"),
+                coverageState = capability.optStringOrNull("coverage_state"),
+                reconciliationState = capability.optStringOrNull("reconciliation_state"),
+            )
+        }
+    }.sortedBy { it.name.orEmpty() }
 }

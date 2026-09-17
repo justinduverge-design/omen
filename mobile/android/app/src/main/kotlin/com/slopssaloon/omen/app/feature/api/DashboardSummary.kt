@@ -5,6 +5,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenLeaguePulseState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenLedgerPreviewState
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
 import com.slopssaloon.omen.core.designsystem.component.OmenContextStripState
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 import com.slopssaloon.omen.core.designsystem.component.OmenMatchupHeroState
 import org.json.JSONObject
 
@@ -29,6 +30,8 @@ data class DashboardSummary(
      * predates it must not fail the parse — the headline falls back to a status-only line.
      */
     val gameWeek: GameWeek? = null,
+    /** Compact server-owned coverage/routing summary for Command. */
+    val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
     /**
      * `game_week` — the Command Center headline's clock.
@@ -133,6 +136,7 @@ data class DashboardSummary(
                         isOffSeason = gw.optBoolean("is_off_season", false),
                     )
                 },
+                capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
     }

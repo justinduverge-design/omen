@@ -19,6 +19,7 @@ installMockFetch();
 
 const {
   getGameInfo,
+  getGameInfoDetails,
   getCurrentNflWeekContext,
   isOffSeason,
   suppressLiveFootballData,
@@ -81,6 +82,60 @@ describe("nflSchedule.getGameInfo", () => {
     global.fetch = async () => { throw new Error("Network error"); };
     const info = await getGameInfo("KC");
     assert.equal(info, null);
+  });
+
+  it("exposes source timing and an available result for capability consumers", async () => {
+    const detail = await getGameInfoDetails("KC");
+    assert.equal(detail.status, "available");
+    assert.equal(detail.game.home_away, "Away");
+    assert.match(detail.observed_at, /^2026-/);
+    assert.ok(Date.parse(detail.fresh_until) > Date.parse(detail.observed_at));
+  });
+
+  it("keeps no scheduled game distinct from an ESPN source failure", async () => {
+    const noGame = await getGameInfoDetails("SF");
+    assert.deepEqual(noGame.status, "unavailable");
+    assert.equal(noGame.reason, "team_has_no_game_on_scoreboard");
+
+    __clearCache();
+    global.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
+    const failed = await getGameInfoDetails("KC");
+    assert.equal(failed.status, "failed");
+    assert.equal(failed.reason, "scoreboard_http_non_ok");
+  });
+
+  it("does not invent Away or zero travel when scoreboard game fields are incomplete", async () => {
+    _mockResponse = {
+      events: [{
+        date: "2026-09-10T17:00:00Z",
+        competitions: [{
+          competitors: [
+            { team: { abbreviation: "BAL", displayName: "Baltimore Ravens" }, homeAway: "home" },
+            { team: { abbreviation: "KC", displayName: "Kansas City Chiefs" } },
+          ],
+        }],
+      }],
+    };
+    const incompleteHomeAway = await getGameInfoDetails("KC");
+    assert.equal(incompleteHomeAway.status, "failed");
+    assert.equal(incompleteHomeAway.reason, "scoreboard_home_away_missing");
+
+    __clearCache();
+    _mockResponse = {
+      events: [{
+        date: "2026-09-10T17:00:00Z",
+        competitions: [{
+          competitors: [
+            { team: { abbreviation: "ZZZ", displayName: "Unknown Home" }, homeAway: "home" },
+            { team: { abbreviation: "KC", displayName: "Kansas City Chiefs" }, homeAway: "away" },
+          ],
+        }],
+      }],
+    };
+    const unknownDistance = await getGameInfoDetails("KC");
+    assert.equal(unknownDistance.status, "available");
+    assert.equal(unknownDistance.game.home_away, "Away");
+    assert.equal(unknownDistance.game.travel_miles, null);
   });
 });
 

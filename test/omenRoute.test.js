@@ -108,11 +108,20 @@ function assertSignal(signal) {
 
 async function withMockOmenLlm(handler, fn) {
   const original = llm.explainOmenMvpMove;
+  const originalBridgeStatus = llm.getLlmBridgeStatus;
   llm.explainOmenMvpMove = handler;
+  // A narration is eligible only over the configured private bridge. Model
+  // output itself is mocked here; this explicit status models the real gate
+  // rather than making an unconfigured host appear live.
+  llm.getLlmBridgeStatus = () => ({
+    status: "configured_private",
+    model: "gemma4:e2b-q4_0",
+  });
   try {
     return await fn();
   } finally {
     llm.explainOmenMvpMove = original;
+    llm.getLlmBridgeStatus = originalBridgeStatus;
   }
 }
 
@@ -168,10 +177,10 @@ test("POST /api/omen/mvp-move requires auth for non-mock live requests", async (
 test("POST /api/omen/mvp-move uses live LLM explanation for eligible success response", async () => {
   const liveExplanation = {
     summary: "Live Gemma says Vale is the best weekly swing.",
-    why_it_matters: "The selected move adds meaningful projected value without changing the rest of the lineup.",
-    risk: "The risk is medium because matchup DvP is still stubbed.",
-    confidence: "Confidence is 74 out of 100 with a clear but not perfect edge.",
-    data_used: ["connected roster", "weekly projections", "signal statuses"],
+    why_it_matters: "Adds meaningful projected value without changing the rest of the lineup",
+    risk: "Medium risk because matchup DvP is stubbed",
+    confidence: "Confidence is 74 out of 100 with a clear but not perfect edge",
+    data_used: ["connected roster", "weekly projections"],
   };
 
   await withMockOmenLlm(async (payload) => {
@@ -188,7 +197,12 @@ test("POST /api/omen/mvp-move uses live LLM explanation for eligible success res
 
     assert.equal(res.status, 200);
     assert.equal(res.body.recommendation.explanation.summary, liveExplanation.summary);
-    assert.deepEqual(res.body.recommendation.explanation.data_used, liveExplanation.data_used);
+    assert.deepEqual(res.body.recommendation.explanation.data_used, [
+      "connected roster",
+      "weekly projections",
+      "home/away context",
+      "game time context",
+    ]);
     assert.equal(res.body.signals.llm_reasoning.status, "live");
     assert.equal(res.body.signals.llm_reasoning.used, true);
     assert.equal(res.body.signals.llm_reasoning.source, "ollama_gemma");
