@@ -28,6 +28,28 @@ final class OmenDecisionTests: XCTestCase {
         XCTAssertNil(payload.confidence, "v2 must not manufacture a retired numeric score")
     }
 
+    func testStartSitV2DecodesSharedCapabilitiesWithoutPromotingUnknownScoring() throws {
+        let detail = try JSONDecoder().decode(StartSitDetail.self, from: Data("""
+        {
+          "contract_version": "start-sit-detail.v2",
+          "state": "clear_decision",
+          "recommendation": {"slot": "WR", "points_delta": 4.2},
+          "capabilities": [
+            {"name": "league_scoring", "state": "unavailable", "used": false, "kind": "limitation", "source": "league_settings", "statement": "Omen has not verified this league's scoring rules.", "reason_code": "coverage_pending", "coverage_state": "pending", "reconciliation_state": "pending"},
+            {"name": "player_projections", "state": "live", "used": true, "kind": "projection", "source": "normalized_roster", "statement": "Omen compared available provider projections."}
+          ]
+        }
+        """.utf8))
+
+        XCTAssertEqual(detail.contractVersion, "start-sit-detail.v2")
+        XCTAssertEqual(detail.capabilities.map(\.kind), ["limitation", "projection"])
+        XCTAssertEqual(detail.capabilities.first?.state, "unavailable")
+        XCTAssertEqual(detail.capabilities.first?.used, false)
+        XCTAssertEqual(detail.capabilities.first?.reasonCode, "coverage_pending")
+        XCTAssertEqual(detail.capabilities.first?.coverageState, "pending")
+        XCTAssertEqual(detail.capabilities.first?.reconciliationState, "pending")
+    }
+
     // MARK: - success
 
     func testSuccessDecodesIntoARenderableBrief() throws {
@@ -134,6 +156,31 @@ final class OmenDecisionTests: XCTestCase {
         guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
         XCTAssertEqual(payload.signals.map(\.source), [.unavailable, .stub, .live, .unavailable])
         XCTAssertEqual(payload.signals.first?.label, "Exact ESPN scoring unavailable")
+    }
+
+    func testV3CapabilitiesReplaceLegacyStubPresentationAndKeepEvidenceKindsServerOwned() throws {
+        let envelope = try decode("""
+        {
+          "contract_version": "omen-decision-brief.v3",
+          "state": "success", "mode": "live",
+          "signals": {
+            "matchup_dvp": {"status": "stub", "source": "legacy", "message": "Legacy implementation marker."},
+            "projections": {"status": "live", "source": "optimizer", "message": "Legacy projection."}
+          },
+          "capabilities": [
+            {"name": "matchup_dvp", "state": "unavailable", "used": false, "kind": "limitation", "source": "nflverse_data", "statement": "Not enough verified matchup context.", "observed_at": null, "fresh_until": null},
+            {"name": "projections", "state": "live", "used": true, "kind": "projection", "source": "optimizer", "statement": "Projection edge is normalized.", "observed_at": "2026-09-16T12:00:00Z", "fresh_until": null}
+          ],
+          "recommendation": {"title": "Start A", "move": "Bench B"}
+        }
+        """)
+
+        guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
+        XCTAssertEqual(payload.signals.map(\.source), [.unavailable, .live])
+        XCTAssertEqual(payload.signals.map(\.detail), [
+            "Not enough verified matchup context.",
+            "Projection edge is normalized.",
+        ])
     }
 
     // MARK: - non-success contract states

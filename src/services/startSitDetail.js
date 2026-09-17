@@ -14,8 +14,11 @@
  */
 
 const optimizer = require("./optimizer");
+const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
+const { attachDecisionReceipt, createDecisionContext } = require("./decisionContext");
 
 const CONTRACT_VERSION = "start-sit-detail.v1";
+const CONTRACT_VERSION_V2 = "start-sit-detail.v2";
 
 // Below this the two players are inside projection noise. §5.3 requires an
 // honest "close decision" rather than a forced recommendation.
@@ -127,9 +130,66 @@ function whatCouldChangeThis({ start, sit, delta }) {
   return conditions.slice(0, 2);
 }
 
-function envelope({ context, state, extra = {} }) {
+function capability({ name, state, used, kind, source, statement }) {
+  return { name, state, used, kind, source, statement, observed_at: null, fresh_until: null };
+}
+
+// The Start/Sit route already separates source-backed evidence from its inference. This
+// summary lets a native destination use the same shared capability vocabulary as Omen
+// without re-reading provider data or inferring a scoring rule on-device.
+function buildCapabilities({ state, scoringFormat, recommendation = null }) {
+  const hasDecision = recommendation != null;
+  const hasProjectionPair = recommendation?.start?.projected_points != null
+    && recommendation?.over?.projected_points != null;
+  return [
+    capability({
+      name: "roster",
+      state: state === STATES.INCOMPLETE_DATA || state === STATES.OFF_SEASON ? "unavailable" : "live",
+      used: hasDecision,
+      kind: state === STATES.INCOMPLETE_DATA || state === STATES.OFF_SEASON ? "limitation" : "verified",
+      source: "normalized_roster",
+      statement: state === STATES.INCOMPLETE_DATA
+        ? "Omen needs a full starting lineup and a bench before it can compare a lineup decision."
+        : state === STATES.OFF_SEASON
+          ? "Lineup decisions return with the regular season."
+          : "Omen compared the connected league's normalized roster.",
+    }),
+    capability({
+      name: "league_scoring",
+      state: scoringFormat ? "live" : "unavailable",
+      used: Boolean(scoringFormat && hasDecision),
+      kind: scoringFormat ? "verified" : "limitation",
+      source: "league_settings",
+      statement: scoringFormat
+        ? `This league awards ${scoringFormat}.`
+        : "Omen has not verified this league's scoring rules, so the comparison does not restate the rule.",
+    }),
+    capability({
+      name: "player_projections",
+      state: hasProjectionPair ? "live" : "unavailable",
+      used: hasProjectionPair && hasDecision,
+      kind: hasProjectionPair ? "projection" : "limitation",
+      source: "normalized_roster",
+      statement: hasProjectionPair
+        ? `Omen compared the available provider projections for ${recommendation.start.name} and ${recommendation.over.name}.`
+        : "Omen does not have a complete projection pair for this lineup comparison.",
+    }),
+    capability({
+      name: "start_sit_inference",
+      state: hasDecision ? "live" : "unavailable",
+      used: hasDecision,
+      kind: hasDecision ? "inference" : "limitation",
+      source: "lineup_optimizer",
+      statement: hasDecision
+        ? "Omen ranked eligible lineup changes from the available roster and projection inputs."
+        : "Omen did not produce a lineup change for this request.",
+    }),
+  ];
+}
+
+function envelope({ context, state, contractVersion = CONTRACT_VERSION, extra = {} }) {
   return {
-    contract_version: CONTRACT_VERSION,
+    contract_version: contractVersion,
     generated_at: new Date().toISOString(),
     ...context,
     state,
@@ -158,6 +218,7 @@ function buildStartSitDetail({
   scoringFormat = null,
   slot = null,
   offSeason = false,
+  contractVersion = CONTRACT_VERSION,
 } = {}) {
   const context = {
     platform,
@@ -170,17 +231,19 @@ function buildStartSitDetail({
   };
 
   if (offSeason) {
-    return envelope({ context, state: STATES.OFF_SEASON, extra: {
+    const result = envelope({ context, state: STATES.OFF_SEASON, contractVersion, extra: {
       message: "Lineup decisions return with the regular season.",
     } });
+    return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
   const bench = Array.isArray(roster?.slots?.bench) ? roster.slots.bench : [];
   if (!starters.length || !bench.length) {
-    return envelope({ context, state: STATES.INCOMPLETE_DATA, extra: {
+    const result = envelope({ context, state: STATES.INCOMPLETE_DATA, contractVersion, extra: {
       message: "Omen needs a full starting lineup and a bench before it can compare a lineup decision.",
     } });
+    return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   // minDelta of -Infinity so a close call surfaces as a close call rather than
@@ -189,11 +252,12 @@ function buildStartSitDetail({
   const scoped = slot ? all.filter((rec) => String(rec.slot).toUpperCase() === String(slot).toUpperCase()) : all;
 
   if (!scoped.length) {
-    return envelope({ context, state: STATES.NO_DECISION, extra: {
+    const result = envelope({ context, state: STATES.NO_DECISION, contractVersion, extra: {
       message: slot
         ? "No bench player is eligible for that slot."
         : "No bench player is eligible to change a starting slot this week.",
     } });
+    return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   // §5.3: default to the highest-priority *unresolved* decision. An OUT starter
@@ -205,9 +269,10 @@ function buildStartSitDetail({
 
   // A negative delta means the current starter is already the right call.
   if (top.delta <= 0 && !OUT_STATUSES.has(normalizedStatus(top.from.status))) {
-    return envelope({ context, state: STATES.NO_DECISION, extra: {
+    const result = envelope({ context, state: STATES.NO_DECISION, contractVersion, extra: {
       message: "Your current lineup already reflects the best available projection.",
     } });
+    return withCapabilities(result, { scoringFormat, contractVersion });
   }
 
   const start = playerView(top.to, roster);
@@ -222,11 +287,12 @@ function buildStartSitDetail({
   if (starterOut) why.push(`${sit.name} is unavailable for this week.`);
   if (RISK_STATUSES.has(normalizedStatus(sit.status))) why.push(`${sit.name} carries an unresolved injury designation.`);
 
-  return envelope({
+  const result = envelope({
     context,
     state: starterOut
       ? STATES.PLAYER_UNAVAILABLE
       : (delta < CLOSE_DECISION_DELTA ? STATES.CLOSE : STATES.CLEAR),
+    contractVersion,
     extra: {
       recommendation: {
         slot: top.slot,
@@ -247,12 +313,55 @@ function buildStartSitDetail({
       })),
     },
   });
+  return withCapabilities(result, { scoringFormat, contractVersion });
+}
+
+function withCapabilities(result, { scoringFormat, contractVersion }) {
+  if (contractVersion !== CONTRACT_VERSION_V2) return result;
+  const capabilities = buildCapabilities({
+    state: result.state,
+    scoringFormat,
+    recommendation: result.recommendation,
+  });
+  const response = {
+    ...result,
+    capability_contract: CAPABILITY_CONTRACT,
+    capabilities,
+  };
+  // The pure detail engine has already consumed this roster/projection pair.
+  // Record the same fact through the shared receipt, rather than asking every
+  // native client to infer use from a presentation capability list.
+  const context = createDecisionContext({ profile: "start_sit" });
+  context.record("selected_context", {
+    state: response.platform && response.league_id ? "live" : "unavailable",
+    source: "selected_platform_connection",
+    ...(response.platform && response.league_id ? {} : { reason_code: "context_unavailable" }),
+  });
+  const inputForCapability = {
+    roster: "roster",
+    player_projections: "projections",
+    league_scoring: "league_scoring",
+  };
+  for (const capability of capabilities) {
+    const name = inputForCapability[capability.name];
+    if (!name) continue;
+    context.record(name, {
+      state: capability.state,
+      source: capability.source,
+      ...(capability.state === "live" ? {} : { reason_code: "input_unavailable" }),
+    });
+    if (capability.used) context.use(name);
+  }
+  if (response.recommendation) context.use("selected_context");
+  return attachDecisionReceipt(response, context);
 }
 
 module.exports = {
   CLOSE_DECISION_DELTA,
   CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
   STATES,
+  buildCapabilities,
   buildStartSitDetail,
   confidenceLabel,
 };

@@ -9,7 +9,11 @@ const Module = require("node:module");
 const test = require("node:test");
 const express = require("express");
 
-const { buildStartSitDetail, STATES } = require("../src/services/startSitDetail");
+const {
+  buildStartSitDetail,
+  CONTRACT_VERSION_V2,
+  STATES,
+} = require("../src/services/startSitDetail");
 
 function player(name, position, projected, status = null, slot = null) {
   return {
@@ -64,6 +68,32 @@ test("evidence separates the league fact, the projection, and Omen's inference",
   assert.equal(byCategory.omen_inference.kind, "inference");
   // The inference is never merged into the fact rows.
   assert.equal(byCategory.league_fact.kind === byCategory.omen_inference.kind, false);
+});
+
+test("v2 adds the shared capability manifest without upgrading unknown scoring to a fact", () => {
+  const result = buildStartSitDetail({
+    roster: ROSTER,
+    platform: "espn",
+    leagueId: "1",
+    scoringFormat: null,
+    contractVersion: CONTRACT_VERSION_V2,
+  });
+
+  assert.equal(result.contract_version, "start-sit-detail.v2");
+  assert.equal(result.capability_contract, "decision-capabilities.v1");
+  const byName = Object.fromEntries(result.capabilities.map((item) => [item.name, item]));
+  assert.deepEqual(
+    { state: byName.league_scoring.state, used: byName.league_scoring.used, kind: byName.league_scoring.kind },
+    { state: "unavailable", used: false, kind: "limitation" },
+  );
+  assert.deepEqual(
+    { state: byName.player_projections.state, used: byName.player_projections.used, kind: byName.player_projections.kind },
+    { state: "live", used: true, kind: "projection" },
+  );
+  assert.equal(result.decision_context.contract_version, "shared-decision-context.v1");
+  assert.deepEqual(result.decision_context.inputs_used, ["projections", "roster", "selected_context"]);
+  assert.equal(result.decision_context.inputs.projections.used, true);
+  assert.equal(result.decision_context.inputs.league_scoring.state, "unavailable");
 });
 
 test("an unverified scoring format is named as a limitation instead of assumed to be PPR", () => {

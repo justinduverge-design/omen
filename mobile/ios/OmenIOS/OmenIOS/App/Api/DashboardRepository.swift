@@ -144,7 +144,7 @@ struct ApiOmenDecisionRepository: OmenDecisionRepository {
     }
 
     func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
-        await client.post("api/omen/mvp-move", accessToken: accessToken, body: ["contract_version": "omen-decision-brief.v2"], as: OmenDecisionEnvelope.self)
+        await client.post("api/omen/mvp-move", accessToken: accessToken, body: ["contract_version": "omen-decision-brief.v3"], as: OmenDecisionEnvelope.self)
     }
 }
 
@@ -154,6 +154,68 @@ struct StubOmenDecisionRepository: OmenDecisionRepository {
     func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
         result
     }
+}
+
+// MARK: - Shared Decision Capabilities v1 — Start/Sit transport seam
+
+/// `GET /api/start-sit/detail?contract_version=start-sit-detail.v2`.
+///
+/// No screen is introduced here. This establishes the native data boundary before the
+/// Start/Sit surface is built, so that surface cannot invent an alternate evidence model.
+struct StartSitDetail: Decodable, Equatable {
+    let contractVersion: String?
+    let state: String
+    let message: String?
+    let recommendation: Recommendation?
+    let evidence: [Evidence]
+    let capabilities: [OmenDecisionCapability]
+
+    enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version"
+        case state, message, recommendation, evidence, capabilities
+    }
+
+    struct Recommendation: Decodable, Equatable {
+        let slot: String?
+        let pointsDelta: Double?
+        enum CodingKeys: String, CodingKey { case slot; case pointsDelta = "points_delta" }
+    }
+
+    struct Evidence: Decodable, Equatable {
+        let category: String?
+        let kind: String?
+        let statement: String?
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        contractVersion = try c.decodeIfPresent(String.self, forKey: .contractVersion)
+        state = try c.decodeIfPresent(String.self, forKey: .state) ?? "incomplete_data"
+        message = try c.decodeIfPresent(String.self, forKey: .message)
+        recommendation = try c.decodeIfPresent(Recommendation.self, forKey: .recommendation)
+        evidence = try c.decodeIfPresent([Evidence].self, forKey: .evidence) ?? []
+        capabilities = try c.decodeIfPresent([OmenDecisionCapability].self, forKey: .capabilities) ?? []
+    }
+}
+
+protocol StartSitDetailRepository {
+    func fetchDetail(accessToken: String, slot: String?) async -> Result<StartSitDetail, OmenApiError>
+}
+
+struct ApiStartSitDetailRepository: StartSitDetailRepository {
+    private let client: OmenApiClient
+    init(client: OmenApiClient) { self.client = client }
+
+    func fetchDetail(accessToken: String, slot: String? = nil) async -> Result<StartSitDetail, OmenApiError> {
+        var query = ["contract_version": "start-sit-detail.v2"]
+        if let slot, !slot.isEmpty { query["slot"] = slot }
+        return await client.get("api/start-sit/detail", accessToken: accessToken, query: query, as: StartSitDetail.self)
+    }
+}
+
+struct StubStartSitDetailRepository: StartSitDetailRepository {
+    let result: Result<StartSitDetail, OmenApiError>
+    func fetchDetail(accessToken: String, slot: String?) async -> Result<StartSitDetail, OmenApiError> { result }
 }
 
 // MARK: - Slice E — Ledger
@@ -212,10 +274,12 @@ struct WaiverAnalysis: Decodable, Equatable {
     let deadline: String?
     let bestMove: BestMove?
     let alternatives: [Alternative]
+    /// Waiver detail owns its decision rows; this is coverage only, when the server negotiates it.
+    let capabilities: [OmenDecisionCapability]?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
-        case state, message, deadline, alternatives
+        case state, message, deadline, alternatives, capabilities
         case bestMove = "best_move"
     }
 

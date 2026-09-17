@@ -1,5 +1,36 @@
 # Omen Decision Log
 
+## 2026-09-17 — Shared Decision Capabilities v1 is a semantic boundary, not a live-data switch
+
+- **Decision: capability state and evidence kind remain separate everywhere.**
+  `decision-capabilities.v1` establishes server-owned `state`, `used`, `kind`, safe source,
+  statement, and optional freshness fields. A usable projection remains a projection, and an
+  unavailable source remains a limitation. Native clients may choose a layout, but may not
+  derive a capability's availability, source, scoring coverage, or verdict from local guesses.
+
+- **Decision: v3 Omen and v2 Start/Sit are opt-in and additive.**
+  `omen-decision-brief.v3` carries the capability manifest while preserving its v2 fields;
+  `start-sit-detail.v2` carries the same manifest while preserving v1 by default. The internal
+  Omen `stub` marker is presented to v3 clients as `unavailable`, never as a user-facing data
+  state. No production flag, scoring/publication setting, provider credential, schema, or
+  deploy changed in this work.
+
+- **Decision: each destination consumes one native semantic type, not one shared screen.**
+  Omen, Command, League, Waiver, Trade, and Ledger transport bindings accept the additive
+  manifest through the shared SwiftUI/Compose design-system model. Ledger remains issue-time
+  only; Trade keeps its server verdict authoritative; League and Command preserve independent
+  section failures. Start/Sit now has an iOS/Android transport seam requesting its v2 contract,
+  but no new Start/Sit native screen is claimed.
+
+- **Decision: six source paths promote only request-specific evidence.**
+  Schedule/TV and home/away facts require the ESPN scoreboard; “TV” is a kickoff-window
+  inference and travel is an explicit distance model. DvP requires that schedule-backed opponent
+  plus a supported position and three distinct prior weeks, with no live mock-opponent map.
+  LLM narration requires a configured private bridge and bounded output grounded in existing
+  evidence. Waivers retain their source outcome in `reason_code`. League-exact scoring is live
+  only for `supported` coverage and `exact` reconciliation. All other cases stay
+  `unavailable`/`limitation`; no scoring/publication control changed.
+
 ## 2026-09-14 — a wrapper skill must prove its tool is present, and `slops-taste` covers native by being split
 
 ### 1. Install state is tracked, and it is a separate axis from status
@@ -3230,3 +3261,11 @@ behaving; until then this entry records intent, not proof.
 - **Decision: Trade is the argument-settler.** The Trade destination should become the place a fantasy group chat opens when people are debating fairness, value, veto, or whether to make an offer. The contract must make both sides, verdict, caveat, and shareable reasoning obvious.
 
 - **Decision: League is the scout room.** League should feel like Omen has people watching everyone else: standings pressure, opponent needs, waiver shape, trade openings, and recent movement. Provider gaps are part of the intelligence quality and should be shown honestly rather than smoothed over.
+
+## 2026-09-17 — shared decision context is the backend middle layer
+
+- **Decision: resolve small, request-scoped decision contexts rather than an all-data league bundle.** A giant fan-out would slow league switching, couple unrelated outages, and create risky cache isolation. `shared-decision-context.v1` de-duplicates within one request; provider adapters retain their own cache boundaries.
+
+- **Decision: distinguish source availability from source use.** A capability can be live but must not be described as affecting a move until the deterministic feature engine records it as used. MVP, Start/Sit detail v2, Waiver analysis v2, and Trade compare v2 attach the additive receipt. Private LLM narration remains non-decision-making.
+
+- **Decision: Command Center/Pi data remains an operational witness pending a separate source adapter approval.** Integrity evidence does not silently become a live recommendation input. No Pi operation or ingest activation is part of this worktree.

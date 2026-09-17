@@ -2,6 +2,7 @@ package com.slopssaloon.omen.app.feature.api
 
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverOpportunity
 import com.slopssaloon.omen.app.feature.commandcenter.OmenWaiverWatchState
+import com.slopssaloon.omen.core.designsystem.component.OmenDecisionCapability
 import org.json.JSONObject
 import kotlin.math.floor
 import kotlin.math.round
@@ -16,6 +17,8 @@ data class WaiverAnalysis(
     val deadline: String?,
     val bestMove: BestMove?,
     val alternatives: List<Alternative>,
+    /** Coverage only; player rows and bid math stay owned by waiver-analysis.v1. */
+    val capabilities: List<OmenDecisionCapability> = emptyList(),
 ) {
     enum class State(val wire: String) {
         ConfirmedOpportunity("confirmed_opportunity"),
@@ -90,6 +93,7 @@ data class WaiverAnalysis(
                         array.optJSONObject(index)?.let(::alternative)
                     }
                 }.orEmpty(),
+                capabilities = root.decisionCapabilities(),
             )
         }.getOrNull()
 

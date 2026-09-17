@@ -273,6 +273,46 @@ test("Sleeper: analysis is built from the Sleeper adapter's own roster and avail
   assert.deepEqual(calls, ["league:L1", "roster:L1:justin:7", "pool:L1:7"]);
 });
 
+test("waiver-analysis.v2 adds a canonical capability without changing the waiver decision", async () => {
+  const app = buildApp({
+    connections: [SLEEPER_CONN],
+    sleeperAdapter: {
+      fetchSleeperLeague: async () => ({ scoring_settings: { rec: 1 } }),
+      buildNormalizedRoster: async () => ROSTER,
+      fetchSleeperAvailablePlayers: async () => [],
+    },
+  });
+  const { status, body } = await request(app, "/api/waivers/analysis?contract_version=waiver-analysis.v2");
+
+  assert.equal(status, 200);
+  assert.equal(body.contract_version, "waiver-analysis.v2");
+  assert.equal(body.state, "no_credible_move");
+  assert.equal(body.capability_contract, "decision-capabilities.v1");
+  assert.equal(body.decision_context.contract_version, "shared-decision-context.v1");
+  assert.deepEqual(body.decision_context.inputs_used, ["roster", "selected_context", "waivers"]);
+  assert.equal(body.decision_context.inputs.projections.state, "unavailable");
+  assert.deepEqual(body.capabilities, [{
+    name: "waivers",
+    state: "live",
+    used: false,
+    kind: "inference",
+    source: "sleeper",
+    statement: "No waiver move stands out for this roster right now.",
+    observed_at: body.generated_at,
+    fresh_until: null,
+    reason_code: "no_credible_move",
+    detail_ref: { contract: "waiver-analysis.v1", path: "/api/waivers/analysis" },
+  }]);
+});
+
+test("an unsupported waiver-analysis contract is rejected before provider reads", async () => {
+  const app = buildApp({ connections: [SLEEPER_CONN], sleeperAdapter: {} });
+  const { status, body } = await request(app, "/api/waivers/analysis?contract_version=waiver-analysis.v99");
+
+  assert.equal(status, 400);
+  assert.equal(body.code, "unsupported_waiver_analysis_contract");
+});
+
 test("Sleeper: an empty available-player list is an honest no_credible_move, not an error", async () => {
   const app = buildApp({
     connections: [SLEEPER_CONN],

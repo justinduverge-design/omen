@@ -5,17 +5,52 @@ import SwiftUI
 /// its label.
 enum OmenSignalSource { case live, stub, mock, unavailable }
 
+/// Evidence role is independent of availability. A live projection is still a projection,
+/// and an unavailable verified source is still a limitation for this decision.
+enum OmenEvidenceKind: String { case verified, projection, model, inference, limitation }
+
+/// The transport-neutral native binding for `decision-capabilities.v1`.
+///
+/// This lives beside the evidence presentation primitives so Omen, Command, League,
+/// Start/Sit, Trade, and Ledger use the same semantic vocabulary without sharing a layout.
+/// Unknown wire values remain strings: callers must fail safe rather than promote a future
+/// server state into a live or verified claim.
+struct OmenDecisionCapability: Decodable, Equatable {
+    let name: String?
+    let state: String?
+    let used: Bool?
+    let kind: String?
+    let source: String?
+    let statement: String?
+    let observedAt: String?
+    let freshUntil: String?
+    let reasonCode: String?
+    let coverageState: String?
+    let reconciliationState: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, state, used, kind, source, statement
+        case observedAt = "observed_at"
+        case freshUntil = "fresh_until"
+        case reasonCode = "reason_code"
+        case coverageState = "coverage_state"
+        case reconciliationState = "reconciliation_state"
+    }
+}
+
 /// One row in a SignalList. `detail` is optional secondary text under the label.
 struct OmenSignalItem: Identifiable {
     let id = UUID()
     let label: String
     let source: OmenSignalSource
     let detail: String?
+    let kind: OmenEvidenceKind?
 
-    init(label: String, source: OmenSignalSource, detail: String? = nil) {
+    init(label: String, source: OmenSignalSource, detail: String? = nil, kind: OmenEvidenceKind? = nil) {
         self.label = label
         self.source = source
         self.detail = detail
+        self.kind = kind
     }
 }
 
@@ -55,6 +90,9 @@ struct OmenSignalList: View {
                 }
             }
         }
+        .accessibilityLabel([label, signal.kind?.rawValue, signal.label, signal.detail]
+            .compactMap { $0 }
+            .joined(separator: ". "))
     }
 }
 

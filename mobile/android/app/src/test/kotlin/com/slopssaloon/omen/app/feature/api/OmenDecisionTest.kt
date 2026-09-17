@@ -47,6 +47,33 @@ class OmenDecisionTest {
     }
 
     @Test
+    fun `start sit v2 preserves unavailable scoring and projection evidence roles`() {
+        val detail = requireNotNull(
+            StartSitDetail.parse(
+                """
+                {
+                  "contract_version": "start-sit-detail.v2",
+                  "state": "clear_decision",
+                  "recommendation": {"slot": "WR", "points_delta": 4.2},
+                  "capabilities": [
+                    {"name": "league_scoring", "state": "unavailable", "used": false, "kind": "limitation", "source": "league_settings", "statement": "Omen has not verified this league's scoring rules.", "reason_code": "coverage_pending", "coverage_state": "pending", "reconciliation_state": "pending"},
+                    {"name": "player_projections", "state": "live", "used": true, "kind": "projection", "source": "normalized_roster", "statement": "Omen compared available provider projections."}
+                  ]
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        assertEquals("start-sit-detail.v2", detail.contractVersion)
+        assertEquals(listOf("limitation", "projection"), detail.capabilities.map { it.kind })
+        assertEquals("unavailable", detail.capabilities.first().state)
+        assertEquals(false, detail.capabilities.first().used)
+        assertEquals("coverage_pending", detail.capabilities.first().reasonCode)
+        assertEquals("pending", detail.capabilities.first().coverageState)
+        assertEquals("pending", detail.capabilities.first().reconciliationState)
+    }
+
+    @Test
     fun successDecodesIntoARenderableBrief() {
         val envelope = parse(
             """
@@ -152,6 +179,33 @@ class OmenDecisionTest {
             state.payload.signals.map { it.source },
         )
         assertEquals("Exact ESPN scoring unavailable", state.payload.signals.first().label)
+    }
+
+    @Test
+    fun `v3 capabilities replace legacy stub presentation and keep evidence kinds server owned`() {
+        val state = parse(
+            """
+            {
+              "contract_version": "omen-decision-brief.v3",
+              "state": "success", "mode": "live",
+              "signals": {
+                "matchup_dvp": {"status": "stub", "source": "legacy", "message": "Legacy implementation marker."},
+                "projections": {"status": "live", "source": "optimizer", "message": "Legacy projection."}
+              },
+              "capabilities": [
+                {"name": "matchup_dvp", "state": "unavailable", "used": false, "kind": "limitation", "source": "nflverse_data", "statement": "Not enough verified matchup context.", "observed_at": null, "fresh_until": null},
+                {"name": "projections", "state": "live", "used": true, "kind": "projection", "source": "optimizer", "statement": "Projection edge is normalized.", "observed_at": "2026-09-16T12:00:00Z", "fresh_until": null}
+              ],
+              "recommendation": {"title": "Start A", "move": "Bench B"}
+            }
+            """.trimIndent(),
+        ).briefState() as OmenDecisionBriefState.Success
+
+        assertEquals(listOf(OmenSignalSource.Unavailable, OmenSignalSource.Live), state.payload.signals.map { it.source })
+        assertEquals(
+            listOf("Not enough verified matchup context.", "Projection edge is normalized."),
+            state.payload.signals.map { it.detail },
+        )
     }
 
     @Test

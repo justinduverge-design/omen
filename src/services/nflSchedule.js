@@ -179,25 +179,43 @@ function _logger() {
 }
 
 function _cacheGet(key) {
+  return _cacheGetEntry(key)?.value || null;
+}
+
+function _cacheGetEntry(key) {
   const entry = _cache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > CACHE_TTL_MS) {
     _cache.delete(key);
     return null;
   }
-  return entry.value;
+  return entry;
 }
 
 function _cacheSet(key, value) {
   _cache.set(key, { value, ts: Date.now() });
 }
 
+function _sourceTiming(ts) {
+  return {
+    observed_at: new Date(ts).toISOString(),
+    fresh_until: new Date(ts + CACHE_TTL_MS).toISOString(),
+  };
+}
+
 /**
- * Fetch the ESPN scoreboard. Returns the raw events array or null.
+ * Fetch the ESPN scoreboard with source-native outcome semantics.
+ *
+ * This is deliberately more expressive than the legacy `getGameInfo()` helper:
+ * a caller that is deciding what to tell a user must distinguish an ESPN outage
+ * from a normal bye/no-game result.  The legacy helper remains null-on-anything
+ * so current callers retain their existing contract.
  */
-async function _fetchScoreboard() {
-  const cached = _cacheGet("scoreboard");
-  if (cached) return cached;
+async function _fetchScoreboardResult() {
+  const cached = _cacheGetEntry("scoreboard");
+  if (cached) {
+    return { status: "available", events: cached.value, ..._sourceTiming(cached.ts) };
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -206,18 +224,30 @@ async function _fetchScoreboard() {
     const res = await fetch(ESPN_SCOREBOARD_URL, { signal: controller.signal });
     if (!res.ok) {
       _logger().warn("nflSchedule: ESPN API returned non-OK", { status: res.status });
-      return null;
+      return { status: "failed", reason: "scoreboard_http_non_ok" };
     }
     const data = await res.json();
-    const events = data?.events || [];
-    _cacheSet("scoreboard", events);
-    return events;
+    if (!Array.isArray(data?.events)) {
+      _logger().warn("nflSchedule: ESPN scoreboard schema missing events array");
+      return { status: "failed", reason: "scoreboard_schema_invalid" };
+    }
+    const now = Date.now();
+    _cache.set("scoreboard", { value: data.events, ts: now });
+    return { status: "available", events: data.events, ..._sourceTiming(now) };
   } catch (err) {
     _logger().warn("nflSchedule: ESPN API unavailable", { message: err?.message });
-    return null;
+    return { status: "failed", reason: "scoreboard_request_failed" };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Fetch the ESPN scoreboard. Returns the raw events array or null for legacy callers.
+ */
+async function _fetchScoreboard() {
+  const result = await _fetchScoreboardResult();
+  return result.status === "available" ? result.events : null;
 }
 
 /**
@@ -240,16 +270,22 @@ async function _fetchScoreboard() {
  * }
  * Returns null if no game found (bye week, offseason).
  */
-async function getGameInfo(teamAbbr) {
-  if (!teamAbbr) return null;
-  const abbr = String(teamAbbr).toUpperCase();
+async function getGameInfoDetails(teamAbbr) {
+  const abbr = String(teamAbbr || "").trim().toUpperCase();
+  if (!/^[A-Z]{2,3}$/.test(abbr)) {
+    return { status: "insufficient_context", reason: "nfl_team_missing_or_invalid" };
+  }
 
   const cacheKey = `game:${abbr}`;
-  const cached = _cacheGet(cacheKey);
-  if (cached) return cached;
+  const cached = _cacheGetEntry(cacheKey);
+  if (cached) {
+    return { status: "available", game: cached.value, ..._sourceTiming(cached.ts) };
+  }
 
-  const events = await _fetchScoreboard();
-  if (!events || !events.length) return null;
+  const scoreboard = await _fetchScoreboardResult();
+  if (scoreboard.status !== "available") return scoreboard;
+  const events = scoreboard.events;
+  if (!events.length) return { status: "unavailable", reason: "no_games_on_scoreboard", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
 
   for (const event of events) {
     const competition = event?.competitions?.[0];
@@ -265,18 +301,26 @@ async function getGameInfo(teamAbbr) {
       c => String(c?.team?.abbreviation || "").toUpperCase() !== abbr
     );
 
-    const homeAway    = myTeam.homeAway === "home" ? "Home" : "Away";
+    const homeAwayRaw = String(myTeam.homeAway || "").toLowerCase();
+    if (homeAwayRaw !== "home" && homeAwayRaw !== "away") {
+      return { status: "failed", reason: "scoreboard_home_away_missing", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+    }
+    const homeAway    = homeAwayRaw === "home" ? "Home" : "Away";
     const oppAbbr     = String(oppTeam?.team?.abbreviation || "").toUpperCase();
     const oppName     = oppTeam?.team?.displayName || oppAbbr;
     const kickoffUtc  = event?.date || null;
     const venueData   = competition?.venue || {};
+
+    if (!/^[A-Z]{2,3}$/.test(oppAbbr) || !Number.isFinite(Date.parse(kickoffUtc))) {
+      return { status: "failed", reason: "scoreboard_game_context_incomplete", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+    }
 
     const homeTeamComp = competitors.find(c => c.homeAway === "home");
     const homeTeamAbbr = String(homeTeamComp?.team?.abbreviation || "").toUpperCase();
     const stadium      = getStadium(homeTeamAbbr);
 
     const travelMiles = homeAway === "Away"
-      ? (stadiumDistanceMiles(abbr, homeTeamAbbr) || 0)
+      ? stadiumDistanceMiles(abbr, homeTeamAbbr)
       : 0;
 
     const result = {
@@ -293,12 +337,22 @@ async function getGameInfo(teamAbbr) {
       travel_miles:  travelMiles,
     };
 
-    _cacheSet(cacheKey, result);
-    return result;
+    const now = Date.now();
+    _cache.set(cacheKey, { value: result, ts: now });
+    return { status: "available", game: result, ..._sourceTiming(now) };
   }
 
   _logger().info("nflSchedule: no game found for team", { team: abbr });
-  return null;
+  return { status: "unavailable", reason: "team_has_no_game_on_scoreboard", ..._sourceTiming(Date.parse(scoreboard.observed_at)) };
+}
+
+/**
+ * Legacy schedule helper. New capability consumers should use
+ * `getGameInfoDetails()` so they can preserve source failure semantics.
+ */
+async function getGameInfo(teamAbbr) {
+  const result = await getGameInfoDetails(teamAbbr);
+  return result.status === "available" ? result.game : null;
 }
 
 function _formatKickoff(isoString) {
@@ -434,6 +488,7 @@ function getNflGameWeek(now = new Date()) {
 
 module.exports = {
   getGameInfo,
+  getGameInfoDetails,
   getCurrentNflWeekContext,
   getNflGameWeek,
   GAME_WEEK_PHASES,

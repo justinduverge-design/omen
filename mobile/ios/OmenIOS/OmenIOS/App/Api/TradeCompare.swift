@@ -88,6 +88,8 @@ struct TradeCompare: Decodable, Equatable {
     let analysisContext: AnalysisContext
     let netValue: Double?
     let explanation: String?
+    /// Server-owned supporting coverage; never used to create a client-side verdict.
+    let capabilities: [OmenDecisionCapability]?
 
     enum CodingKeys: String, CodingKey {
         case contractVersion = "contract_version"
@@ -95,6 +97,7 @@ struct TradeCompare: Decodable, Equatable {
         case evaluability, explanation
         case analysisContext = "analysis_context"
         case netValue = "net_value"
+        case capabilities
     }
 
     /// The headline the screen shows. Never derived from `netValue` — the server owns the

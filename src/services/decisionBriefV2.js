@@ -1,7 +1,9 @@
 "use strict";
 
 const CONTRACT = "omen-decision-brief.v2";
+const CONTRACT_V3 = "omen-decision-brief.v3";
 const LABELS = Object.freeze({ confident: "Confident", leaning: "Leaning", coin_flip: "Coin flip" });
+const { CAPABILITY_CONTRACT, buildDecisionCapabilities } = require("./decisionCapabilities");
 
 // Collects the statements for things Omen could not read on this request. These are the
 // engine's own signal messages, not a new vocabulary invented here — a signal that is not
@@ -74,14 +76,44 @@ function decisionBriefV2(body) {
   const result = visit(body, bandedConfidence(body.recommendation?.confidence || body.confidence, limitations));
   result.contract_version = CONTRACT;
   result.confidence_policy = "engine-bands.v1";
-  result.evidence = Object.entries(body.signals || {}).map(([name, signal]) => ({
-    name,
-    kind: signal.status !== "live" ? "limitation" : /project/i.test(name) ? "projection" : "model",
-    source_status: signal.status,
-    used: signal.used === true,
-    statement: signal.message,
+  result.evidence = buildDecisionCapabilities({
+    signals: body.signals,
+    generatedAt: body.generated_at,
+  }).capabilities.map((capability) => ({
+    name: capability.name,
+    kind: capability.kind,
+    source_status: capability.state,
+    used: capability.used,
+    statement: capability.statement,
   }));
   return result;
 }
 
-module.exports = { CONTRACT, LABELS, bandedConfidence, limitationStatements, decisionBriefV2 };
+// v3 is deliberately additive: v2 remains stable for already-shipped clients, while
+// native clients opting into v3 receive the same canonical capability records that all
+// destinations will share. `signals` remains for compatibility; new native code reads
+// `capabilities` so it never needs to expose an implementation-only "stub" label.
+function decisionBriefV3(body) {
+  const result = decisionBriefV2(body);
+  const shared = buildDecisionCapabilities({
+    signals: body.signals,
+    promoted: body.capability_overrides,
+    generatedAt: body.generated_at,
+  });
+  return {
+    ...result,
+    contract_version: CONTRACT_V3,
+    capability_contract: CAPABILITY_CONTRACT,
+    capabilities: shared.capabilities,
+  };
+}
+
+module.exports = {
+  CONTRACT,
+  CONTRACT_V3,
+  LABELS,
+  bandedConfidence,
+  limitationStatements,
+  decisionBriefV2,
+  decisionBriefV3,
+};

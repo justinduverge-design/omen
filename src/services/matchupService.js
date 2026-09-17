@@ -180,14 +180,31 @@ async function getDvpContext({ position, opponentTeam, season, week }) {
     const rows = await _fetchRows(cacheKey, seasonInt);
     if (!rows) return null;
 
-    const matching = rows
-      .filter(row => Number.parseInt(row.season, 10) === seasonInt)
-      .filter(row => row.season_type === DEFAULT_SEASON_TYPE)
-      .filter(row => Number.parseInt(row.week, 10) < weekInt)
-      .filter(row => _normalizePosition(row.position) === pos)
-      .filter(row => String(row.opponent_team || "").toUpperCase() === opponent)
-      .map(row => Number.parseFloat(row.fantasy_points_ppr || row.fantasy_points))
-      .filter(points => Number.isFinite(points));
+    // A raw player-stat row is not a DvP sample. Several opposing players at
+    // one position can score against the same defense in a single week; counting
+    // those rows as weeks both inflates the advertised sample and underweights
+    // high-volume games. Aggregate the position's points allowed per actual
+    // regular-season week first, then average those weekly totals.
+    const weeklyTotals = new Map();
+    for (const row of rows) {
+      const rowWeek = Number.parseInt(row.week, 10);
+      if (
+        Number.parseInt(row.season, 10) !== seasonInt
+        || row.season_type !== DEFAULT_SEASON_TYPE
+        || !Number.isInteger(rowWeek)
+        || rowWeek >= weekInt
+        || _normalizePosition(row.position) !== pos
+        || String(row.opponent_team || "").toUpperCase() !== opponent
+      ) {
+        continue;
+      }
+
+      const points = Number.parseFloat(row.fantasy_points_ppr || row.fantasy_points);
+      if (!Number.isFinite(points)) continue;
+      weeklyTotals.set(rowWeek, (weeklyTotals.get(rowWeek) || 0) + points);
+    }
+
+    const matching = [...weeklyTotals.values()];
 
     if (matching.length < 3) return null;
 

@@ -116,6 +116,26 @@ describe("matchupService.getDvpContext", () => {
     assert.match(counter.urls[0], /stats_player_week_2094\.csv$/);
   });
 
+  it("aggregates player rows into distinct weekly DvP samples", async () => {
+    const counter = { count: 0 };
+    mockFetchWithCsv(csvFor([
+      // BAL faced two WRs in week 1. Those are one defense-versus-position
+      // sample, not two weeks of evidence.
+      "2094,1,REG,WR,BAL,5.0,7.0",
+      "2094,1,REG,WR,BAL,8.0,10.0",
+      "2094,2,REG,WR,BAL,9.0,11.0",
+      "2094,3,REG,WR,BAL,10.0,12.0",
+    ]), counter);
+
+    const result = await getDvpContext({
+      position: "WR", opponentTeam: "BAL", season: 2094, week: 4,
+    });
+
+    assert.ok(result);
+    assert.equal(result.sample_weeks, 3, "sample_weeks must represent actual calendar weeks, never player rows");
+    assert.equal(result.avg_points_allowed, 13.3, "weekly totals are 17, 11, and 12 PPR points");
+  });
+
   it("uses the cache for the same season and week", async () => {
     const counter = { count: 0 };
     mockFetchWithCsv(csvFor([

@@ -19,9 +19,23 @@ const {
   authenticateOmenRequest,
   offSeasonMvpResponse,
 } = require("../services/omen");
-const llm = require("../services/llm");
-const matchupService = require("../services/matchupService");
-const { CONTRACT: BRIEF_V2, decisionBriefV2 } = require("../services/decisionBriefV2");
+const { resolveScheduleTravelCapabilities } = require("../services/scheduleTravelCapabilities");
+const {
+  scoringCoverageCapability,
+  waiverCapability,
+} = require("../services/waiverScoringCapabilities");
+const {
+  applyDvpContext,
+  applyMvpLlmNarration,
+  generateMvpLlmNarration,
+  resolveMvpDvpContext,
+} = require("../services/mvpEvidenceEnrichment");
+const {
+  CONTRACT: BRIEF_V2,
+  CONTRACT_V3: BRIEF_V3,
+  decisionBriefV2,
+  decisionBriefV3,
+} = require("../services/decisionBriefV2");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -40,10 +54,6 @@ const LLM_BLOCKED_STATES = new Set([
   "espn_recovery_needed",
   "error",
 ]);
-const DVP_ELIGIBLE_STATES = new Set(["success"]);
-const DETERMINISTIC_MOCK_OPPONENT_BY_TEAM = Object.freeze({
-  DAL: "PHI",
-});
 
 function isExplicitMockRequest(body = {}) {
   return body.use_mock_data === true || body.mock_state != null;
@@ -165,6 +175,66 @@ function publicScoringView(scoring = {}) {
   };
 }
 
+function attachCapabilityOverrides(response, overrides = {}) {
+  if (!response || typeof response !== "object") return response;
+  response.capability_overrides = {
+    ...(response.capability_overrides || {}),
+    ...overrides,
+  };
+  return response;
+}
+
+// The Omen selector does not duplicate waiver-analysis.v1's full state machine. This narrow
+// bridge therefore names only what this particular response actually established: a selected
+// waiver pickup, a completed readable no-move check, or unavailable context. It never exposes
+// bid math or turns an unread pool into an empty pool.
+function waiverCapabilityForOmen(response) {
+  const signal = response?.signals?.waivers;
+  const selectedWaiver = response?.recommendation?.type === "waiver_pickup";
+  const state = selectedWaiver && signal?.status === "live"
+    ? "confirmed_opportunity"
+    : signal?.status === "live"
+      ? "no_credible_move"
+      : "availability_unknown";
+  return waiverCapability({
+    platform: response?.platform?.name,
+    state,
+    message: signal?.message,
+    generated_at: response?.generated_at,
+  }, { used: selectedWaiver });
+}
+
+async function enrichWithScheduleTravel(response) {
+  if (response?.state !== "success" || !response.recommendation) return response;
+  const nflTeam = response.recommendation.primary_player?.team;
+  const source = await resolveScheduleTravelCapabilities({ nflTeam });
+  const opponent = source.game_time_tv?.facts?.find((fact) => fact?.name === "opponent")?.value;
+  if (
+    source.game_time_tv?.status === "live"
+    && source.game_time_tv?.resolution === "available"
+    && typeof opponent === "string"
+    && /^[A-Z]{2,3}$/.test(opponent)
+  ) {
+    // DvP receives its opponent only from this schedule source. There is no
+    // deterministic team-to-opponent fallback in a live response.
+    response.recommendation.matchup_context = {
+      opponent_team: opponent,
+      source: "espn_scoreboard",
+      status: "live",
+    };
+  }
+  attachCapabilityOverrides(response, {
+    game_time_tv: source.game_time_tv,
+    travel_home_away: source.travel_home_away,
+  });
+  return response;
+}
+
+function attachWaiverCapability(response) {
+  if (!response?.signals) return response;
+  return attachCapabilityOverrides(response, { waivers: waiverCapabilityForOmen(response) });
+}
+
 async function scoringPersistenceMetadata(response = {}, userId = null) {
   try {
     return await resolveScoringPersistenceMetadata({
@@ -259,6 +329,12 @@ async function persistLiveRecommendation(user, response) {
   // reason — are persistence concerns and must not widen the public contract.
   // The rule body in particular must never leave the server this way.
   response.recommendation.scoring = publicScoringView(scoring);
+  attachCapabilityOverrides(response, {
+    league_exact_scoring: scoringCoverageCapability(scoring, {
+      used: false,
+      observedAt: response.generated_at,
+    }),
+  });
   await ensureAppUser(user);
 
   const recommendation = response.recommendation;
@@ -291,162 +367,10 @@ async function persistLiveRecommendation(user, response) {
   return data.id;
 }
 
-function isValidExplanation(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  for (const field of ["summary", "why_it_matters", "risk", "confidence"]) {
-    if (typeof value[field] !== "string" || !value[field].trim()) return false;
-  }
-  return Array.isArray(value.data_used)
-    && value.data_used.length > 0
-    && value.data_used.every((item) => typeof item === "string" && item.trim());
-}
-
-function safeSignalFacts(signals = {}) {
-  return Object.fromEntries(
-    Object.entries(signals).map(([name, signal]) => [
-      name,
-      {
-        status: signal?.status,
-        message: signal?.message,
-      },
-    ])
-  );
-}
-
-function explanationTarget(response) {
-  if (response.state === "success") return response.recommendation?.explanation;
-  if (response.state === "empty") return response.explanation;
-  return null;
-}
-
-function buildOmenLlmPayload(response) {
-  const recommendation = response.recommendation || {};
-  const explanation = explanationTarget(response) || {};
-  const risk = recommendation.risk || response.risk || {};
-  const confidence = recommendation.confidence || response.confidence || {};
-
-  return {
-    state: response.state,
-    recommendation_type: recommendation.type || null,
-    title: recommendation.title || null,
-    move: recommendation.move || null,
-    primary_player: recommendation.primary_player
-      ? {
-          name: recommendation.primary_player.name,
-          position: recommendation.primary_player.position,
-          team: recommendation.primary_player.team,
-        }
-      : null,
-    comparison_player: recommendation.comparison_player
-      ? {
-          name: recommendation.comparison_player.name,
-          position: recommendation.comparison_player.position,
-          team: recommendation.comparison_player.team,
-        }
-      : null,
-    expected_value_delta: recommendation.expected_value_delta || null,
-    confidence: {
-      score: confidence.score,
-      label: confidence.label,
-      rationale: confidence.rationale,
-    },
-    risk: {
-      level: risk.level,
-      reasons: Array.isArray(risk.reasons) ? risk.reasons : [],
-    },
-    signal_statuses: safeSignalFacts(response.signals),
-    data_used: Array.isArray(explanation.data_used) ? explanation.data_used : [],
-  };
-}
-
-function markLiveLlm(response) {
-  if (!response.signals?.llm_reasoning) return;
-  response.signals.llm_reasoning = {
-    status: "live",
-    used: true,
-    source: "ollama_gemma",
-    message: "Live Gemma reasoning generated the plain-English explanation.",
-  };
-}
-
-function isValidDvpContext(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  if (typeof value.opponent_team !== "string" || !value.opponent_team.trim()) return false;
-  if (typeof value.position !== "string" || !value.position.trim()) return false;
-  if (!Number.isFinite(Number(value.avg_points_allowed))) return false;
-  if (!Number.isInteger(Number(value.sample_weeks)) || Number(value.sample_weeks) < 3) return false;
-  return ["favorable", "neutral", "tough"].includes(value.dvp_label);
-}
-
-function deriveDvpLookup(response) {
-  const recommendation = response.recommendation;
-  const primary = recommendation?.primary_player;
-  if (!primary) return null;
-
-  const team = String(primary.team || "").toUpperCase();
-  const opponentTeam = String(
-    primary.opponent_team
-    || recommendation?.matchup_context?.opponent_team
-    || DETERMINISTIC_MOCK_OPPONENT_BY_TEAM[team]
-    || ""
-  ).toUpperCase();
-
-  if (!primary.position || !opponentTeam) return null;
-
-  return {
-    position: primary.position,
-    opponentTeam,
-    season: response.league?.season,
-    week: response.league?.week,
-  };
-}
-
-function formatDvpMessage(dvp) {
-  return `Matchup DvP uses nflverse-data trailing-week fantasy points allowed: ${dvp.opponent_team} vs ${dvp.position} is ${dvp.dvp_label} over ${dvp.sample_weeks} games.`;
-}
-
-function enrichRecommendationWithDvp(response, dvp) {
-  response.signals.matchup_dvp = {
-    status: "live",
-    used: true,
-    source: "nflverse_data",
-    message: formatDvpMessage(dvp),
-  };
-
-  const recommendation = response.recommendation;
-  if (!recommendation) return;
-
-  recommendation.confidence.rationale =
-    `${recommendation.confidence.rationale} Matchup DvP is live from nflverse-data and rates ${dvp.opponent_team} vs ${dvp.position} as ${dvp.dvp_label}.`;
-
-  recommendation.risk.reasons = recommendation.risk.reasons.map((reason) =>
-    reason.includes("matchup signal is still stubbed")
-      ? `Matchup DvP is live from nflverse-data: ${dvp.opponent_team} vs ${dvp.position} is ${dvp.dvp_label} based on ${dvp.sample_weeks} trailing games.`
-      : reason
-  );
-
-  if (recommendation.explanation && Array.isArray(recommendation.explanation.data_used)) {
-    if (!recommendation.explanation.data_used.includes("matchup DvP")) {
-      recommendation.explanation.data_used.push("matchup DvP");
-    }
-    recommendation.explanation.risk =
-      `The recommendation carries medium risk because projections and waiver inputs are still not fully live, while matchup DvP is ${dvp.dvp_label}.`;
-  }
-}
-
-async function enrichWithDvp(response, body) {
+async function enrichWithDvp(response, body, { explicitMock = false } = {}) {
   if (!includeMatchupDvp(body)) return response;
-  if (!DVP_ELIGIBLE_STATES.has(response.state)) return response;
-  if (response.recommendation?.type === "waiver_pickup") return response;
-  if (!response.signals?.matchup_dvp) return response;
-
-  const lookup = deriveDvpLookup(response);
-  if (!lookup) return response;
-
-  const dvp = await matchupService.getDvpContext(lookup);
-  if (!isValidDvpContext(dvp)) return response;
-
-  enrichRecommendationWithDvp(response, dvp);
+  const dvp = await resolveMvpDvpContext(response, { explicitMock });
+  if (dvp) applyDvpContext(response, dvp);
   return response;
 }
 
@@ -455,14 +379,8 @@ async function enrichWithLlm(response, body, options) {
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
   if (!LLM_ELIGIBLE_STATES.has(response.state)) return response;
 
-  const target = explanationTarget(response);
-  if (!target) return response;
-
-  const explanation = await llm.explainOmenMvpMove(buildOmenLlmPayload(response));
-  if (!isValidExplanation(explanation)) return response;
-
-  Object.assign(target, explanation);
-  markLiveLlm(response);
+  const narration = await generateMvpLlmNarration(response);
+  if (narration) applyMvpLlmNarration(response, narration);
   return response;
 }
 
@@ -551,12 +469,22 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
 
 router.post("/mvp-move", async (req, res) => {
   const requestedContract = req.body?.contract_version;
-  if (requestedContract != null && ![BRIEF_V2, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
+  if (requestedContract != null && ![BRIEF_V2, BRIEF_V3, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
     return res.status(400).json({ error: "unsupported_omen_contract" });
   }
-  const present = (body) => requestedContract === BRIEF_V2 ? decisionBriefV2(body) : body;
+  const present = (body) => {
+    if (requestedContract === BRIEF_V3) return decisionBriefV3(body);
+    if (requestedContract === BRIEF_V2) return decisionBriefV2(body);
+    return body;
+  };
   if (!isExplicitMockRequest(req.body || {})) {
     const result = await liveOmenResult(req);
+    try {
+      await enrichWithScheduleTravel(result.body);
+    } catch {
+      // Schedule context is advisory. Its capability record remains an explicit limitation.
+    }
+    attachWaiverCapability(result.body);
     try {
       await enrichWithDvp(result.body, req.body || {});
     } catch {
@@ -586,7 +514,9 @@ router.post("/mvp-move", async (req, res) => {
 
   const result = buildOmenMvpMoveResponse(req.body || {});
   try {
-    await enrichWithDvp(result.body, req.body || {});
+    // A fixture can opt into DvP only with its own declared mock schedule
+    // context. It must never borrow current live schedule/waiver evidence.
+    await enrichWithDvp(result.body, req.body || {}, { explicitMock: true });
   } catch {
     // DvP is an enhancement only. Keep deterministic response.
   }
