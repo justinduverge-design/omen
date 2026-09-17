@@ -96,6 +96,7 @@ const RESOLVED_ROW = {
   created_at: "2026-10-11T20:12:00.000Z", scored_at: "2026-10-15T12:00:00.000Z",
   platform: "sleeper", league_id: "L1", scoring: "Half PPR",
   scoring_contract_version: "omen-scoring-contract-v1",
+  scoring_coverage_state: "supported", reconciliation_state: "exact",
 };
 
 test("GET /api/moves/:id returns the immutable snapshot with a timezone-qualified issue time", async () => {
@@ -123,8 +124,41 @@ test("evidence separates league context, player fact, model input, and inference
   assert.equal(body.evidence_at_the_time.find((e) => e.category === "omen_inference").kind, "inference");
 });
 
+test("Ledger detail adds an issue-time receipt and only promotes exact reconciled scoring", async () => {
+  const app = buildApp({ supabase: { rows: [RESOLVED_ROW] } });
+  const { body } = await request(app, `/api/moves/${MOVE_ID}`);
+  const capabilities = Object.fromEntries(body.capabilities.map((capability) => [capability.name, capability]));
+
+  assert.equal(body.capability_contract, "decision-capabilities.v1");
+  assert.equal(body.decision_context.contract_version, "shared-decision-context.v1");
+  assert.equal(body.decision_context.profile, "ledger");
+  assert.deepEqual(body.decision_context.inputs_used, ["decision_receipt", "scoring_outcome"]);
+  assert.deepEqual(capabilities.decision_receipt, {
+    name: "decision_receipt",
+    state: "live",
+    used: true,
+    kind: "verified",
+    source: "moves_persisted_receipt",
+    statement: "Omen preserved the recommendation and evidence recorded when this call was issued.",
+    observed_at: RESOLVED_ROW.created_at,
+    fresh_until: null,
+  });
+  assert.equal(capabilities.league_exact_scoring.state, "live");
+  assert.equal(capabilities.league_exact_scoring.kind, "verified");
+  assert.equal(capabilities.league_exact_scoring.used, true);
+  assert.equal(capabilities.league_exact_scoring.coverage_state, "supported");
+  assert.equal(capabilities.league_exact_scoring.reconciliation_state, "exact");
+  assert.equal(JSON.stringify(body).includes("user-1"), false);
+});
+
 test("a pre-A6 row without a scoring format names the PPR fallback as a limitation", async () => {
-  const legacy = { ...RESOLVED_ROW, scoring: null, scoring_contract_version: null };
+  const legacy = {
+    ...RESOLVED_ROW,
+    scoring: null,
+    scoring_contract_version: null,
+    scoring_coverage_state: null,
+    reconciliation_state: null,
+  };
   const app = buildApp({ supabase: { rows: [legacy] } });
   const { body } = await request(app, `/api/moves/${MOVE_ID}`);
   const limitation = body.evidence_at_the_time.find((e) => e.category === "limitation");
@@ -132,6 +166,11 @@ test("a pre-A6 row without a scoring format names the PPR fallback as a limitati
   assert.ok(limitation);
   assert.match(limitation.statement, /PPR fallback/);
   assert.equal(body.snapshot.scoring_format, null);
+  assert.equal(body.observed_outcome.known, true);
+  assert.equal(body.observed_outcome.provenance, "legacy_estimate");
+  assert.match(body.observed_outcome.statement, /Historical PPR fallback estimate/);
+  assert.equal(body.decision_context.inputs.scoring_outcome.state, "unavailable");
+  assert.equal(body.decision_context.inputs.scoring_outcome.reason_code, "legacy_ppr_estimate");
 });
 
 test("the outcome is stated in measured language and never as a raw win or loss mark", async () => {
@@ -181,7 +220,30 @@ test("a scored row with no result line is data_incomplete rather than a silent r
   const { body } = await request(app, `/api/moves/${MOVE_ID}`);
 
   assert.equal(body.state, "data_incomplete");
-  assert.match(body.observed_outcome.statement, /could not be verified/);
+  assert.match(body.observed_outcome.statement, /incomplete/);
+  assert.equal(body.decision_context.inputs.scoring_outcome.state, "unavailable");
+  assert.equal(body.decision_context.inputs.scoring_outcome.reason_code, "outcome_result_missing");
+});
+
+test("a nonexact reconciled row remains an unverified historical result", async () => {
+  const app = buildApp({
+    supabase: {
+      rows: [{ ...RESOLVED_ROW, reconciliation_state: "mismatch" }],
+    },
+  });
+  const { body } = await request(app, `/api/moves/${MOVE_ID}`);
+  const capabilities = Object.fromEntries(body.capabilities.map((capability) => [capability.name, capability]));
+
+  assert.equal(body.state, "data_incomplete");
+  assert.equal(body.observed_outcome.known, false);
+  assert.match(body.observed_outcome.statement, /not exactly reconciled/);
+  assert.equal(body.decision_context.inputs.scoring_outcome.state, "unavailable");
+  assert.equal(body.decision_context.inputs.scoring_outcome.used, false);
+  assert.equal(body.decision_context.inputs.scoring_outcome.reason_code, "reconciliation_mismatch");
+  assert.equal(capabilities.league_exact_scoring.state, "unavailable");
+  assert.equal(capabilities.league_exact_scoring.kind, "limitation");
+  assert.equal(capabilities.league_exact_scoring.used, false);
+  assert.equal(capabilities.league_exact_scoring.reason_code, "reconciliation_mismatch");
 });
 
 test("another user's move is not found, and the user filter is applied in the query", async () => {

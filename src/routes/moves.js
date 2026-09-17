@@ -6,6 +6,9 @@ const config = require("../config");
 const { requireAuth } = require("../middleware/auth");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
 const { isMissingColumnError } = require("../services/activeSelection");
+const { buildDecisionCapabilities, CAPABILITY_CONTRACT } = require("../services/decisionCapabilities");
+const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
+const { scoringCoverageCapability } = require("../services/waiverScoringCapabilities");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -188,16 +191,99 @@ function detailError({ code, message, action }) {
   };
 }
 
+function outcomeName(row) {
+  return String(row?.outcome || "pending").toLowerCase();
+}
+
+function hasPersistedScoringMetadata(row) {
+  return Boolean(
+    row?.scoring_contract_version
+    || row?.scoring_coverage_state
+    || row?.reconciliation_state
+  );
+}
+
+function hasExactScoringOutcome(row) {
+  return row?.scoring_coverage_state === "supported"
+    && row?.reconciliation_state === "exact"
+    && ["win", "loss"].includes(outcomeName(row))
+    && Boolean(row?.result);
+}
+
+function hasLegacyEstimatedOutcome(row) {
+  // Pre-A6 records were intentionally graded against the documented PPR
+  // fallback. They remain useful history, but are never provider-verified or
+  // promoted into a league-exact capability.
+  return !hasPersistedScoringMetadata(row)
+    && ["win", "loss"].includes(outcomeName(row))
+    && Boolean(row?.result);
+}
+
+function scoringOutcomeStatus(row) {
+  if (hasExactScoringOutcome(row)) {
+    return {
+      state: "live",
+      used: true,
+      reason_code: null,
+      statement: "Omen reproduced the provider's final score from this league's own rules.",
+    };
+  }
+
+  if (outcomeName(row) === "pending") {
+    return {
+      state: "pending",
+      used: false,
+      reason_code: "awaiting_final_scoring",
+      statement: "Final scoring for this recommendation is still pending.",
+    };
+  }
+
+  if (hasLegacyEstimatedOutcome(row)) {
+    return {
+      state: "unavailable",
+      used: false,
+      reason_code: "legacy_ppr_estimate",
+      statement: "This historical outcome is a PPR fallback estimate, not a provider-verified result.",
+    };
+  }
+
+  if (!row?.result) {
+    return {
+      state: "unavailable",
+      used: false,
+      reason_code: "outcome_result_missing",
+      statement: "A final outcome record is incomplete, so Omen cannot verify this result.",
+    };
+  }
+
+  if (hasPersistedScoringMetadata(row)) {
+    return {
+      state: "unavailable",
+      used: false,
+      reason_code: `reconciliation_${String(row.reconciliation_state || "not_recorded").toLowerCase()}`,
+      statement: "This result was not exactly reconciled against the league scoring contract.",
+    };
+  }
+
+  return {
+    state: "unavailable",
+    used: false,
+    reason_code: "scoring_reconciliation_not_recorded",
+    statement: "Omen did not retain enough scoring reconciliation evidence to verify this result.",
+  };
+}
+
 /**
  * §7.5 states. `superseded` is not derivable from a single row and is left to a
  * later slice rather than guessed at; `data_incomplete` covers a scored row that
  * could not produce a result line.
  */
 function detailState(row) {
-  const outcome = String(row?.outcome || "pending").toLowerCase();
+  const outcome = outcomeName(row);
   if (outcome === "pending") return row?.scored_at ? "data_incomplete" : "pending";
   if (!row?.result) return "data_incomplete";
-  return "resolved";
+  if (hasExactScoringOutcome(row) || hasLegacyEstimatedOutcome(row)) return "resolved";
+  return "data_incomplete";
 }
 
 /**
@@ -255,11 +341,24 @@ function evidenceAtTheTime(row) {
 function observedOutcome(row) {
   const state = detailState(row);
   if (state === "pending") return { known: false, statement: "This recommendation has not been scored yet.", awaiting: "final scoring for this week" };
-  if (state === "data_incomplete") return { known: false, statement: "Final result could not be verified for this recommendation.", awaiting: null };
+  if (state === "data_incomplete") return { known: false, statement: scoringOutcomeStatus(row).statement, awaiting: null };
 
-  const outcome = String(row.outcome).toLowerCase();
+  const outcome = outcomeName(row);
+  if (hasLegacyEstimatedOutcome(row)) {
+    return {
+      known: true,
+      provenance: "legacy_estimate",
+      statement: outcome === "win"
+        ? "Historical PPR fallback estimate aligned with the recommendation."
+        : "Historical PPR fallback estimate did not align with the recommendation.",
+      detail: row.result || null,
+      awaiting: null,
+    };
+  }
+
   return {
     known: true,
+    provenance: "verified",
     statement: outcome === "win"
       ? "Observed outcome aligned with the recommendation."
       : "Observed outcome did not align with the recommendation.",
@@ -268,8 +367,77 @@ function observedOutcome(row) {
   };
 }
 
+function attachLedgerDecisionReceipt(response, row) {
+  const context = createDecisionContext({ profile: "ledger" });
+  const persistedRecommendation = recommendationFrom(row);
+  const hasDecisionReceipt = typeof persistedRecommendation === "string" && persistedRecommendation.trim().length > 0;
+  const outcome = scoringOutcomeStatus(row);
+
+  context.record("decision_receipt", hasDecisionReceipt ? {
+    state: "live",
+    source: "moves_persisted_receipt",
+    observed_at: row.created_at || null,
+  } : {
+    state: "unavailable",
+    source: "moves_persisted_receipt",
+    reason_code: "issue_time_recommendation_not_recorded",
+  });
+  if (hasDecisionReceipt) context.use("decision_receipt");
+
+  context.record("scoring_outcome", {
+    state: outcome.state,
+    source: "moves_reconciliation",
+    reason_code: outcome.reason_code,
+    observed_at: row.scored_at || null,
+  });
+  if (outcome.used) context.use("scoring_outcome");
+  attachDecisionReceipt(response, context);
+
+  const decisionReceiptCapability = hasDecisionReceipt ? {
+    state: "live",
+    used: true,
+    kind: "verified",
+    source: "moves_persisted_receipt",
+    statement: "Omen preserved the recommendation and evidence recorded when this call was issued.",
+    observed_at: row.created_at || null,
+  } : {
+    state: "unavailable",
+    used: false,
+    kind: "limitation",
+    source: "moves_persisted_receipt",
+    statement: "Omen did not retain a readable issue-time recommendation for this entry.",
+    reason_code: "issue_time_recommendation_not_recorded",
+  };
+  const scoringCapability = scoringCoverageCapability({
+    coverage_state: row.scoring_coverage_state,
+    reconciliation_state: row.reconciliation_state,
+  }, {
+    used: outcome.used,
+    observedAt: row.scored_at || null,
+  });
+  // A scoring-contract state can only support this historical receipt when a
+  // corresponding result line survived. Do not let an exact marker revive a
+  // missing outcome, and never call a legacy PPR estimate provider-verified.
+  if (!outcome.used) {
+    scoringCapability.state = "unavailable";
+    scoringCapability.used = false;
+    scoringCapability.kind = "limitation";
+    scoringCapability.statement = outcome.statement;
+    scoringCapability.reason_code = outcome.reason_code;
+  }
+  const capabilityEnvelope = buildDecisionCapabilities({
+    promoted: {
+      decision_receipt: decisionReceiptCapability,
+      league_exact_scoring: scoringCapability,
+    },
+  });
+  response.capability_contract = CAPABILITY_CONTRACT;
+  response.capabilities = capabilityEnvelope.capabilities;
+  return response;
+}
+
 function moveDetail(row) {
-  return {
+  const response = {
     contract_version: DETAIL_CONTRACT,
     generated_at: nowIso(),
     id: row.id,
@@ -296,6 +464,7 @@ function moveDetail(row) {
     },
     fairness_note: "Omen shows what it knew when the call was made. Later information is never used to make an earlier recommendation look better.",
   };
+  return attachLedgerDecisionReceipt(response, row);
 }
 
 router.get("/:id", requireAuth, async (req, res, next) => {
@@ -345,3 +514,7 @@ module.exports.moveDetail = moveDetail;
 module.exports.detailState = detailState;
 module.exports.userAction = userAction;
 module.exports.observedOutcome = observedOutcome;
+module.exports.attachLedgerDecisionReceipt = attachLedgerDecisionReceipt;
+module.exports.hasExactScoringOutcome = hasExactScoringOutcome;
+module.exports.hasLegacyEstimatedOutcome = hasLegacyEstimatedOutcome;
+module.exports.scoringOutcomeStatus = scoringOutcomeStatus;

@@ -29,7 +29,7 @@ The context is not a global all-data bundle. Loading every source for every leag
 | `start_sit` | selected context, roster, roster projections | schedule/DvP, weather, scoring coverage | a projection-backed lineup decision |
 | `waiver` | selected context, roster, waiver pool, projections | waiver system, scoring coverage | explicit unavailable/empty pool state |
 | `trade` | selected context, own roster, eligible opponent rosters, projections | scoring coverage, roster construction | neutral/unavailable trade answer |
-| `league` | selected context, league summary | schedule, scoring coverage | league summary |
+| `league` | selected context; independently resolved standings, matchup, playoff settings, derived activity, and transaction-read status | schedule, scoring coverage | a live section when another League section fails |
 | `ledger` | persisted decision receipt, scoring/reconciliation outcome | final provider outcome | historical rendering |
 
 Inputs use `live`, `unavailable`, `pending`, or `not_requested`. Missing, stale, fixture, mock, sample, and cross-context data never become live solely through this contract.
@@ -52,6 +52,17 @@ Every decision-capable response may expose an additive public-safe `decision_con
 ```
 
 It contains no raw provider response, connection identifier, team identifier, credential, cookie, provider token, private rule body, or model prompt. Existing `decision_capabilities` remains the cross-surface explanation vocabulary; this receipt answers the distinct question: **did this source influence the decision?**
+
+### League overview adoption
+
+`GET /api/league/overview` remains `league-overview.v1` and adds this receipt only on successful
+overview responses. Its `league` profile names `selected_context`, `league_standings`,
+`league_matchup`, `league_playoff_settings`, `league_activity`, and `league_transactions`.
+Those records mirror the route's independently resolved sections; they do not trigger another
+provider read. A `no_matchup` result is a live completed provider read, while an unread
+transaction family remains `not_requested`. `league_activity` is live only when the existing
+standings-derived evaluator had a verified playoff setting; an empty activity array without that
+setting is not promoted into a completed-read claim.
 
 ## Candidate policy
 

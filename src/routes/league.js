@@ -25,6 +25,8 @@ const {
   readConnectionsWithSelection,
 } = require("../services/activeSelection");
 const { connectionForLeague } = require("../services/leagueDiscovery");
+const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
+const { CAPABILITY_CONTRACT, promotedCapability } = require("../services/decisionCapabilities");
 const ERROR_COPY = Object.freeze({
   invalid_platform: {
     error: "Invalid platform",
@@ -310,9 +312,155 @@ router.get("/standings", requireAuth, async (req, res, next) => {
 //   - `activity.unavailable_families` already names "transactions"
 // ---------------------------------------------------------------------------
 
+function providerLabel(platform) {
+  if (platform === "espn") return "ESPN";
+  if (platform === "yahoo") return "Yahoo";
+  if (platform === "sleeper") return "Sleeper";
+  return "connected";
+}
+
+function sourceFor(connection, section) {
+  const sources = {
+    sleeper: {
+      league_standings: "sleeper_league_standings",
+      league_matchup: "sleeper_matchups",
+      league_playoff_settings: "sleeper_league_settings",
+    },
+    espn: {
+      league_standings: "espn_league_context",
+      league_matchup: "espn_matchup",
+      league_playoff_settings: "espn_league_settings",
+    },
+    yahoo: {
+      league_standings: "yahoo_league_standings",
+      league_matchup: "yahoo_scoreboard",
+      league_playoff_settings: "yahoo_league_settings",
+    },
+  };
+  return sources[connection.platform]?.[section] || "unknown";
+}
+
+function isReadableMatchup(status) {
+  return ["pregame", "live", "final", "no_matchup"].includes(status);
+}
+
+function limitationReasonForStandings(standings = {}) {
+  if (standings.status === "off_season") return "off_season";
+  return standings.unavailable_reason || "not_read";
+}
+
+function leagueCapability(input, { kind, statement }) {
+  return promotedCapability(input.name, {
+    state: input.state,
+    used: input.used,
+    kind,
+    source: input.source,
+    statement,
+    observed_at: input.observed_at,
+    reason_code: input.reason_code,
+  });
+}
+
+/**
+ * Turns sections already resolved by this route into shared records. This is intentionally
+ * synchronous and provider-free: it never turns a request for a League overview into a second
+ * provider fan-out merely to decorate the response.
+ */
+function attachOverviewDecisionReceipt(response, connection) {
+  const context = createDecisionContext({ profile: "league", now: () => response.generated_at });
+  const standings = response.standings || {};
+  const matchup = response.matchup || {};
+  const activity = response.activity || {};
+  const standingsLive = standings.status === "available";
+  const matchupLive = isReadableMatchup(matchup.status);
+  const playoffSettingsLive = standings.playoff_picture?.settings_known === true;
+  // An empty activity list is a completed derived read only when the route had the
+  // playoff setting it needs. Without it, the same empty list means insufficient context.
+  const activityLive = standingsLive
+    && playoffSettingsLive
+    && ["available", "partial", "empty"].includes(activity.status);
+  const definitions = [
+    {
+      name: "selected_context",
+      state: "live",
+      source: "owned_platform_connection",
+      kind: "verified",
+      statement: `Omen scoped this overview to your connected ${providerLabel(connection.platform)} league.`,
+    },
+    {
+      name: "league_standings",
+      state: standingsLive ? "live" : "unavailable",
+      source: sourceFor(connection, "league_standings"),
+      reason_code: standingsLive ? undefined : limitationReasonForStandings(standings),
+      kind: standingsLive ? "verified" : "limitation",
+      statement: standingsLive
+        ? `Omen read the current standings from your connected ${providerLabel(connection.platform)} league.`
+        : "Omen could not read current standings for this league.",
+    },
+    {
+      name: "league_matchup",
+      state: matchupLive ? "live" : "unavailable",
+      source: sourceFor(connection, "league_matchup"),
+      reason_code: matchupLive && matchup.status === "no_matchup"
+        ? "no_matchup"
+        : matchupLive ? undefined : matchup.unavailable_reason || "not_read",
+      kind: matchupLive ? "verified" : "limitation",
+      statement: matchupLive && matchup.status === "no_matchup"
+        ? "Your provider confirmed that your team has no matchup this week."
+        : matchupLive
+          ? `Omen read this week's matchup from your connected ${providerLabel(connection.platform)} league.`
+          : "Omen could not read this week's matchup for this league.",
+    },
+    {
+      name: "league_playoff_settings",
+      state: playoffSettingsLive ? "live" : "unavailable",
+      source: sourceFor(connection, "league_playoff_settings"),
+      reason_code: playoffSettingsLive ? undefined : standings.status === "off_season" ? "off_season" : "settings_not_read",
+      kind: playoffSettingsLive ? "verified" : "limitation",
+      statement: playoffSettingsLive
+        ? "Omen read this league's playoff-team setting."
+        : "Omen has not read a playoff-team setting for this league.",
+    },
+    {
+      name: "league_activity",
+      state: activityLive ? "live" : "unavailable",
+      source: "derived_standings",
+      reason_code: activityLive
+        ? undefined
+        : standings.status === "off_season" ? "off_season"
+          : !standingsLive ? limitationReasonForStandings(standings)
+            : !playoffSettingsLive ? "settings_not_read"
+              : activity.status === "unavailable" ? "not_read" : "input_unavailable",
+      kind: activityLive ? "inference" : "limitation",
+      statement: activityLive
+        ? "Omen evaluated standings-backed league activity from the verified league table."
+        : "Omen cannot evaluate standings-backed activity with the available league context.",
+    },
+    {
+      name: "league_transactions",
+      state: "not_requested",
+      source: "provider_transactions",
+      reason_code: "not_requested",
+      kind: "limitation",
+      statement: "Omen has not read league transactions for this overview.",
+    },
+  ];
+  const records = definitions.map((record) => context.record(record.name, record));
+
+  for (const input of records) {
+    if (input.state === "live") context.use(input.name);
+  }
+
+  response.capability_contract = CAPABILITY_CONTRACT;
+  response.capabilities = records
+    .map((input, index) => leagueCapability(input, definitions[index]))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  return attachDecisionReceipt(response, context);
+}
+
 /** Sections fail independently. One dead provider call must never blank the destination. */
 function overviewEnvelope(connection, context, sections = {}) {
-  return {
+  return attachOverviewDecisionReceipt({
     contract_version: "league-overview.v1",
     generated_at: nowIso(),
     platform: connection.platform,
@@ -323,7 +471,7 @@ function overviewEnvelope(connection, context, sections = {}) {
     matchup: sections.matchup || { status: "unavailable", you: null, opponent: null, unavailable_reason: "not_read" },
     standings: sections.standings || { status: "unavailable", playoff_picture: null, teams: [] },
     activity: sections.activity || emptyActivity(),
-  };
+  }, connection);
 }
 
 /**

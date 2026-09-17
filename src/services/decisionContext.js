@@ -13,7 +13,17 @@ const PROFILES = Object.freeze({
   start_sit: ["selected_context", "roster", "projections"],
   waiver: ["selected_context", "roster", "waivers", "projections"],
   trade: ["selected_context", "roster", "trade_rosters", "projections"],
-  league: ["selected_context", "league"],
+  // League deliberately exposes independently-readable sections rather than one
+  // coarse "league" source. A dead matchup must not make live standings look
+  // unavailable (and an unread transaction feed must not look empty).
+  league: [
+    "selected_context",
+    "league_standings",
+    "league_matchup",
+    "league_playoff_settings",
+    "league_activity",
+    "league_transactions",
+  ],
   ledger: ["decision_receipt", "scoring_outcome"],
 });
 
