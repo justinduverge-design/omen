@@ -69,9 +69,9 @@ class SupabaseAuthRepositoryTest {
         assertEquals(AuthOutcome.RetryableError(RetryableCode.SERVER), out)
     }
 
-    @Test fun googleClientErrorIsUnsupported() = runTest {
+    @Test fun googleClientErrorIsRecoverableNotBuildUnavailability() = runTest {
         val out = repo(FakeTransport(google = TransportResult.HttpError(401))).signInWithGoogleIdToken("idt", "nonce")
-        assertIs<AuthOutcome.Unsupported>(out)
+        assertEquals(AuthOutcome.RetryableError(RetryableCode.UNKNOWN), out)
     }
 
     @Test fun refreshWithoutStoredTokenNeedsReauth() = runTest {

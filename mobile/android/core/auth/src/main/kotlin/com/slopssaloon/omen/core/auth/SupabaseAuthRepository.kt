@@ -36,8 +36,10 @@ class SupabaseAuthRepository(
     override suspend fun signInWithGoogleIdToken(idToken: String, rawNonce: String): AuthOutcome =
         when (val r = transport.signInWithGoogleIdToken(idToken, rawNonce)) {
             is TransportResult.SessionTokens -> AuthOutcome.Success(r.toSession())
-            is TransportResult.HttpError -> if (r.status in 400..403) AuthOutcome.Unsupported
-                else AuthOutcome.RetryableError(r.status.toRetryable())
+            // A configured build can receive a 4xx here when the selected account/token/nonce is
+            // rejected. The transport intentionally keeps provider response bodies private, so
+            // do not turn that into the misleading "Google unavailable on this build" state.
+            is TransportResult.HttpError -> AuthOutcome.RetryableError(r.status.toRetryable())
             TransportResult.NetworkError -> AuthOutcome.RetryableError(RetryableCode.NETWORK)
             TransportResult.Ok, TransportResult.Malformed, is TransportResult.Challenge ->
                 AuthOutcome.RetryableError(RetryableCode.UNKNOWN)

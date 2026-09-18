@@ -68,6 +68,16 @@ class AuthFlowReducerTest {
         )
     }
 
+    @Test fun configuredGoogleExchangeFailureDoesNotClaimGoogleIsUnavailable() {
+        assertEquals(
+            AuthFlowState.Failed(AuthFailure.UNKNOWN),
+            reduce(
+                AuthFlowState.ExchangingGoogleToken,
+                AuthEvent.GoogleExchangeResult(AuthOutcome.RetryableError(RetryableCode.UNKNOWN)),
+            ),
+        )
+    }
+
     @Test fun cancellationIsNamedNotFatal() {
         assertEquals(
             AuthFlowState.Failed(AuthFailure.CANCELED),

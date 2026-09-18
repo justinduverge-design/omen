@@ -7,7 +7,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.slopssaloon.omen.core.auth.GoogleIdTokenProvider
 import com.slopssaloon.omen.core.auth.GoogleIdTokenResult
@@ -15,9 +15,11 @@ import java.security.MessageDigest
 
 /**
  * Real Google ID-token provider via Android Credential Manager (M0c §2.1) — no browser, no
- * legacy Google Sign-In SDK, no WebView. [webClientId] is the Supabase-registered Web client ID
- * (server client ID); the raw nonce is SHA-256 hashed for Google and returned unhashed so the
- * caller can pass it to Supabase for verification.
+ * legacy Google Sign-In SDK, no WebView. The Omen sign-in surface has an explicit Google button,
+ * so it uses Credential Manager's matching Sign in with Google option rather than the general
+ * credential-selection option. [webClientId] is the Supabase-registered Web client ID (server
+ * client ID); the raw nonce is SHA-256 hashed for Google and returned unhashed so the caller can
+ * pass it to Supabase for verification.
  */
 class CredentialManagerGoogleIdTokenProvider(
     private val activityContext: Context,
@@ -29,9 +31,7 @@ class CredentialManagerGoogleIdTokenProvider(
     override suspend fun getIdToken(rawNonce: String): GoogleIdTokenResult {
         if (!isConfigured) return GoogleIdTokenResult.Unavailable
 
-        val option = GetGoogleIdOption.Builder()
-            .setServerClientId(webClientId)
-            .setFilterByAuthorizedAccounts(false)
+        val option = GetSignInWithGoogleOption.Builder(webClientId)
             .setNonce(sha256(rawNonce))
             .build()
         val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
@@ -39,9 +39,7 @@ class CredentialManagerGoogleIdTokenProvider(
         return try {
             val result = CredentialManager.create(activityContext).getCredential(activityContext, request)
             val credential = result.credential
-            if (credential is CustomCredential &&
-                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-            ) {
+            if (credential is CustomCredential && credential.isGoogleIdTokenCredential()) {
                 val google = GoogleIdTokenCredential.createFrom(credential.data)
                 GoogleIdTokenResult.Token(idToken = google.idToken, rawNonce = rawNonce)
             } else {
@@ -58,4 +56,9 @@ class CredentialManagerGoogleIdTokenProvider(
 
     private fun sha256(value: String): String =
         MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+
+    /** Both Credential Manager Google request variants return a [GoogleIdTokenCredential]. */
+    private fun CustomCredential.isGoogleIdTokenCredential(): Boolean =
+        type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL ||
+            type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL
 }
