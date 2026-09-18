@@ -52,6 +52,14 @@ data class OmenSignalItem(
     val source: OmenSignalSource,
     val detail: String? = null,
     val kind: OmenEvidenceKind? = null,
+    /**
+     * **Did this input change the answer?** A separate question from whether it could be read.
+     * `shared-decision-context.v1`: *"a resolved source is not described as decision-making
+     * evidence until an engine marks it used"*. `capability-expression-v1.md` needs this axis to
+     * tell two of its four presentation classes apart. `null` means the server did not say,
+     * which is not `false`. iOS mirror: `OmenSignalItem.used`.
+     */
+    val used: Boolean? = null,
 )
 
 /**

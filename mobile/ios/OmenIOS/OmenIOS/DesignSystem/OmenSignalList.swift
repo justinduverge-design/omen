@@ -45,12 +45,28 @@ struct OmenSignalItem: Identifiable {
     let source: OmenSignalSource
     let detail: String?
     let kind: OmenEvidenceKind?
+    /// **Did this input change the answer?** A separate question from whether it could be read,
+    /// and the client dropped it until 2026-09-17 — so "we used this" and "we have it and it did
+    /// not matter here" were indistinguishable on screen.
+    ///
+    /// `shared-decision-context.v1` is explicit that *"a resolved source is not described as
+    /// decision-making evidence until an engine marks it used"*, and
+    /// `capability-expression-v1.md` needs this axis to tell two of its four presentation classes
+    /// apart. `nil` means the server did not say, which is not the same as `false`.
+    let used: Bool?
 
-    init(label: String, source: OmenSignalSource, detail: String? = nil, kind: OmenEvidenceKind? = nil) {
+    init(
+        label: String,
+        source: OmenSignalSource,
+        detail: String? = nil,
+        kind: OmenEvidenceKind? = nil,
+        used: Bool? = nil
+    ) {
         self.label = label
         self.source = source
         self.detail = detail
         self.kind = kind
+        self.used = used
     }
 }
 

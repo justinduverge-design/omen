@@ -197,12 +197,16 @@ extension OmenDecisionEnvelope {
 
     private static func signalItems(capabilities: [OmenDecisionCapability]?, legacySignals signals: [String: Signal]?) -> [OmenSignalItem] {
         if let capabilities, !capabilities.isEmpty {
-            return capabilities.sorted { ($0.name ?? "") < ($1.name ?? "") }.map { capability in
+            // Server order is preserved. This alphabetised until 2026-09-17, which is a claim
+            // about relative importance that no contract supports — and Android never sorted, so
+            // the two platforms showed the same evidence in different orders.
+            return capabilities.map { capability in
                 OmenSignalItem(
                     label: signalLabel(capability.name ?? "unknown_capability"),
                     source: signalSource(capability.state),
                     detail: capability.statement ?? capability.source,
-                    kind: evidenceKind(capability.kind)
+                    kind: evidenceKind(capability.kind),
+                    used: capability.used
                 )
             }
         }

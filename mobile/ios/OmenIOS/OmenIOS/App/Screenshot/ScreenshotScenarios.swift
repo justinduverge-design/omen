@@ -70,11 +70,15 @@ enum ScreenshotScenarios {
         ),
         "omen.demo": ScreenshotScenario(
             label: "Omen — demo/mock decision",
-            content: { AnyView(FauxShell(scenarioKey: "omen.demo")) }
+            // `initialTab` was omitted here until 2026-09-17, so this scenario screenshotted the
+            // COMMAND tab and certified the wrong screen. FauxShell's own comment predicted it:
+            // "Without it a Trade or League scenario would screenshot the Command tab and
+            // silently prove nothing." Omen was the case that slipped.
+            content: { AnyView(FauxShell(scenarioKey: "omen.demo", initialTab: .omen)) }
         ),
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
-            content: { AnyView(FauxShell(scenarioKey: "omen.disconnected")) }
+            content: { AnyView(FauxShell(scenarioKey: "omen.disconnected", initialTab: .omen)) }
         ),
         "switcher.team-sheet": ScreenshotScenario(
             label: "Team switcher — pinned bar and the sheet, one favourite starred",

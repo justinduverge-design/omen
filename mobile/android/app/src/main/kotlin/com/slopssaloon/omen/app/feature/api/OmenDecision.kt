@@ -203,6 +203,7 @@ data class OmenDecisionEnvelope(
                     source = signal.source,
                     detail = signal.detail,
                     kind = signal.kind,
+                    used = signal.used,
                 )
             },
             alternatives = alternatives(rec),
@@ -221,6 +222,14 @@ data class OmenDecisionEnvelope(
         val source: OmenSignalSource,
         val detail: String?,
         val kind: OmenEvidenceKind?,
+        /**
+         * **Did this input change the answer?** A separate question from whether it could be
+         * read, and the client dropped it until 2026-09-17 — so "we used this" and "we have it
+         * and it did not matter here" were indistinguishable on screen.
+         *
+         * `null` means the server did not say, which is not the same as `false`.
+         */
+        val used: Boolean? = null,
     )
 
     private fun displaySignals(): List<DisplaySignal> = if (capabilities.isNotEmpty()) {
@@ -230,6 +239,7 @@ data class OmenDecisionEnvelope(
                 source = signalSource(capability.state),
                 detail = capability.statement ?: capability.source,
                 kind = evidenceKind(capability.kind),
+                used = capability.used,
             )
         }
     } else {
