@@ -54,6 +54,9 @@ struct OmenIOSApp: App {
             nativeOAuthProvider.callbackHandler = { [weak viewModel] url in
                 viewModel?.handleOAuthCallback(url)
             }
+            nativeOAuthProvider.cancellationHandler = { [weak viewModel] in
+                viewModel?.handleOAuthDismissed()
+            }
         }
         _authViewModel = StateObject(wrappedValue: viewModel)
     }

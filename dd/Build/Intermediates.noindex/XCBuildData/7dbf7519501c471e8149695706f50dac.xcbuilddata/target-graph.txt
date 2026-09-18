@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'OmenIOSUITests' in project 'OmenIOS'
+➜ Explicit dependency on target 'OmenIOS' in project 'OmenIOS'
+Target 'OmenIOSTests' in project 'OmenIOS'
+➜ Explicit dependency on target 'OmenIOS' in project 'OmenIOS'
+Target 'OmenIOS' in project 'OmenIOS' (no dependencies)

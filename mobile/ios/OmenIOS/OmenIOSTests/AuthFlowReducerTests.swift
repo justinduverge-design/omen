@@ -108,6 +108,47 @@ final class AuthFlowReducerTests: XCTestCase {
         XCTAssertEqual(state, .failed(reason: .oauthCallbackMismatch))
     }
 
+    // 2026-09-18: a live Google sign-in failed with an invalid client secret in the Supabase
+    // provider config. Supabase redirected back with `error`/`error_description` and no `code`,
+    // the app read only `code`, and the missing code became `.malformed` -> the reducer reported
+    // `.oauthCallbackMismatch` -> "Sign-in couldn't be verified. Start again." Nothing was
+    // unverified and starting again could never work. These lock the distinction.
+
+    func testProviderReturnedErrorIsItsOwnFailureNotACallbackMismatch() {
+        let state = AuthFlowReducer.reduce(
+            state: .launchingOAuth(providerId: "google"),
+            event: .oauthProviderReturnedError(providerId: "google")
+        )
+        XCTAssertEqual(state, .failed(reason: .oauthProviderRejected))
+        XCTAssertNotEqual(
+            state, .failed(reason: .oauthCallbackMismatch),
+            "A provider that refused us is not a routing or CSRF anomaly, and must not borrow its copy."
+        )
+    }
+
+    func testProviderRejectionDoesNotTellTheUserToRetryTheSameThing() {
+        // The mismatch copy says "Start again." For a rejection that is a lie: the far side will
+        // refuse identically until someone changes server-side configuration.
+        let copy = AuthFailure.oauthProviderRejected.userMessage
+        XCTAssertFalse(
+            copy.lowercased().contains("start again"),
+            "Rejection copy must not instruct a retry that cannot succeed."
+        )
+        XCTAssertTrue(
+            copy.lowercased().contains("another"),
+            "Rejection copy should route the user to a method that can work."
+        )
+    }
+
+    func testProviderRejectionIsTerminalFromTheExchangeStateToo() {
+        // The error can land after the code exchange has already started.
+        let state = AuthFlowReducer.reduce(
+            state: .exchangingOAuthCode(providerId: "google"),
+            event: .oauthProviderReturnedError(providerId: "google")
+        )
+        XCTAssertEqual(state, .failed(reason: .oauthProviderRejected))
+    }
+
     func testOAuthExchangeSuccessAuthenticates() {
         let state = AuthFlowReducer.reduce(
             state: .exchangingOAuthCode(providerId: "discord"),
