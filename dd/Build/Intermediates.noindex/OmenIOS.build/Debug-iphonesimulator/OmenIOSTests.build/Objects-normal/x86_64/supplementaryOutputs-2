@@ -1,0 +1,37 @@
+{
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/AuthViewModelAppleTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelAppleTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelAppleTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelAppleTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelAppleTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelAppleTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/AuthViewModelPasskeyTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelPasskeyTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelPasskeyTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelPasskeyTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelPasskeyTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/AuthViewModelPasskeyTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/OmenMatchupHeroTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/OmenMatchupHeroTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/OmenMatchupHeroTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/OmenMatchupHeroTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/OmenMatchupHeroTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/OmenMatchupHeroTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/SecureNonceTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/SecureNonceTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/SecureNonceTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/SecureNonceTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/SecureNonceTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/SecureNonceTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/TypographyDerivationTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/TypographyDerivationTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/TypographyDerivationTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/TypographyDerivationTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/TypographyDerivationTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/x86_64/TypographyDerivationTests.swiftdeps"
+  }
+}

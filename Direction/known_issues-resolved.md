@@ -10,6 +10,62 @@ and several here were re-opened once already. Read this when a symptom looks fam
 **Open issues stay in `Direction/known_issues.md`.**
 
 
+## ✅ FIXED 2026-09-18 — a provider that refused us was reported as an unverifiable sign-in
+
+**Found live.** The founder tapped "Continue with Google" on iPhone, approved at Google, and got
+**"Sign-in couldn't be verified. Start again."** Retrying produced it three times.
+
+**Root cause was not in the app.** Supabase auth logs for those three attempts:
+
+```
+oauth2: "invalid_client" "The provided client secret is invalid."
+500: Unable to exchange external code
+```
+
+The Google client secret stored in the Supabase Google provider was stale. The founder replaced it
+and signed in successfully at 21:09:56 the same evening. **No code change fixed the sign-in.**
+
+**But the app told two lies about it, and those were real defects.**
+
+Supabase answers a failed provider round trip by redirecting back with `error` and
+`error_description` and **no `code`**. `AuthViewModel.handleOAuthCallback` read only `code` and
+`state`. The missing code parsed as `.malformed`, which was dispatched as a provider mismatch,
+which the reducer turned into `.oauthCallbackMismatch`.
+
+1. **"Couldn't be verified" was false.** The request was well-formed and the CSRF state matched.
+   Nothing was anomalous. The copy describes a routing or replay attack.
+2. **"Start again" was false.** The far side would refuse identically until a secret changed
+   server-side. The user was told to repeat an action that could not work.
+
+The provider's own answer was in the callback URL and was being discarded.
+
+Fixed by reading `error` first and mapping it to a new `AuthFailure.oauthProviderRejected`, whose
+copy routes to another method instead of instructing a retry. `error_description` is deliberately
+never surfaced or logged — it is provider-authored text and M0c §8 keeps it private. It tells us
+the *class* of failure; the copy stays ours.
+
+**A second defect surfaced in the same file.** `ASWebAuthenticationSession`'s completion runs with
+a nil URL when the sheet is dismissed. That path did `guard let callbackURL else { return }` —
+dispatching nothing — so the flow stayed in `.launchingOAuth` with the provider button spinning
+and no way back. Now reported as cancellation, guarded on still being in `.launchingOAuth` so a
+late dismissal cannot clobber a finished exchange. **Same shape as the ESPN late-dismissal defect
+fixed in #451**, which is twice now.
+
+**The generalisable lesson:** the failure was diagnosable in seconds from the server's own logs,
+and the client had been guessing at a cause for which it had evidence sitting in the URL. When a
+client cannot know why something failed, it must say so — not pick the most specific-sounding
+named failure it happens to have an enum case for.
+
+**Evidence:** `AuthViewModelOAuthCallbackTests` (4 tests, incl. a negative control that a genuine
+state mismatch still reads as a mismatch) and 3 reducer tests. Negative control run: with the fix
+reverted, all 4 fail and the callback test reproduces `oauthCallbackMismatch` exactly. Full iOS
+suite 482 tests, 1 skipped, 0 failures.
+
+**Not fixed, and worth knowing:** the same over-claiming pattern exists on Android, where a 4xx on
+the Google exchange maps to `AuthOutcome.Unsupported` — "Google is unavailable on this build."
+With the stale secret, Android would have said exactly that. PR #452 addresses it.
+
+
 ## ✅ FIXED 2026-09-05 — two week calculations disagreed on every game day of the season
 
 **Found while sweeping for date-dependent tests, after the founder asked whether the week

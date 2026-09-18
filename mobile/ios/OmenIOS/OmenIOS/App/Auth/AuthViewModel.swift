@@ -199,7 +199,29 @@ final class AuthViewModel: ObservableObject {
 
     /// Called from `OmenIOSApp` `.onOpenURL` when a `com.slopssaloon.omen://auth/callback`
     /// deep link arrives. Validates state via the provider seam, then runs the code exchange.
+    /// The OAuth sheet closed without delivering a callback. Only meaningful while a launch is
+    /// in flight — a late dismissal after the callback already landed must not knock a
+    /// succeeding or completed exchange back to `.failed`.
+    func handleOAuthDismissed() {
+        guard case .launchingOAuth = flowState else { return }
+        dispatch(.canceled)
+    }
+
     func handleOAuthCallback(_ url: URL) {
+        // Supabase answers a failed provider round trip by redirecting back with `error` and
+        // `error_description` and NO `code`. Read that first: without it the missing code reads
+        // as `.malformed`, which the reducer turns into `.oauthCallbackMismatch` — telling the
+        // user their sign-in "couldn't be verified" and to start again, when nothing about the
+        // request was anomalous and starting again cannot work. The provider's own answer was
+        // sitting in the URL the whole time.
+        //
+        // The description is deliberately NOT surfaced or logged: it is a provider-authored
+        // string and M0c §8 keeps provider response text private. It tells us the CLASS of
+        // failure; the copy stays ours.
+        if let error = url.queryValue("error"), !error.isEmpty {
+            dispatch(.oauthProviderReturnedError(providerId: launchingProviderId ?? "unknown"))
+            return
+        }
         guard let providerId = launchingProviderId else {
             // Callback arrived while we're not launching anything — surface as mismatch so a
             // stray link can't quietly succeed.

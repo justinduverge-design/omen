@@ -1,0 +1,135 @@
+{
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/App/Api/LeagueFavorites.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/LeagueFavorites.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/LeagueFavorites.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/LeagueFavorites.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/LeagueFavorites.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/LeagueFavorites.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenBadge.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenBadge.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenBadge.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenBadge.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenBadge.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenBadge.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenCard.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenCard.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenCard.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenCard.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenCard.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenCard.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenChip.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenChip.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenChip.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenChip.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenChip.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenChip.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenConfidenceBar.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfidenceBar.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfidenceBar.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfidenceBar.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfidenceBar.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfidenceBar.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenConfirmationDialog.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfirmationDialog.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfirmationDialog.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfirmationDialog.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfirmationDialog.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConfirmationDialog.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenConnectionStatusBadge.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConnectionStatusBadge.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConnectionStatusBadge.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConnectionStatusBadge.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConnectionStatusBadge.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenConnectionStatusBadge.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenListRow.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenListRow.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenListRow.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenListRow.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenListRow.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenListRow.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenMetricStrip.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenMetricStrip.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenMetricStrip.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenMetricStrip.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenMetricStrip.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenMetricStrip.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenModalSheet.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenModalSheet.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenModalSheet.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenModalSheet.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenModalSheet.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenModalSheet.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenPicker.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPicker.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPicker.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPicker.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPicker.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPicker.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenPlatformBadge.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformBadge.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformBadge.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformBadge.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformBadge.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformBadge.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenPlatformCompactRow.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformCompactRow.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformCompactRow.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformCompactRow.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformCompactRow.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformCompactRow.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenPlatformConnectionCard.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformConnectionCard.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformConnectionCard.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformConnectionCard.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformConnectionCard.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlatformConnectionCard.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenPlayerRow.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlayerRow.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlayerRow.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlayerRow.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlayerRow.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenPlayerRow.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenRiskPanel.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenRiskPanel.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenRiskPanel.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenRiskPanel.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenRiskPanel.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenRiskPanel.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenSignalList.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenSignalList.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenSignalList.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenSignalList.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenSignalList.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenSignalList.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenStateSurface.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenStateSurface.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenStateSurface.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenStateSurface.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenStateSurface.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenStateSurface.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOS/DesignSystem/OmenTeamSwitcherSheet.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenTeamSwitcherSheet.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenTeamSwitcherSheet.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenTeamSwitcherSheet.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenTeamSwitcherSheet.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOS.build/Objects-normal/arm64/OmenTeamSwitcherSheet.swiftdeps"
+  }
+}

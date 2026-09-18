@@ -1,0 +1,44 @@
+{
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/CommandCenterViewModelTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/CommandCenterViewModelTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/CommandCenterViewModelTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/CommandCenterViewModelTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/CommandCenterViewModelTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/CommandCenterViewModelTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/DashboardSummaryTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/DashboardSummaryTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/DashboardSummaryTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/DashboardSummaryTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/DashboardSummaryTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/DashboardSummaryTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/LeagueOverviewTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueOverviewTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueOverviewTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueOverviewTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueOverviewTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueOverviewTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/LeagueStandingsTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueStandingsTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueStandingsTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueStandingsTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueStandingsTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/LeagueStandingsTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/OmenApiClientTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/OmenApiClientTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/OmenApiClientTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/OmenApiClientTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/OmenApiClientTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/OmenApiClientTests.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSTests/TradeCompareTests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/TradeCompareTests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/TradeCompareTests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/TradeCompareTests.dia",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/TradeCompareTests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSTests.build/Objects-normal/arm64/TradeCompareTests.swiftdeps"
+  }
+}

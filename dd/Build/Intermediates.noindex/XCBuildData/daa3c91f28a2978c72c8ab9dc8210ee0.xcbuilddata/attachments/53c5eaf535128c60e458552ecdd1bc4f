@@ -1,0 +1,49 @@
+{
+  "" : {
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/OmenIOSUITests-primary.dia",
+    "emit-module-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/OmenIOSUITests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/OmenIOSUITests-primary-emit-module.dia",
+    "pch" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/OmenIOSUITests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/OmenIOSUITests-primary.swiftdeps"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSUITests/CarouselLayoutUITests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.dia",
+    "index-unit-output-path" : "/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.o",
+    "llvm-bc" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.bc",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests.swiftdeps",
+    "swiftmodule" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/CarouselLayoutUITests~partial.swiftmodule"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSUITests/ContextualHelpAccessibilityUITests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.dia",
+    "index-unit-output-path" : "/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.o",
+    "llvm-bc" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.bc",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests.swiftdeps",
+    "swiftmodule" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ContextualHelpAccessibilityUITests~partial.swiftmodule"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSUITests/ForcedUpdateAccessibilityUITests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.dia",
+    "index-unit-output-path" : "/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.o",
+    "llvm-bc" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.bc",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests.swiftdeps",
+    "swiftmodule" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/ForcedUpdateAccessibilityUITests~partial.swiftmodule"
+  },
+  "/tmp/omen-ios-oauth/mobile/ios/OmenIOS/OmenIOSUITests/HelpSupportAccessibilityUITests.swift" : {
+    "const-values" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.swiftconstvalues",
+    "dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.d",
+    "diagnostics" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.dia",
+    "index-unit-output-path" : "/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.o",
+    "llvm-bc" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.bc",
+    "object" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.o",
+    "swift-dependencies" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests.swiftdeps",
+    "swiftmodule" : "/tmp/omen-ios-oauth/dd/Build/Intermediates.noindex/OmenIOS.build/Debug-iphonesimulator/OmenIOSUITests.build/Objects-normal/arm64/HelpSupportAccessibilityUITests~partial.swiftmodule"
+  }
+}
