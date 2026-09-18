@@ -233,7 +233,12 @@ data class OmenDecisionEnvelope(
     )
 
     private fun displaySignals(): List<DisplaySignal> = if (capabilities.isNotEmpty()) {
-        capabilities.map { capability ->
+        // `not_requested` is NOT a limitation and must never render as one. A profile only
+        // resolves what it needs, so an input that was never asked for is out of scope rather
+        // than missing. It fell through `signalSource`'s else-branch to `Unavailable` until
+        // 2026-09-17, telling the user Omen had failed to read something it never wanted.
+        // Absence of a claim is not a claim of absence. Rule: `capability-expression-v1.md`.
+        capabilities.filter { it.state != "not_requested" }.map { capability ->
             DisplaySignal(
                 key = capability.name.orEmpty(),
                 source = signalSource(capability.state),

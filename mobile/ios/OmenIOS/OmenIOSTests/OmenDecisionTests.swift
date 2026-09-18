@@ -299,6 +299,72 @@ final class OmenDecisionTests: XCTestCase {
         XCTAssertEqual(payload.risk, .medium, "an unfamiliar risk must not read as safer than it is")
     }
 
+    // MARK: - Capability expression (capability-expression-v1.md)
+
+    private func capabilityEnvelope() throws -> OmenDecisionEnvelope {
+        try decode("""
+        {
+          "contract_version": "omen-decision-brief.v3",
+          "state": "success", "mode": "live",
+          "recommendation": {
+            "type": "start_sit", "title": "Start Achane", "move": "Start Achane over Pollard.",
+            "confidence": {"band": "confident", "drivers": ["Volume is stable."]},
+            "risk": {"level": "low", "reasons": []},
+            "explanation": {"summary": "Start Achane."}
+          },
+          "capabilities": [
+            {"name":"roster","state":"live","used":true,"kind":"verified","statement":"Roster read."},
+            {"name":"matchup_dvp","state":"live","used":false,"kind":"projection","statement":"Read, not decisive."},
+            {"name":"weather","state":"unavailable","used":false,"kind":"limitation","statement":"Weather not read."},
+            {"name":"trade_rosters","state":"not_requested","used":false,"kind":"model","statement":"Never asked for."}
+          ]
+        }
+        """)
+    }
+
+    /// The two axes are different questions. `state` asks whether we could read it; `used` asks
+    /// whether it changed the answer. The client dropped `used` entirely until 2026-09-17, which
+    /// made "this moved the call" and "we have it and it did not matter" indistinguishable and
+    /// left two of the four presentation classes unexpressible.
+    func testUsedSurvivesTheMappingSoEvidenceIsDistinguishableFromMerelyResolved() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        let byLabel = Dictionary(uniqueKeysWithValues: payload.signals.map { ($0.label, $0) })
+        XCTAssertEqual(byLabel["Roster"]?.used, true, "a used input must be marked used")
+        XCTAssertEqual(byLabel["Matchup Dvp"]?.used, false, "a resolved-but-unused input is not evidence")
+        XCTAssertNotNil(byLabel["Roster"], "capability names map to display labels")
+    }
+
+    /// `not_requested` is NOT a limitation. A profile resolves only what it needs, so an input it
+    /// never asked for is out of scope rather than missing. It fell through to `.unavailable`
+    /// until 2026-09-17 — telling the user Omen failed to read something it never wanted, which
+    /// is the manufactured limitation that teaches people to ignore the real ones.
+    func testAnInputThatWasNeverRequestedIsNotRenderedAtAll() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        XCTAssertFalse(
+            payload.signals.contains { $0.label.lowercased().contains("trade") },
+            "a not_requested input must not reach the screen in any form"
+        )
+        XCTAssertTrue(
+            payload.signals.contains { $0.source == .unavailable },
+            "a genuinely unavailable input must still be named"
+        )
+    }
+
+    /// The server orders the evidence. iOS alphabetised it until 2026-09-17 while Android did
+    /// not, so the two platforms showed the same evidence in different orders and iOS asserted a
+    /// relative importance no contract supports.
+    func testServerOrderIsPreservedRatherThanAlphabetised() throws {
+        guard case .success(let payload) = try capabilityEnvelope().briefState() else {
+            return XCTFail("expected success")
+        }
+        // Server order is roster, matchup_dvp, weather (trade_rosters filtered out).
+        XCTAssertEqual(payload.signals.map(\.label), ["Roster", "Matchup Dvp", "Weather"])
+    }
+
     /// The envelope legitimately varies by state. Modelling fields as required would turn an
     /// honest backend answer into `.decode` and tell the user the app is broken.
     func testMinimalEnvelopeDecodesWithoutOptionalSections() throws {
