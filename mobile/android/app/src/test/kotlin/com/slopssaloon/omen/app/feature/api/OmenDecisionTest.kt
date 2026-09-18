@@ -6,7 +6,10 @@ import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
 import com.slopssaloon.omen.core.designsystem.component.OmenMetricDelta
 import com.slopssaloon.omen.core.designsystem.component.OmenRiskLevel
 import com.slopssaloon.omen.core.designsystem.component.OmenSignalSource
+import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,6 +32,24 @@ import org.junit.Test
  * instead — see the `:app` build script.
  */
 class OmenDecisionTest {
+
+    @Test
+    fun `live Omen request opts into bounded private narration without sending league data`() = runTest {
+        var emittedBody: String? = null
+        val fetcher = OmenHttpFetcher { _, _, _, body ->
+            emittedBody = body
+            200 to "{\"state\":\"empty\",\"mode\":\"live\"}"
+        }
+
+        ApiOmenDecisionRepository(OmenApiClient("https://api.example.com", fetcher))
+            .fetchDecision("access-token")
+
+        val body = JSONObject(requireNotNull(emittedBody))
+        assertEquals("omen-decision-brief.v3", body.getString("contract_version"))
+        assertTrue(body.getJSONObject("include_signals").getBoolean("llm_reasoning"))
+        assertFalse(body.has("league_id"))
+        assertFalse(body.has("roster"))
+    }
 
     private fun parse(json: String): OmenDecisionEnvelope =
         requireNotNull(OmenDecisionEnvelope.parse(json)) { "envelope failed to parse: $json" }

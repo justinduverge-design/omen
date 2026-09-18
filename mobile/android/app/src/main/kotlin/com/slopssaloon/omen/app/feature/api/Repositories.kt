@@ -162,9 +162,10 @@ class StubTradeRepository(
  *
  * Separate again, and for the same reason: this is the expensive call. It runs the live
  * engine against a provider, so the Omen destination owns its own loading state rather than
- * blocking the shell. Per the route contract the client sends `{}` — the server derives
- * league, week, and provider from the authenticated session, so there is no context the
- * client could get wrong.
+ * blocking the shell. The server derives league, week, and provider from the authenticated
+ * session, so the client sends no league facts it could get wrong. It does explicitly opt into
+ * the private narration capability: that request stays server-mediated and has its own short
+ * response budget, so it can improve the explanation but cannot delay or choose the move.
  */
 interface OmenDecisionRepository {
     suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope>
@@ -172,7 +173,12 @@ interface OmenDecisionRepository {
 
 class ApiOmenDecisionRepository(private val client: OmenApiClient) : OmenDecisionRepository {
     override suspend fun fetchDecision(accessToken: String): OmenApiResult<OmenDecisionEnvelope> =
-        client.post("api/omen/mvp-move", accessToken, "{\"contract_version\":\"omen-decision-brief.v3\"}", OmenDecisionEnvelope::parse)
+        client.post(
+            "api/omen/mvp-move",
+            accessToken,
+            "{\"contract_version\":\"omen-decision-brief.v3\",\"include_signals\":{\"llm_reasoning\":true}}",
+            OmenDecisionEnvelope::parse,
+        )
 }
 
 class StubOmenDecisionRepository(

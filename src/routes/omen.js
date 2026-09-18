@@ -36,6 +36,10 @@ const {
   decisionBriefV2,
   decisionBriefV3,
 } = require("../services/decisionBriefV2");
+const {
+  isLatencyBudgetExceeded,
+  withinLatencyBudget,
+} = require("../services/latencyBudget");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -54,6 +58,18 @@ const LLM_BLOCKED_STATES = new Set([
   "espn_recovery_needed",
   "error",
 ]);
+
+// The deterministic provider-backed recommendation is the product's critical
+// path. Everything else below either refines its explanation or records the
+// receipt. These independent ceilings keep an advisory source from turning a
+// valid move into a 20–30 second spinner.
+const MVP_LATENCY_BUDGET_MS = Object.freeze({
+  core_decision: 5000,
+  schedule: 700,
+  matchup_dvp: 1100,
+  llm_narration: 1250,
+  persistence: 2500,
+});
 
 function isExplicitMockRequest(body = {}) {
   return body.use_mock_data === true || body.mock_state != null;
@@ -237,14 +253,18 @@ function attachWaiverCapability(response) {
 
 async function scoringPersistenceMetadata(response = {}, userId = null) {
   try {
-    return await resolveScoringPersistenceMetadata({
-      platform: response.platform?.name || null,
-      leagueId: response.league?.id || null,
-      // ESPN's settings are a credentialed read, so the resolver needs to know whose.
-      userId,
-    });
+    return await withinLatencyBudget(
+      "scoring_metadata",
+      1200,
+      () => resolveScoringPersistenceMetadata({
+        platform: response.platform?.name || null,
+        leagueId: response.league?.id || null,
+        // ESPN's settings are a credentialed read, so the resolver needs to know whose.
+        userId,
+      })
+    );
   } catch {
-    return pendingMetadata("Scoring contract derivation failed unexpectedly.");
+    return pendingMetadata("Scoring contract could not be read within Omen's response budget.");
   }
 }
 
@@ -379,12 +399,27 @@ async function enrichWithLlm(response, body, options) {
   if (LLM_BLOCKED_STATES.has(response.state)) return response;
   if (!LLM_ELIGIBLE_STATES.has(response.state)) return response;
 
-  const narration = await generateMvpLlmNarration(response);
-  if (narration) applyMvpLlmNarration(response, narration);
+  try {
+    const narration = await withinLatencyBudget(
+      "llm_narration",
+      MVP_LATENCY_BUDGET_MS.llm_narration,
+      () => generateMvpLlmNarration(response, { timeoutMs: MVP_LATENCY_BUDGET_MS.llm_narration })
+    );
+    if (narration) applyMvpLlmNarration(response, narration);
+  } catch (error) {
+    if (isLatencyBudgetExceeded(error) && response.signals?.llm_reasoning) {
+      response.signals.llm_reasoning = {
+        status: "unavailable",
+        used: false,
+        source: "ollama_gemma",
+        message: "Private narration did not finish within Omen's response budget; the deterministic recommendation is unchanged.",
+      };
+    }
+  }
   return response;
 }
 
-async function liveOmenResult(req) {
+async function liveOmenResult(req, trace) {
   let user;
   try {
     user = await authenticateOmenRequest(req.headers.authorization);
@@ -396,13 +431,18 @@ async function liveOmenResult(req) {
     if (suppressLiveFootballData()) {
       return { ...offSeasonMvpResponse(), authenticatedUser: user };
     }
-    const result = await buildLiveOmenMvpMoveForUser(user.id, {
-      contextId: req.body?.context_id,
-    });
+    const result = await traceStage(trace, "core_decision", () => withinLatencyBudget(
+      "core_decision",
+      MVP_LATENCY_BUDGET_MS.core_decision,
+      () => buildLiveOmenMvpMoveForUser(user.id, {
+        contextId: req.body?.context_id,
+      })
+    ));
     return { ...result, authenticatedUser: user };
   } catch (e) {
+    const timedOut = isLatencyBudgetExceeded(e);
     return {
-      status: 500,
+      status: timedOut ? 503 : 500,
       body: {
         contract_version: LIVE_CONTRACT_VERSION,
         state: "error",
@@ -422,13 +462,43 @@ async function liveOmenResult(req) {
         alternatives: [],
         warnings: [],
         error: {
-          code: "omen_live_generation_failed",
-          message: "Omen could not generate a live Most Valuable Play right now.",
+          code: timedOut ? "omen_live_generation_timed_out" : "omen_live_generation_failed",
+          message: timedOut
+            ? "Omen's live league source did not respond within the recommendation budget. Try again shortly."
+            : "Omen could not generate a live Most Valuable Play right now.",
           retryable: true,
         },
       },
     };
   }
+}
+
+async function traceStage(trace, stage, operation) {
+  const startedAt = Date.now();
+  try {
+    const value = await operation();
+    trace[stage] = { duration_ms: Date.now() - startedAt, outcome: "ok" };
+    return value;
+  } catch (error) {
+    trace[stage] = {
+      duration_ms: Date.now() - startedAt,
+      outcome: isLatencyBudgetExceeded(error) ? "timed_out" : "failed",
+    };
+    throw error;
+  }
+}
+
+function emitLatencyTrace(trace, responseState) {
+  const totalMs = Date.now() - trace.started_at;
+  // This is intentionally operational-only: no user, league, player, token,
+  // provider response, or request body is retained in latency telemetry.
+  logger.info("Omen MVP latency budget", {
+    total_ms: totalMs,
+    response_state: responseState || "unknown",
+    stages: Object.fromEntries(Object.entries(trace)
+      .filter(([name]) => name !== "started_at")
+      .map(([name, value]) => [name, value])),
+  });
 }
 
 router.post("/feedback", requireAuth, async (req, res, next) => {
@@ -468,6 +538,7 @@ router.post("/feedback", requireAuth, async (req, res, next) => {
 });
 
 router.post("/mvp-move", async (req, res) => {
+  const trace = { started_at: Date.now() };
   const requestedContract = req.body?.contract_version;
   if (requestedContract != null && ![BRIEF_V2, BRIEF_V3, LIVE_CONTRACT_VERSION].includes(requestedContract)) {
     return res.status(400).json({ error: "unsupported_omen_contract" });
@@ -478,27 +549,49 @@ router.post("/mvp-move", async (req, res) => {
     return body;
   };
   if (!isExplicitMockRequest(req.body || {})) {
-    const result = await liveOmenResult(req);
+    const result = await liveOmenResult(req, trace);
+    // Ledger persistence runs beside optional evidence enrichment. We still
+    // fail closed if it cannot be stored, but it is no longer a fourth serial
+    // network wait after schedule/DvP/LLM work.
+    const persistence = traceStage(trace, "persistence", () => withinLatencyBudget(
+      "persistence",
+      MVP_LATENCY_BUDGET_MS.persistence,
+      () => persistLiveRecommendation(result.authenticatedUser, result.body)
+    )).then(
+      () => ({ ok: true }),
+      (error) => ({ ok: false, error })
+    );
     try {
-      await enrichWithScheduleTravel(result.body);
+      await traceStage(trace, "schedule", () => withinLatencyBudget(
+        "schedule",
+        MVP_LATENCY_BUDGET_MS.schedule,
+        () => enrichWithScheduleTravel(result.body)
+      ));
     } catch {
       // Schedule context is advisory. Its capability record remains an explicit limitation.
     }
     attachWaiverCapability(result.body);
     try {
-      await enrichWithDvp(result.body, req.body || {});
+      await traceStage(trace, "matchup_dvp", () => withinLatencyBudget(
+        "matchup_dvp",
+        MVP_LATENCY_BUDGET_MS.matchup_dvp,
+        () => enrichWithDvp(result.body, req.body || {})
+      ));
     } catch {
       // DvP is an enhancement only. Keep deterministic response.
     }
     try {
-      await enrichWithLlm(result.body, req.body || {}, { defaultEnabled: false });
+      await traceStage(trace, "llm_narration", () => enrichWithLlm(
+        result.body,
+        req.body || {},
+        { defaultEnabled: false }
+      ));
     } catch {
       // LLM explanation is an enhancement only. Keep deterministic response.
     }
-    try {
-      await persistLiveRecommendation(result.authenticatedUser, result.body);
-    } catch {
-      return res.status(503).json(present({
+    const persistenceResult = await persistence;
+    if (!persistenceResult.ok) {
+      const body = present({
         ...result.body,
         state: "error",
         recommendation: null,
@@ -507,9 +600,13 @@ router.post("/mvp-move", async (req, res) => {
           message: "Omen could not safely record this recommendation, so no move was issued.",
           retryable: true,
         },
-      }));
+      });
+      emitLatencyTrace(trace, body.state);
+      return res.status(503).json(body);
     }
-    return res.status(result.status).json(present(result.body));
+    const body = present(result.body);
+    emitLatencyTrace(trace, body.state);
+    return res.status(result.status).json(body);
   }
 
   const result = buildOmenMvpMoveResponse(req.body || {});

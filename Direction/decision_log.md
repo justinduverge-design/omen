@@ -3269,3 +3269,18 @@ behaving; until then this entry records intent, not proof.
 - **Decision: distinguish source availability from source use.** A capability can be live but must not be described as affecting a move until the deterministic feature engine records it as used. MVP, Start/Sit detail v2, Waiver analysis v2, and Trade compare v2 attach the additive receipt. Private LLM narration remains non-decision-making.
 
 - **Decision: Command Center/Pi data remains an operational witness pending a separate source adapter approval.** Integrity evidence does not silently become a live recommendation input. No Pi operation or ingest activation is part of this worktree.
+
+## 2026-09-17 — Omen response budget and native private narration
+
+- **Decision: deterministic recommendation selection has a bounded server response path.** The
+  canonical MVP route gives the provider-backed core decision a five-second ceiling and gives
+  schedule, DvP, scoring metadata, and Ledger persistence independent bounded work. Advisory
+  evidence becomes an explicit unavailable receipt when late; it never turns a valid move into a
+  20–30 second spinner or an invented fact. Ledger persistence still fails closed, and runs beside
+  advisory enrichment rather than after it.
+
+- **Decision: native requests private narration only through the authenticated Omen backend.**
+  iOS and Android may send `include_signals.llm_reasoning: true` on the v3 MVP request. They never
+  receive or contact the Tailscale model endpoint, and the 1.25-second narration attempt cannot
+  choose or modify the move, confidence, risk, players, or sources. A late/invalid attempt is
+  represented as unavailable; the deterministic recommendation remains the answer.

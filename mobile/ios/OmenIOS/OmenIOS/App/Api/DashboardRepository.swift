@@ -130,8 +130,9 @@ struct StubLeagueRepository: LeagueRepository {
 /// so it is slower and independently failable, and the Omen destination owns its own
 /// loading state rather than blocking anything else.
 ///
-/// Per the route contract the live UI sends `{}` — the server derives league, week, and
-/// provider from the authenticated session. The client passes no context it could get wrong.
+/// The server derives league, week, and provider from the authenticated session, so the client
+/// passes no league facts it could get wrong. It explicitly opts into bounded private narration:
+/// the server owns that request and returns the deterministic decision when narration is late.
 protocol OmenDecisionRepository {
     func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError>
 }
@@ -144,7 +145,15 @@ struct ApiOmenDecisionRepository: OmenDecisionRepository {
     }
 
     func fetchDecision(accessToken: String) async -> Result<OmenDecisionEnvelope, OmenApiError> {
-        await client.post("api/omen/mvp-move", accessToken: accessToken, body: ["contract_version": "omen-decision-brief.v3"], as: OmenDecisionEnvelope.self)
+        await client.post(
+            "api/omen/mvp-move",
+            accessToken: accessToken,
+            body: [
+                "contract_version": "omen-decision-brief.v3",
+                "include_signals": ["llm_reasoning": true],
+            ],
+            as: OmenDecisionEnvelope.self
+        )
     }
 }
 

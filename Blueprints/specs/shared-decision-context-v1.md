@@ -75,7 +75,10 @@ MVP resolves the core Start/Sit candidate first. It conditionally resolves a wai
 - Memoization is request-scoped: no cross-user or cross-league cache key exists here.
 - Existing source-specific Redis/process caches remain the persistent cache boundary.
 - Resolver failures become typed unavailable inputs rather than rejected promises that erase a valid deterministic answer.
-- Optional timeouts belong to source adapters with explicit bounded policy and tests.
+- Optional timeouts belong to source adapters with explicit bounded policy and tests. The
+  canonical MVP route also applies a response budget around a source when an older adapter
+  cannot yet accept cancellation; that stops it blocking the user response, while any
+  adapter-specific cancellation remains independently owned at its own boundary.
 
 ## Existing data systems
 
@@ -83,7 +86,10 @@ MVP resolves the core Start/Sit candidate first. It conditionally resolves a wai
 - nflverse/owned football facts remain lawful football-event and DvP evidence, not league scoring or roster truth.
 - The Command Center/Raspberry Pi witness pipeline is an operational integrity witness, not silently a production recommendation source. A future adapter needs a versioned, rights-cleared artifact and separate source/activation approval.
 - Scoring contracts and reconciliation provide provenance/calibration. Only `exact` supports the phrase league-exact; unknown coverage is never coerced to PPR or zero.
-- Private LLM via Tailscale is narration only and off the critical path.
+- Private LLM via Tailscale is narration only and off the critical path. Native clients may opt
+  into a server-mediated narration attempt, but they never receive a private model URL, prompt,
+  provider credential, or raw model failure. A late or invalid narration remains an unavailable
+  capability and never delays, selects, or changes a deterministic move.
 
 ## Adoption sequence
 

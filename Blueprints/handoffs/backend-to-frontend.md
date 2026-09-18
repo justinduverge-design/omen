@@ -4179,3 +4179,35 @@ Authenticated. `platform` is `espn`, `yahoo`, or `sleeper`; `league_id` is requi
 Storage uses `public.beta_reports`; the review-only SQL is `sql/2026-09-14_beta_reports_review.sql`. Until that migration is applied, the route fails closed with `503 beta_report_storage_unavailable`.
 
 Verification: `npm test` 1100/1100, including `test/omenMvpLiveRoute.test.js`, `test/dashboardQuietWeekRoute.test.js`, `test/movesRoute.test.js`, `test/tradeRoute.test.js`, `test/betaReports.test.js`, `test/userPrivacyIsolation.test.js`, and hot-route rate-limit coverage. `git diff --check` clean.
+
+## Omen MVP latency and private narration — 2026-09-17
+
+Status: implemented locally on `codex/omen-latency-budget`; not committed, pushed,
+merged, deployed, or production-smoked.
+
+`POST /api/omen/mvp-move` accepts the existing additive v3 request:
+
+```json
+{
+  "contract_version": "omen-decision-brief.v3",
+  "include_signals": { "llm_reasoning": true }
+}
+```
+
+This is an opt-in to **private, server-mediated narration**, not a native-to-model call.
+The client sends no model address, prompt, league ID, roster, provider payload, or credential;
+the authenticated server derives the selected context. The response's deterministic move,
+confidence, risk, and evidence remain server-owned. If narration is late or invalid,
+`signals.llm_reasoning` stays `unavailable` and the deterministic recommendation is unchanged.
+
+The live response path has explicit ceilings: core deterministic decision 5 seconds; schedule
+700 ms; DvP 1.1 seconds; private narration 1.25 seconds; scoring metadata 1.2 seconds; and
+Ledger persistence 2.5 seconds, running in parallel with advisory enrichment. A core timeout
+returns retryable `503` / `omen_live_generation_timed_out`; advisory timeouts are represented
+as unavailable capability evidence rather than a spinner or invented fact. Persistence remains
+fail-closed: `503 omen_recommendation_persistence_failed` issues no move.
+
+Native consumers should render the returned receipt and never infer a model state. The current
+iOS and Android repositories send the request above. Verification: `test/latencyBudget.test.js`
+and `test/omenMvpLiveRoute.test.js` (17/17); Android focused `OmenDecisionTest`; iOS
+`OmenDecisionTests` 23/23 on the booted iPhone 17 simulator.

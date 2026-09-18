@@ -12,6 +12,31 @@ import XCTest
 /// the server's, not invented for the test.
 final class OmenDecisionTests: XCTestCase {
 
+    func testLiveOmenRequestOptsIntoBoundedPrivateNarrationWithoutSendingLeagueData() async throws {
+        final class RecordingFetcher: OmenHTTPFetching {
+            var captured: URLRequest?
+
+            func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+                captured = request
+                return (
+                    Data(#"{"state":"empty","mode":"live"}"#.utf8),
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                )
+            }
+        }
+
+        let fetcher = RecordingFetcher()
+        let client = OmenApiClient(baseURL: try XCTUnwrap(URL(string: "https://api.example.com")), fetcher: fetcher)
+        _ = await ApiOmenDecisionRepository(client: client).fetchDecision(accessToken: "access-token")
+
+        let bodyData = try XCTUnwrap(fetcher.captured?.httpBody)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+        XCTAssertEqual(body["contract_version"] as? String, "omen-decision-brief.v3")
+        XCTAssertEqual((body["include_signals"] as? [String: Any])?["llm_reasoning"] as? Bool, true)
+        XCTAssertNil(body["league_id"])
+        XCTAssertNil(body["roster"])
+    }
+
     private func decode(_ json: String) throws -> OmenDecisionEnvelope {
         try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
     }

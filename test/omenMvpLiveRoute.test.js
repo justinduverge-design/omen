@@ -156,7 +156,7 @@ function offSeasonEnvelope() {
   };
 }
 
-function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null, missingColumns = null } = {}) {
+function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = null, persistenceError = null, missingColumns = null, llmDelayMs = 0, liveNeverResolves = false } = {}) {
   const routePath = require.resolve("../src/routes/omen");
   delete require.cache[routePath];
 
@@ -226,6 +226,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
         buildLiveOmenMvpMoveForUser: async (userId, options) => {
           state.liveUserIds.push(userId);
           state.liveRequests.push({ userId, options });
+          if (liveNeverResolves) await new Promise(() => {});
           return { status: 200, body: liveResponse() };
         },
         buildOmenMvpMoveResponse: () => ({ status: 200, body: liveResponse() }),
@@ -267,6 +268,7 @@ function loadOmenRouter({ offSeason = false, liveResponse = liveEnvelope, dvp = 
           return true;
         },
         generateMvpLlmNarration: async (response) => {
+          if (llmDelayMs) await new Promise((resolve) => setTimeout(resolve, llmDelayMs));
           state.llmPayloads.push({ state: response.state });
           return {
             source: "ollama_gemma", model: "gemma4:e2b-q4_0",
@@ -401,6 +403,18 @@ test("POST /api/omen/mvp-move requires auth for live requests", async () => {
   assert.equal(res.status, 401);
   assert.equal(res.body.error.code, "omen_auth_required");
   assert.deepEqual(state.liveUserIds, []);
+});
+
+test("a stalled live provider path returns an honest retryable timeout within the core budget", async () => {
+  const { app } = buildApp({ liveNeverResolves: true });
+  const startedAt = Date.now();
+  const res = await post(app, { headers: { authorization: "Bearer valid-token" } });
+
+  assert.equal(res.status, 503);
+  assert.equal(res.body.state, "error");
+  assert.equal(res.body.error.code, "omen_live_generation_timed_out");
+  assert.equal(res.body.error.retryable, true);
+  assert.ok(Date.now() - startedAt < 6000, "the live source must not consume the native 20s request window");
 });
 
 test("POST /api/omen/mvp-move returns live Omen MVP envelope for authorized users", async () => {
@@ -589,6 +603,22 @@ test("POST /api/omen/mvp-move allows explicit live LLM opt-in", async () => {
   assert.equal(res.body.recommendation.explanation.summary, "Live Gemma says this is the move.");
   assert.equal(state.llmPayloads.length, 1);
   assert.equal(state.llmPayloads[0].state, "success");
+});
+
+test("a late private narration never holds the deterministic native recommendation", async () => {
+  const { app } = buildApp({ llmDelayMs: 5000 });
+  const startedAt = Date.now();
+  const res = await post(app, {
+    headers: { authorization: "Bearer valid-token" },
+    body: { include_signals: { llm_reasoning: true, matchup_dvp: false } },
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.state, "success");
+  assert.equal(res.body.recommendation.title, "Start Bench Breakout over Starter Wideout");
+  assert.equal(res.body.signals.llm_reasoning.status, "unavailable");
+  assert.match(res.body.signals.llm_reasoning.message, /response budget/i);
+  assert.ok(Date.now() - startedAt < 2000, "the LLM must not add its 5s delay to the response");
 });
 
 test("a recommendation still issues when the schema lacks platform and league_id", async () => {

@@ -166,10 +166,11 @@ function narrationLimitInstruction() {
  * Uses the OpenAI-compatible /v1/chat/completions endpoint.
  * Returns null if LLM is unavailable or times out.
  */
-async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS } = {}) {
+async function chat(messages, { maxTokens = NARRATION_MAX_TOKENS, timeoutMs = LLM_TIMEOUT } = {}) {
   if (!LLM_BASE_URL) return null;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT);
+  const boundedTimeout = parseTimeout(timeoutMs);
+  const timer = setTimeout(() => controller.abort(), boundedTimeout);
   try {
     const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
       method:  "POST",
@@ -251,10 +252,11 @@ async function explainStartSit({ from, to, delta, slot }) {
  * (expects JSON string). Timeout is longer than trade explanations.
  * Returns null on failure — caller must handle gracefully.
  */
-async function runAgent(systemPrompt, userPrompt, { maxTokens = 400 } = {}) {
+async function runAgent(systemPrompt, userPrompt, { maxTokens = 400, timeoutMs = LLM_TIMEOUT * 2 } = {}) {
   if (!LLM_BASE_URL) return null;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT * 2);
+  const boundedTimeout = parseTimeout(timeoutMs);
+  const timer = setTimeout(() => controller.abort(), boundedTimeout);
   try {
     const res = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
       method:  "POST",
@@ -357,7 +359,7 @@ function parseOmenExplanation(raw) {
  * The LLM may explain the already-built recommendation, but must not choose or
  * alter the move, confidence, risk level, players, EV delta, or response state.
  */
-async function explainOmenMvpMove(payload) {
+async function explainOmenMvpMove(payload, { timeoutMs } = {}) {
   const systemPrompt = [
     "You are Omen, a concise fantasy football analyst.",
     "Explain only the already-selected MVP Move using plain English.",
@@ -373,7 +375,10 @@ async function explainOmenMvpMove(payload) {
     JSON.stringify(payload),
   ].join("\n\n");
 
-  const raw = await runAgent(systemPrompt, userPrompt, { maxTokens: NARRATION_MAX_TOKENS });
+  const raw = await runAgent(systemPrompt, userPrompt, {
+    maxTokens: NARRATION_MAX_TOKENS,
+    ...(timeoutMs == null ? {} : { timeoutMs }),
+  });
   return parseOmenExplanation(raw);
 }
 

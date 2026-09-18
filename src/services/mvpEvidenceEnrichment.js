@@ -143,13 +143,15 @@ function sourceForModel(model) {
  * `data_used` are validated but intentionally not applied: those fields remain
  * deterministic so a narrator cannot change decision facts or invent sources.
  */
-async function generateMvpLlmNarration(response, { llmService = llm } = {}) {
+async function generateMvpLlmNarration(response, { llmService = llm, timeoutMs } = {}) {
   const target = explanationTarget(response);
   if (!target) return null;
 
   const payload = buildMvpLlmPayload(response);
   if (!payload.data_used.length) return null;
-  const generated = await llmService.explainOmenMvpMove(payload);
+  const generated = await llmService.explainOmenMvpMove(payload, {
+    ...(timeoutMs == null ? {} : { timeoutMs }),
+  });
   if (!isBoundedLlmExplanation(generated, payload.data_used)) return null;
 
   const bridge = typeof llmService.getLlmBridgeStatus === "function"
