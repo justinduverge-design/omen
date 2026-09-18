@@ -38,15 +38,21 @@ is not described as decision-making evidence until an engine marks it used."* A 
 every resolved input as evidence is overclaiming, and it is the easiest mistake to make because
 the payload hands you the whole list.
 
+## Capabilities are carried by words, not glyphs
+
+A class is distinguished by prominence, colour role and wording — never by an icon. No capability
+name maps to a symbol; see `capability-symbols-v1.md`, which records why the ten-glyph requirement
+an earlier draft asserted was never in the canvas. `OmenEvidence.dc.html` is the reference surface.
+
 ## The four presentation classes
 
 Every capability-bearing screen renders each input in exactly one of these. There is no fifth.
 
 | Class | Condition | Treatment | Reads as |
 |---|---|---|---|
-| **Used evidence** | `state: live`, `used: true` | full prominence, its own symbol, `text-secondary` | "this moved the call" |
+| **Used evidence** | `state: live`, `used: true` | full prominence, named in words, `text-secondary` | "this moved the call" |
 | **Read, not used** | `state: live`, `used: false` | de-emphasised, `text-tertiary`, **no evidence styling** | "we have it; it didn't matter here" |
-| **Could not read** | `state: unavailable`, or `pending` at render | named, `text-tertiary`, `evidence.unread-source` symbol | "we tried and couldn't" |
+| **Could not read** | `state: unavailable`, or `pending` at render | named, `text-tertiary`, plus a sentence saying what was not read | "we tried and couldn't" |
 | **Out of scope** | `state: not_requested` | **not rendered at all** | — |
 
 ### `not_requested` is not a limitation, and must never render as one

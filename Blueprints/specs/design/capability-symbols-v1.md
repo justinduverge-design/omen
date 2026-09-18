@@ -1,6 +1,7 @@
 # Capability Symbols v1
 
-**Status:** Proposed — the nine new glyphs need the founder's eye before they ship.
+**Status:** Active. **No new glyphs are required.** An earlier draft of this file claimed ten
+capabilities needed symbols and nine needed drawing. That was wrong and is corrected below.
 **Date:** 2026-09-18
 **Binds:** the 13 capability names in `shared-decision-context-v1.md` to named symbols.
 **Consumed by:** `capability-expression-v1.md`, every screen with a facts or evidence surface.
@@ -28,52 +29,51 @@ league_transactions  scoring_outcome  decision_receipt
 open-ended vocabulary would have made a symbol set a guessing game, and the honest design would
 then have been no symbols at all.
 
-## Which names need a symbol
+## Which names need a symbol: none
 
-Only names that can surface in a facts row — an input a user is told about. Three do not:
+The canvas was read before answering this, and it had already answered it.
 
-| Name | Why no symbol |
-|---|---|
-| `selected_context` | It is the league you are already looking at. A chip saying "we knew which league you meant" is noise. |
-| `decision_receipt` | Ledger-internal provenance, never a factor behind a call. |
-| `scoring_outcome` | Belongs to the Ledger's outcome column, not to a call's evidence. |
+`OmenEvidence.dc.html` is the artboard that draws a full evidence surface. It uses **no icons**:
 
-Ten need one.
+```html
+<span class="k">Weather</span><span class="v">Gusting 31 mph at kickoff. ... <span class="ds live">Live</span></span>
+<span class="k">O-line</span><span class="v pv-none">No provider exposes personnel. Omen did not read this and is not pretending to.</span>
+```
 
-| Capability | Symbol | Depicts | State |
-|---|---|---|---|
-| `roster` | `capability.roster` | a lineup card | **new** |
-| `projections` | `capability.projections` | a rising point line | **new** |
-| `waivers` | `capability.waivers` | a claim ticket | **new** |
-| `trade_rosters` | `capability.trade-rosters` | two-way arrows | **new** |
-| `league_standings` | `capability.standings` | a ranked column | **new** |
-| `league_matchup` | `capability.matchup` | two facing blocks | **new** |
-| `league_playoff_settings` | `capability.playoffs` | a bracket fork | **new** |
-| `league_activity` | `capability.activity` | a movement feed | **new** |
-| `league_transactions` | `capability.transactions` | an exchange arrow | **new** |
-| `league_scoring` | `capability.scoring` | a rule sheet | **new** |
+A text key, a sentence, a status word. Every capability row in the canvas is built this way.
 
-The four symbols already drawn — `evidence.wind`, `evidence.travel-zones`, `evidence.rest-clock`,
-`evidence.unread-source` — came from the OmenCall artboard. Only `unread-source` survives into this
-contract; the other three depict **factors**, not capabilities, and the system emits no such inputs
-(see the precedence decision, `Direction/decision_log.md`, 2026-09-18). They are retained as assets
-because the artboard still shows them, and they may return if factor-level evidence is ever built.
+Across all 30 artboards there are 14 distinct glyphs: 4 tab-bar icons, 4 sign-in provider marks, a
+favourite star, an empty-state illustration, and **4 fact chips that appear on `OmenCall` only**.
+Those four depict *factors* — `Wind 22`, `2 zones`, `4 days`, `O-line` — in a compact row where
+there is no space for sentences. They are not capability symbols and the system emits no such
+inputs (see the precedence decision, `Direction/decision_log.md`, 2026-09-18).
+
+**So a capability renders as a word.** That is not a gap waiting on artwork. It is the design.
+
+### The correction, recorded
+
+The first draft of this file listed ten capabilities needing symbols and nine needing new artwork,
+and reported that artwork as a founder dependency. No artboard ever asked for it. The requirement
+was produced by inference from the U1 defect rather than by reading `OmenEvidence.dc.html`, which
+was sitting in the repo the whole time.
+
+It is kept here because the failure mode generalises: **a contract derived from a defect will
+invent obligations the design never carried.** Read the artboard that draws the surface before
+specifying the surface.
 
 ## The two rules that matter
 
-1. **`evidence.unread-source` marks the class, not the capability.** Any input in the
-   *could not read* class wears it, whatever its name, replacing its own symbol. The class a
-   reader must not miss is the one that costs them something.
+1. **`evidence.unread-source` marks the class, not the capability.** Any input in the *could not
+   read* class may wear it, whatever its name. The class a reader must not miss is the one that
+   costs them something. In a surface with room for a sentence, the sentence carries it and the
+   glyph is unnecessary — `OmenEvidence` proves the pattern.
 2. **An unmapped name gets NO symbol.** Never a default, never a placeholder, never the unread
-   mark. A missing symbol says nothing; a wrong one says something untrue. This is not a fallback
-   to tidy up later — it is the rule.
+   mark. A missing symbol says nothing; a wrong one says something untrue. With no capability
+   symbols mapped at all, this rule now governs every capability — which is exactly what `U1`
+   ships and why it is correct rather than incomplete.
 
-## Provisional
+## If a facts row is ever needed beyond OmenCall
 
-The ten glyphs are described, not drawn. Nine would be new artwork and drawing them is not a thing
-to do by inference — `slops-image-prompt` and the founder's eye own that. **Until they exist, every
-capability except the unread class renders with no symbol**, which is correct under rule 2 and is
-what `U1` ships today.
-
-A screen is not blocked on this. A screen that renders capability labels without symbols is honest
-and incomplete; a screen that renders them with invented symbols is neither.
+The four existing chips are retained as assets. Anything new belongs to the **factor** vocabulary,
+not the capability vocabulary, and needs a factor contract first — there is none today. Do not
+reach for this section to justify drawing a capability glyph.
