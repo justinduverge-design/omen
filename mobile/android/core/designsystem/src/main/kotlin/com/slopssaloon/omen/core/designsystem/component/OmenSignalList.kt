@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.slopssaloon.omen.core.designsystem.theme.OmenTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
 
 /**
  * Data-source honesty categories the SignalList exposes (registry §2.3 data-* family).
@@ -83,6 +85,21 @@ fun OmenSignalList(
     }
 }
 
+/**
+ * One input, in exactly one of the presentation classes from `capability-expression-v1.md`.
+ * `not_requested` never arrives here — it is filtered before mapping, because a source Omen never
+ * asked for is not a source it failed to read.
+ *
+ * **Used and read-but-unused must not look alike.** Until 2026-09-18 every row rendered the same
+ * badge at the same prominence, so "this moved the call" and "we read it and it changed nothing"
+ * were indistinguishable to a reader even after `used` was carried through the transport and
+ * proven by tests. The data was right and the screen still overclaimed; a degraded capture caught
+ * it and no unit test could have.
+ *
+ * The difference is carried by **form, not hue** (D7): an unused input loses its badge and drops
+ * to tertiary ink. It is still named — dropping it would read as a factor that did not exist
+ * rather than one that did not matter. iOS mirror: `OmenSignalList.signalRow`.
+ */
 @Composable
 private fun SignalRow(signal: OmenSignalItem) {
     val (tone, label) = when (signal.source) {
@@ -95,13 +112,29 @@ private fun SignalRow(signal: OmenSignalItem) {
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = listOfNotNull(label, signal.kind?.label, signal.label, signal.detail)
+                contentDescription = listOfNotNull(
+                    if (signal.source == OmenSignalSource.Live && signal.used == false) "Read, not used" else label,
+                    signal.kind?.label, signal.label, signal.detail,
+                )
                     .joinToString(". ")
             },
         horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12),
         verticalAlignment = Alignment.Top,
     ) {
-        OmenBadge(label = label, tone = tone)
+        // `used == false` is a statement; `null` is the server declining to say, and silence is
+        // not demotion. Only an explicit false demotes the row.
+        val readButUnused = signal.source == OmenSignalSource.Live && signal.used == false
+        if (readButUnused) {
+            // No badge. A badge is the evidence affordance, and this input is not evidence.
+            Text(
+                text = "Not used",
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+                modifier = Modifier.width(64.dp),
+            )
+        } else {
+            OmenBadge(label = label, tone = tone)
+        }
         Column(
             verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step4),
             modifier = Modifier.fillMaxWidth(),
@@ -109,7 +142,7 @@ private fun SignalRow(signal: OmenSignalItem) {
             Text(
                 text = signal.label,
                 style = OmenTheme.typography.body.toTextStyle(),
-                color = OmenTheme.color.textPrimary,
+                color = if (readButUnused) OmenTheme.color.textTertiary else OmenTheme.color.textPrimary,
             )
             val detail = signal.detail
             if (detail != null) {
