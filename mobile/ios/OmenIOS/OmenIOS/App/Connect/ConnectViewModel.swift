@@ -47,7 +47,17 @@ final class ConnectViewModel: ObservableObject {
     /// Keep the same in-memory session and make one bounded second request before exposing the
     /// manual League ID escape hatch. This is a recovery for Omen's timing, never a user chore.
     private var espnDiscoveryAttempts = 0
-    private let maxEspnDiscoveryAttempts = 2
+    /// Type-level because it is a **policy**, not per-instance state: it bounds how many requests
+    /// one sign-in may make carrying the ESPN session, so a test can assert against the policy
+    /// instead of hardcoding a number that goes stale the next time the policy moves.
+    static let maxEspnDiscoveryAttempts = 2
+
+    /// The auto-discovery `espnSignInProgressed` starts. Retained so a caller can await the work
+    /// sign-in already kicked off rather than starting a second discovery — a fire-and-forget
+    /// `Task` is unobservable, which is exactly how a test ends up double-firing the request it
+    /// meant to wait for. Product behaviour is unchanged: sign-in still triggers discovery
+    /// automatically, and the `espnSession == nil` guard still makes it run once.
+    private var espnDiscoveryTask: Task<Void, Never>?
 
     /// The manual field is an escape hatch after Omen's own directory lookup has exhausted its
     /// bounded retry. It must not be the normal post-sign-in screen.
@@ -189,6 +199,8 @@ final class ConnectViewModel: ObservableObject {
     func beginEspnSignIn(cookieStore: EspnCookieReading? = nil) {
         espnSignInProgress = .signedOut(diagnostic: "")
         espnCookieStore = cookieStore ?? EspnWebCookieStore()
+        // A fresh attempt must not be able to await the previous attempt's discovery.
+        espnDiscoveryTask = nil
         espnDiscoveryAttempts = 0
         espnDiscoveryFallbackAvailable = false
         state = .espnSigningIn
@@ -220,8 +232,18 @@ final class ConnectViewModel: ObservableObject {
         // turns "go find your league id in a URL" into a list — the user should never have to
         // hunt for an id we can simply ask for. Runs once; the guard is `espnSession`.
         if progress.isSignedIn, espnSession == nil {
-            Task { await discoverEspnLeagues() }
+            espnDiscoveryTask = Task { [weak self] in await self?.discoverEspnLeagues() }
         }
+    }
+
+    /// Awaits the discovery that sign-in started, if one is in flight. A no-op when none is.
+    ///
+    /// This exists so callers can observe the automatic discovery instead of racing it. Calling
+    /// `discoverEspnLeagues()` a second time to "settle" the flow is not the same thing: that
+    /// call has no `espnSession` guard of its own, so it re-enters the bounded retry loop and
+    /// emits another request.
+    func awaitEspnDiscovery() async {
+        await espnDiscoveryTask?.value
     }
 
     /// Captures the session and asks ESPN for the account's leagues.
@@ -240,7 +262,7 @@ final class ConnectViewModel: ObservableObject {
 
         state = .discoveringEspnLeagues
         var finalResult: Result<[EspnLeagueOption], ConnectFailure>?
-        while espnDiscoveryAttempts < maxEspnDiscoveryAttempts {
+        while espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
             espnDiscoveryAttempts += 1
             let result = await repository.discoverEspnLeagues(
                 espnS2: session.espnS2,
@@ -253,7 +275,7 @@ final class ConnectViewModel: ObservableObject {
                 return
             }
             finalResult = result
-            if espnDiscoveryAttempts < maxEspnDiscoveryAttempts {
+            if espnDiscoveryAttempts < Self.maxEspnDiscoveryAttempts {
                 try? await Task.sleep(for: .seconds(1))
         }
         }
@@ -368,6 +390,12 @@ final class ConnectViewModel: ObservableObject {
 
     /// Backing out of ESPN's sign-in. Normal, not an error, and nothing is written.
     func cancelEspnSignIn() {
+        // The cover is bound to `state == .espnSigningIn`, so moving on — to
+        // `.discoveringEspnLeagues`, then to the picker — dismisses it by definition, and SwiftUI
+        // reports that dismissal through the same setter as a user swipe. Only a dismissal while
+        // sign-in is still the current step is a real cancellation; anything else is the flow
+        // succeeding, and cancelling it there threw away leagues Omen had already fetched.
+        guard case .espnSigningIn = state else { return }
         clearEspnSession()
         state = .canceled
     }
