@@ -452,7 +452,19 @@ private struct FauxShell: View {
                 .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
 
-            OmenDecisionScreen(state: omenState)
+            OmenDecisionScreen(
+                state: omenState,
+                // Supplied so the capture exercises the header eyebrow and the provider handoff.
+                // Both are optional on the screen by design: absent week means no eyebrow, and
+                // absent provider means no "make this move" button, because neither may be
+                // guessed. A capture that never passes them would silently prove only the
+                // degraded half of the layout.
+                weekLabel: "Week 7",
+                providerName: "ESPN",
+                onMakeMove: {},
+                onDecline: {},
+                onOpenFullArgument: {}
+            )
             .tabItem { CommandCenterTab.omen.label }
             .tag(CommandCenterTab.omen)
 

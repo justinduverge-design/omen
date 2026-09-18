@@ -104,14 +104,19 @@ struct OmenRiskLabel: View {
 /// dropped reads as a factor that did not matter.
 struct OmenFactChip: View {
     let label: String
-    let icon: OmenEvidenceIcon
+    /// Optional on purpose. The artboard draws a factor-specific symbol per chip, but the
+    /// capability vocabulary is open-ended — so a symbol appears only where the name genuinely
+    /// maps to one. A default glyph would be a claim the data does not support.
+    let icon: OmenEvidenceIcon?
     var unread: Bool = false
 
     var body: some View {
         HStack(spacing: OmenSpacing.step4) {
-            (unread ? OmenEvidenceIcon.unreadSource : icon).image
-                .resizable()
-                .frame(width: 12, height: 12)
+            if let symbol = unread ? OmenEvidenceIcon.unreadSource : icon {
+                symbol.image
+                    .resizable()
+                    .frame(width: 12, height: 12)
+            }
             Text(label).omenTextStyle(OmenTypography.micro)
         }
         .foregroundStyle(unread ? OmenColor.textTertiary : OmenColor.textSecondary)
@@ -130,7 +135,14 @@ struct OmenEvidenceRow: View {
             Text(key)
                 .omenTextStyle(OmenTypography.micro)
                 .foregroundStyle(OmenColor.textTertiary)
-                .frame(width: 58, alignment: .leading)
+                // The artboard specifies 58pt, sized for "Weather" / "Rest" / "Projection". Real
+                // capability names are longer, and at 58 the uppercase tracked `micro` role broke
+                // words mid-syllable — the first build rendered "MATCHU P DVP" and "WEATHE R".
+                // Widened to 84 with two lines allowed rather than hyphenating a key. Recorded as
+                // a contract-vs-vocabulary deviation: the column was drawn against a shorter
+                // vocabulary than the API actually has.
+                .frame(width: 84, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, OmenSpacing.step4)
             Text(statement)
                 .omenTextStyle(OmenTypography.bodySmall)
