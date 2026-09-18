@@ -109,10 +109,11 @@ final class ConnectFlowTests: XCTestCase {
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: store ?? FakeEspnCookieStore())
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "123456", detectedTeamId: "7"))
-        // Sign-in kicks discovery off in a detached Task, which makes ordering nondeterministic
-        // in a test. Awaiting it here settles that; the call is idempotent (it guards on
-        // `espnSession`), so it is a no-op if the Task already won the race.
-        await viewModel.discoverEspnLeagues()
+        // Sign-in kicks discovery off in a Task, which makes ordering nondeterministic in a test.
+        // Await *that* task rather than calling `discoverEspnLeagues()` again: the second call is
+        // not idempotent — its `espnSession` guard only skips re-reading the cookie jar, not the
+        // request — so it double-fired discovery and made these tests order-dependent.
+        await viewModel.awaitEspnDiscovery()
         return viewModel
     }
 
