@@ -10,8 +10,9 @@ Compiled from `design/native-visual-lock-2026-09-13/OmenCall.dc.html` on 2026-09
 | Family | Omen |
 | Frame | 390 x 844; D11 floor. iPhone SE 375 x 667 may scroll. iPad deferred. |
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
-| Data route | POST /api/omen/mvp-move with contract_version=omen-decision-brief.v2 |
-| API contract | omen-decision-brief.v2 |
+| Data route | POST /api/omen/mvp-move with contract_version=omen-decision-brief.v3 |
+| API contract | omen-decision-brief.v3 (was v2 when compiled 2026-09-14; both clients send v3 as of 2026-09-17) |
+| Capability profile | `omen_mvp` — expresses per `capability-expression-v1.md` |
 | Governing rule | C1 resolved here; v2 response carries confidence band plus drivers, no numeric confidence |
 
 ## Native build rules
@@ -34,6 +35,43 @@ Build acceptance:
 - A no-play week is still useful. It should tell the user what was checked and why forcing a move would be worse.
 - Never rank several candidates on the Omen screen. Other destinations can explore; Omen decides or declines to decide.
 - A fallback state must not sound apologetic or broken when the honest answer is "hold."
+
+## Capability expression — this screen
+
+Profile `omen_mvp`. Required core inputs: selected context, roster, roster projections. Optional:
+waiver pool, trade rosters, scoring coverage, schedule/DvP. None of the optional inputs may block a
+valid lineup candidate.
+
+**The facts row (E029–E041) IS the capability expression.** It is not decoration and its contents
+are not chosen by the screen. Each chip is one input from `decision_context`, rendered in its class
+per `capability-expression-v1.md`:
+
+| Artboard chip | Class it demonstrates |
+|---|---|
+| `WIND 22`, `2 ZONES`, `4 DAYS` | used evidence — `live`, `used: true` |
+| `O-LINE` (drawn `.off`, `text-tertiary`, `evidence.unread-source`) | **could not read** |
+
+The `.off` chip is the load-bearing one. `U1`'s acceptance — *"the factor line names what Omen
+could not read"* — is satisfied by that class existing on screen, not by the other three chips.
+
+Native binding: `OmenDecisionCapability(name, state, used, kind)` and `OmenEvidenceKind`, already
+wired through both clients. The screen does not re-derive availability from loose signals and does
+not re-rank what the server ordered.
+
+## Two strings the artboard specifies that no contract supplies
+
+Named here rather than invented at build time.
+
+- **`CALL 1 OF 3 · ONE PER TEAM` (E019/E020).** `omen-decision-brief.v3` carries no call index or
+  call count. *"One per team"* is a true product statement (fact-of-record #16: one call per week)
+  and may render. **`1 of 3` may not** — there is nothing to count. Either the envelope gains the
+  index, or the string ships without it.
+- **`LOCKED TUE 3:00` (E021).** No lock time exists in the envelope. It must not be computed on the
+  client: a lineup-lock time the client guesses is a claim about the provider's schedule that Omen
+  cannot stand behind, and it is wrong in exactly the weeks it matters.
+
+Both are **omissions, not drift** — the build renders the row without them and the gap is a backend
+item, not a licence to fabricate.
 
 ## Literal strings
 

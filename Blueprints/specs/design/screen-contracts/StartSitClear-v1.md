@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/StartSitClear.dc.html` on 20
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/start-sit/detail |
 | API contract | start-sit-detail.v1 state=clear_decision |
+| Capability profile | `start_sit` — expresses per `capability-expression-v1.md` |
 | Governing rule | visual briefs section 5 |
 
 ## Native build rules

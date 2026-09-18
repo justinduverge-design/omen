@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/WaiverNoMove.dc.html` on 202
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/waivers/analysis |
 | API contract | waiver-analysis.v1 state=no_credible_move or no_low_cost_drop |
+| Capability profile | `waiver` — expresses per `capability-expression-v1.md` |
 | Governing rule | visual briefs sections 6.2 and 6.3 |
 
 ## Native build rules

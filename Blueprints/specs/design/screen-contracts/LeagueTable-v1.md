@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/LeagueTable.dc.html` on 2026
 | Scroll rule | scrolls; measured body overflow from canvas render: 126px. |
 | Data route | GET /api/league/overview |
 | API contract | league-overview.v1 |
+| Capability profile | `league` — expresses per `capability-expression-v1.md` |
 | Governing rule | Scout nest order: strip, Table, Trade targets, Waiver, Activity |
 
 ## Native build rules

@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/CommandQuietStraight.dc.html
 | Scroll rule | fits; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/dashboard/quiet-week |
 | API contract | quiet-week.v1 |
+| Capability profile | consumes receipts; owns no profile — expresses per `capability-expression-v1.md` |
 | Governing rule | V-QuietWeekStraight resolved here: straight variant fires on loss, injury, provider failure, or unknown quiet inputs |
 
 ## Native build rules

@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/TradeRoster.dc.html` on 2026
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/trade/capabilities + POST /api/trade/compare |
 | API contract | trade-capabilities.v1 + trade-compare.v2 |
+| Capability profile | `trade` — expresses per `capability-expression-v1.md` |
 | Governing rule | Three-team support verified as unsupported: supported=false, max_teams=2 |
 
 ## Native build rules

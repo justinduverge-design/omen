@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/WaiverNotDetermined.dc.html`
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/waivers/analysis |
 | API contract | waiver-analysis.v1 waiver_system.system=not_determined |
+| Capability profile | `waiver` — expresses per `capability-expression-v1.md` |
 | Governing rule | FAAB/priority appear only after positive determination |
 
 ## Native build rules

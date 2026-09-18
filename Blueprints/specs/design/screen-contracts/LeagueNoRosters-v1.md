@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/LeagueNoRosters.dc.html` on 
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/league/overview |
 | API contract | league-overview.v1 no rosters |
+| Capability profile | `league` — expresses per `capability-expression-v1.md` |
 | Governing rule | Permanent provider limit for that league; do not build retry |
 
 ## Native build rules

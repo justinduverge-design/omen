@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/LeagueWaiver.dc.html` on 202
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | GET /api/waivers/analysis |
 | API contract | waiver-analysis.v1 state=confirmed_opportunity |
+| Capability profile | `waiver` — expresses per `capability-expression-v1.md` |
 | Governing rule | D5 and visual briefs section 6; bid null when input missing, never 0 |
 
 ## Native build rules

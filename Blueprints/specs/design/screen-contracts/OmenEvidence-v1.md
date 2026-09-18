@@ -12,6 +12,7 @@ Compiled from `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html` on 202
 | Scroll rule | scrolls; measured body overflow from canvas render: 0px. |
 | Data route | POST /api/omen/mvp-move with contract_version=omen-decision-brief.v2 |
 | API contract | omen-decision-brief.v2 |
+| Capability profile | `omen_mvp` — expresses per `capability-expression-v1.md` |
 | Governing rule | Evidence rows carry verified/projection/model/inference/limitation; projection never renders as fact |
 
 ## Native build rules
