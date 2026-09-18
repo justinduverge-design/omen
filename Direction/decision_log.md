@@ -3284,3 +3284,48 @@ behaving; until then this entry records intent, not proof.
   receive or contact the Tailscale model endpoint, and the 1.25-second narration attempt cannot
   choose or modify the move, confidence, risk, players, or sources. A late/invalid attempt is
   represented as unavailable; the deterministic recommendation remains the answer.
+
+## 2026-09-18 — Artboard and contract precedence; journeys as the unit of capture
+
+- **Decision: where an artboard and a screen contract disagree, the artboard owns the look and the
+  contract owns the truth.** Artboards are authoritative for composition, placement, type, spacing
+  and tone. Screen contracts are authoritative for data, vocabulary and state. Where an artboard
+  draws content the system cannot produce, its **shape is binding and its literal strings are not**.
+
+  **Why this came up.** `OmenCall.dc.html` draws its facts row as `WIND 22 · 2 ZONES · 4 DAYS ·
+  O-LINE`. The system emits no such inputs: the decision receipt's vocabulary is a closed set of
+  thirteen server-owned capability names — `roster`, `projections`, `waivers`, and so on. The
+  artboard drew *example factors a human analyst would cite*; the system produces *inputs it
+  resolved*. These are two different taxonomies describing two different things, and every screen
+  with an evidence or state surface has the same seam.
+
+  The artboards are therefore **not "behind"** the backend, which is how this was first described.
+  They are drawn against a data model that does not exist. That distinction matters: a lag is
+  closed by catching up, a mismatch is closed by deciding.
+
+  The two rejected options are recorded because they may return. Making the server emit
+  factor-level evidence is arguably the better product and is a substantial backend programme
+  before any screen can be built; redrawing all thirty artboards against the real vocabulary
+  removes the seam permanently but blocks every build behind thirty canvas revisions, on a canvas
+  that has already drifted from its own scale table twice.
+
+- **Decision: screens are captured and built by journey, not by screen.** Six journeys — getting
+  in, the desk, the first call, settling an argument, the scout's nest, the receipts — partition
+  all thirty artboards, with `Account` and `ReportPill` as chrome that is captured but has no path.
+  Each journey captures a nominal pass and a **degraded** pass.
+
+  A screen can be individually correct while the path through it is broken, and none of that is
+  visible in an isolated still. A journey is also the smallest thing that can actually be judged:
+  thirty disconnected screens cannot be assessed until all thirty exist.
+
+  Contract: `Blueprints/specs/design/screen-journeys-v1.md`.
+
+- **Decision: one symbol per capability, and an unmapped name gets no symbol at all.** Never a
+  default, never a placeholder, never the unread mark. Building `U1` produced the defect that
+  forced this: the screen fell back to `evidence.unread-source` for any unmapped name, so an input
+  Omen had read **and used** rendered wearing the "could not read" glyph. An icon made a false
+  claim. A missing symbol says nothing; a wrong one says something untrue.
+
+  Contract: `Blueprints/specs/design/capability-symbols-v1.md`. Nine of the ten glyphs are
+  described rather than drawn, and screens render capability labels without symbols until they
+  exist — which is correct under the rule, not a stopgap.
