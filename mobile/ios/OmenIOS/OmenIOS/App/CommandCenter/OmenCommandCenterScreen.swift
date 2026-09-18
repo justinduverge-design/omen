@@ -888,6 +888,42 @@ enum OmenCommandCenterFixtures {
         matchup: .noMatchup(reason: "No matchup yet — connect Sleeper or ESPN to see your team's week.")
     )
 
+    /// A real, connected user — the state the carousel scenarios actually depict.
+    ///
+    /// **The greeting is derived, not written.** It comes from the shipped
+    /// `DashboardSummary.greeting(for:gameWeek:)`, so this fixture cannot assert copy the product
+    /// would not produce. That is not a stylistic preference: until 2026-09-17 the carousel
+    /// scenarios fell through to `realDisconnected` and every carousel capture rendered
+    /// "No game plan yet." above a live six-league carousel with both scores on screen — a state
+    /// the product cannot reach. The headline was right; the fixture was lying.
+    ///
+    /// This file has produced that same class of bug before: the blue tab bar that "the shipped
+    /// app never rendered", captured for ten days. A fixture that hardcodes what the product
+    /// computes will drift, and a screenshot of a drifted fixture is a screenshot of nothing.
+    static let realConnected = OmenCommandCenterState(
+        greeting: OmenCommandCenterState.greeting(
+            for: .ready,
+            gameWeek: DashboardSummary.GameWeek(week: 7, phase: .live, day: "sunday", isOffSeason: false)
+        ),
+        context: .selected(platform: .espn, leagueName: "EB Football", teamName: "Dat Sauce Inc."),
+        platforms: [
+            OmenPlatformRowState(platform: .sleeper, status: .connected, lastSyncText: "4m ago"),
+            OmenPlatformRowState(platform: .yahoo, status: .connected, lastSyncText: "8m ago"),
+            OmenPlatformRowState(platform: .espn, status: .connected, lastSyncText: "1m ago")
+        ],
+        // The carousel supplies the matchup band when one is present, so this is the fallback.
+        // It deliberately MIRRORS the carousel's first league rather than resting on
+        // `.noMatchup`: a "no matchup yet" card underneath a live carousel showing both scores
+        // is the same self-contradiction this fixture exists to remove, just in a different
+        // place. A fixture's unused half still has to be true.
+        matchup: .live(
+            selectedTeam: OmenMatchupTeam(name: "JAE", record: "6-1", scoreText: "64.8", projectedText: "119.6"),
+            opponent: OmenMatchupTeam(name: "G.O.A.T. SQUAD", record: "5-2", scoreText: "58.1", projectedText: "114.2"),
+            projectedFinish: "119.6-114.2",
+            whatToWatch: "Projected within 5.4 points."
+        )
+    )
+
     /// Honest loading state — session restore or dashboard-summary in flight.
     static let realLoading = OmenCommandCenterState(
         greeting: "Restoring your session…",

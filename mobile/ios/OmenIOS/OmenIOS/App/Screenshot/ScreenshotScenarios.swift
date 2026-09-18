@@ -35,11 +35,11 @@ enum ScreenshotScenarios {
         // the founder's phone before anything here could catch them.
         "command-center.carousel": ScreenshotScenario(
             label: "Command Center — six leagues, live carousel",
-            content: { AnyView(CarouselScenarioHost()) }
+            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel")) }
         ),
         "command-center.carousel-provider-down": ScreenshotScenario(
             label: "Command Center — carousel with one provider failing",
-            content: { AnyView(CarouselScenarioHost(failingPlatform: "espn")) }
+            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel-provider-down", failingPlatform: "espn")) }
         ),
         "command-center.long-matchup": ScreenshotScenario(
             label: "Command Center — long fantasy team names in matchup",
@@ -482,6 +482,8 @@ private struct FauxShell: View {
         switch scenarioKey {
         case "command-center.demo-connected": return OmenCommandCenterFixtures.demoConnected
         case "command-center.disconnected": return OmenCommandCenterFixtures.realDisconnected
+        case "command-center.carousel", "command-center.carousel-provider-down":
+            return OmenCommandCenterFixtures.realConnected
         default: return OmenCommandCenterFixtures.realDisconnected
         }
     }
@@ -749,10 +751,12 @@ struct TeamSwitcherScreenshotHost: View {
 
 /// Owns the carousel view model for the lifetime of the capture and kicks off its load.
 private struct CarouselScenarioHost: View {
+    var scenarioKey: String
     var failingPlatform: String?
     @StateObject private var viewModel: LeagueCarouselViewModel
 
-    init(failingPlatform: String? = nil) {
+    init(scenarioKey: String, failingPlatform: String? = nil) {
+        self.scenarioKey = scenarioKey
         self.failingPlatform = failingPlatform
         _viewModel = StateObject(
             wrappedValue: CarouselFixtures.viewModel(failingPlatform: failingPlatform)
@@ -760,7 +764,10 @@ private struct CarouselScenarioHost: View {
     }
 
     var body: some View {
-        FauxShell(carousel: viewModel)
+        // The scenario key was omitted here until 2026-09-17, so `commandState` fell through to
+        // `default:` and every carousel capture rendered the DISCONNECTED Command Center beneath
+        // a live carousel. Pass it, and the switch below resolves a connected state.
+        FauxShell(scenarioKey: scenarioKey, carousel: viewModel)
             .task { await viewModel.load(userID: "fixture") }
     }
 }
