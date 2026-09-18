@@ -395,6 +395,51 @@ struct OmenDecisionScreen: View {
 /// names or NFL team abbreviations here: the reviewer notes are a statement to Apple, and this
 /// fixture is the thing that has to make it true.
 enum OmenDecisionFixtures {
+
+    /// The **degraded** `omen_mvp` capture — the scenario `capability-expression-v1.md` requires
+    /// of every profile, and the only one under which this screen's honesty is visible at all.
+    ///
+    /// Every other scenario in this file is a success or a disconnected state. A screen can
+    /// satisfy the entire capability contract and no existing capture would show it, because
+    /// nothing was ever missing in any of them. This one deliberately carries all three of the
+    /// renderable classes at once:
+    ///
+    /// - `Roster` — `live`, **used**: evidence that moved the call.
+    /// - `Matchup Dvp` — `live`, **not used**: resolved, and it did not decide anything. It must
+    ///   not carry evidence styling, because a source is not evidence until an engine marks it
+    ///   used (`shared-decision-context.v1`).
+    /// - `Weather` — **unavailable**: named rather than omitted. A factor silently dropped reads
+    ///   as a factor that did not matter.
+    ///
+    /// The fourth class, `not_requested`, is deliberately absent from this fixture: it is filtered
+    /// before mapping and must never reach a screen, so there is nothing here for it to render as.
+    ///
+    /// Player names are generic for the same reason the demo fixtures' are — a capture that
+    /// escapes into a deck must not read as real fantasy advice.
+    static let degraded: OmenDecisionBriefState = .success(OmenDecisionBriefPayload(
+        verdict: "Start Sample WR1 over Sample WR2",
+        callType: "start_sit",
+        move: "Sample WR2 draws the tougher shadow corner this week.",
+        confidenceBand: .leaning,
+        confidenceDrivers: ["Target share held above 25% in three of the last four."],
+        risk: .low,
+        riskReasons: [],
+        explanation: ["Sample WR1's routes-run share is the stable half of this call."],
+        metrics: [],
+        signals: [
+            OmenSignalItem(label: "Roster", source: .live,
+                           detail: "Live roster read for the selected league.",
+                           kind: .verified, used: true),
+            OmenSignalItem(label: "Matchup Dvp", source: .live,
+                           detail: "Read, but it did not move this call.",
+                           kind: .projection, used: false),
+            OmenSignalItem(label: "Weather", source: .unavailable,
+                           detail: "Omen could not read kickoff weather for this game.",
+                           kind: .limitation, used: false)
+        ],
+        alternatives: []
+    ))
+
     static let demo: OmenDecisionBriefState = .demo(OmenDecisionBriefPayload(
         verdict: "Start Sample RB1", move: "Bench Sample RB2 for the RB1 slot.",
         impact: "+4.1 projected over your bench.", confidence: 72, risk: .low,

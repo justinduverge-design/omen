@@ -76,6 +76,10 @@ enum ScreenshotScenarios {
             // silently prove nothing." Omen was the case that slipped.
             content: { AnyView(FauxShell(scenarioKey: "omen.demo", initialTab: .omen)) }
         ),
+        "omen.degraded": ScreenshotScenario(
+            label: "Omen — a call with one source unread and one read-but-unused",
+            content: { AnyView(FauxShell(scenarioKey: "omen.degraded", initialTab: .omen)) }
+        ),
         "omen.disconnected": ScreenshotScenario(
             label: "Omen — real user, disconnected",
             content: { AnyView(FauxShell(scenarioKey: "omen.disconnected", initialTab: .omen)) }
@@ -568,6 +572,9 @@ private struct FauxShell: View {
     private var omenState: OmenDecisionBriefState {
         switch scenarioKey {
         case "omen.demo": return OmenDecisionFixtures.demo
+        // The capture obligation from `capability-expression-v1.md`: a profile is not covered by
+        // a screenshot of its success state, because nothing is missing in a success state.
+        case "omen.degraded": return OmenDecisionFixtures.degraded
         default: return OmenDecisionFixtures.realDisconnected
         }
     }

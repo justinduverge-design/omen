@@ -190,6 +190,7 @@ data class OmenDecisionEnvelope(
             // Number.isFinite guard — the server treats absence as a real, expected state, and
             // the client must not manufacture a number the server declined to give.
             confidence = rec.confidenceScore,
+            callType = rec.type,
             confidenceBand = confidenceBand(rec.confidenceBand),
             confidenceDrivers = rec.confidenceDrivers,
             confidenceUnavailableReason = rec.confidenceUnavailableReason,
