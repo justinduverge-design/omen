@@ -1,6 +1,15 @@
 #!/bin/sh
 set -eu
 
+case "${1:-}" in
+  # Status is an already-produced, payload-free export. Keeping this read path
+  # independent of Docker means an operator can inspect the last verified
+  # capture even after the local, content-addressed image cache is pruned. The
+  # guarded capture/validate/publish paths below still require the SHA-pinned
+  # image and retain every container restriction.
+  status) exec cat /var/lib/omen-football-data/exports/status.json ;;
+esac
+
 image_file=/etc/omen-football/image-digest
 image="$(cat "$image_file")"
 
@@ -11,7 +20,7 @@ printf '%s\n' "$image" | grep -Eq '^(sha256:[a-f0-9]{64}|[^[:space:]@]+@sha256:[
 
 case "${1:-}" in
   capture-set) network=bridge ;;
-  validate-batch|status|import-phase3|recover-phase3|publish) network=none ;;
+  validate-batch|import-phase3|recover-phase3|publish) network=none ;;
   *) printf '%s\n' 'omen-football-run: unsupported command' >&2; exit 64 ;;
 esac
 

@@ -160,6 +160,9 @@ function _labelFor(position, avgPointsAllowed) {
  *   opponent_team: string,
  *   position: string,
  *   avg_points_allowed: number,
+ *   // Distinct regular-season weeks represented in the calculation. This is
+ *   // deliberately not a player-row count: a defense can face several WRs,
+ *   // RBs, etc. in the same game.
  *   sample_weeks: number,
  *   dvp_label: "favorable" | "neutral" | "tough"
  * }

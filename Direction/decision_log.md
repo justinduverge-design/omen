@@ -3284,3 +3284,20 @@ behaving; until then this entry records intent, not proof.
   receive or contact the Tailscale model endpoint, and the 1.25-second narration attempt cannot
   choose or modify the move, confidence, risk, players, or sources. A late/invalid attempt is
   represented as unavailable; the deterministic recommendation remains the answer.
+
+## 2026-09-16 — Football witness compares a capture cycle, not unrelated current files
+
+- **Decision:** an exact KVM1/Pi hash mismatch is critical only when both artifacts were captured
+  on the same UTC calendar day. KVM1 captures daily while Command Center independently witnesses
+  each Tuesday; nflverse may legitimately revise the schedule file between those two cycles.
+  Comparing a Wednesday KVM1 schedule against Tuesday's immutable Pi copy had created a false
+  `witness_mismatch` incident even though the Tuesday observation matched all three admitted
+  datasets exactly. Different-day artifacts now record `awaiting_next_witness` with
+  `comparison: different_capture_day` and no condition; same-day differences still emit the
+  existing critical `witness_mismatch`.
+
+- **Decision:** the operator-facing `omen-football-run status` reads the payload-free status
+  export directly. It no longer requires Docker's locally cached content-addressed image, which
+  may be pruned between capture cycles. Capture, validation, import, recovery, and publication
+  retain their existing SHA-pinned container execution and hardening; the image guard remains
+  responsible for rebuilding a missing local content digest before those actions.

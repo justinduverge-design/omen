@@ -145,6 +145,7 @@ test("capture-set records one exact immutable manifest per admitted dataset and 
 test("the runner wrapper pins an image digest and applies every required Docker restriction", () => {
   const wrapper = fs.readFileSync(path.join(__dirname, "..", "ops", "football-data", "kvm1", "omen-football-run"), "utf8");
   assert.match(wrapper, /sha256:\[a-f0-9\]\{64\}/);
+  assert.match(wrapper, /status\) exec cat \/var\/lib\/omen-football-data\/exports\/status\.json/);
   assert.match(wrapper, /--user/);
   assert.match(wrapper, /--cap-drop ALL/);
   assert.match(wrapper, /--security-opt no-new-privileges/);
@@ -199,6 +200,14 @@ test("the witness compares all exact dataset hashes and fails closed on mismatch
   const mismatch = spawnSync("python3", [script, "compare", "--root", root, "--status-file", remote, "--now", "2026-08-26T18:10:00.000Z", "--minimum-free-bytes", "0"], { encoding: "utf8" });
   assert.equal(mismatch.status, 2, mismatch.stderr);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "signals.json"), "utf8")).conditions, [{ code: "witness_mismatch", severity: "critical" }]);
+
+  changed.generated_at_utc = "2026-08-27T18:00:00.000Z";
+  fs.writeFileSync(remote, `${JSON.stringify(changed)}\n`);
+  const deferred = spawnSync("python3", [script, "compare", "--root", root, "--status-file", remote, "--now", "2026-08-27T18:10:00.000Z", "--minimum-free-bytes", "0"], { encoding: "utf8" });
+  assert.equal(deferred.status, 0, deferred.stderr);
+  assert.equal(JSON.parse(deferred.stdout).status, "awaiting_next_witness");
+  assert.equal(JSON.parse(deferred.stdout).comparison, "different_capture_day");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "signals.json"), "utf8")).conditions, []);
 
   const outage = spawnSync("python3", [script, "compare", "--root", root, "--status-file", path.join(root, "missing.json"), "--now", "2026-08-26T18:10:00.000Z", "--minimum-free-bytes", "0"], { encoding: "utf8" });
   assert.equal(outage.status, 3, outage.stderr);

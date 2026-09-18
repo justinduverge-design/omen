@@ -230,11 +230,19 @@ def compare_status(
     local_hashes = {name: item.get("sha256") for name, item in local.get("datasets", {}).items()}
     remote_hashes = {name: item.get("sha256") for name, item in remote.get("datasets", {}).items()}
     admitted = ("stats_player", "stats_team", "schedules")
-    mismatch = any(local_hashes.get(name) != remote_hashes.get(name) for name in admitted)
+    local_generated = parse_time(local["generated_at_utc"])
+    generated = parse_time(remote["generated_at_utc"])
+    same_capture_day = local_generated.date() == generated.date()
+
+    # KVM1 captures daily while the independent witness intentionally captures
+    # once each Tuesday. nflverse can revise schedules between those cycles;
+    # comparing different capture days would therefore turn normal source
+    # movement into a false critical integrity incident. An exact mismatch is
+    # meaningful only when both sides observed the same scheduled capture day.
+    mismatch = same_capture_day and any(local_hashes.get(name) != remote_hashes.get(name) for name in admitted)
     if mismatch:
         conditions.append({"code": "witness_mismatch", "severity": "critical"})
 
-    generated = parse_time(remote["generated_at_utc"])
     age_seconds = (now - generated).total_seconds()
     if age_seconds < 0 or age_seconds > maximum_age_seconds:
         conditions.append({"code": "stale_data", "severity": "high"})
@@ -254,7 +262,13 @@ def compare_status(
     observation = {
         "schema": "omen-football-witness-observation.v1",
         "observed_at_utc": now.isoformat().replace("+00:00", "Z"),
-        "status": "match" if not conditions else ("mismatch" if mismatch else "alert"),
+        "status": (
+            "match" if not conditions and same_capture_day
+            else "awaiting_next_witness" if not conditions
+            else "mismatch" if mismatch
+            else "alert"
+        ),
+        "comparison": "same_capture_day" if same_capture_day else "different_capture_day",
         "expected_hash": expected_hash,
         "observed_hash": observed_hash,
         "datasets": {

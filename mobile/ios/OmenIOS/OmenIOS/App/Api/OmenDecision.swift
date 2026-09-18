@@ -172,6 +172,7 @@ extension OmenDecisionEnvelope {
 
         return OmenDecisionBriefPayload(
             verdict: verdict,
+            callType: recommendation.type,
             move: move,
             impact: recommendation.expectedValueDelta.flatMap(Self.impactText),
             // Never `?? 0`. `src/routes/omen.js` persists a missing score as null behind a
