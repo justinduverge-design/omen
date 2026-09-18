@@ -115,9 +115,10 @@ final class EspnEmittedBytesTests: XCTestCase {
         viewModel.selectProvider(.espn)
         viewModel.beginEspnSignIn(cookieStore: SentinelCookieStore((espnS2Sentinel, swidSentinel)))
 
-        // Sign-in observed → discovery runs and returns a league.
+        // Sign-in observed → discovery runs and returns a league. Await the discovery sign-in
+        // started rather than starting a second one.
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "13338821", detectedTeamId: "3"))
-        await viewModel.discoverEspnLeagues()
+        await viewModel.awaitEspnDiscovery()
 
         let option = EspnLeagueOption(
             id: "13338821", name: "Slops Saloon FF Showdown", season: 2026, teamId: "3", teamName: "Titans"
@@ -132,7 +133,7 @@ final class EspnEmittedBytesTests: XCTestCase {
         fetcher.statusOverrides["api/platforms/espn/connect"] = nil
         viewModel.beginEspnSignIn(cookieStore: SentinelCookieStore((espnS2Sentinel, swidSentinel)))
         viewModel.espnSignInProgressed(.signedIn(detectedLeagueId: "13338821", detectedTeamId: "3"))
-        await viewModel.discoverEspnLeagues()
+        await viewModel.awaitEspnDiscovery()
         await viewModel.connectEspnLeague(option)
 
         return fetcher.emissions
@@ -216,15 +217,45 @@ final class EspnEmittedBytesTests: XCTestCase {
         let carriers = emissions.filter {
             $0.allBytes.contains(espnS2Sentinel) || $0.allBytes.contains(swidSentinel)
         }
-        // Two discoveries and two connects across the run, and nothing else. If a failure handler
-        // ever starts reporting the request that failed, this count moves and the test says so.
-        XCTAssertEqual(
-            carriers.count, 4,
-            "unexpected number of session-carrying requests: \(carriers.map(\.url))"
-        )
+        XCTAssertFalse(carriers.isEmpty, "the flow must actually have sent the session somewhere")
+
+        // **The property this test is really for.** Every request that carries the session goes
+        // to one of the two endpoints authorized to receive it, and each is a POST. If a failure
+        // handler ever starts reporting the request that failed — an error report, a breadcrumb,
+        // a "tell the server what broke" call — that report is a new carrier, and it will not be
+        // one of these. That is the thing worth catching; the number of requests never was.
+        let authorized = ["api/platforms/espn/leagues", "api/platforms/espn/connect"]
         for carrier in carriers {
-            XCTAssertEqual(carrier.method, "POST")
+            XCTAssertTrue(
+                authorized.contains(where: { carrier.url.contains($0) }),
+                "session-carrying request to an unauthorized endpoint: \(carrier.method) \(carrier.url)"
+            )
+            XCTAssertEqual(carrier.method, "POST", "a session may only be carried in a POST body")
         }
+
+        // The volume stays inside what the retry policy permits, **derived from the policy** so a
+        // change to the policy updates the bound instead of breaking the test.
+        //
+        // This asserted `carriers.count == 4` until 2026-09-17. That count was written before
+        // `discoverEspnLeagues()` gained its bounded retry — ESPN can make the WebKit session
+        // visible a moment before its own fan directory will answer for it, so discovery may
+        // legitimately ask twice. The literal was stale the moment the retry landed, and raising
+        // it to 5 would only have moved the staleness one policy change down the road.
+        //
+        // The flow signs in twice and connects once per sign-in. Each sign-in therefore emits one
+        // connect plus between one and `maxEspnDiscoveryAttempts` discovery requests.
+        let signIns = 2
+        let connectsPerSignIn = 1
+        let permitted = signIns * (ConnectViewModel.maxEspnDiscoveryAttempts + connectsPerSignIn)
+        let minimum = signIns * (1 + connectsPerSignIn)
+        XCTAssertGreaterThanOrEqual(
+            carriers.count, minimum,
+            "too few session-carrying requests — did the flow actually run? \(carriers.map(\.url))"
+        )
+        XCTAssertLessThanOrEqual(
+            carriers.count, permitted,
+            "more session-carrying requests than the retry policy permits: \(carriers.map(\.url))"
+        )
     }
 
     /// **The crash channel.** `SentryEnvelopeReporter` ships an exception's name, reason and call
