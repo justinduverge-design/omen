@@ -508,6 +508,16 @@ fun OmenCommandQuietScreen(
  */
 @Composable
 private fun QuietMark() {
+    // Read outside the draw lambda: `DrawScope` is not a `@Composable` scope, so `OmenTheme`
+    // cannot be reached from inside it. This shipped as a raw eight-digit brass hex literal,
+    // which `PrimitiveEnforcementTest` fails on — and rightly: that constant is the *dark*
+    // scheme's `accent`, so the mark stayed dark-mode brass in light mode while every other
+    // element on the screen switched. The token is both the enforcement fix and the correctness
+    // one.
+    //
+    // The literal is not quoted here even as prose: the enforcement regex reads the file as text
+    // and does not skip comments, so naming it would fail the very test this comment explains.
+    val brass = OmenTheme.color.accent
     androidx.compose.foundation.Canvas(
         modifier = Modifier
             .size(56.dp)
@@ -515,7 +525,6 @@ private fun QuietMark() {
             .clearAndSetSemantics { },
     ) {
         val s = size.width / 1024f
-        val brass = Color(0xFFC4933B)
         // The eyelid: an outer ellipse with an inner one cut out, per the artboard's even-odd path.
         drawOval(
             color = brass,
@@ -1167,6 +1176,28 @@ private fun DeskBoardSkeleton() {
             }
         }
     }
+}
+
+/**
+ * The three-letter crest the switcher bar draws, derived from the team name.
+ *
+ * The iOS twin is `OmenDeskState.crest(from:)` and this is the same rule, deliberately: a user
+ * with the same team on both phones must see the same three letters. Apostrophes split like
+ * spaces so "Puk Around & Find Out" and "O'Dell's Ordeal" both give initials rather than one
+ * long token.
+ *
+ * An em dash rather than an empty string when there is nothing to initial — the bar has a fixed
+ * crest slot, and a blank one reads as a failed load rather than an unnamed team.
+ */
+fun omenDeskCrest(name: String): String {
+    val initials = name
+        .split(' ', '\'', '\u2019')
+        .filter { it.isNotEmpty() }
+        .take(3)
+        .mapNotNull { it.firstOrNull() }
+        .joinToString("")
+        .uppercase()
+    return initials.ifEmpty { "\u2014" }
 }
 
 /**

@@ -69,6 +69,15 @@ struct OmenIconButton: View {
                 width: max(visualSize, OmenLayout.minTouchTarget),
                 height: max(visualSize, OmenLayout.minTouchTarget)
             )
+            // Without this the button's hit region — and the frame XCUITest reports for it — is
+            // the *drawn* glyph, not the frame above it. That is how an icon button which had
+            // carried a 44pt frame since it was written still measured 20.0pt tall in
+            // `J2InteractionUITests`: the 44 was layout, and nothing had claimed it for touch.
+            //
+            // The glyph keeps `glyphSize`. Growing the icon to reach 44 would be the other way
+            // to pass the assertion and the wrong one — the artboards draw a 20pt questionmark,
+            // and the thumb, not the picture, is what needs the 44.
+            .contentShape(Rectangle())
         }
         .buttonStyle(OmenIconButtonPressableStyle())
         .disabled(!isInteractable)

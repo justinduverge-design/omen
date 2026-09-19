@@ -193,6 +193,11 @@ final class J2InteractionUITests: XCTestCase {
     /// heights as an accessibility value. A failure here reports the actual overflow, so the next
     /// person gets "18pt over" rather than "looks like it scrolls".
     func testEveryDeclaredFitActuallyFits() {
+        // The one test in this class that keeps going after a failure. Every other assertion here
+        // stops on first failure because a missing control usually invalidates the ones after it;
+        // here the opposite holds — five independent screens, and knowing that one of them
+        // overflows tells you nothing about the other four.
+        continueAfterFailure = true
         let screens: [(scenario: String, probe: String)] = [
             ("journey-j2.nominal.01-command-center", "j2.fit.command-center"),
             ("journey-j2.degraded.01-command-center", "j2.fit.command-center"),
@@ -211,6 +216,11 @@ final class J2InteractionUITests: XCTestCase {
                 app.terminate()
                 continue
             }
+            // Emitted on pass as well as on failure. D11 asks for the overflow of every
+            // declared fit to be *stated*, and a number that only appears when the assertion
+            // breaks is not a statement — it is an alarm. This line is what the close-out report
+            // quotes.
+            print("D11 \(screen.scenario): \(String(describing: probe.value)) overflow=\(overflow)pt")
             XCTAssertLessThanOrEqual(
                 overflow, 0,
                 "\(screen.scenario) overflows its frame by \(overflow)pt — D11 declares this screen a fit"

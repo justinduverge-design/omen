@@ -148,52 +148,100 @@ private struct OmenFitViewportHeightKey: PreferenceKey {
 /// This is deliberately not a `#if DEBUG` probe. A measurement that only exists in a
 /// configuration nobody ships is a measurement of a different binary, and the existing Command
 /// Center already measures exactly these two numbers in release to decide `scrollDisabled`. The
-/// cost here is one zero-sized, screen-reader-hidden element.
+/// cost here is one 1x1, unlabelled element.
 ///
 /// Positive overflow means content taller than the space it was given — the screen does not fit.
+///
+/// ## It reports overflow, not headroom
+///
+/// Every screen carrying this probe ends its stack with a `Spacer`, so a stack with room to
+/// spare expands to exactly fill its proposal and reports `content == viewport`. A fitting
+/// screen therefore always measures 0, never a negative number, and this probe cannot tell you
+/// how much slack a screen has left. That is the number D11 actually asks for — "does it fit,
+/// and by how much does it miss" — and reading a 0 as "exactly full" would be wrong.
+///
+/// ## The two measurements are taken at different levels, and that is the whole point
+///
+/// The first version of this applied `omenFitViewport()` and `omenFitProbe()` one after the
+/// other at the *same* level, so both keys measured the same view and the overflow was
+/// structurally always zero — a probe that could not fail is not a measurement. The pairing is
+/// now asymmetric and the call site cannot get it wrong by accident:
+///
+/// - ``SwiftUI/View/omenFitContent()`` goes on the **stack**, above the flexible frame, where
+///   the view is still free to be as tall as its children need;
+/// - ``SwiftUI/View/omenFitViewport()`` goes on the **framed** result, which is exactly the
+///   space the screen was granted;
+/// - ``SwiftUI/View/omenFitProbe(_:)`` goes outermost and reads both.
+///
+/// Both travel as preferences, so the probe collects them wherever inside it they were taken.
 struct OmenFitProbe: ViewModifier {
     let identifier: String
     @State private var contentHeight: CGFloat = 0
-    @State private var viewportHeight: CGFloat = 0
 
     func body(content: Content) -> some View {
-        content
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: OmenFitContentHeightKey.self, value: proxy.size.height)
+        GeometryReader { proxy in
+            content
+                .onPreferenceChange(OmenFitContentHeightKey.self) { contentHeight = $0 }
+                .overlay(alignment: .topLeading) {
+                    // 1x1 rather than zero-sized: a zero-area view is dropped from the
+                    // accessibility tree entirely, so the first version of this published a
+                    // measurement that XCUITest could never find — the probe reported nothing and
+                    // the test failed saying so, which is at least the right failure.
+                    //
+                    // `accessibilityElement()` is what makes it an element at all; without it a
+                    // bare `Color` carries an identifier that addresses nothing. It is invisible
+                    // and unlabelled, so VoiceOver has nothing to announce.
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .accessibilityElement()
+                        .accessibilityIdentifier(identifier)
+                        .accessibilityValue(
+                            "content=\(Int(contentHeight.rounded())) viewport=\(Int(proxy.size.height.rounded()))"
+                        )
                 }
-            )
-            .onPreferenceChange(OmenFitContentHeightKey.self) { contentHeight = $0 }
-            .onPreferenceChange(OmenFitViewportHeightKey.self) { viewportHeight = $0 }
-            .overlay(alignment: .topLeading) {
-                // 1x1 rather than zero-sized: a zero-area view is dropped from the accessibility
-                // tree entirely, so the first version of this published a measurement that
-                // XCUITest could never find — the probe reported nothing and the test failed
-                // saying so, which is at least the right failure.
-                //
-                // `accessibilityElement()` is what makes it an element at all; without it a bare
-                // `Color` carries an identifier that addresses nothing. It is invisible and
-                // unlabelled, so VoiceOver has nothing to announce.
-                Color.clear
-                    .frame(width: 1, height: 1)
-                    .accessibilityElement()
-                    .accessibilityIdentifier(identifier)
-                    .accessibilityValue("content=\(Int(contentHeight.rounded())) viewport=\(Int(viewportHeight.rounded()))")
-            }
+        }
     }
+
+    // `proxy.size.height` is the height proposed to this `GeometryReader`, and a
+    // `GeometryReader` always accepts its proposal — it does not grow with its child. That
+    // property is the entire reason the viewport is taken here rather than from a `.background`
+    // on the framed screen, which was the first attempt: a flexible `.frame(maxHeight: .infinity)`
+    // reports *at least* its child's height, so when content overflowed the "viewport" grew with
+    // it and a deliberately injected 137pt came back as 13pt of overflow. A measurement that
+    // moves with the thing it is measured against is not a measurement.
+    //
+    // It is deliberately NOT reduced by `proxy.safeAreaInsets`. The second attempt subtracted
+    // them and produced a flat 80pt of "overflow" on all five screens at once — a number
+    // identical across screens of visibly different length, which is the signature of an
+    // instrument fault rather than a layout one. On an iPhone 16 the reader measures 710pt with
+    // insets of 59 top and 83 bottom, and 59 + 710 + 83 is the whole 852pt screen: the reader is
+    // already inside the safe area, so subtracting the insets charges the screen twice for the
+    // status bar and the tab bar.
+    //
+    // What that leaves is a placement requirement, which is why `omenFitProbe` must be applied
+    // **above** `safeAreaInset(edge: .top)` rather than below it. A reader outside the inset
+    // measures 710 while the stack inside it is proposed 648 — the 62pt the switcher bar is
+    // standing in — and the screen is credited with a band of room the bar occupies.
 }
 
 extension View {
-    /// Records the height this view was given, for the probe above to compare against content.
-    func omenFitViewport() -> some View {
+    /// Measures this view's **natural** height — apply above the flexible frame, on the stack
+    /// itself, while it is still free to report more than it was offered.
+    func omenFitContent() -> some View {
         background(
             GeometryReader { proxy in
-                Color.clear.preference(key: OmenFitViewportHeightKey.self, value: proxy.size.height)
+                Color.clear.preference(key: OmenFitContentHeightKey.self, value: proxy.size.height)
             }
         )
     }
 
     /// Measures this screen for D11 and publishes the numbers under `identifier`.
+    ///
+    /// Apply it directly above `safeAreaInset(edge: .top)`, so the reader is proposed the same
+    /// height the content stack is, and put any screen-level `accessibilityIdentifier` on the
+    /// stack *inside* it. An identifier applied over the probe propagates down and renames the
+    /// marker to the screen, leaving the measurement unaddressable — which is the other half of
+    /// what "published no fit measurement" meant.
     func omenFitProbe(_ identifier: String) -> some View {
         modifier(OmenFitProbe(identifier: identifier))
     }

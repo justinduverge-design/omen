@@ -223,14 +223,14 @@ struct OmenCommandDeskScreen: View {
             }
             Color.clear.frame(height: OmenSpacing.step12)
         }
+        .accessibilityIdentifier(screenIdentifier)
+        .omenFitContent()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .omenFitProbe(fitProbeIdentifier)
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
         }
         .background(OmenColor.bg)
-        .omenFitViewport()
-        .omenFitProbe(fitProbeIdentifier)
-        .accessibilityIdentifier(screenIdentifier)
     }
 
     /// `.top`, plus the E017 controls the artboard does not draw.
@@ -243,9 +243,18 @@ struct OmenCommandDeskScreen: View {
     /// the destination that is supposed to reach it.
     ///
     /// Under the 2026-09-19 rule the two are mixed: the deadline text is kept because it is
-    /// genuinely better than nothing there, both controls are added because the product needs
-    /// them, and `CommandCenter.dc.html` is redrawn to the merged result in the same commit. The
-    /// redraw is the step that stops this becoming drift the next agent deletes.
+    /// genuinely better than nothing there, and both controls are added because the product needs
+    /// them.
+    ///
+    /// **The redraw is half done, and the half that is missing is recorded rather than implied.**
+    /// `CommandCenter.dc.html` now draws the account avatar beside the deadline text, so the
+    /// artboard and the built screen agree that Account is reachable from here. The help control
+    /// is still undrawn — on this artboard and on all 25 others carrying E017 — because the
+    /// canvas has no vocabulary for it: `_shared.css` defines `.av` and nothing else, and adding
+    /// a help glyph means a new class in the shared stylesheet and a re-sync of every artboard.
+    /// That is a canvas-system change, not a J2 redraw, so it was flagged instead of improvised.
+    /// Inventing CSS inside an artboard is forbidden, and inventing it in `_shared.css` on the
+    /// way past would have changed 30 files to close one journey's drift.
     private var header: some View {
         // `.bottom`, not `.lastTextBaseline`. The artboard's `.top` is `align-items:flex-end`, and
         // baseline alignment additionally asks SwiftUI to resolve a text baseline for the E017
@@ -397,14 +406,14 @@ struct OmenCommandQuietScreen: View {
             }
             Color.clear.frame(height: OmenSpacing.step14)
         }
+        .accessibilityIdentifier("j2.command-quiet.\(state.variant.rawValue)")
+        .omenFitContent()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .omenFitProbe("j2.fit.command-quiet")
         .safeAreaInset(edge: .top, spacing: 0) {
             if let context { context.bar }
         }
         .background(OmenColor.bg)
-        .omenFitViewport()
-        .omenFitProbe("j2.fit.command-quiet")
-        .accessibilityIdentifier("j2.command-quiet.\(state.variant.rawValue)")
     }
 
     private var header: some View {
