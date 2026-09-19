@@ -328,14 +328,22 @@ enum EspnHandoffCopy {
     /// the specific thing `W1-GATE` required when the founder accepted this risk — the terms
     /// answer was No, so the consent screen is carrying real weight rather than being a formality.
     ///
-    /// **OPEN, and deliberately not resolved here.** `EspnConnect.dc.html` names the mechanism
-    /// outright — "Two cookies, SWID and espn_s2". `ConnectFlowTests`
-    /// `testEspnHandoffCopyNeverUsesCredentialVocabulary` bans exactly those words from every
-    /// ESPN store-facing surface, because App Review reads this screen. Both positions are
-    /// defensible: naming the mechanism is stronger consent, and the ban is store-risk
-    /// management. This copy takes the ban's side pending a founder call, so it says "the two
-    /// values your browser already stores" instead. The structure is the artboard's; only the
-    /// vocabulary is held back.
+    /// **RESOLVED by the founder 2026-09-19: name them.** The consent screen says "Two cookies,
+    /// SWID and espn_s2" outright, as `EspnConnect.dc.html` always drew it.
+    ///
+    /// The credential-vocabulary ban still stands **everywhere else**, and the reason the two can
+    /// coexist is a distinction worth keeping sharp:
+    ///
+    /// - **Naming the fields is disclosure.** The user is being asked to hand over a specific
+    ///   thing, and they cannot weigh that if the screen will not say what it is. This screen
+    ///   exists precisely because the terms answer was No, so vagueness here would be the one
+    ///   place it actually costs something.
+    /// - **Showing the values is still absolutely forbidden** — fact-of-record #6, no exceptions.
+    ///   A cookie value is never displayed, logged, echoed, or sent anywhere but ESPN, and this
+    ///   screen promises exactly that in the list below.
+    ///
+    /// The ban continues to cover every other ESPN surface, because naming a credential in a
+    /// progress message or an error buys nothing and only raises the review surface.
     /// Says what is about to happen, and stops.
     ///
     /// The previous version explained *why* ESPN is different and compared it to Yahoo's button.
@@ -347,14 +355,14 @@ enum EspnHandoffCopy {
     """
     static let consentTakesTitle = "What Omen takes"
     static let consentTakes = [
-        "The two values your browser already stores, which identify you to ESPN.",
+        "Two cookies, SWID and espn_s2, which identify you to ESPN.",
         "Your leagues, rosters, matchups and scoring settings."
     ]
     static let consentNeverTitle = "What Omen never does"
     static let consentNever = [
         "Set a lineup, make a claim, or send a trade.",
         "Post, message, or act as you anywhere.",
-        "Show those values back to you, log them, or send them anywhere but ESPN."
+        "Show those cookies back to you, log them, or send them anywhere but ESPN."
     ]
     /// Kept from the shipped copy although the artboard omits it: the affiliation disclaimer is a
     /// binding `W1-GATE` constraint, not decoration.

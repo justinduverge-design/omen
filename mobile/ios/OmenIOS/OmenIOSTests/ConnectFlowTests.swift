@@ -56,6 +56,31 @@ final class ConnectFlowTests: XCTestCase {
         XCTAssertNil(viewModel.espnCookieStore)
     }
 
+    /// The founder's 2026-09-19 transparency call, pinned so it cannot be quietly undone in
+    /// either direction.
+    ///
+    /// The consent screen must **name** the two cookies, and must still promise never to show
+    /// their values. A future edit that softens "SWID and espn_s2" back into "two values" loses
+    /// the disclosure; one that prints an actual value breaks fact-of-record #6. Both fail here.
+    func testEspnConsentNamesTheCookiesAndNeverTheirValues() {
+        let takes = EspnHandoffCopy.consentTakes.joined(separator: " ")
+        XCTAssertTrue(takes.contains("SWID"), "consent must name the cookie, not hint at it")
+        XCTAssertTrue(takes.contains("espn_s2"), "consent must name the cookie, not hint at it")
+
+        // The promise that makes naming them safe.
+        let never = EspnHandoffCopy.consentNever.joined(separator: " ").lowercased()
+        XCTAssertTrue(never.contains("show those cookies back to you"))
+        XCTAssertTrue(never.contains("log them"))
+
+        // A cookie VALUE is never copy. These are the shapes a real one takes.
+        for leaked in ["{", "}", "AEB", "%7B"] {
+            XCTAssertFalse(
+                EspnHandoffCopy.consentAllCopy.contains(leaked),
+                "a cookie value must never appear in consent copy: \(leaked)"
+            )
+        }
+    }
+
     /// The consent sentence is what App Review reads. It must name who the user signs in to, and
     /// carry the non-affiliation disclaimer Disney's ToU §2.B.vii requires.
     func testEspnConsentCopySaysWhoTheUserSignsInToAndDisclaimsAffiliation() {
@@ -575,11 +600,17 @@ final class ConnectFlowTests: XCTestCase {
                         EspnHandoffCopy.signInWaiting, EspnHandoffCopy.signInReady,
                         EspnHandoffCopy.signInConnectTitle, EspnHandoffCopy.signInFellBack]
             + EspnHandoffCopy.steps.flatMap { [$0.title, $0.detail] }
-            // Added 2026-09-19: the consent screen became two itemised lists, and a guardrail
-            // that only checked the old paragraph would have silently stopped covering the
-            // sentences most likely to name a credential.
-            + EspnHandoffCopy.consentTakes
-            + EspnHandoffCopy.consentNever
+
+        // `consentTakes` and `consentNever` are **deliberately excluded** from the ban.
+        //
+        // Founder, 2026-09-19: name the cookies. The consent screen says "Two cookies, SWID and
+        // espn_s2" because a user cannot weigh handing something over if the screen will not say
+        // what it is — and this screen exists precisely because the ESPN terms answer was No.
+        // Transparency is the posture the product is built on.
+        //
+        // The ban still covers every other surface, and the distinction is the point: naming the
+        // **fields** is disclosure, showing their **values** is forbidden outright by
+        // fact-of-record #6. `testEspnConsentNamesTheCookiesAndNeverTheirValues` holds that line.
 
         for copy in surfaces {
             let lowered = copy.lowercased()

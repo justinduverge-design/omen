@@ -308,14 +308,14 @@ object EspnHandoffCopy {
         "ESPN's own sign-in page opens next. You sign in to ESPN, then Omen reads your league."
     const val CONSENT_TAKES_TITLE = "What Omen takes"
     val CONSENT_TAKES = listOf(
-        "The two values your browser already stores, which identify you to ESPN.",
+        "Two cookies, SWID and espn_s2, which identify you to ESPN.",
         "Your leagues, rosters, matchups and scoring settings.",
     )
     const val CONSENT_NEVER_TITLE = "What Omen never does"
     val CONSENT_NEVER = listOf(
         "Set a lineup, make a claim, or send a trade.",
         "Post, message, or act as you anywhere.",
-        "Show those values back to you, log them, or send them anywhere but ESPN.",
+        "Show those cookies back to you, log them, or send them anywhere but ESPN.",
     )
     const val CONSENT_FOOTER =
         "You sign in on ESPN's own sign-in page, and Omen never sees your ESPN password. " +
