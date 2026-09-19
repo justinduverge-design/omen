@@ -102,6 +102,33 @@ Omen cannot stand behind — wrong in exactly the weeks it matters.
 screen 2 to screen 3 sees two naming styles for related inputs. **Not a defect in either screen;
 flagged as a journey-level observation that only a journey capture could surface.**
 
+
+## D-9 · OmenCall evidence rework — BUILT, founder-directed, deviates from the artboard
+
+`omencall-evidence-contract-v1.md` (CANONICAL, ratified 2026-09-18). The flat capability list is
+replaced by three labelled groups, and "Why this confidence" is promoted from `OmenEvidence`.
+
+**Defect fixed in passing, and it was a contract violation.** The shipped card rendered
+`payload.signals.prefix(3)` — a truncating flat list. `capability-expression-v1` prohibits exactly
+that: *"dropping an `unavailable` input to make room is prohibited — it is the one class that must
+survive truncation."* With four or more inputs the old code could silently drop the only one that
+costs the reader something.
+
+**Facts row (E029–E041) removed from the call card.** `capability-symbols-v1` says the four chips
+exist because they sit *"in a compact row where there is no space for sentences."* With D11 waived
+there is space, and the groups below carry the same inputs as sentences — keeping both restated
+`ROSTER` and `WEATHER` twice, six pixels apart. The helper is retained in source for any future
+compact surface.
+
+**Block 11 "What would change this" is DEFERRED, on evidence.** `what_could_change_this` exists
+only in `src/services/startSitDetail.js`; the Omen decision brief does not carry it. Faking a
+falsifier is a claim about the week Omen cannot stand behind. **Needs a backend item.**
+
+**Deviation from the artboard, stated plainly.** `OmenCall.dc.html` draws neither the three groups
+nor the confidence block, and draws a facts row this build omits. The founder directed the change,
+so the artboard is now behind the decision. **Either it is redrawn or the next canvas diff will
+report all of this as drift and "fix" it back.**
+
 ## Capture-harness finding — the reason to check every frame
 
 The prior run's `journey-j3.nominal.01-omen-call.png` captured as a **completely black frame**,

@@ -377,7 +377,13 @@ struct OmenDecisionScreen: View {
                 scopeLine
                 if case .success(let payload) = state {
                     callCard(payload)
+                    // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
+                    // than one flat list: the capability contract's classes ARE the lesson.
+                    capabilityGroups(payload)
                     actions(payload)
+                    // Block 10. Promoted from OmenEvidence, where most users never saw it.
+                    whyThisConfidence(payload)
+                    fullArgumentAction
                     footerLine
                 } else {
                     // Every non-success state, unchanged and owned by the brief.
@@ -459,6 +465,128 @@ struct OmenDecisionScreen: View {
             .foregroundStyle(OmenColor.textTertiary)
     }
 
+
+    // MARK: - Evidence as the teaching layer (`omencall-evidence-contract-v1`, ratified 2026-09-18)
+
+    /// Blocks 5-7. One flat list of inputs is compliance furniture; split into three labelled
+    /// groups it teaches the questions a fantasy player needs to learn to ask — not only what the
+    /// data said, but whether it mattered and where Omen is blind.
+    ///
+    /// **This also fixes a real defect.** The previous composition rendered
+    /// `payload.signals.prefix(3)`, which truncates a flat list and can therefore drop an
+    /// `unavailable` input to make room. `capability-expression-v1` prohibits exactly that: the
+    /// unavailable class is the one that must survive truncation, because it is the only one that
+    /// costs the reader something.
+    ///
+    /// A group with no members is **absent**, not empty — no heading, no "none".
+    /// `not_requested` is filtered before it reaches here and renders nowhere.
+    @ViewBuilder
+    private func capabilityGroups(_ payload: OmenDecisionBriefPayload) -> some View {
+        let moved = payload.signals.filter { $0.used == true && $0.source == .live }
+        let readNotUsed = payload.signals.filter { $0.used == false && $0.source == .live }
+        let couldNotRead = payload.signals.filter { $0.source == .unavailable }
+
+        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+            if !moved.isEmpty {
+                capabilityGroup("What moved this call", moved, emphasis: true)
+            }
+            if !readNotUsed.isEmpty {
+                capabilityGroup("Read, but it didn't decide this", readNotUsed, emphasis: false)
+            }
+            if !couldNotRead.isEmpty {
+                capabilityGroup("What Omen couldn't read", couldNotRead, emphasis: false)
+            }
+        }
+    }
+
+    /// Row order inside a group is the server's. The screen must not re-rank: re-ranking is a
+    /// claim about relative importance that no contract supports.
+    private func capabilityGroup(
+        _ title: String,
+        _ items: [OmenSignalItem],
+        emphasis: Bool
+    ) -> some View {
+        // `OmenCard`, not a raw RoundedRectangle: `PrimitiveEnforcementTests` fails app sources
+        // that compose their own surfaces, and it is right to — a screen-level shape is a token
+        // the theme cannot reach. The contract named OmenCard; this now matches it.
+        OmenCard(
+            variant: emphasis ? .solid : .outlined,
+            contentPadding: OmenSpacing.step12
+        ) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                Text(title)
+                    .omenTextStyle(OmenTypography.micro)
+                    .foregroundStyle(OmenColor.textTertiary)
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    OmenEvidenceRow(key: item.label, statement: item.detail ?? "")
+                        // "Read, but it didn't decide this" carries no evidence styling. A source
+                        // is not evidence until an engine marks it used.
+                        .opacity(emphasis ? 1.0 : 0.72)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Block 10. The transferable rule, not a restatement of the band.
+    ///
+    /// Server drivers are preferred. The fallback states the *rule* rather than inventing a
+    /// driver, because a driver Omen did not produce is a claim about this week's data.
+    /// **Never a numeral and never a meter** — fact-of-record #16.
+    @ViewBuilder
+    private func whyThisConfidence(_ payload: OmenDecisionBriefPayload) -> some View {
+        if let band = payload.confidenceBand {
+            OmenCard(contentPadding: OmenSpacing.step12) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text("Why this confidence")
+                        .omenTextStyle(OmenTypography.micro)
+                        .foregroundStyle(OmenColor.textTertiary)
+                    if payload.confidenceDrivers.isEmpty {
+                        Text(Self.confidenceRule(for: band))
+                            .omenTextStyle(OmenTypography.bodySmall)
+                            .foregroundStyle(OmenColor.textSecondary)
+                    } else {
+                        ForEach(payload.confidenceDrivers, id: \.self) { driver in
+                            Text(driver)
+                                .omenTextStyle(OmenTypography.bodySmall)
+                                .foregroundStyle(OmenColor.textSecondary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    /// The rule behind each band, written per band rather than interpolated. What makes a call
+    /// Confident is agreement, not margin — that is the part a reader can reuse next week.
+    private static func confidenceRule(for band: OmenConfidenceBand) -> String {
+        switch band.label.lowercased() {
+        case "confident":
+            return "Confident means the reads agree. Several independent inputs point the same way and none contradicts — that is what separates Confident from Leaning, not the size of the gap."
+        case "leaning":
+            return "Leaning means the reads mostly agree, but at least one pulls the other way or is missing. The move is still the better side of a close call."
+        default:
+            return "This band reflects how far the available reads agree with each other, not how large the projected gap is."
+        }
+    }
+
+    /// Block 12. Kept as its own action now that the evidence rows no longer live in a disclosure.
+    ///
+    /// `OmenButton`, not a raw `Button`: `PrimitiveEnforcementTests` bans raw SwiftUI controls in
+    /// app sources, and it caught this. The rule is right — a raw control does not pick up the
+    /// focus ring, the tone or the touch target the primitive guarantees.
+    private var fullArgumentAction: some View {
+        OmenButton(
+            title: "See the full argument",
+            action: {
+                if let onOpenFullArgument { onOpenFullArgument() } else { showingFullArgument = true }
+            },
+            variant: .link,
+            size: .md
+        )
+    }
+
     private func callCard(_ payload: OmenDecisionBriefPayload) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step10) {
             if let callType = payload.callType, !callType.isEmpty {
@@ -491,18 +619,16 @@ struct OmenDecisionScreen: View {
                 }
             }
 
-            factsRow(payload)
-
-            OmenEvidenceDisclosure(
-                rows: payload.signals.prefix(3).map { ($0.label, $0.detail ?? "") },
-                onOpenFullArgument: {
-                    if let onOpenFullArgument {
-                        onOpenFullArgument()
-                    } else {
-                        showingFullArgument = true
-                    }
-                }
-            )
+            // `factsRow` (E029-E041) is deliberately NOT rendered here any more.
+            //
+            // `capability-symbols-v1` is explicit that the four fact chips exist because they sit
+            // "in a compact row where there is no space for sentences". With D11 waived there IS
+            // space, and the three capability groups below now carry the same inputs as full
+            // sentences. Keeping both restated ROSTER and WEATHER twice, six pixels apart — the
+            // "same fact restated" failure the journey spec exists to catch.
+            //
+            // The helper is retained, not deleted: it is still correct for any future compact
+            // surface, and deleting it would force the next author to re-derive the chip mapping.
         }
         .padding(OmenSpacing.step14)
         .background(

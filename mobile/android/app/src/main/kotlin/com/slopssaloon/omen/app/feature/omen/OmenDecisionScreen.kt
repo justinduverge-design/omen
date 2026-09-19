@@ -73,6 +73,14 @@ private fun LegacyOmenDecisionScreen(state: OmenDecisionBriefState, modifier: Mo
         OmenDecisionBrief(state = state, modifier = Modifier.fillMaxWidth())
         val payload = (state as? OmenDecisionBriefState.Success)?.payload
         if (payload != null) {
+            // Blocks 5-7 and 10 of `omencall-evidence-contract-v1`, ratified 2026-09-18.
+            // Same strings and same order as iOS; acceptance line 16 requires it.
+            //
+            // Android's call card itself still trails the artboard — it renders
+            // `OmenDecisionBrief` rather than the artboard's composition, and has no switcher
+            // bar or account control. That is recorded drift, not closed here.
+            CapabilityGroups(payload)
+            WhyThisConfidence(payload)
             OmenButton(
                 text = if (showingEvidence) "Hide the full argument" else "See the full argument",
                 onClick = { showingEvidence = !showingEvidence },
@@ -93,6 +101,92 @@ private fun LegacyOmenDecisionScreen(state: OmenDecisionBriefState, modifier: Mo
             }
         }
     }
+}
+
+
+/**
+ * Blocks 5-7. Three labelled groups rather than one flat list: the capability contract's classes
+ * are the lesson, not compliance furniture. A group with no members is absent, not empty, and
+ * `not_requested` is filtered before it reaches here so it renders nowhere.
+ *
+ * Row order inside a group is the server's. The screen must not re-rank — re-ranking is a claim
+ * about relative importance that no contract supports.
+ */
+@Composable
+private fun CapabilityGroups(payload: OmenDecisionBriefPayload) {
+    val moved = payload.signals.filter { it.used == true && it.source == OmenSignalSource.Live }
+    val readNotUsed = payload.signals.filter { it.used == false && it.source == OmenSignalSource.Live }
+    val couldNotRead = payload.signals.filter { it.source == OmenSignalSource.Unavailable }
+
+    Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step12)) {
+        if (moved.isNotEmpty()) CapabilityGroup("What moved this call", moved, emphasis = true)
+        if (readNotUsed.isNotEmpty()) CapabilityGroup("Read, but it didn't decide this", readNotUsed, emphasis = false)
+        if (couldNotRead.isNotEmpty()) CapabilityGroup("What Omen couldn't read", couldNotRead, emphasis = false)
+    }
+}
+
+@Composable
+private fun CapabilityGroup(title: String, items: List<OmenSignalItem>, emphasis: Boolean) {
+    OmenCard(modifier = Modifier.padding(top = OmenTheme.spacing.step12)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text(
+                text = title,
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+            items.forEach { item ->
+                Text(
+                    text = item.label,
+                    style = OmenTheme.typography.micro.toTextStyle(),
+                    color = OmenTheme.color.textTertiary,
+                )
+                // "Read, but it didn't decide this" carries no evidence styling: a source is not
+                // evidence until an engine marks it used.
+                Text(
+                    text = item.detail.orEmpty(),
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = if (emphasis) OmenTheme.color.textSecondary else OmenTheme.color.textTertiary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Block 10. The transferable rule, not a restatement of the band. Server drivers are preferred;
+ * the fallback states the rule rather than inventing a driver. Never a numeral and never a meter
+ * (fact-of-record #16).
+ */
+@Composable
+private fun WhyThisConfidence(payload: OmenDecisionBriefPayload) {
+    val band = payload.confidenceBand ?: return
+    OmenCard(modifier = Modifier.padding(top = OmenTheme.spacing.step12)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text(
+                text = "Why this confidence",
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+            val lines = payload.confidenceDrivers.ifEmpty { listOf(confidenceRule(band.label)) }
+            lines.forEach { line ->
+                Text(
+                    text = line,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+            }
+        }
+    }
+}
+
+/** Written per band rather than interpolated. Agreement, not margin, is the reusable part. */
+private fun confidenceRule(band: String): String = when (band.lowercase()) {
+    "confident" ->
+        "Confident means the reads agree. Several independent inputs point the same way and none contradicts — that is what separates Confident from Leaning, not the size of the gap."
+    "leaning" ->
+        "Leaning means the reads mostly agree, but at least one pulls the other way or is missing. The move is still the better side of a close call."
+    else ->
+        "This band reflects how far the available reads agree with each other, not how large the projected gap is."
 }
 
 /** Deterministic, explicitly mock fixture. It is never selected for a real account. */

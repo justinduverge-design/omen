@@ -3,11 +3,11 @@ metadata_profile: valor-brain/v1
 page_id: omencall-evidence-contract-v1
 page_type: screen-contract
 layer: L2
-authority: REVIEW_ONLY
+authority: CANONICAL
 owner: Justin Duverge Catalino
 state:
   task: READY
-  ratification: PENDING_FOUNDER
+  ratification: RATIFIED
 sources:
   - design/native-visual-lock-2026-09-13/OmenCall.dc.html
   - design/native-visual-lock-2026-09-13/OmenEvidence.dc.html
@@ -42,7 +42,8 @@ snapshot:
 
 # OmenCall — evidence presentation contract v1
 
-**Status:** REVIEW_ONLY. Not buildable until the founder ratifies.
+**Status:** CANONICAL — ratified by the founder 2026-09-18. Buildable, with block 11 deferred
+(see the timeline entry below).
 **Founder direction, 2026-09-18:** accept the scroll on OmenCall, and rework the page so its
 evidence *"presents its worth for the user so the user can become a better FF player."*
 
@@ -62,10 +63,17 @@ evidence *"presents its worth for the user so the user can become a better FF pl
 - **This composition deviates from `OmenCall.dc.html` by founder direction.** Either the artboard is
   redrawn or this contract is recorded as its amendment — otherwise the next agent diffs against the
   old picture and reverts it.
-- **Status:** REVIEW_ONLY. Not buildable until ratified.
+- **Status:** CANONICAL, ratified 2026-09-18.
+- **Block 11 ("What would change this") is DEFERRED on OmenCall**, on evidence rather than
+  preference: `what_could_change_this` exists only in `src/services/startSitDetail.js` and is not
+  carried by the Omen decision brief. Faking it would be a claim about the week Omen cannot stand
+  behind. Blocks 5, 6, 7 and 10 build now.
 
 ## Append-only timeline
 
+- **2026-09-18:** Ratified by the founder, with one correction found while verifying the open
+  questions: block 11 is deferred because `what_could_change_this` is not on the Omen decision
+  brief. Blocks 5, 6, 7 and 10 are built against `omencall-evidence-contract-v1`.
 - **2026-09-18:** Authored by `slops-native-screen-design` after the founder accepted the scroll on
   OmenCall and asked that the page "present its worth for the user so the user can become a better
   FF player". Four open questions recorded rather than guessed: the spacing-scale conflict between
@@ -246,9 +254,9 @@ header row; the block order, tokens and strings are identical. Any divergence is
    precedence rule makes authoritative for look. The founder directed the change, so the artboard is
    now behind the decision. Either it is redrawn or this contract is recorded as its amendment —
    otherwise the next agent diffs against the old picture and "fixes" this away.
-3. **Does `omen-decision-brief.v3` carry `what_could_change_this`?** It is confirmed on
-   `start-sit-detail.v2`. If the Omen brief does not carry it, block 11 needs a backend item and is
-   deferred rather than faked.
+3. ~~**Does `omen-decision-brief.v3` carry `what_could_change_this`?**~~ **ANSWERED 2026-09-18: it
+   does not.** The field exists only in `src/services/startSitDetail.js`. Block 11 is deferred on
+   OmenCall and needs a backend item to carry the falsifier on the Omen brief. Not faked.
 4. **Is `U1`'s D11 clause formally amended?** The founder accepted the scroll verbally. The clause
    in `Direction/current_sprint.md` still reads "fits with nothing below the fold". Until it is
    edited, `U1` cannot close against its own written acceptance.
