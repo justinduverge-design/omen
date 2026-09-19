@@ -633,6 +633,27 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** merged and deployed; proven once against a real roster.
 - **Do not touch:** the public `POST /api/start-sit` comparator; the detail route is a separate router so that one stays loadable without Supabase config.
 
+### BE-ConnectFailureDiagnostics — Carry the diagnostic fields on a connect failure
+
+- **Status:** READY
+- **Blocked by:** None.
+- **Priority:** P1
+- **Cost:** small
+- **Source:** J1 cleanup pass, 2026-09-19. `Solutions/deliverables/native-runs/2026-09-18-j1-before/`.
+- **Finding:** `OmenConnectFailedScreen` (iOS) and `OmenConnectFailedScreen` (Compose) are built
+  to `ConnectFailed.dc.html` and **cannot be reached in production**, because `ConnectFailure` is
+  a payload-free enum. The screen's whole value is the provider's own status code, the league id
+  and the time it happened — the three facts that let a user act and let support triage. Wiring it
+  today would mean inventing a `401` and a league id, which is precisely the false claim the
+  screen exists to prevent.
+- **Done when:** `ConnectFailure`'s ESPN cases carry `statusCode`, `statusText`, `leagueId` and an
+  observed timestamp on both platforms; `errorSection` routes the ESPN reauth cases to
+  `OmenConnectFailedScreen`; and a capture shows it reached from a real failure rather than a
+  fixture.
+- **Do not touch:** never put a cookie **value** on this screen or in its payload — fact-of-record
+  #6. Naming the fields is disclosure; showing a value is not. Do not synthesise a status code
+  when the provider did not give one; absent is a valid state and the screen must degrade to it.
+
 ### BE-OmenBriefFalsifier — Carry `what_could_change_this` on the Omen decision brief
 
 - **Status:** READY

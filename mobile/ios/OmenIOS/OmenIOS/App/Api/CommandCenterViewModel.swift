@@ -80,6 +80,17 @@ final class CommandCenterViewModel: ObservableObject {
         }
     }
 
+    /// True when the shell was read successfully and the answer is **no connected league**.
+    ///
+    /// Distinct from `failure`, and the distinction is the point: a shell we could not read is
+    /// not the same as a shell that told us there are no leagues, and showing "nothing to read"
+    /// for an unread shell would state as fact something we do not know. `.failed` keeps its own
+    /// explicit failure surface.
+    var hasNoConnectedLeague: Bool {
+        guard case .loaded(let summary) = viewState else { return false }
+        return !summary.platforms.anyConnected
+    }
+
     /// True when the shell could not be read. The view renders an explicit failure surface
     /// rather than letting `realDisconnected` masquerade as a confirmed "no leagues" answer.
     var failure: OmenApiError? {

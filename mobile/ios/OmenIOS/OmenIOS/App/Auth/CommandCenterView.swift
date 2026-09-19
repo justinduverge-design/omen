@@ -145,6 +145,15 @@ struct CommandCenterView: View {
                     .padding(OmenSpacing.step24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OmenColor.bg)
+                } else if commandCenterViewModel.hasNoConnectedLeague {
+                    // J1's terminus, wired. Until now this screen existed only in a screenshot
+                    // scenario — captured, and unreachable by any real user, which is a
+                    // screenshot of nothing. The Command Center's own furniture renders as a
+                    // broken dashboard when there is no league; this says why it is empty.
+                    OmenNoLeagueScreen(
+                        onConnect: { showConnectSheet = true },
+                        onSeeHowOmenDecides: { selectedTab = .omen }
+                    )
                 } else {
                     OmenCommandCenterScreen(
                         state: commandCenterViewModel.commandCenterState,
