@@ -25,6 +25,27 @@ import com.slopssaloon.omen.app.auth.OtpResendController
 import com.slopssaloon.omen.app.feature.api.ForcedUpdateScreen
 import com.slopssaloon.omen.app.feature.api.StartSitDetail
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterFixtures
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandDeskScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandQuietScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskFootnote
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskLedgerLine
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskLedgerOutcome
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskMatchup
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskSection
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskTeam
+import com.slopssaloon.omen.app.feature.commandcenter.OmenDeskWaiverMove
+import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietState
+import com.slopssaloon.omen.app.feature.commandcenter.OmenQuietVariant
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchFilter
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchGroup
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchLoadingScreen
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchRow
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetOverlay
+import com.slopssaloon.omen.app.feature.commandcenter.OmenSwitchSheetState
+import com.slopssaloon.omen.app.feature.shell.OmenScreenContext
+import com.slopssaloon.omen.core.designsystem.component.OmenConfidenceBand
+import com.slopssaloon.omen.core.designsystem.component.OmenPlatform
 import com.slopssaloon.omen.app.feature.api.LeagueCarouselViewModel
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenCommandCenterState
@@ -180,6 +201,145 @@ object ScreenshotScenarios {
                         modifier = modifier,
                         onConnect = {},
                         onSeeHowOmenDecides = {},
+                    )
+                }
+            },
+        ),
+        // J2 — "the desk". The numbering is the storyboard order: arrive at Command, open the
+        // switcher, watch the new team resolve, and see what the desk says on a quiet week.
+        //
+        // The degraded pass is not a fifth screen. `CONTRACTS.md` gives Command Center its own
+        // rule — "Every section fails independently; a dead matchup read sits beside live
+        // standings" — so the same four frames run with `league_matchup` unavailable and
+        // `league_standings` read-but-unused, which is exactly the pair
+        // `capability-expression-v1.md` requires of a degraded pass for a `consumes` profile.
+        //
+        // `CommandQuiet` appears only in the nominal pass and `CommandQuietStraight` only in the
+        // degraded one, and that is the contract rather than a convenience: the neutral variant
+        // requires *all* positive quiet evidence, so it cannot occur in a pass where a provider
+        // failed. Straight fires on exactly that.
+        "journey-j2.nominal.01-command-center" to ScreenshotScenario(
+            label = "J2 nominal 1/4 — the desk, everything read",
+            render = {
+                J2InShell { modifier ->
+                    OmenCommandDeskScreen(
+                        state = J2ScreenshotFixtures.nominalDesk,
+                        modifier = modifier,
+                        context = J2ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onOpenLeague = {},
+                        onOpenLedger = {},
+                    )
+                }
+            },
+        ),
+        "journey-j2.nominal.02-switch-sheet" to ScreenshotScenario(
+            label = "J2 nominal 2/4 — the switcher sheet over the desk",
+            render = {
+                J2InShell { modifier ->
+                    OmenSwitchSheetOverlay(
+                        state = J2ScreenshotFixtures.nominalSwitchSheet,
+                        modifier = modifier,
+                        onSelectFilter = {},
+                        onSelectRow = {},
+                        onToggleFavorite = {},
+                        onDismiss = {},
+                    ) {
+                        OmenCommandDeskScreen(
+                            state = J2ScreenshotFixtures.nominalDesk,
+                            context = J2ScreenshotFixtures.titansContext,
+                            onOpenAccount = {},
+                        )
+                    }
+                }
+            },
+        ),
+        "journey-j2.nominal.03-switch-loading" to ScreenshotScenario(
+            label = "J2 nominal 3/4 — mid-switch, nothing reused",
+            render = {
+                J2InShell { modifier ->
+                    OmenSwitchLoadingScreen(
+                        context = J2ScreenshotFixtures.davantesContext,
+                        weekLabel = "Week 7 · Sunday",
+                        footnote = J2ScreenshotFixtures.switchingFootnote,
+                        modifier = modifier,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j2.nominal.04-command-quiet" to ScreenshotScenario(
+            label = "J2 nominal 4/4 — a quiet week, neutral variant",
+            render = {
+                J2InShell { modifier ->
+                    OmenCommandQuietScreen(
+                        state = J2ScreenshotFixtures.quietNeutral,
+                        modifier = modifier,
+                        context = J2ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j2.degraded.01-command-center" to ScreenshotScenario(
+            label = "J2 degraded 1/4 — dead matchup read beside a live wire",
+            render = {
+                J2InShell { modifier ->
+                    OmenCommandDeskScreen(
+                        state = J2ScreenshotFixtures.degradedDesk,
+                        modifier = modifier,
+                        context = J2ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
+                        onOpenLeague = {},
+                        onOpenLedger = {},
+                    )
+                }
+            },
+        ),
+        "journey-j2.degraded.02-switch-sheet" to ScreenshotScenario(
+            label = "J2 degraded 2/4 — switcher naming the provider it could not list",
+            render = {
+                J2InShell { modifier ->
+                    OmenSwitchSheetOverlay(
+                        state = J2ScreenshotFixtures.degradedSwitchSheet,
+                        modifier = modifier,
+                        onSelectFilter = {},
+                        onSelectRow = {},
+                        onToggleFavorite = {},
+                        onDismiss = {},
+                    ) {
+                        OmenCommandDeskScreen(
+                            state = J2ScreenshotFixtures.degradedDesk,
+                            context = J2ScreenshotFixtures.titansContext,
+                            onOpenAccount = {},
+                        )
+                    }
+                }
+            },
+        ),
+        "journey-j2.degraded.03-switch-loading" to ScreenshotScenario(
+            label = "J2 degraded 3/4 — mid-switch after a partial read",
+            render = {
+                J2InShell { modifier ->
+                    OmenSwitchLoadingScreen(
+                        context = J2ScreenshotFixtures.davantesContext,
+                        weekLabel = "Week 7 · Sunday",
+                        footnote = J2ScreenshotFixtures.switchingFootnote,
+                        modifier = modifier,
+                        onOpenAccount = {},
+                    )
+                }
+            },
+        ),
+        "journey-j2.degraded.04-command-quiet-straight" to ScreenshotScenario(
+            label = "J2 degraded 4/4 — a quiet week after a loss, straight variant",
+            render = {
+                J2InShell { modifier ->
+                    OmenCommandQuietScreen(
+                        state = J2ScreenshotFixtures.quietStraight,
+                        modifier = modifier,
+                        context = J2ScreenshotFixtures.titansContext,
+                        onOpenAccount = {},
                     )
                 }
             },
@@ -410,6 +570,21 @@ private fun J1InShell(tab: FauxNavTab?, content: @Composable (Modifier) -> Unit)
     Scaffold(
         containerColor = OmenTheme.color.bg,
         bottomBar = { if (tab != null) FauxBottomNav(tab) {} },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+/**
+ * J2 opens on the Command tab, which is the destination all five of its screens live in —
+ * including the switcher sheet, which the artboard happens to draw over Trade only because the
+ * switcher bar is on 25 of the 30 screens and can be opened from any of them.
+ */
+@Composable
+private fun J2InShell(content: @Composable (Modifier) -> Unit) {
+    Scaffold(
+        containerColor = OmenTheme.color.bg,
+        bottomBar = { FauxBottomNav(FauxNavTab.Command) {} },
     ) { innerPadding ->
         content(Modifier.padding(innerPadding))
     }
@@ -754,3 +929,183 @@ private fun screenshotTradeVerdict(): TradeCompare = requireNotNull(
         """.trimIndent(),
     ),
 ) { "screenshot trade fixture failed to parse" }
+
+/**
+ * J2's fixtures. The Compose half of `J2ScreenshotFixtures` in `ScreenshotScenarios.swift`, and
+ * deliberately identical string for string — a contact sheet that compares the two platforms
+ * must be comparing the same words.
+ *
+ * Copy is taken **verbatim from the artboards** wherever the artboard has any, because on these
+ * five screens the words are the design: `CommandQuiet` and `CommandQuietStraight` differ by two
+ * sentences and nothing else, and paraphrasing either would erase the voice fence the pair
+ * exists to draw.
+ *
+ * Team and player names are the canvas's own invented ones. A capture that escapes into a deck
+ * must not read as a real person's league.
+ */
+private object J2ScreenshotFixtures {
+
+    val titansContext = OmenScreenContext(
+        crest = "TTO",
+        teamName = "Titans of Slopsilonia",
+        platform = OmenPlatform.Espn,
+        leagueName = "Slops Saloon",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    /** The team being switched **to** on `SwitchLoading`. */
+    val davantesContext = OmenScreenContext(
+        crest = "DSI",
+        teamName = "Davante’s Inferno",
+        platform = OmenPlatform.Espn,
+        leagueName = "EB Football",
+        onSwitch = {},
+        onAddLeague = {},
+    )
+
+    private val waiverMove = OmenDeskWaiverMove(
+        addName = "Jaylen Wright",
+        addMeta = "RB · TEN",
+        addPoints = "11.4",
+        dropName = "Roschon Johnson",
+        dropMeta = "RB · CHI",
+        dropPoints = "4.1",
+        reasoning = "Pollard’s out three weeks and Wright took almost every backup snap. " +
+            "Roschon is behind two healthy backs — you won’t miss him.",
+        band = OmenConfidenceBand.Confident,
+    )
+
+    private val ledgerLine = OmenDeskLedgerLine(
+        summary = "Start Stafford over Daniels",
+        meta = "This week · start / sit · you followed it",
+        outcome = OmenDeskLedgerOutcome.Pending,
+    )
+
+    val nominalDesk = OmenDeskState(
+        weekLabel = "Week 7 · Sunday",
+        deadlineLabel = "Lineups lock",
+        deadlineTime = "1:00 PM",
+        matchup = OmenDeskSection.Read(
+            OmenDeskMatchup(
+                platform = OmenPlatform.Espn,
+                status = "Live · Q2",
+                leader = OmenDeskTeam("TTO", "Titans of Slopsilonia", "5–2 · you", "64.8", isMine = true),
+                trailer = OmenDeskTeam("GMR", "Gibbs me some Rice", "6–1", "51.2", isMine = false),
+                projection = "119.6 – 114.2",
+                projectionNote = "Projected · 5.4 ahead",
+                leadFraction = 0.66f,
+                watch = "Four of your starters left; two of theirs.",
+            ),
+        ),
+        railCount = 4,
+        railIndex = 0,
+        waiver = OmenDeskSection.Read(waiverMove),
+        ledger = OmenDeskSection.Read(ledgerLine),
+        // The nominal artboard has no foot line and neither does this. Nothing was unread and
+        // nothing was read-and-ignored, so there is nothing honest to put there.
+        footnote = null,
+    )
+
+    /**
+     * The degraded desk. Two classes are visible at once, which is the whole requirement:
+     *
+     *  - `league_matchup` is **unavailable** — named, with a sentence, in the board's own place.
+     *    It is not dropped to make room, because that is the one class the spec says must
+     *    survive truncation.
+     *  - `league_standings` is **live, used: false** — named in the foot line, `text-tertiary`,
+     *    with no evidence styling and no implication that it decided anything.
+     *
+     * The waiver card and the ledger line are untouched, and that is the point of the frame:
+     * a dead matchup read sits beside a live wire, and the screen says which is which.
+     */
+    val degradedDesk = OmenDeskState(
+        weekLabel = "Week 7 · Sunday",
+        deadlineLabel = "Lineups lock",
+        deadlineTime = "1:00 PM",
+        matchup = OmenDeskSection.Unread(
+            capability = "League matchup",
+            sentence = "ESPN did not return this week’s scoreboard, so Omen has no live score " +
+                "for you. The wire and the ledger below read normally.",
+        ),
+        railCount = 4,
+        railIndex = 0,
+        waiver = OmenDeskSection.Read(waiverMove),
+        ledger = OmenDeskSection.Read(ledgerLine),
+        footnote = OmenDeskFootnote("League standings were read and did not change this week’s call."),
+    )
+
+    private val switchFilters = listOf(
+        OmenSwitchFilter("all", "All"),
+        OmenSwitchFilter("espn", "ESPN"),
+        OmenSwitchFilter("yahoo", "Yahoo"),
+        OmenSwitchFilter("sleeper", "Sleeper"),
+    )
+
+    /**
+     * Favourites first, then everything else — in the order the directory returned them.
+     * `orderPlatformsByFollowCount` is the single authority and clients must not re-sort, so
+     * these lists are written in final order and the screen never touches them.
+     */
+    private val switchGroups = listOf(
+        OmenSwitchGroup(
+            "Favourites",
+            listOf(
+                OmenSwitchRow("tto", "TTO", "Titans of Slopsilonia", "ESPN", isFavorite = true, isActive = true),
+                OmenSwitchRow("dsi", "DSI", "Davante’s Inferno", "ESPN · EB Football", isFavorite = true, isActive = false),
+            ),
+        ),
+        OmenSwitchGroup(
+            "All teams",
+            listOf(
+                OmenSwitchRow("pak", "PAK", "Puk Around & Find Out", "ESPN · Fantasy Madness", isFavorite = false, isActive = false),
+                // The artboard's own honest row: a league the provider named and a team it did
+                // not. "unnamed team" is the caller's fallback, never the row's.
+                OmenSwitchRow("dar", "DAR", "League 884411", "unnamed team", isFavorite = false, isActive = false),
+            ),
+        ),
+    )
+
+    val nominalSwitchSheet = OmenSwitchSheetState(
+        filters = switchFilters,
+        selectedFilterId = "espn",
+        groups = switchGroups,
+    )
+
+    val degradedSwitchSheet = OmenSwitchSheetState(
+        filters = switchFilters,
+        selectedFilterId = "espn",
+        groups = switchGroups,
+        // Named rather than silently absent. A user whose Yahoo teams vanished from this list
+        // would conclude they had lost them.
+        notice = "Yahoo did not answer, so any Yahoo teams are missing from this list. " +
+            "Your ESPN teams are all here.",
+    )
+
+    val switchingFootnote = OmenDeskFootnote(
+        text = "Reading Davante’s Inferno from ESPN.",
+        emphasis = "The previous team’s numbers are gone, not reused.",
+    )
+
+    val quietNeutral = OmenQuietState(
+        variant = OmenQuietVariant.Neutral,
+        weekLabel = "Week 8 · Bye",
+        headline = "Nothing worth waking you for.",
+        body = "You’re on bye, your roster is healthy, and nobody on your waiver wire is " +
+            "worth a claim. Genuinely — go outside.",
+        band = OmenConfidenceBand.Confident,
+        nextRead = "Next read · Tuesday 3:00 AM waivers",
+        footnote = OmenDeskFootnote("3rd of 12, two games clear of the cut. Trade deadline in three weeks."),
+    )
+
+    val quietStraight = OmenQuietState(
+        variant = OmenQuietVariant.Straight,
+        weekLabel = "Week 9 · After a loss",
+        headline = "Rough week. Nothing worth moving for.",
+        body = "You lost by four, Achane is out, and there is nobody on the wire who fixes that. " +
+            "Holding is the call.",
+        band = OmenConfidenceBand.Confident,
+        nextRead = "Next read · Tuesday 3:00 AM waivers",
+        footnote = OmenDeskFootnote("5th of 12. One game off the cut with six to play."),
+    )
+}
