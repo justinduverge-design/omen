@@ -633,6 +633,28 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 - **Done when:** merged and deployed; proven once against a real roster.
 - **Do not touch:** the public `POST /api/start-sit` comparator; the detail route is a separate router so that one stays loadable without Supabase config.
 
+### BE-OmenBriefFalsifier — Carry `what_could_change_this` on the Omen decision brief
+
+- **Status:** READY
+- **Blocked by:** None.
+- **Priority:** P2
+- **Cost:** small
+- **Source:** `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`, block 11, deferred
+  on evidence when the contract was built on 2026-09-18.
+- **Finding:** `what_could_change_this` exists **only** in `src/services/startSitDetail.js`. The
+  Omen decision brief does not carry it, so OmenCall cannot show the user what to watch before
+  kickoff — the block was deferred rather than faked, because a falsifier Omen did not produce is a
+  claim about the week it cannot stand behind.
+- **Why it is worth doing:** it is the highest-value teaching block still missing. "What moved this
+  call" tells a user why Omen decided; the falsifier tells them what to monitor themselves, which is
+  the part that survives past this week. The founder's framing on 2026-09-18 was that the page
+  should help someone "become a better FF player".
+- **Done when:** the Omen brief emits the field on the same contract version bump as any other
+  brief change; the native block 11 renders it on both platforms; the block stays **absent** when
+  the array is empty, on both platforms; and a degraded capture proves the absent case.
+- **Do not touch:** do not synthesise a falsifier client-side, and do not reuse the Start/Sit text.
+  An empty array is a valid answer and renders as nothing.
+
 ### M9-BE-LedgerDetail — Backend for the Ledger detail screen (§7)
 
 - **Status:** READY_FOR_REVIEW
