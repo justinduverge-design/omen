@@ -1,26 +1,6 @@
-J3 "The first call" — journey captures
-Run: 2026-09-18
-Branch: claude/j3-first-call (base feat/u1-canvas-to-code @ de6e8ee9)
-Platform: iOS only. Device: iPhone 16, OS 26.5. Theme: dark. Simulator.
-
-Frames, in storyboard order:
-  nominal.01-omen-call        OmenCall.dc.html
-  nominal.02-omen-evidence    OmenEvidence.dc.html
-  nominal.03-start-sit        StartSitClear.dc.html
-  degraded.01-omen-call       OmenCall.dc.html
-  degraded.02-omen-evidence   OmenEvidence.dc.html
-  degraded.03-start-sit       StartSitIncomplete.dc.html
-
-Degraded pass carries, per capability-expression-v1:
-  live + used        Roster
-  live + used:false  Matchup DvP        ("Not used", no evidence styling)
-  unavailable        Weather            (named, not omitted)
-  not_requested      not rendered at all
-
-Fixtures are deterministic in-app screenshot fixtures: no session, no auth, no network,
-no real league. Nothing here can contain a credential, a provider cookie, or user data.
-
-NOT CAPTURED, and not claimed:
-  - Android. The emulator was not booted for this run; iOS only.
-  - Light theme. The visual lock is dark-only.
-  - Real-device. Simulator is evidence of composition, not of behaviour in a hand.
+ios      dark  journey-j3.nominal.01-omen-call
+ios      dark  journey-j3.nominal.02-omen-evidence
+ios      dark  journey-j3.nominal.03-start-sit
+ios      dark  journey-j3.degraded.01-omen-call
+ios      dark  journey-j3.degraded.02-omen-evidence
+ios      dark  journey-j3.degraded.03-start-sit

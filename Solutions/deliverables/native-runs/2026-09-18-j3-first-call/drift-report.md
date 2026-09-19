@@ -40,10 +40,55 @@ existing `dataLive` (`0x34C759`) token. **This is contract-directed, not drift b
 it does not invent a local carrier and it does not ship the state without one."* `C3` has not
 landed. Closes when `C3-DataSourceForm` lands the hatch/dashed/dotted carriers.
 
-### D-5 · Switcher row (`.sw`) absent
-The artboard draws a league/team switcher above the header on every J3 screen. Not built here;
-U1 shipped without it too, so this is a canvas-wide gap belonging to the shared destination layer
-(`U2`/`U3`), not to J3. **Recorded, not silently dropped.**
+### D-5 · Switcher bar (`.sw`) — BUILT this session, and it broke D11
+
+`OmenLeagueSwitcherBar` now implements E005–E012 and renders on all three J3 screens.
+
+**Correcting the record.** This was first reported as "never built". That was wrong twice over,
+and the real picture matters because it is a three-way drift, not a gap:
+
+| Composition | Source | Status |
+|---|---|---|
+| `OmenTeamPicker` — carousel + pinned `Switch` | `design/app-rework-canvas/Main.dc.html`, contract `omen-league-switcher-contract-v1.md` (approved 2026-09-05) | **Retired** by the one-switcher decision |
+| `OmenContextStrip` — `surface-1` card | registry §3.2, Figma `25:2` | Command Center's, until `U3` |
+| `.sw` bar, E005–E012 | `native-visual-lock-2026-09-13` | **Current authority** — built here |
+
+`design/native-visual-lock-2026-09-13/README.md` is explicit: `CommandSwipe2` is *"Retired by the
+one-switcher decision"* and `Main` is *"superseded by `CommandCenter.dc.html`"*. So the bar is the
+one switcher, and the shipped carousel is built against a retired artboard.
+
+**Not done, deliberately:** `withTeamPicker` still wraps the production Omen, Trade and League
+destinations with the retired carousel. Swapping it changes live behaviour on three destinations
+and belongs to `U3`'s rebuild, not to J3. **Consequence to be honest about:** the J3 captures show
+the bar; production still shows the carousel. The captures are true to the artboard, which is what
+a canvas-to-code journey capture is for, and are *not* a photograph of today's production shell.
+
+### D-8 · D11 REGRESSION on OmenCall — measured, unresolved, founder's call
+
+`U1-OmenScreen`'s "Done when" requires OmenCall to fit **with nothing below the fold (D11)**.
+Adding the contractual switcher bar breaks that clause.
+
+**Measured** on iPhone 16, decoded from the capture rather than estimated:
+
+- floating tab bar top edge: **769.0pt**
+- final line ("Every call lands in the Ledger whether you take it or not."): **768.3–799.7pt**
+- **30.7pt of a 31.3pt line sits under the tab bar — 98% occluded**
+
+The bar costs 46.5pt (8 + 28 + 10 + 0.5 hairline) against the artboard's specified 49pt, and
+OmenCall had less than that in headroom.
+
+**Done:** 64pt bottom clearance so the line is reachable by scrolling rather than hidden under a
+floating bar with no affordance. Occluded-with-no-affordance is strictly worse than below-the-fold.
+
+**Not done:** this does **not** restore D11. The resting frame is unchanged. Four ways out, and
+the choice is a composition decision, not an implementation one:
+
+1. tighten the call card's internal spacing to reclaim ~31pt;
+2. drop the ledger line from this screen (it is a standing product statement, not per-call truth);
+3. accept that OmenCall scrolls, and amend U1's D11 clause;
+4. shorten the two CTAs to one.
+
+**Do not close `U1` on the current build without deciding this** — its own acceptance clause fails.
 
 ### D-6 · `1 of 3` and `Locked Tue 3:00` absent from the scope line
 Inherited from U1 and still correct: no call index and no lock time exist in

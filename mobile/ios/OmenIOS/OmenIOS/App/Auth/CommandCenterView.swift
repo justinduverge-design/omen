@@ -365,6 +365,9 @@ struct OmenDecisionScreen: View {
     /// Fills E017, the artboard's account slot. Optional for the same reason `onMakeMove` is:
     /// an avatar that opens nothing is a drawn affordance, not a reachable one.
     var onOpenAccount: (() -> Void)?
+    /// E005–E012. Absent when the caller does not know the context; the bar is then not drawn
+    /// at all rather than drawn empty.
+    var context: OmenFirstCallContext?
     @State private var showingFullArgument = false
 
     var body: some View {
@@ -384,6 +387,19 @@ struct OmenDecisionScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step12)
             .frame(maxWidth: .infinity, alignment: .leading)
+                // The iOS 26 floating tab bar overlays content rather than insetting it, and
+                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
+                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
+                // This clearance makes the line reachable by scrolling instead of hidden with no
+                // affordance. It does NOT restore D11: the screen no longer fits, and which of
+                // spacing, the ledger line or the fit itself gives way is a founder call.
+                .padding(.bottom, 64)
+        }
+        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
+        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
+        // before `.background` so it insets the scroll view rather than the wrapper.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let context { context.bar }
         }
         .background(OmenColor.bg)
         .sheet(isPresented: $showingFullArgument) {

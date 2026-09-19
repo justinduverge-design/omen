@@ -10,6 +10,9 @@ struct OmenEvidenceScreen: View {
     let payload: OmenDecisionBriefPayload
     var weekLabel: String?
     var onOpenAccount: (() -> Void)?
+    /// Absent when the caller does not know the context. The bar is then not drawn at all,
+    /// rather than drawn empty — an unlabelled switcher is worse than none.
+    var context: OmenFirstCallContext?
 
     var body: some View {
         ScrollView {
@@ -47,6 +50,19 @@ struct OmenEvidenceScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step12)
             .frame(maxWidth: .infinity, alignment: .leading)
+                // The iOS 26 floating tab bar overlays content rather than insetting it, and
+                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
+                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
+                // This clearance makes the line reachable by scrolling instead of hidden with no
+                // affordance. It does NOT restore D11: the screen no longer fits, and which of
+                // spacing, the ledger line or the fit itself gives way is a founder call.
+                .padding(.bottom, 64)
+        }
+        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
+        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
+        // before `.background` so it insets the scroll view rather than the wrapper.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let context { context.bar }
         }
         .background(OmenColor.bg)
         .accessibilityIdentifier("j3.omen-evidence")
@@ -202,6 +218,7 @@ struct OmenStartSitScreen: View {
     let detail: StartSitDetail
     var onRetry: (() -> Void)?
     var onOpenAccount: (() -> Void)?
+    var context: OmenFirstCallContext?
 
     var body: some View {
         ScrollView {
@@ -230,6 +247,19 @@ struct OmenStartSitScreen: View {
             .padding(.horizontal, OmenSpacing.step16)
             .padding(.vertical, OmenSpacing.step12)
             .frame(maxWidth: .infinity, alignment: .leading)
+                // The iOS 26 floating tab bar overlays content rather than insetting it, and
+                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
+                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
+                // This clearance makes the line reachable by scrolling instead of hidden with no
+                // affordance. It does NOT restore D11: the screen no longer fits, and which of
+                // spacing, the ledger line or the fit itself gives way is a founder call.
+                .padding(.bottom, 64)
+        }
+        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
+        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
+        // before `.background` so it insets the scroll view rather than the wrapper.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let context { context.bar }
         }
         .background(OmenColor.bg)
         .accessibilityIdentifier("j3.start-sit.\(detail.state)")
@@ -506,5 +536,30 @@ private struct OmenFirstCallHeaderControls: View {
                 )
             }
         }
+    }
+}
+
+/// The league context a J3 screen renders in its switcher bar (E005–E012).
+///
+/// Passed in rather than read on-screen: these screens are handed a decision, and the context
+/// that decision was made in belongs to the caller that fetched it. A screen that resolved its
+/// own league could disagree with the call it is displaying.
+struct OmenFirstCallContext {
+    let crest: String
+    let teamName: String
+    let platform: OmenPlatform
+    var leagueName: String?
+    var onSwitch: (() -> Void)?
+    var onAddLeague: (() -> Void)?
+
+    @ViewBuilder var bar: some View {
+        OmenLeagueSwitcherBar(
+            crest: crest,
+            teamName: teamName,
+            platform: platform,
+            leagueName: leagueName,
+            onSwitch: onSwitch,
+            onAddLeague: onAddLeague
+        )
     }
 }

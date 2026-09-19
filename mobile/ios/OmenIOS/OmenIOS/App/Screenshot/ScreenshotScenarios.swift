@@ -97,7 +97,8 @@ enum ScreenshotScenarios {
                     providerName: "ESPN",
                     onMakeMove: {},
                     onDecline: {},
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -107,7 +108,8 @@ enum ScreenshotScenarios {
                 AnyView(j3Shell(AnyView(OmenEvidenceScreen(
                     payload: OmenDecisionFixtures.journeyNominalPayload,
                     weekLabel: "Week 7",
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -116,7 +118,8 @@ enum ScreenshotScenarios {
             content: {
                 AnyView(j3Shell(AnyView(OmenStartSitScreen(
                     detail: J3ScreenshotFixtures.nominalStartSit,
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -129,7 +132,8 @@ enum ScreenshotScenarios {
                     providerName: "ESPN",
                     onMakeMove: {},
                     onDecline: {},
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -139,7 +143,8 @@ enum ScreenshotScenarios {
                 AnyView(j3Shell(AnyView(OmenEvidenceScreen(
                     payload: OmenDecisionFixtures.journeyDegradedPayload,
                     weekLabel: "Week 7",
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -149,7 +154,8 @@ enum ScreenshotScenarios {
                 AnyView(j3Shell(AnyView(OmenStartSitScreen(
                     detail: J3ScreenshotFixtures.degradedStartSit,
                     onRetry: {},
-                    onOpenAccount: {}
+                    onOpenAccount: {},
+                    context: J3ScreenshotFixtures.context
                 ))))
             }
         ),
@@ -711,6 +717,17 @@ private enum J3ScreenshotFixtures {
        {"name":"start_sit_inference","state":"unavailable","used":false,"kind":"limitation","source":"omen","statement":"Omen did not run inference without the required inputs.","reason_code":"missing_inputs"},
        {"name":"weather","state":"not_requested","used":false,"kind":"limitation","source":null,"statement":null}]}
     """)
+
+    /// E005–E012's context. Generic for the same reason the player names are: a capture that
+    /// escapes into a deck must not read as a real person's league.
+    static let context = OmenFirstCallContext(
+        crest: "TTO",
+        teamName: "Titans of Slopsilonia",
+        platform: .espn,
+        leagueName: "Slops Saloon",
+        onSwitch: {},
+        onAddLeague: {}
+    )
 
     private static func decode(_ json: String) -> StartSitDetail {
         do {
