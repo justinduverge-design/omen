@@ -24,10 +24,13 @@ struct OmenConnectFailedScreen: View {
         let provider: String
         /// The provider's own status code. Shown because "it didn't work" is not a report anyone
         /// can act on, and support cannot triage without it.
-        let statusCode: Int
-        let statusText: String
-        let leagueID: String
-        let observedAt: String
+        /// Every field is optional and the evidence line is assembled from whatever is present.
+        /// **A value is never invented** — if ESPN gave no status, the sentence simply does not
+        /// claim one. A fabricated 401 would be the exact false claim this screen exists to avoid.
+        let statusCode: Int?
+        let statusText: String?
+        let leagueID: String?
+        let observedAt: String?
         /// Named providers that are still live. Absent when there are none — the reassurance is
         /// only offered when it is true.
         let unaffected: [String]
@@ -79,7 +82,7 @@ struct OmenConnectFailedScreen: View {
     /// The facts, in the provider's own terms. This is the half that makes the screen a report.
     private var evidence: some View {
         OmenCard(contentPadding: OmenSpacing.step12) {
-            Text("\(diagnosis.provider) returned \(diagnosis.statusCode) \(diagnosis.statusText) for league \(diagnosis.leagueID) at \(diagnosis.observedAt). The cookies are there and \(diagnosis.provider) is refusing them.")
+            Text(evidenceSentence)
                 .omenTextStyle(OmenTypography.bodySmall)
                 .foregroundStyle(OmenColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -99,6 +102,23 @@ struct OmenConnectFailedScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    /// Built from the fields that are present. The closing clause is always true and is what the
+    /// screen is really telling the user: the stored values exist and the provider is rejecting
+    /// them, which is why signing in again is the fix.
+    private var evidenceSentence: String {
+        var parts: [String] = []
+        if let code = diagnosis.statusCode {
+            let text = diagnosis.statusText.map { " \($0)" } ?? ""
+            parts.append("\(diagnosis.provider) returned \(code)\(text)")
+        } else {
+            parts.append("\(diagnosis.provider) refused the request")
+        }
+        if let league = diagnosis.leagueID { parts.append("for league \(league)") }
+        if let at = diagnosis.observedAt { parts.append("at \(at)") }
+        return parts.joined(separator: " ")
+            + ". The cookies are there and \(diagnosis.provider) is refusing them."
     }
 
     /// Ordered, because the order matters — reconnecting before signing in again just re-reads

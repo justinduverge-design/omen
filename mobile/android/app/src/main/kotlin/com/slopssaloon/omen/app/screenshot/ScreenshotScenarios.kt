@@ -44,6 +44,7 @@ import com.slopssaloon.omen.app.feature.commandcenter.OmenLeagueScreen
 import com.slopssaloon.omen.app.feature.commandcenter.OmenTradeScreen
 import com.slopssaloon.omen.app.feature.connect.ConnectException
 import com.slopssaloon.omen.app.feature.connect.ConnectFailure
+import com.slopssaloon.omen.app.feature.connect.ConnectProvider
 import com.slopssaloon.omen.app.feature.connect.ConnectRepository
 import com.slopssaloon.omen.app.feature.connect.FollowedLeague
 import com.slopssaloon.omen.app.feature.connect.ConnectScreen
@@ -145,6 +146,10 @@ object ScreenshotScenarios {
         // optional edge case covered by a nominal-only screenshot.
         // J1 "Getting in". The journey has no capability profile, so per screen-journeys-v1 the
         // provider failure path is its degraded pass — and it is the only confirmed beta failure.
+        "journey-j1.nominal.04-espn-consent" to ScreenshotScenario(
+            label = "J1 4/6 — ESPN consent, before the sheet opens",
+            render = { OnboardingConnectBody(autoSelectProvider = ConnectProvider.Espn) },
+        ),
         "journey-j1.degraded.05-connect-failed" to ScreenshotScenario(
             label = "J1 degraded 5/6 — ESPN refused a stale session",
             render = {
@@ -513,10 +518,9 @@ private fun OnboardingAuthBody(state: AuthFlowState) {
 }
 
 @Composable
-private fun OnboardingConnectBody() {
+private fun OnboardingConnectBody(autoSelectProvider: ConnectProvider? = null) {
     OmenTheme {
-        ConnectScreen(
-            viewModel = remember {
+        val vm = remember {
                 ConnectViewModel(
                     repository = ScreenshotConnectRepository(),
                     sessionManager = SessionManager(
@@ -532,7 +536,16 @@ private fun OnboardingConnectBody() {
                     ),
                     authSession = StubProviderAuthSession(ProviderAuthOutcome.Canceled),
                 )
-            },
+        }
+        // Drives the flow to a provider's first step so a journey capture can reach a state
+        // that otherwise needs a tap. Null in every other scenario — this never auto-selects for
+        // a real user, because choosing a provider is their decision. iOS mirror:
+        // `ConnectView(autoSelectProvider:)`.
+        LaunchedEffect(autoSelectProvider) {
+            if (autoSelectProvider != null) vm.selectProvider(autoSelectProvider)
+        }
+        ConnectScreen(
+            viewModel = vm,
             onConnected = {},
             onDismiss = {},
         )

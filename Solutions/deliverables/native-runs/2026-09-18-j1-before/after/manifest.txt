@@ -1,2 +1,3 @@
-android  dark  journey-j1.degraded.05-connect-failed
-android  dark  journey-j1.nominal.06-command-no-league
+android  dark  onboarding.sign-in
+android  dark  onboarding.email-code
+android  dark  journey-j1.nominal.04-espn-consent

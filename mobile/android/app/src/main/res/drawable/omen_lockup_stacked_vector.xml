@@ -11,12 +11,18 @@
   Path ids follow the Figma layer names in `Lmj3VyXmE1u2WhGbQOqUIk` (Omen B2 — Final Candidate)
   so the two stay traceable to one another.
 
-  ONE DELIBERATE OMISSION: the "Brass sheen" path. Its source is a radial gradient with a
-  non-uniform transform (scale 22.5 x 118.6) — an ellipse. Android vector gradients are circular
-  only, so it cannot be reproduced faithfully; a circular stand-in reads as a soft dot rather
-  than the intended vertical streak. It is white at 0.18 alpha falling to 0, so omitting it is a
-  smaller error than approximating it. Restore it if Android ever gains elliptical gradients, or
-  ship a real transparent PNG export instead.
+  BRASS SHEEN — approximated, and the approximation is deliberate. The source is a radial
+  gradient with a non-uniform transform (scale 22.5 x 118.6): a tall, narrow ellipse hugging the
+  inner-left edge of the O. Android vector gradients are circular only, and a circular stand-in
+  at that radius reads as a soft dot.
+
+  So it is rendered as a horizontal linear gradient across the same path, symmetric about the
+  ellipse's centre line (x = 301.976, half-width 22.5). That reproduces the dominant axis of the
+  original — a vertical streak fading sideways — and drops only the much gentler vertical falloff.
+  At white 0.18 alpha decaying to 0 the difference is not visible at any shipping size, and the
+  sheen being present matters more than its falloff curve being exact.
+
+  The faithful fix is a transparent PNG export of the stacked lockup from the Figma vector.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
@@ -38,6 +44,26 @@
                 <item android:offset="0.35" android:color="#B88D42" />
                 <item android:offset="0.72" android:color="#80541F" />
                 <item android:offset="1" android:color="#C59A49" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Brass sheen — see the header note on the approximation. -->
+    <path
+        android:fillAlpha="0.65"
+        android:pathData="M308.886 61.5234C298.066 82.1484 294.099 107.5 294.099 135C294.099 162.93 298.427 188.711 309.607 209.766C314.656 205.469 318.623 200.312 322.23 194.297C313.214 176.68 309.607 156.914 309.607 135C309.607 113.516 313.214 93.3203 322.23 76.1328C318.623 70.1172 314.296 65.3906 308.886 61.5234Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="279.471"
+                android:startY="135"
+                android:endX="324.481"
+                android:endY="135">
+                <item android:offset="0" android:color="#00FFFFFF" />
+                <item android:offset="0.32" android:color="#09FFFFFF" />
+                <item android:offset="0.5" android:color="#2EFFFFFF" />
+                <item android:offset="0.68" android:color="#09FFFFFF" />
+                <item android:offset="1" android:color="#00FFFFFF" />
             </gradient>
         </aapt:attr>
     </path>

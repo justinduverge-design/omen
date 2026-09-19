@@ -114,6 +114,30 @@ enum ConnectState: Equatable {
 /// Why a connection attempt stopped, in terms the user can act on. Never carries a raw
 /// provider error, identifier, or credential — spec §7: "raw provider/cookie details never
 /// enter client copy."
+/// What the provider actually said, when it said anything.
+///
+/// `ConnectFailed.dc.html` shows the status code, the league and the time, because "it didn't
+/// work" is not a report a user can act on and support cannot triage without them. Carrying them
+/// on the failure is what makes that screen reachable honestly — before this, the screen existed
+/// and nothing could populate it, so nothing could route to it.
+///
+/// Every field is optional and the screen degrades field by field. **A value is never invented**:
+/// if ESPN gave no status, none is shown. `leagueID` is a league id, never a cookie value —
+/// fact-of-record #6 is unaffected by this type and no cookie may ever enter it.
+struct EspnDiagnostic: Equatable {
+    let statusCode: Int?
+    let statusText: String?
+    let leagueID: String?
+    let observedAt: Date
+
+    init(statusCode: Int?, statusText: String?, leagueID: String? = nil, observedAt: Date = Date()) {
+        self.statusCode = statusCode
+        self.statusText = statusText
+        self.leagueID = leagueID
+        self.observedAt = observedAt
+    }
+}
+
 enum ConnectFailure: Error, Equatable {
     case usernameNotFound
     case noLeaguesForSeason
@@ -130,9 +154,18 @@ enum ConnectFailure: Error, Equatable {
 
     /// Signed in, but the session was not where Omen could read it. Contract §W1-A's failure
     /// table names this one explicitly and forbids blaming the user for it.
-    case espnSessionUnreadable
+    case espnSessionUnreadable(EspnDiagnostic? = nil)
     /// The session read fine and ESPN refused the league — wrong league, or no access to it.
-    case espnLeagueUnreachable
+    case espnLeagueUnreachable(EspnDiagnostic? = nil)
+
+    /// The provider's own account of the failure, when there is one. Only the ESPN cases carry
+    /// it, because only they have a provider response behind them.
+    var espnDiagnostic: EspnDiagnostic? {
+        switch self {
+        case .espnSessionUnreadable(let d), .espnLeagueUnreachable(let d): return d
+        default: return nil
+        }
+    }
 
     var message: String {
         switch self {

@@ -635,7 +635,9 @@ own comment says is **a design-steward decision, not a build fix**, and therefor
 
 ### BE-ConnectFailureDiagnostics — Carry the diagnostic fields on a connect failure
 
-- **Status:** READY
+- **Status:** VERIFIED — done 2026-09-19, same session it was filed.
+- **Evidence:** `EspnDiagnostic` on `ConnectFailure`'s two ESPN cases, populated from the real 422/400/401 responses in `ConnectRepository`; `errorSection` routes any ESPN failure carrying one to `OmenConnectFailedScreen`. iOS 484 unit + 29 UI tests, 0 failures. Frames in `Solutions/deliverables/native-runs/2026-09-18-j1-before/`.
+- **Superseded status:** READY
 - **Blocked by:** None.
 - **Priority:** P1
 - **Cost:** small

@@ -342,14 +342,14 @@ final class ConnectFlowTests: XCTestCase {
     /// path. Never a loop, and the copy never blames the user.
     func testAnUnreadableSessionRetriesOnceThenRoutesToTheDesktopPath() async {
         var repository = StubConnectRepository()
-        repository.espnConnectResult = .failure(.espnSessionUnreadable)
+        repository.espnConnectResult = .failure(.espnSessionUnreadable(nil))
         let viewModel = await espnReadyViewModel(repository: repository)
 
         await viewModel.confirmEspnConnection()
         guard case .retryableError(let first) = viewModel.state else {
             return XCTFail("first unreadable session should be retryable, got \(viewModel.state)")
         }
-        XCTAssertEqual(first, .espnSessionUnreadable)
+        XCTAssertEqual(first, .espnSessionUnreadable(nil))
         XCTAssertFalse(first.message.lowercased().contains("you didn't"), "must not blame the user")
 
         // Second attempt: same failure, and now it hands over to the desktop helper rather than
@@ -369,7 +369,7 @@ final class ConnectFlowTests: XCTestCase {
     /// its own sentence and its own next action.
     func testAnUnreachableLeagueIsNotReportedAsASessionProblem() async {
         var repository = StubConnectRepository()
-        repository.espnConnectResult = .failure(.espnLeagueUnreachable)
+        repository.espnConnectResult = .failure(.espnLeagueUnreachable(nil))
         let viewModel = await espnReadyViewModel(repository: repository)
 
         await viewModel.confirmEspnConnection()
@@ -377,8 +377,8 @@ final class ConnectFlowTests: XCTestCase {
         guard case .retryableError(let failure) = viewModel.state else {
             return XCTFail("expected retryableError, got \(viewModel.state)")
         }
-        XCTAssertEqual(failure, .espnLeagueUnreachable)
-        XCTAssertNotEqual(failure.message, ConnectFailure.espnSessionUnreadable.message)
+        XCTAssertEqual(failure, .espnLeagueUnreachable(nil))
+        XCTAssertNotEqual(failure.message, ConnectFailure.espnSessionUnreadable(nil).message)
     }
 
     /// **Regression: a successful discovery used to cancel itself.** The sheet is bound to

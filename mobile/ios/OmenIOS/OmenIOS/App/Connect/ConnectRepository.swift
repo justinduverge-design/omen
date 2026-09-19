@@ -254,10 +254,20 @@ struct ApiConnectRepository: ConnectRepository {
             // so they are not collapsed. The bodies are deliberately not decoded: the route's
             // error payload can quote back the field it rejected.
             if case .server(let status) = error {
-                if status == 422 { return .failure(.espnSessionUnreadable) }
-                if status == 400 { return .failure(.espnLeagueUnreachable) }
+                // The provider's own numbers, carried through so `ConnectFailed` can report
+                // them rather than inventing them.
+                if status == 422 {
+                    return .failure(.espnSessionUnreadable(
+                        EspnDiagnostic(statusCode: status, statusText: "Unprocessable", leagueID: capture.leagueId)
+                    ))
+                }
+                if status == 400 {
+                    return .failure(.espnLeagueUnreachable(
+                        EspnDiagnostic(statusCode: status, statusText: "Bad Request", leagueID: capture.leagueId)
+                    ))
+                }
             }
-            return .failure(Self.map(error, notFoundMeans: .espnLeagueUnreachable))
+            return .failure(Self.map(error, notFoundMeans: .espnLeagueUnreachable(EspnDiagnostic(statusCode: nil, statusText: nil, leagueID: capture.leagueId))))
         }
     }
 
@@ -280,8 +290,16 @@ struct ApiConnectRepository: ConnectRepository {
             // 401 here is ESPN rejecting the session, not the Omen session — the route
             // distinguishes them, and conflating the two would sign the user out of Omen over
             // an expired ESPN cookie.
-            if case .unauthorized = error { return .failure(.espnSessionUnreadable) }
-            if case .server(let status) = error, status == 422 { return .failure(.espnSessionUnreadable) }
+            if case .unauthorized = error {
+                return .failure(.espnSessionUnreadable(
+                    EspnDiagnostic(statusCode: 401, statusText: "Unauthorized")
+                ))
+            }
+            if case .server(let status) = error, status == 422 {
+                return .failure(.espnSessionUnreadable(
+                    EspnDiagnostic(statusCode: status, statusText: "Unprocessable")
+                ))
+            }
             return .failure(Self.map(error, notFoundMeans: .server))
         }
     }

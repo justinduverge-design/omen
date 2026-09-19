@@ -364,7 +364,42 @@ struct ConnectView: View {
         }
     }
 
+    @ViewBuilder
     private func errorSection(_ failure: ConnectFailure) -> some View {
+        // An ESPN failure with a provider response behind it gets the full report rather than a
+        // one-line error. That screen was built to `ConnectFailed.dc.html` and, until the failure
+        // model carried these fields, nothing could populate it — so nothing routed to it and it
+        // existed only in a screenshot. A stale session is the failure users actually hit, it is
+        // not their fault, and the fix is an ordered procedure a sentence cannot carry.
+        if let diagnostic = failure.espnDiagnostic {
+            OmenConnectFailedScreen(
+                diagnosis: .init(
+                    provider: "ESPN",
+                    statusCode: diagnostic.statusCode,
+                    statusText: diagnostic.statusText,
+                    leagueID: diagnostic.leagueID,
+                    observedAt: Self.observedAtFormatter.string(from: diagnostic.observedAt),
+                    // Named only when true. The other providers' state is not known here, so
+                    // nothing is claimed about them.
+                    unaffected: []
+                ),
+                onReconnect: { viewModel.selectProvider(.espn) },
+                onSendToSupport: onDismiss
+            )
+        } else {
+            plainErrorSection(failure)
+        }
+    }
+
+    /// Wall-clock, because the user is being asked to compare it against when they last signed in.
+    private static let observedAtFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
+
+    private func plainErrorSection(_ failure: ConnectFailure) -> some View {
         VStack(alignment: .leading, spacing: OmenSpacing.step16) {
             OmenStateSurface(kind: .error, title: "That didn't work", message: failure.message)
             // Spec §6: every non-success state has a safe next action. A Yahoo round trip that

@@ -516,7 +516,7 @@ private struct ScreenshotConnectRepository: ConnectRepository {
     /// fails rather than succeeding: a fixture that reported a successful ESPN connect would put
     /// a fake connected state into store screenshots.
     func connectEspn(_ capture: EspnCapture, accessToken: String) async -> Result<Void, ConnectFailure> {
-        .failure(.espnSessionUnreadable)
+        .failure(.espnSessionUnreadable(nil))
     }
 
     /// Empty for the same reason `connectEspn` fails: screenshot mode signs in to nothing, and a

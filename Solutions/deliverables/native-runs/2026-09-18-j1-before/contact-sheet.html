@@ -34,11 +34,12 @@ field already normalizes and takes the first six digits, so a pasted code fills 
 </div>
 
 <h2>Android — the same journey</h2>
-<p class="note">Same strings, same order. Two frames are not yet captured on Android and are listed
-under gaps rather than quietly omitted.</p>
+<p class="note">Same strings, same order, all six frames.</p>
 <div class="row">
-  <figure><img src="after/android/dark/onboarding.sign-in.png"><figcaption><b>1 · Sign in</b>Labelled rows, and the stacked lockup as a converted vector — no baked plate.</figcaption></figure>
+  <figure><img src="after/android/dark/onboarding.sign-in.png"><figcaption><b>1 · Sign in</b>Labelled rows, and the stacked lockup as a converted vector — ball above the wordmark, brass sheen, no baked plate.</figcaption></figure>
+  <figure><img src="after/android/dark/onboarding.email-code.png"><figcaption><b>2 · Email code</b>Six boxes, paste fills all of them.</figcaption></figure>
   <figure><img src="after/android/dark/onboarding.connect-league.png"><figcaption><b>3 · Connect a league</b>Matches iOS. Fixed an Android-only defect: ESPN's row used to read "Just your username — no password".</figcaption></figure>
+  <figure><img src="after/android/dark/journey-j1.nominal.04-espn-consent.png"><figcaption><b>4 · ESPN consent</b>Names the two cookies, same as iOS.</figcaption></figure>
   <figure class="gap"><img src="after/android/dark/journey-j1.degraded.05-connect-failed.png"><figcaption><b>5 · That did not work <span class="flag">— degraded pass</span></b>Ported with the same structure and strings.</figcaption></figure>
   <figure><img src="after/android/dark/journey-j1.nominal.06-command-no-league.png"><figcaption><b>6 · Nothing to read</b>In the tab shell, with window insets.</figcaption></figure>
 </div>
@@ -50,16 +51,23 @@ control exists, is hittable and clears 44pt, and that a real tap leaves the app 
 tests found two false alarms in their own first draft and one CGFloat rounding artifact; none was
 a product defect, and all three are recorded in the test file.</p>
 
-<h2>Open, and not papered over</h2>
+<h2>All three gaps closed, 2026-09-19</h2>
 <p class="note">
-<b>1. <code>OmenConnectFailedScreen</code> is still unreachable in production.</b> It cannot be
-wired honestly: <code>ConnectFailure</code> is a plain enum with no payload, so there is no status
-code, league id or timestamp to show, and inventing a 401 would be exactly the false claim the
-screen exists to prevent. It needs those fields on the failure model first.
+<b>1. <code>OmenConnectFailedScreen</code> is reachable.</b> <code>ConnectFailure</code>'s two ESPN
+cases now carry an <code>EspnDiagnostic</code> — status code, status text, league id, timestamp —
+populated from the provider's real response at the point it is known (422, 400, 401). The connect
+flow routes any ESPN failure carrying one to the full report instead of a one-line error. Every
+field is optional and the sentence is assembled from what is present: <b>no value is ever
+invented</b>, so a failure with no status simply does not claim one. The id is a league id and
+never a cookie — fact-of-record #6 is untouched.
 <br><br>
-<b>2. Android is missing the EmailCode and ESPN-consent captures.</b> Both screens exist; the
-scenarios do not.
+<b>2. Android has all six frames.</b> <code>email-code</code> already had a scenario and just
+needed capturing; ESPN consent gained one, using the same auto-select seam as iOS. It never
+auto-selects for a real user — choosing a provider is their decision.
 <br><br>
-<b>3. The brass sheen is absent from the Android lockup</b> — an elliptical radial gradient Android
-vector drawables cannot express. Documented in the drawable.
+<b>3. The brass sheen is back.</b> The source is an elliptical radial gradient, which Android
+vector drawables cannot express, so it is a horizontal linear gradient across the same path,
+symmetric about the ellipse's centre line. That reproduces the dominant axis — a vertical streak
+fading sideways — and drops only the gentler vertical falloff, which is invisible at 0.18 alpha.
+The approximation is documented in the drawable.
 </p>
