@@ -88,6 +88,28 @@ enum ScreenshotScenarios {
         // J3 — The first call. The numbering is the storyboard order, not a screen id. Each
         // pass is intentionally complete: nominal proves the product can act; degraded proves
         // it names what it could not read and declines to invent advice.
+        // J1 "Getting in" — the degraded pass. The journey has no capability profile, so per
+        // `screen-journeys-v1.md` the provider failure path IS the degraded pass, and ESPN on
+        // iPhone is the only confirmed beta failure on record.
+        "journey-j1.degraded.05-connect-failed": ScreenshotScenario(
+            label: "J1 degraded 5/6 — ESPN refused a stale session",
+            content: {
+                AnyView(OmenConnectFailedScreen(
+                    diagnosis: .init(
+                        provider: "ESPN",
+                        statusCode: 401,
+                        statusText: "Unauthorized",
+                        // A fixture league id, not a real one. No cookie value appears anywhere
+                        // in this fixture, and none may (fact-of-record #6).
+                        leagueID: "884411",
+                        observedAt: "3:48 PM",
+                        unaffected: ["Sleeper", "Yahoo"]
+                    ),
+                    onReconnect: {},
+                    onSendToSupport: {}
+                ))
+            }
+        ),
         "journey-j3.nominal.01-omen-call": ScreenshotScenario(
             label: "J3 nominal 1/3 — Omen call",
             content: {

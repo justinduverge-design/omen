@@ -1,3 +1,1 @@
-ios      dark  onboarding.sign-in
-ios      dark  onboarding.connect-league
-ios      dark  onboarding.email-code
+ios      dark  journey-j1.degraded.05-connect-failed
