@@ -3329,3 +3329,45 @@ behaving; until then this entry records intent, not proof.
   Contract: `Blueprints/specs/design/capability-symbols-v1.md`. Nine of the ten glyphs are
   described rather than drawn, and screens render capability labels without symbols until they
   exist — which is correct under the rule, not a stopgap.
+
+## 2026-09-18 — D11 waived on OmenCall; the evidence layer becomes the teaching layer
+
+- **Decision: OmenCall scrolls. D11 is waived for this screen and no other.** Building the
+  contractual switcher bar (E005–E012) cost 46.5pt against the artboard's specified 49pt, and
+  OmenCall had less than that in headroom. Measured on iPhone 16 rather than estimated: the
+  floating tab bar's top edge sits at 769.0pt and the screen's final line spans 768.3–799.7pt, so
+  **30.7pt of a 31.3pt line was occluded — 98%**.
+
+  The four options were to tighten the call card's spacing to reclaim ~31pt, drop the ledger line,
+  cut one of the two CTAs, or accept the scroll. The founder took the scroll, **on a condition**:
+  the page must earn it. A screen that scrolls and says no more than a screen that fits has simply
+  got worse.
+
+  **D11 still binds every other screen whose contract declares a fit.** This is one waiver, not a
+  precedent — the clause exists because a decision surface that hides its decision is broken, and
+  that reasoning is untouched.
+
+- **Decision: OmenCall's evidence is reworked to teach, not to assert.** Founder framing: the page
+  should "present its worth for the user so the user can become a better FF player."
+
+  The material largely already exists and is **behind a tap**, on `OmenEvidence`. A user who never
+  taps "See the full argument" learns nothing, which is most users. So the transferable parts are
+  promoted onto `OmenCall` and the deepest part stays where it is.
+
+  The organising idea is that **the capability contract's four presentation classes are the
+  lesson.** Rendered as one flat list they are compliance furniture. Split into three labelled
+  groups — *what moved this call*, *read but it didn't decide this*, *what Omen couldn't read* —
+  they teach exactly the questions a fantasy player needs to learn to ask: not merely what the data
+  said, but whether it mattered and where the model is blind. Two teaching blocks are promoted from
+  elsewhere: *why this confidence* (the rule is agreement, not margin) and *what would change this*
+  (what to monitor before kickoff). "What else was considered" stays on `OmenEvidence` so the tap
+  remains worth taking.
+
+  Contract: `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md`, `REVIEW_ONLY`,
+  pending founder ratification. It records four open questions rather than guessing them, including
+  a live spacing-scale conflict between `component-lock-v1.md:241` and registry §2.5.
+
+- **Noted, not fixed: `Brand/brand-system.md` §7 is stale on confidence.** It still gives
+  `"74 — Medium-High Confidence"` as the good example. Fact-of-record #16 retired numeric confidence
+  in favour of a band. A build agent reading the voice doc with the fact of record closed would ship
+  a numeral. Flagged in the screen contract; the brand doc itself is not edited here.

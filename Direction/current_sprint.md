@@ -459,7 +459,8 @@ number of pointed contract changes plus a governance amendment — not a build-o
 - **Priority:** P1
 - **Cost:** medium
 - **Scope:** one call for the week, band, risk and evidence on tap. Artboards: `design/native-visual-lock-2026-09-13/OmenCall.dc.html` and `design/native-visual-lock-2026-09-13/OmenEvidence.dc.html`.
-- **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, the factor line names what Omen could not read, and **the screen fits with nothing below the fold** (D11).
+- **Done when:** the screen renders one call per team per week against `omen-decision-brief.v2`, the band travels with its drivers, and the factor line names what Omen could not read.
+- **D11 WAIVED for this screen — founder, 2026-09-18.** This clause read "and **the screen fits with nothing below the fold** (D11)". Building the contractual switcher bar (E005–E012) cost 46.5pt and OmenCall had less than that in headroom: measured on iPhone 16, the floating tab bar's top edge is at 769.0pt and the final line spans 768.3–799.7pt, so 30.7pt of a 31.3pt line was occluded. The founder accepted the scroll rather than cut the composition, **on the condition that the page earn it** — the evidence is being reworked to teach rather than assert. Contract: `Blueprints/specs/mobile/screens/omencall-evidence-contract-v1.md` (REVIEW_ONLY, needs ratification). D11 still binds every other screen whose contract declares a fit.
 - **Do not touch:** no numeric confidence, no gradient meter. A gradient encodes nothing the band does not already say.
 
 ### U2-TokenTypeSwap — Dark-only, Wix Madefor, fill-ring, risk blocks
