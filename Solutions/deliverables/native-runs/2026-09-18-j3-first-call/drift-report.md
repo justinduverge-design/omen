@@ -141,7 +141,10 @@ visible outlier against its siblings).
 
 ## Not verified, and not claimed
 
-- **Android.** Not built or captured this session. J3 is iOS-only so far.
+- **Android.** Now built and captured — 6 frames. Its OmenCall still lacks the switcher bar and
+  the account control and renders a plainer header than the artboard; that is open drift belonging
+  to the Android side of `U1`/`U3`, not closed by J3. The evidence layer itself matches iOS
+  block-for-block and string-for-string.
 - **D11 fit.** Not measured. No J3 contract clause requires above-the-fold fit on these screens;
   all three scroll by design.
 - **Navigation.** A journey capture proves composition, sequence and tone. It is not a flow test.

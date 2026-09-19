@@ -125,30 +125,17 @@ fun OmenDecisionScreen(
                         color = OmenTheme.color.textTertiary,
                     )
                 }
-                val facts = payload.signals.filter { it.source == OmenSignalSource.Unavailable || it.used == true }
-                if (facts.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8),
-                    ) {
-                        facts.forEach { signal ->
-                            Text(
-                                if (signal.source == OmenSignalSource.Unavailable) "${signal.label} — unread" else signal.label,
-                                style = OmenTheme.typography.micro.toTextStyle(),
-                                color = if (signal.source == OmenSignalSource.Unavailable) OmenTheme.color.textTertiary else OmenTheme.color.textSecondary,
-                            )
-                        }
-                    }
-                }
-                payload.signals.take(3).forEach { CapabilityEvidenceRow(it) }
+                // The facts row and `payload.signals.take(3)` are both gone.
+                //
+                // `take(3)` truncated a flat list, and `capability-expression-v1` prohibits
+                // exactly that: dropping an `unavailable` input to make room removes the one
+                // class that costs the reader something. The facts row restated the same labels
+                // the groups below now spell out as sentences.
             }
         }
-        OmenButton(
-            text = "See the full argument",
-            onClick = { showingEvidence.value = true },
-            variant = OmenButtonVariant.Link,
-            size = OmenButtonSize.Md,
-        )
+        // Blocks 5-7 of `omencall-evidence-contract-v1`, ratified 2026-09-18. Same strings and
+        // same order as iOS — acceptance line 16.
+        CapabilityGroups(payload)
         if (providerName != null && onMakeMove != null) {
             OmenButton(
                 text = "Make this move in $providerName",
@@ -166,6 +153,14 @@ fun OmenDecisionScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        // Block 10, promoted from OmenEvidence where most users never saw it.
+        WhyThisConfidence(payload)
+        OmenButton(
+            text = "See the full argument",
+            onClick = { showingEvidence.value = true },
+            variant = OmenButtonVariant.Link,
+            size = OmenButtonSize.Md,
+        )
         Text(
             "Every call lands in the Ledger whether you take it or not.",
             style = OmenTheme.typography.bodySmall.toTextStyle(),
@@ -566,3 +561,72 @@ private fun OmenDecisionCapability.toSignalItem(): OmenSignalItem = OmenSignalIt
     },
     used = used,
 )
+
+/**
+ * Blocks 5-7. Three labelled groups rather than one flat list: the capability contract's four
+ * classes are the lesson, not compliance furniture. A group with no members is absent, not empty,
+ * and `not_requested` is filtered before it reaches here so it renders nowhere.
+ *
+ * Row order inside a group is the server's. The screen must not re-rank.
+ */
+@Composable
+private fun CapabilityGroups(payload: OmenDecisionBriefPayload) {
+    val moved = payload.signals.filter { it.used == true && it.source == OmenSignalSource.Live }
+    val readNotUsed = payload.signals.filter { it.used == false && it.source == OmenSignalSource.Live }
+    val couldNotRead = payload.signals.filter { it.source == OmenSignalSource.Unavailable }
+
+    if (moved.isNotEmpty()) CapabilityGroup("What moved this call", moved)
+    if (readNotUsed.isNotEmpty()) CapabilityGroup("Read, but it didn't decide this", readNotUsed)
+    if (couldNotRead.isNotEmpty()) CapabilityGroup("What Omen couldn't read", couldNotRead)
+}
+
+@Composable
+private fun CapabilityGroup(title: String, items: List<OmenSignalItem>) {
+    OmenCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(OmenTheme.spacing.step12)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text(
+                text = title,
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+            items.forEach { CapabilityEvidenceRow(it) }
+        }
+    }
+}
+
+/**
+ * Block 10. The transferable rule, not a restatement of the band. Server drivers are preferred;
+ * the fallback states the rule rather than inventing a driver. Never a numeral and never a meter
+ * (fact-of-record #16).
+ */
+@Composable
+private fun WhyThisConfidence(payload: OmenDecisionBriefPayload) {
+    val band = payload.confidenceBand ?: return
+    OmenCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(OmenTheme.spacing.step12)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OmenTheme.spacing.step8)) {
+            Text(
+                text = "Why this confidence",
+                style = OmenTheme.typography.micro.toTextStyle(),
+                color = OmenTheme.color.textTertiary,
+            )
+            val lines = payload.confidenceDrivers.ifEmpty { listOf(confidenceRule(band.label)) }
+            lines.forEach { line ->
+                Text(
+                    text = line,
+                    style = OmenTheme.typography.bodySmall.toTextStyle(),
+                    color = OmenTheme.color.textSecondary,
+                )
+            }
+        }
+    }
+}
+
+/** Written per band rather than interpolated. Agreement, not margin, is the reusable part. */
+private fun confidenceRule(band: String): String = when (band.lowercase()) {
+    "confident" ->
+        "Confident means the reads agree. Several independent inputs point the same way and none contradicts — that is what separates Confident from Leaning, not the size of the gap."
+    "leaning" ->
+        "Leaning means the reads mostly agree, but at least one pulls the other way or is missing. The move is still the better side of a close call."
+    else ->
+        "This band reflects how far the available reads agree with each other, not how large the projected gap is."
+}
