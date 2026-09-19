@@ -336,10 +336,14 @@ enum EspnHandoffCopy {
     /// management. This copy takes the ban's side pending a founder call, so it says "the two
     /// values your browser already stores" instead. The structure is the artboard's; only the
     /// vocabulary is held back.
+    /// Says what is about to happen, and stops.
+    ///
+    /// The previous version explained *why* ESPN is different and compared it to Yahoo's button.
+    /// Founder, 2026-09-19: they do not need the reason, and they certainly do not need to hear
+    /// about another provider while they are connecting this one. The security terms below still
+    /// have to be stated — they can be short and boring, they just cannot be missing.
     static let consentLead = """
-    ESPN has no read-only sign-in. There is no ESPN equivalent of the "Continue with Yahoo" \
-    button, so the only way in is the sign-in your browser already holds. That is a real \
-    trade-off and you should make it knowingly.
+    ESPN's own sign-in page opens next. You sign in to ESPN, then Omen reads your league.
     """
     static let consentTakesTitle = "What Omen takes"
     static let consentTakes = [

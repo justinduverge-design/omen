@@ -76,7 +76,9 @@ class EspnConnectFlowTest {
     /** The consent sentence is what App Review reads, on both stores. */
     @Test
     fun `consent copy names who the user signs in to and disclaims affiliation`() {
-        val copy = EspnHandoffCopy.CONSENT_BODY
+        // The screen is several constants now rather than one paragraph. The guarantees are
+        // about what the user reads, so this asserts against the whole screen's copy.
+        val copy = EspnHandoffCopy.CONSENT_ALL_COPY
 
         assertTrue(copy.contains("ESPN's own sign-in"))
         assertTrue(copy.contains("never sees your ESPN password"))
@@ -88,7 +90,14 @@ class EspnConnectFlowTest {
     @Test
     fun `espn copy never uses credential vocabulary`() {
         val surfaces = listOf(
-            EspnHandoffCopy.CONSENT_TITLE, EspnHandoffCopy.CONSENT_BODY,
+            EspnHandoffCopy.CONSENT_TITLE, EspnHandoffCopy.CONSENT_EYEBROW,
+            EspnHandoffCopy.CONSENT_LEAD, EspnHandoffCopy.CONSENT_FOOTER,
+            EspnHandoffCopy.CONSENT_TAKES_TITLE, EspnHandoffCopy.CONSENT_NEVER_TITLE,
+            EspnHandoffCopy.CONSENT_DECLINE,
+            // The consent screen became two itemised lists; a guardrail that only checked the
+            // old paragraph would have stopped covering the sentences most likely to name one.
+            *EspnHandoffCopy.CONSENT_TAKES.toTypedArray(),
+            *EspnHandoffCopy.CONSENT_NEVER.toTypedArray(),
             EspnHandoffCopy.CONSENT_CONTINUE, EspnHandoffCopy.SIGN_IN_WAITING,
             EspnHandoffCopy.SIGN_IN_READY, EspnHandoffCopy.SIGN_IN_CONNECT,
             EspnHandoffCopy.NO_LEAGUES_FOUND, EspnHandoffCopy.DISCOVERY_UNAVAILABLE,
